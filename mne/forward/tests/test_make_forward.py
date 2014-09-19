@@ -19,7 +19,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  convert_forward_solution, setup_volume_source_space,
                  read_source_spaces)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
-                       run_tests_if_main, travis_skip)
+                       run_tests_if_main)
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces)
@@ -250,7 +250,6 @@ def test_do_forward_solution():
     # done in previous tests.
 
 
-@travis_skip  # requires far too much memory
 @requires_nibabel(False)
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space
@@ -264,10 +263,12 @@ def test_forward_mixed_source_space():
                   for _ in range(2)]
     vol1 = setup_volume_source_space('sample', fname=None, pos=20.,
                                      mri=fname_aseg,
-                                     volume_label=vol_labels[0])
+                                     volume_label=vol_labels[0],
+                                     add_interpolator=False)
     vol2 = setup_volume_source_space('sample', fname=None, pos=20.,
                                      mri=fname_aseg,
-                                     volume_label=vol_labels[1])
+                                     volume_label=vol_labels[1],
+                                     add_interpolator=False)
 
     # merge surfaces and volume
     src = surf + vol1 + vol2

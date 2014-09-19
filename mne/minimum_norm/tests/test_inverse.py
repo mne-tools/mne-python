@@ -22,7 +22,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir, run_tests_if_main, travis_skip
+from mne.utils import _TempDir, run_tests_if_main
 from mne.externals import six
 
 s_path = op.join(testing.data_path(), 'MEG', 'sample')
@@ -295,13 +295,12 @@ def test_make_inverse_operator_diag():
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 
-@travis_skip  # way too much memory
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """
     evoked = _get_evoked()
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    _compare_io(inverse_operator_vol)
+    inverse_operator_vol['interpolator'] = None  # To (maybe) save memory
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
     assert_true(isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs

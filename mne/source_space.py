@@ -112,7 +112,7 @@ class SourceSpaces(list):
     @verbose
     def export_volume(self, fname, include_surfaces=True,
                       include_discrete=True, dest='mri', trans=None,
-                      mri_resolution=False, use_lut=True):
+                      mri_resolution=False, use_lut=True, verbose=None):
         """Exports source spaces to nifti or mgz file
 
         Parameters
@@ -141,6 +141,8 @@ class SourceSpaces(list):
         use_lut : bool
             If True, assigns a numeric value to each source space that
             corresponds to a color on the freesurfer lookup table.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Notes
         -----
@@ -1336,7 +1338,8 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                               sphere=(0.0, 0.0, 0.0, 90.0), bem=None,
                               surface=None, mindist=5.0, exclude=0.0,
                               overwrite=False, subjects_dir=None,
-                              volume_label=None, verbose=None):
+                              volume_label=None, add_interpolator=True,
+                              verbose=None):
     """Setup a volume source space with grid spacing or discrete source space
 
     Parameters
@@ -1380,6 +1383,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         Path to SUBJECTS_DIR if it is not set in the environment.
     volume_label : str | None
         Region of interest corresponding with freesurfer lookup table.
+    add_interpolator : bool
+        If True and ``mri`` is not None, then an interpolation matrix
+        will be produced.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1523,7 +1529,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
-        _add_interpolator(sp, mri)
+        _add_interpolator(sp, mri, add_interpolator)
 
     if 'vol_dims' in sp:
         del sp['vol_dims']
@@ -1848,7 +1854,7 @@ def _get_mgz_header(fname):
     return header
 
 
-def _add_interpolator(s, mri_name):
+def _add_interpolator(s, mri_name, add_interpolator):
     """Compute a sparse matrix to interpolate the data into an MRI volume"""
     # extract transformation information from mri
     logger.info('Reading %s...' % mri_name)
@@ -1865,6 +1871,11 @@ def _add_interpolator(s, mri_name):
     trans[:3, 3] /= 1000.0
     s['mri_ras_t'] = {'trans': trans, 'from': FIFF.FIFFV_COORD_MRI,
                       'to': FIFF.FIFFV_MNE_COORD_RAS}  # ras
+    s['mri_volume_name'] = mri_name
+    nvox = mri_width * mri_height * mri_depth
+    if not add_interpolator:
+        s['interpolator'] = sparse.csr_matrix((nvox, s['np']))
+        return
 
     _print_coord_trans(s['src_mri_t'], 'Source space : ')
     _print_coord_trans(s['vox_mri_t'], 'MRI volume : ')
@@ -1901,7 +1912,8 @@ def _add_interpolator(s, mri_name):
     # (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's really a subset
     # of the entire volume!)
     r0 = apply_trans(combo_trans['trans'], r0)
-    rn = np.floor(r0).astype(int)
+    assert r0.dtype == np.float32, r0.dtype
+    rn = np.floor(r0).astype(np.int32)
     maxs = (s['vol_dims'] - 1)[np.newaxis, :]
     good = np.logical_and(np.all(rn >= 0, axis=1), np.all(rn < maxs, axis=1))
     rn = rn[good]
@@ -1913,18 +1925,21 @@ def _add_interpolator(s, mri_name):
     jj = rn[:, 0]
     kk = rn[:, 1]
     pp = rn[:, 2]
-    vss = np.empty((8, len(jj)), int)
+    vss = np.empty((8, len(jj)), np.int32)
     width = s['vol_dims'][0]
     height = s['vol_dims'][1]
+    jjp1 = jj + 1
+    kkp1 = kk + 1
+    ppp1 = pp + 1
     vss[0, :] = _vol_vertex(width, height, jj, kk, pp)
-    vss[1, :] = _vol_vertex(width, height, jj + 1, kk, pp)
-    vss[2, :] = _vol_vertex(width, height, jj + 1, kk + 1, pp)
-    vss[3, :] = _vol_vertex(width, height, jj, kk + 1, pp)
-    vss[4, :] = _vol_vertex(width, height, jj, kk, pp + 1)
-    vss[5, :] = _vol_vertex(width, height, jj + 1, kk, pp + 1)
-    vss[6, :] = _vol_vertex(width, height, jj + 1, kk + 1, pp + 1)
-    vss[7, :] = _vol_vertex(width, height, jj, kk + 1, pp + 1)
-    del jj, kk, pp
+    vss[1, :] = _vol_vertex(width, height, jjp1, kk, pp)
+    vss[2, :] = _vol_vertex(width, height, jjp1, kkp1, pp)
+    vss[3, :] = _vol_vertex(width, height, jj, kkp1, pp)
+    vss[4, :] = _vol_vertex(width, height, jj, kk, ppp1)
+    vss[5, :] = _vol_vertex(width, height, jjp1, kk, ppp1)
+    vss[6, :] = _vol_vertex(width, height, jjp1, kkp1, ppp1)
+    vss[7, :] = _vol_vertex(width, height, jj, kkp1, ppp1)
+    del jj, kk, pp, jjp1, kkp1, ppp1
     uses = np.any(s['inuse'][vss], axis=0)
 
     verts = vss[:, uses].ravel()  # vertex (col) numbers in csr matrix
@@ -1951,10 +1966,8 @@ def _add_interpolator(s, mri_name):
 
     # Compose the sparse matrix
     ij = (row_idx, verts)
-    nvox = mri_width * mri_height * mri_depth
     interp = sparse.csr_matrix((weights, ij), shape=(nvox, s['np']))
     s['interpolator'] = interp
-    s['mri_volume_name'] = mri_name
     logger.info(' %d/%d nonzero values [done]' % (len(weights), nvox))
 
 
@@ -2224,6 +2237,8 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     """
     from nose.tools import assert_equal, assert_true
     from numpy.testing import assert_allclose, assert_array_equal
+    if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
+        raise RuntimeError('unknown mode %s' % mode)
 
     for s0, s1 in zip(src0, src1):
         for name in ['nuse', 'ntri', 'np', 'type', 'id']:
@@ -2234,7 +2249,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
         for name in ['interpolator']:
             if name in s0 or name in s1:
                 diffs = (s0['interpolator'] - s1['interpolator']).data
-                if len(diffs) > 0:
+                if len(diffs) > 0 and 'nointerp' not in mode:
                     # 5%
                     assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05, name)
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
@@ -2243,11 +2258,9 @@ def _compare_source_spaces(src0, src1, mode='exact'):
             else:
                 if mode == 'exact':
                     assert_array_equal(s0[name], s1[name], name)
-                elif mode == 'approx':
+                else:  # 'approx' in mode
                     assert_allclose(s0[name], s1[name], rtol=1e-3, atol=1e-4,
                                     err_msg=name)
-                else:
-                    raise RuntimeError('unknown mode')
         for name in ['seg_name']:
             if name in s0 or name in s1:
                 assert_equal(s0[name], s1[name], name)
@@ -2272,7 +2285,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                     assert_true(len(s0[name]) == len(s1[name]))
                     for p1, p2 in zip(s0[name], s1[name]):
                         assert_true(all(p1 == p2))
-        elif mode == 'approx':
+        else:  # 'approx' in mode:
             # deal with vertno, inuse, and use_tris carefully
             assert_array_equal(s0['vertno'], np.where(s0['inuse'])[0])
             assert_array_equal(s1['vertno'], np.where(s1['inuse'])[0])
@@ -2296,7 +2309,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     for name in ['working_dir', 'command_line']:
         if mode == 'exact':
             assert_equal(src0.info[name], src1.info[name])
-        elif mode == 'approx':
+        else:  # 'approx' in mode:
             if name in src0.info:
                 assert_true(name in src1.info, name)
             else:

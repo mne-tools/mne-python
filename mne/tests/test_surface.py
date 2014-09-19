@@ -11,7 +11,7 @@ from mne import (read_bem_surfaces, write_bem_surface, read_surface,
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf,
                          get_meg_helmet_surf)
-from mne.utils import _TempDir, requires_tvtk, travis_skip
+from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
@@ -81,7 +81,6 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
-@travis_skip
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
@@ -135,3 +134,6 @@ def test_decimate_surface():
     nirvana = 5
     tris = np.array([[0, 1, 2], [1, 2, 3], [0, 3, 1], [1, 2, nirvana]])
     assert_raises(ValueError, decimate_surface, points, tris, n_tri)
+
+
+run_tests_if_main()
