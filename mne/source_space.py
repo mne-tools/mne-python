@@ -620,6 +620,21 @@ def _read_one_source_space(fid, this, verbose=None):
         if tag is not None:
             res['mri_depth'] = int(tag.data)
 
+        tag = find_tag(fid, mri, FIFF.FIFF_MNE_FILE_NAME)
+        if tag is not None:
+            res['mri_volume_name'] = tag.data
+
+        tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NNEIGHBORS)
+        if tag is not None:
+            nneighbors = tag.data
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NEIGHBORS)
+            offset = 0
+            neighbors = []
+            for n in nneighbors:
+                neighbors.append(tag.data[offset:offset+n])
+                offset += n
+            res['neighbor_vert'] = neighbors
+
         tag = find_tag(fid, this, FIFF.FIFF_COMMENT)
         if tag is not None:
             res['seg_name'] = tag.data
