@@ -22,8 +22,8 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir
-from ...externals import six
+from mne.utils import _TempDir, run_tests_if_main
+from mne.externals import six
 
 s_path = op.join(testing.data_path(), 'MEG', 'sample')
 fname_fwd_meeg = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
@@ -481,3 +481,6 @@ def test_make_inverse_operator_bads():
 
     assert_true(len(set(inv_['info']['ch_names']) - union_good) == 0)
     assert_true(len(set(inv_['info']['bads']) - union_bads) == 0)
+
+
+run_tests_if_main()

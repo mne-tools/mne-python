@@ -12,7 +12,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
                        _check_type_picks, object_hash, object_diff,
-                       requires_good_network)
+                       requires_good_network, run_tests_if_main)
 from mne.io import show_fiff
 from mne import Evoked
 
@@ -316,3 +316,6 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
+
+
+run_tests_if_main()

@@ -7,6 +7,7 @@ from __future__ import print_function
 
 import warnings
 import logging
+import time
 from distutils.version import LooseVersion
 import os
 import os.path as op
@@ -36,6 +37,18 @@ from .externals.decorator import decorator
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
+
+
+try:
+    from nose.tools import nottest
+except ImportError:
+    class nottest(object):
+        def __init__(self, *args):
+            pass  # Avoid "object() takes no parameters"
+try:
+    from memory_profiler import memory_usage
+except ImportError:
+    memory_usage = lambda: [0]
 
 
 ###############################################################################
@@ -1688,3 +1701,39 @@ def _check_type_picks(picks):
     else:
         raise ValueError(err_msg)
     return picks
+
+
+@nottest
+def run_tests_if_main():
+    """Run tests in a given file if it is run as a script"""
+    local_vars = inspect.currentframe().f_back.f_locals
+    if not local_vars.get('__name__', '') == '__main__':
+        return
+    # we are in a "__main__"
+    try:
+        import faulthandler
+        faulthandler.enable()
+    except Exception:
+        pass
+    import __main__
+    for name in sorted(dir(__main__), key=lambda x: x.lower()):
+        val = getattr(__main__, name)
+        if name.startswith('_'):
+            continue
+        elif callable(val) and name.startswith('test'):
+            doc = val.__doc__.strip()
+            doc = name if not val.__doc__ else doc
+            print('%s ... ' % doc, end='')
+            sys.stdout.flush()
+            try:
+                t0 = time.time()
+                mem = round(max(memory_usage((val, (), {}))))
+                elapsed = round(time.time() - t0)
+                print('time: %s sec, mem: %s MB' % (elapsed, mem))
+                sys.stdout.flush()
+            except Exception as err:
+                if 'skiptest' in err.__class__.__name__.lower():
+                    print('SKIP')
+                    sys.stdout.flush()
+                else:
+                    raise
