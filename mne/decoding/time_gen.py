@@ -106,9 +106,9 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
 
     cv = check_cv(cv, X, y, classifier=True)
 
-    ch_types = set([channel_type(info, idx) for idx in data_picks])
+    ch_types = set(channel_type(info, idx) for idx in data_picks)
     logger.info('Running time generalization on %s epochs using %s.' %
-                (len(X), ch_types.pop()))
+                (len(X), ' and '.join(ch_types)))
 
     if shuffle:
         rng = check_random_state(random_state)
