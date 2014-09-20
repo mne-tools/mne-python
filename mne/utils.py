@@ -1708,7 +1708,7 @@ def _check_type_picks(picks):
 
 
 @nottest
-def run_tests_if_main():
+def run_tests_if_main(measure_mem=True):
     """Run tests in a given file if it is run as a script"""
     local_vars = inspect.currentframe().f_back.f_locals
     if not local_vars.get('__name__', '') == '__main__':
@@ -1719,16 +1719,15 @@ def run_tests_if_main():
         faulthandler.enable()
     except Exception:
         pass
-    import __main__
-    mem = int(round(memory_usage(-1, max_usage=True)))
+    mem = int(round(memory_usage(-1, max_usage=True))) if measure_mem else -1
     if mem >= 0:
         print('Memory consumption after import: %s' % mem)
     t0 = time.time()
     peak_mem, peak_name = mem, 'import'
     max_elapsed, elapsed_name = 0, 'N/A'
     count = 0
-    for name in sorted(dir(__main__), key=lambda x: x.lower()):
-        val = getattr(__main__, name)
+    for name in sorted(list(local_vars.keys()), key=lambda x: x.lower()):
+        val = local_vars[name]
         if name.startswith('_'):
             continue
         elif callable(val) and name.startswith('test'):
@@ -1738,10 +1737,14 @@ def run_tests_if_main():
             sys.stdout.flush()
             try:
                 t1 = time.time()
-                mem = int(round(memory_usage((val, (), {}), max_usage=True)))
+                if measure_mem:
+                    mem = int(round(max(memory_usage((val, (), {})))))
+                else:
+                    val()
+                    mem = -1
                 if mem >= peak_mem:
                     peak_mem, peak_name = mem, name
-                mem = ', mem: %s MB' % mem if mem >= 0 else ''
+                mem = (', mem: %s MB' % mem) if mem >= 0 else ''
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name

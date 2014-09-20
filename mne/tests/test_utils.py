@@ -33,6 +33,29 @@ def clean_lines(lines):
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
 
 
+def test_run_tests_if_main():
+    """Test run_tests_if_main functionality"""
+    x = []
+
+    def test_a():
+        x.append(True)
+
+    def test_b():
+        raise RuntimeError
+
+    try:
+        __name__ = '__main__'
+        run_tests_if_main(measure_mem=False)  # dual meas causes problems
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('Error not raised')
+    finally:
+        del __name__
+    assert_true(len(x) == 1)
+    assert_true(x[0])
+
+
 def test_hash():
     """Test dictionary hashing and comparison functions"""
     # does hashing all of these types work:
