@@ -62,11 +62,12 @@ install:
     # Trigger download of testing data
     - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
+    # Let's change MNE_DIR to actually end in */mne-python/mne so that
+    # coveralls understands our file locations properly
     - echo $MNE_DIR
-    # Let's change MNE_DIR to actually end in */mne so that coveralls
-    # understands our file locations properly
-    - cd $MNE_DIR/../../
-    - ln -s $MNE_DIR/../ mne-python
+    - MV_DIR=${ls -d $MNE_DIR/../../mne-*.egg)
+    - cd $MNE_DIR/../..
+    - mv $MV_DIR mne-python
     - MNE_DIR=$PWD/mne-python/mne
     - echo $MNE_DIR
     # Now link the data directories that don't get installed
