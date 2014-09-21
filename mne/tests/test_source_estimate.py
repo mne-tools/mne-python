@@ -242,6 +242,7 @@ def test_stc_methods():
     stc = read_source_estimate(fname_stc)
     label = read_labels_from_annot('sample', 'aparc', 'lh',
                                    subjects_dir=subjects_dir)[0]
+    assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
     stc_label = stc.in_label(label)
     n_vertices_used = len(label.get_vertices_used(stc_label.vertno[0]))
     assert_equal(len(stc_label.data), n_vertices_used)

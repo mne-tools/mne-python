@@ -1,6 +1,5 @@
 import os
 import os.path as op
-from ..externals.six.moves import cPickle as pickle
 import shutil
 import glob
 import warnings
@@ -18,13 +17,14 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
 from mne.utils import (requires_mne, run_subprocess, _TempDir,
-                       requires_sklearn, get_subjects_dir)
+                       requires_sklearn, get_subjects_dir, run_tests_if_main)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
 from mne import spatial_tris_connectivity, read_surface
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
 from mne.externals.six import string_types
+from mne.externals.six.moves import cPickle as pickle
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -672,3 +672,6 @@ def test_label_time_course():
     label_bh = label_rh + label_lh
     stc_bh = stc.in_label(label_bh)
     assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
+
+
+run_tests_if_main()
