@@ -212,6 +212,8 @@ def test_volume_source_space():
     del src_new
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
+    del src
+    del src_new
 
     # let's try the spherical one (no bem or surf supplied)
     run_subprocess(['mne_volume_source_space',
@@ -224,6 +226,8 @@ def test_volume_source_space():
                                         subjects_dir=subjects_dir,
                                         add_interpolator=False)
     _compare_source_spaces(src, src_new, mode='approx;nointerp')
+    del src
+    del src_new
 
     # now without MRI argument, it should give an error when we try
     # to read it

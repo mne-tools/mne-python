@@ -622,8 +622,7 @@ def test_grow_labels():
     should_be_in = [[49, 227], [51207, 48794]]
     hemis = [0, 1]
     names = ['aneurism', 'tumor']
-    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, n_jobs=2,
-                         names=names)
+    labels = grow_labels('sample', seeds, 3, hemis, subjects_dir, names=names)
 
     tgt_names = ['aneurism-lh', 'tumor-rh']
     tgt_hemis = ['lh', 'rh']

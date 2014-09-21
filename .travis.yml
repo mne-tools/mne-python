@@ -62,6 +62,14 @@ install:
     # Trigger download of testing data
     - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
+    - echo $MNE_DIR
+    # Let's change MNE_DIR to actually end in */mne so that coveralls
+    # understands our file locations properly
+    - cd $MNE_DIR/..
+    - ln -s $MNE_DIR mne
+    - MNE_DIR=$PWD/mne
+    - echo $MNE_DIR
+    # Now link the data directories that don't get installed
     - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
     - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
     - ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
