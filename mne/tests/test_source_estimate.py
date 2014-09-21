@@ -21,7 +21,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_pytables, run_tests_if_main)
+                       requires_pytables, run_tests_if_main, travis_skip)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -45,6 +45,7 @@ fname_vsrc = op.join(data_path, 'MEG', 'sample',
 tempdir = _TempDir()
 
 
+@travis_skip
 def test_volume_stc():
     """Test volume STCs
     """

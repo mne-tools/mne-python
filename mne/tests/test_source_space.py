@@ -15,7 +15,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
-                       run_tests_if_main)
+                       run_tests_if_main, travis_skip)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -198,6 +198,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
+@travis_skip
 @requires_mne
 def test_volume_source_space():
     """Test setting up volume source spaces
