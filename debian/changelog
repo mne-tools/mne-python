@@ -1,4 +1,4 @@
-python-mne (0.8.2+dfsg-1) UNRELEASED; urgency=low
+python-mne (0.8.3+dfsg-1) UNRELEASED; urgency=low
 
   [ Alexandre Gramfort ]
   * New upstream version.
@@ -13,7 +13,7 @@ python-mne (0.8.2+dfsg-1) UNRELEASED; urgency=low
   * debian/copyright
     - updated to note MIT license for bootstrap 3.0
 
- -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 21 Sep 2014 19:37:18 +0200
+ -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 21 Sep 2014 23:52:26 +0200
 
 python-mne (0.7.3-1) unstable; urgency=low
 
