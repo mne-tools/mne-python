@@ -65,7 +65,7 @@ install:
     # Let's change MNE_DIR to actually end in */mne-python/mne so that
     # coveralls understands our file locations properly
     - echo $MNE_DIR
-    - MV_DIR=${ls -d $MNE_DIR/../../mne-*.egg)
+    - MV_DIR=`ls -d $MNE_DIR/../../mne-*.egg`
     - cd $MNE_DIR/../..
     - mv $MV_DIR mne-python
     - MNE_DIR=$PWD/mne-python/mne
