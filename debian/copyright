@@ -46,6 +46,10 @@ Files: mne/externals/tempita/*
 Copyright: 2008 Ian Bicking and Contributors
 License: MIT
 
+Files: debian/JS/bootstrap
+Copyright: 2011-2014 Twitter, Inc.
+License: MIT
+
 Files: mne/html/bootstrap*
 Copyright: 2013 Twitter, Inc.
 License: Apache

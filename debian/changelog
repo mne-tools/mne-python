@@ -2,13 +2,18 @@ python-mne (0.8.2+dfsg-1) UNRELEASED; urgency=low
 
   [ Alexandre Gramfort ]
   * New upstream version.
-  * Skip tests needing network access
-    Closes: #759916
+  * Skip tests needing network access (Closes: #759916)
+  * Regenerate compressed bootstrap 3.0, added build-depends on
+    yui-compressor
 
   [ Andreas Tille ]
   * Strip compressed JS files from upstream source
 
- -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Fri, 01 Aug 2014 23:01:26 +0000
+  [ Yaroslav Halchenko ]
+  * debian/copyright
+    - updated to note MIT license for bootstrap 3.0
+
+ -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 21 Sep 2014 19:37:18 +0200
 
 python-mne (0.7.3-1) unstable; urgency=low
 

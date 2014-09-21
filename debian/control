@@ -20,7 +20,8 @@ Build-Depends: debhelper (>= 9),
                xvfb,
                xauth,
                libgl1-mesa-dri,
-               python-coverage
+               python-coverage,
+               yui-compressor,
 Standards-Version: 3.9.5
 Vcs-Browser: http://anonscm.debian.org/gitweb/?p=debian-med/python-mne.git
 Vcs-Git: git://anonscm.debian.org/debian-med/python-mne.git
