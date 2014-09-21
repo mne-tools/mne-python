@@ -83,6 +83,7 @@ def test_add_patch_info():
             assert_array_equal(p1, p2)
 
 
+@travis_skip
 @requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""

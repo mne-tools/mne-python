@@ -58,26 +58,8 @@ install:
     - myscripts='browse_raw bti2fiff surf2bem'
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
-    - cd ~
     # Trigger download of testing data
     - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
-    - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
-    # Now move the data directories that don't get installed
-    - mv ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
-    - mv ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
-    - mv ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
-    - mv ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data
-    - mv ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data
-    - mv ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data
-    - mv ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
-    - mv ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
-    # Finally, move the installed version to the source directory so that
-    # coveralls understands our file locations properly
-    # We don't want to just run from the source dir b/c that wouldn't test
-    # our file inclusion in setup.py
-    - cd $SRC_DIR
-    - rm -Rf mne
-    - mv $MNE_DIR .
 
 script:
     - nosetests --with-timer --timer-top-n 30 --verbosity=2;
