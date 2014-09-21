@@ -92,10 +92,11 @@ def equalize_channels(candidates, verbose=None):
     from .io.base import _BaseRaw
     from .epochs import Epochs
     from .evoked import Evoked
+    from .time_frequency import AverageTFR
 
-    if not all([isinstance(c, (_BaseRaw, Epochs, Evoked))
+    if not all([isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
                 for c in candidates]):
-        valid = ['Raw', 'Epochs', 'Evoked']
+        valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
 
     chan_max_idx = np.argmax([c.info['nchan'] for c in candidates])
@@ -175,6 +176,8 @@ class PickDropChannelsMixin(object):
         from .io.base import _BaseRaw
         from .epochs import Epochs
         from .evoked import Evoked
+        from .time_frequency import AverageTFR
+
         if isinstance(self, _BaseRaw):
             if not self.preload:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
@@ -197,6 +200,8 @@ class PickDropChannelsMixin(object):
             self._data = self._data[idx, :]
         elif isinstance(self, Epochs) and inst_has('_data'):
             self._data = self._data[:, idx, :]
+        elif isinstance(self, AverageTFR) and inst_has('data'):
+            self.data = self.data[idx, :, :]
         elif isinstance(self, Evoked):
             self.data = self.data[idx, :]
 
