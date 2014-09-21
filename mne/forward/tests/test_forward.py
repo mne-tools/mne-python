@@ -56,8 +56,7 @@ def test_convert_forward():
     """Test converting forward solution between different representations
     """
     fwd = read_forward_solution(fname_meeg)
-    x = repr(fwd)
-    assert x
+    assert_true(repr(fwd))
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
@@ -65,23 +64,20 @@ def test_convert_forward():
     compare_forwards(fwd_surf, fwd_surf_io)
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
-    x = repr(fwd_new)
-    assert x
+    assert_true(repr(fwd_new))
     assert_true(isinstance(fwd, Forward))
     compare_forwards(fwd, fwd_new)
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
                                          force_fixed=True)
-    x = repr(fwd_fixed)
-    assert x
+    assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
     fwd_fixed_io = read_forward_solution(fname_meeg, surf_ori=False,
                                          force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed)
-    x = repr(fwd_new)
-    assert x
+    assert_true(repr(fwd_new))
     assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
 
@@ -90,31 +86,31 @@ def test_io_forward():
     """Test IO for forward solutions
     """
     # do extensive tests with MEEG
-    n_sen, n_src = 366, 1494
+    n_channels, n_src = 366, 1494
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
     fwd = read_forward_solution(fname_meeg, surf_ori=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (n_sen, n_src))
-    assert_equal(len(fwd['sol']['row_names']), n_sen)
+    assert_equal(leadfield.shape, (n_channels, n_src))
+    assert_equal(len(fwd['sol']['row_names']), n_channels)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
     fwd = read_forward_solution(fname_meeg, surf_ori=True)
     fwd_read = read_forward_solution(fname_temp, surf_ori=True)
     leadfield = fwd_read['sol']['data']
-    assert_equal(leadfield.shape, (n_sen, n_src))
-    assert_equal(len(fwd_read['sol']['row_names']), n_sen)
-    assert_equal(len(fwd_read['info']['chs']), n_sen)
+    assert_equal(leadfield.shape, (n_channels, n_src))
+    assert_equal(len(fwd_read['sol']['row_names']), n_channels)
+    assert_equal(len(fwd_read['info']['chs']), n_channels)
     assert_true('dev_head_t' in fwd_read['info'])
     assert_true('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
     fwd = read_forward_solution(fname_meeg, force_fixed=True)
     leadfield = fwd['sol']['data']
-    assert_equal(leadfield.shape, (n_sen, n_src / 3))
-    assert_equal(len(fwd['sol']['row_names']), n_sen)
-    assert_equal(len(fwd['info']['chs']), n_sen)
+    assert_equal(leadfield.shape, (n_channels, n_src / 3))
+    assert_equal(len(fwd['sol']['row_names']), n_channels)
+    assert_equal(len(fwd['info']['chs']), n_channels)
     assert_true('dev_head_t' in fwd['info'])
     assert_true('mri_head_t' in fwd)
     assert_true(fwd['surf_ori'])

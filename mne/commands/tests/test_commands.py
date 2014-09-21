@@ -11,7 +11,8 @@ from mne.utils import run_tests_if_main
 from mne.externals.six.moves import StringIO
 
 
-class argvr(object):
+class ArgvSetter(object):
+    """Temporarily set sys.argv"""
     def __init__(self, *args):
         self.argv = list(('python',) + args)
         self.stdout = StringIO()
@@ -34,7 +35,7 @@ class argvr(object):
 
 def check_usage(module):
     """Helper to ensure we print usage"""
-    with argvr() as a:
+    with ArgvSetter() as a:
         module.run()
         assert_true('Usage: ' in a.stdout.getvalue())
 

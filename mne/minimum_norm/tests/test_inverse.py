@@ -318,7 +318,7 @@ def test_io_inverse_operator():
     """
     inverse_operator = read_inverse_operator(fname_inv)
     x = repr(inverse_operator)
-    assert x
+    assert_true(x)
     # just do one example for .gz, as it should generalize
     _compare_io(inverse_operator, '.gz')
 
