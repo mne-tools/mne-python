@@ -65,9 +65,9 @@ install:
     - echo $MNE_DIR
     # Let's change MNE_DIR to actually end in */mne so that coveralls
     # understands our file locations properly
-    - cd $MNE_DIR/..
-    - ln -s $MNE_DIR mne
-    - MNE_DIR=$PWD/mne
+    - cd $MNE_DIR/../../
+    - ln -s $MNE_DIR/../ mne-python
+    - MNE_DIR=$PWD/mne-python/mne
     - echo $MNE_DIR
     # Now link the data directories that don't get installed
     - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
