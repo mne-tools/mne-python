@@ -10,8 +10,8 @@ override_dh_clean:
 	rm -rf *.egg-info
 	dh_clean
 
-override_dh_auto_install:
-	dh_auto_install
+override_dh_auto_build:
+	dh_auto_build
 	yui-compressor debian/JS/bootstrap/bootstrap.js > $(CURDIR)/mne/html/bootstrap.min.js
 
 override_dh_auto_test:
