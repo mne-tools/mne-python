@@ -10,12 +10,14 @@ import os
 import os.path as op
 import fnmatch
 import re
-import numpy as np
+import codecs
 import time
 from glob import glob
 import warnings
 import base64
 from datetime import datetime as dt
+
+import numpy as np
 
 from . import read_evokeds, read_events, pick_types, Covariance
 from .io import Raw, read_info
@@ -995,8 +997,8 @@ class Report(object):
 
         if overwrite or not op.isfile(fname):
             logger.info('Saving report to location %s' % fname)
-            fobj = open(fname, 'w')
-            fobj.write(_fix_global_ids(''.join(self.html)))
+            fobj = codecs.open(fname, 'w', 'utf-8')
+            fobj.write(_fix_global_ids(u''.join(self.html)))
             fobj.close()
 
             # remove header, TOC and footer to allow more saves
