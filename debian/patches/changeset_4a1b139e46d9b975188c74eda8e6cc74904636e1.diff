@@ -1,0 +1,15 @@
+From: Yaroslav Halchenko <debian@onerussian.com>
+Subject: BF: explicitly encode to UTF8 when saving report to a file
+  Otherwise, if it ended up being a unicode, saving might fail
+
+--- a/mne/report.py
++++ b/mne/report.py
+@@ -832,7 +832,7 @@ class Report(object):
+         if overwrite or not op.isfile(fname):
+             logger.info('Saving report to location %s' % fname)
+             fobj = open(fname, 'w')
+-            fobj.write(_fix_global_ids(''.join(self.html)))
++            fobj.write(_fix_global_ids(''.join(self.html)).encode('utf8'))
+             fobj.close()
+ 
+             # remove header, TOC and footer to allow more saves
