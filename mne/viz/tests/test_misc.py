@@ -19,7 +19,7 @@ from mne.datasets import testing
 
 from mne.viz import plot_cov, plot_bem, plot_events
 from mne.viz import plot_source_spectrogram
-from mne.utils import requires_nibabel
+from mne.utils import requires_nibabel, run_tests_if_main
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -65,7 +65,7 @@ def test_plot_bem():
     assert_raises(ValueError, plot_bem, subject='sample',
                   subjects_dir=subjects_dir, orientation='bad-ori')
     plot_bem(subject='sample', subjects_dir=subjects_dir,
-             orientation='sagittal', slices=[50, 100])
+             orientation='sagittal', slices=[25, 50])
 
 
 def test_plot_events():
@@ -112,3 +112,6 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmin=0)
     assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
+
+
+run_tests_if_main()
