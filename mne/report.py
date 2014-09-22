@@ -106,7 +106,7 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     output = BytesIO()
     fig.savefig(output, bbox_inches='tight',
                 pad_inches=0, format='png')
-    return output.getvalue().encode('base64')
+    return base64.b64encode(output.getvalue()).decode('ascii')
 
 
 @_check_report_mode
@@ -289,7 +289,7 @@ def _build_image(data, cmap='gray'):
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
     fig.savefig(output, dpi=1.0, format='png')
-    return output.getvalue().encode('base64')
+    return base64.b64encode(output.getvalue()).decode('ascii')
 
 
 def _iterate_sagittal_slices(array, limits=None):
@@ -402,7 +402,7 @@ slider_template = HTMLTemplate(u"""
 def _build_html_slider(slices_range, slides_klass, slider_id):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = (slices_range[0] + slices_range[-1]) / 2 + 1
+    startvalue = (slices_range[0] + slices_range[-1]) // 2 + 1
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       minvalue=slices_range[0],
