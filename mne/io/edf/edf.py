@@ -595,8 +595,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         chan_info['cal'] = cal
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
-        chan_info['range'] = physical_range
-        chan_info['unit_mul'] = unit_mul
+        chan_info['range'] = physical_range * (10 ** unit_mul)
+        chan_info['unit_mul'] = 0.
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
