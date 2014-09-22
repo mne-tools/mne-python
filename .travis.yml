@@ -93,13 +93,7 @@ install:
       fi;
 
 script:
-    # Ensure the "nodata" test does not access the internet
-    # (necessary to have MNE_SKIP_NETWORK_TESTS=1 above)
-    - if [ "${DEPS}" == "nodata" ]; then
-        sudo unshare -n -- nosetests --with-timer --timer-top-n 30 --verbosity=2;
-      else
-        nosetests --with-timer --timer-top-n 30 --verbosity=2;
-      fi;
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2
 
 after_success:
     # Need to run from source dir to exectue "git" commands
