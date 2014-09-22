@@ -17,7 +17,7 @@ from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.utils import run_tests_if_main
 
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 # NOTE: These use the ave and cov from sample dataset (no _trunc)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
@@ -27,6 +27,7 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
+@testing.requires_testing_data
 def test_mxne_inverse():
     """Test (TF-)MxNE inverse computation"""
     # Handling forward solution

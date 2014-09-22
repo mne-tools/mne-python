@@ -14,7 +14,7 @@ from mne.externals.six import advance_iterator
 from mne.utils import run_tests_if_main
 
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
@@ -91,6 +91,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@testing.requires_testing_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials
     """
@@ -188,6 +189,7 @@ def test_lcmv():
     assert_array_almost_equal(stcs_label[0].data, stcs[0].in_label(label).data)
 
 
+@testing.requires_testing_data
 def test_lcmv_raw():
     """Test LCMV with raw data
     """
@@ -218,6 +220,7 @@ def test_lcmv_raw():
     assert_true(len(stc.vertno[1]) == 0)
 
 
+@testing.requires_testing_data
 def test_lcmv_source_power():
     """Test LCMV source power computation
     """
@@ -258,6 +261,7 @@ def test_lcmv_source_power():
                   noise_cov, data_cov, pick_ori="normal")
 
 
+@testing.requires_testing_data
 def test_tf_lcmv():
     """Test TF beamforming based on LCMV
     """

@@ -46,8 +46,8 @@ test: in
 	rm -f .coverage
 	$(NOSETESTS) mne
 
-test-no-sample: in
-	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+test-no-testing-data: in
+	@MNE_SKIP_TESTING_DATASET_TESTS=true \
 	$(NOSETESTS) mne
 
 

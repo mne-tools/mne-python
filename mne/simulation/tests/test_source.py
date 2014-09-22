@@ -10,7 +10,7 @@ from mne.label import Label
 from mne.simulation.source import generate_stc, generate_sparse_stc
 
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label_names = ['Aud-lh', 'Aud-rh', 'Vis-rh']
@@ -24,6 +24,7 @@ def read_forward_solution_meg(*args, **kwargs):
     return fwd
 
 
+@testing.requires_testing_data
 def test_generate_stc():
     """ Test generation of source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
@@ -82,6 +83,7 @@ def test_generate_stc():
         assert_array_almost_equal(stc.data[idx], res)
 
 
+@testing.requires_testing_data
 def test_generate_sparse_stc():
     """ Test generation of sparse source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
@@ -120,6 +122,7 @@ def test_generate_sparse_stc():
     assert_array_equal(stc_1.rh_vertno, stc_2.rh_vertno)
 
 
+@testing.requires_testing_data
 def test_generate_stc_single_hemi():
     """ Test generation of source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)
@@ -179,6 +182,7 @@ def test_generate_stc_single_hemi():
         assert_array_almost_equal(stc.data[idx], res)
 
 
+@testing.requires_testing_data
 def test_generate_sparse_stc_single_hemi():
     """ Test generation of sparse source estimate """
     fwd = read_forward_solution_meg(fname_fwd, force_fixed=True)

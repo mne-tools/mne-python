@@ -19,7 +19,7 @@ from mne import pick_types_evoked, pick_types_forward, read_evokeds
 
 warnings.simplefilter('always')
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -30,6 +30,7 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-cov.fif')
 
 
+@testing.requires_testing_data
 def test_simulate_evoked():
     """ Test simulation of evoked data """
 

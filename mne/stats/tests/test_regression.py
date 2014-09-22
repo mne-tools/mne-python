@@ -16,13 +16,14 @@ from mne import read_source_estimate
 from mne.datasets import testing
 from mne.stats.regression import linear_regression
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-lh.stc')
 raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
 
 
+@testing.requires_testing_data
 def test_regression():
     """Test Ordinary Least Squares Regression
     """

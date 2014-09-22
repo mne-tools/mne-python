@@ -31,7 +31,7 @@ from mne.viz import plot_evoked_topomap, plot_projs_topomap
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-data_dir = testing.data_path()
+data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
@@ -47,6 +47,7 @@ def _get_raw():
     return io.Raw(raw_fname, preload=False)
 
 
+@testing.requires_testing_data
 def test_plot_topomap():
     """Test topomap plotting
     """

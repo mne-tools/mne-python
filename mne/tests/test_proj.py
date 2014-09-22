@@ -27,7 +27,7 @@ proj_fname = op.join(base_dir, 'test-proj.fif')
 proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
-sample_path = op.join(testing.data_path(), 'MEG', 'sample')
+sample_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 sensmap_fname = op.join(sample_path,
                         'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
@@ -36,6 +36,7 @@ sensmap_fname = op.join(sample_path,
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
 
+@testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)

@@ -12,7 +12,7 @@ from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
 from mne.utils import _TempDir, requires_mne_fs_in_env, requires_traits
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
 bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
 raw_path = os.path.join(data_path, 'MEG', 'sample',
@@ -20,6 +20,7 @@ raw_path = os.path.join(data_path, 'MEG', 'sample',
 fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_bem_source():
     """Test BemSource"""
@@ -34,6 +35,7 @@ def test_bem_source():
     assert_equal(bem.tris.shape, (1280, 3))
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_fiducials_source():
     """Test FiducialsSource"""
@@ -51,6 +53,7 @@ def test_fiducials_source():
     assert_equal(fid.points, None)
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_raw_source():
     """Test RawSource"""
@@ -70,6 +73,7 @@ def test_raw_source():
     assert_allclose(raw.rpa, rpa)
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_subject_source():
     """Test SubjectSelector"""
@@ -81,6 +85,7 @@ def test_subject_source():
     mri.subject = 'sample'
 
 
+@testing.requires_testing_data
 @requires_traits
 @requires_mne_fs_in_env
 def test_subject_source_with_fsaverage():

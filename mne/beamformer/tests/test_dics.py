@@ -18,7 +18,7 @@ from mne.utils import run_tests_if_main
 # tests in a full nosetest:
 warnings.simplefilter("always")  # ensure we can verify expected warnings
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
@@ -85,6 +85,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@testing.requires_testing_data
 def test_dics():
     """Test DICS with evoked data and single trials
     """
@@ -156,6 +157,7 @@ def test_dics():
     assert_true(12 < np.max(max_stc) < 18.5)
 
 
+@testing.requires_testing_data
 def test_dics_source_power():
     """Test DICS source power computation
     """
@@ -220,6 +222,7 @@ def test_dics_source_power():
     assert len(w) == 1
 
 
+@testing.requires_testing_data
 def test_tf_dics():
     """Test TF beamforming based on DICS
     """

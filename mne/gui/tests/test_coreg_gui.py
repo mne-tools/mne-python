@@ -17,7 +17,7 @@ from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
 from mne.externals.six import string_types
 
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 raw_path = os.path.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
 fname_trans = os.path.join(data_path, 'MEG', 'sample',
@@ -27,6 +27,7 @@ subjects_dir = os.path.join(data_path, 'subjects')
 warnings.simplefilter('always')
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_coreg_model():
     """Test CoregModel"""
@@ -103,6 +104,7 @@ def test_coreg_model():
     model.load_trans(fname_trans)
 
 
+@testing.requires_testing_data
 @requires_traits
 @requires_mne_fs_in_env
 def test_coreg_model_with_fsaverage():

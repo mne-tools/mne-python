@@ -10,10 +10,11 @@ from nose.tools import assert_true, assert_false, assert_equal
 from mne.datasets import testing
 from mne.utils import _TempDir, requires_traits
 
-sample_path = testing.data_path()
+sample_path = testing.data_path(download=False)
 subjects_dir = os.path.join(sample_path, 'subjects')
 
 
+@testing.requires_testing_data
 @requires_traits
 def test_mri_model():
     """Test MRIHeadWithFiducialsModel Traits Model"""

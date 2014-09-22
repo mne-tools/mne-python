@@ -24,7 +24,7 @@ from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces)
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
@@ -76,6 +76,7 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                             rtol=1e-3, atol=1e-3)
 
 
+@testing.requires_testing_data
 @requires_mne
 def test_make_forward_solution_kit():
     """Test making fwd using KIT, BTI, and CTF (compensated) files
@@ -165,6 +166,7 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
+@testing.requires_testing_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
@@ -177,6 +179,7 @@ def test_make_forward_solution():
     _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
 
 
+@testing.requires_testing_data
 @requires_mne
 def test_do_forward_solution():
     """Test wrapping forward solution from python
@@ -248,6 +251,7 @@ def test_do_forward_solution():
     # done in previous tests.
 
 
+@testing.requires_testing_data
 @requires_nibabel(False)
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space

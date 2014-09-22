@@ -13,7 +13,7 @@ from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
 fname_eve = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc_raw-eve.fif')
@@ -21,6 +21,7 @@ fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
 
 
+@testing.requires_testing_data
 def test_get_mri_head_t():
     """Test converting '-trans.txt' to '-trans.fif'"""
     trans = read_trans(fname)
@@ -31,6 +32,7 @@ def test_get_mri_head_t():
     assert_allclose(trans['trans'], trans_2['trans'], rtol=1e-5, atol=1e-5)
 
 
+@testing.requires_testing_data
 def test_io_trans():
     """Test reading and writing of trans files
     """

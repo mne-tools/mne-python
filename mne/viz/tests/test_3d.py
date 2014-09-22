@@ -20,7 +20,7 @@ from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
-data_dir = testing.data_path()
+data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 trans_fname = op.join(data_dir, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
@@ -37,6 +37,7 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
 
+@testing.requires_testing_data
 @requires_pysurfer()
 @requires_mayavi()
 def test_plot_sparse_source_estimates():
@@ -73,6 +74,7 @@ def test_plot_sparse_source_estimates():
                                  opacity=0.5, high_resolution=False)
 
 
+@testing.requires_testing_data
 @requires_mayavi()
 def test_plot_evoked_field():
     """Test plotting evoked field
@@ -88,6 +90,7 @@ def test_plot_evoked_field():
         evoked.plot_field(maps, time=0.1)
 
 
+@testing.requires_testing_data
 @requires_mayavi()
 def test_plot_trans():
     """Test plotting of -trans.fif files

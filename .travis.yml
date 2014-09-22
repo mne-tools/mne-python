@@ -9,6 +9,7 @@ env:
     #               dependencies are supposed to be skipped
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=full TEST_LOCATION=install
+    - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
     - PYTHON=3.4 DEPS=full TEST_LOCATION=src
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
@@ -62,12 +63,16 @@ install:
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
-    # Trigger download of testing data
-    - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
-    # The testing dataset has been constructed to contain the necessary
+    # Trigger download of testing data. Note that
+    # the testing dataset has been constructed to contain the necessary
     # files to be act as a FREESURFER_HOME for the coreg tests
-    - if [ "${DEPS}" == "full" ]; then
-        export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+    - if [ "${DEPS}" != "nodata" ]; then
+        python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+        if [ "${DEPS}" == "full" ]; then
+          export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+        fi;
+      else
+        export MNE_SKIP_TESTING_DATASET_TESTS=true
       fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     # We run two versions: one out of the source directory (that makes

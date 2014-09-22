@@ -16,8 +16,8 @@ from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
                  read_labels_from_annot, write_labels_to_annot, split_label)
 from mne.label import Label, _blend_colors
-from mne.utils import (requires_mne, run_subprocess, _TempDir,
-                       requires_sklearn, get_subjects_dir, run_tests_if_main)
+from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
+                       run_tests_if_main)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
 from mne import spatial_tris_connectivity, read_surface
 from mne.label import _n_colors
@@ -29,7 +29,7 @@ from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 src_fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -44,6 +44,7 @@ fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
+label_dir = op.join(subjects_dir, 'sample', 'label', 'aparc')
 
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
@@ -214,6 +215,7 @@ def test_label_addition():
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
 
 
+@testing.requires_testing_data
 def test_label_in_src():
     """Test label in src"""
     src = read_source_spaces(src_fname)
@@ -243,6 +245,7 @@ def test_label_in_src():
     assert_raises(ValueError, Label(vertices, hemi='lh').fill, src)
 
 
+@testing.requires_testing_data
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
@@ -251,6 +254,7 @@ def test_label_io_and_time_course_estimates():
     assert_true(len(vertices) == values.shape[0])
 
 
+@testing.requires_testing_data
 def test_label_io():
     """Test IO of label files
     """
@@ -286,6 +290,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
             assert_array_equal(label_a.pos, label_b.pos)
 
 
+@testing.requires_testing_data
 def test_annot_io():
     """Test I/O from and to *.annot files"""
     # copy necessary files from fsaverage to tempdir
@@ -330,6 +335,7 @@ def test_annot_io():
         assert_labels_equal(l1, l)
 
 
+@testing.requires_testing_data
 def test_read_labels_from_annot():
     """Test reading labels from FreeSurfer parcellation
     """
@@ -391,37 +397,20 @@ def test_read_labels_from_annot():
                   subjects_dir=subjects_dir)
 
 
-@requires_mne
+@testing.requires_testing_data
 def test_read_labels_from_annot_annot2labels():
     """Test reading labels from parc. by comparing with mne_annot2labels
     """
-
-    def _mne_annot2labels(subject, subjects_dir, parc):
-        """Get labels using mne_annot2lables"""
-        label_dir = _TempDir()
-        cwd = os.getcwd()
-        try:
-            os.chdir(label_dir)
-            env = os.environ.copy()
-            env['SUBJECTS_DIR'] = subjects_dir
-            cmd = ['mne_annot2labels', '--subject', subject, '--parc', parc]
-            run_subprocess(cmd, env=env)
-            label_fnames = glob.glob(label_dir + '/*.label')
-            label_fnames.sort()
-            labels = [read_label(fname) for fname in label_fnames]
-        finally:
-            del label_dir
-            os.chdir(cwd)
-
-        return labels
-
+    label_fnames = glob.glob(label_dir + '/*.label')
+    label_fnames.sort()
+    labels_mne = [read_label(fname) for fname in label_fnames]
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
-    labels_mne = _mne_annot2labels('sample', subjects_dir, 'aparc')
 
     # we have the same result, mne does not fill pos, so ignore it
     _assert_labels_equal(labels, labels_mne, ignore_pos=True)
 
 
+@testing.requires_testing_data
 def test_write_labels_to_annot():
     """Test writing FreeSurfer parcellation from labels"""
     tempdir = _TempDir()
@@ -504,6 +493,7 @@ def test_write_labels_to_annot():
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
 
+@testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""
     aparc = read_labels_from_annot('fsaverage', 'aparc', 'lh',
@@ -543,6 +533,7 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
 
+@testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
     """Test stc_to_label
@@ -589,6 +580,7 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
+@testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing
     """
@@ -617,6 +609,7 @@ def test_morph():
                 copy=False)
 
 
+@testing.requires_testing_data
 def test_grow_labels():
     """Test generation of circular source labels"""
     seeds = [0, 50000]
@@ -658,6 +651,7 @@ def test_grow_labels():
     assert_array_equal(l1.vertices, l0.vertices)
 
 
+@testing.requires_testing_data
 def test_label_time_course():
     """Test extracting label data from SourceEstimate"""
     values, times, vertices = label_time_courses(real_label_fname, stc_fname)

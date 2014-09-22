@@ -15,7 +15,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
-                       run_tests_if_main)
+                       run_tests_if_main, travis_skip)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -25,7 +25,7 @@ from mne.io.constants import FIFF
 
 warnings.simplefilter('always')
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_mri = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-6-src.fif')
@@ -38,6 +38,7 @@ base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
 
 
+@testing.requires_testing_data
 @requires_nibabel(vox2ras_tkr=True)
 def test_mgz_header():
     """Test MGZ header reading"""
@@ -81,6 +82,7 @@ def test_add_patch_info():
             assert_array_equal(p1, p2)
 
 
+@testing.requires_testing_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
@@ -118,6 +120,7 @@ def test_add_source_space_distances_limited():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
+@testing.requires_testing_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
@@ -158,6 +161,7 @@ def test_add_source_space_distances():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-9)
 
 
+@testing.requires_testing_data
 @requires_mne
 def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
@@ -199,7 +203,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
-@requires_mne
+@testing.requires_testing_data
 def test_volume_source_space():
     """Test setting up volume source spaces
     """
@@ -214,10 +218,19 @@ def test_volume_source_space():
     del src_new
     src_new = read_source_spaces(temp_name)
     _compare_source_spaces(src, src_new, mode='approx')
-    del src
-    del src_new
+
+
+@travis_skip
+@testing.requires_testing_data
+@requires_mne
+def test_other_volume_source_spaces():
+    """Test setting up other volume source spaces"""
+    # these are split off because they require the MNE tools, and
+    # Travis doesn't seem to like them
 
     # let's try the spherical one (no bem or surf supplied)
+    tempdir = _TempDir()
+    temp_name = op.join(tempdir, 'temp-src.fif')
     run_subprocess(['mne_volume_source_space',
                     '--grid', '15.0',
                     '--src', temp_name,
@@ -239,6 +252,7 @@ def test_volume_source_space():
     assert_raises(ValueError, read_source_spaces, temp_name)
 
 
+@testing.requires_testing_data
 def test_triangle_neighbors():
     """Test efficient vertex neighboring triangles for surfaces"""
     this = read_source_spaces(fname)[0]
@@ -281,6 +295,7 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
+@testing.requires_testing_data
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
@@ -332,6 +347,7 @@ def test_setup_source_space():
     assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
 
 
+@testing.requires_testing_data
 def test_read_source_spaces():
     """Test reading of source space meshes
     """
@@ -354,6 +370,7 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
 
+@testing.requires_testing_data
 def test_write_source_space():
     """Test writing and reading of source spaces
     """
@@ -372,6 +389,7 @@ def test_write_source_space():
     assert_equal(len(w), 2)
 
 
+@testing.requires_testing_data
 @requires_fs_or_nibabel
 def test_vertex_to_mni():
     """Test conversion of vertices to MNI coordinates
@@ -386,6 +404,7 @@ def test_vertex_to_mni():
     assert_allclose(coords, coords_2, atol=1.0)
 
 
+@testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
 def test_vertex_to_mni_fs_nibabel():
@@ -403,18 +422,18 @@ def test_vertex_to_mni_fs_nibabel():
     assert_allclose(coords, coords_2, atol=0.1)
 
 
+@testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
 def test_get_volume_label_names():
     """Test reading volume label names
     """
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
-
     label_names = get_volume_labels_from_aseg(aseg_fname)
-
     assert_equal(label_names.count('Brain-Stem'), 1)
 
 
+@testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
 def test_source_space_from_label():
@@ -450,6 +469,7 @@ def test_source_space_from_label():
     _compare_source_spaces(src, src_from_file, mode='approx')
 
 
+@testing.requires_testing_data
 @requires_freesurfer
 @requires_nibabel()
 def test_combine_source_spaces():

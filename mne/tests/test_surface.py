@@ -16,7 +16,7 @@ from mne.utils import (_TempDir, requires_tvtk, run_tests_if_main,
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
@@ -41,6 +41,7 @@ def test_helmet():
         assert_equal(len(helmet['rr']), len(helmet['nn']))
 
 
+@testing.requires_testing_data
 def test_head():
     """Test loading the head surface
     """
@@ -81,6 +82,7 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
+@testing.requires_testing_data
 @travis_skip
 def test_make_morph_maps():
     """Test reading and creating morph maps
@@ -94,6 +96,7 @@ def test_make_morph_maps():
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
 
 
+@testing.requires_testing_data
 def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
@@ -110,6 +113,7 @@ def test_io_bem_surfaces():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])
 
 
+@testing.requires_testing_data
 def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """

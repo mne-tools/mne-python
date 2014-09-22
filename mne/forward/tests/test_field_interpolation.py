@@ -20,7 +20,7 @@ from mne.utils import run_tests_if_main
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 trans_fname = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
 subjects_dir = op.join(data_path, 'subjects')
@@ -91,6 +91,7 @@ def test_legendre_table():
         assert_allclose(n_fact1, n_fact2)
 
 
+@testing.requires_testing_data
 def test_make_field_map_eeg():
     """Test interpolation of EEG field onto head
     """

@@ -18,7 +18,7 @@ from mne.utils import requires_mne, run_subprocess, _TempDir, run_tests_if_main
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 
@@ -47,6 +47,7 @@ def compare_forwards(f1, f2):
     assert_equal(f1['surf_ori'], f2['surf_ori'])
 
 
+@testing.requires_testing_data
 def test_convert_forward():
     """Test converting forward solution between different representations
     """
@@ -77,6 +78,7 @@ def test_convert_forward():
     compare_forwards(fwd, fwd_new)
 
 
+@testing.requires_testing_data
 def test_io_forward():
     """Test IO for forward solutions
     """
@@ -121,6 +123,7 @@ def test_io_forward():
     assert_true(len(w) == 2)
 
 
+@testing.requires_testing_data
 def test_apply_forward():
     """Test projection of source space data to sensor space
     """
@@ -166,6 +169,7 @@ def test_apply_forward():
         assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
 
 
+@testing.requires_testing_data
 def test_restrict_forward_to_stc():
     """Test restriction of source space to source SourceEstimate
     """
@@ -207,6 +211,7 @@ def test_restrict_forward_to_stc():
     assert_equal(fwd_out['src'][1]['vertno'], fwd['src'][1]['vertno'][0:5])
 
 
+@testing.requires_testing_data
 def test_restrict_forward_to_label():
     """Test restriction of source space to label
     """
@@ -258,6 +263,7 @@ def test_restrict_forward_to_label():
     assert_equal(fwd_out['src'][1]['vertno'], src_sel_rh)
 
 
+@testing.requires_testing_data
 @requires_mne
 def test_average_forward_solution():
     """Test averaging forward solutions

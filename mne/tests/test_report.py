@@ -14,7 +14,7 @@ from mne.datasets import testing
 from mne.report import Report
 from mne.utils import _TempDir, requires_mayavi, requires_nibabel, requires_PIL
 
-data_dir = testing.data_path()
+data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
@@ -32,6 +32,7 @@ os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
+@testing.requires_testing_data
 @requires_PIL()
 def test_render_report():
     """Test rendering -*.fif files for mne report.
@@ -120,6 +121,7 @@ def test_render_add_sections():
         assert_true(w[0].category == DeprecationWarning)
 
 
+@testing.requires_testing_data
 @requires_nibabel()
 def test_render_mri():
     """Test rendering MRI for mne report.

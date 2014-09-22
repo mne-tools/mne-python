@@ -30,7 +30,7 @@ from mne.externals.six.moves import cPickle as pickle
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_dir = op.join(testing.data_path(), 'MEG', 'sample')
+data_dir = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
@@ -45,6 +45,7 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
+@testing.requires_testing_data
 def test_hash_raw():
     """Test hashing raw objects
     """
@@ -60,6 +61,7 @@ def test_hash_raw():
     assert_not_equal(hash(raw), hash(raw_2))
 
 
+@testing.requires_testing_data
 def test_subject_info():
     """Test reading subject information
     """
@@ -88,6 +90,7 @@ def test_subject_info():
     assert_true(raw_read.info.get('subject_info') is None)
 
 
+@testing.requires_testing_data
 def test_get_chpi():
     """Test CHPI position computation
     """
@@ -105,6 +108,7 @@ def test_get_chpi():
     assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
 
 
+@testing.requires_testing_data
 def test_copy_append():
     """Test raw copying and appending combinations
     """
@@ -115,6 +119,7 @@ def test_copy_append():
     assert_true(data.shape[1] == 2 * raw._data.shape[1])
 
 
+@testing.requires_testing_data
 def test_rank_estimation():
     """Test raw rank estimation
     """
@@ -133,6 +138,7 @@ def test_rank_estimation():
                        n_meg + n_eeg - n_proj)
 
 
+@testing.requires_testing_data
 def test_output_formats():
     """Test saving and loading raw data using multiple formats
     """
@@ -163,6 +169,7 @@ def _compare_combo(raw, new, times, n_times):
         assert_allclose(orig, new[:, ti][0])
 
 
+@testing.requires_testing_data
 def test_multiple_files():
     """Test loading multiple files simultaneously
     """
@@ -279,6 +286,7 @@ def test_multiple_files():
     assert_true(len(raw) == raw.last_samp - raw.first_samp + 1)
 
 
+@testing.requires_testing_data
 def test_split_files():
     """Test writing and reading of split raw files
     """
@@ -345,6 +353,7 @@ def test_load_bad_channels():
     assert_equal([], raw_new.info['bads'])
 
 
+@testing.requires_testing_data
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
@@ -457,6 +466,7 @@ def test_io_raw():
     assert_true(len(w) > 0)  # len(w) should be 2 but Travis sometimes has more
 
 
+@testing.requires_testing_data
 def test_io_complex():
     """Test IO with complex data types
     """
@@ -495,6 +505,7 @@ def test_io_complex():
         assert_allclose(raw2_data[:, :n_samp], raw_cp._data[picks, :n_samp])
 
 
+@testing.requires_testing_data
 def test_getitem():
     """Test getitem/indexing of Raw
     """
@@ -513,6 +524,7 @@ def test_getitem():
         assert_array_equal(times, times1)
 
 
+@testing.requires_testing_data
 def test_proj():
     """Test SSP proj operations
     """
@@ -571,6 +583,7 @@ def test_proj():
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
 
+@testing.requires_testing_data
 def test_preload_modify():
     """Test preloading and modifying data
     """
@@ -600,6 +613,7 @@ def test_preload_modify():
         assert_allclose(data, data_new)
 
 
+@testing.requires_testing_data
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
@@ -671,6 +685,7 @@ def test_filter():
     assert_array_almost_equal(data, data_notch, sig_dec_notch_fit)
 
 
+@testing.requires_testing_data
 def test_crop():
     """Test cropping raw files
     """
@@ -714,6 +729,7 @@ def test_crop():
         assert_array_equal(raw[:, :][0], ar[:, :][0])
 
 
+@testing.requires_testing_data
 def test_resample():
     """Test resample (with I/O and multiple files)
     """
@@ -767,6 +783,7 @@ def test_resample():
     assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
 
 
+@testing.requires_testing_data
 def test_hilbert():
     """Test computation of analytic signal using hilbert
     """
@@ -782,6 +799,7 @@ def test_hilbert():
     assert_allclose(env, raw2._data[picks, :], rtol=1e-2, atol=1e-13)
 
 
+@testing.requires_testing_data
 def test_raw_copy():
     """Test Raw copy
     """
@@ -802,6 +820,7 @@ def test_raw_copy():
                  sorted(copied.__dict__.keys()))
 
 
+@testing.requires_testing_data
 @requires_nitime
 def test_raw_to_nitime():
     """ Test nitime export """
@@ -830,6 +849,7 @@ def test_raw_to_nitime():
     assert_true(raw_ts.data.shape[0] == len(picks))
 
 
+@testing.requires_testing_data
 @requires_pandas
 def test_as_data_frame():
     """Test raw Pandas exporter"""
@@ -842,6 +862,7 @@ def test_as_data_frame():
     assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
 
 
+@testing.requires_testing_data
 def test_raw_index_as_time():
     """ Test index as time conversion"""
     raw = Raw(fif_fname, preload=True)
@@ -865,6 +886,7 @@ def test_raw_index_as_time():
     assert_true(i1[0] == 100)
 
 
+@testing.requires_testing_data
 def test_raw_time_as_index():
     """ Test time as index conversion"""
     raw = Raw(fif_fname, preload=True)
@@ -872,6 +894,7 @@ def test_raw_time_as_index():
     assert_true(raw.first_samp == -first_samp)
 
 
+@testing.requires_testing_data
 def test_save():
     """ Test saving raw"""
     tempdir = _TempDir()
@@ -893,6 +916,7 @@ def test_save():
     os.remove(new_fname)
 
 
+@testing.requires_testing_data
 def test_with_statement():
     """ Test with statement """
     for preload in [True, False]:
@@ -958,6 +982,7 @@ def test_compensation_raw_mne():
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
 
 
+@testing.requires_testing_data
 def test_set_eeg_reference():
     """ Test rereference eeg data"""
     raw = Raw(fif_fname, preload=True)
@@ -990,6 +1015,7 @@ def test_set_eeg_reference():
     assert_true(raw is reref)
 
 
+@testing.requires_testing_data
 def test_drop_channels_mixin():
     """Test channels-dropping functionality
     """
@@ -1009,6 +1035,7 @@ def test_drop_channels_mixin():
     assert_equal(len(ch_names), raw._data.shape[0])
 
 
+@testing.requires_testing_data
 def test_pick_channels_mixin():
     """Test channel-picking functionality
     """
@@ -1033,6 +1060,7 @@ def test_pick_channels_mixin():
     assert_raises(RuntimeError, raw.drop_channels, ch_names)
 
 
+@testing.requires_testing_data
 def test_equalize_channels():
     """Test equalization of channels
     """

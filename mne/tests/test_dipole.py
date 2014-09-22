@@ -4,10 +4,11 @@ from nose.tools import assert_true
 from mne import read_dip
 from mne.datasets import testing
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 dip_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 
 
+@testing.requires_testing_data
 def test_io_dip():
     """Test IO for .dip files
     """

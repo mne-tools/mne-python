@@ -8,7 +8,7 @@ from mne.minimum_norm import (read_inverse_operator,
 
 from nose.tools import assert_true
 
-data_path = op.join(testing.data_path(), 'MEG', 'sample')
+data_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fname_inv = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_fwd = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
@@ -19,6 +19,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 
+@testing.requires_testing_data
 def test_psf_ctf():
     """Test computation of PSFs and CTFs for linear estimators
     """

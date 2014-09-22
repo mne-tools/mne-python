@@ -25,7 +25,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
 from mne.utils import _TempDir, run_tests_if_main
 from mne.externals import six
 
-s_path = op.join(testing.data_path(), 'MEG', 'sample')
+s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 # Four inverses:
 fname_full = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
@@ -149,6 +149,7 @@ def _compare_io(inv_op, out_file_ext='.fif'):
     _compare(inv_init, inv_op)
 
 
+@testing.requires_testing_data
 def test_warn_inverse_operator():
     """Test MNE inverse warning without average EEG projection
     """
@@ -161,6 +162,7 @@ def test_warn_inverse_operator():
     assert_equal(len(w), 1)
 
 
+@testing.requires_testing_data
 def test_make_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
     """
@@ -185,6 +187,7 @@ def test_make_inverse_operator():
     assert_true('mri_head_t' in my_inv_op)
 
 
+@testing.requires_testing_data
 def test_apply_inverse_operator():
     """Test MNE inverse application
     """
@@ -224,6 +227,7 @@ def test_apply_inverse_operator():
     assert_true(stc.data.mean() > 0.1)
 
 
+@testing.requires_testing_data
 def test_make_inverse_operator_fixed():
     """Test MNE inverse computation (fixed orientation)
     """
@@ -252,6 +256,7 @@ def test_make_inverse_operator_fixed():
     assert_true(compute_rank_inverse(inverse_operator_nodepth) == 302)
 
 
+@testing.requires_testing_data
 def test_make_inverse_operator_free():
     """Test MNE inverse computation (free orientation)
     """
@@ -280,6 +285,7 @@ def test_make_inverse_operator_free():
     _compare_inverses_approx(inv_3, inv_4, evoked, 0, 1e-2)
 
 
+@testing.requires_testing_data
 def test_make_inverse_operator_diag():
     """Test MNE inverse computation with diagonal noise cov
     """
@@ -296,6 +302,7 @@ def test_make_inverse_operator_diag():
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
 
 
+@testing.requires_testing_data
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """
@@ -314,6 +321,7 @@ def test_inverse_operator_volume():
     assert_array_almost_equal(stc.times, stc2.times)
 
 
+@testing.requires_testing_data
 def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
@@ -333,6 +341,7 @@ def test_io_inverse_operator():
     assert_true(len(w) == 2)
 
 
+@testing.requires_testing_data
 def test_apply_mne_inverse_raw():
     """Test MNE with precomputed inverse operator on Raw
     """
@@ -366,6 +375,7 @@ def test_apply_mne_inverse_raw():
         assert_array_almost_equal(stc.data, stc2.data)
 
 
+@testing.requires_testing_data
 def test_apply_mne_inverse_fixed_raw():
     """Test MNE with fixed-orientation inverse operator on Raw
     """
@@ -405,6 +415,7 @@ def test_apply_mne_inverse_fixed_raw():
     assert_array_almost_equal(stc.data, stc3.data)
 
 
+@testing.requires_testing_data
 def test_apply_mne_inverse_epochs():
     """Test MNE with precomputed inverse operator on Epochs
     """
@@ -469,6 +480,7 @@ def test_apply_mne_inverse_epochs():
     assert_array_almost_equal(stcs_rh[0].data, label_stc.data)
 
 
+@testing.requires_testing_data
 def test_make_inverse_operator_bads():
     """Test MNE inverse computation given a mismatch of bad channels
     """

@@ -30,7 +30,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 
-subjects_dir = op.join(testing.data_path(), 'subjects')
+subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -55,6 +55,7 @@ def test_plot_cov():
     plt.close('all')
 
 
+@testing.requires_testing_data
 @requires_nibabel()
 def test_plot_bem():
     """Test plotting of BEM contours
@@ -92,6 +93,7 @@ def test_plot_events():
                       raw.first_samp, event_id={'aud_l': 111}, color=color)
 
 
+@testing.requires_testing_data
 def test_plot_source_spectrogram():
     """Test plotting of source spectrogram
     """

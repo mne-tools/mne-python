@@ -25,7 +25,7 @@ from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = testing.data_path()
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_inv = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
@@ -44,6 +44,7 @@ fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-nointerp-fwd.fif')
 
 
+@testing.requires_testing_data
 def test_volume_stc():
     """Test volume STCs
     """
@@ -113,6 +114,7 @@ def test_volume_stc():
         print('Save as nifti test skipped, needs NiBabel')
 
 
+@testing.requires_testing_data
 def test_expand():
     """Test stc expansion
     """
@@ -219,6 +221,7 @@ def test_stc_arithmetic():
     assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
 
 
+@testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
     """
@@ -262,6 +265,7 @@ def test_stc_methods():
     assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
+@testing.requires_testing_data
 def test_extract_label_time_course():
     """Test extraction of label time courses from stc
     """
@@ -354,6 +358,7 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
+@testing.requires_testing_data
 def test_morph_data():
     """Test morphing of data
     """
@@ -536,6 +541,7 @@ def test_spatio_temporal_tris_connectivity():
         assert_array_equal(c, n)
 
 
+@testing.requires_testing_data
 def test_spatio_temporal_src_connectivity():
     """Test spatio-temporal connectivity from source spaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
@@ -616,6 +622,7 @@ def test_get_peak():
         assert_true(time_idx < len(stc.times))
 
 
+@testing.requires_testing_data
 def test_mixed_stc():
     """Test source estimate from mixed source space
     """

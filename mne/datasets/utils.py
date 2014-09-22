@@ -207,6 +207,8 @@ def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face',
-                'somato': 'MNE-somato-data'}[name]
+                'somato': 'MNE-somato-data',
+                'testing': 'MNE-testing-data',
+                }[name]
     dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)
