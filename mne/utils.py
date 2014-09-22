@@ -21,7 +21,6 @@ from sys import stdout
 import tempfile
 import shutil
 from shutil import rmtree
-import atexit
 from math import log, ceil
 import json
 import ftplib

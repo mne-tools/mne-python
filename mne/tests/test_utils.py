@@ -286,13 +286,6 @@ def test_fetch_file():
     """Test file downloading
     """
     tempdir = _TempDir()
-    # Skipping test if no internet connection available
-    try:
-        urllib.request.urlopen("http://github.com", timeout=2)
-    except:
-        from nose.plugins.skip import SkipTest
-        raise SkipTest('No internet connection, skipping download test.')
-
     urls = ['http://www.google.com',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
     for url in urls:

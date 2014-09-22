@@ -46,6 +46,9 @@ test: in
 	rm -f .coverage
 	$(NOSETESTS) mne
 
+test-no-network: in
+	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 nosetests mne'
+
 test-no-testing-data: in
 	@MNE_SKIP_TESTING_DATASET_TESTS=true \
 	$(NOSETESTS) mne

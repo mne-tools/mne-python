@@ -72,7 +72,7 @@ install:
           export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
         fi;
       else
-        export MNE_SKIP_TESTING_DATASET_TESTS=true
+        export MNE_SKIP_TESTING_DATASET_TESTS=true;
       fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
     # We run two versions: one out of the source directory (that makes
@@ -93,7 +93,13 @@ install:
       fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2;
+    # Ensure the "nodata" test does not access the internet
+    # (necessary to have MNE_SKIP_NETWORK_TESTS=1 above)
+    - if [ "${DEPS}" == "nodata" ]; then
+        sudo unshare -n -- nosetests --with-timer --timer-top-n 30 --verbosity=2;
+      else
+        nosetests --with-timer --timer-top-n 30 --verbosity=2;
+      fi;
 
 after_success:
     # Need to run from source dir to exectue "git" commands

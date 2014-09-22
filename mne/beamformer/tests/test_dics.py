@@ -101,7 +101,7 @@ def test_dics():
     max_stc = stc.data[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    # Odd due to limited number of epochs
+    # Incorrect due to limited number of epochs
     assert_true(0.04 < tmax < 0.05)
     assert_true(10 < np.max(max_stc) < 13)
 
@@ -153,7 +153,7 @@ def test_dics():
     max_stc = stc_avg[idx]
     tmax = stc.times[np.argmax(max_stc)]
 
-    assert_true(0.045 < tmax < 0.06)  # odd due to limited number of epochs
+    assert_true(0.045 < tmax < 0.06)  # incorrect due to limited # of epochs
     assert_true(12 < np.max(max_stc) < 18.5)
 
 
