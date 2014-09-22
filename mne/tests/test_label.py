@@ -352,7 +352,7 @@ def test_read_labels_from_annot():
         assert_true(label.name.endswith('-lh'))
         assert_true(label.hemi == 'lh')
         # XXX fails on 2.6 for some reason...
-        if int(sys.version[0]) > 2 or int(sys.version[2]) > 6:
+        if sys.version_info[:2] > (2, 6):
             assert_is_not(label.color, None)
 
     # read labels using annot_fname
@@ -363,7 +363,7 @@ def test_read_labels_from_annot():
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
         # XXX doesn't work on py26 for some reason
-        if int(sys.version[0]) > 2 or int(sys.version[2]) > 6:
+        if sys.version_info[:2] > (2, 6):
             assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
