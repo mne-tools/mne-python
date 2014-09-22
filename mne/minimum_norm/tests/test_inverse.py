@@ -43,7 +43,7 @@ fname_raw = op.join(s_path, 'sample_audvis_trunc_raw.fif')
 fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
 fname_vol_inv = op.join(s_path,
-                        'sample_audvis_trunc-meg-vol-7-nointerp-meg-inv.fif')
+                        'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2

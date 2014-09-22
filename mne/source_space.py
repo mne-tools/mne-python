@@ -2250,8 +2250,8 @@ def get_volume_labels_from_aseg(mgz_fname):
     # Get the unique label names
     label_names = [lut_data[lut_data['id'] == ii]['name'][0] for ii in
                    np.unique(mgz_data)]
+    label_names = [l.decode('utf-8') for l in label_names]
     label_names = sorted(label_names, key=lambda n: n.lower())
-
     return label_names
 
 
@@ -2276,7 +2276,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 diffs = (s0['interpolator'] - s1['interpolator']).data
                 if len(diffs) > 0 and 'nointerp' not in mode:
                     # 5%
-                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.05, name)
+                    assert_true(np.sqrt(np.mean(diffs ** 2)) < 0.10, name)
         for name in ['nn', 'rr', 'nuse_tri', 'coord_frame', 'tris']:
             if s0[name] is None:
                 assert_true(s1[name] is None, name)

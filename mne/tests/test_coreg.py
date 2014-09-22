@@ -43,7 +43,8 @@ def test_scale_mri():
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
     if not os.path.exists(path):
-        setup_source_space('fsaverage', path, 'ico6', add_dist=False)
+        setup_source_space('fsaverage', path, 'ico6', add_dist=False,
+                           subjects_dir=tempdir)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'

@@ -38,10 +38,9 @@ fname_smorph = op.join(data_path, 'MEG', 'sample',
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
                        'fsaverage_audvis_trunc-meg')
 fname_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-grad-vol-7-nointerp-'
-                    'fwd-sensmap-vol.w')
+                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_trunc-meg-vol-7-nointerp-fwd.fif')
+                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
 
 
 @testing.requires_testing_data

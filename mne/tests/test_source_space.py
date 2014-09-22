@@ -238,9 +238,8 @@ def test_other_volume_source_spaces():
     src = read_source_spaces(temp_name)
     src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                         mri=fname_mri,
-                                        subjects_dir=subjects_dir,
-                                        add_interpolator=False)
-    _compare_source_spaces(src, src_new, mode='approx;nointerp')
+                                        subjects_dir=subjects_dir)
+    _compare_source_spaces(src, src_new, mode='approx')
     del src
     del src_new
 
