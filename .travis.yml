@@ -7,10 +7,12 @@ env:
     #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
-    - PYTHON=2.7 DEPS=full
-    - PYTHON=3.4 DEPS=full
-    - PYTHON=2.6 DEPS=full
-    - PYTHON=2.7 DEPS=minimal
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=install
+    - PYTHON=3.4 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.6 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
+
 # Setup anaconda
 before_install:
   - wget -q http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh
@@ -28,7 +30,8 @@ install:
     - conda install --yes --quiet numpy scipy nose matplotlib > /dev/null
     - if [ "${DEPS}" == "full" ]; then
         curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
-        export MNE_ROOT="${PWD}/minimal_cmds" && source ${MNE_ROOT}/bin/mne_setup_sh;
+        export MNE_ROOT="${PWD}/minimal_cmds";
+        source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
@@ -58,13 +61,34 @@ install:
     - myscripts='browse_raw bti2fiff surf2bem'
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
+    - cd ~
     # Trigger download of testing data
     - python -c 'import mne; mne.datasets.testing.data_path(verbose=True)'
+    - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
+    # We run two versions: one out of the source directory (that makes
+    # coveralls coverage work), and one out of the install directory (that
+    # ensures we have included all necessary files).
+    - if [ "${TEST_LOCATION}" == "install" ]; then
+        ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data;
+        ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data;
+        ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data;
+        ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data;
+        ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data;
+        ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data;
+        ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
+        ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
+        cd ${MNE_DIR}/../;
+      else
+        cd ${SRC_DIR};
+      fi;
 
 script:
     - nosetests --with-timer --timer-top-n 30 --verbosity=2;
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    - echo "Running coveralls";
-    - coveralls;
+    - if [ "${TEST_LOCATION}" == "src" ]; then
+        echo "Running coveralls";
+        cd ${SRC_DIR};
+        coveralls;
+      fi;
