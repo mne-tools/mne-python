@@ -34,7 +34,6 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 tempdir = _TempDir()
 
 
-@requires_mayavi()
 def test_render_report():
     """Test rendering -*.fif files for mne report.
     """
@@ -78,12 +77,30 @@ def test_render_report():
     report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
+    assert_equal(len(report.html), len(fnames))
+    assert_equal(len(report.html), len(report.fnames))
+
+    # Check saving same report to new filename
+    report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
+    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
+
+    # Check overwriting file
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
+    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+
+
+@requires_mayavi()
+def test_render_add_sections():
+    """Test adding figures/images to section.
+    """
+    import matplotlib.pyplot as plt
+
+    report = Report()
     # Check add_figs_to_section functionality
-    fig = evoked1[0].plot(show=False)
+    fig = plt.plot([1, 2], [1, 2])[0].figure
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions=['evoked response'])
-    assert_equal(len(report.html), len(fnames) + 1)
-    assert_equal(len(report.html), len(report.fnames))
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
 
@@ -101,15 +118,6 @@ def test_render_report():
         report.add_section(figs=fig,
                            captions=['evoked response'])
         assert_true(w[0].category == DeprecationWarning)
-
-    # Check saving same report to new filename
-    report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
-    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
-
-    # Check overwriting file
-    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
-                overwrite=True)
-    assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
 
 @requires_nibabel()
