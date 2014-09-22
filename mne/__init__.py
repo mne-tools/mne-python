@@ -1,7 +1,7 @@
 """MNE for MEG and EEG data analysis
 """
 
-__version__ = '0.8.3'
+__version__ = '0.8.6'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
