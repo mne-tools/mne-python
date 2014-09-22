@@ -31,11 +31,6 @@ fname_mri = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
-temp_dir = _TempDir()
-# make a file that exists with some data in it
-existing_file = op.join(temp_dir, 'test.fif')
-with open(existing_file, 'w') as fid:
-    fid.write('aoeu')
 
 
 def compare_forwards(f1, f2):
@@ -85,6 +80,7 @@ def test_convert_forward():
 def test_io_forward():
     """Test IO for forward solutions
     """
+    temp_dir = _TempDir()
     # do extensive tests with MEEG
     n_channels, n_src = 366, 1494
     fwd = read_forward_solution(fname_meeg)
@@ -266,6 +262,7 @@ def test_restrict_forward_to_label():
 def test_average_forward_solution():
     """Test averaging forward solutions
     """
+    temp_dir = _TempDir()
     fwd = read_forward_solution(fname_meeg)
     # input not a list
     assert_raises(TypeError, average_forward_solutions, 1)

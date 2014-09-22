@@ -48,7 +48,6 @@ fname_vol_inv = op.join(s_path,
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
-tempdir = _TempDir()
 last_keys = [None] * 10
 
 
@@ -135,6 +134,7 @@ def _compare_inverses_approx(inv_1, inv_2, evoked, rtol, atol,
 
 
 def _compare_io(inv_op, out_file_ext='.fif'):
+    tempdir = _TempDir()
     if out_file_ext == '.fif':
         out_file = op.join(tempdir, 'test-inv.fif')
     elif out_file_ext == '.gz':
@@ -299,6 +299,7 @@ def test_make_inverse_operator_diag():
 def test_inverse_operator_volume():
     """Test MNE inverse computation on volume source space
     """
+    tempdir = _TempDir()
     evoked = _get_evoked()
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
@@ -316,6 +317,7 @@ def test_inverse_operator_volume():
 def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip
     """
+    tempdir = _TempDir()
     inverse_operator = read_inverse_operator(fname_inv)
     x = repr(inverse_operator)
     assert_true(x)

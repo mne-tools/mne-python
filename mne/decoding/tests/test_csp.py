@@ -11,9 +11,7 @@ from numpy.testing import assert_array_almost_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
-from mne.utils import _TempDir, requires_sklearn
-
-tempdir = _TempDir()
+from mne.utils import requires_sklearn
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
@@ -31,7 +29,7 @@ def test_csp():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -67,7 +65,7 @@ def test_regularized_csp():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)

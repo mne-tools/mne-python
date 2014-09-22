@@ -29,8 +29,6 @@ fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
 fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
 
-tempdir = _TempDir()
-
 
 def test_hash_evoked():
     """Test evoked hashing
@@ -48,6 +46,7 @@ def test_hash_evoked():
 def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args
     """
+    tempdir = _TempDir()
     ave = read_evokeds(fname, 0)
 
     write_evokeds(op.join(tempdir, 'evoked-ave.fif'), ave)
@@ -104,6 +103,7 @@ def test_io_evoked():
 def test_shift_time_evoked():
     """ Test for shifting of time scale
     """
+    tempdir = _TempDir()
     # Shift backward
     ave = read_evokeds(fname, 0)
     ave.shift_time(-0.1, relative=True)
@@ -144,6 +144,7 @@ def test_shift_time_evoked():
 def test_evoked_resample():
     """Test for resampling of evoked data
     """
+    tempdir = _TempDir()
     # upsample, write it out, read it in
     ave = read_evokeds(fname, 0)
     sfreq_normal = ave.info['sfreq']
@@ -332,6 +333,7 @@ def test_equalize_channels():
 def test_array_epochs():
     """Test creating evoked from array
     """
+    tempdir = _TempDir()
 
     # creating
     rng = np.random.RandomState(42)

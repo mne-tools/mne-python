@@ -16,11 +16,10 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 
-tempdir = _TempDir()
-
 
 def test_fiducials_io():
     """Test fiducials i/o"""
+    tempdir = _TempDir()
     pts, coord_frame = read_fiducials(fiducials_fname)
     assert_equal(pts[0]['coord_frame'], FIFF.FIFFV_COORD_MRI)
     assert_equal(pts[0]['ident'], FIFF.FIFFV_POINT_CARDINAL)
@@ -71,14 +70,14 @@ def test_info():
 def test_read_write_info():
     """Test IO of info
     """
+    tempdir = _TempDir()
     info = io.read_info(raw_fname)
     temp_file = op.join(tempdir, 'info.fif')
     # check for bug `#1198`
     info['dev_head_t']['trans'] = np.eye(4)
-    t1 =  info['dev_head_t']['trans']
+    t1 = info['dev_head_t']['trans']
     io.write_info(temp_file, info)
     info2 = io.read_info(temp_file)
     t2 = info2['dev_head_t']['trans']
     assert_true(len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
-

@@ -18,7 +18,6 @@ bem_path = os.path.join(subjects_dir, 'sample', 'bem', 'sample-1280-bem.fif')
 raw_path = os.path.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
 fid_path = os.path.join(fiff_data_dir, 'fsaverage-fiducials.fif')
-tempdir = _TempDir()
 
 
 @requires_traits
@@ -87,6 +86,7 @@ def test_subject_source():
 def test_subject_source_with_fsaverage():
     """Test SubjectSelector"""
     from mne.gui._file_traits import MRISubjectSource
+    tempdir = _TempDir()
 
     mri = MRISubjectSource()
     assert_false(mri.can_create_fsaverage)

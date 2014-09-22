@@ -7,13 +7,12 @@ import numpy as np
 from mne._hdf5 import write_hdf5, read_hdf5
 from mne.utils import requires_pytables, _TempDir, object_diff
 
-tempdir = _TempDir()
-
 
 @requires_pytables()
 def test_hdf5():
     """Test HDF5 IO
     """
+    tempdir = _TempDir()
     test_file = op.join(tempdir, 'test.hdf5')
     x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex128),
              d=[dict(e=(1, -2., 'hello', u'goodbyeu\u2764')), None])

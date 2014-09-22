@@ -39,8 +39,6 @@ fname_bem = op.join(subjects_dir, 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
-temp_dir = _TempDir()
-
 # make a file that exists with some data in it
 existing_file = op.join(temp_dir, 'test.fif')
 with open(existing_file, 'w') as fid:
@@ -188,6 +186,7 @@ def test_make_forward_solution():
 def test_do_forward_solution():
     """Test wrapping forward solution from python
     """
+    temp_dir = _TempDir()
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 
@@ -254,6 +253,7 @@ def test_do_forward_solution():
 def test_forward_mixed_source_space():
     """Test making the forward solution for a mixed source space
     """
+    temp_dir = _TempDir()
     # get the surface source space
     surf = read_source_spaces(fname_src)
 

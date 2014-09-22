@@ -260,9 +260,8 @@ class _TempDir(str):
 
     def __init__(self):
         self._path = self.__str__()
-        atexit.register(self.cleanup)
 
-    def cleanup(self):
+    def __del__(self):
         rmtree(self._path, ignore_errors=True)
 
 

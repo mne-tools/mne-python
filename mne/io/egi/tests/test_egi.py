@@ -17,7 +17,6 @@ from mne.io import Raw
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-tempdir = _TempDir()
 
 base_dir = op.join(op.dirname(op.realpath(__file__)), 'data')
 egi_fname = op.join(base_dir, 'test_egi.raw')
@@ -26,6 +25,7 @@ egi_fname = op.join(base_dir, 'test_egi.raw')
 def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
+    tempdir = _TempDir()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
         _ = read_raw_egi(egi_fname, include=None)

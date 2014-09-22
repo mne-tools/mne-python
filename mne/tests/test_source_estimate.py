@@ -21,7 +21,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_pytables, run_tests_if_main, travis_skip)
+                       requires_pytables, run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -42,13 +42,12 @@ fname_vol = op.join(data_path, 'MEG', 'sample',
                     'fwd-sensmap-vol.w')
 fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-nointerp-fwd.fif')
-tempdir = _TempDir()
 
 
-@travis_skip
 def test_volume_stc():
     """Test volume STCs
     """
+    tempdir = _TempDir()
     N = 100
     data = np.arange(N)[:, np.newaxis]
     datas = [data, data, np.arange(2)[:, np.newaxis]]
@@ -139,6 +138,7 @@ def _fake_stc(n_time=10):
 def test_io_stc():
     """Test IO for STC files
     """
+    tempdir = _TempDir()
     stc = _fake_stc()
     stc.save(op.join(tempdir, "tmp.stc"))
     stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
@@ -155,6 +155,7 @@ def test_io_stc():
 def test_io_stc_h5():
     """Test IO for STC files using HDF5
     """
+    tempdir = _TempDir()
     stc = _fake_stc()
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
     out_name = op.join(tempdir, 'tmp')
@@ -175,6 +176,7 @@ def test_io_stc_h5():
 def test_io_w():
     """Test IO for w files
     """
+    tempdir = _TempDir()
     stc = _fake_stc(n_time=1)
     w_fname = op.join(tempdir, 'fake')
     stc.save(w_fname, ftype='w')
@@ -355,6 +357,7 @@ def test_extract_label_time_course():
 def test_morph_data():
     """Test morphing of data
     """
+    tempdir = _TempDir()
     subject_from = 'sample'
     subject_to = 'fsaverage'
     stc_from = read_source_estimate(fname_smorph, subject='sample')

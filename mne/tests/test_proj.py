@@ -35,8 +35,6 @@ sensmap_fname = op.join(sample_path,
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
-tempdir = _TempDir()
-
 
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
@@ -81,6 +79,7 @@ def test_sensitivity_maps():
 
 def test_compute_proj_epochs():
     """Test SSP computation on epochs"""
+    tempdir = _TempDir()
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = Raw(raw_fname, preload=True)
@@ -152,6 +151,7 @@ def test_compute_proj_epochs():
 
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
+    tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)

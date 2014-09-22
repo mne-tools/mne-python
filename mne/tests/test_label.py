@@ -48,7 +48,6 @@ src_bad_fname = op.join(data_path, 'subjects', 'fsaverage', 'bem',
 test_path = op.join(op.split(__file__)[0], '..', 'io', 'tests', 'data')
 label_fname = op.join(test_path, 'test-lh.label')
 label_rh_fname = op.join(test_path, 'test-rh.label')
-tempdir = _TempDir()
 
 # This code was used to generate the "fake" test labels:
 # for hemi in ['lh', 'rh']:
@@ -255,6 +254,7 @@ def test_label_io_and_time_course_estimates():
 def test_label_io():
     """Test IO of label files
     """
+    tempdir = _TempDir()
     label = read_label(label_fname)
 
     # label attributes
@@ -289,6 +289,7 @@ def _assert_labels_equal(labels_a, labels_b, ignore_pos=False):
 def test_annot_io():
     """Test I/O from and to *.annot files"""
     # copy necessary files from fsaverage to tempdir
+    tempdir = _TempDir()
     subject = 'fsaverage'
     label_src = os.path.join(subjects_dir, 'fsaverage', 'label')
     surf_src = os.path.join(subjects_dir, 'fsaverage', 'surf')
@@ -423,6 +424,7 @@ def test_read_labels_from_annot_annot2labels():
 
 def test_write_labels_to_annot():
     """Test writing FreeSurfer parcellation from labels"""
+    tempdir = _TempDir()
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 

@@ -15,12 +15,11 @@ from mne.utils import _TempDir, requires_mne, run_subprocess
 base_dir = op.join(op.dirname(__file__), 'data')
 ctf_comp_fname = op.join(base_dir, 'test_ctf_comp_raw.fif')
 
-tempdir = _TempDir()
-
 
 def test_compensation():
     """Test compensation
     """
+    tempdir = _TempDir()
     raw = Raw(ctf_comp_fname, compensation=None)
     comp1 = make_compensator(raw.info, 3, 1, exclude_comp_chs=False)
     assert_true(comp1.shape == (340, 340))
@@ -44,6 +43,8 @@ def test_compensation():
 def test_compensation_mne():
     """Test comensation by comparing with MNE
     """
+    tempdir = _TempDir()
+
     def make_evoked(fname, comp):
         raw = Raw(fname, compensation=comp)
         picks = pick_types(raw.info, meg=True, ref_meg=True)

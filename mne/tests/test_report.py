@@ -31,13 +31,12 @@ matplotlib.use('Agg')  # for testing don't use X server
 os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-tempdir = _TempDir()
-
 
 @requires_PIL()
 def test_render_report():
     """Test rendering -*.fif files for mne report.
     """
+    tempdir = _TempDir()
 
     report = Report(info_fname=raw_fname)
     with warnings.catch_warnings(record=True) as w:

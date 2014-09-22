@@ -20,15 +20,13 @@ hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
-tempdir = _TempDir()
-tgt_fname = os.path.join(tempdir, 'test-raw.fif')
-std_fname = os.path.join(tempdir, 'test_std-raw.fif')
-
 
 @requires_traits
 def test_kit2fiff_model():
     """Test CombineMarkersModel Traits Model"""
     from mne.gui._kit2fiff_gui import Kit2FiffModel
+    tempdir = _TempDir()
+    tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
     model = Kit2FiffModel()
     assert_false(model.can_save)

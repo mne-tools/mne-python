@@ -20,8 +20,6 @@ fname_eve = op.join(data_path, 'MEG', 'sample',
 fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
 
-tempdir = _TempDir()
-
 
 def test_get_mri_head_t():
     """Test converting '-trans.txt' to '-trans.fif'"""
@@ -36,6 +34,7 @@ def test_get_mri_head_t():
 def test_io_trans():
     """Test reading and writing of trans files
     """
+    tempdir = _TempDir()
     trans0 = read_trans(fname)
     fname1 = op.join(tempdir, 'test-trans.fif')
     write_trans(fname1, trans0)

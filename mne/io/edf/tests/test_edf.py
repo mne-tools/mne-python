@@ -31,8 +31,6 @@ edf_path = op.join(data_dir, 'test.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
-tempdir = _TempDir()
-
 
 def test_bdf_data():
     """Test reading raw bdf files
@@ -80,6 +78,7 @@ def test_edf_data():
 def test_read_segment():
     """Test writing raw edf files when preload is False
     """
+    tempdir = _TempDir()
     raw1 = read_raw_edf(edf_path, stim_channel=139, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
@@ -181,6 +180,7 @@ def test_edf_annotations():
 def test_write_annotations():
     """Test writing raw files when annotations were parsed.
     """
+    tempdir = _TempDir()
     raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)

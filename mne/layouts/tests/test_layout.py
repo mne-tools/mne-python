@@ -87,11 +87,10 @@ test_info = {
              'unit_mul': 0}],
     'nchan': 3}
 
-tempdir = _TempDir()
-
 
 def test_io_layout_lout():
     """Test IO with .lout files"""
+    tempdir = _TempDir()
     layout = read_layout('Vectorview-all', scale=False)
     layout.save(op.join(tempdir, 'foobar.lout'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lout'), path='./',
@@ -104,6 +103,7 @@ def test_io_layout_lout():
 
 def test_io_layout_lay():
     """Test IO with .lay files"""
+    tempdir = _TempDir()
     layout = read_layout('CTF151', scale=False)
     layout.save(op.join(tempdir, 'foobar.lay'))
     layout_read = read_layout(op.join(tempdir, 'foobar.lay'), path='./',
@@ -114,6 +114,7 @@ def test_io_layout_lay():
 
 def test_make_eeg_layout():
     """ Test creation of EEG layout """
+    tempdir = _TempDir()
     tmp_name = 'foo'
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
@@ -142,6 +143,7 @@ def test_make_eeg_layout():
 
 def test_make_grid_layout():
     """ Test creation of grid layout """
+    tempdir = _TempDir()
     tmp_name = 'bar'
     lout_name = 'test_ica'
     lout_orig = read_layout(kind=lout_name, path=lout_path)

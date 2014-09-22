@@ -20,7 +20,6 @@ data_path = testing.data_path()
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
-tempdir = _TempDir()
 
 
 def test_helmet():
@@ -98,6 +97,7 @@ def test_make_morph_maps():
 def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
+    tempdir = _TempDir()
     surf = read_bem_surfaces(fname, add_geom=True)
     surf = read_bem_surfaces(fname, add_geom=False)
     print("Number of surfaces : %d" % len(surf))
@@ -113,6 +113,7 @@ def test_io_bem_surfaces():
 def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """
+    tempdir = _TempDir()
     fname = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.inflated')
     pts, tri = read_surface(fname)
     write_surface(op.join(tempdir, 'tmp'), pts, tri)

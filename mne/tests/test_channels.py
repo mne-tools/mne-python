@@ -18,9 +18,6 @@ from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
 
-tempdir = _TempDir()
-
-
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
@@ -77,6 +74,7 @@ def test_rename_channels():
 
 def test_read_ch_connectivity():
     "Test reading channel connectivity templates"
+    tempdir = _TempDir()
     a = partial(np.array, dtype='<U7')
     # no pep8
     nbh = np.array([[(['MEG0111'], [[a(['MEG0131'])]]),

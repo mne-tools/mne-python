@@ -15,7 +15,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
-                       run_tests_if_main, travis_skip)
+                       run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -36,8 +36,6 @@ fname_bem = op.join(data_path, 'subjects', 'sample', 'bem',
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname_small = op.join(base_dir, 'small-src.fif.gz')
-
-tempdir = _TempDir()
 
 
 @requires_nibabel(vox2ras_tkr=True)
@@ -83,10 +81,10 @@ def test_add_patch_info():
             assert_array_equal(p1, p2)
 
 
-@travis_skip
 @requires_scipy_version('0.11')
 def test_add_source_space_distances_limited():
     """Test adding distances to source space with a dist_limit"""
+    tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -123,6 +121,7 @@ def test_add_source_space_distances_limited():
 @requires_scipy_version('0.11')
 def test_add_source_space_distances():
     """Test adding distances to source space"""
+    tempdir = _TempDir()
     src = read_source_spaces(fname)
     src_new = read_source_spaces(fname)
     del src_new[0]['dist']
@@ -163,6 +162,7 @@ def test_add_source_space_distances():
 def test_discrete_source_space():
     """Test setting up (and reading/writing) discrete source spaces
     """
+    tempdir = _TempDir()
     src = read_source_spaces(fname)
     v = src[0]['vertno']
 
@@ -199,11 +199,11 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
-@travis_skip
 @requires_mne
 def test_volume_source_space():
     """Test setting up volume source spaces
     """
+    tempdir = _TempDir()
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
     # The one in the sample dataset (uses bem as bounds)
@@ -284,6 +284,7 @@ def test_accumulate_normals():
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
     """
+    tempdir = _TempDir()
     fname_ico = op.join(data_path, 'subjects', 'fsaverage', 'bem',
                         'fsaverage-ico-5-src.fif')
     # first lets test some input params
@@ -356,6 +357,7 @@ def test_read_source_spaces():
 def test_write_source_space():
     """Test writing and reading of source spaces
     """
+    tempdir = _TempDir()
     src0 = read_source_spaces(fname, add_geom=False)
     write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
     src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'), add_geom=False)
@@ -418,6 +420,7 @@ def test_get_volume_label_names():
 def test_source_space_from_label():
     """Test generating a source space from volume label
     """
+    tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_label = label_names[int(np.random.rand() * len(label_names))]
@@ -452,7 +455,7 @@ def test_source_space_from_label():
 def test_combine_source_spaces():
     """Test combining source spaces
     """
-    return
+    tempdir = _TempDir()
     aseg_fname = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
     label_names = get_volume_labels_from_aseg(aseg_fname)
     volume_labels = [label_names[int(np.random.rand() * len(label_names))]

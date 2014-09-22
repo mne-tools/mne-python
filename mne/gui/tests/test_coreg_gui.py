@@ -24,15 +24,13 @@ kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 warnings.simplefilter('always')
 
-tempdir = _TempDir()
-
-trans_dst = os.path.join(tempdir, 'test-trans.fif')
-
 
 @requires_traits
 def test_coreg_model():
     """Test CoregModel"""
     from mne.gui._coreg_gui import CoregModel
+    tempdir = _TempDir()
+    trans_dst = os.path.join(tempdir, 'test-trans.fif')
 
     model = CoregModel()
     assert_raises(RuntimeError, model.save_trans, 'blah.fif')
@@ -104,6 +102,7 @@ def test_coreg_model():
 @requires_mne_fs_in_env
 def test_coreg_model_with_fsaverage():
     """Test CoregModel"""
+    tempdir = _TempDir()
     from mne.gui._coreg_gui import CoregModel
 
     mne.create_default_subject(subjects_dir=tempdir)

@@ -24,8 +24,6 @@ fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
-tempdir = _TempDir()
-test_name = op.join(tempdir, 'test.log')
 
 
 def clean_lines(lines):
@@ -95,8 +93,9 @@ def test_tempdir():
     """
     tempdir2 = _TempDir()
     assert_true(op.isdir(tempdir2))
-    tempdir2.cleanup()
-    assert_true(not op.isdir(tempdir2))
+    x = str(tempdir2)
+    del tempdir2
+    assert_true(not op.isdir(x))
 
 
 def test_estimate_rank():
@@ -110,6 +109,8 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
+    tempdir = _TempDir()
+    test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
@@ -181,6 +182,7 @@ def test_logging():
 
 def test_config():
     """Test mne-python config file support"""
+    tempdir = _TempDir()
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
     old_val = os.getenv(key, None)
@@ -283,6 +285,7 @@ def test_requires_mem_gb():
 def test_fetch_file():
     """Test file downloading
     """
+    tempdir = _TempDir()
     # Skipping test if no internet connection available
     try:
         urllib.request.urlopen("http://github.com", timeout=2)

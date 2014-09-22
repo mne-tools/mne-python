@@ -34,9 +34,6 @@ from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
 from .externals.six import moves
 
-tempdir = _TempDir()
-temp_fname = op.join(tempdir, 'test')
-
 VALID_EXTENSIONS = ['raw.fif', 'raw.fif.gz', 'sss.fif', 'sss.fif.gz',
                     '-eve.fif', '-eve.fif.gz', '-cov.fif', '-cov.fif.gz',
                     '-trans.fif', '-trans.fif.gz', '-fwd.fif', '-fwd.fif.gz',
@@ -98,7 +95,7 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
 
     fig_size = fig.get_size_inches()
     w, h = orig_size[0], orig_size[1]
-    w2, h2 = fig_size[0], fig_size[1]
+    w2 = fig_size[0]
     fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
     a = fig.gca()
     a.set_xticks([]), a.set_yticks([])
@@ -723,7 +720,7 @@ class Report(object):
         import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
-            from mayavi import mlab  # ... mlab is imported
+            from mayavi import mlab  # noqa, analysis:ignore... mlab imported
             import mayavi
         except ImportError:
             warnings.warn('Could not import mayavi. Trying to render '
@@ -741,7 +738,8 @@ class Report(object):
 
             if isinstance(fig, mayavi.core.scene.Scene):
                 from scipy.misc import imread
-
+                tempdir = _TempDir()
+                temp_fname = op.join(tempdir, 'test')
                 fig.scene.save_bmp(temp_fname)
                 im = imread(temp_fname)
                 fig = plt.imshow(im).figure
@@ -1134,7 +1132,7 @@ class Report(object):
         orig_size = np.roll(shape, orientation_axis)[[1, 2]]
 
         name = orientation
-        html, img = [], []
+        html = []
         slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
@@ -1411,7 +1409,7 @@ class Report(object):
             self.sections.append('mri')
             self._sectionvars['mri'] = 'mri'
 
-        name, caption = 'BEM', 'BEM contours'
+        name = 'BEM'
 
         html += u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name

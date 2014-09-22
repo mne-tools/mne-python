@@ -44,8 +44,6 @@ bad_file_wrong = op.join(base_dir, 'test_wrong_bads.txt')
 hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
-tempdir = _TempDir()
-
 
 def test_hash_raw():
     """Test hashing raw objects
@@ -65,6 +63,7 @@ def test_hash_raw():
 def test_subject_info():
     """Test reading subject information
     """
+    tempdir = _TempDir()
     raw = Raw(fif_fname)
     raw.crop(0, 1, False)
     assert_true(raw.info['subject_info'] is None)
@@ -137,6 +136,7 @@ def test_rank_estimation():
 def test_output_formats():
     """Test saving and loading raw data using multiple formats
     """
+    tempdir = _TempDir()
     formats = ['short', 'int', 'single', 'double']
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
@@ -167,6 +167,7 @@ def test_multiple_files():
     """Test loading multiple files simultaneously
     """
     # split file
+    tempdir = _TempDir()
     raw = Raw(fif_fname, preload=True).crop(0, 10)
     split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
@@ -281,6 +282,7 @@ def test_multiple_files():
 def test_split_files():
     """Test writing and reading of split raw files
     """
+    tempdir = _TempDir()
     raw_1 = Raw(fif_fname, preload=True)
     split_fname = op.join(tempdir, 'split_raw.fif')
     raw_1.save(split_fname, buffer_size_sec=1.0, split_size='10MB')
@@ -305,6 +307,7 @@ def test_split_files():
 def test_load_bad_channels():
     """Test reading/writing of bad channels
     """
+    tempdir = _TempDir()
     # Load correctly marked file (manually done in mne_process_raw)
     raw_marked = Raw(fif_bad_marked_fname)
     correct_bads = raw_marked.info['bads']
@@ -345,6 +348,7 @@ def test_load_bad_channels():
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
     """
+    tempdir = _TempDir()
     # test unicode io
     for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
         with Raw(fif_fname) as r:
@@ -456,6 +460,7 @@ def test_io_raw():
 def test_io_complex():
     """Test IO with complex data types
     """
+    tempdir = _TempDir()
     dtypes = [np.complex64, np.complex128]
 
     raw = Raw(fif_fname, preload=True)
@@ -511,6 +516,7 @@ def test_getitem():
 def test_proj():
     """Test SSP proj operations
     """
+    tempdir = _TempDir()
     for proj in [True, False]:
         raw = Raw(fif_fname, preload=False, proj=proj)
         assert_true(all(p['active'] == proj for p in raw.info['projs']))
@@ -568,6 +574,7 @@ def test_proj():
 def test_preload_modify():
     """Test preloading and modifying data
     """
+    tempdir = _TempDir()
     for preload in [False, True, 'memmap.dat']:
         raw = Raw(fif_fname, preload=preload)
 
@@ -710,6 +717,7 @@ def test_crop():
 def test_resample():
     """Test resample (with I/O and multiple files)
     """
+    tempdir = _TempDir()
     raw = Raw(fif_fname, preload=True).crop(0, 3, False)
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
@@ -866,6 +874,7 @@ def test_raw_time_as_index():
 
 def test_save():
     """ Test saving raw"""
+    tempdir = _TempDir()
     raw = Raw(fif_fname, preload=False)
     # can't write over file being read
     assert_raises(ValueError, raw.save, fif_fname)
@@ -894,6 +903,7 @@ def test_with_statement():
 def test_compensation_raw():
     """Test Raw compensation
     """
+    tempdir = _TempDir()
     raw1 = Raw(ctf_comp_fname, compensation=None)
     assert_true(raw1.comp is None)
     data1, times1 = raw1[:, :]
@@ -933,6 +943,8 @@ def test_compensation_raw():
 def test_compensation_raw_mne():
     """Test Raw compensation by comparing with MNE
     """
+    tempdir = _TempDir()
+
     def compensate_mne(fname, grad):
         tmp_fname = op.join(tempdir, 'mne_ctf_test_raw.fif')
         cmd = ['mne_process_raw', '--raw', fname, '--save', tmp_fname,

@@ -26,8 +26,6 @@ fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
 fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-tempdir = _TempDir()
-
 
 def test_add_events():
     """Test adding events to a Raw file"""
@@ -73,6 +71,7 @@ def test_merge_events():
 def test_io_events():
     """Test IO for events
     """
+    tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
     write_events(op.join(tempdir, 'events-eve.fif'), events)
@@ -103,8 +102,10 @@ def test_io_events():
     # Test event selection
     a = read_events(op.join(tempdir, 'events-eve.fif'), include=1)
     b = read_events(op.join(tempdir, 'events-eve.fif'), include=[1])
-    c = read_events(op.join(tempdir, 'events-eve.fif'), exclude=[2, 3, 4, 5, 32])
-    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1, exclude=[2, 3])
+    c = read_events(op.join(tempdir, 'events-eve.fif'),
+                    exclude=[2, 3, 4, 5, 32])
+    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1,
+                    exclude=[2, 3])
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
@@ -149,7 +150,7 @@ def test_find_events():
 
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
-                                      include=stim_channel)
+                                     include=stim_channel)
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0
@@ -192,7 +193,8 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_raises(ValueError,find_events,raw, output='step', consecutive=True)
+    assert_raises(ValueError, find_events, raw, output='step',
+                  consecutive=True)
     assert_array_equal(find_events(raw, output='step', consecutive=True,
                                    shortest_event=1),
                        [[10, 0, 5],

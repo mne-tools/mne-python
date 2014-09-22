@@ -16,9 +16,6 @@ from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
 from functools import reduce
 
 
-tempdir = _TempDir()
-
-
 def test_read_elp():
     """Test reading an ELP file"""
     path = os.path.join(kit_data_dir, 'test_elp.txt')
@@ -31,6 +28,7 @@ def test_read_elp():
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
+    tempdir = _TempDir()
     create_default_subject(subjects_dir=tempdir)
     is_mri = _is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
@@ -51,7 +49,8 @@ def test_scale_mri():
         run_subprocess(cmd, env=env)
 
     # scale fsaverage
-    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True, subjects_dir=tempdir)
+    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True,
+              subjects_dir=tempdir)
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
@@ -63,7 +62,6 @@ def test_scale_mri():
     os.remove(src_path)
     scale_source_space('flachkopf', 'ico-6', subjects_dir=tempdir)
     assert_true(os.path.exists(src_path), "Source space was not scaled")
-
 
 
 def test_fit_matched_points():
@@ -83,7 +81,7 @@ def test_fit_matched_points():
     trans = np.dot(rotation(2, 6, 3), scaling(.5, .5, .5))
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, scale=1,
-                                out='trans')
+                                   out='trans')
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation and scaling.")

@@ -13,14 +13,13 @@ from mne.utils import _TempDir, requires_traits
 sample_path = testing.data_path()
 subjects_dir = os.path.join(sample_path, 'subjects')
 
-tempdir = _TempDir()
-tgt_fname = os.path.join(tempdir, 'test-fiducials.fif')
-
 
 @requires_traits
 def test_mri_model():
     """Test MRIHeadWithFiducialsModel Traits Model"""
     from mne.gui._fiducials_gui import MRIHeadWithFiducialsModel
+    tempdir = _TempDir()
+    tgt_fname = os.path.join(tempdir, 'test-fiducials.fif')
 
     model = MRIHeadWithFiducialsModel(subjects_dir=subjects_dir)
     model.subject = 'sample'
