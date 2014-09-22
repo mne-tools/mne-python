@@ -194,7 +194,9 @@ class RawEDF(_BaseRaw):
         # this is used to deal with indexing in the middle of a sampling period
         blockstart = int(floor(float(start) / record_samps) * record_samps)
         blockstop = int(ceil(float(stop) / record_samps) * record_samps)
-
+        if blockstop > self.last_samp:
+            blockstop = self.last_samp + 1
+        
         if start >= stop:
             raise ValueError('No data in this range')
 
