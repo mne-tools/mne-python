@@ -2,7 +2,6 @@
 #
 # License: BSD (3-clause)
 
-from ...externals.six import string_types
 import os
 
 import numpy as np
@@ -15,6 +14,7 @@ import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
+from mne.externals.six import string_types
 
 
 data_path = testing.data_path()
