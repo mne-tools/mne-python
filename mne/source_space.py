@@ -1908,82 +1908,92 @@ def _add_interpolator(s, mri_name, add_interpolator):
 
     logger.info('Setting up interpolation...')
 
-    # Take *all* MRI vertices...
+    # Loop over slices to save (lots of) memory
+    # Note that it is the slowest incrementing index
     # This is equivalent to using mgrid and reshaping, but faster
-    js = np.arange(mri_width, dtype=np.float32)
-    js = np.tile(js[np.newaxis, np.newaxis, :],
-                 (mri_depth, mri_height, 1)).ravel()
-    ks = np.arange(mri_height, dtype=np.float32)
-    ks = np.tile(ks[np.newaxis, :, np.newaxis],
-                 (mri_depth, 1, mri_width)).ravel()
-    ps = np.arange(mri_depth, dtype=np.float32)
-    ps = np.tile(ps[:, np.newaxis, np.newaxis],
-                 (1, mri_height, mri_width)).ravel()
-    r0 = np.c_[js, ks, ps]
-    # note we have the correct number of vertices
-    assert len(r0) == mri_width * mri_height * mri_depth
+    data = []
+    indices = []
+    indptr = np.zeros(nvox + 1, np.int32)
+    for p in range(mri_depth):
+        js = np.arange(mri_width, dtype=np.float32)
+        js = np.tile(js[np.newaxis, :],
+                     (mri_height, 1)).ravel()
+        ks = np.arange(mri_height, dtype=np.float32)
+        ks = np.tile(ks[:, np.newaxis],
+                     (1, mri_width)).ravel()
+        ps = np.empty((mri_height, mri_width), np.float32).ravel()
+        ps.fill(p)
+        r0 = np.c_[js, ks, ps]
+        del js, ks, ps
 
-    # ...and transform them from their MRI space into our source space's frame
-    # (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's really a subset
-    # of the entire volume!)
-    r0 = apply_trans(combo_trans['trans'], r0)
-    assert r0.dtype == np.float32, r0.dtype
-    rn = np.floor(r0).astype(np.int32)
-    maxs = (s['vol_dims'] - 1)[np.newaxis, :]
-    good = np.logical_and(np.all(rn >= 0, axis=1), np.all(rn < maxs, axis=1))
-    rn = rn[good]
-    r0 = r0[good]
-    # now we take each MRI voxel *in this space*, and figure out how to make
-    # its value the weighted sum of voxels in the volume source space. This
-    # is a 3D weighting scheme based (presumably) on the fact that we know
-    # we're interpolating from one volumetric grid into another.
-    jj = rn[:, 0]
-    kk = rn[:, 1]
-    pp = rn[:, 2]
-    vss = np.empty((8, len(jj)), np.int32)
-    width = s['vol_dims'][0]
-    height = s['vol_dims'][1]
-    jjp1 = jj + 1
-    kkp1 = kk + 1
-    ppp1 = pp + 1
-    vss[0, :] = _vol_vertex(width, height, jj, kk, pp)
-    vss[1, :] = _vol_vertex(width, height, jjp1, kk, pp)
-    vss[2, :] = _vol_vertex(width, height, jjp1, kkp1, pp)
-    vss[3, :] = _vol_vertex(width, height, jj, kkp1, pp)
-    vss[4, :] = _vol_vertex(width, height, jj, kk, ppp1)
-    vss[5, :] = _vol_vertex(width, height, jjp1, kk, ppp1)
-    vss[6, :] = _vol_vertex(width, height, jjp1, kkp1, ppp1)
-    vss[7, :] = _vol_vertex(width, height, jj, kkp1, ppp1)
-    del jj, kk, pp, jjp1, kkp1, ppp1
-    uses = np.any(s['inuse'][vss], axis=0)
+        # Transform our vertices from their MRI space into our source space's
+        # frame (this is labeled as FIFFV_MNE_COORD_MRI_VOXEL, but it's
+        # really a subset of the entire volume!)
+        r0 = apply_trans(combo_trans['trans'], r0)
+        rn = np.floor(r0).astype(int)
+        maxs = (s['vol_dims'] - 1)[np.newaxis, :]
+        good = np.where(np.logical_and(np.all(rn >= 0, axis=1),
+                                       np.all(rn < maxs, axis=1)))[0]
+        rn = rn[good]
+        r0 = r0[good]
 
-    verts = vss[:, uses].ravel()  # vertex (col) numbers in csr matrix
-    row_idx = np.tile(np.where(good)[0][uses], (8, 1)).ravel()
+        # now we take each MRI voxel *in this space*, and figure out how
+        # to make its value the weighted sum of voxels in the volume source
+        # space. This is a 3D weighting scheme based (presumably) on the
+        # fact that we know we're interpolating from one volumetric grid
+        # into another.
+        jj = rn[:, 0]
+        kk = rn[:, 1]
+        pp = rn[:, 2]
+        vss = np.empty((len(jj), 8), np.int32)
+        width = s['vol_dims'][0]
+        height = s['vol_dims'][1]
+        jjp1 = jj + 1
+        kkp1 = kk + 1
+        ppp1 = pp + 1
+        vss[:, 0] = _vol_vertex(width, height, jj, kk, pp)
+        vss[:, 1] = _vol_vertex(width, height, jjp1, kk, pp)
+        vss[:, 2] = _vol_vertex(width, height, jjp1, kkp1, pp)
+        vss[:, 3] = _vol_vertex(width, height, jj, kkp1, pp)
+        vss[:, 4] = _vol_vertex(width, height, jj, kk, ppp1)
+        vss[:, 5] = _vol_vertex(width, height, jjp1, kk, ppp1)
+        vss[:, 6] = _vol_vertex(width, height, jjp1, kkp1, ppp1)
+        vss[:, 7] = _vol_vertex(width, height, jj, kkp1, ppp1)
+        del jj, kk, pp, jjp1, kkp1, ppp1
+        uses = np.any(s['inuse'][vss], axis=1)
+        vss = vss[uses].ravel()  # vertex (col) numbers in csr matrix
+        indices.append(vss)
+        indptr[good[uses] + p * mri_height * mri_width + 1] = 8
+        del vss
 
-    # figure out weights for each vertex
-    r0 = r0[uses]
-    rn = rn[uses]
-    xf = r0[:, 0] - rn[:, 0].astype(np.float32)
-    yf = r0[:, 1] - rn[:, 1].astype(np.float32)
-    zf = r0[:, 2] - rn[:, 2].astype(np.float32)
-    omxf = 1.0 - xf
-    omyf = 1.0 - yf
-    omzf = 1.0 - zf
-    weights = np.concatenate([omxf * omyf * omzf,  # correspond to rows of vss
+        # figure out weights for each vertex
+        r0 = r0[uses]
+        rn = rn[uses]
+        del uses, good
+        xf = r0[:, 0] - rn[:, 0].astype(np.float32)
+        yf = r0[:, 1] - rn[:, 1].astype(np.float32)
+        zf = r0[:, 2] - rn[:, 2].astype(np.float32)
+        omxf = 1.0 - xf
+        omyf = 1.0 - yf
+        omzf = 1.0 - zf
+        # each entry in the concatenation corresponds to a row of vss
+        data.append(np.array([omxf * omyf * omzf,
                               xf * omyf * omzf,
                               xf * yf * omzf,
                               omxf * yf * omzf,
                               omxf * omyf * zf,
                               xf * omyf * zf,
                               xf * yf * zf,
-                              omxf * yf * zf])
-    del xf, yf, zf, omxf, omyf, omzf
+                              omxf * yf * zf], order='F').T.ravel())
+        del xf, yf, zf, omxf, omyf, omzf
 
-    # Compose the sparse matrix
-    ij = (row_idx, verts)
-    interp = sparse.csr_matrix((weights, ij), shape=(nvox, s['np']))
-    s['interpolator'] = interp
-    logger.info(' %d/%d nonzero values [done]' % (len(weights), nvox))
+        # Compose the sparse matrix
+    indptr = np.cumsum(indptr, out=indptr)
+    indices = np.concatenate(indices)
+    data = np.concatenate(data)
+    s['interpolator'] = sparse.csr_matrix((data, indices, indptr),
+                                          shape=(nvox, s['np']))
+    logger.info(' %d/%d nonzero values [done]' % (len(data), nvox))
 
 
 @verbose

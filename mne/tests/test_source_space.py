@@ -232,11 +232,11 @@ def test_other_volume_source_spaces():
     tempdir = _TempDir()
     temp_name = op.join(tempdir, 'temp-src.fif')
     run_subprocess(['mne_volume_source_space',
-                    '--grid', '15.0',
+                    '--grid', '7.0',
                     '--src', temp_name,
                     '--mri', fname_mri])
     src = read_source_spaces(temp_name)
-    src_new = setup_volume_source_space('sample', temp_name, pos=15.0,
+    src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
                                         mri=fname_mri,
                                         subjects_dir=subjects_dir,
                                         add_interpolator=False)
@@ -247,7 +247,7 @@ def test_other_volume_source_spaces():
     # now without MRI argument, it should give an error when we try
     # to read it
     run_subprocess(['mne_volume_source_space',
-                    '--grid', '15.0',
+                    '--grid', '7.0',
                     '--src', temp_name])
     assert_raises(ValueError, read_source_spaces, temp_name)
 
