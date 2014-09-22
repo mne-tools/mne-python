@@ -12,8 +12,10 @@ python-mne (0.8.3+dfsg-1) UNRELEASED; urgency=low
   [ Yaroslav Halchenko ]
   * debian/copyright
     - updated to note MIT license for bootstrap 3.0
+  * debian/control
+    - removed pysupport from build-depends (not used)
 
- -- Yaroslav Halchenko <debian@onerussian.com>  Sun, 21 Sep 2014 23:52:26 +0200
+ -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 22 Sep 2014 11:17:31 +0200
 
 python-mne (0.7.3-1) unstable; urgency=low
 
