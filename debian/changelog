@@ -1,3 +1,10 @@
+python-mne (0.8.6+dfsg-1) unstable; urgency=low
+
+  * New upstream version
+  * remove dependency on d3
+
+ -- Alexandre Gramfort <alexandre.gramfort@m4x.org>  Sat, 25 Oct 2014 16:09:07 -0400
+
 python-mne (0.8.4+dfsg-1) unstable; urgency=low
 
   [ Alexandre Gramfort ]
