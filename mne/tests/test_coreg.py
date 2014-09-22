@@ -5,6 +5,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_array_less)
 
+from mne import setup_source_space
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
@@ -12,7 +13,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _is_mri_subject, scale_labels, scale_source_space,
                        read_elp)
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
+from mne.utils import requires_mne_fs_in_env, _TempDir
 from functools import reduce
 
 
@@ -42,15 +43,13 @@ def test_scale_mri():
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
     if not os.path.exists(path):
-        cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico',
-               '6']
-        env = os.environ.copy()
-        env['SUBJECTS_DIR'] = tempdir
-        run_subprocess(cmd, env=env)
+        setup_source_space('fsaverage', path, 'ico6', add_dist=False)
 
     # scale fsaverage
+    os.environ['_MNE_FEW_SURFACES'] = 'true'
     scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True,
               subjects_dir=tempdir)
+    del os.environ['_MNE_FEW_SURFACES']
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',

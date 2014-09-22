@@ -20,6 +20,8 @@ from mne.externals.six import string_types
 data_path = testing.data_path()
 raw_path = os.path.join(data_path, 'MEG', 'sample',
                         'sample_audvis_trunc_raw.fif')
+fname_trans = os.path.join(data_path, 'MEG', 'sample',
+                           'sample_audvis_trunc-trans.fif')
 kit_raw_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 warnings.simplefilter('always')
@@ -96,6 +98,9 @@ def test_coreg_model():
     # info
     assert_true(isinstance(model.fid_eval_str, string_types))
     assert_true(isinstance(model.points_eval_str, string_types))
+
+    model.get_prepare_bem_model_job('sample')
+    model.load_trans(fname_trans)
 
 
 @requires_traits

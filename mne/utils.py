@@ -799,7 +799,8 @@ def _mne_fs_not_in_env():
     return (('FREESURFER_HOME' not in os.environ) or
             ('MNE_ROOT' not in os.environ))
 
-requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
+requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env(),
+                                               'MNE or Freesurfer not found')
 
 
 def _check_mayavi_version(min_version='4.3.0'):

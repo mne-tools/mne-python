@@ -39,11 +39,6 @@ fname_bem = op.join(subjects_dir, 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
 
-# make a file that exists with some data in it
-existing_file = op.join(temp_dir, 'test.fif')
-with open(existing_file, 'w') as fid:
-    fid.write('aoeu')
-
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                       meg_rtol=1e-4, meg_atol=1e-9):
@@ -187,6 +182,10 @@ def test_do_forward_solution():
     """Test wrapping forward solution from python
     """
     temp_dir = _TempDir()
+    existing_file = op.join(temp_dir, 'test.fif')
+    with open(existing_file, 'w') as fid:
+        fid.write('aoeu')
+
     mri = read_trans(fname_mri)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 

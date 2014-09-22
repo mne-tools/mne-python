@@ -20,27 +20,10 @@ try:
                             information)
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    Any = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Directory = trait_wraith
-    Enum = trait_wraith
-    Event = trait_wraith
-    File = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    VGroup = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = Any = Array = Bool = Button = \
+        DelegatesTo = Directory = Enum = Event = File = Instance = \
+        Int = List = Property = Str = View = Item = VGroup = trait_wraith
 
 from ..io.constants import FIFF
 from ..io import Raw, read_fiducials
@@ -75,24 +58,44 @@ def get_fs_home():
     If specified successfully, the resulting path is stored with
     mne.set_config().
     """
-    fs_home = get_config('FREESURFER_HOME')
-    problem = _fs_home_problem(fs_home)
+    return _get_root_home('FREESURFER_HOME', 'freesurfer', _fs_home_problem)
+
+
+def get_mne_root():
+    """Get the MNE_ROOT directory
+
+    Returns
+    -------
+    mne_root : None | str
+        The MNE_ROOT path or None if the user cancels.
+
+    Notes
+    -----
+    If MNE_ROOT can't be found, the user is prompted with a file dialog.
+    If specified successfully, the resulting path is stored with
+    mne.set_config().
+    """
+    return _get_root_home('MNE_ROOT', 'MNE', _mne_root_problem)
+
+
+def _get_root_home(cfg, name, check_fun):
+    root = get_config(cfg)
+    problem = check_fun(root)
     while problem:
-        info = ("Please select the FREESURFER_HOME directory. This is the "
-                "root directory of the freesurfer installation.")
+        info = ("Please select the %s directory. This is the root "
+                "directory of the %s installation." % (cfg, name))
         msg = '\n\n'.join((problem, info))
-        information(None, msg, "Select the FREESURFER_HOME Directory")
-        msg = "Please select the FREESURFER_HOME Directory"
+        information(None, msg, "Select the %s Directory" % cfg)
+        msg = "Please select the %s Directory" % cfg
         dlg = DirectoryDialog(message=msg, new_directory=False)
         if dlg.open() == OK:
-            fs_home = dlg.path
-            problem = _fs_home_problem(fs_home)
+            root = dlg.path
+            problem = check_fun(root)
             if problem is None:
-                set_config('FREESURFER_HOME', fs_home)
+                set_config(cfg, root)
         else:
             return None
-
-    return fs_home
+    return root
 
 
 def set_fs_home():
@@ -132,40 +135,6 @@ def _fs_home_problem(fs_home):
         if not os.path.exists(test_dir):
             return ("FREESURFER_HOME (%s) does not contain the fsaverage "
                     "subject." % fs_home)
-
-
-def get_mne_root():
-    """Get the MNE_ROOT directory
-
-    Returns
-    -------
-    mne_root : None | str
-        The MNE_ROOT path or None if the user cancels.
-
-    Notes
-    -----
-    If MNE_ROOT can't be found, the user is prompted with a file dialog.
-    If specified successfully, the resulting path is stored with
-    mne.set_config().
-    """
-    mne_root = get_config('MNE_ROOT')
-    problem = _mne_root_problem(mne_root)
-    while problem:
-        info = ("Please select the MNE_ROOT directory. This is the root "
-                "directory of the MNE installation.")
-        msg = '\n\n'.join((problem, info))
-        information(None, msg, "Select the MNE_ROOT Directory")
-        msg = "Please select the MNE_ROOT Directory"
-        dlg = DirectoryDialog(message=msg, new_directory=False)
-        if dlg.open() == OK:
-            mne_root = dlg.path
-            problem = _mne_root_problem(mne_root)
-            if problem is None:
-                set_config('MNE_ROOT', mne_root)
-        else:
-            return None
-
-    return mne_root
 
 
 def set_mne_root(set_mne_bin=False):
