@@ -14,6 +14,8 @@ python-mne (0.8.3+dfsg-1) UNRELEASED; urgency=low
     - updated to note MIT license for bootstrap 3.0
   * debian/control
     - removed pysupport from build-depends (not used)
+    - added mayavi2 and jquery packages into build-depends for robust 
+      build across all Debian/Ubuntu releases and extended testing
 
  -- Yaroslav Halchenko <debian@onerussian.com>  Mon, 22 Sep 2014 11:17:31 +0200
 
