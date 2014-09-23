@@ -147,7 +147,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
-                       slices=None, show=True):
+                       slices=None, show=True, multi_fig=False):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -203,7 +203,15 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append(surf)
 
-    fig, axs = _prepare_trellis(len(slices), 4)
+    if not multi_fig:
+        fig, axs = _prepare_trellis(len(slices), 4)
+    else:
+        fig = []
+        axs = []
+        for _ in range(len(slices)):
+            f, a = plt.subplots(1, 1, figsize=(7.4, 7.0))
+            fig.append(f)
+            axs.append(a)
 
     for ax, sl in zip(axs, slices):
 

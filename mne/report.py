@@ -29,7 +29,6 @@ from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
 
-from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
 from .externals.six import moves
@@ -46,64 +45,40 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
-@decorator
-def _check_report_mode(function, *args, **kwargs):
-    """Check whether to actually render or not.
-
-    Parameters
-    ----------
-    function : function
-        Function to be decorated by setting the verbosity level.
-
-    Returns
-    -------
-    dec : function
-        The decorated function
-    """
-
-    if 'MNE_REPORT_TESTING' not in os.environ:
-        return function(*args, **kwargs)
-    else:
+def _fig_to_img(function=None, fig=None, **kwargs):
+    """Wrapper function to plot figure and create a binary image"""
+    # evoked.plot and plot_topomap are currently too slow to test :(
+    if function is not None and os.getenv('MNE_REPORT_TESTING', '') != '' and \
+            any(x == function.__name__ for x in ('plot', 'plot_topomap')):
         return ''
-
-
-@_check_report_mode
-def _fig_to_img(function=None, fig=None, close_fig=True, **kwargs):
-    """Wrapper function to plot figure and
-       for fig <-> binary image.
-    """
     import matplotlib.pyplot as plt
-
     if function is not None:
         plt.close('all')
         fig = function(**kwargs)
-
     output = BytesIO()
     fig.savefig(output, format='png', bbox_inches='tight')
-    if close_fig is True:
-        plt.close(fig)
-
+    plt.close(fig)
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
-@_check_report_mode
-def _fig_to_mrislice(function, orig_size, sl, **kwargs):
+def _figs_to_mrislices(function, orig_size, sl, **kwargs):
     import matplotlib.pyplot as plt
 
     plt.close('all')
-    fig = _plot_mri_contours(**kwargs)
-
-    fig_size = fig.get_size_inches()
-    w, h = orig_size[0], orig_size[1]
-    w2 = fig_size[0]
-    fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
-    a = fig.gca()
-    a.set_xticks([]), a.set_yticks([])
-    plt.xlim(0, h), plt.ylim(w, 0)
-    output = BytesIO()
-    fig.savefig(output, bbox_inches='tight',
-                pad_inches=0, format='png')
-    return base64.b64encode(output.getvalue()).decode('ascii')
+    outs = []
+    for fig in function(**kwargs):
+        fig_size = fig.get_size_inches()
+        w, h = orig_size[0], orig_size[1]
+        w2 = fig_size[0]
+        fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
+        a = fig.gca()
+        a.set_xticks([]), a.set_yticks([])
+        plt.xlim(0, h), plt.ylim(w, 0)
+        output = BytesIO()
+        fig.savefig(output, bbox_inches='tight',
+                    pad_inches=0, format='png')
+        outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
+    return outs
 
 
 def _iterate_trans_views(function, **kwargs):
@@ -336,29 +311,6 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
     return ind, html
 
 
-def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
-                        mri_fname, surf_fnames, orientation, sl):
-    """Auxiliary function for parallel processing of bem slices.
-    """
-
-    img_klass = 'slideimg-%s' % name
-    logger.info('Rendering BEM contours : orientation = %s, '
-                'slice = %d' % (orientation, sl))
-    caption = u'Slice %s %s' % (name, sl)
-    slice_id = '%s-%s-%s' % (name, global_id, sl)
-    div_klass = 'span12 %s' % slides_klass
-
-    kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
-                  orientation=orientation, slices=[sl],
-                  show=False)
-    img = _fig_to_mrislice(function=_plot_mri_contours,
-                           orig_size=orig_size, sl=sl, **kwargs)
-    first = True if sl == 0 else False
-    return _build_html_image(img, slice_id, div_klass,
-                             img_klass, caption,
-                             first)
-
-
 ###############################################################################
 # HTML functions
 
@@ -384,7 +336,7 @@ slider_template = HTMLTemplate(u"""
                        /*orientation: "vertical",*/
                        min: {{minvalue}},
                        max: {{maxvalue}},
-                       step: 2,
+                       step: {{step}},
                        value: {{startvalue}},
                        create: function(event, ui) {
                        $(".{{klass}}").hide();
@@ -400,9 +352,10 @@ slider_template = HTMLTemplate(u"""
 def _build_html_slider(slices_range, slides_klass, slider_id):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = (slices_range[0] + slices_range[-1]) // 2 + 1
+    startvalue = slices_range[len(slices_range) // 2]
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
+                                      step=slices_range[1] - slices_range[0],
                                       minvalue=slices_range[0],
                                       maxvalue=slices_range[-1],
                                       startvalue=startvalue)
@@ -689,7 +642,7 @@ class Report(object):
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
 
-        self._init_render(verbose=self.verbose)  # Initialize the renderer
+        self._init_render()  # Initialize the renderer
 
     def _get_id(self):
         """Get id of plot.
@@ -718,7 +671,6 @@ class Report(object):
     def _add_figs_to_section(self, figs, captions, section='custom'):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
-        import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, analysis:ignore... mlab imported
@@ -738,15 +690,13 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
-                from scipy.misc import imread
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
-                fig.scene.save_bmp(temp_fname)
-                im = imread(temp_fname)
-                fig = plt.imshow(im).figure
-                plt.axis('off')
-
-            img = _fig_to_img(fig=fig)
+                fig.scene.save_png(temp_fname)
+                with open(temp_fname, 'rb') as fid:
+                    img = base64.b64encode(fid.read()).decode('ascii')
+            else:
+                img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -831,7 +781,6 @@ class Report(object):
             output = BytesIO()
             im.save(output, format='png')
             img = base64.b64encode(output.getvalue()).decode('ascii')
-
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -844,9 +793,9 @@ class Report(object):
 
     ###########################################################################
     # HTML rendering
-    def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray',
-                        n_jobs=1):
-        """Render one axe of the array.
+    def _render_one_axis(self, slices_iter, name, global_id=None, cmap='gray',
+                         n_jobs=1):
+        """Render one axis of the array.
         """
         global_id = global_id or name
         html = []
@@ -897,7 +846,8 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, verbose=None):
+    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
+                     verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -910,6 +860,9 @@ class Report(object):
             include all evoked files.
         n_jobs : int
           Number of jobs to run in parallel.
+        mri_decim : int
+            If a BEM is found, use this decimation factor for generating
+            MRI images (since it can be time consuming).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -949,10 +902,8 @@ class Report(object):
 
         # render mri
         if self.subjects_dir is not None and self.subject is not None:
-            self.html.append(self._render_bem(subject=self.subject,
-                                              subjects_dir=
-                                              self.subjects_dir,
-                                              n_jobs=n_jobs))
+            self.html.append(self._render_bem(self.subject, self.subjects_dir,
+                                              mri_decim, n_jobs))
             self.fnames.append('bem')
             self._sectionlabels.append('mri')
         else:
@@ -1103,28 +1054,27 @@ class Report(object):
         axial_limit = limits.get('axial')
         axial_slices_gen = _iterate_axial_slices(array, axial_limit)
         html.append(
-            self._render_one_axe(axial_slices_gen, 'axial', global_id, cmap,
-                                 n_jobs=n_jobs))
+            self._render_one_axis(axial_slices_gen, 'axial', global_id, cmap,
+                                  n_jobs=n_jobs))
         # Sagittal
         sagittal_limit = limits.get('sagittal')
         sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
-        html.append(self._render_one_axe(sagittal_slices_gen, 'sagittal',
+        html.append(self._render_one_axis(sagittal_slices_gen, 'sagittal',
                     global_id, cmap, n_jobs=n_jobs))
         html.append(u'</div>')
         html.append(u'<div class="row">')
         # Coronal
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
-        html.append(
-            self._render_one_axe(coronal_slices_gen, 'coronal',
-                                 global_id, cmap, n_jobs=n_jobs))
+        html.append(self._render_one_axis(coronal_slices_gen, 'coronal',
+                                          global_id, cmap, n_jobs=n_jobs))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
 
-    def _render_one_bem_axe(self, mri_fname, surf_fnames, global_id,
-                            shape, orientation='coronal', n_jobs=1):
-        """Render one axe of bem contours.
+    def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
+                             shape, orientation='coronal', decim=2):
+        """Render one axis of bem contours.
         """
 
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
@@ -1134,16 +1084,24 @@ class Report(object):
 
         name = orientation
         html = []
-        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
-        slices_range = range(0, n_slices, 2)
-
-        parallel, p_fun, _ = parallel_func(_iterate_bem_slices, n_jobs)
-        slices = parallel(p_fun(name, global_id, slides_klass, orig_size,
-                          mri_fname, surf_fnames, orientation, sl)
-                          for sl in slices_range)
+        sl = np.arange(0, n_slices, decim)
+        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
+                      orientation=orientation, slices=sl,
+                      show=False, multi_fig=True)
+        imgs = _figs_to_mrislices(_plot_mri_contours,
+                                  orig_size=orig_size, sl=sl, **kwargs)
+        slices = []
+        img_klass = 'slideimg-%s' % name
+        div_klass = 'span12 %s' % slides_klass
+        for ii, img in enumerate(imgs):
+            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
+            caption = u'Slice %s %s' % (name, sl[ii])
+            first = True if ii == 0 else False
+            slices.append(_build_html_image(img, slice_id, div_klass,
+                          img_klass, caption, first))
 
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
@@ -1152,7 +1110,7 @@ class Report(object):
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
-        html.append(_build_html_slider(slices_range, slides_klass, slider_id))
+        html.append(_build_html_slider(sl, slides_klass, slider_id))
         html.append(u'</div>')
 
         return '\n'.join(html)
@@ -1259,7 +1217,7 @@ class Report(object):
             global_id = self._get_id()
 
             kwargs = dict(show=False)
-            img = _fig_to_img(function=ev.plot, **kwargs)
+            img = _fig_to_img(ev.plot, **kwargs)
 
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'evoked'
@@ -1273,7 +1231,7 @@ class Report(object):
 
             for ch_type in ['eeg', 'grad', 'mag']:
                 kwargs = dict(ch_type=ch_type, show=False)
-                img = _fig_to_img(function=ev.plot_topomap, **kwargs)
+                img = _fig_to_img(ev.plot_topomap, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
@@ -1290,7 +1248,7 @@ class Report(object):
         events = read_events(eve_fname)
 
         kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(function=plot_events, **kwargs)
+        img = _fig_to_img(plot_events, **kwargs)
 
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
@@ -1311,7 +1269,7 @@ class Report(object):
 
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False, return_fig=True)
-        img = _fig_to_img(function=epochs.plot_drop_log, **kwargs)
+        img = _fig_to_img(epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'
         img_klass = 'epochs'
@@ -1329,7 +1287,6 @@ class Report(object):
         global_id = self._get_id()
         cov = Covariance(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
-
         img = _fig_to_img(fig=fig)
         caption = 'Covariance : ' + cov_fname
         div_klass = 'covariance'
@@ -1366,7 +1323,7 @@ class Report(object):
                                              show=show)
             return html
 
-    def _render_bem(self, subject, subjects_dir, n_jobs=1):
+    def _render_bem(self, subject, subjects_dir, decim, n_jobs):
         """Render mri+bem.
         """
         import nibabel as nib
@@ -1415,16 +1372,13 @@ class Report(object):
         html += u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += u'<div class="row">'
-        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='axial',
-                                         n_jobs=n_jobs)
-        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='sagittal',
-                                         n_jobs=n_jobs)
+        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
+                                          shape, 'axial', decim)
+        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
+                                          shape, 'sagittal', decim)
         html += u'</div><div class="row">'
-        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
-                                         shape, orientation='coronal',
-                                         n_jobs=n_jobs)
+        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
+                                          shape, 'coronal', decim)
         html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)

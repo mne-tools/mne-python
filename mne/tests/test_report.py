@@ -16,17 +16,18 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
-base_dir = op.join(data_dir, 'MEG', 'sample')
+report_dir = op.join(data_dir, 'MEG', 'sample')
 
-raw_fname = op.join(base_dir, 'sample_audvis_trunc_raw.fif')
-event_name = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
-evoked_fname = op.join(base_dir, 'sample_audvis_trunc-ave.fif')
+raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
+event_name = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
+evoked_fname = op.join(report_dir, 'sample_audvis_trunc-ave.fif')
+
+os.environ['MNE_REPORT_TESTING'] = 'True'
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
-os.environ['MNE_REPORT_TESTING'] = 'True'
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
@@ -40,16 +41,16 @@ def test_render_report():
     report = Report(info_fname=raw_fname, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        report.parse_folder(data_path=base_dir)
+        report.parse_folder(data_path=report_dir)
     assert_true(len(w) == 1)
 
     # Check correct paths and filenames
     assert_true(raw_fname in report.fnames)
     assert_true(event_name in report.fnames)
-    assert_true(report.data_path == base_dir)
+    assert_true(report.data_path == report_dir)
 
     # Check if all files were rendered in the report
-    fnames = glob.glob(op.join(base_dir, '*.fif'))
+    fnames = glob.glob(op.join(report_dir, '*.fif'))
     fnames = [fname for fname in fnames if
               fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
                               '-sol.fif', '-fwd.fif', '-inv.fif',
@@ -123,8 +124,8 @@ def test_render_mri():
                     subject='sample', subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        report.parse_folder(data_path=data_dir,
-                            pattern='*sample_audvis_raw-trans.fif')
+        report.parse_folder(data_path=data_dir, mri_decim=30,
+                            pattern='*sample_audvis_trunc-trans.fif')
 
 
 run_tests_if_main()
