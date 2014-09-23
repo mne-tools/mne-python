@@ -11,8 +11,7 @@ from mne import (read_bem_surfaces, write_bem_surface, read_surface,
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf,
                          get_meg_helmet_surf)
-from mne.utils import (_TempDir, requires_tvtk, run_tests_if_main,
-                       travis_skip)
+from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
@@ -83,12 +82,13 @@ def test_compute_nearest():
 
 
 @testing.requires_testing_data
-@travis_skip
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
-    mmap = read_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
-    mmap2 = _make_morph_map('fsaverage', 'sample', subjects_dir=subjects_dir)
+    mmap = read_morph_map('fsaverage_ds', 'sample_ds',
+                          subjects_dir=subjects_dir)
+    mmap2 = _make_morph_map('fsaverage_ds', 'sample_ds',
+                            subjects_dir=subjects_dir)
     assert_equal(len(mmap), len(mmap2))
     for m1, m2 in zip(mmap, mmap2):
         # deal with sparse matrix stuff
