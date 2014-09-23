@@ -35,14 +35,22 @@ from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          read_trans, _coord_frame_name)
 
 
+def _get_lut():
+    """Helper to get the FreeSurfer LUT"""
+    data_dir = op.join(op.dirname(__file__), 'data')
+    lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
+    return np.genfromtxt(lut_fname, dtype=None,
+                         usecols=(0, 1), names=['id', 'name'])
+
+
 def _get_lut_id(lut, label, use_lut):
     """Helper to convert a label to a LUT ID number"""
     if not use_lut:
         return 1
     assert isinstance(label, string_types)
-    idx = np.where(lut['name'] == label)[0]
-    assert len(idx) == 1
-    return lut['id'][idx]
+    mask = (lut['name'] == label.encode('utf-8'))
+    assert mask.sum() == 1
+    return lut['id'][mask]
 
 
 class SourceSpaces(list):
@@ -197,10 +205,7 @@ class SourceSpaces(list):
         # use lookup table to assign values to source spaces
         logger.info('Reading FreeSurfer lookup table')
         # read the lookup table
-        data_dir = op.join(op.dirname(__file__), 'data')
-        lut_fname = op.join(data_dir, 'FreeSurferColorLUT.txt')
-        lut = np.genfromtxt(lut_fname, dtype=None,
-                            usecols=(0, 1), names=['id', 'name'])
+        lut = _get_lut()
 
         # Setup a dictionary of source types
         src_types = dict(volume=[], surface=[], discrete=[])
@@ -1769,14 +1774,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
         mgz = nib.load(mri)
         mgz_data = mgz.get_data()
 
-        # Read the freesurfer look up table
-        lut_fname = op.join(op.split(__file__)[0], 'data',
-                            'FreeSurferColorLUT.txt')
-        lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
-                                 names=['id', 'name'])
-
         # Get the numeric index for this volume label
-        vol_id = _get_lut_id(lut_data, volume_label, True)
+        lut = _get_lut()
+        vol_id = _get_lut_id(lut, volume_label, True)
 
         # Get indices for this volume label in voxel space
         vox_bool = mgz_data == vol_id
@@ -2248,16 +2248,10 @@ def get_volume_labels_from_aseg(mgz_fname):
     # Read the mgz file using nibabel
     mgz_data = nib.load(mgz_fname).get_data()
 
-    # Read the freesurfer lookup table
-    lut_fname = op.join(op.split(__file__)[0], 'data',
-                        'FreeSurferColorLUT.txt')
-    lut_data = np.genfromtxt(lut_fname, dtype=None, usecols=(0, 1),
-                             names=['id', 'name'])
-
     # Get the unique label names
-    label_names = [lut_data[lut_data['id'] == ii]['name'][0] for ii in
-                   np.unique(mgz_data)]
-    label_names = [l.decode('utf-8') for l in label_names]
+    lut = _get_lut()
+    label_names = [lut[lut['id'] == ii]['name'][0].decode('utf-8')
+                   for ii in np.unique(mgz_data)]
     label_names = sorted(label_names, key=lambda n: n.lower())
     return label_names
 
