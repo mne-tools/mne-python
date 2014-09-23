@@ -216,7 +216,7 @@ class RawEDF(_BaseRaw):
             buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
-            datas = np.zeros((n_chan, buffer_size), dtype='float64')
+            datas = np.zeros((n_chan, buffer_size), dtype=float)
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
@@ -229,11 +229,12 @@ class RawEDF(_BaseRaw):
             if self._edf_info['subtype'] == '24BIT':
                 # loop over 10s increment to not tax the memory
                 buffer_step = int(sfreq * 10)
-                for block in range(buffer_size, 0, -buffer_step):
-                    if block < buffer_step:
-                        buffer_step = block
-                    samp = int(buffer_step * n_chan * data_size)
-                    blocks = int(ceil(float(buffer_step) / sfreq))
+                for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
+                    step = buffer_step
+                    if block < step:
+                        step = block
+                    samp = int(step * n_chan * data_size)
+                    blocks = int(ceil(float(step) / sfreq))
                     data = np.fromfile(fid, dtype=np.uint8, count=samp)
                     data = data.reshape(-1, 3).astype(np.int32)
                     # this converts to 24-bit little endian integer
@@ -244,7 +245,7 @@ class RawEDF(_BaseRaw):
 
                     data = data.reshape((int(sfreq), n_chan, blocks), order='F')
                     for i in range(blocks):
-                        start_pt = int(sfreq * i)
+                        start_pt = int((sfreq * i) + (k * buffer_step))
                         stop_pt = int(start_pt + sfreq)
                         datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
