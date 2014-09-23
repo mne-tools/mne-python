@@ -15,7 +15,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
-                       run_tests_if_main, travis_skip)
+                       run_tests_if_main)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -220,7 +220,6 @@ def test_volume_source_space():
     _compare_source_spaces(src, src_new, mode='approx')
 
 
-@travis_skip
 @testing.requires_testing_data
 @requires_mne
 def test_other_volume_source_spaces():
