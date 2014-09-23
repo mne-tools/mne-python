@@ -3,14 +3,17 @@ language: python
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
-    #            scikit-learn, patsy, nibabel; in the case of Python 2, also
-    #            nitime
+    #            scikit-learn, patsy, nibabel pillow;
+    #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
-    - PYTHON=2.7 DEPS=full
-    - PYTHON=3.4 DEPS=full
-    - PYTHON=2.6 DEPS=full
-    - PYTHON=2.7 DEPS=minimal
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=install
+    - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
+    - PYTHON=3.4 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.6 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
+
 # Setup anaconda
 before_install:
   - wget -q http://repo.continuum.io/miniconda/Miniconda-3.6.0-Linux-x86_64.sh -O miniconda.sh
@@ -18,13 +21,21 @@ before_install:
   - ./miniconda.sh -b &> /dev/null;
   - export PATH=/home/travis/miniconda/bin:$PATH
   - conda update --yes --quiet conda &> /dev/null;
+  # We need to create a (fake) display on Travis (allows Mayavi tests to run)
+  - export DISPLAY=:99.0
+  - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
     - source activate testenv &> /dev/null
     - conda install --yes --quiet numpy scipy nose matplotlib > /dev/null
     - if [ "${DEPS}" == "full" ]; then
-        conda install --yes --quiet pandas scikit-learn patsy pytables;
+        curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
+        export MNE_ROOT="${PWD}/minimal_cmds";
+        source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
+        sudo apt-get update -qq;
+        sudo apt-get install -qq -y libxp6;
+        conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
         pip install -q nibabel joblib;
         if [ ${PYTHON:0:1} == "2" ]; then
           pip install -q nitime;
@@ -33,12 +44,15 @@ install:
           conda install --yes --quiet ipython > /dev/null;
         else
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
+          if [ "${PYTHON}" == "2.7" ]; then
+            conda install --yes --quiet mayavi traits > /dev/null;
+            pip install -q pysurfer;
+          fi;
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
-    - export MNE_SKIP_SAMPLE_DATASET_TESTS=1
     # Skip tests that require large downloads over the network to save bandwith
     # usage as travis workers are stateless and therefore traditional local
     # disk caching does not work.
@@ -49,24 +63,42 @@ install:
     - for script in $myscripts; do mne $script --help >/dev/null; done;
     - SRC_DIR=$(pwd)
     - cd ~
+    # Trigger download of testing data. Note that
+    # the testing dataset has been constructed to contain the necessary
+    # files to be act as a FREESURFER_HOME for the coreg tests
+    - if [ "${DEPS}" != "nodata" ]; then
+        python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
+        if [ "${DEPS}" == "full" ]; then
+          export FREESURFER_HOME=$(python -c 'import mne; print(mne.datasets.testing.data_path())');
+        fi;
+      else
+        export MNE_SKIP_TESTING_DATASET_TESTS=true;
+      fi;
     - MNE_DIR=$(python -c 'import mne;print(mne.__path__[0])')
-    - ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data
-    - ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data
-    - ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data
-    - ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data
-    - ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data
-    - ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data
-    - ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg
-    - ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc
-    # Link coverage to src dir, coveralls should be run from there (needs git calls)
-    - ln -s ${MNE_DIR}/../.coverage ${SRC_DIR}/.coverage
+    # We run two versions: one out of the source directory (that makes
+    # coveralls coverage work), and one out of the install directory (that
+    # ensures we have included all necessary files).
+    - if [ "${TEST_LOCATION}" == "install" ]; then
+        ln -s ${SRC_DIR}/mne/io/tests/data ${MNE_DIR}/io/tests/data;
+        ln -s ${SRC_DIR}/mne/io/bti/tests/data ${MNE_DIR}/io/bti/tests/data;
+        ln -s ${SRC_DIR}/mne/io/edf/tests/data ${MNE_DIR}/io/edf/tests/data;
+        ln -s ${SRC_DIR}/mne/io/kit/tests/data ${MNE_DIR}/io/kit/tests/data;
+        ln -s ${SRC_DIR}/mne/io/brainvision/tests/data ${MNE_DIR}/io/brainvision/tests/data;
+        ln -s ${SRC_DIR}/mne/io/egi/tests/data ${MNE_DIR}/io/egi/tests/data;
+        ln -s ${SRC_DIR}/setup.cfg ${MNE_DIR}/../setup.cfg;
+        ln -s ${SRC_DIR}/.coveragerc ${MNE_DIR}/../.coveragerc;
+        cd ${MNE_DIR}/../;
+      else
+        cd ${SRC_DIR};
+      fi;
 
 script:
-    - cd ${MNE_DIR}/../
-    - nosetests --with-timer --timer-top-n 30;
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    - echo "Running coveralls";
-    - cd ${SRC_DIR};
-    - coveralls;
+    - if [ "${TEST_LOCATION}" == "src" ]; then
+        echo "Running coveralls";
+        cd ${SRC_DIR};
+        coveralls;
+      fi;

@@ -33,38 +33,44 @@ inplace:
 sample_data: $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
 	@echo "Target needs sample data"
 
+testing_data:
+	@python -c "import mne; mne.datasets.testing.data_path(verbose=True);"
+
 $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 	wget -c ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE-sample-data-processed.tar.gz
 	tar xvzf MNE-sample-data-processed.tar.gz
 	mv MNE-sample-data examples/
 	ln -sf ${PWD}/examples/MNE-sample-data ${PWD}/MNE-sample-data
 
-test: in sample_data
+test: in
 	rm -f .coverage
 	$(NOSETESTS) mne
 
-test-no-sample: in
-	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
+test-no-network: in
+	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 nosetests mne'
+
+test-no-testing-data: in
+	@MNE_SKIP_TESTING_DATASET_TESTS=true \
 	$(NOSETESTS) mne
 
 
-test-no-sample-with-coverage: in
+test-no-sample-with-coverage: in testing_data
 	rm -rf coverage .coverage
 	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
-test-doc: sample_data
+test-doc: sample_data testing_data
 	$(NOSETESTS) --with-doctest --doctest-tests --doctest-extension=rst doc/ doc/source/
 
-test-coverage: sample_data
+test-coverage: testing_data
 	rm -rf coverage .coverage
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
-test-profile: sample_data
+test-profile: testing_data
 	$(NOSETESTS) --with-profile --profile-stats-file stats.pf mne
 	hotshot2dot stats.pf | dot -Tpng -o profile.png
 
-test-mem: in sample_data
+test-mem: in testing_data
 	ulimit -v 1097152 && $(NOSETESTS)
 
 trailing-spaces:
@@ -91,3 +97,4 @@ manpages:
 			help2man -n "$$descr" --no-discard-stderr --no-info --version-string "$(uver)" ./$$f \
 			>| ../build/manpages/$$f.1; \
 	done
+

@@ -16,14 +16,13 @@ mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
-tempdir = _TempDir()
-tgt_fname = os.path.join(tempdir, 'test.txt')
-
 
 @requires_traits
 def test_combine_markers_model():
     """Test CombineMarkersModel Traits Model"""
     from mne.gui._marker_gui import CombineMarkersModel
+    tempdir = _TempDir()
+    tgt_fname = os.path.join(tempdir, 'test.txt')
 
     model = CombineMarkersModel()
 

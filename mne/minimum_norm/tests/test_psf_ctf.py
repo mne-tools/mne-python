@@ -1,16 +1,16 @@
 
 import os.path as op
 import mne
-from mne.datasets import sample
-from mne import read_forward_solution
+from mne.datasets import testing
+from mne import read_forward_solution, pick_types_forward
 from mne.minimum_norm import (read_inverse_operator,
                               point_spread_function, cross_talk_function)
 
 from nose.tools import assert_true
 
-data_path = op.join(sample.data_path(download=False), 'MEG', 'sample')
-fname_inv = op.join(data_path, 'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_fwd = op.join(data_path, 'sample_audvis-meg-oct-6-fwd.fif')
+data_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
+fname_inv = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+fname_fwd = op.join(data_path, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 fname_label = [op.join(data_path, 'labels', 'Aud-rh.label'),
                op.join(data_path, 'labels', 'Aud-lh.label')]
@@ -19,7 +19,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_psf_ctf():
     """Test computation of PSFs and CTFs for linear estimators
     """
@@ -27,6 +27,7 @@ def test_psf_ctf():
     inverse_operator = read_inverse_operator(fname_inv)
     forward = read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
+    forward = pick_types_forward(forward, meg=True, eeg=False)
     labels = [mne.read_label(ss) for ss in fname_label]
 
     method = 'MNE'
@@ -58,6 +59,7 @@ def test_psf_ctf():
         assert_true(n_chan == forward['nchan'])
 
     forward = read_forward_solution(fname_fwd, force_fixed=True, surf_ori=True)
+    forward = pick_types_forward(forward, meg=True, eeg=False)
 
     # Test CTFs
     for mode in ('sum', 'svd'):

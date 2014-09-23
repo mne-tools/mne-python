@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 import warnings
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.utils import _TempDir
 from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
@@ -13,16 +13,15 @@ from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path(download=False)
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-trans.fif')
-fname_eve = op.join(data_path, 'MEG', 'sample', 'sample_audvis_raw-eve.fif')
+data_path = testing.data_path(download=False)
+fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-trans.fif')
+fname_eve = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc_raw-eve.fif')
 fname_trans = op.join(op.split(__file__)[0], '..', 'io', 'tests',
                       'data', 'sample-audvis-raw-trans.txt')
 
-tempdir = _TempDir()
 
-
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_get_mri_head_t():
     """Test converting '-trans.txt' to '-trans.fif'"""
     trans = read_trans(fname)
@@ -33,10 +32,11 @@ def test_get_mri_head_t():
     assert_allclose(trans['trans'], trans_2['trans'], rtol=1e-5, atol=1e-5)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_io_trans():
     """Test reading and writing of trans files
     """
+    tempdir = _TempDir()
     trans0 = read_trans(fname)
     fname1 = op.join(tempdir, 'test-trans.fif')
     write_trans(fname1, trans0)
@@ -49,7 +49,7 @@ def test_io_trans():
 
     # check reading non -trans.fif files
     assert_raises(IOError, read_trans, fname_eve)
-    
+
     # check warning on bad filenames
     with warnings.catch_warnings(record=True) as w:
         fname2 = op.join(tempdir, 'trans-test-bad-name.fif')

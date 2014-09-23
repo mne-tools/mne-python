@@ -34,8 +34,6 @@ elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
              'ReRef', 'HL', 'HR', 'Vb']
 eog = ('HL', 'HR', 'Vb')
 
-tempdir = _TempDir()
-
 
 def test_brainvision_data():
     """Test reading raw Brain Vision files
@@ -71,12 +69,13 @@ def test_brainvision_data():
 
 def test_events():
     """Test reading and modifying events"""
+    tempdir = _TempDir()
     raw = read_raw_brainvision(vhdr_path, preload=True)
 
     # check that events are read and stim channel is synthesized correcly
     events = raw.get_brainvision_events()
-    assert_array_equal(events, [[ 487, 1, 253],
-                                [ 497, 1, 255],
+    assert_array_equal(events, [[487, 1, 253],
+                                [497, 1, 255],
                                 [1770, 1, 254],
                                 [1780, 1, 255],
                                 [3253, 1, 254],
@@ -118,6 +117,7 @@ def test_events():
 def test_read_segment():
     """Test writing raw eeg files when preload is False
     """
+    tempdir = _TempDir()
     raw1 = read_raw_brainvision(vhdr_path, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True)

@@ -14,7 +14,6 @@ from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _setup_head_shape,
                             _read_data, _read_bti_header)
 from mne.io import read_raw_bti
-from mne.utils import _TempDir
 from functools import reduce
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
@@ -23,9 +22,9 @@ archs = 'linux', 'solaris'
 pdf_fnames = [op.join(base_dir, 'test_pdf_%s' % a) for a in archs]
 config_fnames = [op.join(base_dir, 'test_config_%s' % a) for a in archs]
 hs_fnames = [op.join(base_dir, 'test_hs_%s' % a) for a in archs]
-exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a) for a in archs]
+exported_fnames = [op.join(base_dir, 'exported4D_%s_raw.fif' % a)
+                   for a in archs]
 tmp_raw_fname = op.join(base_dir, 'tmp_raw.fif')
-tempdir = _TempDir()
 
 # the 4D exporter doesn't export all channels, so we confine our comparison
 NCH = 248

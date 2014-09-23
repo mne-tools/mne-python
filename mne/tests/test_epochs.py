@@ -49,8 +49,6 @@ picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
-tempdir = _TempDir()
-
 clean_warning_registry()  # really clean warning stack
 
 
@@ -132,6 +130,7 @@ def test_read_epochs_bad_events():
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file
     """
+    tempdir = _TempDir()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = epochs.average()
@@ -288,6 +287,7 @@ def test_evoked_arithmetic():
 def test_evoked_io_from_epochs():
     """Test IO of evoked data made from epochs
     """
+    tempdir = _TempDir()
     # offset our tmin so we don't get exactly a zero value when decimating
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -326,6 +326,7 @@ def test_evoked_io_from_epochs():
 def test_evoked_standard_error():
     """Test calculation and read/write of standard error
     """
+    tempdir = _TempDir()
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     evoked = [epochs.average(), epochs.standard_error()]
@@ -757,6 +758,7 @@ def test_epoch_eq():
 def test_access_by_name():
     """Test accessing epochs by event name and on_missing for rare events
     """
+    tempdir = _TempDir()
     assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
                   tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
@@ -1151,6 +1153,7 @@ def test_add_channels_epochs():
 def test_array_epochs():
     """Test creating epochs from array
     """
+    tempdir = _TempDir()
 
     # creating
     rng = np.random.RandomState(42)

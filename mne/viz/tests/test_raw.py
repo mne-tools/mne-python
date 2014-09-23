@@ -8,7 +8,6 @@ import warnings
 from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types
-from mne.datasets import sample
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -19,8 +18,6 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')

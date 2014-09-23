@@ -5,8 +5,9 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 import warnings
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import io, find_events, Epochs, pick_types
+from mne.utils import run_tests_if_main
 from mne.label import read_label
 from mne.minimum_norm.inverse import (read_inverse_operator,
                                       apply_inverse_epochs,
@@ -19,16 +20,16 @@ from mne.minimum_norm.time_frequency import (source_band_induced_power,
 
 from mne.time_frequency import multitaper_psd
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-inv.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_data = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis_raw.fif')
+                     'sample_audvis_trunc_raw.fif')
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', 'Aud-lh.label')
 warnings.simplefilter('always')
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_tfr_with_inverse_operator():
     """Test time freq with MNE inverse computation"""
 
@@ -91,7 +92,7 @@ def test_tfr_with_inverse_operator():
     assert_true(np.max(power) > 10)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_source_psd():
     """Test source PSD computation in label"""
     raw = io.Raw(fname_data)
@@ -108,10 +109,10 @@ def test_source_psd():
     assert_true(stc.times[-1] <= fmax * 1e-3)
     # Time max at line frequency (60 Hz in US)
     assert_true(59e-3 <= stc.times[np.argmax(np.sum(stc.data, axis=0))]
-                      <= 61e-3)
+                <= 61e-3)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_source_psd_epochs():
     """Test multi-taper source PSD computation in label from epochs"""
 
@@ -194,3 +195,6 @@ def test_source_psd_epochs():
     assert_true(len(w) >= 2)
     assert_true(any('not properly use' in str(ww.message) for ww in w))
     assert_true(any('Bandwidth too small' in str(ww.message) for ww in w))
+
+
+run_tests_if_main()

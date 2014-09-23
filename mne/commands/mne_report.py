@@ -9,11 +9,12 @@ MNE-sample-data/MEG/sample/sample_audvis-ave.fif -d MNE-sample-data/subjects/ \
 
 """
 
+import sys
+
 from mne.report import Report
 
 
-if __name__ == '__main__':
-
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -38,6 +39,11 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
     path = options.path
+    if path is None:
+        parser.print_help()
+        if is_main:
+            sys.exit(1)
+        return
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
@@ -50,3 +56,7 @@ if __name__ == '__main__':
                     verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs)
     report.save(open_browser=open_browser, overwrite=overwrite)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

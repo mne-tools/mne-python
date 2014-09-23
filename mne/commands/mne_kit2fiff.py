@@ -14,8 +14,8 @@ import sys
 import mne
 from mne.io import read_raw_kit
 
-if __name__ == '__main__':
 
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -46,7 +46,9 @@ if __name__ == '__main__':
     if input_fname is None:
         os.environ['ETS_TOOLKIT'] = 'qt4'
         mne.gui.kit2fiff()
-        sys.exit(0)
+        if is_main:
+            sys.exit(0)
+        return
 
     hsp_fname = options.hsp_fname
     elp_fname = options.elp_fname
@@ -66,3 +68,7 @@ if __name__ == '__main__':
     raw.save(out_fname)
     raw.close()
     sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

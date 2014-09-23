@@ -9,23 +9,25 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
+from mne.utils import run_tests_if_main
 
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
+# NOTE: These use the ave and cov from sample dataset (no _trunc)
 fname_data = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_mxne_inverse():
     """Test (TF-)MxNE inverse computation"""
     # Handling forward solution
@@ -91,3 +93,6 @@ def test_mxne_inverse():
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertno[1][0] in label.vertices)
+
+
+run_tests_if_main()

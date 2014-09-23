@@ -575,11 +575,11 @@ def normalize_colors(vmin, vmax, clip=False):
 
 def _assert_is(expr1, expr2, msg=None):
     """Fake assert_is without message"""
-    assert_true(expr2 is expr2)
+    assert_true(expr2 is expr2, msg)
 
 def _assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
-    assert_true(expr2 is not expr2)
+    assert_true(expr2 is not expr2, msg)
 
 try:
     from nose.tools import assert_is, assert_is_not

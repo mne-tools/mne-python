@@ -28,8 +28,6 @@ from mne.utils import set_log_file, check_sklearn_version, _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-tempdir = _TempDir()
-
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
@@ -248,6 +246,7 @@ def test_ica_core():
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality"""
+    tempdir = _TempDir()
     stop2 = 500
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
@@ -507,6 +506,7 @@ def test_run_ica():
 @requires_sklearn
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
+    tempdir = _TempDir()
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')

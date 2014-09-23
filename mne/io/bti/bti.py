@@ -449,11 +449,11 @@ def _read_config(fname):
                                                    dta['hdr']['n_dsp']),
                                                   dtype='f4')
                         for n in range(dta['hdr']['n_entries']):
-                            dta['anlg_wts'][d] = read_int16_matrix(fid, 1,
-                                                       dta['hdr']['n_anlg'])
+                            dta['anlg_wts'][d] = read_int16_matrix(
+                                fid, 1, dta['hdr']['n_anlg'])
                             read_int16(fid)
-                            dta['dsp_wts'][d] = read_float_matrix(fid, 1,
-                                                        dta['hdr']['n_dsp'])
+                            dta['dsp_wts'][d] = read_float_matrix(
+                                fid, 1, dta['hdr']['n_dsp'])
 
                         _correct_offset(fid)
 
@@ -775,7 +775,7 @@ def _read_bti_header(pdf_fname, config_fname):
         # actual header starts here
         info = {'version': read_int16(fid),
                 'file_type': read_str(fid, 5),
-                'hdr_size': start - header_position,  # add to info for convenience
+                'hdr_size': start - header_position,  # add for convenience
                 'start': start}
 
         fid.seek(1, 1)
@@ -1187,7 +1187,7 @@ class RawBTi(_BaseRaw):
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=True):
+                 eog_ch=('E63', 'E64'), verbose=None):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Note.

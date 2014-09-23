@@ -9,7 +9,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_raises
 import warnings
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import read_label, read_forward_solution
 from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
@@ -19,9 +19,9 @@ from mne import pick_types_evoked, pick_types_forward, read_evokeds
 
 warnings.simplefilter('always')
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-eeg-oct-6-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
 ave_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
@@ -30,7 +30,7 @@ cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test-cov.fif')
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_simulate_evoked():
     """ Test simulation of evoked data """
 

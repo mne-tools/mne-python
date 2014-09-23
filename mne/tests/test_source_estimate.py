@@ -10,7 +10,7 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 
 from scipy.fftpack import fft
 
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
                  read_source_spaces, MixedSourceEstimate)
 from mne import read_source_estimate, morph_data, extract_label_time_course
@@ -21,29 +21,33 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_pytables)
+                       requires_pytables, run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-data_path = sample.data_path(download=False)
+data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
-fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
 fname_inv = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-meg-inv.fif')
-fname_vol = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-grad-vol-7-fwd-sensmap-vol.w')
-fname_vsrc = op.join(data_path, 'MEG', 'sample',
-                     'sample_audvis-meg-vol-7-fwd.fif')
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 fname_t1 = op.join(data_path, 'subjects', 'sample', 'mri', 'T1.mgz')
 fname_src = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis-meg-oct-6-fwd.fif')
-tempdir = _TempDir()
+                    'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
+fname_smorph = op.join(data_path, 'MEG', 'sample',
+                       'sample_audvis_trunc-meg')
+fname_fmorph = op.join(data_path, 'MEG', 'sample',
+                       'fsaverage_audvis_trunc-meg')
+fname_vol = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-grad-vol-7-fwd-sensmap-vol.w')
+fname_vsrc = op.join(data_path, 'MEG', 'sample',
+                     'sample_audvis_trunc-meg-vol-7-fwd.fif')
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_volume_stc():
     """Test volume STCs
     """
+    tempdir = _TempDir()
     N = 100
     data = np.arange(N)[:, np.newaxis]
     datas = [data, data, np.arange(2)[:, np.newaxis]]
@@ -109,11 +113,11 @@ def test_volume_stc():
         print('Save as nifti test skipped, needs NiBabel')
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_expand():
     """Test stc expansion
     """
-    stc = read_source_estimate(fname, 'sample')
+    stc = read_source_estimate(fname_stc, 'sample')
     assert_true('sample' in repr(stc))
     labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
                                        subjects_dir=subjects_dir)
@@ -135,6 +139,7 @@ def _fake_stc(n_time=10):
 def test_io_stc():
     """Test IO for STC files
     """
+    tempdir = _TempDir()
     stc = _fake_stc()
     stc.save(op.join(tempdir, "tmp.stc"))
     stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
@@ -151,6 +156,7 @@ def test_io_stc():
 def test_io_stc_h5():
     """Test IO for STC files using HDF5
     """
+    tempdir = _TempDir()
     stc = _fake_stc()
     assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
     out_name = op.join(tempdir, 'tmp')
@@ -171,6 +177,7 @@ def test_io_stc_h5():
 def test_io_w():
     """Test IO for w files
     """
+    tempdir = _TempDir()
     stc = _fake_stc(n_time=1)
     w_fname = op.join(tempdir, 'fake')
     stc.save(w_fname, ftype='w')
@@ -213,12 +220,11 @@ def test_stc_arithmetic():
     assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
     """
-    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc = read_source_estimate(fname)
+    stc = read_source_estimate(fname_stc)
 
     # lh_data / rh_data
     assert_array_equal(stc.lh_data, stc.data[:len(stc.lh_vertno)])
@@ -235,12 +241,13 @@ def test_stc_methods():
     vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
     assert_true(hemi == 1)
     # XXX Should design a fool-proof test case, but here were the results:
-    assert_true(vertex == 90186)
-    assert_true(np.round(t, 3) == 0.123)
+    assert_equal(vertex, 124791)
+    assert_equal(np.round(t, 2), 0.12)
 
-    stc = read_source_estimate(fname)
+    stc = read_source_estimate(fname_stc)
     label = read_labels_from_annot('sample', 'aparc', 'lh',
                                    subjects_dir=subjects_dir)[0]
+    assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
     stc_label = stc.in_label(label)
     n_vertices_used = len(label.get_vertices_used(stc_label.vertno[0]))
     assert_equal(len(stc_label.data), n_vertices_used)
@@ -257,7 +264,7 @@ def test_stc_methods():
     assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_extract_label_time_course():
     """Test extraction of label time courses from stc
     """
@@ -350,16 +357,15 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_morph_data():
     """Test morphing of data
     """
+    tempdir = _TempDir()
     subject_from = 'sample'
     subject_to = 'fsaverage'
-    fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg')
-    stc_from = read_source_estimate(fname, subject='sample')
-    fname = op.join(data_path, 'MEG', 'sample', 'fsaverage_audvis-meg')
-    stc_to = read_source_estimate(fname)
+    stc_from = read_source_estimate(fname_smorph, subject='sample')
+    stc_to = read_source_estimate(fname_fmorph)
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
@@ -395,15 +401,6 @@ def test_morph_data():
     stc_to5 = morph_data(subject_from, subject_to, stc_from, grade=None,
                          smooth=12, buffer_size=3, subjects_dir=subjects_dir)
     assert_true(stc_to5.data.shape[0] == 163842 + 163842)
-
-    # test morphing to the same subject
-    stc_to6 = stc_from.morph(subject_from, grade=stc_from.vertno, smooth=1,
-                             subjects_dir=subjects_dir)
-    mask = np.ones(stc_from.data.shape[0], dtype=np.bool)
-    # XXX: there is a bug somewhere that causes a difference at 2 vertices..
-    mask[6799] = False
-    mask[6800] = False
-    assert_array_almost_equal(stc_from.data[mask], stc_to6.data[mask], 5)
 
     # Morph sparse data
     # Make a sparse stc
@@ -543,7 +540,7 @@ def test_spatio_temporal_tris_connectivity():
         assert_array_equal(c, n)
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_spatio_temporal_src_connectivity():
     """Test spatio-temporal connectivity from source spaces"""
     tris = np.array([[0, 1, 2], [3, 4, 5]])
@@ -624,7 +621,7 @@ def test_get_peak():
         assert_true(time_idx < len(stc.times))
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_mixed_stc():
     """Test source estimate from mixed source space
     """
@@ -645,3 +642,6 @@ def test_mixed_stc():
 
     # make sure error is raised for plotting surface with volume source
     assert_raises(ValueError, stc.plot_surface, src=vol)
+
+
+run_tests_if_main()

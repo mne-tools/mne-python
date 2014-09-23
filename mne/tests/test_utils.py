@@ -12,7 +12,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
                        _check_type_picks, object_hash, object_diff,
-                       requires_good_network)
+                       requires_good_network, run_tests_if_main)
 from mne.io import show_fiff
 from mne import Evoked
 
@@ -24,13 +24,34 @@ fname_evoked = op.join(base_dir, 'test-ave.fif')
 fname_raw = op.join(base_dir, 'test_raw.fif')
 fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
-tempdir = _TempDir()
-test_name = op.join(tempdir, 'test.log')
 
 
 def clean_lines(lines):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_run_tests_if_main():
+    """Test run_tests_if_main functionality"""
+    x = []
+
+    def test_a():
+        x.append(True)
+
+    def test_b():
+        raise RuntimeError
+
+    try:
+        __name__ = '__main__'
+        run_tests_if_main(measure_mem=False)  # dual meas causes problems
+    except RuntimeError:
+        pass
+    else:
+        raise RuntimeError('Error not raised')
+    finally:
+        del __name__
+    assert_true(len(x) == 1)
+    assert_true(x[0])
 
 
 def test_hash():
@@ -72,8 +93,9 @@ def test_tempdir():
     """
     tempdir2 = _TempDir()
     assert_true(op.isdir(tempdir2))
-    tempdir2.cleanup()
-    assert_true(not op.isdir(tempdir2))
+    x = str(tempdir2)
+    del tempdir2
+    assert_true(not op.isdir(x))
 
 
 def test_estimate_rank():
@@ -87,6 +109,8 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
+    tempdir = _TempDir()
+    test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
         old_lines = clean_lines(old_log_file.readlines())
     with open(fname_log_2, 'r') as old_log_file_2:
@@ -158,6 +182,7 @@ def test_logging():
 
 def test_config():
     """Test mne-python config file support"""
+    tempdir = _TempDir()
     key = '_MNE_PYTHON_CONFIG_TESTING'
     value = '123456'
     old_val = os.getenv(key, None)
@@ -260,25 +285,20 @@ def test_requires_mem_gb():
 def test_fetch_file():
     """Test file downloading
     """
-    # Skipping test if no internet connection available
-    try:
-        urllib.request.urlopen("http://github.com", timeout=2)
-    except:
-        from nose.plugins.skip import SkipTest
-        raise SkipTest('No internet connection, skipping download test.')
-
+    tempdir = _TempDir()
     urls = ['http://www.google.com',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
     for url in urls:
         archive_name = op.join(tempdir, "download_test")
-        _fetch_file(url, archive_name, print_destination=False)
+        _fetch_file(url, archive_name, print_destination=False, verbose=False)
         assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                      op.join(tempdir, 'test'))
+                      op.join(tempdir, 'test'), verbose=False)
         resume_name = op.join(tempdir, "download_resume")
         # touch file
         with open(resume_name + '.part', 'w'):
             os.utime(resume_name + '.part', None)
-        _fetch_file(url, resume_name, print_destination=False, resume=True)
+        _fetch_file(url, resume_name, print_destination=False, resume=True,
+                    verbose=False)
 
 
 def test_sum_squared():
@@ -316,3 +336,6 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
+
+
+run_tests_if_main()

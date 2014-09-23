@@ -4,7 +4,6 @@
 #          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
-from ..externals.six import string_types
 import os
 import os.path as op
 import shutil
@@ -13,6 +12,8 @@ from warnings import warn
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger
+from ..externals.six import string_types
+from ..externals.six.moves import input
 
 
 _doc = """Get path to local copy of {name} dataset
@@ -68,7 +69,9 @@ def _data_path(path=None, force_update=False, update_path=True,
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
-           'somato': 'MNE_DATASETS_SOMATO_PATH',}[name]
+           'somato': 'MNE_DATASETS_SOMATO_PATH',
+           'testing': 'MNE_DATASETS_TESTING_PATH',
+           }[name]
 
     if path is None:
         # use an intelligent guess if it's not defined
@@ -95,8 +98,8 @@ def _data_path(path=None, force_update=False, update_path=True,
                         os.mkdir(path)
                 except OSError:
                     raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
+                                  "at '%s', try giving the path as an argument"
+                                  " to data_path() where user has write "
                                   "permissions, for ex:data_path"
                                   "('/home/xyz/me2/')" % (path))
 
@@ -104,21 +107,24 @@ def _data_path(path=None, force_update=False, update_path=True,
         raise ValueError('path must be a string or None')
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
         folder_name = "MNE-sample-data"
-        folder_path = op.join(path, folder_name)
+        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
-        folder_path = op.join(path, folder_name)
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
     elif name == 'somato':
         archive_name = 'MNE-somato-data.tar.gz'
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-somato-data"
-        folder_path = op.join(path, folder_name)
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+    elif name == 'testing':
+        archive_name = 'MNE-testing-data.tar.gz'
+        folder_name = 'MNE-testing-data'
+        url = 'http://lester.ilabs.uw.edu/files/' + archive_name
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
+    folder_path = op.join(path, folder_name)
+
     rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
@@ -138,7 +144,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             fetch_archive = True
             if op.exists(archive_name):
                 msg = ('Archive already exists. Overwrite it (y/[n])? ')
-                answer = raw_input(msg)
+                answer = input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
                 else:
@@ -169,7 +175,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'sample dataset path in the mne-python config [y]/n? '
                    % path)
-            answer = raw_input(msg)
+            answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:
@@ -202,6 +208,8 @@ def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face',
-                'somato': 'MNE-somato-data'}[name]
+                'somato': 'MNE-somato-data',
+                'testing': 'MNE-testing-data',
+                }[name]
     dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)

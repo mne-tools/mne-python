@@ -9,14 +9,14 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 import copy as cp
 
 import mne
-from mne.datasets import sample
+from mne.datasets import testing
 from mne import pick_types
 from mne.io import Raw
 from mne import compute_proj_epochs, compute_proj_evoked, compute_proj_raw
 from mne.io.proj import make_projector, activate_proj
 from mne.proj import read_proj, write_proj, make_eeg_average_ref_proj
 from mne import read_events, Epochs, sensitivity_map, read_source_estimate
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -27,18 +27,16 @@ proj_fname = op.join(base_dir, 'test-proj.fif')
 proj_gz_fname = op.join(base_dir, 'test-proj.fif.gz')
 bads_fname = op.join(base_dir, 'test_bads.txt')
 
-data_path = sample.data_path(download=False)
-sample_path = op.join(data_path, 'MEG', 'sample')
-fwd_fname = op.join(sample_path, 'sample_audvis-meg-eeg-oct-6-fwd.fif')
-sensmap_fname = op.join(sample_path, 'sample_audvis-%s-oct-6-fwd-sensmap-%s.w')
+sample_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
+fwd_fname = op.join(sample_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+sensmap_fname = op.join(sample_path,
+                        'sample_audvis_trunc-%s-oct-4-fwd-sensmap-%s.w')
 
 # sample dataset should be updated to reflect mne conventions
 eog_fname = op.join(sample_path, 'sample_audvis_eog_proj.fif')
 
-tempdir = _TempDir()
 
-
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_sensitivity_maps():
     """Test sensitivity map computation"""
     fwd = mne.read_forward_solution(fwd_fname, surf_ori=True)
@@ -82,6 +80,7 @@ def test_sensitivity_maps():
 
 def test_compute_proj_epochs():
     """Test SSP computation on epochs"""
+    tempdir = _TempDir()
     event_id, tmin, tmax = 1, -0.2, 0.3
 
     raw = Raw(raw_fname, preload=True)
@@ -153,6 +152,7 @@ def test_compute_proj_epochs():
 
 def test_compute_proj_raw():
     """Test SSP computation on raw"""
+    tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
     raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
@@ -214,3 +214,6 @@ def test_compute_proj_raw():
     proj, nproj, U = make_projector(projs, raw.ch_names,
                                     bads=raw.ch_names)
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+
+
+run_tests_if_main()

@@ -21,15 +21,10 @@ import matplotlib.pyplot as plt
 from mne import io, read_events, Epochs
 from mne import pick_types
 from mne.layouts import read_layout
-from mne.datasets import sample
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-
-data_dir = sample.data_path(download=False)
-subjects_dir = op.join(data_dir, 'subjects')
-ecg_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_ecg_proj.fif')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')

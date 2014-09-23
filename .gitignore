@@ -28,10 +28,11 @@ memmap*.dat
 tmp-*.w
 tmtags
 auto_examples
-MNE-sample-data*
-MNE-spm-face*
 MNE-eegbci-data*
+MNE-sample-data*
 MNE-somato-data*
+MNE-spm-face*
+MNE-testing-data*
 MEGSIM*
 build
 coverage

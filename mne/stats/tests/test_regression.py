@@ -13,21 +13,20 @@ from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
-from mne.datasets import sample
+from mne.datasets import testing
 from mne.stats.regression import linear_regression
 
-data_path = sample.data_path(download=False)
-subjects_dir = op.join(data_path, 'subjects')
-stc_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-meg-lh.stc')
+data_path = testing.data_path(download=False)
+stc_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-lh.stc')
+raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw-eve.fif'
 
 
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_regression():
     """Test Ordinary Least Squares Regression
     """
-    data_path = sample.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-    event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
     tmin, tmax = -0.2, 0.5
     event_id = dict(aud_l=1, aud_r=2)
 

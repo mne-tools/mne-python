@@ -1,7 +1,8 @@
 #! /usr/bin/env python
 #
 
-# Copyright (C) 2011-2014 Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Copyright (C) 2011-2014 Alexandre Gramfort
+# <alexandre.gramfort@telecom-paristech.fr>
 
 import os
 from os import path as op
@@ -60,14 +61,16 @@ if __name__ == "__main__":
           platforms='any',
           packages=['mne', 'mne.tests',
                     'mne.beamformer', 'mne.beamformer.tests',
+                    'mne.commands', 'mne.commands.tests',
                     'mne.connectivity', 'mne.connectivity.tests',
                     'mne.data',
                     'mne.datasets',
-                    'mne.datasets.sample',
-                    'mne.datasets.megsim',
-                    'mne.datasets.spm_face',
                     'mne.datasets.eegbci',
+                    'mne.datasets.megsim',
+                    'mne.datasets.sample',
                     'mne.datasets.somato',
+                    'mne.datasets.spm_face',
+                    'mne.datasets.testing',
                     'mne.externals',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
@@ -96,6 +99,7 @@ if __name__ == "__main__":
                                 op.join('data', 'icos.fif.gz'),
                                 op.join('data', 'coil_def.dat'),
                                 op.join('data', 'helmets', '*.fif.gz'),
+                                op.join('data', 'FreeSurferColorLUT.txt'),
                                 op.join('layouts', '*.lout'),
                                 op.join('layouts', '*.lay'),
                                 op.join('html', '*.js'),

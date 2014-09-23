@@ -18,7 +18,8 @@ import os.path as op
 import sys
 import mne
 
-if __name__ == '__main__':
+
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -39,42 +40,42 @@ if __name__ == '__main__':
     subject = vars(options).get('subject', env.get('SUBJECT'))
     if subject is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     overwrite = options.overwrite
     verbose = options.verbose
     force = '--force' if options.force else '--check'
 
     from mne.commands.utils import get_status_output
+
     def my_run_cmd(cmd, err_msg):
         sig, out, error = get_status_output(cmd)
         if verbose:
             print(out, error)
         if sig != 0:
-            print(err_msg)
-            sys.exit(1)
+            raise RuntimeError(err_msg)
 
     if not 'SUBJECTS_DIR' in env:
-        print('The environment variable SUBJECTS_DIR should be set')
-        sys.exit(1)
+        raise RuntimeError('The environment variable SUBJECTS_DIR should '
+                           'be set')
 
     if not op.isabs(env['SUBJECTS_DIR']):
         env['SUBJECTS_DIR'] = op.abspath(env['SUBJECTS_DIR'])
     subj_dir = env['SUBJECTS_DIR']
 
     if not 'MNE_ROOT' in env:
-        print('MNE_ROOT environment variable is not set')
-        sys.exit(1)
+        raise RuntimeError('MNE_ROOT environment variable is not set')
 
     if not 'FREESURFER_HOME' in env:
-        print('The FreeSurfer environment needs to be set up for this script')
-        sys.exit(1)
+        raise RuntimeError('The FreeSurfer environment needs to be set up '
+                           'for this script')
 
     subj_path = op.join(subj_dir, subject)
     if not op.exists(subj_path):
-        print(('%s does not exits. Please check your subject directory '
-               'path.' % subj_path))
-        sys.exit(1)
+        raise RuntimeError('%s does not exits. Please check your subject '
+                           'directory path.' % subj_path)
 
     if op.exists(op.join(subj_path, 'mri', 'T1.mgz')):
         mri = 'T1.mgz'
@@ -97,13 +98,13 @@ if __name__ == '__main__':
     else:
         print('%s/surf/%s already there' % (subj_path, my_seghead))
         if not overwrite:
-            print('Use the --overwrite option to replace exisiting surfaces.')
-            sys.exit()
+            raise IOError('Use the --overwrite option to replace exisiting '
+                          'surfaces.')
 
     surf = check_seghead()
     if surf is None:
-        print('mkheadsurf did not produce the standard output file.')
-        sys.exit(1)
+        raise RuntimeError('mkheadsurf did not produce the standard output '
+                           'file.')
 
     fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subj_dir, subject)
     print('2. Creating %s ...' % fif)
@@ -128,4 +129,9 @@ if __name__ == '__main__':
         my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
         os.remove(surf_fname)
 
-    sys.exit(0)
+    if is_main:
+        sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

@@ -16,9 +16,6 @@ from mne.cuda import requires_cuda
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-tempdir = _TempDir()
-log_file = op.join(tempdir, 'temp_log.txt')
-
 
 def test_iir_stability():
     """Test IIR filter stability check
@@ -45,6 +42,8 @@ def test_iir_stability():
 def test_notch_filters():
     """Test notch filters
     """
+    tempdir = _TempDir()
+    log_file = op.join(tempdir, 'temp_log.txt')
     # let's use an ugly, prime Fs for fun
     Fs = 487.0
     sig_len_secs = 20
@@ -194,6 +193,8 @@ def test_cuda():
     """
     # NOTE: don't make test_cuda() the last test, or pycuda might spew
     # some warnings about clean-up failing
+    tempdir = _TempDir()
+    log_file = op.join(tempdir, 'temp_log.txt')
     Fs = 500
     sig_len_secs = 20
     a = np.random.randn(sig_len_secs * Fs)

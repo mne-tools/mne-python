@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
 
@@ -7,6 +8,7 @@ from __future__ import print_function
 
 import warnings
 import logging
+import time
 from distutils.version import LooseVersion
 import os
 import os.path as op
@@ -19,7 +21,6 @@ from sys import stdout
 import tempfile
 import shutil
 from shutil import rmtree
-import atexit
 from math import log, ceil
 import json
 import ftplib
@@ -36,6 +37,23 @@ from .externals.decorator import decorator
 
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
+
+
+try:
+    from nose.tools import nottest
+except ImportError:
+    class nottest(object):
+        def __init__(self, *args):
+            pass  # Avoid "object() takes no parameters"
+try:
+    from memory_profiler import memory_usage
+except ImportError:
+    def memory_usage(*args, **kwargs):
+        if isinstance(args[0], tuple):
+            args[0][0](*args[0][1], **args[0][2])
+        elif not isinstance(args[0], int):  # can be -1 for current use
+            args[0]()
+        return [-1]
 
 
 ###############################################################################
@@ -246,9 +264,8 @@ class _TempDir(str):
 
     def __init__(self):
         self._path = self.__str__()
-        atexit.register(self.cleanup)
 
-    def cleanup(self):
+    def __del__(self):
         rmtree(self._path, ignore_errors=True)
 
 
@@ -330,64 +347,6 @@ def _reject_data_segments(data, reject, flat, decim, info, tstep):
                            'consider updating your rejection '
                            'thresholds.')
     return data, drop_inds
-
-
-def run_subprocess(command, *args, **kwargs):
-    """Run command using subprocess.Popen
-
-    Run command and wait for command to complete. If the return code was zero
-    then return, otherwise raise CalledProcessError.
-    By default, this will also add stdout= and stderr=subproces.PIPE
-    to the call to Popen to suppress printing to the terminal.
-
-    Parameters
-    ----------
-    command : list of str
-        Command to run as subprocess (see subprocess.Popen documentation).
-    *args, **kwargs : arguments
-        Arguments to pass to subprocess.Popen.
-
-    Returns
-    -------
-    stdout : str
-        Stdout returned by the process.
-    stderr : str
-        Stderr returned by the process.
-    """
-    if 'stderr' not in kwargs:
-        kwargs['stderr'] = subprocess.PIPE
-    if 'stdout' not in kwargs:
-        kwargs['stdout'] = subprocess.PIPE
-
-    # Check the PATH environment variable. If run_subprocess() is to be called
-    # frequently this should be refactored so as to only check the path once.
-    env = kwargs.get('env', os.environ)
-    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
-        msg = ("Your PATH environment variable contains at least one path "
-               "starting with a tilde ('~') character. Such paths are not "
-               "interpreted correctly from within Python. It is recommended "
-               "that you use '$HOME' instead of '~'.")
-        warnings.warn(msg)
-
-    logger.info("Running subprocess: %s" % str(command))
-    p = subprocess.Popen(command, *args, **kwargs)
-    stdout_, stderr = p.communicate()
-
-    if stdout_.strip():
-        logger.info("stdout:\n%s" % stdout_)
-    if stderr.strip():
-        logger.info("stderr:\n%s" % stderr)
-
-    output = (stdout_, stderr)
-    if p.returncode:
-        print(output)
-        err_fun = subprocess.CalledProcessError.__init__
-        if 'output' in inspect.getargspec(err_fun).args:
-            raise subprocess.CalledProcessError(p.returncode, command, output)
-        else:
-            raise subprocess.CalledProcessError(p.returncode, command)
-
-    return output
 
 
 class _FormatDict(dict):
@@ -783,6 +742,30 @@ def requires_mayavi():
     return requires_mayavi
 
 
+def requires_pysurfer():
+    """Decorator to skip test if PySurfer is not available"""
+    try:
+        from surfer import Brain  # noqa, analysis:ignore
+    except Exception:
+        lacks_surfer = True
+    else:
+        lacks_surfer = False
+    requires_mayavi = np.testing.dec.skipif(lacks_surfer, 'Requires PySurfer')
+    return requires_mayavi
+
+
+def requires_PIL():
+    """Decorator to skip test if PIL is not available"""
+    try:
+        from PIL import Image  # noqa, analysis:ignore
+    except Exception:
+        lacks_PIL = True
+    else:
+        lacks_PIL = False
+    requires_PIL = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
+    return requires_PIL
+
+
 def requires_good_network(function):
     """Helper for testing"""
 
@@ -811,6 +794,8 @@ def make_skipper_dec(module, skip_str):
 
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 requires_traits = make_skipper_dec('traits', 'traits not installed')
+travis_skip = np.testing.dec.skipif(os.getenv('TRAVIS', '') == 'true',
+                                    'Test does not run on Travis platforms')
 
 
 def _mne_fs_not_in_env():
@@ -818,7 +803,8 @@ def _mne_fs_not_in_env():
     return (('FREESURFER_HOME' not in os.environ) or
             ('MNE_ROOT' not in os.environ))
 
-requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env)
+requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env(),
+                                               'MNE or Freesurfer not found')
 
 
 def _check_mayavi_version(min_version='4.3.0'):
@@ -894,6 +880,74 @@ def requires_pytables():
     except ImportError:
         have = False
     return np.testing.dec.skipif(not have, 'Requires pytables')
+
+
+@verbose
+def run_subprocess(command, verbose=None, *args, **kwargs):
+    """Run command using subprocess.Popen
+
+    Run command and wait for command to complete. If the return code was zero
+    then return, otherwise raise CalledProcessError.
+    By default, this will also add stdout= and stderr=subproces.PIPE
+    to the call to Popen to suppress printing to the terminal.
+
+    Parameters
+    ----------
+    command : list of str
+        Command to run as subprocess (see subprocess.Popen documentation).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to self.verbose.
+    *args, **kwargs : arguments
+        Additional arguments to pass to subprocess.Popen.
+
+    Returns
+    -------
+    stdout : str
+        Stdout returned by the process.
+    stderr : str
+        Stderr returned by the process.
+    """
+    if 'stderr' not in kwargs:
+        kwargs['stderr'] = subprocess.PIPE
+    if 'stdout' not in kwargs:
+        kwargs['stdout'] = subprocess.PIPE
+
+    # Check the PATH environment variable. If run_subprocess() is to be called
+    # frequently this should be refactored so as to only check the path once.
+    env = kwargs.get('env', os.environ)
+    if any(p.startswith('~') for p in env['PATH'].split(os.pathsep)):
+        msg = ("Your PATH environment variable contains at least one path "
+               "starting with a tilde ('~') character. Such paths are not "
+               "interpreted correctly from within Python. It is recommended "
+               "that you use '$HOME' instead of '~'.")
+        warnings.warn(msg)
+
+    logger.info("Running subprocess: %s" % str(command))
+    try:
+        p = subprocess.Popen(command, *args, **kwargs)
+    except Exception:
+        logger.error('Command not found: %s' % (command[0],))
+        raise
+    stdout_, stderr = p.communicate()
+    stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
+    stderr = '' if stderr is None else stderr.decode('utf-8')
+
+    if stdout_.strip():
+        logger.info("stdout:\n%s" % stdout_)
+    if stderr.strip():
+        logger.info("stderr:\n%s" % stderr)
+
+    output = (stdout_, stderr)
+    if p.returncode:
+        print(output)
+        err_fun = subprocess.CalledProcessError.__init__
+        if 'output' in inspect.getargspec(err_fun).args:
+            raise subprocess.CalledProcessError(p.returncode, command, output)
+        else:
+            raise subprocess.CalledProcessError(p.returncode, command)
+
+    return output
 
 
 ###############################################################################
@@ -1095,12 +1149,13 @@ known_config_types = [
     'MNE_DATASETS_SAMPLE_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
+    'MNE_DATASETS_TESTING_PATH',
     'MNE_LOGGING_LEVEL',
     'MNE_USE_CUDA',
     'SUBJECTS_DIR',
     'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
-    'MNE_SKIP_SAMPLE_DATASET_TESTS',
+    'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
     ]
 
@@ -1416,7 +1471,8 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-def _fetch_file(url, file_name, print_destination=True, resume=True):
+def _fetch_file(url, file_name, print_destination=True, resume=True,
+                verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1430,6 +1486,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1439,7 +1497,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True):
     initial_size = 0
     try:
         # Checking file size and displaying it alongside the download url
-        u = urllib.request.urlopen(url)
+        u = urllib.request.urlopen(url, timeout=10.)
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
@@ -1651,3 +1709,57 @@ def _check_type_picks(picks):
     else:
         raise ValueError(err_msg)
     return picks
+
+
+@nottest
+def run_tests_if_main(measure_mem=True):
+    """Run tests in a given file if it is run as a script"""
+    local_vars = inspect.currentframe().f_back.f_locals
+    if not local_vars.get('__name__', '') == '__main__':
+        return
+    # we are in a "__main__"
+    try:
+        import faulthandler
+        faulthandler.enable()
+    except Exception:
+        pass
+    mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
+    if mem >= 0:
+        print('Memory consumption after import: %s' % mem)
+    t0 = time.time()
+    peak_mem, peak_name = mem, 'import'
+    max_elapsed, elapsed_name = 0, 'N/A'
+    count = 0
+    for name in sorted(list(local_vars.keys()), key=lambda x: x.lower()):
+        val = local_vars[name]
+        if name.startswith('_'):
+            continue
+        elif callable(val) and name.startswith('test'):
+            count += 1
+            doc = val.__doc__.strip() if val.__doc__ else name
+            print('%s ... ' % doc, end='')
+            sys.stdout.flush()
+            try:
+                t1 = time.time()
+                if measure_mem:
+                    mem = int(round(max(memory_usage((val, (), {})))))
+                else:
+                    val()
+                    mem = -1
+                if mem >= peak_mem:
+                    peak_mem, peak_name = mem, name
+                mem = (', mem: %s MB' % mem) if mem >= 0 else ''
+                elapsed = int(round(time.time() - t1))
+                if elapsed >= max_elapsed:
+                    max_elapsed, elapsed_name = elapsed, name
+                print('time: %s sec%s' % (elapsed, mem))
+                sys.stdout.flush()
+            except Exception as err:
+                if 'skiptest' in err.__class__.__name__.lower():
+                    print('SKIP')
+                    sys.stdout.flush()
+                else:
+                    raise
+    elapsed = int(round(time.time() - t0))
+    print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
+          % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))

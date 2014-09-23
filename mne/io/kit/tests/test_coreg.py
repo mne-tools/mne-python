@@ -19,11 +19,11 @@ parent_dir = os.path.dirname(os.path.abspath(FILE))
 data_dir = os.path.join(parent_dir, 'data')
 hsp_fname = os.path.join(data_dir, 'test_hsp.txt')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
-tempdir = _TempDir()
 
 
 def test_io_hsp():
     """Test IO for hsp files"""
+    tempdir = _TempDir()
     pts = read_hsp(hsp_fname)
 
     dest = os.path.join(tempdir, 'test.txt')
@@ -35,6 +35,7 @@ def test_io_hsp():
 
 def test_io_mrk():
     """Test IO for mrk files"""
+    tempdir = _TempDir()
     pts = read_mrk(mrk_fname)
 
     # pickle

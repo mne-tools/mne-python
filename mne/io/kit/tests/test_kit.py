@@ -26,8 +26,6 @@ mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
 
-tempdir = _TempDir()
-
 
 def test_data():
     """Test reading raw kit files
@@ -61,6 +59,7 @@ def test_data():
 def test_read_segment():
     """Test writing raw kit files when preload is False
     """
+    tempdir = _TempDir()
     raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
@@ -101,7 +100,7 @@ def test_ch_loc():
 
     # test when more than one marker file provided
     mrks = [mrk_path, mrk2_path, mrk3_path]
-    _ = read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
+    read_raw_kit(sqd_path, mrks, elp_path, hsp_path, preload=False)
 
 
 def test_stim_ch():

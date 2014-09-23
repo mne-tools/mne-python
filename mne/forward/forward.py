@@ -208,6 +208,15 @@ def _inv_block_diag(A, n):
     return bd
 
 
+def _get_tag_int(fid, node, name, id_):
+    """Helper to check we have an appropriate tag"""
+    tag = find_tag(fid, node, id_)
+    if tag is None:
+        fid.close()
+        raise ValueError(name + ' tag not found')
+    return int(tag.data)
+
+
 def _read_one(fid, node):
     """Read all interesting stuff for one forward solution
     """
@@ -215,31 +224,14 @@ def _read_one(fid, node):
         return None
 
     one = Forward()
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
-    if tag is None:
-        fid.close()
-        raise ValueError('Source orientation tag not found')
-    one['source_ori'] = int(tag.data)
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        fid.close()
-        raise ValueError('Coordinate frame tag not found')
-    one['coord_frame'] = int(tag.data)
-
-    tag = find_tag(fid, node, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
-    if tag is None:
-        fid.close()
-        raise ValueError('Number of sources not found')
-    one['nsource'] = int(tag.data)
-
-    tag = find_tag(fid, node, FIFF.FIFF_NCHAN)
-    if tag is None:
-        fid.close()
-        raise ValueError('Number of channels not found')
-    one['nchan'] = int(tag.data)
-
+    one['source_ori'] = _get_tag_int(fid, node, 'Source orientation',
+                                     FIFF.FIFF_MNE_SOURCE_ORIENTATION)
+    one['coord_frame'] = _get_tag_int(fid, node, 'Coordinate frame',
+                                      FIFF.FIFF_MNE_COORD_FRAME)
+    one['nsource'] = _get_tag_int(fid, node, 'Number of sources',
+                                  FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
+    one['nchan'] = _get_tag_int(fid, node, 'Number of channels',
+                                FIFF.FIFF_NCHAN)
     try:
         one['sol'] = _read_named_matrix(fid, node,
                                         FIFF.FIFF_MNE_FORWARD_SOLUTION)

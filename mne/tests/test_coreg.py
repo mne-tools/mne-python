@@ -5,6 +5,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_array_less)
 
+from mne import setup_source_space
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
@@ -12,11 +13,8 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _is_mri_subject, scale_labels, scale_source_space,
                        read_elp)
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import requires_mne_fs_in_env, _TempDir, run_subprocess
+from mne.utils import requires_mne_fs_in_env, _TempDir
 from functools import reduce
-
-
-tempdir = _TempDir()
 
 
 def test_read_elp():
@@ -31,6 +29,7 @@ def test_read_elp():
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
+    tempdir = _TempDir()
     create_default_subject(subjects_dir=tempdir)
     is_mri = _is_mri_subject('fsaverage', tempdir)
     assert_true(is_mri, "Creating fsaverage failed")
@@ -44,14 +43,14 @@ def test_scale_mri():
     # create source space
     path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
     if not os.path.exists(path):
-        cmd = ['mne_setup_source_space', '--subject', 'fsaverage', '--ico',
-               '6']
-        env = os.environ.copy()
-        env['SUBJECTS_DIR'] = tempdir
-        run_subprocess(cmd, env=env)
+        setup_source_space('fsaverage', path, 'ico6', add_dist=False,
+                           subjects_dir=tempdir)
 
     # scale fsaverage
-    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True, subjects_dir=tempdir)
+    os.environ['_MNE_FEW_SURFACES'] = 'true'
+    scale_mri('fsaverage', 'flachkopf', [1, .2, .8], True,
+              subjects_dir=tempdir)
+    del os.environ['_MNE_FEW_SURFACES']
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
@@ -63,7 +62,6 @@ def test_scale_mri():
     os.remove(src_path)
     scale_source_space('flachkopf', 'ico-6', subjects_dir=tempdir)
     assert_true(os.path.exists(src_path), "Source space was not scaled")
-
 
 
 def test_fit_matched_points():
@@ -83,7 +81,7 @@ def test_fit_matched_points():
     trans = np.dot(rotation(2, 6, 3), scaling(.5, .5, .5))
     src_pts = apply_trans(trans, tgt_pts)
     trans_est = fit_matched_points(src_pts, tgt_pts, translate=False, scale=1,
-                                out='trans')
+                                   out='trans')
     est_pts = apply_trans(trans_est, src_pts)
     assert_array_almost_equal(tgt_pts, est_pts, 2, "fit_matched_points with "
                               "rotation and scaling.")

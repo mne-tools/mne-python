@@ -12,8 +12,7 @@ import sys
 import mne
 
 
-if __name__ == '__main__':
-
+def run():
     import matplotlib.pyplot as plt
 
     from mne.commands.utils import get_optparser
@@ -61,7 +60,9 @@ if __name__ == '__main__':
 
     if raw_in is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     raw = mne.io.Raw(raw_in, preload=preload)
     if len(proj_in) > 0:
@@ -71,6 +72,11 @@ if __name__ == '__main__':
         events = mne.read_events(eve_in)
     else:
         events = None
-    fig = raw.plot(duration=duration, start=start, n_channels=n_channels,
-                   order=order, show_options=show_options, events=events)
+    raw.plot(duration=duration, start=start, n_channels=n_channels,
+             order=order, show_options=show_options, events=events)
     plt.show(block=True)
+
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()
