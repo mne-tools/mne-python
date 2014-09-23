@@ -49,7 +49,7 @@ def _fig_to_img(function=None, fig=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
     # evoked.plot and plot_topomap are currently too slow to test :(
     if function is not None and os.getenv('MNE_REPORT_TESTING', '') != '' and \
-            any(x == function.__name__ for x in ('plot', 'plot_topomap')):
+            any([x == function.__name__ for x in ('plot', 'plot_topomap')]):
         return ''
     import matplotlib.pyplot as plt
     if function is not None:

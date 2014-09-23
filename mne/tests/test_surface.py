@@ -1,6 +1,10 @@
 from __future__ import print_function
+import os
 import os.path as op
 import numpy as np
+import warnings
+from shutil import copyfile
+from scipy import sparse
 from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
@@ -10,7 +14,7 @@ from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf,
-                         get_meg_helmet_surf)
+                         get_meg_helmet_surf, _write_morph_map)
 from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
@@ -19,6 +23,8 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
+
+warnings.simplefilter('always')
 
 
 def test_helmet():
@@ -85,15 +91,34 @@ def test_compute_nearest():
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
+    tempdir = _TempDir()
     mmap = read_morph_map('fsaverage_ds', 'sample_ds',
                           subjects_dir=subjects_dir)
     mmap2 = _make_morph_map('fsaverage_ds', 'sample_ds',
                             subjects_dir=subjects_dir)
     assert_equal(len(mmap), len(mmap2))
-    for m1, m2 in zip(mmap, mmap2):
-        # deal with sparse matrix stuff
-        diff = (m1 - m2).data
-        assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+    os.mkdir(op.join(tempdir, 'morph-maps'))
+    # This is technically incorrect (we should generate the other one), but
+    # it will work because we're only going to test the first one
+    _write_morph_map(op.join(tempdir, 'morph-maps',
+                     'fsaverage_ds-sample_ds-morph.fif'),
+                     'fsaverage_ds', 'sample_ds', mmap2, mmap2)
+    mmap3 = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
+    for test_map in (mmap2, mmap3):
+        for m1, m2 in zip(mmap, test_map):
+            # deal with sparse matrix stuff
+            diff = (m1 - m2).data
+            assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(op.join(tempdir, 'sample', 'surf'))
+    for hemi in ['lh', 'rh']:
+        args = ['sample', 'surf', hemi + '.sphere.reg']
+        copyfile(op.join(subjects_dir, *args),
+                 op.join(tempdir, *args))
+    mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
+    for mm in mmap:
+        assert_true((mm - sparse.eye(mm.shape[0])).sum() == 0)
 
 
 @testing.requires_testing_data
