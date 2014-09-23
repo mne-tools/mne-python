@@ -8,6 +8,8 @@ from .externals.six.moves import configparser
 import fnmatch
 from glob import glob, iglob
 import os
+import stat
+import sys
 import re
 import shutil
 from warnings import warn
@@ -40,6 +42,19 @@ head_bem_fname = pformat(bem_fname, name='head')
 fid_fname = pformat(bem_fname, name='fiducials')
 fid_fname_general = os.path.join(bem_dirname, "{head}-fiducials.fif")
 src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
+
+
+def _make_writable(fname):
+    os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | os.ST_WRITE)
+
+
+def _make_writable_recursive(path):
+    """Recursively set writable"""
+    if sys.platform.startswith('win'):
+        return  # can't safely set perms
+    for root, dirs, files in os.walk(path, topdown=False):
+        for f in dirs + files:
+            _make_writable(os.path.join(root, f))
 
 
 def create_default_subject(mne_root=None, fs_home=None, update=False,
@@ -146,6 +161,7 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     logger.info("Copying fsaverage subject from freesurfer directory...")
     if (not update) or not os.path.exists(dest):
         shutil.copytree(fs_src, dest)
+        _make_writable_recursive(dest)
 
     # add files from mne
     dest_bem = os.path.join(dest, 'bem')
@@ -153,6 +169,7 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
         os.mkdir(dest_bem)
     logger.info("Copying auxiliary fsaverage files from mne directory...")
     dest_fname = os.path.join(dest_bem, 'fsaverage-%s.fif')
+    _make_writable_recursive(dest_bem)
     for name in mne_files:
         if not os.path.exists(dest_fname % name):
             shutil.copy(mne_fname % name, dest_bem)
