@@ -189,10 +189,14 @@ class RawEDF(_BaseRaw):
         tal_channel = self._edf_info['tal_channel']
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
+        record_samps = self._edf_info['n_samples_per_record']
 
-        blockstart = int(floor(float(start) / sfreq) * sfreq)
-        blockstop = int(ceil(float(stop) / sfreq) * sfreq)
-
+        # this is used to deal with indexing in the middle of a sampling period
+        blockstart = int(floor(float(start) / record_samps) * record_samps)
+        blockstop = int(ceil(float(stop) / record_samps) * record_samps)
+        if blockstop > self.last_samp:
+            blockstop = self.last_samp + 1
+        
         if start >= stop:
             raise ValueError('No data in this range')
 
@@ -200,13 +204,11 @@ class RawEDF(_BaseRaw):
                     (start, stop - 1, start / float(sfreq),
                      (stop - 1) / float(sfreq)))
 
-        gains = []
-        for chan in range(n_chan):
-            # gain constructor
-            physical_range = self.info['chs'][chan]['range']
-            cal = float(self.info['chs'][chan]['cal'])
-            unit_mul = 10 ** self.info['chs'][chan]['unit_mul']
-            gains.append(unit_mul * (physical_range / cal))
+        # gain constructor
+        physical_range = np.array([ch['range'] for ch in self.info['chs']])
+        cal = np.array([ch['cal'] for ch in self.info['chs']], float)
+        unit_mul = np.array([10 ** ch['unit_mul'] for ch in self.info['chs']])
+        gains = np.atleast_2d(unit_mul * (physical_range / cal))
 
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
@@ -214,6 +216,7 @@ class RawEDF(_BaseRaw):
             buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
+            datas = np.zeros((n_chan, buffer_size), dtype=float)
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
@@ -221,37 +224,48 @@ class RawEDF(_BaseRaw):
                 blocks = int(buffer_size / max_samp)
             else:
                 blocks = int(ceil(float(buffer_size) / sfreq))
-            datas = []
+
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
-                data = fid.read(buffer_size * n_chan * data_size)
-                data = np.fromstring(data, np.uint8)
-                data = data.reshape(-1, 3).astype(np.int32)
-                # this converts to 24-bit little endian integer
-                # # no support in numpy
-                data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
-                # 24th bit determines the sign
-                data[data >= (1 << 23)] -= (1 << 24)
-                data = data.reshape((int(sfreq), n_chan, blocks), order='F')
-                for i in range(blocks):
-                    datas.append(data[:, :, i].T)
+                # loop over 10s increment to not tax the memory
+                buffer_step = int(sfreq * 10)
+                for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
+                    step = buffer_step
+                    if block < step:
+                        step = block
+                    samp = int(step * n_chan * data_size)
+                    blocks = int(ceil(float(step) / sfreq))
+                    data = np.fromfile(fid, dtype=np.uint8, count=samp)
+                    data = data.reshape(-1, 3).astype(np.int32)
+                    # this converts to 24-bit little endian integer
+                    # # no support in numpy
+                    data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
+                    # 24th bit determines the sign
+                    data[data >= (1 << 23)] -= (1 << 24)
+
+                    data = data.reshape((int(sfreq), n_chan, blocks), order='F')
+                    for i in range(blocks):
+                        start_pt = int((sfreq * i) + (k * buffer_step))
+                        stop_pt = int(start_pt + sfreq)
+                        datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
+                # complicated edf: various sampling rates within file
                 if 'n_samps' in self._edf_info:
                     data = []
-                    for _ in range(blocks):
+                    for i in range(blocks):
                         for samp in n_samps:
                             chan_data = np.fromfile(fid, dtype='<i2',
                                                     count=samp)
                             data.append(chan_data)
-                    for i, samp in enumerate(n_samps):
-                        chan_data = data[i::n_chan]
+                    for j, samp in enumerate(n_samps):
+                        chan_data = data[j::n_chan]
                         chan_data = np.hstack(chan_data)
-                        if i == tal_channel:
+                        if j == tal_channel:
                             # don't resample tal_channel,
                             # pad with zeros instead.
                             n_missing = int(max_samp - samp) * blocks
                             chan_data = np.hstack([chan_data, [0] * n_missing])
-                        elif i == stim_channel and samp < max_samp:
+                        elif j == stim_channel and samp < max_samp:
                             if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim channel
                                 # because it gets overwritten later on.
@@ -268,56 +282,56 @@ class RawEDF(_BaseRaw):
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
-                        datas.append(chan_data)
+                        stop_pt = chan_data.shape[1]
+                        datas[j, :stop_pt] = chan_data
+                # simple edf
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
                     data = data.reshape((int(sfreq), n_chan, blocks),
                                         order='F')
                     for i in range(blocks):
-                        datas.append(data[:, :, i].T)
-        if 'n_samps' in self._edf_info:
-            data = np.vstack(datas)
-        else:
-            data = np.hstack(datas)
-        gains = np.array([gains])
-        data = gains.T * data
+                        start_pt = int(sfreq * i)
+                        stop_pt = int(start_pt + sfreq)
+                        datas[:, start_pt:stop_pt] = data[:, :, i].T
+        datas *= gains.T
+
         if stim_channel is not None:
             if annot and annotmap:
-                data[stim_channel] = 0
+                datas[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
-                data[stim_channel, :evts.size] = evts[start:stop]
+                datas[stim_channel, :evts.size] = evts[start:stop]
             elif tal_channel is not None:
-                evts = _parse_tal_channel(data[tal_channel])
+                evts = _parse_tal_channel(datas[tal_channel])
                 self._edf_info['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
-                data[stim_channel] = 0
+                datas[stim_channel] = 0
                 for t_start, t_duration, annotation in evts:
                     evid = mapping[annotation]
                     n_start = int(t_start * sfreq)
                     n_stop = int(t_duration * sfreq) + n_start - 1
                     # make sure events without duration get one sample
-                    n_stop = n_stop if n_stop > n_start else n_start+1
-                    if any(data[stim_channel][n_start:n_stop]):
+                    n_stop = n_stop if n_stop > n_start else n_start + 1
+                    if any(datas[stim_channel][n_start:n_stop]):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
-                    data[stim_channel][n_start:n_stop] = evid
+                    datas[stim_channel][n_start:n_stop] = evid
             else:
-                stim = np.array(data[stim_channel], int)
+                stim = np.array(datas[stim_channel], int)
                 mask = 255 * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
-                data[stim_channel] = stim
+                datas[stim_channel] = stim
         datastart = start - blockstart
         datastop = stop - blockstart
-        data = data[sel, datastart:datastop]
+        datas = datas[sel, datastart:datastop]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
 
-        return data, times
+        return datas, times
 
 
 def _parse_tal_channel(tal_channel_data):
@@ -510,7 +524,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
                 raise RuntimeError('%s' % ('Channels contain different'
                                            'sampling rates. '
                                            'Must set preload=True'))
-        n_samples_per_record = n_samples_per_record[0]
+        n_samples_per_record = max(n_samples_per_record)
+        edf_info['n_samples_per_record'] = n_samples_per_record
         fid.read(32 * info['nchan'])  # reserved
         assert fid.tell() == header_nbytes
 
