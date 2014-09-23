@@ -35,6 +35,16 @@ from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          read_trans, _coord_frame_name)
 
 
+def _get_lut_id(lut, label, use_lut):
+    """Helper to convert a label to a LUT ID number"""
+    if not use_lut:
+        return 1
+    assert isinstance(label, string_types)
+    idx = np.where(lut['name'] == label)[0]
+    assert len(idx) == 1
+    return lut['id'][idx]
+
+
 class SourceSpaces(list):
     """Represent a list of source space
 
@@ -218,7 +228,7 @@ class SourceSpaces(list):
             # read the lookup table value for segmented volume
             if 'seg_name' in vs:
                 # find the color value for this volume
-                i = lut['id'][lut['name'] == vs['seg_name']]
+                i = _get_lut_id(lut, vs['seg_name'], True)
             else:
                 # raise error for whole brain volume
                 raise ValueError('Volume sources should be segments, '
@@ -341,10 +351,7 @@ class SourceSpaces(list):
                                        'of volume space. Consider using a '
                                        'larger volume space.' % n_diff)
                     # get surface id or use default value
-                    if use_lut:
-                        i = lut['id'][lut['name'] == surf_names[i]]
-                    else:
-                        i = 1
+                    i = _get_lut_id(lut, surf_names[i], use_lut)
                     # update image to include surface voxels
                     img[ix_clip, iy_clip, iz_clip] = i
 
@@ -1769,7 +1776,7 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
                                  names=['id', 'name'])
 
         # Get the numeric index for this volume label
-        vol_id = lut_data['id'][lut_data['name'] == volume_label]
+        vol_id = _get_lut_id(lut_data, volume_label, True)
 
         # Get indices for this volume label in voxel space
         vox_bool = mgz_data == vol_id

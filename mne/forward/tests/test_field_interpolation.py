@@ -39,7 +39,7 @@ def test_legendre_val():
     # Table approximation
     for fun, nc in zip([_get_legen_lut_fast, _get_legen_lut_accurate],
                        [100, 50]):
-        lut, n_fact = _get_legen_table('eeg', n_coeff=nc)
+        lut, n_fact = _get_legen_table('eeg', n_coeff=nc, force_calc=True)
         vals_i = fun(xs, lut)
         # Need a "1:" here because we omit the first coefficient in our table!
         assert_allclose(vals_np[:, 1:vals_i.shape[1] + 1], vals_i,
@@ -68,10 +68,10 @@ def test_legendre_val():
     # compare fast and slow for MEG
     ctheta = np.random.rand(20 * 30) * 2.0 - 1.0
     beta = np.random.rand(20 * 30) * 0.8
-    lut, n_fact = _get_legen_table('meg', n_coeff=50)
+    lut, n_fact = _get_legen_table('meg', n_coeff=10, force_calc=True)
     fun = partial(_get_legen_lut_fast, lut=lut)
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
-    lut, n_fact = _get_legen_table('meg', n_coeff=100)
+    lut, n_fact = _get_legen_table('meg', n_coeff=20, force_calc=True)
     fun = partial(_get_legen_lut_accurate, lut=lut)
     coeffs = _comp_sums_meg(beta, ctheta, fun, n_fact, False)
 
@@ -80,13 +80,12 @@ def test_legendre_table():
     """Test Legendre table calculation
     """
     # double-check our table generation
-    n_do = 10
+    n = 10
     for ch_type in ['eeg', 'meg']:
-        lut1, n_fact1 = _get_legen_table(ch_type, n_coeff=50)
-        lut1 = lut1[:, :n_do - 1].copy()
-        n_fact1 = n_fact1[:n_do - 1].copy()
-        lut2, n_fact2 = _get_legen_table(ch_type, n_coeff=n_do,
-                                         force_calc=True)
+        lut1, n_fact1 = _get_legen_table(ch_type, n_coeff=25, force_calc=True)
+        lut1 = lut1[:, :n - 1].copy()
+        n_fact1 = n_fact1[:n - 1].copy()
+        lut2, n_fact2 = _get_legen_table(ch_type, n_coeff=n, force_calc=True)
         assert_allclose(lut1, lut2)
         assert_allclose(n_fact1, n_fact2)
 

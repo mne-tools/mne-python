@@ -48,7 +48,12 @@ except ImportError:
 try:
     from memory_profiler import memory_usage
 except ImportError:
-    memory_usage = lambda: -1
+    def memory_usage(*args, **kwargs):
+        if isinstance(args[0], tuple):
+            args[0][0](*args[0][1], **args[0][2])
+        elif not isinstance(args[0], int):  # can be -1 for current use
+            args[0]()
+        return [-1]
 
 
 ###############################################################################
@@ -1718,7 +1723,7 @@ def run_tests_if_main(measure_mem=True):
         faulthandler.enable()
     except Exception:
         pass
-    mem = int(round(memory_usage(-1, max_usage=True))) if measure_mem else -1
+    mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
     if mem >= 0:
         print('Memory consumption after import: %s' % mem)
     t0 = time.time()
