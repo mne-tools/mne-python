@@ -1,7 +1,6 @@
 # Author: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-from ...externals.six import string_types
 import os
 from os import path as op
 import zipfile
@@ -10,6 +9,8 @@ from sys import stdout
 from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
+from ...externals.six import string_types
+from ...externals.six.moves import input
 
 
 def data_path(url, path=None, force_update=False, update_path=None):
@@ -129,7 +130,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'MEGSIM dataset path in the mne-python config ([y]/n)? '
                    % path)
-            answer = raw_input(msg)
+            answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:

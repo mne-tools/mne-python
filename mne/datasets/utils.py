@@ -4,7 +4,6 @@
 #          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
-from ..externals.six import string_types
 import os
 import os.path as op
 import shutil
@@ -13,6 +12,8 @@ from warnings import warn
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger
+from ..externals.six import string_types
+from ..externals.six.moves import input
 
 
 _doc = """Get path to local copy of {name} dataset
@@ -143,7 +144,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             fetch_archive = True
             if op.exists(archive_name):
                 msg = ('Archive already exists. Overwrite it (y/[n])? ')
-                answer = raw_input(msg)
+                answer = input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
                 else:
@@ -174,7 +175,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'sample dataset path in the mne-python config [y]/n? '
                    % path)
-            answer = raw_input(msg)
+            answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:

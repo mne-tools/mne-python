@@ -4,10 +4,8 @@
 import os
 from os import path as op
 from ...externals.six import string_types
+from ...externals.six.moves import input
 from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
-
-if 'raw_input' not in __builtins__:
-    raw_input = input
 
 
 EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
@@ -119,7 +117,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'EEGBCI dataset path in the mne-python config ([y]/n)? '
                    % path)
-            answer = raw_input(msg)
+            answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:
