@@ -92,9 +92,11 @@ def test_render_report():
 
 
 @requires_mayavi()
+@requires_PIL()
 def test_render_add_sections():
     """Test adding figures/images to section.
     """
+    tempdir = _TempDir()
     import matplotlib.pyplot as plt
 
     report = Report()
