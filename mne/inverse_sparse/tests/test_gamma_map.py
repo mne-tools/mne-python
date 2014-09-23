@@ -29,6 +29,7 @@ def test_gamma_map():
                                     surf_ori=True)
     forward = pick_types_forward(forward, meg=False, eeg=True)
     evoked = read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
+    evoked.resample(50)
     evoked.crop(tmin=0, tmax=0.3)
 
     cov = read_cov(fname_cov)

@@ -22,7 +22,7 @@ from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main)
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
-                              _compare_source_spaces)
+                              _compare_source_spaces, setup_source_space)
 
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
@@ -38,6 +38,8 @@ fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 fname_bem = op.join(subjects_dir, 'sample', 'bem',
                     'sample-1280-1280-1280-bem-sol.fif')
 fname_aseg = op.join(subjects_dir, 'sample', 'mri', 'aseg.mgz')
+fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-1280-bem-sol.fif')
 
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
@@ -81,8 +83,6 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
 def test_make_forward_solution_kit():
     """Test making fwd using KIT, BTI, and CTF (compensated) files
     """
-    fname_bem = op.join(subjects_dir, 'sample', 'bem',
-                        'sample-1280-bem-sol.fif')
     kit_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
                       'tests', 'data')
     sqd_path = op.join(kit_dir, 'test.sqd')
@@ -101,67 +101,65 @@ def test_make_forward_solution_kit():
 
     fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                             'data', 'test_ctf_comp_raw.fif')
-    n_src = 1548
 
-    # first set up a testing source space
-    src = read_source_spaces(fname_src)
+    # first set up a small testing source space
+    temp_dir = _TempDir()
+    fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
+    src = setup_source_space('sample', fname_src_small, 'oct2',
+                             subjects_dir=subjects_dir, add_dist=False)
+    n_src = 108  # this is the resulting # of verts in fwd
 
     # first use mne-C: convert file, make forward solution
-    fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src,
-                              mindist=0.0, bem=fname_bem, mri=mri_path,
+    fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src_small,
+                              bem=fname_bem_meg, mri=mri_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     assert_true(isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
-    fwd_py = make_forward_solution(fname_kit_raw, mindist=0.0,
-                                   src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=mri_path)
-    _compare_forwards(fwd, fwd_py, 157, 1548)
+    fwd_py = make_forward_solution(fname_kit_raw, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, mri=mri_path)
+    _compare_forwards(fwd, fwd_py, 157, n_src)
     assert_true(isinstance(fwd_py, Forward))
 
     # now let's use mne-python all the way
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
     # without ignore_ref=True, this should throw an error:
     assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
-                  mindist=0.0, src=src, eeg=False, meg=True,
-                  bem=fname_bem, mri=mri_path)
-    fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
-                                   src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=mri_path,
+                  src=src, eeg=False, meg=True,
+                  bem=fname_bem_meg, mri=mri_path)
+    fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, mri=mri_path,
                                    ignore_ref=True)
     _compare_forwards(fwd, fwd_py, 157, n_src,
                       meg_rtol=1e-3, meg_atol=1e-7)
 
     # BTI python end-to-end versus C
-    fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src,
-                              mindist=0.0, bem=fname_bem, mri=mri_path,
+    fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
+                              bem=fname_bem_meg, mri=mri_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
-    fwd_py = make_forward_solution(raw_py.info, mindist=0.0,
-                                   src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=mri_path)
+    fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, mri=mri_path)
     _compare_forwards(fwd, fwd_py, 248, n_src)
 
     # now let's test CTF w/compensation
-    fwd_py = make_forward_solution(fname_ctf_raw, mindist=0.0,
-                                   src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=fname_mri)
+    fwd_py = make_forward_solution(fname_ctf_raw, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, mri=fname_mri)
 
-    fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src,
-                              mindist=0.0, bem=fname_bem, mri=fname_mri,
+    fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src_small,
+                              bem=fname_bem_meg, mri=fname_mri,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
     # CTF with compensation changed in python
     ctf_raw = Raw(fname_ctf_raw, compensation=2)
 
-    fwd_py = make_forward_solution(ctf_raw.info, mindist=0.0,
-                                   src=src, eeg=False, meg=True,
-                                   bem=fname_bem, mri=fname_mri)
+    fwd_py = make_forward_solution(ctf_raw.info, src=src, eeg=False, meg=True,
+                                   bem=fname_bem_meg, mri=fname_mri)
     with warnings.catch_warnings(record=True):
-        fwd = do_forward_solution('sample', ctf_raw, src=fname_src,
-                                  mindist=0.0, bem=fname_bem, mri=fname_mri,
-                                  eeg=False, meg=True,
+        fwd = do_forward_solution('sample', ctf_raw, src=fname_src_small,
+                                  bem=fname_bem_meg,
+                                  mri=fname_mri, eeg=False, meg=True,
                                   subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
@@ -279,6 +277,7 @@ def test_forward_mixed_source_space():
     # calculate forward solution
     fwd = make_forward_solution(fname_raw, mri=fname_mri, src=src,
                                 bem=fname_bem, fname=None)
+    assert_true(repr(fwd))
 
     # extract source spaces
     src_from_fwd = fwd['src']
