@@ -45,7 +45,7 @@ src_fname = os.path.join(bem_dirname, '{subject}-{spacing}-src.fif')
 
 
 def _make_writable(fname):
-    os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | os.ST_WRITE)
+    os.chmod(fname, stat.S_IMODE(os.lstat(fname)[stat.ST_MODE]) | 128)  # write
 
 
 def _make_writable_recursive(path):
