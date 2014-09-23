@@ -9,20 +9,18 @@ import warnings
 
 from nose.tools import assert_true, assert_equal, assert_raises
 
-from mne import read_evokeds
 from mne.datasets import testing
 from mne.report import Report
-from mne.utils import _TempDir, requires_mayavi, requires_nibabel, requires_PIL
+from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
+                       requires_PIL, run_tests_if_main)
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
+base_dir = op.join(data_dir, 'MEG', 'sample')
 
-base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
-                               'data'))
-raw_fname = op.join(base_dir, 'test_raw.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
-evoked1_fname = op.join(base_dir, 'test-nf-ave.fif')
-evoked2_fname = op.join(base_dir, 'test-ave.fif')
+raw_fname = op.join(base_dir, 'sample_audvis_trunc_raw.fif')
+event_name = op.join(base_dir, 'sample_audvis_trunc_raw-eve.fif')
+evoked_fname = op.join(base_dir, 'sample_audvis_trunc-ave.fif')
 
 # Set our plotters to test mode
 import matplotlib
@@ -39,7 +37,7 @@ def test_render_report():
     """
     tempdir = _TempDir()
 
-    report = Report(info_fname=raw_fname)
+    report = Report(info_fname=raw_fname, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=base_dir)
@@ -52,14 +50,11 @@ def test_render_report():
 
     # Check if all files were rendered in the report
     fnames = glob.glob(op.join(base_dir, '*.fif'))
-    bad_name = 'test_ctf_comp_raw-eve.fif'
-    decrement = any(fname.endswith(bad_name) for fname in fnames)
     fnames = [fname for fname in fnames if
               fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
                               '-sol.fif', '-fwd.fif', '-inv.fif',
-                              '-src.fif', '-trans.fif', 'raw.fif',
-                              'sss.fif', '-epo.fif')) and
-              not fname.endswith(bad_name)]
+                              '-src.fif', 'raw.fif',
+                              'sss.fif', '-epo.fif'))]
     # last file above gets created by another test, and it shouldn't be there
 
     for fname in fnames:
@@ -67,11 +62,7 @@ def test_render_report():
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
-
-    evoked1 = read_evokeds(evoked1_fname)
-    evoked2 = read_evokeds(evoked2_fname)
-    assert_equal(len(report.fnames) + len(evoked1) + len(evoked2) - 2,
-                 report.initial_id - decrement)
+    assert_equal(len(report.fnames), report.initial_id - 6)
 
     # Check saving functionality
     report.data_path = tempdir
@@ -99,7 +90,7 @@ def test_render_add_sections():
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
 
-    report = Report()
+    report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
     report.add_figs_to_section(figs=fig,  # test non-list input
@@ -134,3 +125,6 @@ def test_render_mri():
         warnings.simplefilter('always')
         report.parse_folder(data_path=data_dir,
                             pattern='*sample_audvis_raw-trans.fif')
+
+
+run_tests_if_main()

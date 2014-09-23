@@ -106,7 +106,6 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
-@_check_report_mode
 def _iterate_trans_views(function, **kwargs):
     """Auxiliary function to iterate over views in trans fig.
     """
@@ -123,6 +122,8 @@ def _iterate_trans_views(function, **kwargs):
         for view, ax in zip(views, axes):
             mayavi.mlab.view(view[0], view[1])
             # XXX: save_bmp / save_png / ...
+            tempdir = _TempDir()
+            temp_fname = op.join(tempdir, 'test')
             fig.scene.save_bmp(temp_fname)
             im = imread(temp_fname)
             ax.imshow(im)
