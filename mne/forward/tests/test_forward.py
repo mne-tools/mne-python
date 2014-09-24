@@ -1,6 +1,7 @@
 import os
 import os.path as op
 import warnings
+import gc
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
@@ -41,10 +42,11 @@ def compare_forwards(f1, f2):
     assert_equal(f1['sol']['ncol'], f2['sol']['ncol'])
     assert_allclose(f1['source_nn'], f2['source_nn'])
     if f1['sol_grad'] is not None:
+        assert_true(f2['sol_grad'] is not None)
         assert_allclose(f1['sol_grad']['data'], f2['sol_grad']['data'])
         assert_equal(f1['sol_grad']['ncol'], f2['sol_grad']['ncol'])
     else:
-        assert_equal(f2['sol_grad'], None)
+        assert_true(f2['sol_grad'] is None)
     assert_equal(f1['source_ori'], f2['source_ori'])
     assert_equal(f1['surf_ori'], f2['surf_ori'])
 
@@ -60,24 +62,32 @@ def test_convert_forward():
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
     fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
+    del fwd_surf_io
+    gc.collect()
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
     assert_true(repr(fwd_new))
-    assert_true(isinstance(fwd, Forward))
+    assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
     # now go to fixed
     fwd_fixed = convert_forward_solution(fwd_surf, surf_ori=False,
                                          force_fixed=True)
+    del fwd_surf
+    gc.collect()
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
     fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
                                          force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
+    del fwd_fixed_io
+    gc.collect()
     # now go back to cartesian (original condition)
     fwd_new = convert_forward_solution(fwd_fixed)
     assert_true(repr(fwd_new))
     assert_true(isinstance(fwd_new, Forward))
     compare_forwards(fwd, fwd_new)
+    del fwd, fwd_new, fwd_fixed
+    gc.collect()
 
 
 @testing.requires_testing_data
@@ -85,18 +95,18 @@ def test_io_forward():
     """Test IO for forward solutions
     """
     temp_dir = _TempDir()
-    # do extensive tests with MEEG
-    n_channels, n_src = 366, 1494
-    fwd = read_forward_solution(fname_meeg)
+    # do extensive tests with MEEG + grad
+    n_channels, n_src = 366, 108
+    fwd = read_forward_solution(fname_meeg_grad)
     assert_true(isinstance(fwd, Forward))
-    fwd = read_forward_solution(fname_meeg, surf_ori=True)
+    fwd = read_forward_solution(fname_meeg_grad, surf_ori=True)
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
     fname_temp = op.join(temp_dir, 'test-fwd.fif')
     write_forward_solution(fname_temp, fwd, overwrite=True)
 
-    fwd = read_forward_solution(fname_meeg, surf_ori=True)
+    fwd = read_forward_solution(fname_meeg_grad, surf_ori=True)
     fwd_read = read_forward_solution(fname_temp, surf_ori=True)
     leadfield = fwd_read['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src))
@@ -106,7 +116,7 @@ def test_io_forward():
     assert_true('mri_head_t' in fwd_read)
     assert_array_almost_equal(fwd['sol']['data'], fwd_read['sol']['data'])
 
-    fwd = read_forward_solution(fname_meeg, force_fixed=True)
+    fwd = read_forward_solution(fname_meeg_grad, force_fixed=True)
     leadfield = fwd['sol']['data']
     assert_equal(leadfield.shape, (n_channels, n_src / 3))
     assert_equal(len(fwd['sol']['row_names']), n_channels)
@@ -116,7 +126,7 @@ def test_io_forward():
     assert_true(fwd['surf_ori'])
 
     # test warnings on bad filenames
-    fwd = read_forward_solution(fname_meeg)
+    fwd = read_forward_solution(fname_meeg_grad)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         fwd_badname = op.join(temp_dir, 'test-bad-name.fif.gz')
@@ -124,7 +134,7 @@ def test_io_forward():
         read_forward_solution(fwd_badname)
     assert_true(len(w) == 2)
 
-    fwd = read_forward_solution(fname_meeg_grad)
+    fwd = read_forward_solution(fname_meeg)
     write_forward_solution(fname_temp, fwd, overwrite=True)
     fwd_read = read_forward_solution(fname_temp)
     compare_forwards(fwd, fwd_read)
