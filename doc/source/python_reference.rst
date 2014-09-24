@@ -122,6 +122,8 @@ Functions:
 File I/O
 ========
 
+.. currentmodule:: mne
+
 Functions:
 
 .. autosummary::
