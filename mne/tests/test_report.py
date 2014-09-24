@@ -1,7 +1,7 @@
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
-
+import os
 import os.path as op
 import glob
 import warnings
@@ -23,8 +23,10 @@ raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
 event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
 cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
 fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
 inv_fname = op.join(report_dir,
                     'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
@@ -127,17 +129,40 @@ def test_render_add_sections():
         assert_true(w[0].category == DeprecationWarning)
 
 
+@requires_mayavi()
 @testing.requires_testing_data
 @requires_nibabel()
 def test_render_mri():
     """Test rendering MRI for mne report.
     """
+    tempdir = _TempDir()
+    trans_fname_new = op.join(tempdir, 'temp-trans.fif')
+    for a, b in [[trans_fname, trans_fname_new]]:
+        shutil.copyfile(a, b)
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        report.parse_folder(data_path=data_dir, mri_decim=30,
-                            pattern='*sample_audvis_trunc-trans.fif')
+        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+
+@requires_mayavi()
+@testing.requires_testing_data
+@requires_nibabel()
+def test_render_mri_without_bem():
+    """Test rendering MRI without BEM for mne report.
+    """
+    tempdir = _TempDir()
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(op.join(tempdir, 'sample', 'mri'))
+    shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=tempdir)
+    with warnings.catch_warnings(record=True) as w:
+        report.parse_folder(tempdir)
+    assert_true(len(w) == 1)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
 run_tests_if_main()

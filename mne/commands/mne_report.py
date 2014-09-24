@@ -36,8 +36,9 @@ def run():
                       help="Overwrite html report if it already exists")
     parser.add_option("-j", "--jobs", dest="n_jobs", help="Number of jobs to"
                       " run in parallel")
-    parser.add_option("-m", "--mri-decim", dest="mri_decim", help="Integer "
-                      " factor used to decimate MRI plots")
+    parser.add_option("-m", "--mri-decim", type="int", dest="mri_decim",
+                      default=2, help="Integer factor used to decimate "
+                      "MRI plots")
 
     options, args = parser.parse_args()
     path = options.path

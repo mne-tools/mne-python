@@ -87,29 +87,26 @@ def _iterate_trans_views(function, **kwargs):
 
     fig = function(**kwargs)
 
-    if isinstance(fig, mayavi.core.scene.Scene):
+    assert isinstance(fig, mayavi.core.scene.Scene)
 
-        views = [(90, 90), (0, 90), (0, -90)]
-        fig2, axes = plt.subplots(1, len(views))
-        for view, ax in zip(views, axes):
-            mayavi.mlab.view(view[0], view[1])
-            # XXX: save_bmp / save_png / ...
-            tempdir = _TempDir()
-            temp_fname = op.join(tempdir, 'test.png')
-            if fig.scene is not None:
-                fig.scene.save_png(temp_fname)
-                im = imread(temp_fname)
-            else:  # Testing mode
-                im = np.zeros((2, 2, 3))
-            ax.imshow(im)
-            ax.axis('off')
+    views = [(90, 90), (0, 90), (0, -90)]
+    fig2, axes = plt.subplots(1, len(views))
+    for view, ax in zip(views, axes):
+        mayavi.mlab.view(view[0], view[1])
+        # XXX: save_bmp / save_png / ...
+        tempdir = _TempDir()
+        temp_fname = op.join(tempdir, 'test.png')
+        if fig.scene is not None:
+            fig.scene.save_png(temp_fname)
+            im = imread(temp_fname)
+        else:  # Testing mode
+            im = np.zeros((2, 2, 3))
+        ax.imshow(im)
+        ax.axis('off')
 
-        img = _fig_to_img(fig=fig2)
-        mayavi.mlab.close(all=True)
-
-        return img
-    else:
-        return None
+    img = _fig_to_img(fig=fig2)
+    mayavi.mlab.close(all=True)
+    return img
 
 ###############################################################################
 # TOC FUNCTIONS

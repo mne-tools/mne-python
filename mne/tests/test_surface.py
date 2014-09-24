@@ -12,9 +12,9 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 from mne.datasets import testing
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
-from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
+from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
-                         get_meg_helmet_surf, _write_morph_map)
+                         get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file

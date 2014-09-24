@@ -345,7 +345,6 @@ def test_setup_source_space():
     assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
 
     # dense source space to hit surf['inuse'] lines of _create_surf_spacing
-    # The first should fail, the second should succeed
     assert_raises(RuntimeError, setup_source_space, 'sample', None,
                   spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
 
