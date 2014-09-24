@@ -22,7 +22,7 @@ data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 fname_meeg_grad = op.join(data_path, 'MEG', 'sample',
-                          'sample_audvis_trunc-meg-eeg-oct-4-grad-fwd.fif')
+                          'sample_audvis_trunc-meg-eeg-oct-2-grad-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -123,6 +123,11 @@ def test_io_forward():
         write_forward_solution(fwd_badname, fwd)
         read_forward_solution(fwd_badname)
     assert_true(len(w) == 2)
+
+    fwd = read_forward_solution(fname_meeg_grad)
+    write_forward_solution(fname_temp, fwd, overwrite=True)
+    fwd_read = read_forward_solution(fname_temp)
+    compare_forwards(fwd, fwd_read)
 
 
 @testing.requires_testing_data
