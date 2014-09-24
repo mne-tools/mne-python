@@ -5,7 +5,6 @@ import os.path as op
 import numpy as np
 import os
 import warnings
-from mne.externals.six.moves import urllib
 
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
@@ -15,7 +14,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        requires_good_network, run_tests_if_main)
 from mne.io import show_fiff
 from mne import Evoked
-
+from mne.externals.six.moves import StringIO
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -63,26 +62,33 @@ def test_hash():
     d0[2.] = b'123'
 
     d1 = deepcopy(d0)
-    print(object_diff(d0, d1))
+    assert_true(len(object_diff(d0, d1)) == 0)
+    assert_true(len(object_diff(d1, d0)) == 0)
     assert_equal(object_hash(d0), object_hash(d1))
 
     # change values slightly
     d1['data'] = np.ones(3, int)
+    d1['d'][0] = 0
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    print(object_diff(d0, d1))
     assert_equal(object_hash(d0), object_hash(d1))
     d1['a']['a'] = 0.11
-    object_diff(d0, d1)
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    print(object_diff(d0, d1))
-    assert_equal(object_hash(d0), object_hash(d1))
+    d1['b'] = StringIO()
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+
+    d1 = deepcopy(d0)
     d1[1] = 2
-    object_diff(d0, d1)
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
     assert_not_equal(object_hash(d0), object_hash(d1))
+
     # generators (and other types) not supported
     d1[1] = (x for x in d0)
     assert_raises(RuntimeError, object_hash, d1)
@@ -286,7 +292,7 @@ def test_fetch_file():
     """Test file downloading
     """
     tempdir = _TempDir()
-    urls = ['http://www.google.com',
+    urls = ['http://martinos.org/mne/',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
     for url in urls:
         archive_name = op.join(tempdir, "download_test")

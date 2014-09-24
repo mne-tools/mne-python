@@ -54,73 +54,55 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
     """
-    #
-    #   Default coordinate frame
-    #
+    # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
-    #
-    #   Open the file, create directory
-    #
-    fid, tree, _ = fiff_open(fname)
-    #
-    #   Find BEM
-    #
-    bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
-    if bem is None:
-        fid.close()
-        raise ValueError('BEM data not found')
+    # Open the file, create directory
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Find BEM
+        bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
+        if bem is None:
+            raise ValueError('BEM data not found')
 
-    bem = bem[0]
-    #
-    #   Locate all surfaces
-    #
-    bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
-    if bemsurf is None:
-        fid.close()
-        raise ValueError('BEM surface data not found')
+        bem = bem[0]
+        # Locate all surfaces
+        bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
+        if bemsurf is None:
+            raise ValueError('BEM surface data not found')
 
-    logger.info('    %d BEM surfaces found' % len(bemsurf))
-    #
-    #   Coordinate frame possibly at the top level
-    #
-    tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
-    if tag is not None:
-        coord_frame = tag.data
-    #
-    #   Read all surfaces
-    #
-    if s_id is not None:
-        surfs = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
-                 for bsurf in bemsurf]
-        surfs = [s for s in surfs if s is not None]
-        if not len(surfs) == 1:
-            raise ValueError('surface with id %d not found' % s_id)
-        fid.close()
-        return surfs[0]
+        logger.info('    %d BEM surfaces found' % len(bemsurf))
+        # Coordinate frame possibly at the top level
+        tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
+        if tag is not None:
+            coord_frame = tag.data
+        # Read all surfaces
+        if s_id is not None:
+            surfs = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
+                     for bsurf in bemsurf]
+            surfs = [s for s in surfs if s is not None]
+            if not len(surfs) == 1:
+                raise ValueError('surface with id %d not found' % s_id)
+            return surfs[0]
 
-    surf = []
-    for bsurf in bemsurf:
-        logger.info('    Reading a surface...')
-        this = _read_bem_surface(fid, bsurf, coord_frame)
-        logger.info('[done]')
-        if add_geom:
-            _complete_surface_info(this)
-        surf.append(this)
+        surf = []
+        for bsurf in bemsurf:
+            logger.info('    Reading a surface...')
+            this = _read_bem_surface(fid, bsurf, coord_frame)
+            logger.info('[done]')
+            if add_geom:
+                _complete_surface_info(this)
+            surf.append(this)
 
-    logger.info('    %d BEM surfaces read' % len(surf))
-
-    fid.close()
-
+        logger.info('    %d BEM surfaces read' % len(surf))
     return surf
 
 
 def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     """Read one bem surface
     """
+    # fid should be open as a context manager here
     res = dict()
-    #
-    #   Read all the interesting stuff
-    #
+    # Read all the interesting stuff
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_ID)
 
     if tag is None:
@@ -128,29 +110,22 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     else:
         res['id'] = int(tag.data)
 
-    if s_id is not None:
-        if res['id'] != s_id:
-            return None
+    if s_id is not None and res['id'] != s_id:
+        return None
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
-    if tag is None:
-        res['sigma'] = 1.0
-    else:
-        res['sigma'] = float(tag.data)
+    res['sigma'] = 1.0 if tag is None else float(tag.data)
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
     if tag is None:
-        fid.close()
         raise ValueError('Number of vertices not found')
 
     res['np'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
     if tag is None:
-        fid.close()
         raise ValueError('Number of triangles not found')
-    else:
-        res['ntri'] = int(tag.data)
+    res['ntri'] = int(tag.data)
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
     if tag is None:
@@ -161,17 +136,14 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
             res['coord_frame'] = tag.data
     else:
         res['coord_frame'] = tag.data
-    #
-    #   Vertices, normals, and triangles
-    #
+
+    # Vertices, normals, and triangles
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
     if tag is None:
-        fid.close()
         raise ValueError('Vertex data not found')
 
     res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
     if res['rr'].shape[0] != res['np']:
-        fid.close()
         raise ValueError('Vertex information is incorrect')
 
     tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
@@ -182,17 +154,14 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:
-            fid.close()
             raise ValueError('Vertex normal information is incorrect')
 
     tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
     if tag is None:
-        fid.close()
         raise ValueError('Triangulation not found')
 
     res['tris'] = tag.data - 1  # index start at 0 in Python
     if res['tris'].shape[0] != res['ntri']:
-        fid.close()
         raise ValueError('Triangulation information is incorrect')
 
     return res
@@ -343,8 +312,8 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
                 this_head = None
 
         if this_head is None:
-            raise IOError('No file matching "%s*%s" and containing a head surface '
-                          'found' % (subject, source))
+            raise IOError('No file matching "%s*%s" and containing a head '
+                          'surface found' % (subject, source))
     return surf
 
 
@@ -529,8 +498,7 @@ def _get_surf_neighbors(surf, k):
     verts = np.concatenate([surf['tris'][nt]
                             for nt in surf['neighbor_tri'][k]])
     verts = np.setdiff1d(verts, [k], assume_unique=False)
-    if np.any(verts >= surf['np']):
-        raise RuntimeError
+    assert np.all(verts < surf['np'])
     nneighbors = len(verts)
     nneigh_max = len(surf['neighbor_tri'][k])
     if nneighbors > nneigh_max:
@@ -657,41 +625,33 @@ def read_surface(fname, verbose=None):
     NEW_QUAD_MAGIC = 16777213
     with open(fname, "rb", buffering=0) as fobj:  # buffering=0 for np bug
         magic = _fread3(fobj)
-        if (magic == QUAD_MAGIC) or (magic == NEW_QUAD_MAGIC):  # Quad file or new quad
+        # Quad file or new quad
+        if magic in (QUAD_MAGIC, NEW_QUAD_MAGIC):
             create_stamp = ''
             nvert = _fread3(fobj)
             nquad = _fread3(fobj)
-            if magic == QUAD_MAGIC:
-                coords = np.fromfile(fobj, ">i2", nvert * 3).astype(np.float) / 100.
-            else:
-                coords = np.fromfile(fobj, ">f4", nvert * 3).astype(np.float)
-
+            (fmt, div) = (">i2", 100.) if magic == QUAD_MAGIC else (">f4", 1.)
+            coords = np.fromfile(fobj, fmt, nvert * 3).astype(np.float) / div
             coords = coords.reshape(-1, 3)
             quads = _fread3_many(fobj, nquad * 4)
             quads = quads.reshape(nquad, 4)
-            #
-            #   Face splitting follows
-            #
+
+            # Face splitting follows
             faces = np.zeros((2 * nquad, 3), dtype=np.int)
             nface = 0
             for quad in quads:
                 if (quad[0] % 2) == 0:
-                    faces[nface] = quad[0], quad[1], quad[3]
-                    nface += 1
-                    faces[nface] = quad[2], quad[3], quad[1]
-                    nface += 1
+                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[3]],
+                                              [quad[2], quad[3], quad[1]]]
                 else:
-                    faces[nface] = quad[0], quad[1], quad[2]
-                    nface += 1
-                    faces[nface] = quad[0], quad[2], quad[3]
-                    nface += 1
-
+                    faces[nface:nface + 2] = [[quad[0], quad[1], quad[2]],
+                                              [quad[0], quad[2], quad[3]]]
+                nface += 2
         elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
             _ = fobj.readline()  # analysis:ignore
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
-            #raise RuntimeError
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
             faces = np.fromfile(fobj, ">i4", fnum * 3).reshape(fnum, 3)
         else:
@@ -1060,7 +1020,7 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
     if not op.isdir(mmap_dir):
         try:
             os.mkdir(mmap_dir)
-        except:
+        except Exception:
             logger.warning('Could not find or make morph map directory "%s"'
                            % mmap_dir)
 
@@ -1113,11 +1073,8 @@ def read_morph_map(subject_from, subject_to, subjects_dir=None,
                         right_map = tag.data
                         logger.info('    Right-hemisphere map read.')
 
-    if left_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % fname)
-
-    if right_map is None:
-        raise ValueError('Left hemisphere map not found in %s' % fname)
+    if left_map is None or right_map is None:
+        raise ValueError('Could not find both hemispheres in %s' % fname)
 
     return left_map, right_map
 

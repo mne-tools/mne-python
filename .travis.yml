@@ -53,10 +53,6 @@ install:
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
-    # Skip tests that require large downloads over the network to save bandwith
-    # usage as travis workers are stateless and therefore traditional local
-    # disk caching does not work.
-    - export MNE_SKIP_NETWORK_TESTS=1
     - python setup.py build > /dev/null
     - python setup.py install > /dev/null
     - myscripts='browse_raw bti2fiff surf2bem'

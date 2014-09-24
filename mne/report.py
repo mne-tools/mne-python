@@ -47,10 +47,6 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 
 def _fig_to_img(function=None, fig=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
-    # evoked.plot and plot_topomap are currently too slow to test :(
-    if function is not None and os.getenv('MNE_REPORT_TESTING', '') != '' and \
-            any([x == function.__name__ for x in ('plot', 'plot_topomap')]):
-        return ''
     import matplotlib.pyplot as plt
     if function is not None:
         plt.close('all')
@@ -77,6 +73,7 @@ def _figs_to_mrislices(function, orig_size, sl, **kwargs):
         output = BytesIO()
         fig.savefig(output, bbox_inches='tight',
                     pad_inches=0, format='png')
+        plt.close(fig)
         outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
     return outs
 
@@ -98,9 +95,12 @@ def _iterate_trans_views(function, **kwargs):
             mayavi.mlab.view(view[0], view[1])
             # XXX: save_bmp / save_png / ...
             tempdir = _TempDir()
-            temp_fname = op.join(tempdir, 'test')
-            fig.scene.save_bmp(temp_fname)
-            im = imread(temp_fname)
+            temp_fname = op.join(tempdir, 'test.png')
+            if fig.scene is not None:
+                fig.scene.save_png(temp_fname)
+                im = imread(temp_fname)
+            else:  # Testing mode
+                im = np.zeros((2, 2, 3))
             ax.imshow(im)
             ax.axis('off')
 
@@ -230,10 +230,11 @@ def _iterate_files(report, fnames, info, sfreq):
                 report_fname = None
                 report_sectionlabel = None
         except Exception as e:
-            logger.info(e)
+            logger.warning(e)
             html = None
             report_fname = None
             report_sectionlabel = None
+            raise
         htmls.append(html)
         report_fnames.append(report_fname)
         report_sectionlabels.append(report_sectionlabel)
@@ -861,8 +862,8 @@ class Report(object):
         n_jobs : int
           Number of jobs to run in parallel.
         mri_decim : int
-            If a BEM is found, use this decimation factor for generating
-            MRI images (since it can be time consuming).
+            Use this decimation factor for generating MRI/BEM images
+            (since it can be time consuming).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -1228,8 +1229,14 @@ class Report(object):
                                                   img_klass=img_klass,
                                                   caption=caption,
                                                   show=show))
-
-            for ch_type in ['eeg', 'grad', 'mag']:
+            has_types = []
+            if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
+                has_types.append('eeg')
+            if len(pick_types(ev.info, meg='grad', eeg=False)) > 0:
+                has_types.append('grad')
+            if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
+                has_types.append('mag')
+            for ch_type in has_types:
                 kwargs = dict(ch_type=ch_type, show=False)
                 img = _fig_to_img(ev.plot_topomap, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
@@ -1308,9 +1315,7 @@ class Report(object):
         img = _iterate_trans_views(function=plot_trans, **kwargs)
 
         if img is not None:
-
             global_id = self._get_id()
-
             caption = 'Trans : ' + trans_fname
             div_klass = 'trans'
             img_klass = 'trans'

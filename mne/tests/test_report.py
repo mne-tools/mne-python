@@ -2,13 +2,15 @@
 #
 # License: BSD (3-clause)
 
-import os
 import os.path as op
 import glob
 import warnings
+import shutil
 
 from nose.tools import assert_true, assert_equal, assert_raises
 
+from mne import Epochs, read_events, pick_types
+from mne.io import Raw
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
@@ -17,12 +19,15 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 report_dir = op.join(data_dir, 'MEG', 'sample')
-
 raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
-event_name = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
-evoked_fname = op.join(report_dir, 'sample_audvis_trunc-ave.fif')
+event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
+cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
+fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+inv_fname = op.join(report_dir,
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
 
-os.environ['MNE_REPORT_TESTING'] = 'True'
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+                               'data'))
 
 # Set our plotters to test mode
 import matplotlib
@@ -37,33 +42,40 @@ def test_render_report():
     """Test rendering -*.fif files for mne report.
     """
     tempdir = _TempDir()
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
+    cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
+    fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
+    inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
+    for a, b in [[raw_fname, raw_fname_new],
+                 [event_fname, event_fname_new],
+                 [cov_fname, cov_fname_new],
+                 [fwd_fname, fwd_fname_new],
+                 [inv_fname, inv_fname_new]]:
+        shutil.copyfile(a, b)
 
-    report = Report(info_fname=raw_fname, subjects_dir=subjects_dir)
+    epochs_fname = op.join(tempdir, 'temp-epo.fif')
+    evoked_fname = op.join(tempdir, 'temp-ave.fif')
+    raw = Raw(raw_fname_new)
+    picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
+    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
+    epochs.save(epochs_fname)
+    epochs.average().save(evoked_fname)
+
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        report.parse_folder(data_path=report_dir)
+        report.parse_folder(data_path=tempdir)
     assert_true(len(w) == 1)
 
     # Check correct paths and filenames
-    assert_true(raw_fname in report.fnames)
-    assert_true(event_name in report.fnames)
-    assert_true(report.data_path == report_dir)
-
-    # Check if all files were rendered in the report
-    fnames = glob.glob(op.join(report_dir, '*.fif'))
-    fnames = [fname for fname in fnames if
-              fname.endswith(('-eve.fif', '-ave.fif', '-cov.fif',
-                              '-sol.fif', '-fwd.fif', '-inv.fif',
-                              '-src.fif', 'raw.fif',
-                              'sss.fif', '-epo.fif'))]
-    # last file above gets created by another test, and it shouldn't be there
-
+    fnames = glob.glob(op.join(tempdir, '*.fif'))
     for fname in fnames:
+        assert_true(fname in report.fnames)
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
     assert_equal(len(report.fnames), len(fnames))
     assert_equal(len(report.html), len(report.fnames))
-    assert_equal(len(report.fnames), report.initial_id - 6)
 
     # Check saving functionality
     report.data_path = tempdir

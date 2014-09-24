@@ -13,7 +13,7 @@ from mne.datasets import testing
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
 from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
-                         fast_cross_3d, get_head_surf,
+                         fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf, _write_morph_map)
 from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
@@ -91,31 +91,26 @@ def test_compute_nearest():
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
+    # make a new fake subjects_dir
     tempdir = _TempDir()
-    mmap = read_morph_map('fsaverage_ds', 'sample_ds',
-                          subjects_dir=subjects_dir)
-    mmap2 = _make_morph_map('fsaverage_ds', 'sample_ds',
-                            subjects_dir=subjects_dir)
-    assert_equal(len(mmap), len(mmap2))
-    os.mkdir(op.join(tempdir, 'morph-maps'))
-    # This is technically incorrect (we should generate the other one), but
-    # it will work because we're only going to test the first one
-    _write_morph_map(op.join(tempdir, 'morph-maps',
-                     'fsaverage_ds-sample_ds-morph.fif'),
-                     'fsaverage_ds', 'sample_ds', mmap2, mmap2)
-    mmap3 = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
-    for test_map in (mmap2, mmap3):
-        for m1, m2 in zip(mmap, test_map):
-            # deal with sparse matrix stuff
-            diff = (m1 - m2).data
-            assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+    for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
+        os.mkdir(op.join(tempdir, subject))
+        os.mkdir(op.join(tempdir, subject, 'surf'))
+        for hemi in ['lh', 'rh']:
+            args = [subject, 'surf', hemi + '.sphere.reg']
+            copyfile(op.join(subjects_dir, *args),
+                     op.join(tempdir, *args))
 
-    os.mkdir(op.join(tempdir, 'sample'))
-    os.mkdir(op.join(tempdir, 'sample', 'surf'))
-    for hemi in ['lh', 'rh']:
-        args = ['sample', 'surf', hemi + '.sphere.reg']
-        copyfile(op.join(subjects_dir, *args),
-                 op.join(tempdir, *args))
+    # this should trigger the creation of morph-maps dir and create the map
+    mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
+    mmap2 = read_morph_map('fsaverage_ds', 'sample_ds', subjects_dir)
+    assert_equal(len(mmap), len(mmap2))
+    for m1, m2 in zip(mmap, mmap2):
+        # deal with sparse matrix stuff
+        diff = (m1 - m2).data
+        assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
+
+    # This will also trigger creation, but it's trivial
     mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert_true((mm - sparse.eye(mm.shape[0])).sum() == 0)
@@ -143,12 +138,29 @@ def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """
     tempdir = _TempDir()
-    fname = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.inflated')
-    pts, tri = read_surface(fname)
-    write_surface(op.join(tempdir, 'tmp'), pts, tri)
-    c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
-    assert_array_equal(pts, c_pts)
-    assert_array_equal(tri, c_tri)
+    fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
+                         'lh.inflated.nofix')
+    fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
+                        'lh.inflated')
+    for fname in (fname_quad, fname_tri):
+        pts, tri = read_surface(fname)
+        write_surface(op.join(tempdir, 'tmp'), pts, tri)
+        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
+        assert_array_equal(pts, c_pts)
+        assert_array_equal(tri, c_tri)
+
+
+@testing.requires_testing_data
+def test_read_curv():
+    """Test reading curvature data
+    """
+    fname_curv = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.curv')
+    fname_surf = op.join(data_path, 'subjects', 'fsaverage', 'surf',
+                         'lh.inflated')
+    bin_curv = read_curvature(fname_curv)
+    rr = read_surface(fname_surf)[0]
+    assert_true(len(bin_curv) == len(rr))
+    assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
 
 
 @requires_tvtk
