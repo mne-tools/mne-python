@@ -10,11 +10,13 @@ import os
 import os.path as op
 import fnmatch
 import re
-import numpy as np
+import codecs
 import time
 from glob import glob
 import warnings
 import base64
+
+import numpy as np
 
 from . import read_evokeds, read_events, Covariance
 from .io import Raw, read_info
@@ -108,7 +110,7 @@ def _fig_to_mrislice(function, orig_size, sl, **kwargs):
                                                   format='png')
     output = BytesIO()
     Image.open(temp_sl_fname).save(output, format='png')
-    return output.getvalue().encode('base64')
+    return base64.b64encode(output.getvalue()).decode('ascii')
 
 
 @_check_report_mode
@@ -291,7 +293,7 @@ def _build_image(data, cmap='gray'):
     fig.figimage(data, cmap=cmap)
     output = BytesIO()
     fig.savefig(output, dpi=1.0, format='png')
-    return output.getvalue().encode('base64')
+    return base64.b64encode(output.getvalue()).decode('ascii')
 
 
 def _iterate_sagittal_slices(array, limits=None):
@@ -404,7 +406,7 @@ slider_template = HTMLTemplate(u"""
 def _build_html_slider(slices_range, slides_klass, slider_id):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = (slices_range[0] + slices_range[-1]) / 2 + 1
+    startvalue = (slices_range[0] + slices_range[-1]) // 2 + 1
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       minvalue=slices_range[0],
@@ -831,8 +833,8 @@ class Report(object):
 
         if overwrite or not op.isfile(fname):
             logger.info('Saving report to location %s' % fname)
-            fobj = open(fname, 'w')
-            fobj.write(_fix_global_ids(''.join(self.html)))
+            fobj = codecs.open(fname, 'w', 'utf-8')
+            fobj.write(_fix_global_ids(u''.join(self.html)))
             fobj.close()
 
             # remove header, TOC and footer to allow more saves

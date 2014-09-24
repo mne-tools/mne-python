@@ -1445,8 +1445,6 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
     logger.info('Writing %s' % use_fname)
 
     meas_id = info['meas_id']
-    if meas_id is None:
-        meas_id = 0
 
     fid, cals = _start_writing_raw(use_fname, info, picks, data_type,
                                    reset_range)
@@ -1460,7 +1458,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         start_block(fid, FIFF.FIFFB_REF)
         write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
         write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-        write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        if meas_id is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
         write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
         end_block(fid, FIFF.FIFFB_REF)
 
@@ -1509,7 +1508,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            if meas_id is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
             write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
             end_block(fid, FIFF.FIFFB_REF)
             break
