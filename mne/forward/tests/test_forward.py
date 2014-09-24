@@ -21,6 +21,8 @@ from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
 data_path = testing.data_path(download=False)
 fname_meeg = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
+fname_meeg_grad = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-meg-eeg-oct-4-grad-fwd.fif')
 
 fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -51,12 +53,12 @@ def compare_forwards(f1, f2):
 def test_convert_forward():
     """Test converting forward solution between different representations
     """
-    fwd = read_forward_solution(fname_meeg)
+    fwd = read_forward_solution(fname_meeg_grad)
     assert_true(repr(fwd))
     assert_true(isinstance(fwd, Forward))
     # look at surface orientation
     fwd_surf = convert_forward_solution(fwd, surf_ori=True)
-    fwd_surf_io = read_forward_solution(fname_meeg, surf_ori=True)
+    fwd_surf_io = read_forward_solution(fname_meeg_grad, surf_ori=True)
     compare_forwards(fwd_surf, fwd_surf_io)
     # go back
     fwd_new = convert_forward_solution(fwd_surf, surf_ori=False)
@@ -68,7 +70,7 @@ def test_convert_forward():
                                          force_fixed=True)
     assert_true(repr(fwd_fixed))
     assert_true(isinstance(fwd_fixed, Forward))
-    fwd_fixed_io = read_forward_solution(fname_meeg, surf_ori=False,
+    fwd_fixed_io = read_forward_solution(fname_meeg_grad, surf_ori=False,
                                          force_fixed=True)
     compare_forwards(fwd_fixed, fwd_fixed_io)
     # now go back to cartesian (original condition)
@@ -302,5 +304,9 @@ def test_average_forward_solution():
     # fwd_ave_mne = read_forward_solution(fname_copy)
     # assert_array_equal(fwd_ave_mne['sol']['data'], fwd_ave['sol']['data'])
 
+    # with gradient
+    fwd = read_forward_solution(fname_meeg_grad)
+    fwd_ave = average_forward_solutions([fwd, fwd])
+    compare_forwards(fwd, fwd_ave)
 
 run_tests_if_main()

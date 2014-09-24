@@ -466,7 +466,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
+def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -532,8 +532,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
-                                           verbose=verbose)
+        src = _read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                            verbose=verbose)
         src.info['fname'] = fname
         node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
         if node:
