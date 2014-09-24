@@ -89,7 +89,7 @@ install:
       fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2 -x
 
 after_success:
     # Need to run from source dir to exectue "git" commands
