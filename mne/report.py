@@ -234,7 +234,6 @@ def _iterate_files(report, fnames, info, sfreq):
             html = None
             report_fname = None
             report_sectionlabel = None
-            raise
         htmls.append(html)
         report_fnames.append(report_fname)
         report_sectionlabels.append(report_sectionlabel)
@@ -682,7 +681,7 @@ class Report(object):
                           ' will throw an error.')
 
         figs, captions = self._validate_input(figs, captions, section)
-
+        need_mayavi_close = False
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -691,6 +690,7 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
+                need_mayavi_close = True
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
                 fig.scene.save_png(temp_fname)
@@ -706,6 +706,9 @@ class Report(object):
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
+        if need_mayavi_close:
+            import mayavi
+            mayavi.mlab.close(all=True)
 
     @deprecated("'add_section' will be removed in v0.10. Use"
                 " 'add_figs_to_section' and 'add_images_to_section' instead.")

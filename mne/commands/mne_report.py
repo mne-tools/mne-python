@@ -36,6 +36,8 @@ def run():
                       help="Overwrite html report if it already exists")
     parser.add_option("-j", "--jobs", dest="n_jobs", help="Number of jobs to"
                       " run in parallel")
+    parser.add_option("-m", "--mri-decim", dest="mri_decim", help="Integer "
+                      " factor used to decimate MRI plots")
 
     options, args = parser.parse_args()
     path = options.path
@@ -47,6 +49,7 @@ def run():
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
+    mri_decim = int(options.mri_decim)
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
@@ -54,7 +57,8 @@ def run():
 
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
-    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs)
+    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
+                        mri_decim=mri_decim)
     report.save(open_browser=open_browser, overwrite=overwrite)
 
 is_main = (__name__ == '__main__')
