@@ -104,8 +104,8 @@ def _iterate_trans_views(function, **kwargs):
         ax.imshow(im)
         ax.axis('off')
 
+    mayavi.mlab.close(fig)
     img = _fig_to_img(fig=fig2)
-    mayavi.mlab.close(all=True)
     return img
 
 ###############################################################################
@@ -678,7 +678,6 @@ class Report(object):
                           ' will throw an error.')
 
         figs, captions = self._validate_input(figs, captions, section)
-        need_mayavi_close = False
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -687,10 +686,10 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
-                need_mayavi_close = True
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
                 fig.scene.save_png(temp_fname)
+                mayavi.mlab.close(fig)
                 with open(temp_fname, 'rb') as fid:
                     img = base64.b64encode(fid.read()).decode('ascii')
             else:
@@ -703,9 +702,6 @@ class Report(object):
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
-        if need_mayavi_close:
-            import mayavi
-            mayavi.mlab.close(all=True)
 
     @deprecated("'add_section' will be removed in v0.10. Use"
                 " 'add_figs_to_section' and 'add_images_to_section' instead.")
