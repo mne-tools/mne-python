@@ -36,7 +36,8 @@ install:
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
-        pip install -q nibabel joblib;
+        pip install -q joblib;
+        pip install git+https://github.com/nipy/nibabel.git;
         if [ ${PYTHON:0:1} == "2" ]; then
           pip install -q nitime;
         fi;
