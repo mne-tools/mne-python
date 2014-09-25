@@ -24,6 +24,8 @@ Changelog
 BUG
 ~~~
 
+   - Fix energy conservation for STFT with tight frames by `Daniel Strohmeier`_
+
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
 
    - Fix channel names in topomaps by `Alex Gramfort`_
