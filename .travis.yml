@@ -37,18 +37,17 @@ install:
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
         pip install -q joblib;
-        pip install git+https://github.com/nipy/nibabel.git;
-        if [ ${PYTHON:0:1} == "2" ]; then
-          pip install -q nitime;
-        fi;
         if [ "${PYTHON}" == "3.4" ]; then
           conda install --yes --quiet ipython > /dev/null;
+          pip install -q nibabel;
         else
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
             pip install -q pysurfer;
           fi;
+          pip install -q nitime
+          pip install -q git+https://github.com/nipy/nibabel.git;
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
