@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import sys
 import os
 from os import path as op
 import shutil
@@ -13,10 +12,9 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
-                       requires_mayavi)
+                       requires_mayavi, ArgvSetter)
 from mne.io import Raw
 from mne.datasets import testing
-from mne.externals.six.moves import StringIO
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -25,28 +23,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 
 warnings.simplefilter('always')
-
-
-class ArgvSetter(object):
-    """Temporarily set sys.argv"""
-    def __init__(self, args=(), disable_printing=True):
-        self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_printing else sys.stdout
-        self.stderr = StringIO() if disable_printing else sys.stderr
-
-    def __enter__(self):
-        self.orig_argv = sys.argv
-        sys.argv = self.argv
-        self.orig_stdout = sys.stdout
-        sys.stdout = self.stdout
-        self.orig_stderr = sys.stderr
-        sys.stderr = self.stderr
-        return self
-
-    def __exit__(self, *args):
-        sys.argv = self.orig_argv
-        sys.stdout = self.orig_stdout
-        sys.stderr = self.orig_stderr
 
 
 def check_usage(module, force_help=False):

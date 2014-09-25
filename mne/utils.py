@@ -1743,3 +1743,25 @@ def run_tests_if_main(measure_mem=True):
     elapsed = int(round(time.time() - t0))
     print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
           % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))
+
+
+class ArgvSetter(object):
+    """Temporarily set sys.argv"""
+    def __init__(self, args=(), disable_printing=True):
+        self.argv = list(('python',) + args)
+        self.stdout = StringIO() if disable_printing else sys.stdout
+        self.stderr = StringIO() if disable_printing else sys.stderr
+
+    def __enter__(self):
+        self.orig_argv = sys.argv
+        sys.argv = self.argv
+        self.orig_stdout = sys.stdout
+        sys.stdout = self.stdout
+        self.orig_stderr = sys.stderr
+        sys.stderr = self.stderr
+        return self
+
+    def __exit__(self, *args):
+        sys.argv = self.orig_argv
+        sys.stdout = self.orig_stdout
+        sys.stderr = self.orig_stderr
