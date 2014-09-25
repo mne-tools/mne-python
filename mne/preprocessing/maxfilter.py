@@ -16,7 +16,6 @@ from ..io import Raw
 from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 
 @verbose
@@ -75,8 +74,8 @@ def fit_sphere_to_headshape(info, verbose=None):
     # compute origin in device coordinates
     trans = info['dev_head_t']
     if trans['from'] != FIFF.FIFFV_COORD_DEVICE\
-        or trans['to'] != FIFF.FIFFV_COORD_HEAD:
-            raise RuntimeError('device to head transform not found')
+            or trans['to'] != FIFF.FIFFV_COORD_HEAD:
+        raise RuntimeError('device to head transform not found')
 
     head_to_dev = linalg.inv(trans['trans'])
     origin_device = 1e3 * np.dot(head_to_dev,
@@ -291,7 +290,11 @@ def apply_maxfilter(in_fname, out_fname, origin=None, frame='device',
         os.remove(out_fname)
 
     logger.info('Running MaxFilter: %s ' % cmd)
-    st = os.system(cmd)
+    if os.getenv('_MNE_MAXFILTER_TEST', '') != 'true':  # fake maxfilter
+        st = os.system(cmd)
+    else:
+        print(cmd)  # we can check the output
+        st = 0
     if st != 0:
         raise RuntimeError('MaxFilter returned non-zero exit status %d' % st)
     logger.info('[done]')

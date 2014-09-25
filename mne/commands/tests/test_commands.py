@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 import sys
-
+import os
+from os import path as op
+import warnings
 from nose.tools import assert_true
+
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_flash_bem_model, mne_kit2fiff,
@@ -11,12 +14,18 @@ from mne.utils import run_tests_if_main
 from mne.externals.six.moves import StringIO
 
 
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
+raw_fname = op.join(base_dir, 'test_raw.fif')
+
+warnings.simplefilter('always')
+
+
 class ArgvSetter(object):
     """Temporarily set sys.argv"""
-    def __init__(self, *args):
+    def __init__(self, args=(), disable_printing=True):
         self.argv = list(('python',) + args)
-        self.stdout = StringIO()
-        self.stderr = StringIO()
+        self.stdout = StringIO() if disable_printing else sys.stdout
+        self.stderr = StringIO() if disable_printing else sys.stderr
 
     def __enter__(self):
         self.orig_argv = sys.argv
@@ -35,9 +44,9 @@ class ArgvSetter(object):
 
 def check_usage(module):
     """Helper to ensure we print usage"""
-    with ArgvSetter() as a:
+    with ArgvSetter() as out:
         module.run()
-        assert_true('Usage: ' in a.stdout.getvalue())
+        assert_true('Usage: ' in out.stdout.getvalue())
 
 
 def test_browse_raw():
@@ -88,6 +97,18 @@ def test_make_scalp_surfaces():
 def test_maxfilter():
     """Test mne maxfilter"""
     check_usage(mne_maxfilter)
+    with ArgvSetter(('-i', raw_fname, '--st', '--movecomp', '--linefreq', '60',
+                     '--trans', raw_fname)) as out:
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            os.environ['_MNE_MAXFILTER_TEST'] = 'true'
+            try:
+                mne_maxfilter.run()
+            finally:
+                del os.environ['_MNE_MAXFILTER_TEST']
+        assert_true(len(w) == 1)
+        for check in ('maxfilter', '-trans', '-movecomp'):
+            assert_true(check in out.stdout.getvalue(), check)
 
 
 def test_report():

@@ -20,7 +20,6 @@ cuda_capable = False
 cuda_multiply_inplace_complex128 = None
 cuda_halve_value_complex128 = None
 cuda_real_value_complex128 = None
-requires_cuda = np.testing.dec.skipif(True, 'CUDA not initialized')
 
 
 def init_cuda():
@@ -39,7 +38,6 @@ def init_cuda():
     global cuda_multiply_inplace_complex128
     global cuda_halve_value_complex128
     global cuda_real_value_complex128
-    global requires_cuda
     if cuda_capable is True:
         logger.info('CUDA previously enabled, currently %s available memory'
                     % sizeof_fmt(mem_get_info()[0]))
@@ -54,7 +52,7 @@ def init_cuda():
     else:
         try:
             # Initialize CUDA; happens with importing autoinit
-            import pycuda.autoinit
+            import pycuda.autoinit  # noqa, analysis:ignore
         except ImportError:
             logger.warning('pycuda.autoinit could not be imported, likely '
                            'a hardware error, CUDA not enabled')
@@ -99,8 +97,6 @@ def init_cuda():
                         # Figure out limit for CUDA FFT calculations
                         logger.info('Enabling CUDA with %s available memory'
                                     % sizeof_fmt(mem_get_info()[0]))
-    requires_cuda = np.testing.dec.skipif(not cuda_capable,
-                                          'CUDA not initialized')
 
 
 ###############################################################################
@@ -371,7 +367,7 @@ def fft_resample(x, W, new_len, npad, to_remove,
             if old_len % 2 == 0:
                 nyq = int((old_len - (old_len % 2)) // 2)
                 cuda_dict['halve_value'](cuda_dict['x_fft'],
-                                        slice=slice(nyq, nyq + 1))
+                                         slice=slice(nyq, nyq + 1))
         else:
             if new_len % 2 == 0:
                 nyq = int((new_len - (new_len % 2)) // 2)
