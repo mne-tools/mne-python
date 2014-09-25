@@ -48,7 +48,8 @@ from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
                            SubjectSelectorPanel)
-from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
+from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+                      _testing_mode)
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
@@ -1335,7 +1336,8 @@ class CoregFrame(HasTraits):
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        if not _testing_mode():
+            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
         self.scene.disable_render = False

@@ -13,7 +13,8 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import _TempDir, requires_traits, requires_mne_fs_in_env
+from mne.utils import (_TempDir, requires_traits, requires_mne_fs_in_env,
+                       run_tests_if_main)
 from mne.externals.six import string_types
 
 
@@ -103,6 +104,16 @@ def test_coreg_model():
     model.get_prepare_bem_model_job('sample')
     model.load_trans(fname_trans)
 
+    from mne.gui._coreg_gui import CoregFrame
+    x = CoregFrame(raw_path, 'sample', subjects_dir)
+    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
+    try:
+        with warnings.catch_warnings(record=True):  # traits spews warnings
+            warnings.simplefilter('always')
+            x._init_plot()
+    finally:
+        del os.environ['_MNE_GUI_TESTING_MODE']
+
 
 @testing.requires_testing_data
 @requires_traits
@@ -170,3 +181,6 @@ def test_coreg_model_with_fsaverage():
     with warnings.catch_warnings(record=True):
         model.hsp.file = kit_raw_path
     assert_equal(model.hsp.n_omitted, 0)
+
+
+run_tests_if_main()

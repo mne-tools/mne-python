@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 import numpy as np
 
 # allow import without traits
@@ -58,6 +59,10 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
             'mri_color': (252, 227, 191), 'hsp_point_color': (255, 255, 255),
             'lpa_color': (255, 0, 0), 'nasion_color': (0, 255, 0),
             'rpa_color': (0, 0, 255)}
+
+
+def _testing_mode():
+    return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):
@@ -138,8 +143,9 @@ class HeadViewController(HasTraits):
         if kwargs is None:
             raise ValueError("Invalid view: %r" % view)
 
-        self.scene.mlab.view(distance=None, reset_roll=True,
-                             figure=self.scene.mayavi_scene, **kwargs)
+        if not _testing_mode():
+            self.scene.mlab.view(distance=None, reset_roll=True,
+                                 figure=self.scene.mayavi_scene, **kwargs)
 
 
 class Object(HasPrivateTraits):
@@ -310,7 +316,7 @@ class SurfaceObject(Object):
     @on_trait_change('scene.activated')
     def plot(self):
         """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale
+        _scale = self.scene.camera.parallel_scale if not _testing_mode() else 1
         self.clear()
 
         if not np.any(self.tri):
@@ -338,4 +344,5 @@ class SurfaceObject(Object):
                         mutual=False)
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
-        self.scene.camera.parallel_scale = _scale
+        if not _testing_mode():
+            self.scene.camera.parallel_scale = _scale
