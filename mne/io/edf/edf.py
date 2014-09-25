@@ -282,7 +282,7 @@ class RawEDF(_BaseRaw):
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
-                        stop_pt = chan_data.shape[1]
+                        stop_pt = chan_data.shape[0]
                         datas[j, :stop_pt] = chan_data
                 # simple edf
                 else:
