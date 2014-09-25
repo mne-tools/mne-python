@@ -21,32 +21,11 @@ try:
     from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    Color = trait_wraith
-    Enum = trait_wraith
-    Float = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Range = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    Group = trait_wraith
-    HGroup = trait_wraith
-    VGrid = trait_wraith
-    VGroup = trait_wraith
-    Glyph = trait_wraith
-    Surface = trait_wraith
-    VTKDataSource = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = MlabSceneModel = Array = Bool = \
+        Button = Color = Enum = Float = Instance = Int = List = Property = \
+        Range = Str = View = Item = Group = HGroup = VGrid = VGroup = \
+        Glyph = Surface = VTKDataSource = trait_wraith
 
 from ..transforms import apply_trans
 
@@ -62,6 +41,7 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
 
 
 def _testing_mode():
+    """Helper to determine if we're running tests"""
     return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
