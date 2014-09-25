@@ -119,9 +119,7 @@ def run():
 
     if raw_in is None:
         parser.print_help()
-        if is_main:
-            sys.exit(1)
-        return
+        sys.exit(1)
 
     tmin = options.tmin
     tmax = options.tmax
@@ -156,7 +154,8 @@ def run():
             raise ValueError('qrsthr must be "auto" or a float')
 
     if bad_fname is not None:
-        bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
+        with open(bad_fname, 'r') as fid:
+            bads = [w.rstrip() for w in fid.readlines()]
         print('Bad channels read : %s' % bads)
     else:
         bads = []

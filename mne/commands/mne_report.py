@@ -44,9 +44,7 @@ def run():
     path = options.path
     if path is None:
         parser.print_help()
-        if is_main:
-            sys.exit(1)
-        return
+        sys.exit(1)
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject

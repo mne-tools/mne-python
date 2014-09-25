@@ -40,9 +40,7 @@ def run():
     subject = vars(options).get('subject', env.get('SUBJECT'))
     if subject is None:
         parser.print_help()
-        if is_main:
-            sys.exit(1)
-        return
+        sys.exit(1)
 
     overwrite = options.overwrite
     verbose = options.verbose

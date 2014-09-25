@@ -46,9 +46,7 @@ def run():
     if input_fname is None:
         os.environ['ETS_TOOLKIT'] = 'qt4'
         mne.gui.kit2fiff()
-        if is_main:
-            sys.exit(0)
-        return
+        sys.exit(0)
 
     hsp_fname = options.hsp_fname
     elp_fname = options.elp_fname

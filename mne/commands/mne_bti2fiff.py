@@ -63,9 +63,7 @@ def run():
     pdf_fname = options.pdf_fname
     if pdf_fname is None:
         parser.print_help()
-        if is_main:
-            sys.exit(1)
-        return
+        sys.exit(1)
 
     config_fname = options.config_fname
     head_shape_fname = options.head_shape_fname
