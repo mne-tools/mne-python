@@ -273,10 +273,10 @@ class RawEDF(_BaseRaw):
                             else:
                                 warnings.warn('Interpolating stim channel. '
                                               'Events may jitter.')
-                                oldrange = np.linspace(0, 1, samp + 1, True)
-                                newrange = np.linspace(0, 1, max_samp, False)
-                                chan_data = interp1d(oldrange,
-                                                     np.append(chan_data, 0),
+                                oldrange = np.linspace(0, 1, samp*blocks, True)
+                                newrange = np.linspace(0, 1, max_samp*blocks,
+                                                       False)
+                                chan_data = interp1d(oldrange, chan_data,
                                                      kind='zero')(newrange)
                         elif samp != max_samp:
                             mult = max_samp / samp
