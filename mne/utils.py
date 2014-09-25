@@ -518,7 +518,7 @@ def verbose(function, *args, **kwargs):
 
 
 def has_command_line_tools():
-    return False if 'MNE_ROOT' not in os.environ else True
+    return ('MNE_ROOT' in os.environ)
 
 
 requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
@@ -541,7 +541,7 @@ def has_nibabel(vox2ras_tkr=False):
 
 def has_freesurfer():
     """Aux function"""
-    return False if 'FREESURFER_HOME' not in os.environ else True
+    return ('FREESURFER_HOME' in os.environ)
 
 
 requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
@@ -552,7 +552,7 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
 
 def has_neuromag2ft():
     """Aux function"""
-    return False if 'NEUROMAG2FT_ROOT' not in os.environ else True
+    return ('NEUROMAG2FT_ROOT' in os.environ)
 
 
 requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
