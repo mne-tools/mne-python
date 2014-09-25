@@ -7,6 +7,7 @@
 
 import os.path as op
 import warnings
+from collections import namedtuple
 
 import numpy as np
 
@@ -17,10 +18,11 @@ import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_types
+from mne.utils import run_tests_if_main
 from mne.layouts import read_layout
 
 from mne.viz import plot_drop_log, plot_image_epochs
-
+from mne.viz.epochs import _epochs_navigation_onclick
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -70,6 +72,18 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
+def _get_presser(fig):
+    """Helper to get our press callback"""
+    callbacks = fig.canvas.callbacks.callbacks['button_press_event']
+    func = None
+    for key, val in callbacks.items():
+        if val.func.__class__.__name__ == 'partial':
+            func = val.func
+            break
+    assert func is not None
+    return func
+
+
 def test_plot_epochs():
     """ Test plotting epochs
     """
@@ -83,7 +97,15 @@ def test_plot_epochs():
     # now let's add a bad channel
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    # fake a click
+    event = namedtuple('Event', 'inaxes')
+    func = _get_presser(fig)
+    func(event(inaxes=fig.axes[0]))
+    # now do a click in the nav
+    nav_fig = func.keywords['params']['navigation']
+    func = _get_presser(nav_fig)
+    func(event(inaxes=nav_fig.axes[1]))
     plt.close('all')
 
 
@@ -109,3 +131,6 @@ def test_plot_drop_log():
         plot_drop_log([['One'], ['Two'], []])
         plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
+
+
+run_tests_if_main()

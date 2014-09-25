@@ -436,7 +436,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'title_str': title_str,
         'reject_idx': [],
         'axes_handler': axes_handler,
-        'data': data
+        'data': data,
+        'navigation': navigation,
     }
     fig.canvas.mpl_connect('button_press_event',
                            partial(_epochs_axes_onclick, params=params))
