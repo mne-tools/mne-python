@@ -49,7 +49,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     n_signals, T = x.shape
     wsize = int(wsize)
 
-    # ## Errors and warnings ##
+    # Errors and warnings
     if wsize % 4:
         raise ValueError('The window length must be a multiple of 4.')
 
@@ -129,7 +129,7 @@ def istft(X, tstep=None, Tx=None):
     --------
     stft
     """
-    # ## Errors and warnings ##
+    # Errors and warnings
     n_signals, n_win, n_step = X.shape
     if (n_win % 2 == 0):
         ValueError('The number of rows of the STFT matrix must be odd.')
@@ -159,10 +159,10 @@ def istft(X, tstep=None, Tx=None):
     if n_signals == 0:
         return x[:, :Tx]
 
-    # ## Computing inverse STFT signal ##
     # Defining sine window
     win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
     # win = win / norm(win);
+
     # Pre-processing for edges
     swin = np.zeros(T + wsize - tstep, dtype=np.float)
     for t in range(n_step):
@@ -231,7 +231,7 @@ def stft_norm2(X):
         The squared L2 norm of every row of X.
     """
     X2 = np.abs(X) ** 2
-    # compute all L2 coefs and remove freq zero once.
+    # compute all L2 coefs and remove first and last frequency once.
     norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
               np.sum(X2[:, -1, :], axis=1))
     return norms2
