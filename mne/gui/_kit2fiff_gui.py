@@ -25,32 +25,11 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    Handler = object
-    cached_property = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Enum = trait_wraith
-    File = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Str = trait_wraith
-    Array = trait_wraith
-    spring = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    EnumEditor = trait_wraith
-    NoButtons = trait_wraith
-    CheckListEditor = trait_wraith
-    SceneEditor = trait_wraith
+    HasTraits = HasPrivateTraits = Handler = object
+    cached_property = MayaviScene = MlabSceneModel = Bool = Button = \
+        DelegatesTo = Enum = File = Instance = Int = List = Property = \
+        Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
+        NoButtons = CheckListEditor = SceneEditor = trait_wraith
 
 from ..io.kit.coreg import read_hsp
 from ..io.kit.kit import RawKIT, KIT

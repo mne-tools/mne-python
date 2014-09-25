@@ -241,7 +241,10 @@ class PointObject(Object):
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        fig = self.scene.mayavi_scene
+        if not _testing_mode():
+            fig = self.scene.mayavi_scene
+        else:
+            fig = None
 
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
