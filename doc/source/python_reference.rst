@@ -610,6 +610,7 @@ Source Space Data
    :toctree: generated/
    :template: function.rst
 
+   collect_transforms
    compute_morph_matrix
    extract_label_time_course
    grade_to_tris

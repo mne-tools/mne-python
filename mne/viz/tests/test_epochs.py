@@ -21,8 +21,7 @@ from mne import pick_types
 from mne.utils import run_tests_if_main
 from mne.layouts import read_layout
 
-from mne.viz import plot_drop_log, plot_image_epochs
-from mne.viz.epochs import _epochs_navigation_onclick
+from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -70,18 +69,6 @@ def _get_epochs_delayed_ssp():
                                 picks=picks, baseline=(None, 0),
                                 proj='delayed', reject=reject)
     return epochs_delayed_ssp
-
-
-def _get_presser(fig):
-    """Helper to get our press callback"""
-    callbacks = fig.canvas.callbacks.callbacks['button_press_event']
-    func = None
-    for key, val in callbacks.items():
-        if val.func.__class__.__name__ == 'partial':
-            func = val.func
-            break
-    assert func is not None
-    return func
 
 
 def test_plot_epochs():

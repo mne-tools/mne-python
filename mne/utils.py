@@ -506,15 +506,13 @@ def verbose(function, *args, **kwargs):
         old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
         try:
-            ret = function(*args, **kwargs)
-        except:
-            set_log_level(old_level)
+            return function(*args, **kwargs)
+        except Exception:
             raise
-        set_log_level(old_level)
-        return ret
+        finally:
+            set_log_level(old_level)
     else:
-        ret = function(*args, **kwargs)
-        return ret
+        return function(*args, **kwargs)
 
 
 def has_command_line_tools():
@@ -590,8 +588,7 @@ def requires_mem_gb(requirement):
             if skip is True:
                 raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
                                'memory' % (function.__name__, requirement))
-            ret = function(*args, **kwargs)
-            return ret
+            return function(*args, **kwargs)
         return dec
     return real_decorator
 
@@ -612,9 +609,7 @@ def requires_pandas(function):
         if skip is True:
             raise SkipTest('Test %s skipped, requires pandas'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -632,9 +627,7 @@ def requires_tvtk(function):
         if skip is True:
             raise SkipTest('Test %s skipped, requires TVTK'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -652,9 +645,7 @@ def requires_statsmodels(function):
         if skip is True:
             raise SkipTest('Test %s skipped, requires statsmodels'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -676,9 +667,7 @@ def requires_patsy(function):
         if skip is True:
             raise SkipTest('Test %s skipped, requires patsy'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -700,9 +689,7 @@ def requires_sklearn(function):
         if skip is True:
             raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
                            % (function.__name__, required_version))
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -756,9 +743,7 @@ def requires_good_network(function):
         if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
             raise SkipTest('Test %s skipped, requires a good network '
                            'connection' % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 

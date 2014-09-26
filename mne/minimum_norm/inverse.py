@@ -163,17 +163,11 @@ def read_inverse_operator(fname, verbose=None):
         #   Units
         #
         tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
-        if tag is not None:
-            if tag.data == FIFF.FIFF_UNIT_AM:
-                inv['units'] = 'Am'
-            elif tag.data == FIFF.FIFF_UNIT_AM_M2:
-                inv['units'] = 'Am/m^2'
-            elif tag.data == FIFF.FIFF_UNIT_AM_M3:
-                inv['units'] = 'Am/m^3'
-            else:
-                inv['units'] = None
-        else:
-            inv['units'] = None
+        unit_dict = {FIFF.FIFF_UNIT_AM: 'Am',
+                     FIFF.FIFF_UNIT_AM_M2: 'Am/m^2',
+                     FIFF.FIFF_UNIT_AM_M3: 'Am/m^3'}
+        inv['units'] = unit_dict.get(int(getattr(tag, 'data', -1)), None)
+
         #
         #   The actual source orientation vectors
         #
@@ -369,16 +363,11 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
 
-    if 'units' in inv:
-        if inv['units'] == 'Am':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM)
-        elif inv['units'] == 'Am/m^2':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M2)
-        elif inv['units'] == 'Am/m^3':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M3)
+    udict = {'Am': FIFF.FIFF_UNIT_AM,
+             'Am/m^2': FIFF.FIFF_UNIT_AM_M2,
+             'Am/m^3': FIFF.FIFF_UNIT_AM_M3}
+    if 'units' in inv and inv['units'] is not None:
+        write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, udict[inv['units']])
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
@@ -1052,6 +1041,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
+'''
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex
 
@@ -1094,6 +1084,7 @@ def _xyz2lf(Lf_xyz, normals):
 
     Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
     return Lf_cortex
+'''
 
 
 ###############################################################################
