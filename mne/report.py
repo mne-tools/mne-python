@@ -872,6 +872,8 @@ class Report(object):
             info, sfreq = None, None
 
         # render plots in parallel; check that n_jobs <= # of files
+        logger.info('Iterating over %s potential files (this may take some '
+                    'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
         r = parallel(p_fun(self, fname, info, sfreq) for fname in
@@ -892,6 +894,7 @@ class Report(object):
 
         # render mri
         if self.subjects_dir is not None and self.subject is not None:
+            logger.info('Rendering BEM')
             self.html.append(self._render_bem(self.subject, self.subjects_dir,
                                               mri_decim, n_jobs))
             self.fnames.append('bem')
