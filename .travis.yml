@@ -47,7 +47,7 @@ install:
             pip install -q pysurfer;
           fi;
           pip install -q nitime
-          pip install -q git+https://github.com/nipy/nibabel.git;
+          pip install -q git+git://github.com/nipy/nibabel.git;
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
