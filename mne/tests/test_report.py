@@ -143,7 +143,8 @@ def test_render_mri():
                     subject='sample', subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')
-        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*')
+        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
+                            n_jobs=2)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 

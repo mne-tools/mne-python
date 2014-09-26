@@ -57,25 +57,16 @@ def _fig_to_img(function=None, fig=None, **kwargs):
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
-def _figs_to_mrislices(function, orig_size, sl, **kwargs):
+def _figs_to_mrislices(sl, n_jobs, **kwargs):
     import matplotlib.pyplot as plt
-
     plt.close('all')
-    outs = []
-    for fig in function(**kwargs):
-        fig_size = fig.get_size_inches()
-        w, h = orig_size[0], orig_size[1]
-        w2 = fig_size[0]
-        fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
-        a = fig.gca()
-        a.set_xticks([]), a.set_yticks([])
-        plt.xlim(0, h), plt.ylim(w, 0)
-        output = BytesIO()
-        fig.savefig(output, bbox_inches='tight',
-                    pad_inches=0, format='png')
-        plt.close(fig)
-        outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
-    return outs
+    use_jobs = min(n_jobs, max(1, len(sl)))
+    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
+    outs = parallel(p_fun(slices=s, **kwargs)
+                    for s in np.array_split(sl, use_jobs))
+    for o in outs[1:]:
+        outs[0] += o
+    return outs[0]
 
 
 def _iterate_trans_views(function, **kwargs):
@@ -227,7 +218,7 @@ def _iterate_files(report, fnames, info, sfreq):
                 report_fname = None
                 report_sectionlabel = None
         except Exception as e:
-            logger.warning(e)
+            logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
             html = None
             report_fname = None
             report_sectionlabel = None
@@ -790,8 +781,8 @@ class Report(object):
 
     ###########################################################################
     # HTML rendering
-    def _render_one_axis(self, slices_iter, name, global_id=None, cmap='gray',
-                         n_jobs=1):
+    def _render_one_axis(self, slices_iter, name, global_id, cmap,
+                         n_elements, n_jobs):
         """Render one axis of the array.
         """
         global_id = global_id or name
@@ -800,7 +791,8 @@ class Report(object):
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
-        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, n_jobs)
+        use_jobs = min(n_jobs, max(1, n_elements))
+        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, use_jobs)
         r = parallel(p_fun(name, ind, global_id, slides_klass, data, cmap)
                      for ind, data in slices_iter)
         slices_range, slices = zip(*r)
@@ -879,10 +871,11 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             info, sfreq = None, None
 
-        # render plots in parallel
-        parallel, p_fun, _ = parallel_func(_iterate_files, n_jobs)
+        # render plots in parallel; check that n_jobs <= # of files
+        use_jobs = min(n_jobs, max(1, len(fnames)))
+        parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
         r = parallel(p_fun(self, fname, info, sfreq) for fname in
-                     np.array_split(fnames, n_jobs))
+                     np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered
@@ -1051,29 +1044,30 @@ class Report(object):
         axial_limit = limits.get('axial')
         axial_slices_gen = _iterate_axial_slices(array, axial_limit)
         html.append(
-            self._render_one_axis(axial_slices_gen, 'axial', global_id, cmap,
-                                  n_jobs=n_jobs))
+            self._render_one_axis(axial_slices_gen, 'axial',
+                                  global_id, cmap, array.shape[1], n_jobs))
         # Sagittal
         sagittal_limit = limits.get('sagittal')
         sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
-        html.append(self._render_one_axis(sagittal_slices_gen, 'sagittal',
-                    global_id, cmap, n_jobs=n_jobs))
+        html.append(
+            self._render_one_axis(sagittal_slices_gen, 'sagittal',
+                                  global_id, cmap, array.shape[1], n_jobs))
         html.append(u'</div>')
         html.append(u'<div class="row">')
         # Coronal
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
-        html.append(self._render_one_axis(coronal_slices_gen, 'coronal',
-                                          global_id, cmap, n_jobs=n_jobs))
+        html.append(
+            self._render_one_axis(coronal_slices_gen, 'coronal',
+                                  global_id, cmap, array.shape[1], n_jobs))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
 
     def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
-                             shape, orientation='coronal', decim=2):
+                             shape, orientation='coronal', decim=2, n_jobs=1):
         """Render one axis of bem contours.
         """
-
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
         orientation_axis = orientation_name2axis[orientation]
         n_slices = shape[orientation_axis]
@@ -1085,11 +1079,9 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         sl = np.arange(0, n_slices, decim)
-        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
-                      orientation=orientation, slices=sl,
-                      show=False, multi_fig=True)
-        imgs = _figs_to_mrislices(_plot_mri_contours,
-                                  orig_size=orig_size, sl=sl, **kwargs)
+        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames, show=False,
+                      orientation=orientation, img_output=orig_size)
+        imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
         slices = []
         img_klass = 'slideimg-%s' % name
         div_klass = 'span12 %s' % slides_klass
@@ -1109,7 +1101,6 @@ class Report(object):
         html.append(u'</ul>')
         html.append(_build_html_slider(sl, slides_klass, slider_id))
         html.append(u'</div>')
-
         return '\n'.join(html)
 
     def _render_image(self, image, cmap='gray', n_jobs=1):
@@ -1374,12 +1365,12 @@ class Report(object):
         html += u'<h2>%s</h2>\n' % name
         html += u'<div class="row">'
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'axial', decim)
+                                          shape, 'axial', decim, n_jobs)
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'sagittal', decim)
+                                          shape, 'sagittal', decim, n_jobs)
         html += u'</div><div class="row">'
         html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'coronal', decim)
+                                          shape, 'coronal', decim, n_jobs)
         html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)

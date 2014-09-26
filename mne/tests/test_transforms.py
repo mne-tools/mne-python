@@ -79,6 +79,7 @@ def test_rotation():
         assert_equal(back4, rot)
 
 
+@testing.requires_testing_data
 def test_combine():
     """Test combining transforms
     """
@@ -93,6 +94,7 @@ def test_combine():
                   trans['from'], trans['to'])
 
 
+@testing.requires_testing_data
 def test_transform_coords():
     """Test transforming coordinates
     """
