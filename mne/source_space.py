@@ -1968,7 +1968,10 @@ def _add_interpolator(s, mri_name, add_interpolator):
         vss[:, 7] = _vol_vertex(width, height, jj, kkp1, ppp1)
         del jj, kk, pp, jjp1, kkp1, ppp1
         uses = np.any(s['inuse'][vss], axis=1)
-        vss = vss[uses].ravel()  # vertex (col) numbers in csr matrix
+        if vss.size > 0:
+            vss = vss[uses].ravel()  # vertex (col) numbers in csr matrix
+        else:
+            vss = vss.ravel()
         indices.append(vss)
         indptr[good[uses] + p * mri_height * mri_width + 1] = 8
         del vss
