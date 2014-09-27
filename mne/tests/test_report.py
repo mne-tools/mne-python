@@ -73,7 +73,8 @@ def test_render_report():
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
     for fname in fnames:
-        assert_true(fname in report.fnames)
+        assert_true(op.basename(fname) in
+                    [op.basename(x) for x in report.fnames])
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
     assert_equal(len(report.fnames), len(fnames))
