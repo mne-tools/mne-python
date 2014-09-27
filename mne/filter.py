@@ -474,11 +474,11 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         [b, a] = [iir_params['b'], iir_params['a']]
     else:
         # ensure we have a valid ftype
-        if not 'ftype' in iir_params:
+        if 'ftype' not in iir_params:
             raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
                                'and ''a'' are not specified')
         ftype = iir_params['ftype']
-        if not ftype in filter_dict:
+        if ftype not in filter_dict:
             raise RuntimeError('ftype must be in filter_dict from '
                                'scipy.signal (e.g., butter, cheby1, etc.) not '
                                '%s' % ftype)
@@ -491,7 +491,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
-            if not 'gpass' in iir_params or not 'gstop' in iir_params:
+            if 'gpass' not in iir_params or 'gstop' not in iir_params:
                 raise ValueError('iir_params must have at least ''gstop'' and'
                                  ' ''gpass'' (or ''N'') entries')
             [b, a] = iirdesign(Wp, Ws, iir_params['gpass'],
@@ -501,7 +501,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         raise RuntimeError('coefficients could not be created from iir_params')
 
     # now deal with padding
-    if not 'padlen' in iir_params:
+    if 'padlen' not in iir_params:
         padlen = _estimate_ringing_samples(b, a)
     else:
         padlen = iir_params['padlen']
@@ -699,8 +699,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
               Fp1  Fs1       Fs2  Fp2
 
     Where
-    Fs1 = Fp1 - l_trans_bandwidth in Hz
-    Fs2 = Fp2 + h_trans_bandwidth in Hz
+    Fs1 = Fp1 + l_trans_bandwidth in Hz
+    Fs2 = Fp2 - h_trans_bandwidth in Hz
 
     Note that multiple stop bands can be specified using arrays.
     """
@@ -1068,7 +1068,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
         if line_freqs is None:
             if len(rm_freqs) > 0:
                 logger.info('Detected notch frequencies:\n%s'
-                            % ', '.join([str(f) for f in rm_freqs]))
+                            % ', '.join([str(rm_f) for rm_f in rm_freqs]))
             else:
                 logger.info('Detected notch frequecies:\nNone')
 
