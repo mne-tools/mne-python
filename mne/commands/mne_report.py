@@ -10,8 +10,14 @@ MNE-sample-data/MEG/sample/sample_audvis-ave.fif -d MNE-sample-data/subjects/ \
 """
 
 import sys
+import time
 
 from mne.report import Report
+from mne.utils import verbose, logger
+
+@verbose
+def log_elapsed(t, verbose=None):
+    logger.info('Report complete in %s seconds' % round(t, 1))
 
 
 def run():
@@ -54,11 +60,13 @@ def run():
     overwrite = True if options.overwrite is not None else False
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
+    t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
     report.save(open_browser=open_browser, overwrite=overwrite)
+    log_elapsed(time.time() - t0, verbose=verbose)
 
 is_main = (__name__ == '__main__')
 if is_main:
