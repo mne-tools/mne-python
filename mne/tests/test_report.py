@@ -56,6 +56,7 @@ def test_render_report():
                  [inv_fname, inv_fname_new]]:
         shutil.copyfile(a, b)
 
+    # create and add -epo.fif and -ave.fif files
     epochs_fname = op.join(tempdir, 'temp-epo.fif')
     evoked_fname = op.join(tempdir, 'temp-ave.fif')
     raw = Raw(raw_fname_new)
@@ -68,7 +69,7 @@ def test_render_report():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         report.parse_folder(data_path=tempdir)
-    assert_true(len(w) == 1)
+    assert_true(len(w) >= 1)
 
     # Check correct paths and filenames
     fnames = glob.glob(op.join(tempdir, '*.fif'))
@@ -149,7 +150,6 @@ def test_render_mri():
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
-@requires_mayavi()
 @testing.requires_testing_data
 @requires_nibabel()
 def test_render_mri_without_bem():
@@ -162,8 +162,9 @@ def test_render_mri_without_bem():
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=tempdir)
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         report.parse_folder(tempdir)
-    assert_true(len(w) == 1)
+    assert_true(len(w) >= 1)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 

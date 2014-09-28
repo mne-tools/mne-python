@@ -167,12 +167,15 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         Call pyplot.show() at the end.
     img_output : None | tuple
         If tuple (width and height), images will be produced instead of a
-        single figure.
+        single figure with many axes. This mode is designed to reduce the
+        (substantial) overhead associated with making tens to hundreds
+        of matplotlib axes, instead opting to re-use a single Axes instance.
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure
-        The figure.
+    fig : Instance of matplotlib.figure.Figure | list
+        The figure. Will instead be a list of png images if
+        img_output is a tuple.
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
@@ -218,6 +221,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         w, h = img_output[0], img_output[1]
         w2 = fig_size[0]
         fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
+        plt.close(fig)
 
     inds = dict(coronal=[0, 1, 2], axial=[2, 0, 1],
                 sagittal=[2, 1, 0])[orientation]
@@ -242,16 +246,15 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
             ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
                           surf['tris'], surf['rr'][:, inds[2]],
                           levels=[sl], colors='yellow', linewidths=2.0)
-        ax.set_xticks([])
-        ax.set_yticks([])
-        ax.set_xlim(0, img_output[1])
-        ax.set_ylim(img_output[0], 0)
-        output = BytesIO()
-        fig.savefig(output, bbox_inches='tight',
-                    pad_inches=0, format='png')
-        plt.close(fig)
-        outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
-
+        if img_output is not None:
+            ax.set_xticks([])
+            ax.set_yticks([])
+            ax.set_xlim(0, img_output[1])
+            ax.set_ylim(img_output[0], 0)
+            output = BytesIO()
+            fig.savefig(output, bbox_inches='tight',
+                        pad_inches=0, format='png')
+            outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
     if show:
         plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)

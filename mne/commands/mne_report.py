@@ -44,7 +44,7 @@ def run():
                       " run in parallel")
     parser.add_option("-m", "--mri-decim", type="int", dest="mri_decim",
                       default=2, help="Integer factor used to decimate "
-                      "MRI plots")
+                      "BEM plots")
 
     options, args = parser.parse_args()
     path = options.path
@@ -65,8 +65,8 @@ def run():
                     verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
-    report.save(open_browser=open_browser, overwrite=overwrite)
     log_elapsed(time.time() - t0, verbose=verbose)
+    report.save(open_browser=open_browser, overwrite=overwrite)
 
 is_main = (__name__ == '__main__')
 if is_main:

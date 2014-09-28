@@ -257,7 +257,7 @@ def _iterate_sagittal_slices(array, limits=None):
     """Iterate sagittal slice.
     """
     shape = array.shape[0]
-    for ind in xrange(shape):
+    for ind in range(shape):
         if limits and ind not in limits:
             continue
         yield ind, array[ind, :, :]
@@ -267,7 +267,7 @@ def _iterate_axial_slices(array, limits=None):
     """Iterate axial slice.
     """
     shape = array.shape[1]
-    for ind in xrange(shape):
+    for ind in range(shape):
         if limits and ind not in limits:
             continue
         yield ind, array[:, ind, :]
@@ -277,7 +277,7 @@ def _iterate_coronal_slices(array, limits=None):
     """Iterate coronal slice.
     """
     shape = array.shape[2]
-    for ind in xrange(shape):
+    for ind in range(shape):
         if limits and ind not in limits:
             continue
         yield ind, np.flipud(np.rot90(array[:, :, ind]))
