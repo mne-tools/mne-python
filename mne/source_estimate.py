@@ -24,7 +24,7 @@ from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
                     logger, verbose)
 from .viz import plot_source_estimates
-from .fixes import in1d
+from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip
 
 
@@ -2582,38 +2582,6 @@ def spatial_dist_connectivity(src, dist, verbose=None):
         The connectivity matrix describing the spatial graph structure.
     """
     return spatio_temporal_dist_connectivity(src, 1, dist)
-
-
-def sparse_block_diag(mats, format=None, dtype=None):
-    """An implementation of scipy.sparse.block_diag since old versions of
-    scipy don't have it. Forms a sparse matrix by stacking matrices in block
-    diagonal form.
-
-    Parameters
-    ----------
-    mats : list of matrices
-        Input matrices.
-    format : str, optional
-        The sparse format of the result (e.g. "csr"). If not given, the
-        matrix is returned in "coo" format.
-    dtype : dtype specifier, optional
-        The data-type of the output matrix. If not given, the dtype is
-        determined from that of blocks.
-
-    Returns
-    -------
-    res : sparse matrix
-    """
-    try:
-        return sparse.block_diag(mats, format=format, dtype=dtype)
-    except AttributeError:
-        nmat = len(mats)
-        rows = []
-        for ia, a in enumerate(mats):
-            row = [None] * nmat
-            row[ia] = a
-            rows.append(row)
-        return sparse.bmat(rows, format=format, dtype=dtype)
 
 
 @verbose
