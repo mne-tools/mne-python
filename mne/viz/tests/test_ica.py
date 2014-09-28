@@ -11,7 +11,7 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
-from mne.utils import check_sklearn_version
+from mne.utils import check_sklearn_version, run_tests_if_main
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
 
@@ -44,8 +44,8 @@ def requires_sklearn(function):
     return dec
 
 
-def _get_raw():
-    return io.Raw(raw_fname, preload=False)
+def _get_raw(preload=False):
+    return io.Raw(raw_fname, preload=preload)
 
 
 def _get_events():
@@ -107,7 +107,7 @@ def test_plot_ica_sources():
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning
     """
-    raw = _get_raw()
+    raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -118,6 +118,7 @@ def test_plot_ica_overlay():
     eog_epochs = create_eog_epochs(raw, picks=picks)
     ica.plot_overlay(eog_epochs.average())
     assert_raises(ValueError, ica.plot_overlay, raw[:2, :3][0])
+    ica.plot_overlay(raw)
     plt.close('all')
 
 
@@ -133,3 +134,6 @@ def test_plot_ica_scores():
     ica.plot_scores([0.3, 0.2], axhline=[0.1, -0.1])
     assert_raises(ValueError, ica.plot_scores, [0.2])
     plt.close('all')
+
+
+run_tests_if_main()

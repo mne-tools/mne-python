@@ -48,7 +48,8 @@ from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
 from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
                            SubjectSelectorPanel)
-from ._viewer import defaults, HeadViewController, PointObject, SurfaceObject
+from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
+                      _testing_mode)
 
 
 laggy_float_editor = TextEditor(auto_set=False, enter_set=True, evaluate=float)
@@ -240,8 +241,7 @@ class CoregModel(HasPrivateTraits):
                 points[hair] += self.mri.norms[hair] * scaled_hair_dist
                 return points
             else:
-                msg = "Norms missing form bem, can't grow hair"
-                error(None, msg)
+                error(None, "Norms missing form bem, can't grow hair")
                 self.grow_hair = 0
         return self.mri.points
 
@@ -586,10 +586,9 @@ class CoregFrameHandler(Handler):
     """
     def close(self, info, is_ok):
         if info.object.queue.unfinished_tasks:
-            msg = ("Can not close the window while saving is still in "
-                   "progress. Please wait until all MRIs are processed.")
-            title = "Saving Still in Progress"
-            information(None, msg, title)
+            information(None, "Can not close the window while saving is still "
+                        "in progress. Please wait until all MRIs are "
+                        "processed.", "Saving Still in Progress")
             return False
         else:
             return True
@@ -749,8 +748,8 @@ class CoregPanel(HasPrivateTraits):
                              Item('rot_z', editor=laggy_float_editor,
                                   show_label=True, tooltip="Rotate along "
                                   "anterior-posterior axis"),
-                                  'rot_z_dec', 'rot_z_inc',
-                                  show_labels=False, columns=4),
+                             'rot_z_dec', 'rot_z_inc',
+                             show_labels=False, columns=4),
                        # buttons
                        HGroup(Item('fit_hsp_points',
                                    enabled_when='has_pts_data',
@@ -1058,7 +1057,7 @@ class NewMriDialog(HasPrivateTraits):
                      "subject"),
                 width=500,
                 buttons=[CancelButton,
-                           Action(name='OK', enabled_when='can_save')])
+                         Action(name='OK', enabled_when='can_save')])
 
     def _can_overwrite_changed(self, new):
         if not new:
@@ -1335,7 +1334,8 @@ class CoregFrame(HasTraits):
         self.sync_trait('hsp_visible', p, 'visible', mutual=False)
 
         on_pick = self.scene.mayavi_scene.on_mouse_pick
-        self.picker = on_pick(self.fid_panel._on_pick, type='cell')
+        if not _testing_mode():
+            self.picker = on_pick(self.fid_panel._on_pick, type='cell')
 
         self.headview.left = True
         self.scene.disable_render = False

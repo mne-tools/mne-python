@@ -18,9 +18,10 @@ from __future__ import print_function
 # Authors:  Rey Rene Ramirez, Ph.D.   e-mail: rrramir at uw.edu
 #           Alexandre Gramfort, Ph.D.
 
-
+import sys
 import math
 import os
+
 import mne
 
 
@@ -124,6 +125,10 @@ def run():
                       default=False)
 
     options, args = parser.parse_args()
+
+    if options.flash05 is None or options.flash30 is None:
+        parser.print_help()
+        sys.exit(1)
 
     subject = options.subject
     subjects_dir = options.subjects_dir

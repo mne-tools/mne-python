@@ -36,14 +36,14 @@ install:
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
-        pip install -q nibabel joblib;
-        if [ ${PYTHON:0:1} == "2" ]; then
-          pip install -q nitime;
-        fi;
+        pip install -q joblib;
         if [ "${PYTHON}" == "3.4" ]; then
+          pip install -q nibabel;
           conda install --yes --quiet ipython > /dev/null;
         else
+          pip install -q git+git://github.com/nipy/nibabel.git;
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
+          pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
             pip install -q pysurfer;
@@ -53,10 +53,6 @@ install:
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
-    # Skip tests that require large downloads over the network to save bandwith
-    # usage as travis workers are stateless and therefore traditional local
-    # disk caching does not work.
-    - export MNE_SKIP_NETWORK_TESTS=1
     - python setup.py build > /dev/null
     - python setup.py install > /dev/null
     - myscripts='browse_raw bti2fiff surf2bem'

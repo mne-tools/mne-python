@@ -22,10 +22,10 @@ from ..io.write import (write_int, write_float_matrix, start_file,
 
 from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov
-from ..forward import (compute_depth_prior, read_forward_meas_info,
+from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, _to_fixed_ori)
-from ..source_space import (read_source_spaces_from_tree,
+from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import invert_transform, transform_surface_to
@@ -109,217 +109,201 @@ def read_inverse_operator(fname, verbose=None):
     #
     logger.info('Reading inverse operator decomposition from %s...'
                 % fname)
-    fid, tree, _ = fiff_open(fname, preload=True)
-    #
-    #   Find all inverse operators
-    #
-    invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
-    if invs is None or len(invs) < 1:
-        fid.close()
-        raise Exception('No inverse solutions in %s' % fname)
+    f, tree, _ = fiff_open(fname, preload=True)
+    with f as fid:
+        #
+        #   Find all inverse operators
+        #
+        invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+        if invs is None or len(invs) < 1:
+            raise Exception('No inverse solutions in %s' % fname)
 
-    invs = invs[0]
-    #
-    #   Parent MRI data
-    #
-    parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    if len(parent_mri) == 0:
-        fid.close()
-        raise Exception('No parent MRI information in %s' % fname)
-    parent_mri = parent_mri[0]  # take only first one
+        invs = invs[0]
+        #
+        #   Parent MRI data
+        #
+        parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        if len(parent_mri) == 0:
+            raise Exception('No parent MRI information in %s' % fname)
+        parent_mri = parent_mri[0]  # take only first one
 
-    logger.info('    Reading inverse operator info...')
-    #
-    #   Methods and source orientations
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
-    if tag is None:
-        fid.close()
-        raise Exception('Modalities not found')
+        logger.info('    Reading inverse operator info...')
+        #
+        #   Methods and source orientations
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
+        if tag is None:
+            raise Exception('Modalities not found')
 
-    inv = dict()
-    inv['methods'] = int(tag.data)
+        inv = dict()
+        inv['methods'] = int(tag.data)
 
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
-    if tag is None:
-        fid.close()
-        raise Exception('Source orientation constraints not found')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
+        if tag is None:
+            raise Exception('Source orientation constraints not found')
 
-    inv['source_ori'] = int(tag.data)
+        inv['source_ori'] = int(tag.data)
 
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
-    if tag is None:
-        fid.close()
-        raise Exception('Number of sources not found')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
+        if tag is None:
+            raise Exception('Number of sources not found')
 
-    inv['nsource'] = int(tag.data)
-    inv['nchan'] = 0
-    #
-    #   Coordinate frame
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        fid.close()
-        raise Exception('Coordinate frame tag not found')
+        inv['nsource'] = int(tag.data)
+        inv['nchan'] = 0
+        #
+        #   Coordinate frame
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
+        if tag is None:
+            raise Exception('Coordinate frame tag not found')
 
-    inv['coord_frame'] = tag.data
+        inv['coord_frame'] = tag.data
 
-    #
-    #   Units
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
-    if tag is not None:
-        if tag.data == FIFF.FIFF_UNIT_AM:
-            inv['units'] = 'Am'
-        elif tag.data == FIFF.FIFF_UNIT_AM_M2:
-            inv['units'] = 'Am/m^2'
-        elif tag.data == FIFF.FIFF_UNIT_AM_M3:
-            inv['units'] = 'Am/m^3'
-        else:
-            inv['units'] = None
-    else:
-        inv['units'] = None
-    #
-    #   The actual source orientation vectors
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
-    if tag is None:
-        fid.close()
-        raise Exception('Source orientation information not found')
+        #
+        #   Units
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
+        unit_dict = {FIFF.FIFF_UNIT_AM: 'Am',
+                     FIFF.FIFF_UNIT_AM_M2: 'Am/m^2',
+                     FIFF.FIFF_UNIT_AM_M3: 'Am/m^3'}
+        inv['units'] = unit_dict.get(int(getattr(tag, 'data', -1)), None)
 
-    inv['source_nn'] = tag.data
-    logger.info('    [done]')
-    #
-    #   The SVD decomposition...
-    #
-    logger.info('    Reading inverse operator decomposition...')
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
-    if tag is None:
-        fid.close()
-        raise Exception('Singular values not found')
+        #
+        #   The actual source orientation vectors
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
+        if tag is None:
+            raise Exception('Source orientation information not found')
 
-    inv['sing'] = tag.data
-    inv['nchan'] = len(inv['sing'])
-    #
-    #   The eigenleads and eigenfields
-    #
-    inv['eigen_leads_weighted'] = False
-    eigen_leads = _read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
-    if eigen_leads is None:
-        inv['eigen_leads_weighted'] = True
-        eigen_leads = _read_named_matrix(fid, invs,
-                                         FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
-    if eigen_leads is None:
-        raise ValueError('Eigen leads not found in inverse operator.')
-    #
-    #   Having the eigenleads as columns is better for the inverse calculations
-    #
-    inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
-    inv['eigen_fields'] = _read_named_matrix(fid, invs,
-                                             FIFF.FIFF_MNE_INVERSE_FIELDS)
-    logger.info('    [done]')
-    #
-    #   Read the covariance matrices
-    #
-    inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-    logger.info('    Noise covariance matrix read.')
+        inv['source_nn'] = tag.data
+        logger.info('    [done]')
+        #
+        #   The SVD decomposition...
+        #
+        logger.info('    Reading inverse operator decomposition...')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
+        if tag is None:
+            raise Exception('Singular values not found')
 
-    inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-    logger.info('    Source covariance matrix read.')
-    #
-    #   Read the various priors
-    #
-    inv['orient_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
-    if inv['orient_prior'] is not None:
-        logger.info('    Orientation priors read.')
+        inv['sing'] = tag.data
+        inv['nchan'] = len(inv['sing'])
+        #
+        #   The eigenleads and eigenfields
+        #
+        inv['eigen_leads_weighted'] = False
+        eigen_leads = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
+        if eigen_leads is None:
+            inv['eigen_leads_weighted'] = True
+            eigen_leads = _read_named_matrix(
+                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
+        if eigen_leads is None:
+            raise ValueError('Eigen leads not found in inverse operator.')
+        #
+        #   Having the eigenleads as cols is better for the inverse calcs
+        #
+        inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
+        inv['eigen_fields'] = _read_named_matrix(fid, invs,
+                                                 FIFF.FIFF_MNE_INVERSE_FIELDS)
+        logger.info('    [done]')
+        #
+        #   Read the covariance matrices
+        #
+        inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+        logger.info('    Noise covariance matrix read.')
 
-    inv['depth_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
-    if inv['depth_prior'] is not None:
-        logger.info('    Depth priors read.')
+        inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+        logger.info('    Source covariance matrix read.')
+        #
+        #   Read the various priors
+        #
+        inv['orient_prior'] = _read_cov(fid, invs,
+                                        FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+        if inv['orient_prior'] is not None:
+            logger.info('    Orientation priors read.')
 
-    inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
-    if inv['fmri_prior'] is not None:
-        logger.info('    fMRI priors read.')
+        inv['depth_prior'] = _read_cov(fid, invs,
+                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+        if inv['depth_prior'] is not None:
+            logger.info('    Depth priors read.')
 
-    #
-    #   Read the source spaces
-    #
-    inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
+        inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+        if inv['fmri_prior'] is not None:
+            logger.info('    fMRI priors read.')
 
-    for s in inv['src']:
-        s['id'] = find_source_space_hemi(s)
+        #
+        #   Read the source spaces
+        #
+        inv['src'] = _read_source_spaces_from_tree(fid, tree, add_geom=False)
 
-    #
-    #   Get the MRI <-> head coordinate transformation
-    #
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
-    if tag is None:
-        fid.close()
-        raise Exception('MRI/head coordinate transformation not found')
-    else:
+        for s in inv['src']:
+            s['id'] = find_source_space_hemi(s)
+
+        #
+        #   Get the MRI <-> head coordinate transformation
+        #
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
+        if tag is None:
+            raise Exception('MRI/head coordinate transformation not found')
         mri_head_t = tag.data
         if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                        mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
+                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
             mri_head_t = invert_transform(mri_head_t)
             if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                        mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-                fid.close()
+                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 raise Exception('MRI/head coordinate transformation '
                                 'not found')
 
-    inv['mri_head_t'] = mri_head_t
+        inv['mri_head_t'] = mri_head_t
 
-    #
-    # get parent MEG info
-    #
-    inv['info'] = read_forward_meas_info(tree, fid)
+        #
+        # get parent MEG info
+        #
+        inv['info'] = _read_forward_meas_info(tree, fid)
 
-    #
-    #   Transform the source spaces to the correct coordinate frame
-    #   if necessary
-    #
-    if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
-            inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
-        fid.close()
-        raise Exception('Only inverse solutions computed in MRI or '
-                        'head coordinates are acceptable')
+        #
+        #   Transform the source spaces to the correct coordinate frame
+        #   if necessary
+        #
+        if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
+                inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+            raise Exception('Only inverse solutions computed in MRI or '
+                            'head coordinates are acceptable')
 
-    #
-    #  Number of averages is initially one
-    #
-    inv['nave'] = 1
-    #
-    #  We also need the SSP operator
-    #
-    inv['projs'] = _read_proj(fid, tree)
+        #
+        #  Number of averages is initially one
+        #
+        inv['nave'] = 1
+        #
+        #  We also need the SSP operator
+        #
+        inv['projs'] = _read_proj(fid, tree)
 
-    #
-    #  Some empty fields to be filled in later
-    #
-    inv['proj'] = []       # This is the projector to apply to the data
-    inv['whitener'] = []   # This whitens the data
-    inv['reginv'] = []     # This the diagonal matrix implementing
-                           # regularization and the inverse
-    inv['noisenorm'] = []  # These are the noise-normalization factors
-    #
-    nuse = 0
-    for k in range(len(inv['src'])):
-        try:
-            inv['src'][k] = transform_surface_to(inv['src'][k],
-                                                 inv['coord_frame'],
-                                                 mri_head_t)
-        except Exception as inst:
-            fid.close()
-            raise Exception('Could not transform source space (%s)' % inst)
+        #
+        #  Some empty fields to be filled in later
+        #
+        inv['proj'] = []       # This is the projector to apply to the data
+        inv['whitener'] = []   # This whitens the data
+        inv['reginv'] = []     # This the diagonal matrix implementing
+                               # regularization and the inverse
+        inv['noisenorm'] = []  # These are the noise-normalization factors
+        #
+        nuse = 0
+        for k in range(len(inv['src'])):
+            try:
+                inv['src'][k] = transform_surface_to(inv['src'][k],
+                                                     inv['coord_frame'],
+                                                     mri_head_t)
+            except Exception as inst:
+                raise Exception('Could not transform source space (%s)' % inst)
 
-        nuse += inv['src'][k]['nuse']
+            nuse += inv['src'][k]['nuse']
 
-    logger.info('    Source spaces transformed to the inverse solution '
-                'coordinate frame')
-    #
-    #   Done!
-    #
-    fid.close()
+        logger.info('    Source spaces transformed to the inverse solution '
+                    'coordinate frame')
+        #
+        #   Done!
+        #
 
     return InverseOperator(inv)
 
@@ -379,16 +363,11 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
 
-    if 'units' in inv:
-        if inv['units'] == 'Am':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM)
-        elif inv['units'] == 'Am/m^2':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M2)
-        elif inv['units'] == 'Am/m^3':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M3)
+    udict = {'Am': FIFF.FIFF_UNIT_AM,
+             'Am/m^2': FIFF.FIFF_UNIT_AM_M2,
+             'Am/m^3': FIFF.FIFF_UNIT_AM_M3}
+    if 'units' in inv and inv['units'] is not None:
+        write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, udict[inv['units']])
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
@@ -1062,6 +1041,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
+'''
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex
 
@@ -1104,6 +1084,7 @@ def _xyz2lf(Lf_xyz, normals):
 
     Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
     return Lf_cortex
+'''
 
 
 ###############################################################################

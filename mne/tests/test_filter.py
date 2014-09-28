@@ -11,8 +11,8 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         notch_filter, detrend)
 
 from mne import set_log_file
-from mne.utils import _TempDir, sum_squared
-from mne.cuda import requires_cuda
+from mne.utils import _TempDir, sum_squared, run_tests_if_main
+from mne.cuda import cuda_capable
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -187,12 +187,13 @@ def test_filters():
     assert_true(iir_params['b'].size - 1 == 4)
 
 
-@requires_cuda
 def test_cuda():
     """Test CUDA-based filtering
     """
     # NOTE: don't make test_cuda() the last test, or pycuda might spew
     # some warnings about clean-up failing
+    # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
+    # as it should fall back to using n_jobs=1.
     tempdir = _TempDir()
     log_file = op.join(tempdir, 'temp_log.txt')
     Fs = 500
@@ -225,8 +226,10 @@ def test_cuda():
     set_log_file()
     with open(log_file) as fid:
         out = fid.readlines()
+    # triage based on whether or not we actually expected to use CUDA
+    tot = 12 if cuda_capable else 0
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
-                     for o in out]) == 12)
+                     for o in out]) == tot)
 
     # check resampling
     a = np.random.RandomState(0).randn(3, sig_len_secs * Fs)
@@ -245,3 +248,6 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+
+
+run_tests_if_main()

@@ -570,6 +570,21 @@ def test_stc_to_label():
     connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
     assert_true(connectivity.shape[0] == len(stc.vertno[0]))
 
+    # "src" as a subject name
+    assert_raises(TypeError, stc_to_label, stc, src=1, smooth=False,
+                  connected=False, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src=SourceSpaces([src[0]]),
+                  smooth=False, connected=False, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=False,
+                  connected=True, subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc_to_label, stc, src='sample', smooth=True,
+                  connected=False, subjects_dir=subjects_dir)
+    labels_lh, labels_rh = stc_to_label(stc, src='sample', smooth=False,
+                                        connected=False,
+                                        subjects_dir=subjects_dir)
+    assert_true(len(labels_lh) > 1)
+    assert_true(len(labels_rh) > 1)
+
     # with smooth='patch'
     with warnings.catch_warnings(record=True) as w:  # connectedness warning
         warnings.simplefilter('always')
@@ -665,8 +680,12 @@ def test_label_time_course():
     label_rh = read_label(real_label_rh_fname)
     stc_rh = stc.in_label(label_rh)
     label_bh = label_rh + label_lh
-    stc_bh = stc.in_label(label_bh)
-    assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
+    label_bh_2 = label_lh + label_rh
+    label_bh_3 = label_bh + label_bh_2
+    assert_true(repr(label_bh))  # test __repr__
+    for check in (label_bh, label_bh_2, label_bh_3):
+        stc_bh = stc.in_label(check)
+        assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
 
 
 run_tests_if_main()

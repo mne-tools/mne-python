@@ -41,10 +41,12 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 try:
     from nose.tools import nottest
+    from nose.plugins.skip import SkipTest
 except ImportError:
     class nottest(object):
         def __init__(self, *args):
             pass  # Avoid "object() takes no parameters"
+    SkipTest = RuntimeError
 try:
     from memory_profiler import memory_usage
 except ImportError:
@@ -494,28 +496,27 @@ def verbose(function, *args, **kwargs):
     if('verbose' in arg_names):
         verbose_level = args[arg_names.index('verbose')]
     else:
+        verbose_level = None
+
+    # This ensures that object.method(verbose=None) will use object.verbose
+    if verbose_level is None:
         verbose_level = default_level
 
     if verbose_level is not None:
         old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
         try:
-            ret = function(*args, **kwargs)
-        except:
-            set_log_level(old_level)
+            return function(*args, **kwargs)
+        except Exception:
             raise
-        set_log_level(old_level)
-        return ret
+        finally:
+            set_log_level(old_level)
     else:
-        ret = function(*args, **kwargs)
-        return ret
+        return function(*args, **kwargs)
 
 
 def has_command_line_tools():
-    if 'MNE_ROOT' not in os.environ:
-        return False
-    else:
-        return True
+    return ('MNE_ROOT' in os.environ)
 
 
 requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
@@ -529,10 +530,7 @@ def has_nibabel(vox2ras_tkr=False):
             mgh_ihdr = getattr(nibabel, 'MGHImage', None)
             mgh_ihdr = getattr(mgh_ihdr, 'header_class', None)
             get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
-            if get_vox2ras_tkr is not None:
-                return True
-            else:
-                return False
+            return True if get_vox2ras_tkr is not None else False
         else:
             return True
     except ImportError:
@@ -541,10 +539,7 @@ def has_nibabel(vox2ras_tkr=False):
 
 def has_freesurfer():
     """Aux function"""
-    if not 'FREESURFER_HOME' in os.environ:
-        return False
-    else:
-        return True
+    return ('FREESURFER_HOME' in os.environ)
 
 
 requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
@@ -555,10 +550,7 @@ requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
 
 def has_neuromag2ft():
     """Aux function"""
-    if not 'NEUROMAG2FT_ROOT' in os.environ:
-        return False
-    else:
-        return True
+    return ('NEUROMAG2FT_ROOT' in os.environ)
 
 
 requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
@@ -567,10 +559,7 @@ requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
 
 def requires_nibabel(vox2ras_tkr=False):
     """Aux function"""
-    if vox2ras_tkr:
-        extra = ' with vox2ras_tkr support'
-    else:
-        extra = ''
+    extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
@@ -597,11 +586,9 @@ def requires_mem_gb(requirement):
                 skip = True
 
             if skip is True:
-                from nose.plugins.skip import SkipTest
                 raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
                                'memory' % (function.__name__, requirement))
-            ret = function(*args, **kwargs)
-            return ret
+            return function(*args, **kwargs)
         return dec
     return real_decorator
 
@@ -620,12 +607,9 @@ def requires_pandas(function):
             skip = True
 
         if skip is True:
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires pandas'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -641,12 +625,9 @@ def requires_tvtk(function):
             skip = True
 
         if skip is True:
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires TVTK'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -662,12 +643,9 @@ def requires_statsmodels(function):
             skip = True
 
         if skip is True:
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires statsmodels'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -687,12 +665,9 @@ def requires_patsy(function):
             skip = True
 
         if skip is True:
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires patsy'
                            % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -712,19 +687,15 @@ def requires_sklearn(function):
             skip = True
 
         if skip is True:
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
                            % (function.__name__, required_version))
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
 
 def requires_mayavi():
     """Decorator to skip test if mayavi is not available"""
-
     lacks_mayavi = False
     try:
         from mayavi import mlab
@@ -744,24 +715,22 @@ def requires_mayavi():
 
 def requires_pysurfer():
     """Decorator to skip test if PySurfer is not available"""
+    lacks_surfer = False
     try:
         from surfer import Brain  # noqa, analysis:ignore
     except Exception:
         lacks_surfer = True
-    else:
-        lacks_surfer = False
     requires_mayavi = np.testing.dec.skipif(lacks_surfer, 'Requires PySurfer')
     return requires_mayavi
 
 
 def requires_PIL():
     """Decorator to skip test if PIL is not available"""
+    lacks_PIL = False
     try:
         from PIL import Image  # noqa, analysis:ignore
     except Exception:
         lacks_PIL = True
-    else:
-        lacks_PIL = False
     requires_PIL = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
     return requires_PIL
 
@@ -772,12 +741,9 @@ def requires_good_network(function):
     @wraps(function)
     def dec(*args, **kwargs):
         if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
-            from nose.plugins.skip import SkipTest
             raise SkipTest('Test %s skipped, requires a good network '
                            'connection' % function.__name__)
-        ret = function(*args, **kwargs)
-
-        return ret
+        return function(*args, **kwargs)
 
     return dec
 
@@ -790,7 +756,6 @@ def make_skipper_dec(module, skip_str):
     except ImportError:
         skip = True
     return np.testing.dec.skipif(skip, skip_str)
-
 
 requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
 requires_traits = make_skipper_dec('traits', 'traits not installed')
@@ -963,7 +928,7 @@ def set_log_level(verbose=None, return_old_level=False):
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
         For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        If None, the environment variable MNE_LOG_LEVEL is read, and if
+        If None, the environment variable MNE_LOGGING_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
@@ -1763,3 +1728,25 @@ def run_tests_if_main(measure_mem=True):
     elapsed = int(round(time.time() - t0))
     print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
           % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))
+
+
+class ArgvSetter(object):
+    """Temporarily set sys.argv"""
+    def __init__(self, args=(), disable_printing=True):
+        self.argv = list(('python',) + args)
+        self.stdout = StringIO() if disable_printing else sys.stdout
+        self.stderr = StringIO() if disable_printing else sys.stderr
+
+    def __enter__(self):
+        self.orig_argv = sys.argv
+        sys.argv = self.argv
+        self.orig_stdout = sys.stdout
+        sys.stdout = self.stdout
+        self.orig_stderr = sys.stderr
+        sys.stderr = self.stderr
+        return self
+
+    def __exit__(self, *args):
+        sys.argv = self.orig_argv
+        sys.stdout = self.orig_stdout
+        sys.stderr = self.orig_stderr

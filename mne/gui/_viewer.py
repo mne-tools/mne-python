@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import os
 import numpy as np
 
 # allow import without traits
@@ -20,32 +21,11 @@ try:
     from traitsui.api import View, Item, Group, HGroup, VGrid, VGroup
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    Color = trait_wraith
-    Enum = trait_wraith
-    Float = trait_wraith
-    Instance = trait_wraith
-    Int = trait_wraith
-    List = trait_wraith
-    Property = trait_wraith
-    Range = trait_wraith
-    Str = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    Group = trait_wraith
-    HGroup = trait_wraith
-    VGrid = trait_wraith
-    VGroup = trait_wraith
-    Glyph = trait_wraith
-    Surface = trait_wraith
-    VTKDataSource = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = MlabSceneModel = Array = Bool = \
+        Button = Color = Enum = Float = Instance = Int = List = Property = \
+        Range = Str = View = Item = Group = HGroup = VGrid = VGroup = \
+        Glyph = Surface = VTKDataSource = trait_wraith
 
 from ..transforms import apply_trans
 
@@ -58,6 +38,11 @@ defaults = {'mri_fid_scale': 1e-2, 'hsp_fid_scale': 3e-2,
             'mri_color': (252, 227, 191), 'hsp_point_color': (255, 255, 255),
             'lpa_color': (255, 0, 0), 'nasion_color': (0, 255, 0),
             'rpa_color': (0, 0, 255)}
+
+
+def _testing_mode():
+    """Helper to determine if we're running tests"""
+    return (os.getenv('_MNE_GUI_TESTING_MODE', '') == 'true')
 
 
 class HeadViewController(HasTraits):
@@ -138,8 +123,9 @@ class HeadViewController(HasTraits):
         if kwargs is None:
             raise ValueError("Invalid view: %r" % view)
 
-        self.scene.mlab.view(distance=None, reset_roll=True,
-                             figure=self.scene.mayavi_scene, **kwargs)
+        if not _testing_mode():
+            self.scene.mlab.view(distance=None, reset_roll=True,
+                                 figure=self.scene.mayavi_scene, **kwargs)
 
 
 class Object(HasPrivateTraits):
@@ -255,7 +241,10 @@ class PointObject(Object):
         if hasattr(self.src, 'remove'):
             self.src.remove()
 
-        fig = self.scene.mayavi_scene
+        if not _testing_mode():
+            fig = self.scene.mayavi_scene
+        else:
+            fig = None
 
         x, y, z = self.points.T
         scatter = pipeline.scalar_scatter(x, y, z)
@@ -310,7 +299,7 @@ class SurfaceObject(Object):
     @on_trait_change('scene.activated')
     def plot(self):
         """Add the points to the mayavi pipeline"""
-        _scale = self.scene.camera.parallel_scale
+        _scale = self.scene.camera.parallel_scale if not _testing_mode() else 1
         self.clear()
 
         if not np.any(self.tri):
@@ -338,4 +327,5 @@ class SurfaceObject(Object):
                         mutual=False)
         self.sync_trait('opacity', self.surf.actor.property, 'opacity')
 
-        self.scene.camera.parallel_scale = _scale
+        if not _testing_mode():
+            self.scene.camera.parallel_scale = _scale
