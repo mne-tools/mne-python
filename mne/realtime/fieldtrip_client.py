@@ -143,8 +143,7 @@ class FieldTripClient(object):
             # modify info attributes according to the FieldTrip Header object
             info['nchan'] = self.ft_header.nChannels
             info['sfreq'] = self.ft_header.fSample
-            info['ch_names'] = [ch.decode('utf-8')
-                                for ch in self.ft_header.labels]
+            info['ch_names'] = self.ft_header.labels
 
             info['comps'] = list()
             info['projs'] = list()

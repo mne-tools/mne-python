@@ -318,7 +318,7 @@ class Client:
                 L = H.chunks[CHUNK_CHANNEL_NAMES].split(b'\0')
                 numLab = len(L)
                 if numLab >= H.nChannels:
-                    H.labels = L[0:H.nChannels]
+                    H.labels = [x.decode('utf-8') for x in L[0:H.nChannels]]
 
         return H
 

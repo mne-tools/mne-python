@@ -55,7 +55,7 @@ def test_fieldtrip_client():
                 tmin_samp1 = rt_client.tmin_samp
 
         time.sleep(1)  # Pause measurement
-        assert_true(len(w) == 1)
+        assert_true(len(w) >= 1)
 
         # Start the FieldTrip buffer again
         with warnings.catch_warnings(record=True) as w:
@@ -71,7 +71,7 @@ def test_fieldtrip_client():
                 _, n_channels, n_samples = epoch.get_data().shape
 
         assert_true(tmin_samp2 > tmin_samp1)
-        assert_true(len(w) == 1)
+        assert_true(len(w) >= 1)
         assert_true(n_samples == 5)
         assert_true(n_channels == len(picks))
         kill_signal.put(False)  # stop the buffer
