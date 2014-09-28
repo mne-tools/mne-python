@@ -588,7 +588,7 @@ except ImportError:
     assert_is_not = _assert_is_not
 
 
-def sparse_block_diag(mats, format=None, dtype=None):
+def _sparse_block_diag(mats, format=None, dtype=None):
     """An implementation of scipy.sparse.block_diag since old versions of
     scipy don't have it. Forms a sparse matrix by stacking matrices in block
     diagonal form.
@@ -608,13 +608,16 @@ def sparse_block_diag(mats, format=None, dtype=None):
     -------
     res : sparse matrix
     """
-    try:
-        return sparse.block_diag(mats, format=format, dtype=dtype)
-    except AttributeError:
-        nmat = len(mats)
-        rows = []
-        for ia, a in enumerate(mats):
-            row = [None] * nmat
-            row[ia] = a
-            rows.append(row)
-        return sparse.bmat(rows, format=format, dtype=dtype)
+    nmat = len(mats)
+    rows = []
+    for ia, a in enumerate(mats):
+        row = [None] * nmat
+        row[ia] = a
+        rows.append(row)
+    return sparse.bmat(rows, format=format, dtype=dtype)
+
+try:
+    from scipy.sparse import block_diag as sparse_block_diag
+except Exception:
+    sparse_block_diag = _sparse_block_diag
+

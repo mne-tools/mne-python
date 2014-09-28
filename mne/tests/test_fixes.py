@@ -8,10 +8,11 @@ import numpy as np
 from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
-from scipy import signal
+from scipy import signal, sparse
 
 from ..fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
-                     _Counter, _unique, _bincount, _digitize)
+                     _Counter, _unique, _bincount, _digitize,
+                     _sparse_block_diag)
 from ..fixes import _firwin2 as mne_firwin2
 from ..fixes import _filtfilt as mne_filtfilt
 
@@ -140,3 +141,11 @@ def test_filtfilt():
     # Filter with an impulse
     y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
     assert_array_equal(x, y)
+
+
+def test_sparse_block_diag():
+    """Test sparse block diag replacement"""
+    x = _sparse_block_diag([sparse.eye(2, 2), sparse.eye(2, 2)])
+    x = x - sparse.eye(4, 4)
+    x.eliminate_zeros()
+    assert_equal(len(x.data), 0)
