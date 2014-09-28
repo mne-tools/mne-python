@@ -495,6 +495,16 @@ FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
 FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
 #
+# 3530... STC
+#
+FIFF.FIFF_MNE_COV_KIND               = 3530  # What kind of a covariance matrix
+FIFF.FIFF_MNE_COV_DIM                = 3531  # Matrix dimension
+FIFF.FIFF_MNE_COV                    = 3532  # Full matrix in packed representation (lower triangle)
+FIFF.FIFF_MNE_COV_DIAG               = 3533  # Diagonal matrix
+FIFF.FIFF_MNE_COV_EIGENVALUES        = 3534  # Eigenvalues and eigenvectors of the above
+FIFF.FIFF_MNE_COV_EIGENVECTORS       = 3535
+FIFF.FIFF_MNE_COV_NFREE              = 3536  # Number of degrees of freedom
+#
 # Fiff values associated with MNE computations
 #
 FIFF.FIFFV_MNE_UNKNOWN_ORI          = 0
