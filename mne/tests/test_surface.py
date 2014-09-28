@@ -113,7 +113,7 @@ def test_make_morph_maps():
     # This will also trigger creation, but it's trivial
     mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
-        assert_true((mm - sparse.eye(mm.shape[0])).sum() == 0)
+        assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
 
 
 @testing.requires_testing_data

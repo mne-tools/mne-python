@@ -19,7 +19,7 @@ import inspect
 import warnings
 import numpy as np
 import scipy
-from scipy import linalg
+from scipy import linalg, sparse
 from math import ceil, log
 from numpy.fft import irfft
 from nose.tools import assert_true
@@ -586,3 +586,35 @@ try:
 except ImportError:
     assert_is = _assert_is
     assert_is_not = _assert_is_not
+
+
+def sparse_block_diag(mats, format=None, dtype=None):
+    """An implementation of scipy.sparse.block_diag since old versions of
+    scipy don't have it. Forms a sparse matrix by stacking matrices in block
+    diagonal form.
+
+    Parameters
+    ----------
+    mats : list of matrices
+        Input matrices.
+    format : str, optional
+        The sparse format of the result (e.g. "csr"). If not given, the
+        matrix is returned in "coo" format.
+    dtype : dtype specifier, optional
+        The data-type of the output matrix. If not given, the dtype is
+        determined from that of blocks.
+
+    Returns
+    -------
+    res : sparse matrix
+    """
+    try:
+        return sparse.block_diag(mats, format=format, dtype=dtype)
+    except AttributeError:
+        nmat = len(mats)
+        rows = []
+        for ia, a in enumerate(mats):
+            row = [None] * nmat
+            row[ia] = a
+            rows.append(row)
+        return sparse.bmat(rows, format=format, dtype=dtype)
