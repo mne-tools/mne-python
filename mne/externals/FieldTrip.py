@@ -315,7 +315,7 @@ class Client:
                 offset += chunk_len
 
             if CHUNK_CHANNEL_NAMES in H.chunks:
-                L = H.chunks[CHUNK_CHANNEL_NAMES].split('\0')
+                L = H.chunks[CHUNK_CHANNEL_NAMES].split(b'\0')
                 numLab = len(L)
                 if numLab >= H.nChannels:
                     H.labels = L[0:H.nChannels]
