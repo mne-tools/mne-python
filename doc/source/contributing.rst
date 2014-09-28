@@ -17,13 +17,11 @@ coding is done saves everyone time and effort!
 What you will need
 ------------------
 
-#. A Unix (Linux or Mac OS) box: `MNE command line utilities`_ and Freesurfer_
-   that are required to make the best out of this toolbox require a Unix platform.
-
 #. A good python editor: Spyder_ IDE is suitable for those migrating from
    Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
    Mac users, TextMate_ and `Sublime Text`_ are good choices. `Sublime Text`_
-   is available on all three major platforms.
+   is available on all three major platforms. As always, Vim or Emacs will
+   suffice as well.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
@@ -81,6 +79,17 @@ General code guidelines
   Note that the first time this is run, the `mne-python sample dataset`_
   (~1.2 GB) will be downloaded to the root directory and extracted. This is
   necessary for running some of the tests and nearly all of the examples.
+
+  Also note, if make test fails with the error ``ICE default IO error
+  handler doing an exit()``, try backing up or removing .ICEauthority::
+
+    mv ~/.ICEauthority ~/.ICEauthority.bak
+
+  If make is not able to download the sample data from the FTP server,
+  use the following python code to begin the transfer::
+
+    >>> from mne.datasets import testing
+    >>> testing.data_path()
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
