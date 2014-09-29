@@ -174,7 +174,7 @@ def _read_events_fif(fid, tree):
     return event_list, mappings
 
 
-def read_events(filename, include=None, exclude=None):
+def read_events(filename, include=None, exclude=None, mask=None):
     """Reads events from fif or text file
 
     Parameters
@@ -193,6 +193,8 @@ def read_events(filename, include=None, exclude=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
+    mask : int or None
+        The value of the digital mask to apply to the stim channel values.
 
     Returns
     -------
@@ -240,6 +242,10 @@ def read_events(filename, include=None, exclude=None):
             event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
+
+    if mask is not None:
+        event_list = _mask_trigs(event_list, mask)
+    
     return event_list
 
 
@@ -446,7 +452,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2):
+                shortest_event=2, mask=None):
     """Find events from raw file
 
     Parameters
@@ -476,6 +482,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     shortest_event : int
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
+    mask : int or None
+        The value of the digital mask to apply to the stim channel values. 
 
     Returns
     -------
@@ -566,7 +574,19 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
                          "may want to set min_duration to a larger value e.g."
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
+    if mask is not None:
+        events = _mask_trigs(events, mask)
 
+    return events
+
+
+def _mask_trigs(events, mask):
+    """Helper function for masking digital trigger values"""
+    n_events = len(events)
+    mask = mask * np.ones(n_events, int)
+    events[:,1] = np.bitwise_and(events[:,1], mask)
+    events[:,2] = np.bitwise_and(events[:,2], mask)    
+    
     return events
 
 
