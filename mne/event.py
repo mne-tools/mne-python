@@ -3,6 +3,7 @@
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -385,7 +386,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 @verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0):
+                 consecutive='increasing', min_samples=0, mask=None):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -401,6 +402,9 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     data = data.astype(np.int)
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+
+    if mask is not None:
+        events = _mask_trigs(events, mask)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -563,7 +567,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     data, _ = raw[pick, :]
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
-                          consecutive=consecutive, min_samples=min_samples)
+                          consecutive=consecutive, min_samples=min_samples,
+                          mask=mask)
 
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
@@ -574,19 +579,20 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
                          "may want to set min_duration to a larger value e.g."
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
-    if mask is not None:
-        events = _mask_trigs(events, mask)
 
     return events
 
 
 def _mask_trigs(events, mask):
     """Helper function for masking digital trigger values"""
-    n_events = len(events)
-    mask = mask * np.ones(n_events, int)
-    events[:,1] = np.bitwise_and(events[:,1], mask)
-    events[:,2] = np.bitwise_and(events[:,2], mask)    
-    
+    if isinstance(mask, int):
+        n_events = len(events)
+        mask = mask * np.ones(n_events, int)
+        events[:, 1] = np.bitwise_and(events[:, 1], mask)
+        events[:, 2] = np.bitwise_and(events[:, 2], mask)
+        events = events[events[:, 1] != events[:, 2]]
+    else:
+        raise ValueError('Mask must be int or None.')
     return events
 
 
