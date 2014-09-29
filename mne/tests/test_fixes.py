@@ -10,11 +10,12 @@ from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
 from scipy import signal, sparse
 
-from ..fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
-                     _Counter, _unique, _bincount, _digitize,
-                     _sparse_block_diag)
-from ..fixes import _firwin2 as mne_firwin2
-from ..fixes import _filtfilt as mne_filtfilt
+from mne.utils import run_tests_if_main
+from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
+                       _Counter, _unique, _bincount, _digitize,
+                       _sparse_block_diag, _matrix_rank)
+from mne.fixes import _firwin2 as mne_firwin2
+from mne.fixes import _filtfilt as mne_filtfilt
 
 
 def test_counter():
@@ -22,13 +23,16 @@ def test_counter():
     import collections
     try:
         Counter = collections.Counter
-    except:
+    except Exception:
         pass
     else:
         a = Counter([1, 2, 1, 3])
         b = _Counter([1, 2, 1, 3])
+        c = _Counter()
+        c.update(b)
         for key, count in zip([1, 2, 3], [2, 1, 1]):
             assert_equal(a[key], b[key])
+            assert_equal(a[key], c[key])
 
 
 def test_unique():
@@ -149,3 +153,14 @@ def test_sparse_block_diag():
     x = x - sparse.eye(4, 4)
     x.eliminate_zeros()
     assert_equal(len(x.data), 0)
+
+
+def test_rank():
+    """Test rank replacement"""
+    assert_equal(_matrix_rank(np.ones(10)), 1)
+    assert_equal(_matrix_rank(np.eye(10)), 10)
+    assert_equal(_matrix_rank(np.ones((10, 10))), 1)
+    assert_raises(TypeError, _matrix_rank, np.ones((10, 10, 10)))
+
+
+run_tests_if_main()

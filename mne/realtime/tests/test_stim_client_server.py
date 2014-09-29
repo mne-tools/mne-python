@@ -1,6 +1,6 @@
 import threading
 import time
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 
 from mne.realtime import StimServer, StimClient
 from mne.externals.six.moves import queue
@@ -66,7 +66,7 @@ def _connect_client(trig_queue):
     while (time.time() - t0 < _max_wait and
            (_server is None or not _server._running)):
         time.sleep(0.01)
-    assert (_server is not None and _server._running)
+    assert_true(_server is not None and _server._running)
 
     # instantiate StimClient
     stim_client = StimClient('localhost', port=4218)
@@ -75,7 +75,7 @@ def _connect_client(trig_queue):
     t0 = time.time()
     while (time.time() - t0 < _max_wait and not _have_put_in_trigger):
         time.sleep(0.01)
-    assert _have_put_in_trigger
+    assert_true(_have_put_in_trigger)
 
     trig_queue.put(stim_client.get_trigger())
     stim_client.close()
