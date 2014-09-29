@@ -727,10 +727,6 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                   verbose=None):
     """Apply inverse operator to evoked data
 
-    Computes a L2-norm inverse solution
-    Actual code using these principles might be different because
-    the inverse operator is often reused across data sets.
-
     Parameters
     ----------
     evoked : Evoked object
@@ -808,10 +804,6 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       buffer_size=None, pick_normal=None, prepared=False,
                       verbose=None):
     """Apply inverse operator to Raw data
-
-    Computes a L2-norm inverse solution
-    Actual code using these principles might be different because
-    the inverse operator is often reused across data sets.
 
     Parameters
     ----------
@@ -990,9 +982,6 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          return_generator=False, pick_normal=None,
                          prepared=False, verbose=None):
     """Apply inverse operator to Epochs
-
-    Computes a L2-norm inverse solution on each epochs and returns
-    single trial source estimates.
 
     Parameters
     ----------
