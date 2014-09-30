@@ -18,11 +18,18 @@ import copy
 import os.path as op
 import sys
 import mne
+from mne.utils import run_subprocess, _TempDir, verbose, logger
+
+
+def _check_file(fname, overwrite):
+    """Helper to prevent overwrites"""
+    if op.isfile(fname) and not overwrite:
+        raise IOError('File %s exists, use --overwrite to overwrite it'
+                      % fname)
 
 
 def run():
     from mne.commands.utils import get_optparser
-    from mne.utils import run_subprocess
 
     parser = get_optparser(__file__)
     subjects_dir = mne.get_config('SUBJECTS_DIR')
@@ -41,21 +48,22 @@ def run():
 
     options, args = parser.parse_args()
 
-    env = os.environ
-    subject = vars(options).get('subject', env.get('SUBJECT'))
+    subject = vars(options).get('subject', os.getenv('SUBJECT'))
     subjects_dir = options.subjects_dir
     if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
+    _run(subjects_dir, subject, options.force, options.overwrite,
+         options.verbose)
+
+
+@verbose
+def _run(subjects_dir, subject, force, overwrite, verbose=None):
     this_env = copy.copy(os.environ)
     this_env['SUBJECTS_DIR'] = subjects_dir
     this_env['SUBJECT'] = subject
 
-    # overwrite = options.overwrite  # XXX Not actually used anywhere
-    # verbose = options.verbose  # XXX Not actually used anywhere
-    force = '--force' if options.force else '--check'
-
-    if not 'SUBJECTS_DIR' in env:
+    if not 'SUBJECTS_DIR' in this_env:
         raise RuntimeError('The environment variable SUBJECTS_DIR should '
                            'be set')
 
@@ -64,13 +72,13 @@ def run():
                            'the environment variable SUBJECTS_DIR or '
                            'the command line option --subjects-dir')
 
-    if not 'MNE_ROOT' in env:
+    if not 'MNE_ROOT' in this_env:
         raise RuntimeError('MNE_ROOT environment variable is not set')
 
-    if not 'FREESURFER_HOME' in env:
+    if not 'FREESURFER_HOME' in this_env:
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
-
+    force = '--force' if force else '--check'
     subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exits. Please check your subject '
@@ -81,7 +89,7 @@ def run():
     else:
         mri = 'T1'
 
-    print('1. Creating a dense scalp tessellation with mkheadsurf...')
+    logger.info('1. Creating a dense scalp tessellation with mkheadsurf...')
 
     def check_seghead(surf_path=op.join(subj_path, 'surf')):
         for k in ['/lh.seghead', '/lh.smseghead']:
@@ -92,44 +100,44 @@ def run():
 
     my_seghead = check_seghead()
     if my_seghead is None:
-        cmd = ['mkheadsurf', '-subjid', subject, '-srcvol', mri]
-        run_subprocess(cmd, env=this_env)
-    else:
-        print('%s already there' % my_seghead)
+        run_subprocess(['mkheadsurf', '-subjid', subject, '-srcvol', mri],
+                       env=this_env)
 
     surf = check_seghead()
     if surf is None:
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subjects_dir, subject)
-    print('2. Creating %s ...' % fif)
-    cmd = ['mne_surf2bem', '--surf', surf, '--id', '4', force,
-           '--fif', fif]
-    run_subprocess(cmd, env=this_env)
+    dense_fname = '{0}/{1}/bem/{1}-head-dense.fif'.format(subjects_dir,
+                                                          subject)
+    logger.info('2. Creating %s ...' % dense_fname)
+    _check_file(dense_fname, overwrite)
+    run_subprocess(['mne_surf2bem', '--surf', surf, '--id', '4', force,
+                    '--fif', dense_fname], env=this_env)
     levels = 'medium', 'sparse'
-    my_surf = mne.read_bem_surfaces(fif)[0]
+    my_surf = mne.read_bem_surfaces(dense_fname)[0]
     tris = [30000, 2500]
     if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
         tris = [len(my_surf['tris'])]  # don't actually decimate
     for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
-        print('%i. Creating medium grade tessellation...' % ii)
-        print('%i.1 Decimating the dense tessellation...' % ii)
+        logger.info('%i. Creating %s tessellation...' % (ii, level))
+        logger.info('%i.1 Decimating the dense tessellation...' % ii)
         points, tris = mne.decimate_surface(points=my_surf['rr'],
                                             triangles=my_surf['tris'],
                                             n_triangles=n_tri)
-        out_fif = fif.replace('dense', level)
-        print('%i.2 Creating %s' % (ii, out_fif))
-        surf_fname = '/tmp/tmp-surf.surf'
+        other_fname = dense_fname.replace('dense', level)
+        logger.info('%i.2 Creating %s' % (ii, other_fname))
+        _check_file(other_fname, overwrite)
+        tempdir = _TempDir()
+        surf_fname = tempdir + '/tmp-surf.surf'
         # convert points to meters, make mne_analyze happy
         mne.write_surface(surf_fname, points * 1e3, tris)
         # XXX for some reason --check does not work here.
         try:
-            cmd = ['mne_surf2bem', '--surf', surf_fname, '--id', '4',
-                   '--force', '--fif', out_fif]
-            run_subprocess(cmd, env=this_env, stdout=None, stderr=None)
+            run_subprocess(['mne_surf2bem', '--surf', surf_fname, '--id', '4',
+                            '--force', '--fif', other_fname], env=this_env)
         finally:
-            os.remove(surf_fname)
+            del tempdir
 
 is_main = (__name__ == '__main__')
 if is_main:

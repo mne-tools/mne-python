@@ -128,6 +128,7 @@ def test_make_scalp_surfaces():
             assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
             os.environ['MNE_ROOT'] = orig_mne
             mne_make_scalp_surfaces.run()
+            assert_raises(IOError, mne_make_scalp_surfaces.run)  # no overwrite
     finally:
         if orig_fs is not None:
             os.environ['FREESURFER_HOME'] = orig_fs
