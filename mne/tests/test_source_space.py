@@ -487,12 +487,9 @@ def test_combine_source_spaces():
     srf = read_source_spaces(fname, add_geom=False)
 
     # setup 2 volume source spaces
-    vol1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
-                                     volume_label=volume_labels[0],
-                                     mri=aseg_fname, add_interpolator=False)
-    vol2 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
-                                     volume_label=volume_labels[1],
-                                     mri=aseg_fname, add_interpolator=False)
+    vol = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                    volume_label=volume_labels[0],
+                                    mri=aseg_fname, add_interpolator=False)
 
     # setup a discrete source space
     rr = np.random.randint(0, 20, (100, 3)) * 1e-3
@@ -503,11 +500,11 @@ def test_combine_source_spaces():
                                      pos=pos, verbose='error')
 
     # combine source spaces
-    src = srf + vol1 + vol2 + disc
+    src = srf + vol + disc
 
     # test addition of source spaces
     assert_equal(type(src), SourceSpaces)
-    assert_equal(len(src), 5)
+    assert_equal(len(src), 4)
 
     # test reading and writing
     src_out_name = op.join(tempdir, 'temp-src.fif')
