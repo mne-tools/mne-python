@@ -4,7 +4,7 @@ from os import path as op
 import shutil
 import glob
 import warnings
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
@@ -99,9 +99,39 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
+@requires_mne
+@testing.requires_testing_data
 def test_make_scalp_surfaces():
     """Test mne make_scalp_surfaces"""
     check_usage(mne_make_scalp_surfaces)
+    # Copy necessary files to avoid FreeSurfer call
+    tempdir = _TempDir()
+    surf_path = op.join(subjects_dir, 'sample', 'surf')
+    surf_path_new = op.join(tempdir, 'sample', 'surf')
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(surf_path_new)
+    os.mkdir(op.join(tempdir, 'sample', 'bem'))
+    shutil.copy(op.join(surf_path, 'lh.seghead'), surf_path_new)
+
+    orig_fs = os.getenv('FREESURFER_HOME', None)
+    orig_mne = os.getenv('MNE_ROOT')
+    if orig_fs is not None:
+        del os.environ['FREESURFER_HOME']
+    cmd = ('-s', 'sample', '--subjects-dir', tempdir)
+    os.environ['_MNE_TESTING_SCALP'] = 'true'
+    try:
+        with ArgvSetter(cmd, disable_printing=False):
+            assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
+            os.environ['FREESURFER_HOME'] = tempdir  # don't need it
+            del os.environ['MNE_ROOT']
+            assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
+            os.environ['MNE_ROOT'] = orig_mne
+            mne_make_scalp_surfaces.run()
+    finally:
+        if orig_fs is not None:
+            os.environ['FREESURFER_HOME'] = orig_fs
+        os.environ['MNE_ROOT'] = orig_mne
+        del os.environ['_MNE_TESTING_SCALP']
 
 
 def test_maxfilter():

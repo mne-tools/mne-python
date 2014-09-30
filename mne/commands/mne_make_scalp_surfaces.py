@@ -14,6 +14,7 @@ example usage: mne make_scalp_surfaces --overwrite --subject sample
 from __future__ import print_function
 
 import os
+import copy
 import os.path as op
 import sys
 import mne
@@ -21,8 +22,10 @@ import mne
 
 def run():
     from mne.commands.utils import get_optparser
+    from mne.utils import run_subprocess
 
     parser = get_optparser(__file__)
+    subjects_dir = mne.get_config('SUBJECTS_DIR')
 
     parser.add_option('-o', '--overwrite', dest='overwrite',
                       action='store_true',
@@ -33,35 +36,33 @@ def run():
                       help='Force transformation of surface into bem.')
     parser.add_option('-v', '--verbose', dest='verbose', action='store_true',
                       help='Print the debug messages.')
+    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
+                      help="Subjects directory", default=subjects_dir)
 
     options, args = parser.parse_args()
 
     env = os.environ
     subject = vars(options).get('subject', env.get('SUBJECT'))
-    if subject is None:
+    subjects_dir = options.subjects_dir
+    if subject is None or subjects_dir is None:
         parser.print_help()
         sys.exit(1)
+    this_env = copy.copy(os.environ)
+    this_env['SUBJECTS_DIR'] = subjects_dir
+    this_env['SUBJECT'] = subject
 
-    overwrite = options.overwrite
-    verbose = options.verbose
+    # overwrite = options.overwrite  # XXX Not actually used anywhere
+    # verbose = options.verbose  # XXX Not actually used anywhere
     force = '--force' if options.force else '--check'
-
-    from mne.commands.utils import get_status_output
-
-    def my_run_cmd(cmd, err_msg):
-        sig, out, error = get_status_output(cmd)
-        if verbose:
-            print(out, error)
-        if sig != 0:
-            raise RuntimeError(err_msg)
 
     if not 'SUBJECTS_DIR' in env:
         raise RuntimeError('The environment variable SUBJECTS_DIR should '
                            'be set')
 
-    if not op.isabs(env['SUBJECTS_DIR']):
-        env['SUBJECTS_DIR'] = op.abspath(env['SUBJECTS_DIR'])
-    subj_dir = env['SUBJECTS_DIR']
+    if not op.isdir(subjects_dir):
+        raise RuntimeError('subjects directory %s not found, specify using '
+                           'the environment variable SUBJECTS_DIR or '
+                           'the command line option --subjects-dir')
 
     if not 'MNE_ROOT' in env:
         raise RuntimeError('MNE_ROOT environment variable is not set')
@@ -70,7 +71,7 @@ def run():
         raise RuntimeError('The FreeSurfer environment needs to be set up '
                            'for this script')
 
-    subj_path = op.join(subj_dir, subject)
+    subj_path = op.join(subjects_dir, subject)
     if not op.exists(subj_path):
         raise RuntimeError('%s does not exits. Please check your subject '
                            'directory path.' % subj_path)
@@ -91,26 +92,27 @@ def run():
 
     my_seghead = check_seghead()
     if my_seghead is None:
-        cmd = 'mkheadsurf -subjid %s -srcvol %s >/dev/null' % (subject, mri)
-        my_run_cmd(cmd, 'mkheadsurf failed')
+        cmd = ['mkheadsurf', '-subjid', subject, '-srcvol', mri]
+        run_subprocess(cmd, env=this_env)
     else:
-        print('%s/surf/%s already there' % (subj_path, my_seghead))
-        if not overwrite:
-            raise IOError('Use the --overwrite option to replace exisiting '
-                          'surfaces.')
+        print('%s already there' % my_seghead)
 
     surf = check_seghead()
     if surf is None:
         raise RuntimeError('mkheadsurf did not produce the standard output '
                            'file.')
 
-    fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subj_dir, subject)
+    fif = '{0}/{1}/bem/{1}-head-dense.fif'.format(subjects_dir, subject)
     print('2. Creating %s ...' % fif)
-    cmd = 'mne_surf2bem --surf %s --id 4 %s --fif %s' % (surf, force, fif)
-    my_run_cmd(cmd, 'Failed to create %s, see above' % fif)
+    cmd = ['mne_surf2bem', '--surf', surf, '--id', '4', force,
+           '--fif', fif]
+    run_subprocess(cmd, env=this_env)
     levels = 'medium', 'sparse'
-    for ii, (n_tri, level) in enumerate(zip([30000, 2500], levels), 3):
-        my_surf = mne.read_bem_surfaces(fif)[0]
+    my_surf = mne.read_bem_surfaces(fif)[0]
+    tris = [30000, 2500]
+    if os.getenv('_MNE_TESTING_SCALP', 'false') == 'true':
+        tris = [len(my_surf['tris'])]  # don't actually decimate
+    for ii, (n_tri, level) in enumerate(zip(tris, levels), 3):
         print('%i. Creating medium grade tessellation...' % ii)
         print('%i.1 Decimating the dense tessellation...' % ii)
         points, tris = mne.decimate_surface(points=my_surf['rr'],
@@ -122,13 +124,12 @@ def run():
         # convert points to meters, make mne_analyze happy
         mne.write_surface(surf_fname, points * 1e3, tris)
         # XXX for some reason --check does not work here.
-        cmd = 'mne_surf2bem --surf %s --id 4 --force --fif %s'
-        cmd %= (surf_fname, out_fif)
-        my_run_cmd(cmd, 'Failed to create %s, see above' % out_fif)
-        os.remove(surf_fname)
-
-    if is_main:
-        sys.exit(0)
+        try:
+            cmd = ['mne_surf2bem', '--surf', surf_fname, '--id', '4',
+                   '--force', '--fif', out_fif]
+            run_subprocess(cmd, env=this_env, stdout=None, stderr=None)
+        finally:
+            os.remove(surf_fname)
 
 is_main = (__name__ == '__main__')
 if is_main:
