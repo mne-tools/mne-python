@@ -99,7 +99,7 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@requires_mayavi  # ensures we have TVTK
+@requires_mayavi()  # ensures we have TVTK
 @requires_mne
 @testing.requires_testing_data
 def test_make_scalp_surfaces():
