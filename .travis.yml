@@ -7,6 +7,8 @@ env:
     #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
+    # Note that we don't run coverage on Py3k because it slows our tests
+    # by a factor of 2 (!)
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=full TEST_LOCATION=install
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
@@ -88,13 +90,19 @@ install:
       else
         cd ${SRC_DIR};
       fi;
+    - if [ "${PYTHON}" != "3.4" ]; then
+        COVERAGE=--with-coverage;
+      else
+        COVERAGE=;
+      fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    - if [ "${TEST_LOCATION}" == "src" ]; then
+    # Coverage not collected for 3.4, so don't report it
+    - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.4" ]; then
         echo "Running coveralls";
         cd ${SRC_DIR};
         coveralls;
