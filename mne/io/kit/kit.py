@@ -21,6 +21,7 @@ from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
+from ...epochs import EpochsArray
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
@@ -47,20 +48,21 @@ class RawKIT(_BaseRaw):
     hsp : None | str | array, shape = (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10`000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>'
+    stim : list of int | '<' | '>' | None
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
         to the first channel (default). For '>', the largest values are
         assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes.
-    slope : '+' | '-'
+        trigger channel indexes. If None, no synthesized channel 
+        will be created.
+    slope : '+' | '-' | None
         How to interpret values on KIT trigger channels when synthesizing a
         Neuromag-style stim channel. With '+', a positive slope (low-to-high)
         is interpreted as an event. With '-', a negative slope (high-to-low)
-        is interpreted as an event.
+        is interpreted as an event. If None, stim must also be set to None.
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
-        channels as a trigger event.
+        channels as a trigger event. If None, stim must also be set to None.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -79,23 +81,51 @@ class RawKIT(_BaseRaw):
         self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
-        logger.info('Creating Raw.info structure...')
+        logger.info('Creating Info structure...')
+
+        # Raw attributes
+        self.verbose = verbose
+        self.preload = False
+        self._projector = None
+        self.first_samp = 0
+        self.last_samp = self._sqd_params['n_samples'] - 1
+        self.comp = None  # no compensation for KIT
+        self._raw_lengths = np.array([self.n_times])
+        self._first_samps = np.array([self.first_samp])
+        self._last_samps = np.array([self.last_samp])
 
         # Create raw.info dict for raw fif object with SQD data
-        info = _empty_info()
+        self.info = info = _empty_info()
         info['meas_date'] = int(time.time())
         info['lowpass'] = self._sqd_params['lowpass']
         info['highpass'] = self._sqd_params['highpass']
         info['sfreq'] = float(self._sqd_params['sfreq'])
         # meg channels plus synthetic channel
-        info['nchan'] = self._sqd_params['nchan'] + 1
-
-        last_samps = [self._sqd_params['nsamples'] - 1]
+        if stim is not None:
+            self.info['nchan'] = self._sqd_params['nchan'] + 1
+        else:
+            self.info['nchan'] = self._sqd_params['nchan']
+        self.info['bads'] = []
+        self.info['acq_pars'], self.info['acq_stim'] = None, None
+        self.info['filename'] = None
+        self.info['ctf_head_t'] = None
+        self.info['dev_ctf_t'] = []
+        self._filenames = []
+        self.cals = np.ones(self.info['nchan'])
+        self.orig_format = 'double'
+        self.rawdirs = list()
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
+
+        if (mrk is not None and elp is not None and hsp is not None):
+            self._set_dig_kit(mrk, elp, hsp)
+        elif (mrk is not None or elp is not None or hsp is not None):
+            err = ("mrk, elp and hsp need to be provided as a group (all or "
+                   "none)")
+            raise ValueError(err)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -104,11 +134,12 @@ class RawKIT(_BaseRaw):
                            in range(1, self._sqd_params['n_sens'] + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                             in range(1, self._sqd_params['nmiscchan'] + 1)]
-        ch_names['STIM'] = ['STI 014']
+        if stim is not None:
+            ch_names['STIM'] = ['STI 014']
         locs = self._sqd_params['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
-        info['chs'] = []
+        self.info['chs'] = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
                                           chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
@@ -157,10 +188,10 @@ class RawKIT(_BaseRaw):
             vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             chan_info['coil_trans'] = _loc_to_trans(chan_info['loc'])
-            info['chs'].append(chan_info)
+            self.info['chs'].append(chan_info)
 
         # label trigger and misc channels
-        for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
+        for idy, ch_name in enumerate(ch_names['MISC'],
                                       self._sqd_params['n_sens']):
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
@@ -172,48 +203,42 @@ class RawKIT(_BaseRaw):
             chan_info['ch_name'] = ch_name
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['loc'] = np.zeros(12)
-            if ch_name.startswith('STI'):
-                chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-                chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            else:
-                chan_info['kind'] = FIFF.FIFFV_MISC_CH
-            info['chs'].append(chan_info)
-        info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
-                            ch_names['STIM'])
-
-        super(RawKIT, self).__init__(
-            info, last_samps=last_samps, verbose=verbose)
-        self._set_stimchannels(stim, slope)
-
-        if (mrk is not None and elp is not None and hsp is not None):
-            self._set_dig_kit(mrk, elp, hsp)
-        elif (mrk is not None or elp is not None or hsp is not None):
-            err = ("mrk, elp and hsp need to be provided as a group (all or "
-                   "none)")
-            raise ValueError(err)
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            self.info['chs'].append(chan_info)
+        
+        # label STIM channel if one is present
+        if stim is not None:
+            chan_info = {}
+            chan_info['cal'] = KIT.CALIB_FACTOR
+            chan_info['logno'] = self.info['nchan']
+            chan_info['scanno'] = self.info['nchan']
+            chan_info['range'] = 1.0
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['unit_mul'] = 0
+            chan_info['ch_name'] = ch_names['STIM']
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['loc'] = np.zeros(12)
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            self.info['chs'].append(chan_info)
+        
+            self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
+                                     ch_names['STIM'])
+            self._set_stimchannels(stim, slope)
+        else:
+            self.info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
 
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
-            self._data, _ = self._read_segment()
-            assert len(self._data) == self.info['nchan']
-
-            # Create a synthetic channel
-            stim = self._sqd_params['stim']
-            trig_chs = self._data[stim, :]
-            if slope == '+':
-                trig_chs = trig_chs > stimthresh
-            elif slope == '-':
-                trig_chs = trig_chs < stimthresh
+            self._data, self._times = self._read_segment()
+            if self._sqd_params['acq_type'] == 1:
+                assert self._data.shape == (self.info['nchan'],
+                                            self.last_samp + 1)
             else:
-                raise ValueError("slope needs to be '+' or '-'")
-            trig_vals = np.array(2 ** np.arange(len(stim)), ndmin=2).T
-            trig_chs = trig_chs * trig_vals
-            stim_ch = trig_chs.sum(axis=0)
-            self._data[-1, :] = stim_ch
-
-            # Add time info
-            self._last_samps = np.array([self._data.shape[1] - 1])
+                assert self._data.shape == (self._sqd_params['n_epochs'],
+                                            self.info['nchan'],
+                                            self._sqd_params['frame_length'])
+                
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],
@@ -304,7 +329,12 @@ class RawKIT(_BaseRaw):
 
         with open(self._sqd_params['fname'], 'rb', buffering=0) as fid:
             # extract data
-            fid.seek(KIT.DATA_OFFSET)
+            acq_type = self._sqd_params['acq_type']
+            if acq_type == 1 or acq_type == 3:
+                data_offset = KIT.RAW_OFFSET
+            if acq_type == 2:
+                data_offset = KIT.AVE_OFFSET
+            fid.seek(data_offset)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             nchan = self._sqd_params['nchan']
@@ -324,6 +354,7 @@ class RawKIT(_BaseRaw):
                                sensor_gain, ndmin=2)
         data = conv_factor * data
         data = data.T
+        
         # Create a synthetic channel
         trig_chs = data[self._sqd_params['stim'], :]
         if self._sqd_params['slope'] == '+':
@@ -340,7 +371,7 @@ class RawKIT(_BaseRaw):
         data = data[sel]
 
         logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
+        times = np.arange(start, stop, dtype=float) / self.info['sfreq']
 
         return data, times
 
@@ -587,19 +618,163 @@ def get_sqd_params(rawfile):
         acqcond_offset = unpack('i', fid.read(KIT_SYS.INT))[0]
         fid.seek(acqcond_offset)
         acq_type = unpack('i', fid.read(KIT_SYS.INT))[0]
+        sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
         if acq_type == 1:
-            sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
-            fid.read(KIT_SYS.INT)  # initialized estimate of samples
-            sqd['nsamples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+            _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
+            sqd['n_samples'] = unpack('i', fid.read(KIT_SYS.INT))[0] 
+        if acq_type == 2 or acq_type == 3:
+            sqd['frame_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+            sqd['pretrigger_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+            sqd['average_count'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+            sqd['n_epochs'] = unpack('i', fid.read(KIT_SYS.INT))[0]
+            sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
         else:
-            err = ("You are probably trying to load a file that is not a "
-                   "continuous recording sqd file.")
-            raise ValueError(err)
+            err = ("Your file is neither continuous nor epoched data. "
+                   "What type of file is it?!")   
         sqd['n_sens'] = KIT_SYS.N_SENS
         sqd['nmegchan'] = KIT_SYS.NMEGCHAN
         sqd['nmiscchan'] = KIT_SYS.NMISCCHAN
         sqd['DYNAMIC_RANGE'] = KIT_SYS.DYNAMIC_RANGE
+        sqd['acq_type'] = acq_type
+            
     return sqd
+
+
+class EpochsKIT(RawKIT):
+    """Epochs Array object from KIT SQD file
+
+    Parameters
+    ----------
+    input_fname : str
+        Path to the sqd file.
+    events : array, shape (n_events, 3)
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : None | str | array_like, shape = (8, 3)
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : None | str | array, shape = (n_points, 3)
+        Digitizer head shape points, or path to head shape file. If more than
+        10`000 points are in the head shape, they are automatically decimated.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    @verbose
+    def __init__(self, input_fname, events, event_id=None,
+                 mrk=None, elp=None, hsp=None, verbose=None):
+        super(EpochsKIT, self).__init__(input_fname=input_fname, 
+                                        mrk=mrk, elp=elp, hsp=hsp, stim=None,
+                                        preload=True, verbose=verbose)
+        if len(events) != self._sqd_params['n_epochs']:
+            raise ValueError('Event list does not match number of epochs.')
+        self._events = events
+        self._event_id = event_id
+    
+    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
+                      projector=None):
+        """Read epochs data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
+        projector : array
+            SSP operator to apply to the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
+        if sel is None:
+            sel = list(range(self.info['nchan']))
+        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
+            return (666, 666)
+        if projector is not None:
+            raise NotImplementedError('Currently does not handle projections.')
+        if stop is None:
+            stop = self.last_samp + 1
+        elif stop > self.last_samp + 1:
+            stop = self.last_samp + 1
+
+        #  Initial checks
+        start = int(start)
+        stop = int(stop)
+        epoch_length = self._sqd_params['frame_length']
+        n_epochs = self._sqd_params['n_epochs']
+        n_samples = self._sqd_params['n_samples']
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (start, stop - 1, start / float(self.info['sfreq']),
+                     (stop - 1) / float(self.info['sfreq'])))
+
+        with open(self._sqd_params['fname'], 'rb', buffering=0) as fid:
+            # extract data
+            acq_type = self._sqd_params['acq_type']
+            if acq_type == 1 or acq_type == 3:
+                data_offset = KIT.RAW_OFFSET
+            if acq_type == 2:
+                data_offset = KIT.AVE_OFFSET
+            fid.seek(data_offset)
+            # data offset info
+            data_offset = unpack('i', fid.read(KIT.INT))[0]
+            nchan = self._sqd_params['nchan']
+            buffer_size = stop - start
+            if buffer_size != n_samples:
+                raise ValueError('Must read the entire file.')
+            count = buffer_size * nchan
+            pointer = start * nchan * KIT.SHORT
+            fid.seek(data_offset + pointer)
+            data = np.fromfile(fid, dtype='h', count=count)
+            data = data.reshape((buffer_size, nchan))
+        # amplifier applies only to the sensor channels
+        n_sens = self._sqd_params['n_sens']
+        sensor_gain = np.copy(self._sqd_params['sensor_gain'])
+        sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
+                                self._sqd_params['amp_gain'])
+        conv_factor = np.array((KIT.VOLTAGE_RANGE /
+                                self._sqd_params['DYNAMIC_RANGE'])
+                               * sensor_gain, ndmin=2)
+        data = conv_factor * data
+        data = data.T
+        datas = []
+        for n in range(n_epochs):
+            datas.append(data[:, n*epoch_length:(n+1)*epoch_length])
+        data = np.array(datas)
+        data = data[:, sel, :]
+
+        logger.info('[done]')
+        times = np.arange(start, stop) / self.info['sfreq']
+
+        return data, times
+                 
 
 
 def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
@@ -653,3 +828,48 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
                   preload=preload, verbose=verbose)
+
+def read_epochs_kit(input_fname, events, event_id=None,
+                    mrk=None, elp=None, hsp=None, verbose=None):
+    """Reader function for KIT conversion to FIF
+
+    Parameters
+    ----------
+    input_fname : str
+        Path to the sqd file.
+    events : array, shape (n_events, 3)
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be marked as 'IGNORED' in the drop log.
+    event_id : int | list of int | dict | None
+        The id of the event to consider. If dict,
+        the keys can later be used to acces associated events. Example:
+        dict(auditory=1, visual=3). If int, a dict will be created with
+        the id as string. If a list, all events with the IDs specified
+        in the list are used. If None, all events will be used with
+        and a dict is created with string integer names corresponding
+        to the event id integers.
+    mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
+        Marker points representing the location of the marker coils with
+        respect to the MEG Sensors, or path to a marker file.
+        If list, all of the markers will be averaged together.
+    elp : None | str | array_like, shape = (8, 3)
+        Digitizer points representing the location of the fiducials and the
+        marker coils with respect to the digitized head shape, or path to a
+        file containing these points.
+    hsp : None | str | array, shape = (n_points, 3)
+        Digitizer head shape points, or path to head shape file. If more than
+        10`000 points are in the head shape, they are automatically decimated.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    epochs = EpochsKIT(input_fname=input_fname, events=events,
+                       event_id=event_id, mrk=mrk, elp=elp, hsp=hsp,
+                       verbose=verbose)
+                       
+    epochs = EpochsArray(data=epochs._data, info=epochs.info, 
+                         events=epochs._events, event_id=epochs._event_id,
+                         verbose=verbose)
+    
+    return epochs
+    
