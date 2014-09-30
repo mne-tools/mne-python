@@ -474,7 +474,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Parameters
         ----------
         epoch_idx : array-like | int | None
-            The epochs to visualize. If None, the frist 20 epochs are shoen.
+            The epochs to visualize. If None, the first 20 epochs are shown.
             Defaults to None.
         picks : array-like of int | None
             Channels to be included. If None only good data channels are used.
