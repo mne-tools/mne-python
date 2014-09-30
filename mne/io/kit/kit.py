@@ -192,7 +192,7 @@ class RawKIT(_BaseRaw):
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'],
-                                      self._sqd_params['n_sens']):
+                                      self._sqd_params['n_sens']+1):
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
