@@ -14,13 +14,17 @@ import scipy.io
 
 from mne import pick_types, concatenate_raws
 from mne.utils import _TempDir
-from mne.io import Raw, read_raw_kit
+from mne import Epochs, pick_types, read_events
+from mne.io import Raw
+from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
 data_dir = op.join(parent_dir, 'data')
 sqd_path = op.join(data_dir, 'test.sqd')
+epochs_path = op.join(data_dir, 'test-epoch.raw')
+events_path = op.join(data_dir, 'test-eve.txt')
 mrk_path = op.join(data_dir, 'test_mrk.sqd')
 mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
@@ -60,6 +64,15 @@ def test_data():
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
+def test_epochs():
+    raw = read_raw_kit(sqd_path, stim=None)
+    events = read_events(events_path)
+    raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
+    data1 = raw_epochs.get_data()
+    epochs = read_epochs_kit(epochs_path, events)
+    data11 = epochs.get_data()
+    assert_array_almost_equal(data1, data11)
+    
 
 def test_read_segment():
     """Test writing raw kit files when preload is False

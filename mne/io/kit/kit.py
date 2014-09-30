@@ -101,7 +101,7 @@ class RawKIT(_BaseRaw):
         info['highpass'] = self._sqd_params['highpass']
         info['sfreq'] = float(self._sqd_params['sfreq'])
         # meg channels plus synthetic channel
-        if stim is not None:
+        if stim:
             self.info['nchan'] = self._sqd_params['nchan'] + 1
         else:
             self.info['nchan'] = self._sqd_params['nchan']
@@ -134,7 +134,7 @@ class RawKIT(_BaseRaw):
                            in range(1, self._sqd_params['n_sens'] + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                             in range(1, self._sqd_params['nmiscchan'] + 1)]
-        if stim is not None:
+        if stim:
             ch_names['STIM'] = ['STI 014']
         locs = self._sqd_params['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
@@ -207,7 +207,7 @@ class RawKIT(_BaseRaw):
             self.info['chs'].append(chan_info)
         
         # label STIM channel if one is present
-        if stim is not None:
+        if stim:
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = self.info['nchan']
@@ -215,7 +215,7 @@ class RawKIT(_BaseRaw):
             chan_info['range'] = 1.0
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['unit_mul'] = 0
-            chan_info['ch_name'] = ch_names['STIM']
+            chan_info['ch_name'] = ch_names['STIM'][0]
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -356,18 +356,19 @@ class RawKIT(_BaseRaw):
         data = data.T
         
         # Create a synthetic channel
-        trig_chs = data[self._sqd_params['stim'], :]
-        if self._sqd_params['slope'] == '+':
-            trig_chs = trig_chs > self._sqd_params['stimthresh']
-        elif self._sqd_params['slope'] == '-':
-            trig_chs = trig_chs < self._sqd_params['stimthresh']
-        else:
-            raise ValueError("slope needs to be '+' or '-'")
-        trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
-                             ndmin=2).T
-        trig_chs = trig_chs * trig_vals
-        stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
-        data = np.vstack((data, stim_ch))
+        if 'stim' in self._sqd_params:
+            trig_chs = data[self._sqd_params['stim'], :]
+            if self._sqd_params['slope'] == '+':
+                trig_chs = trig_chs > self._sqd_params['stimthresh']
+            elif self._sqd_params['slope'] == '-':
+                trig_chs = trig_chs < self._sqd_params['stimthresh']
+            else:
+                raise ValueError("slope needs to be '+' or '-'")
+            trig_vals = np.array(2 ** np.arange(len(self._sqd_params['stim'])),
+                                 ndmin=2).T
+            trig_chs = trig_chs * trig_vals
+            stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
+            data = np.vstack((data, stim_ch))
         data = data[sel]
 
         logger.info('[done]')

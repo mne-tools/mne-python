@@ -25,7 +25,7 @@ from .brainvision import read_raw_brainvision
 from .bti import read_raw_bti
 from .edf import read_raw_edf
 from .egi import read_raw_egi
-from .kit import read_raw_kit
+from .kit import read_raw_kit, read_epochs_kit
 from .fiff import read_raw_fif
 
 # for backward compatibility
