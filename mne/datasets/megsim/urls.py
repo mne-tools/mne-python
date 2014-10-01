@@ -145,6 +145,7 @@ conditions = np.atleast_1d(conditions)
 #assert len(conditions) == len(data_types) == len(subjects) \
 #    == len(data_formats) == len(urls)
 
+
 def url_match(condition, data_format, data_type):
     """Function to match MEGSIM data files"""
     inds = np.logical_and(conditions == condition, data_formats == data_format)

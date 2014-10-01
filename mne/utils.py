@@ -17,14 +17,13 @@ import inspect
 from string import Formatter
 import subprocess
 import sys
-from sys import stdout
 import tempfile
 import shutil
+import hashlib
 from shutil import rmtree
 from math import log, ceil
 import json
 import ftplib
-import hashlib
 
 import numpy as np
 import scipy
@@ -1277,7 +1276,7 @@ class ProgressBar(object):
     template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
-                 progress_character='.', spinner=False):
+                 progress_character='.', spinner=False, verbose_bool=True):
         self.cur_value = initial_value
         self.max_value = float(max_value)
         self.mesg = mesg
@@ -1286,6 +1285,7 @@ class ProgressBar(object):
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
+        self._do_print = verbose_bool
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process
@@ -1320,14 +1320,14 @@ class ProgressBar(object):
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
                                    self.mesg)
-        sys.stdout.write(bar)
+        # Force a flush because sometimes when using bash scripts and pipes,
+        # the output is not printed until after the program exits.
+        if self._do_print:
+            sys.stdout.write(bar)
+            sys.stdout.flush()
         # Increament the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
-
-        # Force a flush because sometimes when using bash scripts and pipes,
-        # the output is not printed until after the program exits.
-        sys.stdout.flush()
 
     def update_with_increment_value(self, increment_value, mesg=None):
         """Update progressbar with the value of the increment instead of the
@@ -1362,7 +1362,8 @@ class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
         pass
 
 
-def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
+def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
+                verbose_bool=True):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -1381,24 +1382,24 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 
-    bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
     total_size = int(response.headers.get('Content-Length', '1').strip())
     total_size += initial_size
 
-    progress = ProgressBar(total_size, initial_value=bytes_so_far,
-                           max_chars=40, spinner=True, mesg='downloading')
+    progress = ProgressBar(total_size, initial_value=initial_size,
+                           max_chars=40, spinner=True, mesg='downloading',
+                           verbose_bool=verbose_bool)
     while True:
         chunk = response.read(chunk_size)
-        bytes_so_far += len(chunk)
         if not chunk:
-            sys.stderr.write('\n')
+            if verbose_bool:
+                sys.stdout.write('\n')
             break
         _chunk_write(chunk, local_file, progress)
 
 
-def _chunk_read_ftp_resume(url, temp_file_name, local_file):
+def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     """Resume downloading of a file from an FTP server"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -1422,7 +1423,8 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
     progress = ProgressBar(file_size, initial_value=local_file_size,
-                           max_chars=40, spinner=True, mesg='downloading')
+                           max_chars=40, spinner=True, mesg='downloading',
+                           verbose_bool=verbose_bool)
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
@@ -1436,8 +1438,9 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
+@verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                verbose=None):
+                hash_=None, verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1451,15 +1454,22 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
+    hash_ : str | None
+        The hash of the file to check. If None, no checking is
+        performed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-
+    if hash_ is not None and (not isinstance(hash_, string_types) or
+                              len(hash_) != 32):
+        raise ValueError('Bad hash value given, should be a 32-character '
+                         'string:\n%s' % (hash_,))
     temp_file_name = file_name + ".part"
     local_file = None
     initial_size = 0
+    verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Checking file size and displaying it alongside the download url
         u = urllib.request.urlopen(url, timeout=10.)
@@ -1467,7 +1477,8 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
             del u
-        print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
+        logger.info('Downloading data from %s (%s)\n'
+                    % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
@@ -1484,27 +1495,38 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
-                    print('Resuming download failed. Attempting to restart '
-                          'downloading the entire file.')
+                    logger.info('Resuming download failed. Attempting to '
+                                'restart downloading the entire file.')
                     _fetch_file(url, resume=False)
                 else:
-                    _chunk_read(data, local_file, initial_size=local_file_size)
+                    _chunk_read(data, local_file, initial_size=local_file_size,
+                                verbose_bool=verbose_bool)
                     del data  # should auto-close
             else:
-                _chunk_read_ftp_resume(url, temp_file_name, local_file)
+                _chunk_read_ftp_resume(url, temp_file_name, local_file,
+                                       verbose_bool=verbose_bool)
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
             try:
-                _chunk_read(data, local_file, initial_size=initial_size)
+                _chunk_read(data, local_file, initial_size=initial_size,
+                            verbose_bool=verbose_bool)
             finally:
                 del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
+        # check md5sum
+        if hash_ is not None:
+            logger.info('Verifying download hash.\n')
+            md5 = md5sum(temp_file_name)
+            if hash_ != md5:
+                raise RuntimeError('Hash mismatch for downloaded file %s, '
+                                   'expected %s but got %s'
+                                   % (temp_file_name, hash_, md5))
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
-            stdout.write('File saved as %s.\n' % file_name)
+            logger.info('File saved as %s.\n' % file_name)
     except Exception as e:
         logger.error('Error while fetching file %s.'
                      ' Dataset fetching aborted.' % url)
@@ -1702,7 +1724,7 @@ def run_tests_if_main(measure_mem=True):
         elif callable(val) and name.startswith('test'):
             count += 1
             doc = val.__doc__.strip() if val.__doc__ else name
-            print('%s ... ' % doc, end='')
+            sys.stdout.write('%s ... ' % doc)
             sys.stdout.flush()
             try:
                 t1 = time.time()
@@ -1717,17 +1739,18 @@ def run_tests_if_main(measure_mem=True):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                print('time: %s sec%s' % (elapsed, mem))
+                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
-                    print('SKIP')
+                    sys.stdout.write('SKIP\n')
                     sys.stdout.flush()
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
-          % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))
+    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
+                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
+                                        elapsed_name, peak_mem, peak_name))
 
 
 class ArgvSetter(object):
@@ -1750,3 +1773,28 @@ class ArgvSetter(object):
         sys.argv = self.orig_argv
         sys.stdout = self.orig_stdout
         sys.stderr = self.orig_stderr
+
+
+def md5sum(fname, block_size=1048576):  # 2 ** 20
+    """Calculate the md5sum for a file
+
+    Parameters
+    ----------
+    fname : str
+        Filename.
+    block_size : int
+        Block size to use when reading.
+
+    Returns
+    -------
+    hash_ : str
+        The hexidecimal digest of the hash.
+    """
+    md5 = hashlib.md5()
+    with open(fname, 'rb') as fid:
+        while True:
+            data = fid.read(block_size)
+            if not data:
+                break
+            md5.update(data)
+    return md5.hexdigest()

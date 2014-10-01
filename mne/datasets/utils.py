@@ -63,8 +63,8 @@ def _dataset_version(path, name):
     return version
 
 
-def _data_path(path=None, force_update=False, update_path=True,
-               download=True, name=None, check_version=True, verbose=None):
+def _data_path(path=None, force_update=False, update_path=True, download=True,
+               name=None, check_version=True):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
@@ -109,18 +109,22 @@ def _data_path(path=None, force_update=False, update_path=True,
         archive_name = "MNE-sample-data-processed.tar.gz"
         folder_name = "MNE-sample-data"
         url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
+        hash_ = '1bb9f993bfba2057e0039c306a717109'
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
         folder_name = "MNE-spm-face"
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        hash_ = '3e9e83c642136e5b720e2ecc5dcc3244'
     elif name == 'somato':
         archive_name = 'MNE-somato-data.tar.gz'
         folder_name = "MNE-somato-data"
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        hash_ = 'f3e3a8441477bb5bacae1d0c6e0964fb'
     elif name == 'testing':
         archive_name = 'MNE-testing-data.tar.gz'
         folder_name = 'MNE-testing-data'
         url = 'http://lester.ilabs.uw.edu/files/' + archive_name
+        hash_ = 'f66d60852e5f42a4940fb22bc1e92dc2'
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
     folder_path = op.join(path, folder_name)
@@ -151,7 +155,8 @@ def _data_path(path=None, force_update=False, update_path=True,
                     fetch_archive = False
 
             if fetch_archive:
-                _fetch_file(url, archive_name, print_destination=False)
+                _fetch_file(url, archive_name, print_destination=False,
+                            hash_=hash_)
 
         if op.exists(folder_path):
             shutil.rmtree(folder_path)

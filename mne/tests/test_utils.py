@@ -11,7 +11,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        sum_squared, requires_mem_gb, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
                        _check_type_picks, object_hash, object_diff,
-                       requires_good_network, run_tests_if_main)
+                       requires_good_network, run_tests_if_main, md5sum,
+                       ArgvSetter)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -92,6 +93,21 @@ def test_hash():
     # generators (and other types) not supported
     d1[1] = (x for x in d0)
     assert_raises(RuntimeError, object_hash, d1)
+
+
+def test_md5sum():
+    """Test md5sum calculation
+    """
+    tempdir = _TempDir()
+    fname1 = op.join(tempdir, 'foo')
+    fname2 = op.join(tempdir, 'bar')
+    with open(fname1, 'wb') as fid:
+        fid.write('abcd')
+    with open(fname2, 'wb') as fid:
+        fid.write('efgh')
+    assert_equal(md5sum(fname1), md5sum(fname1, 1))
+    assert_equal(md5sum(fname2), md5sum(fname2, 1024))
+    assert_true(md5sum(fname1) != md5sum(fname2))
 
 
 def test_tempdir():
@@ -296,17 +312,21 @@ def test_fetch_file():
     tempdir = _TempDir()
     urls = ['http://martinos.org/mne/',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
-    for url in urls:
-        archive_name = op.join(tempdir, "download_test")
-        _fetch_file(url, archive_name, print_destination=False, verbose=False)
-        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                      op.join(tempdir, 'test'), verbose=False)
-        resume_name = op.join(tempdir, "download_resume")
-        # touch file
-        with open(resume_name + '.part', 'w'):
-            os.utime(resume_name + '.part', None)
-        _fetch_file(url, resume_name, print_destination=False, resume=True,
-                    verbose=False)
+    with ArgvSetter():  # to capture stdout
+        for url in urls:
+            archive_name = op.join(tempdir, "download_test")
+            _fetch_file(url, archive_name, verbose=False)
+            assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
+                          op.join(tempdir, 'test'), verbose=False)
+            resume_name = op.join(tempdir, "download_resume")
+            # touch file
+            with open(resume_name + '.part', 'w'):
+                os.utime(resume_name + '.part', None)
+            _fetch_file(url, resume_name, resume=True, verbose=False)
+            assert_raises(ValueError, _fetch_file, url, archive_name,
+                          hash_='a', verbose=False)
+            assert_raises(RuntimeError, _fetch_file, url, archive_name,
+                          hash_='a' * 32, verbose=False)
 
 
 def test_sum_squared():
