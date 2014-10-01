@@ -39,7 +39,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
 @testing.requires_testing_data
-@requires_PIL()
+@requires_PIL
 def test_render_report():
     """Test rendering -*.fif files for mne report.
     """
@@ -99,8 +99,8 @@ def test_render_report():
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
 
-@requires_mayavi()
-@requires_PIL()
+@requires_mayavi
+@requires_PIL
 def test_render_add_sections():
     """Test adding figures/images to section.
     """
@@ -131,8 +131,8 @@ def test_render_add_sections():
         assert_true(w[0].category == DeprecationWarning)
 
 
-@requires_mayavi()
 @testing.requires_testing_data
+@requires_mayavi
 @requires_nibabel()
 def test_render_mri():
     """Test rendering MRI for mne report.

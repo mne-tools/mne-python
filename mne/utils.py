@@ -19,11 +19,12 @@ import subprocess
 import sys
 import tempfile
 import shutil
-import hashlib
 from shutil import rmtree
 from math import log, ceil
 import json
 import ftplib
+import hashlib
+from functools import partial
 
 import numpy as np
 import scipy
@@ -514,14 +515,6 @@ def verbose(function, *args, **kwargs):
         return function(*args, **kwargs)
 
 
-def has_command_line_tools():
-    return ('MNE_ROOT' in os.environ)
-
-
-requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
-                                     'Requires MNE command line tools')
-
-
 def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
@@ -536,24 +529,8 @@ def has_nibabel(vox2ras_tkr=False):
         return False
 
 
-def has_freesurfer():
-    """Aux function"""
-    return ('FREESURFER_HOME' in os.environ)
-
-
-requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
-                                               not has_freesurfer(),
-                                               'Requires nibabel or '
-                                               'Freesurfer')
-
-
-def has_neuromag2ft():
-    """Aux function"""
-    return ('NEUROMAG2FT_ROOT' in os.environ)
-
-
-requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
-                                             'Requires neuromag2ft')
+has_mne_c = lambda: 'MNE_ROOT' in os.environ
+has_freesurfer = lambda: 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
@@ -562,213 +539,104 @@ def requires_nibabel(vox2ras_tkr=False):
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
-requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
-                                            'Requires Freesurfer')
 
-
-def requires_mem_gb(requirement):
-    """Decorator to skip test if insufficient memory is available"""
-    def real_decorator(function):
-        # convert to gb
-        req = int(1e9 * requirement)
-        try:
-            import psutil
-            has_psutil = True
-        except ImportError:
-            has_psutil = False
-
-        @wraps(function)
-        def dec(*args, **kwargs):
-            if has_psutil and psutil.virtual_memory().available >= req:
-                skip = False
-            else:
-                skip = True
-
-            if skip is True:
-                raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
-                               'memory' % (function.__name__, requirement))
-            return function(*args, **kwargs)
-        return dec
-    return real_decorator
-
-
-def requires_pandas(function):
-    """Decorator to skip test if pandas is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import pandas
-            version = LooseVersion(pandas.__version__)
-            if version < '0.8.0':
-                skip = True
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires pandas'
-                           % function.__name__)
-        return function(*args, **kwargs)
-
-    return dec
-
-
-def requires_tvtk(function):
-    """Decorator to skip test if TVTK is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            from tvtk.api import tvtk  # analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires TVTK'
-                           % function.__name__)
-        return function(*args, **kwargs)
-
-    return dec
-
-
-def requires_statsmodels(function):
-    """Decorator to skip test if statsmodels is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import statsmodels  # noqa, analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires statsmodels'
-                           % function.__name__)
-        return function(*args, **kwargs)
-
-    return dec
-
-
-def requires_patsy(function):
-    """
-    Decorator to skip test if patsy is not available. Patsy should be a
-    statsmodels dependency but apparently it's possible to install statsmodels
-    without it.
-    """
-    @wraps(function)
-    def dec(*args, **kwargs):
-        skip = False
-        try:
-            import patsy  # noqa, analysis:ignore
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires patsy'
-                           % function.__name__)
-        return function(*args, **kwargs)
-
-    return dec
-
-
-def requires_sklearn(function):
-    """Decorator to skip test if sklearn is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        required_version = '0.14'
-        skip = False
-        try:
-            import sklearn
-            version = LooseVersion(sklearn.__version__)
-            if version < required_version:
-                skip = True
-        except ImportError:
-            skip = True
-
-        if skip is True:
-            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
-                           % (function.__name__, required_version))
-        return function(*args, **kwargs)
-
-    return dec
-
-
-def requires_mayavi():
-    """Decorator to skip test if mayavi is not available"""
-    lacks_mayavi = False
-    try:
-        from mayavi import mlab
-    except ImportError:
-        try:
-            from enthought.mayavi import mlab
-        except ImportError:
-            lacks_mayavi = True
-            mlab = False
-    requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
-
-    if not lacks_mayavi:
-        mlab.options.backend = 'test'
-
-    return requires_mayavi
-
-
-def requires_pysurfer():
-    """Decorator to skip test if PySurfer is not available"""
-    lacks_surfer = False
-    try:
-        from surfer import Brain  # noqa, analysis:ignore
-    except Exception:
-        lacks_surfer = True
-    requires_mayavi = np.testing.dec.skipif(lacks_surfer, 'Requires PySurfer')
-    return requires_mayavi
-
-
-def requires_PIL():
-    """Decorator to skip test if PIL is not available"""
-    lacks_PIL = False
-    try:
-        from PIL import Image  # noqa, analysis:ignore
-    except Exception:
-        lacks_PIL = True
-    requires_PIL = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
-    return requires_PIL
-
-
-def requires_good_network(function):
+def requires_scipy_version(min_version):
     """Helper for testing"""
+    ok = check_scipy_version(min_version)
+    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
+                                 % min_version)
 
+
+def requires_module(function, name, call):
+    """Decorator to skip test if package is not available"""
     @wraps(function)
     def dec(*args, **kwargs):
-        if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
-            raise SkipTest('Test %s skipped, requires a good network '
-                           'connection' % function.__name__)
+        skip = False
+        try:
+            exec(call) in globals(), locals()
+        except Exception:
+            skip = True
+        if skip is True:
+            raise SkipTest('Test %s skipped, requires %s'
+                           % (function.__name__, name))
         return function(*args, **kwargs)
-
     return dec
 
 
-def make_skipper_dec(module, skip_str):
-    """Helper to make skipping decorators"""
-    skip = False
-    try:
-        __import__(module)
-    except ImportError:
-        skip = True
-    return np.testing.dec.skipif(skip, skip_str)
+_pandas_call = """
+import pandas
+version = LooseVersion(pandas.__version__)
+if version < '0.8.0':
+    raise ImportError
+"""
 
-requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
-requires_traits = make_skipper_dec('traits', 'traits not installed')
-travis_skip = np.testing.dec.skipif(os.getenv('TRAVIS', '') == 'true',
-                                    'Test does not run on Travis platforms')
+_sklearn_call = """
+required_version = '0.14'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
 
+_mayavi_call = """
+try:
+    from mayavi import mlab
+except ImportError:
+    from enthought.mayavi import mlab
+mlab.options.backend = 'test'
+"""
 
-def _mne_fs_not_in_env():
-    """Aux function"""
-    return (('FREESURFER_HOME' not in os.environ) or
-            ('MNE_ROOT' not in os.environ))
+_mne_call = """
+if not has_mne_c():
+    raise ImportError
+"""
 
-requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env(),
-                                               'MNE or Freesurfer not found')
+_fs_call = """
+if not has_freesurfer():
+    raise ImportError
+"""
+
+_n2ft_call = """
+if 'NEUROMAG2FT_ROOT' not in os.environ:
+    raise ImportError
+"""
+
+_fs_or_ni_call = """
+if not has_nibabel() and not has_freesurfer():
+    raise ImportError
+"""
+
+requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
+requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
+requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
+requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
+requires_freesurfer = partial(requires_module, name='Freesurfer',
+                              call=_fs_call)
+requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
+                               call=_n2ft_call)
+requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
+                                 call=_fs_or_ni_call)
+
+requires_tvtk = partial(requires_module, name='TVTK',
+                        call='from tvtk.api import tvtk')
+requires_statsmodels = partial(requires_module, name='statsmodels',
+                               call='import statsmodels')
+requires_patsy = partial(requires_module, name='patsy',
+                         call='import patsy')
+requires_pysurfer = partial(requires_module, name='PySurfer',
+                            call='from surfer import Brain')
+requires_PIL = partial(requires_module, name='PIL',
+                       call='from PIL import Image')
+requires_good_network = partial(
+    requires_module, name='good network connection',
+    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
+         '    raise ImportError')
+requires_nitime = partial(requires_module, name='nitime',
+                          call='import nitime')
+requires_traits = partial(requires_module, name='traits',
+                          call='import traits')
+requires_pytables = partial(requires_module, name='pytables',
+                            call='import tables')
 
 
 def _check_mayavi_version(min_version='4.3.0'):
@@ -782,8 +650,7 @@ def _check_mayavi_version(min_version='4.3.0'):
     """
     import mayavi
     require_mayavi = LooseVersion(min_version)
-    has_mayavi = LooseVersion(mayavi.__version__)
-    if has_mayavi < require_mayavi:
+    if LooseVersion(mayavi.__version__) < require_mayavi:
         raise RuntimeError("Need mayavi >= %s" % require_mayavi)
 
 
@@ -820,13 +687,6 @@ def check_scipy_version(min_version):
     return False if this_version < min_version else True
 
 
-def requires_scipy_version(min_version):
-    """Helper for testing"""
-    ok = check_scipy_version(min_version)
-    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
-                                 % min_version)
-
-
 def _check_pytables():
     """Helper to error if Pytables is not found"""
     try:
@@ -834,16 +694,6 @@ def _check_pytables():
     except ImportError:
         raise ImportError('pytables could not be imported')
     return tb
-
-
-def requires_pytables():
-    """Helper for testing"""
-    have = True
-    try:
-        _check_pytables()
-    except ImportError:
-        have = False
-    return np.testing.dec.skipif(not have, 'Requires pytables')
 
 
 @verbose
@@ -1732,7 +1582,7 @@ def run_tests_if_main(measure_mem=True):
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
-                    sys.stdout.write('SKIP\n')
+                    sys.stdout.write('SKIP (%s)\n' % str(err))
                     sys.stdout.flush()
                 else:
                     raise

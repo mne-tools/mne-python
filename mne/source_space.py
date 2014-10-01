@@ -1059,7 +1059,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     This function requires either nibabel (in Python) or Freesurfer
     (with utility "mri_info") to be correctly installed.
     """
-    if not has_freesurfer and not has_nibabel():
+    if not has_freesurfer() and not has_nibabel():
         raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
                            'correctly installed and accessible from Python')
 

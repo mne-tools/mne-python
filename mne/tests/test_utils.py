@@ -8,7 +8,7 @@ import warnings
 
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
-                       sum_squared, requires_mem_gb, estimate_rank,
+                       sum_squared, estimate_rank,
                        _url_to_local_path, sizeof_fmt,
                        _check_type_picks, object_hash, object_diff,
                        requires_good_network, run_tests_if_main, md5sum,
@@ -259,16 +259,6 @@ class deprecated_class(object):
         pass
 
 
-@requires_mem_gb(10000)
-def big_mem_func():
-    pass
-
-
-@requires_mem_gb(0)
-def no_mem_func():
-    pass
-
-
 def test_deprecated():
     """Test deprecated function
     """
@@ -280,29 +270,6 @@ def test_deprecated():
         warnings.simplefilter('always')
         deprecated_class()
     assert_true(len(w) == 1)
-
-
-def test_requires_mem_gb():
-    """Test requires memory function
-    """
-    try:
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            big_mem_func()
-        assert_true(len(w) == 1)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            no_mem_func()
-        assert_true(len(w) == 0)
-    except:
-        try:
-            import psutil
-            msg = ('psutil version %s exposes unexpected API' %
-                   psutil.__version__)
-        except ImportError:
-            msg = 'Could not import psutil'
-        from nose.plugins.skip import SkipTest
-        SkipTest(msg)
 
 
 @requires_good_network

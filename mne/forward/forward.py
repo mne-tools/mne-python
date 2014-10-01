@@ -39,7 +39,7 @@ from ..source_space import (_read_source_spaces_from_tree,
                             _write_source_spaces_to_fid)
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
-from ..utils import (_check_fname, get_subjects_dir, has_command_line_tools,
+from ..utils import (_check_fname, get_subjects_dir, has_mne_c,
                      run_subprocess, check_fname, logger, verbose)
 
 
@@ -1397,7 +1397,7 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     fwd : dict
         The generated forward solution.
     """
-    if not has_command_line_tools():
+    if not has_mne_c():
         raise RuntimeError('mne command line tools could not be found')
 
     # check for file existence

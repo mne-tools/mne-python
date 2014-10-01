@@ -4,14 +4,13 @@
 # License: Simplified BSD
 
 import os.path as op
-from functools import wraps
 import warnings
 
 from numpy.testing import assert_raises
 
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
-from mne.utils import check_sklearn_version, run_tests_if_main
+from mne.utils import run_tests_if_main, requires_sklearn
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
 
@@ -29,19 +28,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 event_id, tmin, tmax = 1, -0.1, 0.2
-
-
-def requires_sklearn(function):
-    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if not check_sklearn_version(min_version='0.12'):
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-        return ret
-    return dec
 
 
 def _get_raw(preload=False):

@@ -12,7 +12,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
-                       requires_mayavi, ArgvSetter)
+                       requires_mayavi, requires_tvtk, ArgvSetter)
 from mne.io import Raw
 from mne.datasets import testing
 
@@ -99,7 +99,7 @@ def test_kit2fiff():
     check_usage(mne_kit2fiff, force_help=True)
 
 
-@requires_mayavi()  # ensures we have TVTK
+@requires_tvtk
 @requires_mne
 @testing.requires_testing_data
 def test_make_scalp_surfaces():
@@ -153,8 +153,8 @@ def test_maxfilter():
             assert_true(check in out.stdout.getvalue(), check)
 
 
-@requires_mayavi()
-@requires_PIL()
+@requires_mayavi
+@requires_PIL
 @testing.requires_testing_data
 def test_report():
     """Test mne report"""

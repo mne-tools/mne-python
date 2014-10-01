@@ -152,7 +152,7 @@ def test_io_stc():
     assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
-@requires_pytables()
+@requires_pytables
 def test_io_stc_h5():
     """Test IO for STC files using HDF5
     """

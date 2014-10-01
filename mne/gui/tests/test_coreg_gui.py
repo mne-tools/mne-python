@@ -13,8 +13,8 @@ import warnings
 import mne
 from mne.datasets import testing
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import (_TempDir, requires_traits, requires_mne_fs_in_env,
-                       run_tests_if_main)
+from mne.utils import (_TempDir, requires_traits, requires_mne,
+                       requires_freesurfer, run_tests_if_main)
 from mne.externals.six import string_types
 
 
@@ -117,7 +117,8 @@ def test_coreg_model():
 
 @testing.requires_testing_data
 @requires_traits
-@requires_mne_fs_in_env
+@requires_mne
+@requires_freesurfer
 def test_coreg_model_with_fsaverage():
     """Test CoregModel"""
     tempdir = _TempDir()
