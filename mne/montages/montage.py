@@ -83,9 +83,10 @@ def read_montage(kind, names=None, path=None, scale=True):
             raise ValueError('Could not find the montage. Please provide the'
                              'full path')
         kind, ext = montages[0]
+        fname = op.join(path, kind + ext)
     else:
         kind, ext = op.splitext(kind)
-        fname = op.join(kind + ext)
+        fname = op.join(path, kind + ext)
 
     if ext == '.sfp':
         # EGI geodesic
