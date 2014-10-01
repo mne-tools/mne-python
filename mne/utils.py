@@ -40,22 +40,28 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
 try:
-    from nose.tools import nottest
     from nose.plugins.skip import SkipTest
 except ImportError:
-    class nottest(object):
-        def __init__(self, *args):
-            pass  # Avoid "object() takes no parameters"
     SkipTest = RuntimeError
+
+
+def _memory_usage(*args, **kwargs):
+    if isinstance(args[0], tuple):
+        args[0][0](*args[0][1], **args[0][2])
+    elif not isinstance(args[0], int):  # can be -1 for current use
+        args[0]()
+    return [-1]
+
 try:
     from memory_profiler import memory_usage
 except ImportError:
-    def memory_usage(*args, **kwargs):
-        if isinstance(args[0], tuple):
-            args[0][0](*args[0][1], **args[0][2])
-        elif not isinstance(args[0], int):  # can be -1 for current use
-            args[0]()
-        return [-1]
+    memory_usage = _memory_usage
+
+
+def nottest(f):
+    """Decorator to mark a function as not a test"""
+    f.__test__ = False
+    return f
 
 
 ###############################################################################
@@ -487,44 +493,34 @@ def verbose(function, *args, **kwargs):
         The decorated function
     """
     arg_names = inspect.getargspec(function).args
-
+    default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
-    else:
-        default_level = None
-
     if('verbose' in arg_names):
         verbose_level = args[arg_names.index('verbose')]
-    else:
-        verbose_level = None
 
     # This ensures that object.method(verbose=None) will use object.verbose
-    if verbose_level is None:
-        verbose_level = default_level
+    verbose_level = default_level if verbose_level is None else verbose_level
 
     if verbose_level is not None:
         old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
         try:
             return function(*args, **kwargs)
-        except Exception:
-            raise
         finally:
             set_log_level(old_level)
-    else:
-        return function(*args, **kwargs)
+    return function(*args, **kwargs)
 
 
 def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
+        out = True
         if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            mgh_ihdr = getattr(nibabel, 'MGHImage', None)
-            mgh_ihdr = getattr(mgh_ihdr, 'header_class', None)
-            get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
-            return True if get_vox2ras_tkr is not None else False
-        else:
-            return True
+            out = (getattr(getattr(getattr(nibabel, 'MGHImage', 0),
+                                   'header_class', 0),
+                           'get_vox2ras_tkr', None) is not None)
+        return out
     except ImportError:
         return False
 
@@ -542,9 +538,8 @@ def requires_nibabel(vox2ras_tkr=False):
 
 def requires_scipy_version(min_version):
     """Helper for testing"""
-    ok = check_scipy_version(min_version)
-    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
-                                 % min_version)
+    return np.testing.dec.skipif(not check_scipy_version(min_version),
+                                 'Requires scipy version >= %s' % min_version)
 
 
 def requires_module(function, name, call):
@@ -685,15 +680,6 @@ def check_scipy_version(min_version):
     """
     this_version = LooseVersion(scipy.__version__)
     return False if this_version < min_version else True
-
-
-def _check_pytables():
-    """Helper to error if Pytables is not found"""
-    try:
-        import tables as tb
-    except ImportError:
-        raise ImportError('pytables could not be imported')
-    return tb
 
 
 @verbose
@@ -1004,7 +990,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     """
 
     if key is not None and not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+        raise TypeError('key must be a string')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1052,11 +1038,11 @@ def set_config(key, value, home_dir=None):
         If None, it is found automatically.
     """
     if not isinstance(key, string_types):
-        raise ValueError('key must be a string')
+        raise TypeError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
-        raise ValueError('value must be a string or None')
+        raise TypeError('value must be a string or None')
     if not key in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
@@ -1328,7 +1314,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                 req.headers["Range"] = "bytes=%s-" % local_file_size
                 try:
                     data = urllib.request.urlopen(req)
-                except urllib.request.HTTPError:
+                except Exception:
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
@@ -1411,10 +1397,10 @@ def _get_stim_channel(stim_channel):
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
-                raise ValueError('stim_channel must be a str, list, or None')
+                raise TypeError('stim_channel must be a str, list, or None')
             stim_channel = [stim_channel]
         if not all([isinstance(s, string_types) for s in stim_channel]):
-            raise ValueError('stim_channel list must contain all strings')
+            raise TypeError('stim_channel list must contain all strings')
         return stim_channel
 
     stim_channel = list()

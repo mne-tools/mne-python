@@ -9,10 +9,12 @@ import warnings
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
                        sum_squared, estimate_rank,
-                       _url_to_local_path, sizeof_fmt,
+                       _url_to_local_path, sizeof_fmt, _check_subject,
                        _check_type_picks, object_hash, object_diff,
                        requires_good_network, run_tests_if_main, md5sum,
-                       ArgvSetter)
+                       ArgvSetter, _memory_usage, check_random_state,
+                       _check_mayavi_version, requires_mayavi,
+                       set_memmap_min_size, _get_stim_channel, _check_fname)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -26,9 +28,34 @@ fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
 
 
-def clean_lines(lines):
+def clean_lines(lines=[]):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_misc():
+    """Test misc utilities"""
+    assert_equal(_memory_usage(-1)[0], -1)
+    assert_equal(_memory_usage((clean_lines, [], {}))[0], -1)
+    assert_equal(_memory_usage(clean_lines)[0], -1)
+    assert_raises(ValueError, check_random_state, 'foo')
+    assert_raises(ValueError, set_memmap_min_size, 1)
+    assert_raises(ValueError, set_memmap_min_size, 'foo')
+    assert_raises(TypeError, get_config, 1)
+    assert_raises(TypeError, set_config, 1)
+    assert_raises(TypeError, set_config, 'foo', 1)
+    assert_raises(TypeError, _get_stim_channel, 1)
+    assert_raises(TypeError, _get_stim_channel, [1])
+    assert_raises(TypeError, _check_fname, 1)
+    assert_raises(ValueError, _check_subject, None, None)
+    assert_raises(ValueError, _check_subject, None, 1)
+    assert_raises(ValueError, _check_subject, 1, None)
+
+
+@requires_mayavi
+def test_check_mayavi():
+    """Test mayavi version check"""
+    assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def test_run_tests_if_main():
@@ -38,27 +65,36 @@ def test_run_tests_if_main():
     def test_a():
         x.append(True)
 
+    @np.testing.dec.skipif(True)
     def test_b():
-        raise RuntimeError
+        return
 
     try:
         __name__ = '__main__'
         run_tests_if_main(measure_mem=False)  # dual meas causes problems
-    except RuntimeError:
-        pass
-    else:
-        raise RuntimeError('Error not raised')
+
+        def test_c():
+            raise RuntimeError
+
+        try:
+            __name__ = '__main__'
+            run_tests_if_main(measure_mem=False)  # dual meas causes problems
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError('Error not raised')
     finally:
         del __name__
-    assert_true(len(x) == 1)
-    assert_true(x[0])
+    assert_true(len(x) == 2)
+    assert_true(x[0] and x[1])
 
 
 def test_hash():
     """Test dictionary hashing and comparison functions"""
     # does hashing all of these types work:
     # {dict, list, tuple, ndarray, str, float, int, None}
-    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3))
+    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3),
+              e=None)
     d0[1] = None
     d0[2.] = b'123'
 
@@ -80,7 +116,31 @@ def test_hash():
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    d1['b'] = StringIO()
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['a']['d'] = 0  # non-existent key
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['b'].append(0)  # different-length lists
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['e'] = 'foo'  # non-None
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    d2 = deepcopy(d0)
+    d1['e'] = StringIO()
+    d2['e'] = StringIO()
+    d2['e'].write('foo')
     assert_true(len(object_diff(d0, d1)) > 0)
     assert_true(len(object_diff(d1, d0)) > 0)
 
@@ -91,7 +151,11 @@ def test_hash():
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     # generators (and other types) not supported
+    d1 = deepcopy(d0)
+    d2 = deepcopy(d0)
     d1[1] = (x for x in d0)
+    d2[1] = (x for x in d0)
+    assert_raises(RuntimeError, object_diff, d1, d2)
     assert_raises(RuntimeError, object_hash, d1)
 
 
@@ -133,6 +197,7 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
+    assert_raises(ValueError, set_log_level, 'foo')
     tempdir = _TempDir()
     test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
