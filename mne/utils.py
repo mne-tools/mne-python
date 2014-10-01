@@ -1476,6 +1476,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
+            u.close()
             del u
         logger.info('Downloading data from %s (%s)\n'
                     % (url, sizeof_fmt(file_size)))
@@ -1501,6 +1502,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                 else:
                     _chunk_read(data, local_file, initial_size=local_file_size,
                                 verbose_bool=verbose_bool)
+                    data.close()
                     del data  # should auto-close
             else:
                 _chunk_read_ftp_resume(url, temp_file_name, local_file,
@@ -1512,6 +1514,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
                 _chunk_read(data, local_file, initial_size=initial_size,
                             verbose_bool=verbose_bool)
             finally:
+                data.close()
                 del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
@@ -1755,10 +1758,10 @@ def run_tests_if_main(measure_mem=True):
 
 class ArgvSetter(object):
     """Temporarily set sys.argv"""
-    def __init__(self, args=(), disable_printing=True):
+    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
         self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_printing else sys.stdout
-        self.stderr = StringIO() if disable_printing else sys.stderr
+        self.stdout = StringIO() if disable_stdout else sys.stdout
+        self.stderr = StringIO() if disable_stderr else sys.stderr
 
     def __enter__(self):
         self.orig_argv = sys.argv

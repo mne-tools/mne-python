@@ -52,9 +52,8 @@ def _dataset_version(path, name):
     """Get the version of the dataset"""
     ver_fname = op.join(path, 'version.txt')
     if op.exists(ver_fname):
-        fid = open(ver_fname, 'r')
-        version = fid.readline().strip()  # version is on first line
-        fid.close()
+        with open(ver_fname, 'r') as fid:
+            version = fid.readline().strip()  # version is on first line
     else:
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7

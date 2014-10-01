@@ -102,9 +102,9 @@ def test_md5sum():
     fname1 = op.join(tempdir, 'foo')
     fname2 = op.join(tempdir, 'bar')
     with open(fname1, 'wb') as fid:
-        fid.write('abcd')
+        fid.write(b'abcd')
     with open(fname2, 'wb') as fid:
-        fid.write('efgh')
+        fid.write(b'efgh')
     assert_equal(md5sum(fname1), md5sum(fname1, 1))
     assert_equal(md5sum(fname2), md5sum(fname2, 1024))
     assert_true(md5sum(fname1) != md5sum(fname2))
@@ -312,7 +312,7 @@ def test_fetch_file():
     tempdir = _TempDir()
     urls = ['http://martinos.org/mne/',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
-    with ArgvSetter():  # to capture stdout
+    with ArgvSetter(disable_stderr=False):  # to capture stdout
         for url in urls:
             archive_name = op.join(tempdir, "download_test")
             _fetch_file(url, archive_name, verbose=False)
