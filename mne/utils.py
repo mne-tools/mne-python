@@ -957,12 +957,12 @@ known_config_types = [
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-    ]
+]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
-    ]
+]
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
