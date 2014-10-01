@@ -288,6 +288,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     @property
     def ch_names(self):
+        """Channel names"""
         return self.info['ch_names']
 
     def crop(self, tmin=None, tmax=None):

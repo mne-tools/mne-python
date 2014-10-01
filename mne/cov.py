@@ -68,18 +68,21 @@ class Covariance(dict):
 
     @property
     def data(self):
+        """Numpy array of Noise covariance matrix"""
         return self['data']
 
     @property
     def ch_names(self):
+        """Channel names"""
         return self['names']
 
     @property
     def nfree(self):
+        """Number of degrees of freedom"""
         return self['nfree']
 
     def save(self, fname):
-        """save covariance matrix in a FIF file"""
+        """Save covariance matrix in a FIF file"""
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 
         fid = start_file(fname)

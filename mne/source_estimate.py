@@ -539,6 +539,7 @@ class _BaseSourceEstimate(object):
 
     @property
     def data(self):
+        """Numpy array of source estimate data"""
         if self._data is None:
             # compute the solution the first time the data is accessed and
             # remove the kernel and sensor data
@@ -547,6 +548,7 @@ class _BaseSourceEstimate(object):
 
     @property
     def shape(self):
+        """Shape of the data"""
         if self._data is not None:
             return self._data.shape
         return (self._kernel.shape[0], self._sens_data.shape[1])
