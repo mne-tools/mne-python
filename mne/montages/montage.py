@@ -77,23 +77,24 @@ def read_montage(kind, names=None, path=None, scale=True):
         path = op.dirname(__file__)
     if not op.isabs(kind):
         supported = ('.elc', '.txt', '.csd', '.sfp')
-        montages = [f for f in os.listdir(path) if f[-4:] in supported]
-        kind = [f for f in montages if kind in f]
-        if len(kind) != 1:
+        montages = [op.splitext(f) for f in os.listdir(path)]
+        montages = [m for m in montages if m[1] in supported and kind == m[0]]
+        if len(montages) != 1:
             raise ValueError('Could not find the montage. Please provide the'
                              'full path')
-        kind = kind[0]
+        kind, ext = montages[0]
+    else:
+        kind, ext = op.splitext(kind)
+        fname = op.join(kind + ext)
 
-    if kind.endswith('.sfp'):
+    if ext == '.sfp':
         # EGI geodesic
         dtype = np.dtype('S4, f8, f8, f8')
-        fname = op.join(path, kind)
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.c_[data['f1'], data['f2'], data['f3']]
         names_ = data['f0']
-    elif kind.endswith('.elc'):
+    elif ext == '.elc':
         # 10-5 system
-        fname = op.join(path, kind)
         names_ = []
         pos = []
         with open(fname) as fid:
@@ -109,10 +110,9 @@ def read_montage(kind, names=None, path=None, scale=True):
                     break
                 names_.append(line.strip(' ').strip('\n'))
         pos = np.loadtxt(BytesIO(''.join(pos)))
-    elif kind.endswith('.txt'):
+    elif ext == '.txt':
         # easycap
         dtype = np.dtype('S4, f8, f8')
-        fname = op.join(path, kind)
         data = np.loadtxt(fname, dtype=dtype, skiprows=1)
         theta, phi = data['f1'], data['f2']
         x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
@@ -120,12 +120,11 @@ def read_montage(kind, names=None, path=None, scale=True):
         z = 85. * np.cos(np.deg2rad(theta))
         pos = np.c_[x, y, z]
         names_ = data['f0']
-    elif kind.endswith('.csd'):
+    elif ext == '.csd':
         # CSD toolbox
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
                  ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                  ('off_sph', 'f8')]
-        fname = op.join(path, kind)
         table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         pos = np.c_[table['x'], table['y'], table['z']]
         names_ = table['label']

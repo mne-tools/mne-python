@@ -50,7 +50,7 @@ def test_montage():
         assert_equal(len(montage.names), 3)
         assert_equal(len(montage.names), len(montage.pos))
         assert_equal(montage.pos.shape, (3, 3))
-        assert_equal(montage.kind, kind)
+        assert_equal(montage.kind, kind[:-4])
     # test with last
     info = create_info(montage.names, 1e3, ['eeg'] * len(montage.names))
     apply_montage(info, montage)
