@@ -765,10 +765,9 @@ class EpochsKIT(RawKIT):
                                * sensor_gain, ndmin=2)
         data = conv_factor * data
         data = data.T
-        datas = []
-        for n in range(n_epochs):
-            datas.append(data[:, n*epoch_length:(n+1)*epoch_length])
-        data = np.array(datas)
+        # reshape 
+        data = data.reshape((nchan, n_epochs, epoch_length))
+        data = data.transpose((1,0,2))
         data = data[:, sel, :]
 
         logger.info('[done]')
