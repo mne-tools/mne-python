@@ -1348,20 +1348,6 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
-    """Create sub-class in order to overide error 206.
-
-    This error means a partial file is being sent, which is ok in this case.
-    Do nothing with this error.
-    """
-    # Adapted from:
-    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
-
-    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
-        pass
-
-
 def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
                 verbose_bool=True):
     """Download a file chunk by chunk and show advancement
@@ -1486,12 +1472,12 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             # Resuming HTTP and FTP downloads requires different procedures
             scheme = urllib.parse.urlparse(url).scheme
             if scheme == 'http':
-                url_opener = _HTTPResumeURLOpener()
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
-                url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
+                req = urllib.request.Request(url)
+                req.headers["Range"] = "bytes=%s-" % local_file_size
                 try:
-                    data = url_opener.open(url)
+                    data = urllib.request.urlopen(req)
                 except urllib.request.HTTPError:
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back

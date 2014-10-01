@@ -121,7 +121,7 @@ def test_make_scalp_surfaces():
     cmd = ('-s', 'sample', '--subjects-dir', tempdir)
     os.environ['_MNE_TESTING_SCALP'] = 'true'
     try:
-        with ArgvSetter(cmd, disable_printing=False):
+        with ArgvSetter(cmd, disable_stdout=False, disable_stderr=False):
             assert_raises(RuntimeError, mne_make_scalp_surfaces.run)
             os.environ['FREESURFER_HOME'] = tempdir  # don't need it
             del os.environ['MNE_ROOT']
