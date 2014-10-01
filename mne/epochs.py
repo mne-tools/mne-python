@@ -465,6 +465,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     @property
     def ch_names(self):
+        """Channel names"""
         return self.info['ch_names']
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
