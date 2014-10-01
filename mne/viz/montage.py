@@ -14,7 +14,7 @@ def plot_montage(montage, scale_factor=1.5):
     montage : instance of Montage
         The montage to visualize
     scale_factor : float
-        Detemrines the size of the points. defaults to 1.5
+        Determines the size of the points. defaults to 1.5
 
     Returns
     -------
