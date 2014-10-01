@@ -317,10 +317,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             used (faster for long signals). If str, a human-readable time in
             units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
             to the shortest power-of-two length at least that duration.
+            Not used for 'iir' filters.
         l_trans_bandwidth : float
-            Width of the transition band at the low cut-off frequency in Hz.
+            Width of the transition band at the low cut-off frequency in Hz
+            (high pass or cutoff 1 in bandpass). Not used if 'order' is
+            specified in iir_params.
         h_trans_bandwidth : float
-            Width of the transition band at the high cut-off frequency in Hz.
+            Width of the transition band at the high cut-off frequency in Hz
+            (low pass or cutoff 2 in bandpass). Not used if 'order' is
+            specified in iir_params.
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly, CUDA is initialized, and method='fft'.
@@ -374,14 +379,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
             low_pass_filter(self._data, fs, h_freq,
                             filter_length=filter_length,
-                            trans_bandwidth=l_trans_bandwidth, method=method,
+                            trans_bandwidth=h_trans_bandwidth, method=method,
                             iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                             copy=False)
         if l_freq is not None and h_freq is None:
             logger.info('High-pass filtering at %0.2g Hz' % l_freq)
             high_pass_filter(self._data, fs, l_freq,
                              filter_length=filter_length,
-                             trans_bandwidth=h_trans_bandwidth, method=method,
+                             trans_bandwidth=l_trans_bandwidth, method=method,
                              iir_params=iir_params, picks=picks, n_jobs=n_jobs,
                              copy=False)
         if l_freq is not None and h_freq is not None:
@@ -436,6 +441,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             used (faster for long signals). If str, a human-readable time in
             units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
             to the shortest power-of-two length at least that duration.
+            Not used for 'iir' filters.
         notch_widths : float | array of float | None
             Width of each stop band (centred at each freq in freqs) in Hz.
             If None, freqs / 200 is used.
