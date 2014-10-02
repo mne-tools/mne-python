@@ -559,10 +559,13 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -659,10 +662,13 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -767,8 +773,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is specified
+        in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -850,8 +858,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is
+        specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -939,11 +949,13 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is
+        specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt). 'spectrum_fit' will

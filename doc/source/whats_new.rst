@@ -29,6 +29,9 @@ BUG
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
 
    - Fix channel names in topomaps by `Alex Gramfort`_
+   
+   - Fix mapping of 'l_trans_bandwidth' (to low frequency) and
+    'h_trans_bandwidth' (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
 
 API
 ~~~
