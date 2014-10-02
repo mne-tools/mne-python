@@ -31,7 +31,10 @@ What you will need
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, and scikit-learn_
 
-#. External tools: `MNE command line utilities`_, Freesurfer_, and `mne-scripts`_
+#. `MNE command line utilities`_ and Freesurfer_ are optional but will allow you
+    to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
+    system. If you are on Windows, you can install these applications inside a
+    Unix virtual machine.
 
 General code guidelines
 -----------------------
@@ -80,20 +83,11 @@ General code guidelines
   (~1.2 GB) will be downloaded to the root directory and extracted. This is
   necessary for running some of the tests and nearly all of the examples.
 
-  Also note, if make test fails with the error ``ICE default IO error
-  handler doing an exit()``, try backing up or removing .ICEauthority::
-
-    mv ~/.ICEauthority ~/.ICEauthority.bak
-
-  If make is not able to download the sample data from the FTP server,
-  use the following python code to begin the transfer::
-
-    >>> from mne.datasets import testing
-    >>> testing.data_path()
-
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
   a specific test.
+
+  For more details see ts_.
 
 * Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
@@ -754,6 +748,8 @@ Editing \*.rst files
 These are reStructuredText files. Consult the Sphinx documentation to learn
 more about editing them.
 
+.. _ts:
+
 Troubleshooting
 ---------------
 
@@ -765,12 +761,24 @@ Missing files in examples or unit tests
 If the unit tests fail due to missing files, you may need to run
 `mne-scripts`_ on the sample dataset. Go to ``bash`` if you are using some
 other shell. Then, execute all three shell scripts in the
-``sample-data/`` directory within ``mne-scripts/``.
+``sample-data/`` directory within ``mne-scripts/``. If trouble persists try
+to use the python interpreter to initiate the transfer::
+
+    >>> from mne.datasets import testing
+    >>> testing.data_path()
 
 Cannot import class from a new \*.py file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You need to update the corresponding ``__init__.py`` file and then
 restart the ipython kernel.
+
+ICE default IO error handler doing an exit()
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the make test command fails with the error ``ICE default IO error
+handler doing an exit()``, try backing up or removing .ICEauthority::
+
+    mv ~/.ICEauthority ~/.ICEauthority.bak
 
 .. include:: links.inc
