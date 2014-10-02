@@ -32,9 +32,9 @@ What you will need
    joblib_, nibabel_, and scikit-learn_
 
 #. `MNE command line utilities`_ and Freesurfer_ are optional but will allow you
-    to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
-    system. If you are on Windows, you can install these applications inside a
-    Unix virtual machine.
+   to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
+   system. If you are on Windows, you can install these applications inside a
+   Unix virtual machine.
 
 General code guidelines
 -----------------------
@@ -87,7 +87,7 @@ General code guidelines
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
   a specific test.
 
-  For more details see ts_.
+  For more details see troubleshooting_.
 
 * Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
 
@@ -748,7 +748,7 @@ Editing \*.rst files
 These are reStructuredText files. Consult the Sphinx documentation to learn
 more about editing them.
 
-.. _ts:
+.. _troubleshooting:
 
 Troubleshooting
 ---------------
