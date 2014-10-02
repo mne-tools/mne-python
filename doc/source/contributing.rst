@@ -111,6 +111,11 @@ More mne-python specific guidelines
 
     nosetests --with-timer --timer-top-n 30
 
+Profiling in Python
+-------------------
+
+To learn more about profiling python codes please see `the scikit learn profiling site <http://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
+
 Configuring git
 ---------------
 
