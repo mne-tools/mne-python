@@ -162,16 +162,18 @@ def test_find_events():
     # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
 
     assert_array_equal(find_events(raw, shortest_event=1, mask=1),
-                       [[1,     0,    1],
-                        [3,     0,    1]])
+                       [[2,    0,    2],
+                        [4,    2,    4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=2),
-                       [[2,     0,    2]])
+                       [[1,    0,    1],
+                        [3,    0,    1],
+                        [4,    1,    4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=3),
-                       [[1,     0,    1],
-                        [2,     1,    2],
-                        [3,     2,    3]])
+                       [[4,    0,    4]])
     assert_array_equal(find_events(raw, shortest_event=1, mask=4),
-                       [[4,     0,    4]])
+                       [[1,    0,    1],
+                        [2,    1,    2],
+                        [3,    2,    3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0

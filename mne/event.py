@@ -488,7 +488,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         duration is less than this an exception will be raised.
     mask : int or None
         The value of the digital mask to apply to the stim channel values. 
-
+ 
     Returns
     -------
     events : array, shape = (n_events, 3)
@@ -551,6 +551,14 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
+    For the digital mask, it will take the binary representation of the
+    digital mask, e.g. 5 -> '00000101', and will block the values
+    where mask is one.
+    
+    e.g.      7 '0000111' <- trigger value
+             37 '0100101' <- mask
+         ----------------
+              2 '0000010'
 
     See Also
     --------
@@ -587,6 +595,7 @@ def _mask_trigs(events, mask):
     """Helper function for masking digital trigger values"""
     if isinstance(mask, int):
         n_events = len(events)
+        mask = np.bitwise_not(mask)
         mask = mask * np.ones(n_events, int)
         events[:, 1] = np.bitwise_and(events[:, 1], mask)
         events[:, 2] = np.bitwise_and(events[:, 2], mask)
