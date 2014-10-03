@@ -79,17 +79,19 @@ General code guidelines
      make inplace
      nosetests
 
-  To explicitly download and extract the `mne-python sample dataset`_ (~320 MB)
+  To explicitly download and extract the mne-python testing dataset (~320 MB)
   run::
 
      make testing-data
 
-  Alternativly::
+  Alternatively::
 
      python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
 
-  downloads the test data as well. Having a complete sample dataset is
-  necessary for running some of the tests and nearly all of the examples.
+  downloads the test data as well. Having a complete testing dataset is
+  necessary for running the tests. To run the examples you'll need
+  the `mne-python sample dataset`_ which is automatically downloaded
+  when running an example for the first time.
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
