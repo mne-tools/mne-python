@@ -79,13 +79,24 @@ General code guidelines
      make inplace
      nosetests
 
-  Note that the first time this is run, the `mne-python sample dataset`_
-  (~1.2 GB) will be downloaded to the root directory and extracted. This is
+  To explicitly download and extract the `mne-python sample dataset`_ (~320 MB)
+  run::
+
+     make testing-data
+
+  Alternativly::
+
+     python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+
+  downloads the test data as well. Having a complete sample dataset is
   necessary for running some of the tests and nearly all of the examples.
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
-  a specific test.
+  a specific test. In addition, one can run individual tests from python::
+
+     >>> from mne.utils import run_test_if_main
+     >>> run_tests_if_main()
 
   For more details see troubleshooting_.
 
@@ -766,11 +777,7 @@ Missing files in examples or unit tests
 If the unit tests fail due to missing files, you may need to run
 `mne-scripts`_ on the sample dataset. Go to ``bash`` if you are using some
 other shell. Then, execute all three shell scripts in the
-``sample-data/`` directory within ``mne-scripts/``. If trouble persists try
-to use the python interpreter to initiate the transfer::
-
-    >>> from mne.datasets import testing
-    >>> testing.data_path()
+``sample-data/`` directory within ``mne-scripts/``.
 
 Cannot import class from a new \*.py file
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
