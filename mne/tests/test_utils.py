@@ -8,10 +8,13 @@ import warnings
 
 from mne.utils import (set_log_level, set_log_file, _TempDir,
                        get_config, set_config, deprecated, _fetch_file,
-                       sum_squared, requires_mem_gb, estimate_rank,
-                       _url_to_local_path, sizeof_fmt,
+                       sum_squared, estimate_rank,
+                       _url_to_local_path, sizeof_fmt, _check_subject,
                        _check_type_picks, object_hash, object_diff,
-                       requires_good_network, run_tests_if_main)
+                       requires_good_network, run_tests_if_main, md5sum,
+                       ArgvSetter, _memory_usage, check_random_state,
+                       _check_mayavi_version, requires_mayavi,
+                       set_memmap_min_size, _get_stim_channel, _check_fname)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -25,9 +28,34 @@ fname_log = op.join(base_dir, 'test-ave.log')
 fname_log_2 = op.join(base_dir, 'test-ave-2.log')
 
 
-def clean_lines(lines):
+def clean_lines(lines=[]):
     # Function to scrub filenames for checking logging output (in test_logging)
     return [l if 'Reading ' not in l else 'Reading test file' for l in lines]
+
+
+def test_misc():
+    """Test misc utilities"""
+    assert_equal(_memory_usage(-1)[0], -1)
+    assert_equal(_memory_usage((clean_lines, [], {}))[0], -1)
+    assert_equal(_memory_usage(clean_lines)[0], -1)
+    assert_raises(ValueError, check_random_state, 'foo')
+    assert_raises(ValueError, set_memmap_min_size, 1)
+    assert_raises(ValueError, set_memmap_min_size, 'foo')
+    assert_raises(TypeError, get_config, 1)
+    assert_raises(TypeError, set_config, 1)
+    assert_raises(TypeError, set_config, 'foo', 1)
+    assert_raises(TypeError, _get_stim_channel, 1)
+    assert_raises(TypeError, _get_stim_channel, [1])
+    assert_raises(TypeError, _check_fname, 1)
+    assert_raises(ValueError, _check_subject, None, None)
+    assert_raises(ValueError, _check_subject, None, 1)
+    assert_raises(ValueError, _check_subject, 1, None)
+
+
+@requires_mayavi
+def test_check_mayavi():
+    """Test mayavi version check"""
+    assert_raises(RuntimeError, _check_mayavi_version, '100.0.0')
 
 
 def test_run_tests_if_main():
@@ -37,27 +65,36 @@ def test_run_tests_if_main():
     def test_a():
         x.append(True)
 
+    @np.testing.dec.skipif(True)
     def test_b():
-        raise RuntimeError
+        return
 
     try:
         __name__ = '__main__'
         run_tests_if_main(measure_mem=False)  # dual meas causes problems
-    except RuntimeError:
-        pass
-    else:
-        raise RuntimeError('Error not raised')
+
+        def test_c():
+            raise RuntimeError
+
+        try:
+            __name__ = '__main__'
+            run_tests_if_main(measure_mem=False)  # dual meas causes problems
+        except RuntimeError:
+            pass
+        else:
+            raise RuntimeError('Error not raised')
     finally:
         del __name__
-    assert_true(len(x) == 1)
-    assert_true(x[0])
+    assert_true(len(x) == 2)
+    assert_true(x[0] and x[1])
 
 
 def test_hash():
     """Test dictionary hashing and comparison functions"""
     # does hashing all of these types work:
     # {dict, list, tuple, ndarray, str, float, int, None}
-    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3))
+    d0 = dict(a=dict(a=0.1, b='fo', c=1), b=[1, 'b'], c=(), d=np.ones(3),
+              e=None)
     d0[1] = None
     d0[2.] = b'123'
 
@@ -79,7 +116,31 @@ def test_hash():
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     d1 = deepcopy(d0)
-    d1['b'] = StringIO()
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['a']['d'] = 0  # non-existent key
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['b'].append(0)  # different-length lists
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    assert_equal(object_hash(d0), object_hash(d1))
+    d1['e'] = 'foo'  # non-None
+    assert_true(len(object_diff(d0, d1)) > 0)
+    assert_true(len(object_diff(d1, d0)) > 0)
+    assert_not_equal(object_hash(d0), object_hash(d1))
+
+    d1 = deepcopy(d0)
+    d2 = deepcopy(d0)
+    d1['e'] = StringIO()
+    d2['e'] = StringIO()
+    d2['e'].write('foo')
     assert_true(len(object_diff(d0, d1)) > 0)
     assert_true(len(object_diff(d1, d0)) > 0)
 
@@ -90,8 +151,27 @@ def test_hash():
     assert_not_equal(object_hash(d0), object_hash(d1))
 
     # generators (and other types) not supported
+    d1 = deepcopy(d0)
+    d2 = deepcopy(d0)
     d1[1] = (x for x in d0)
+    d2[1] = (x for x in d0)
+    assert_raises(RuntimeError, object_diff, d1, d2)
     assert_raises(RuntimeError, object_hash, d1)
+
+
+def test_md5sum():
+    """Test md5sum calculation
+    """
+    tempdir = _TempDir()
+    fname1 = op.join(tempdir, 'foo')
+    fname2 = op.join(tempdir, 'bar')
+    with open(fname1, 'wb') as fid:
+        fid.write(b'abcd')
+    with open(fname2, 'wb') as fid:
+        fid.write(b'efgh')
+    assert_equal(md5sum(fname1), md5sum(fname1, 1))
+    assert_equal(md5sum(fname2), md5sum(fname2, 1024))
+    assert_true(md5sum(fname1) != md5sum(fname2))
 
 
 def test_tempdir():
@@ -117,6 +197,7 @@ def test_estimate_rank():
 def test_logging():
     """Test logging (to file)
     """
+    assert_raises(ValueError, set_log_level, 'foo')
     tempdir = _TempDir()
     test_name = op.join(tempdir, 'test.log')
     with open(fname_log, 'r') as old_log_file:
@@ -243,16 +324,6 @@ class deprecated_class(object):
         pass
 
 
-@requires_mem_gb(10000)
-def big_mem_func():
-    pass
-
-
-@requires_mem_gb(0)
-def no_mem_func():
-    pass
-
-
 def test_deprecated():
     """Test deprecated function
     """
@@ -266,29 +337,6 @@ def test_deprecated():
     assert_true(len(w) == 1)
 
 
-def test_requires_mem_gb():
-    """Test requires memory function
-    """
-    try:
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            big_mem_func()
-        assert_true(len(w) == 1)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            no_mem_func()
-        assert_true(len(w) == 0)
-    except:
-        try:
-            import psutil
-            msg = ('psutil version %s exposes unexpected API' %
-                   psutil.__version__)
-        except ImportError:
-            msg = 'Could not import psutil'
-        from nose.plugins.skip import SkipTest
-        SkipTest(msg)
-
-
 @requires_good_network
 def test_fetch_file():
     """Test file downloading
@@ -296,17 +344,21 @@ def test_fetch_file():
     tempdir = _TempDir()
     urls = ['http://martinos.org/mne/',
             'ftp://surfer.nmr.mgh.harvard.edu/pub/data/bert.recon.md5sum.txt']
-    for url in urls:
-        archive_name = op.join(tempdir, "download_test")
-        _fetch_file(url, archive_name, print_destination=False, verbose=False)
-        assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
-                      op.join(tempdir, 'test'), verbose=False)
-        resume_name = op.join(tempdir, "download_resume")
-        # touch file
-        with open(resume_name + '.part', 'w'):
-            os.utime(resume_name + '.part', None)
-        _fetch_file(url, resume_name, print_destination=False, resume=True,
-                    verbose=False)
+    with ArgvSetter(disable_stderr=False):  # to capture stdout
+        for url in urls:
+            archive_name = op.join(tempdir, "download_test")
+            _fetch_file(url, archive_name, verbose=False)
+            assert_raises(Exception, _fetch_file, 'NOT_AN_ADDRESS',
+                          op.join(tempdir, 'test'), verbose=False)
+            resume_name = op.join(tempdir, "download_resume")
+            # touch file
+            with open(resume_name + '.part', 'w'):
+                os.utime(resume_name + '.part', None)
+            _fetch_file(url, resume_name, resume=True, verbose=False)
+            assert_raises(ValueError, _fetch_file, url, archive_name,
+                          hash_='a', verbose=False)
+            assert_raises(RuntimeError, _fetch_file, url, archive_name,
+                          hash_='a' * 32, verbose=False)
 
 
 def test_sum_squared():

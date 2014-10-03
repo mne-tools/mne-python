@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import os
 import os.path as op
-from functools import wraps
 import warnings
 
 from nose.tools import assert_true, assert_raises, assert_equal
@@ -24,7 +23,7 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.io.meas_info import Info
-from mne.utils import set_log_file, check_sklearn_version, _TempDir
+from mne.utils import set_log_file, _TempDir, requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -44,19 +43,6 @@ try:
     warnings.simplefilter('error', NonBLASDotWarning)
 except:
     pass
-
-
-def requires_sklearn(function):
-    """Decorator to skip test if scikit-learn >= 0.12 is not available"""
-    @wraps(function)
-    def dec(*args, **kwargs):
-        if not check_sklearn_version(min_version='0.12'):
-            from nose.plugins.skip import SkipTest
-            raise SkipTest('Test %s skipped, requires scikit-learn >= 0.12'
-                           % function.__name__)
-        ret = function(*args, **kwargs)
-        return ret
-    return dec
 
 
 @requires_sklearn

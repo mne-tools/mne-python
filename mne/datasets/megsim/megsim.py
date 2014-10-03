@@ -6,7 +6,8 @@ from os import path as op
 import zipfile
 from sys import stdout
 
-from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
+from ...utils import (_fetch_file, get_config, set_config, _url_to_local_path,
+                      logger)
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
 from ...externals.six import string_types
@@ -66,7 +67,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                      '..', 'examples'))
+                                       '..', 'examples'))
         key = 'MNE_DATASETS_MEGSIM_PATH'
         if get_config(key) is None:
             key = 'MNE_DATA'
@@ -86,8 +87,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
                         os.mkdir(path)
                 except OSError:
                     raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
+                                  "at '%s', try giving the path as an argument"
+                                  " to data_path() where user has write "
                                   "permissions, for ex:data_path"
                                   "('/home/xyz/me2/')" % (path))
 

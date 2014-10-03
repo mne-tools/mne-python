@@ -49,7 +49,7 @@ install:
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
-            pip install -q pysurfer;
+            pip install -q pysurfer faulthandler;
           fi;
         fi;
       fi;
