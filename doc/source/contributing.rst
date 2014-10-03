@@ -97,7 +97,7 @@ General code guidelines
   test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
   a specific test. In addition, one can run individual tests from python::
 
-     >>> from mne.utils import run_test_if_main
+     >>> from mne.utils import run_tests_if_main
      >>> run_tests_if_main()
 
   For more details see troubleshooting_.
