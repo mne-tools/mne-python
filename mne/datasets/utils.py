@@ -160,8 +160,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
 
-        logger.info('Decompressing the archive: ' + archive_name)
-        logger.info('... please be patient, this can take some time')
+        logger.info('Decompressing the archive: %s' % archive_name)
+        logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)

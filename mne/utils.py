@@ -1217,6 +1217,7 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
         if not chunk:
             if verbose_bool:
                 sys.stdout.write('\n')
+                sys.stdout.flush()
             break
         _chunk_write(chunk, local_file, progress)
 
@@ -1252,6 +1253,8 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
+    sys.stdout.write('\n')
+    sys.stdout.flush()
 
 
 def _chunk_write(chunk, local_file, progress):
@@ -1343,7 +1346,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             local_file.close()
         # check md5sum
         if hash_ is not None:
-            logger.info('Verifying download hash.\n')
+            logger.info('Verifying download hash.')
             md5 = md5sum(temp_file_name)
             if hash_ != md5:
                 raise RuntimeError('Hash mismatch for downloaded file %s, '
