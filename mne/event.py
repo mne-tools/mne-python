@@ -246,7 +246,7 @@ def read_events(filename, include=None, exclude=None, mask=None):
 
     if mask is not None:
         event_list = _mask_trigs(event_list, mask)
-    
+
     return event_list
 
 
@@ -487,8 +487,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
     mask : int or None
-        The value of the digital mask to apply to the stim channel values. 
- 
+        The value of the digital mask to apply to the stim channel values.
+
     Returns
     -------
     events : array, shape = (n_events, 3)
@@ -554,7 +554,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     For the digital mask, it will take the binary representation of the
     digital mask, e.g. 5 -> '00000101', and will block the values
     where mask is one.
-    
+
     e.g.      7 '0000111' <- trigger value
              37 '0100101' <- mask
          ----------------
@@ -593,15 +593,13 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
 def _mask_trigs(events, mask):
     """Helper function for masking digital trigger values"""
-    if isinstance(mask, int):
-        n_events = len(events)
-        mask = np.bitwise_not(mask)
-        mask = mask * np.ones(n_events, int)
-        events[:, 1] = np.bitwise_and(events[:, 1], mask)
-        events[:, 2] = np.bitwise_and(events[:, 2], mask)
-        events = events[events[:, 1] != events[:, 2]]
-    else:
-        raise ValueError('Mask must be int or None.')
+    if not isinstance(mask, int):
+        raise TypeError('Mask must be int or None.')
+    n_events = len(events)
+    mask = np.bitwise_not(mask)
+    events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
+    events = events[events[:, 1] != events[:, 2]]
+
     return events
 
 
