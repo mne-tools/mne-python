@@ -903,7 +903,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     Fs = float(Fs)
     Fp = float(Fp)
 
-    Fstop = Fp - trans_bandwidth if method == 'fft' else Fp
+    Fstop = Fp - trans_bandwidth  if method == 'fft' else Fp
     if Fstop <= 0:
         raise ValueError('Filter specification invalid: Stop frequency too low'
                          '(%0.1fHz). Increase Fp or reduce transition '

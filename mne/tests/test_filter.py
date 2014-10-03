@@ -38,6 +38,9 @@ def test_iir_stability():
     assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
                   method='fir', iir_params='blah')
 
+    # should pass because dafault trans_bandwidth is not relevant
+    high_pass_filter(sig, 250, 0.5, method='iir',
+                     iir_params=dict(ftype='butter', order=6))
 
 def test_notch_filters():
     """Test notch filters
