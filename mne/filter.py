@@ -610,8 +610,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fs = float(Fs)
     Fp1 = float(Fp1)
     Fp2 = float(Fp2)
-    Fs1 = Fp1 - l_trans_bandwidth
-    Fs2 = Fp2 + h_trans_bandwidth
+    Fs1 = Fp1 - l_trans_bandwidth if method == 'fft' else Fp1
+    Fs2 = Fp2 + h_trans_bandwidth if method == 'fft' else Fp2
     if Fs2 > Fs / 2:
         raise ValueError('Effective band-stop frequency (%s) is too high '
                          '(maximum based on Nyquist is %s)' % (Fs2, Fs / 2.))
@@ -720,8 +720,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fs = float(Fs)
     Fp1 = Fp1.astype(float)
     Fp2 = Fp2.astype(float)
-    Fs1 = Fp1 + l_trans_bandwidth
-    Fs2 = Fp2 - h_trans_bandwidth
+    Fs1 = Fp1 + l_trans_bandwidth if method == 'fft' else Fp1
+    Fs2 = Fp2 - h_trans_bandwidth if method == 'fft' else Fp2
 
     if np.any(Fs1 <= 0):
         raise ValueError('Filter specification invalid: Lower stop frequency '
@@ -816,7 +816,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     iir_params = _check_method(method, iir_params, [])
     Fs = float(Fs)
     Fp = float(Fp)
-    Fstop = Fp + trans_bandwidth
+    Fstop = Fp + trans_bandwidth if method == 'fft' else Fp
     if Fstop > Fs / 2.:
         raise ValueError('Effective stop frequency (%s) is too high '
                          '(maximum based on Nyquist is %s)' % (Fstop, Fs / 2.))
@@ -903,7 +903,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     Fs = float(Fs)
     Fp = float(Fp)
 
-    Fstop = Fp - trans_bandwidth
+    Fstop = Fp - trans_bandwidth if method == 'fft' else Fp
     if Fstop <= 0:
         raise ValueError('Filter specification invalid: Stop frequency too low'
                          '(%0.1fHz). Increase Fp or reduce transition '
