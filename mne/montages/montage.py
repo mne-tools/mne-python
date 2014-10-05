@@ -164,7 +164,12 @@ def apply_montage(info, montage):
     if not _contains_ch_type(info, 'eeg'):
         raise ValueError('No eeg channels found')
     for pos, name in zip(montage.pos, montage.names):
-        ch_idx = info['ch_names'].index(name)
+        try:
+            ch_idx = info['ch_names'].index(name)
+        except ValueError:
+            # Sensor not defined in info structure, so skip it
+            continue
+
         info['ch_names'][ch_idx] = name
         info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0] * 3]
         info['chs'][ch_idx]['loc'] = np.r_[pos, [0] * 9]
