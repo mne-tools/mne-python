@@ -1,11 +1,9 @@
 """Functions to plot EEG sensor montages
 """
-try:
-    from mayavi import mlab
-except ImportError:
-    from enthought.mayavi import mlab
+from ..utils import requires_mayavi
 
 
+@requires_mayavi
 def plot_montage(montage, scale_factor=1.5):
     """Plot EEG sensor montage
 

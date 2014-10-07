@@ -1,15 +1,5 @@
-import numpy as np
 from mne.montages import read_montage
-
-skip = False
-try:
-    from mayavi import mlab
-except ImportError:
-    try:
-        from enthought.mayavi import mlab
-    except ImportError:
-        skip = True
-requires_mayavi = np.testing.dec.skipif(skip, 'Requires mayavi')
+from ...utils import requires_mayavi
 
 
 @requires_mayavi
