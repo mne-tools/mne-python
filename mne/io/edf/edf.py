@@ -181,6 +181,7 @@ class RawEDF(_BaseRaw):
         start = int(start)
         stop = int(stop)
 
+        block_samp = self._edf_info['block_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -189,14 +190,13 @@ class RawEDF(_BaseRaw):
         tal_channel = self._edf_info['tal_channel']
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
-        record_samps = self._edf_info['n_samples_per_record']
 
         # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / record_samps) * record_samps)
-        blockstop = int(ceil(float(stop) / record_samps) * record_samps)
+        blockstart = int(floor(float(start) / block_samp) * block_samp)
+        blockstop = int(ceil(float(stop) / block_samp) * block_samp)
         if blockstop > self.last_samp:
             blockstop = self.last_samp + 1
-        
+
         if start >= stop:
             raise ValueError('No data in this range')
 
@@ -223,7 +223,7 @@ class RawEDF(_BaseRaw):
                 max_samp = float(np.max(n_samps))
                 blocks = int(buffer_size / max_samp)
             else:
-                blocks = int(ceil(float(buffer_size) / sfreq))
+                blocks = int(ceil(float(buffer_size) / block_samp))
 
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
@@ -239,11 +239,13 @@ class RawEDF(_BaseRaw):
                     data = data.reshape(-1, 3).astype(np.int32)
                     # this converts to 24-bit little endian integer
                     # # no support in numpy
-                    data = (data[:, 0] + (data[:, 1] << 8) + (data[:, 2] << 16))
+                    data = (data[:, 0] + (data[:, 1] << 8) +
+                            (data[:, 2] << 16))
                     # 24th bit determines the sign
                     data[data >= (1 << 23)] -= (1 << 24)
 
-                    data = data.reshape((int(sfreq), n_chan, blocks), order='F')
+                    data = data.reshape((int(sfreq), n_chan, blocks),
+                                        order='F')
                     for i in range(blocks):
                         start_pt = int((sfreq * i) + (k * buffer_step))
                         stop_pt = int(start_pt + sfreq)
@@ -273,8 +275,10 @@ class RawEDF(_BaseRaw):
                             else:
                                 warnings.warn('Interpolating stim channel. '
                                               'Events may jitter.')
-                                oldrange = np.linspace(0, 1, samp + 1, True)
-                                newrange = np.linspace(0, 1, max_samp, False)
+                                oldrange = np.linspace(0, 1, samp*blocks + 1,
+                                                       True)
+                                newrange = np.linspace(0, 1, max_samp*blocks,
+                                                       False)
                                 chan_data = interp1d(oldrange,
                                                      np.append(chan_data, 0),
                                                      kind='zero')(newrange)
@@ -282,13 +286,13 @@ class RawEDF(_BaseRaw):
                             mult = max_samp / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
-                        stop_pt = chan_data.shape[1]
+                        stop_pt = chan_data.shape[0]
                         datas[j, :stop_pt] = chan_data
                 # simple edf
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
-                    data = data.reshape((int(sfreq), n_chan, blocks),
+                    data = data.reshape((int(block_samp), n_chan, blocks),
                                         order='F')
                     for i in range(blocks):
                         start_pt = int(sfreq * i)
@@ -524,8 +528,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
                 raise RuntimeError('%s' % ('Channels contain different'
                                            'sampling rates. '
                                            'Must set preload=True'))
+        # samples where datablock. not necessarily the same as sampling rate
         n_samples_per_record = max(n_samples_per_record)
-        edf_info['n_samples_per_record'] = n_samples_per_record
+        edf_info['block_samp'] = n_samples_per_record
+
         fid.read(32 * info['nchan'])  # reserved
         assert fid.tell() == header_nbytes
 
