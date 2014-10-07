@@ -1151,7 +1151,7 @@ class Report(object):
             eog = 'Not available'
         pick_ecg = pick_types(raw.info, meg=False, ecg=True)
         if len(pick_ecg) > 0:
-            ecg = ', '.join(np.array(raw.info['ch_names'])[pick_eog])
+            ecg = ', '.join(np.array(raw.info['ch_names'])[pick_ecg])
         else:
             ecg = 'Not available'
         meas_date = raw.info['meas_date']
