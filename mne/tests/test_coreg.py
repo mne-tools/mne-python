@@ -1,3 +1,4 @@
+from glob import glob
 import os
 
 from nose.tools import assert_raises, assert_true, assert_equal
@@ -5,7 +6,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_array_less)
 
-from mne import setup_source_space
+import mne
 from mne.transforms import apply_trans, rotation, translation, scaling
 from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
@@ -42,11 +43,16 @@ def test_scale_mri():
     create_default_subject(update=True, subjects_dir=tempdir)
     assert_true(os.path.exists(fid_path), "Updating fsaverage")
 
+    # remove redundant label files
+    label_temp = os.path.join(tempdir, 'fsaverage', 'label', '*.label')
+    label_paths = glob(label_temp)
+    for label_path in label_paths[1:]:
+        os.remove(label_path)
+
     # create source space
-    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-6-src.fif')
-    if not os.path.exists(path):
-        setup_source_space('fsaverage', path, 'ico6', add_dist=False,
-                           subjects_dir=tempdir)
+    path = os.path.join(tempdir, 'fsaverage', 'bem', 'fsaverage-ico-0-src.fif')
+    mne.setup_source_space('fsaverage', path, 'ico0', overwrite=True,
+                           subjects_dir=tempdir, add_dist=False)
 
     # scale fsaverage
     os.environ['_MNE_FEW_SURFACES'] = 'true'
@@ -56,15 +62,23 @@ def test_scale_mri():
     is_mri = _is_mri_subject('flachkopf', tempdir)
     assert_true(is_mri, "Scaling fsaverage failed")
     src_path = os.path.join(tempdir, 'flachkopf', 'bem',
-                            'flachkopf-ico-6-src.fif')
+                            'flachkopf-ico-0-src.fif')
     assert_true(os.path.exists(src_path), "Source space was not scaled")
     scale_labels('flachkopf', subjects_dir=tempdir)
 
     # scale source space separately
     os.remove(src_path)
-    scale_source_space('flachkopf', 'ico-6', subjects_dir=tempdir)
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
     assert_true(os.path.exists(src_path), "Source space was not scaled")
 
+    # add distances to source space
+    src = mne.read_source_spaces(path)
+    mne.add_source_space_distances(src)
+    src.save(path)
+
+    # scale with distances
+    os.remove(src_path)
+    scale_source_space('flachkopf', 'ico-0', subjects_dir=tempdir)
 
 def test_fit_matched_points():
     """Test fit_matched_points: fitting two matching sets of points"""

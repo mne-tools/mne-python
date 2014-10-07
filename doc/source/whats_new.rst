@@ -33,6 +33,8 @@ BUG
    - Fix mapping of 'l_trans_bandwidth' (to low frequency) and
     'h_trans_bandwidth' (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
 
+   - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_.
+
 API
 ~~~
 

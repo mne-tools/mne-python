@@ -2138,7 +2138,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
     if not isinstance(src, SourceSpaces):
         raise ValueError('"src" must be an instance of SourceSpaces')
     if not np.isscalar(dist_limit):
-        raise ValueError('limit must be a scalar')
+        raise ValueError('limit must be a scalar, got %s' % repr(dist_limit))
     if not check_scipy_version('0.11'):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
