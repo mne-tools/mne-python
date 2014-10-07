@@ -1,9 +1,7 @@
 """Functions to plot EEG sensor montages
 """
-from ..utils import requires_mayavi
 
 
-@requires_mayavi
 def plot_montage(montage, scale_factor=1.5):
     """Plot EEG sensor montage
 
@@ -19,6 +17,11 @@ def plot_montage(montage, scale_factor=1.5):
     fig : isntance of mayavi.Scene
         The malab scene object.
     """
+    try:
+        from mayavi import mlab
+    except ImportError:
+        from enthought.mayavi import mlab
+
     fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     pos = montage.pos
     mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2],
