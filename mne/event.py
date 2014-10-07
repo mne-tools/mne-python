@@ -312,7 +312,7 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
         idx = (diff <= abs(merge))
         if np.any(idx):
             where = np.where(idx)[0]
-            keep = (idx == False)
+            keep = np.logical_not(idx)
             if merge > 0:
                 # drop the earlier event
                 steps[where + 1, 1] = steps[where, 1]
@@ -592,7 +592,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 def _mask_trigs(events, mask):
     """Helper function for masking digital trigger values"""
     if not isinstance(mask, int):
-        raise TypeError('Mask must be an int.')
+        raise TypeError('You provided a(n) %s. Mask must be an int.'
+                        % type(mask))
     n_events = len(events)
     mask = np.bitwise_not(mask)
     events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
