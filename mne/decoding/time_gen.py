@@ -152,7 +152,7 @@ class GeneralizationAcrossTime(object):
                 unpacked += [packed[ii][jj]]
         self.estimators = unpacked
 
-    def predict(self, epochs, independent=False, test_times={},
+    def predict(self, epochs, independent=False, test_times=None,
                 predict_type='predict', n_jobs=1):
         """ Test each classifier on each specified testing time slice.
 
@@ -166,7 +166,7 @@ class GeneralizationAcrossTime(object):
             the  classifier. If independent == True, the predictions from each
             cv fold classifier are averaged. Else, only the prediction from the
             corresponding fold is used.
-        test_times : str | dict, optional, default: {} 
+        test_times : str | dict | None, optional, default: None 
             if test_times = 'diagonal', test_times = train_times: decode at 
             each time point but does not generalize.
             'slices' : array, shape(n_clfs)
@@ -215,7 +215,9 @@ class GeneralizationAcrossTime(object):
         if test_times == 'diagonal':
             test_times = {}
             test_times['slices'] = [[s] for s in self.train_times['slices']]
-        elif not 'slices' in test_times:
+        elif test_times is None:
+            test_times = {}
+        if not 'slices' in test_times:
             # Initialize array
             test_times['slices_'] = []
             # Force same number of time sample in testing than in training
@@ -252,7 +254,7 @@ class GeneralizationAcrossTime(object):
 
         self.y_pred = np.transpose(zip(*packed), (1, 0, 2, 3))
 
-    def score(self, epochs, y=None, scorer=None, independent=False, test_times={},
+    def score(self, epochs, y=None, scorer=None, independent=False, test_times=None,
                 predict_type='predict', n_jobs=1):
         """ Aux function of GeneralizationAcrossTime
         Estimate score across trials by comparing the prediction estimated for
@@ -272,7 +274,7 @@ class GeneralizationAcrossTime(object):
             the  classifier. If independent == True, the predictions from each
             cv fold classifier are averaged. Else, only the prediction from the
             corresponding fold is used.
-        test_times : str | dict, optional, default: {} 
+        test_times : str | dict | None, optional, default: None
             if test_times = 'diagonal', test_times = train_times: decode at 
             each time point but does not generalize.
             'slices' : array, shape(n_clfs)

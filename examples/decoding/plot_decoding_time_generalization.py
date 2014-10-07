@@ -69,7 +69,7 @@ plot_gat(gat)  # plot full GAT matrix
 # As proposed in King & Dehaene (2014) 'Characterizing the dynamics of mental
 # representations: the temporal generalization method', Trends In Cognitive
 # Sciences, 18(4), 203-210.
-gat = GeneralizationAcrossTime(train_times={'length':.040})
+gat = GeneralizationAcrossTime()
 # Train on visual versus audio: left stimuli only.
 gat.fit(epochs[y_left_right], y=y_vis_audio[y_left_right])
 # Test on visual versus audio: right stimuli only.
