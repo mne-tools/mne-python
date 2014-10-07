@@ -20,14 +20,14 @@ print(__doc__)
 #
 # License: BSD (3-clause)
 
-import mne
-from mne.datasets import sample
-from mne.decoding import GeneralizationAcrossTime, plot_decod, plot_time_gen
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectPercentile, f_regression
-import numpy as np
+import mne
+from mne.datasets import sample
+from mne.decoding import GeneralizationAcrossTime, plot_decod, plot_gat
 
 # --------------------------------------------------------------
 # PREPROCESS DATA
@@ -41,8 +41,8 @@ picks = mne.pick_types(raw.info, meg=True, exclude='bads')  # Pick MEG channels
 raw.filter(1, 30, method='iir')  # Band pass filtering signals
 events = mne.read_events(events_fname)
 event_id = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
-decim = 2  # decimate to make the example faster to run
-epochs = mne.Epochs(raw, events, event_id, -0.050, 0.300, proj=True,
+decim = 3  # decimate to make the example faster to run
+epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(mag=5e-12), decim=decim)
 # Define events of interest
@@ -58,9 +58,9 @@ y_left_right = np.mod(epochs.events[:, 2], 2) == 1
 # subtend the detection of unexpected sounds", PLOS ONE, 2013
 gat = GeneralizationAcrossTime()
 gat.fit(epochs, y=y_vis_audio)
-gat.predict(epochs, y=y_vis_audio)
+gat.score(epochs, y=y_vis_audio)
 plot_decod(gat)  # plot decoding across time (correspond to GAT diagonal)
-plot_time_gen(gat)  # plot full GAT matrix
+plot_gat(gat)  # plot full GAT matrix
 
 
 # ----------------------------------------------------------------------------
@@ -69,12 +69,12 @@ plot_time_gen(gat)  # plot full GAT matrix
 # As proposed in King & Dehaene (2014) 'Characterizing the dynamics of mental
 # representations: the temporal generalization method', Trends In Cognitive
 # Sciences, 18(4), 203-210.
-gat = GeneralizationAcrossTime()
+gat = GeneralizationAcrossTime(train_times={'length':.040})
 # Train on visual versus audio: left stimuli only.
 gat.fit(epochs[y_left_right], y=y_vis_audio[y_left_right])
 # Test on visual versus audio: right stimuli only.
 # In this case, because the test data is independent, we test the
 # classifier of each folds and average their respective prediction:
-gat.predict(epochs[-y_left_right], y=y_vis_audio[-y_left_right],
-            independent=True)
-plot_time_gen(gat)
+gat.score(epochs[-y_left_right], y=y_vis_audio[-y_left_right], independent=True)
+plot_gat(gat)
+
