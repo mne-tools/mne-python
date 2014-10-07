@@ -175,7 +175,7 @@ def _read_events_fif(fid, tree):
     return event_list, mappings
 
 
-def read_events(filename, include=None, exclude=None, mask=None):
+def read_events(filename, include=None, exclude=None, mask=0):
     """Reads events from fif or text file
 
     Parameters
@@ -194,8 +194,9 @@ def read_events(filename, include=None, exclude=None, mask=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
-    mask : int or None
+    mask : int
         The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -243,9 +244,7 @@ def read_events(filename, include=None, exclude=None, mask=None):
             event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
-
-    if mask is not None:
-        event_list = _mask_trigs(event_list, mask)
+    event_list = _mask_trigs(event_list, mask)
 
     return event_list
 
@@ -386,7 +385,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 @verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0, mask=None):
+                 consecutive='increasing', min_samples=0, mask=0):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -402,9 +401,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     data = data.astype(np.int)
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
-
-    if mask is not None:
-        events = _mask_trigs(events, mask)
+    events = _mask_trigs(events, mask)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -456,7 +453,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2, mask=None):
+                shortest_event=2, mask=0):
     """Find events from raw file
 
     Parameters
@@ -486,8 +483,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     shortest_event : int
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
-    mask : int or None
+    mask : int
         The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -594,7 +592,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 def _mask_trigs(events, mask):
     """Helper function for masking digital trigger values"""
     if not isinstance(mask, int):
-        raise TypeError('Mask must be int or None.')
+        raise TypeError('Mask must be an int.')
     n_events = len(events)
     mask = np.bitwise_not(mask)
     events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
