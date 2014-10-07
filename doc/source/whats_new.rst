@@ -181,7 +181,7 @@ API
 
    - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
 
-   - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_annot` and `write_annot`
+   - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_labels_from_annot` and `write_labels_to_annot`
 
    - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
 
