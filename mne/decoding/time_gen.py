@@ -83,7 +83,6 @@ class GeneralizationAcrossTime(object):
             scaler = StandardScaler()
             svc = SVC(C=1, kernel='linear')
             clf = Pipeline([('scaler', scaler), ('svc', svc)])
-        # clf = SVC(C=1, kernel='linear')  # XXX remove
         self.clf = clf
 
     def fit(self, epochs, y=None, n_jobs=1):
@@ -127,7 +126,7 @@ class GeneralizationAcrossTime(object):
 
         # Keep last training times in milliseconds
         self.train_times['s'] = epochs.times[[t[-1]
-                                              for t in self.train_times['slices']]]
+                                        for t in self.train_times['slices']]]
 
         # Chunk X for parallelization
         if n_jobs > 0:
@@ -254,8 +253,8 @@ class GeneralizationAcrossTime(object):
 
         self.y_pred = np.transpose(zip(*packed), (1, 0, 2, 3))
 
-    def score(self, epochs, y=None, scorer=None, independent=False, test_times=None,
-                predict_type='predict', n_jobs=1):
+    def score(self, epochs, y=None, scorer=None, independent=False, 
+              test_times=None, predict_type='predict', n_jobs=1):
         """ Aux function of GeneralizationAcrossTime
         Estimate score across trials by comparing the prediction estimated for
         each trial to its true value.
@@ -427,7 +426,8 @@ def _scorer(y, y_pred, scorer):
     classes = np.unique(y)
     # if binary prediction or discrete prediction
     if y_pred.shape[1] == 1:
-        # XXX Problem here with scorer when proba=True but y !=  (0 | 1)
+        # XXX Problem here with scorer when proba=True but y !=  (0 | 1). 
+        # Bug Sklearn?
         try:
             score = scorer(y, y_pred)
         except:
@@ -493,7 +493,8 @@ def _fit_slices(clf, Xchunk, y, slices, cv):
     Returns
     -------
     estimators : list
-        List of fitted Sklearn classifiers corresponding to each training slice
+        List of fitted Sklearn classifiers corresponding to each training 
+        slice.
     """
     from sklearn.base import clone
     # Initialize
@@ -550,8 +551,8 @@ def _sliding_window(times, options):
     Returns
     -------
     time_pick : list, shape(n_classifiers)
-        List of training slices, indicating for each classifier the time sample 
-        (in indices of times) to be fitted on.
+        List of training slices, indicating for each classifier the time 
+        sample (in indices of times) to be fitted on.
     """
 
     # Sampling frequency
@@ -559,7 +560,7 @@ def _sliding_window(times, options):
 
     # Default values
     if ('slices' in options) and np.all([key in options
-                                         for key in ('start', 'stop', 'step', 'length')]):
+                            for key in ('start', 'stop', 'step', 'length')]):
         time_pick = options['slices']
     else:
         if not 'start' in options:
@@ -574,11 +575,9 @@ def _sliding_window(times, options):
         # Convert seconds to index
 
         def find_time(t):
-            if any(times >= t):
-                return np.nonzero(times >= t)[0][0]
-            else:
-                print('Timing outside limits!')
-                raise
+            # find closest time point
+            diff = abs(times - [t] * len(times))
+            return np.where(diff==min(diff))[0][0]
 
         start = find_time(options['start'])
         stop = find_time(options['stop'])
@@ -590,6 +589,7 @@ def _sliding_window(times, options):
         while (time_pick[-1][0] + step) <= (stop - length + 1):
             start = time_pick[-1][0] + step
             time_pick += [range(start, start + length)]
+
 
     return time_pick
 
