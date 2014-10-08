@@ -244,9 +244,9 @@ def check_fname(fname, filetype, endings):
     """
     print_endings = ' or '.join([', '.join(endings[:-1]), endings[-1]])
     if not fname.endswith(endings):
-        warnings.warn('This filename does not conform to mne naming convention'
-                      's. All %s files should end with '
-                      '%s' % (filetype, print_endings))
+        warnings.warn('This filename (%s) does not conform to MNE naming '
+                      'conventions. All %s files should end with '
+                      '%s' % (fname, filetype, print_endings))
 
 
 class WrapStdOut(object):
