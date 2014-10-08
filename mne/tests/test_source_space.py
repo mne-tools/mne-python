@@ -344,10 +344,6 @@ def test_setup_source_space():
     assert_true(src_new[0]['nuse'] == len(src_new[0]['rr']))
     assert_true(src_new[1]['nuse'] == len(src_new[1]['rr']))
 
-    # dense source space to hit surf['inuse'] lines of _create_surf_spacing
-    assert_raises(RuntimeError, setup_source_space, 'sample', None,
-                  spacing='ico6', subjects_dir=subjects_dir, add_dist=False)
-
 
 @testing.requires_testing_data
 def test_read_source_spaces():
@@ -487,9 +483,12 @@ def test_combine_source_spaces():
     srf = read_source_spaces(fname, add_geom=False)
 
     # setup 2 volume source spaces
-    vol = setup_volume_source_space('sample', subjects_dir=subjects_dir,
-                                    volume_label=volume_labels[0],
-                                    mri=aseg_fname, add_interpolator=False)
+    vol1 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[0],
+                                     mri=aseg_fname, add_interpolator=False)
+    vol2 = setup_volume_source_space('sample', subjects_dir=subjects_dir,
+                                     volume_label=volume_labels[1],
+                                     mri=aseg_fname, add_interpolator=False)
 
     # setup a discrete source space
     rr = np.random.randint(0, 20, (100, 3)) * 1e-3
@@ -500,11 +499,11 @@ def test_combine_source_spaces():
                                      pos=pos, verbose='error')
 
     # combine source spaces
-    src = srf + vol + disc
+    src = srf + vol1 + vol2 + disc
 
     # test addition of source spaces
     assert_equal(type(src), SourceSpaces)
-    assert_equal(len(src), 4)
+    assert_equal(len(src), 5)
 
     # test reading and writing
     src_out_name = op.join(tempdir, 'temp-src.fif')

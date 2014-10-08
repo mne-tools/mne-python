@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os
-import warnings
 
 import numpy as np
 from numpy.testing import assert_array_equal
@@ -11,19 +10,17 @@ from nose.tools import assert_true, assert_false
 
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io.kit import read_mrk
-from mne.utils import _TempDir, requires_traits, run_tests_if_main
+from mne.utils import _TempDir, requires_traits
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
 mrk_avg_path = os.path.join(kit_data_dir, 'test_mrk.sqd')
 
-warnings.simplefilter('always')
-
 
 @requires_traits
 def test_combine_markers_model():
     """Test CombineMarkersModel Traits Model"""
-    from mne.gui._marker_gui import CombineMarkersModel, CombineMarkersPanel
+    from mne.gui._marker_gui import CombineMarkersModel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test.txt')
 
@@ -70,14 +67,3 @@ def test_combine_markers_model():
     model.mrk1.file = mrk_pre_path
     model.mrk2.file = mrk_post_path
     assert_array_equal(model.mrk3.points, points_interpolate_mrk1_mrk2)
-
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            CombineMarkersPanel()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
-
-
-run_tests_if_main()

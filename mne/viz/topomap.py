@@ -918,7 +918,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if scale is None:
         scale = DEFAULTS['scalings'][key]
-    if unit is None:
         unit = DEFAULTS['units'][key]
 
     if mask_params is None:

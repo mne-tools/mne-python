@@ -60,7 +60,9 @@ def run():
 
     if raw_in is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     raw = mne.io.Raw(raw_in, preload=preload)
     if len(proj_in) > 0:

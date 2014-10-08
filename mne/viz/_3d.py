@@ -18,7 +18,6 @@ import os
 import inspect
 import warnings
 from itertools import cycle
-import base64
 
 import numpy as np
 from scipy import linalg
@@ -28,7 +27,6 @@ from ..surface import get_head_surf, get_meg_helmet_surf, read_surface
 from ..transforms import read_trans, _find_trans, apply_trans
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
-from ..externals.six import BytesIO
 
 
 def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
@@ -149,7 +147,7 @@ def plot_evoked_field(evoked, surf_maps, time=None, time_label='t = %0.0f ms',
 
 
 def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
-                       slices=None, show=True, img_output=False):
+                       slices=None, show=True):
     """Plot BEM contours on anatomical slices.
 
     Parameters
@@ -165,17 +163,11 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         Slice indices.
     show : bool
         Call pyplot.show() at the end.
-    img_output : None | tuple
-        If tuple (width and height), images will be produced instead of a
-        single figure with many axes. This mode is designed to reduce the
-        (substantial) overhead associated with making tens to hundreds
-        of matplotlib axes, instead opting to re-use a single Axes instance.
 
     Returns
     -------
-    fig : Instance of matplotlib.figure.Figure | list
-        The figure. Will instead be a list of png images if
-        img_output is a tuple.
+    fig : Instance of matplotlib.figure.Figure
+        The figure.
     """
     import matplotlib.pyplot as plt
     import nibabel as nib
@@ -211,22 +203,10 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         surf['rr'] = nib.affines.apply_affine(trans, surf['rr'])
         surfs.append(surf)
 
-    if img_output is None:
-        fig, axs = _prepare_trellis(len(slices), 4)
-    else:
-        fig, ax = plt.subplots(1, 1, figsize=(7.0, 7.0))
-        axs = [ax] * len(slices)
+    fig, axs = _prepare_trellis(len(slices), 4)
 
-        fig_size = fig.get_size_inches()
-        w, h = img_output[0], img_output[1]
-        w2 = fig_size[0]
-        fig.set_size_inches([(w2 / float(w)) * w, (w2 / float(w)) * h])
-        plt.close(fig)
-
-    inds = dict(coronal=[0, 1, 2], axial=[2, 0, 1],
-                sagittal=[2, 1, 0])[orientation]
-    outs = []
     for ax, sl in zip(axs, slices):
+
         # adjust the orientations for good view
         if orientation == 'coronal':
             dat = data[:, :, sl].transpose()
@@ -236,31 +216,30 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
             dat = data[sl, :, :]
 
         # First plot the anatomical data
-        if img_output is not None:
-            ax.clear()
         ax.imshow(dat, cmap=plt.cm.gray)
         ax.axis('off')
 
         # and then plot the contours on top
         for surf in surfs:
-            ax.tricontour(surf['rr'][:, inds[0]], surf['rr'][:, inds[1]],
-                          surf['tris'], surf['rr'][:, inds[2]],
-                          levels=[sl], colors='yellow', linewidths=2.0)
-        if img_output is not None:
-            ax.set_xticks([])
-            ax.set_yticks([])
-            ax.set_xlim(0, img_output[1])
-            ax.set_ylim(img_output[0], 0)
-            output = BytesIO()
-            fig.savefig(output, bbox_inches='tight',
-                        pad_inches=0, format='png')
-            outs.append(base64.b64encode(output.getvalue()).decode('ascii'))
+            if orientation == 'coronal':
+                ax.tricontour(surf['rr'][:, 0], surf['rr'][:, 1],
+                              surf['tris'], surf['rr'][:, 2],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation == 'axial':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 0],
+                              surf['tris'], surf['rr'][:, 1],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+            elif orientation == 'sagittal':
+                ax.tricontour(surf['rr'][:, 2], surf['rr'][:, 1],
+                              surf['tris'], surf['rr'][:, 0],
+                              levels=[sl], colors='yellow', linewidths=2.0)
+
     if show:
         plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
                             hspace=0.)
         plt.show()
 
-    return fig if img_output is None else outs
+    return fig
 
 
 def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,

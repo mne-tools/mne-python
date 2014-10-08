@@ -122,8 +122,8 @@ def _n_colors(n, bytes_=False, cmap='hsv'):
     """
     n_max = 2 ** 10
     if n > n_max:
-        raise NotImplementedError("Can't produce more than %i unique "
-                                  "colors" % n_max)
+        err = "Can't produce more than %i unique colors" % n_max
+        raise NotImplementedError(err)
 
     from matplotlib.cm import get_cmap
     cm = get_cmap(cmap, n_max)
@@ -216,8 +216,9 @@ class Label(object):
             pos = np.asarray(pos)
 
         if not (len(vertices) == len(values) == len(pos)):
-            raise ValueError("vertices, values and pos need to have same "
-                             "length (number of vertices)")
+            err = ("vertices, values and pos need to have same length (number "
+                   "of vertices)")
+            raise ValueError(err)
 
         # name
         if name is None and filename is not None:
@@ -395,10 +396,11 @@ class Label(object):
 
         nearest = hemi_src['nearest']
         if nearest is None:
-            logger.warn("Computing patch info for source space, this can take "
-                        "a while. In order to avoid this in the future, run "
-                        "mne.add_source_space_distances() on the source space "
-                        "and save it.")
+            msg = ("Computing patch info for source space, this can take "
+                   "a while. In order to avoid this in the future, run "
+                   "mne.add_source_space_distances() on the source space "
+                   "and save it.")
+            logger.warn(msg)
             add_source_space_distances(src)
             nearest = hemi_src['nearest']
 
@@ -759,9 +761,10 @@ def read_label(filename, subject=None, color=None):
 
     # find name
     if basename.startswith(('lh.', 'rh.')):
-        basename_ = basename[3:]
         if basename.endswith('.label'):
-            basename_ = basename[:-6]
+            basename_ = basename[3:-6]
+        else:
+            basename_ = basename[3:]
     else:
         basename_ = basename[:-9]
     name = "%s-%s" % (basename_, hemi)
@@ -903,9 +906,9 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     elif label.subject is None:
         pass
     elif subject != label.subject:
-        raise ValueError("The label specifies a different subject (%r) from "
-                         "the subject parameter (%r)."
-                         % label.subject, subject)
+        err = ("The label specifies a different subject (%r) from the subject "
+               "parameter (%r)." % label.subject, subject)
+        raise ValueError(err)
 
     # find the spherical surface
     surf_fname = '.'.join((label.hemi, 'sphere'))
@@ -1116,8 +1119,10 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             raise ValueError(msg)
         subjects_dir = get_subjects_dir(subjects_dir)
         surf_path_from = op.join(subjects_dir, src, 'surf')
-        rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
-        rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
+        rr_lh, tris_lh = read_surface(op.join(surf_path_from,
+                                      'lh.white'))
+        rr_rh, tris_rh = read_surface(op.join(surf_path_from,
+                                      'rh.white'))
         rr = [rr_lh, rr_rh]
         tris = [tris_lh, tris_rh]
     else:

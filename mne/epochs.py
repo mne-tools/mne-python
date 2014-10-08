@@ -465,7 +465,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
 
     @property
     def ch_names(self):
-        """Channel names"""
         return self.info['ch_names']
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
@@ -475,7 +474,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         Parameters
         ----------
         epoch_idx : array-like | int | None
-            The epochs to visualize. If None, the first 20 epochs are shown.
+            The epochs to visualize. If None, the frist 20 epochs are shoen.
             Defaults to None.
         picks : array-like of int | None
             Channels to be included. If None only good data channels are used.
@@ -596,12 +595,10 @@ class Epochs(_BaseEpochs):
         If True, an EEG average reference will be added (unless one
         already exists).
     on_missing : str
-        What to do if one or several event ids are not found in the recording.
+        What to do if an event id is not found in the recording.
         Valid keys are 'error' | 'warning' | 'ignore'
         Default is 'error'. If on_missing is 'warning' it will proceed but
-        warn, if 'ignore' it will proceed silently. Note.
-        If none of the event ids are found in the data, an error will be
-        automatically generated irrespective of this parameter.
+        warn, if 'ignore' it will proceed silently.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.

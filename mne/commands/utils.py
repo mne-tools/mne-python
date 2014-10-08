@@ -9,6 +9,7 @@ import imp
 import os
 import re
 from optparse import OptionParser
+from subprocess import Popen, PIPE
 
 import mne
 
@@ -43,3 +44,12 @@ def get_optparser(cmdpath):
                           epilog=epilog)
 
     return parser
+
+
+def get_status_output(cmd):
+    """ Replacement for commands.getstatusoutput which has been deprecated since 2.6
+        Returns the error status, output and error output"""
+    pipe = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+    output, error = pipe.communicate()
+    status = pipe.returncode
+    return status, output, error

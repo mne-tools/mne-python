@@ -42,8 +42,6 @@ class CSP(TransformerMixin):
     `std_` : ndarray
         If fit, the std squared power for each component.
 
-    References
-    ----------
     [1] Zoltan J. Koles. The quantitative extraction and topographic mapping
     of the abnormal components in the clinical EEG. Electroencephalography
     and Clinical Neurophysiology, 79(6):440--447, December 1991.

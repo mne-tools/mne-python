@@ -519,15 +519,3 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         plt.show()
 
     return fig if fig is not None else plt.gcf()
-
-
-def _get_presser(fig):
-    """Helper to get our press callback"""
-    callbacks = fig.canvas.callbacks.callbacks['button_press_event']
-    func = None
-    for key, val in callbacks.items():
-        if val.func.__class__.__name__ == 'partial':
-            func = val.func
-            break
-    assert func is not None
-    return func

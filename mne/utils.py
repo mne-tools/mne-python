@@ -17,6 +17,7 @@ import inspect
 from string import Formatter
 import subprocess
 import sys
+from sys import stdout
 import tempfile
 import shutil
 from shutil import rmtree
@@ -24,7 +25,6 @@ from math import log, ceil
 import json
 import ftplib
 import hashlib
-from functools import partial
 
 import numpy as np
 import scipy
@@ -40,28 +40,20 @@ logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
 try:
-    from nose.plugins.skip import SkipTest
+    from nose.tools import nottest
 except ImportError:
-    SkipTest = RuntimeError
-
-
-def _memory_usage(*args, **kwargs):
-    if isinstance(args[0], tuple):
-        args[0][0](*args[0][1], **args[0][2])
-    elif not isinstance(args[0], int):  # can be -1 for current use
-        args[0]()
-    return [-1]
-
+    class nottest(object):
+        def __init__(self, *args):
+            pass  # Avoid "object() takes no parameters"
 try:
     from memory_profiler import memory_usage
 except ImportError:
-    memory_usage = _memory_usage
-
-
-def nottest(f):
-    """Decorator to mark a function as not a test"""
-    f.__test__ = False
-    return f
+    def memory_usage(*args, **kwargs):
+        if isinstance(args[0], tuple):
+            args[0][0](*args[0][1], **args[0][2])
+        elif not isinstance(args[0], int):  # can be -1 for current use
+            args[0]()
+        return [-1]
 
 
 ###############################################################################
@@ -493,145 +485,326 @@ def verbose(function, *args, **kwargs):
         The decorated function
     """
     arg_names = inspect.getargspec(function).args
-    default_level = verbose_level = None
+
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
+    else:
+        default_level = None
+
     if('verbose' in arg_names):
         verbose_level = args[arg_names.index('verbose')]
-
-    # This ensures that object.method(verbose=None) will use object.verbose
-    verbose_level = default_level if verbose_level is None else verbose_level
+    else:
+        verbose_level = default_level
 
     if verbose_level is not None:
         old_level = set_log_level(verbose_level, True)
         # set it back if we get an exception
         try:
-            return function(*args, **kwargs)
-        finally:
+            ret = function(*args, **kwargs)
+        except:
             set_log_level(old_level)
-    return function(*args, **kwargs)
+            raise
+        set_log_level(old_level)
+        return ret
+    else:
+        ret = function(*args, **kwargs)
+        return ret
+
+
+def has_command_line_tools():
+    if 'MNE_ROOT' not in os.environ:
+        return False
+    else:
+        return True
+
+
+requires_mne = np.testing.dec.skipif(not has_command_line_tools(),
+                                     'Requires MNE command line tools')
 
 
 def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
-        out = True
         if vox2ras_tkr:  # we need MGHHeader to have vox2ras_tkr param
-            out = (getattr(getattr(getattr(nibabel, 'MGHImage', 0),
-                                   'header_class', 0),
-                           'get_vox2ras_tkr', None) is not None)
-        return out
+            mgh_ihdr = getattr(nibabel, 'MGHImage', None)
+            mgh_ihdr = getattr(mgh_ihdr, 'header_class', None)
+            get_vox2ras_tkr = getattr(mgh_ihdr, 'get_vox2ras_tkr', None)
+            if get_vox2ras_tkr is not None:
+                return True
+            else:
+                return False
+        else:
+            return True
     except ImportError:
         return False
 
 
-has_mne_c = lambda: 'MNE_ROOT' in os.environ
-has_freesurfer = lambda: 'FREESURFER_HOME' in os.environ
+def has_freesurfer():
+    """Aux function"""
+    if not 'FREESURFER_HOME' in os.environ:
+        return False
+    else:
+        return True
+
+
+requires_fs_or_nibabel = np.testing.dec.skipif(not has_nibabel() and
+                                               not has_freesurfer(),
+                                               'Requires nibabel or '
+                                               'Freesurfer')
+
+
+def has_neuromag2ft():
+    """Aux function"""
+    if not 'NEUROMAG2FT_ROOT' in os.environ:
+        return False
+    else:
+        return True
+
+
+requires_neuromag2ft = np.testing.dec.skipif(not has_neuromag2ft(),
+                                             'Requires neuromag2ft')
 
 
 def requires_nibabel(vox2ras_tkr=False):
     """Aux function"""
-    extra = ' with vox2ras_tkr support' if vox2ras_tkr else ''
+    if vox2ras_tkr:
+        extra = ' with vox2ras_tkr support'
+    else:
+        extra = ''
     return np.testing.dec.skipif(not has_nibabel(vox2ras_tkr),
                                  'Requires nibabel%s' % extra)
 
-
-def requires_scipy_version(min_version):
-    """Helper for testing"""
-    return np.testing.dec.skipif(not check_scipy_version(min_version),
-                                 'Requires scipy version >= %s' % min_version)
+requires_freesurfer = np.testing.dec.skipif(not has_freesurfer(),
+                                            'Requires Freesurfer')
 
 
-def requires_module(function, name, call):
-    """Decorator to skip test if package is not available"""
+def requires_mem_gb(requirement):
+    """Decorator to skip test if insufficient memory is available"""
+    def real_decorator(function):
+        # convert to gb
+        req = int(1e9 * requirement)
+        try:
+            import psutil
+            has_psutil = True
+        except ImportError:
+            has_psutil = False
+
+        @wraps(function)
+        def dec(*args, **kwargs):
+            if has_psutil and psutil.virtual_memory().available >= req:
+                skip = False
+            else:
+                skip = True
+
+            if skip is True:
+                from nose.plugins.skip import SkipTest
+                raise SkipTest('Test %s skipped, requires >= %0.1f GB free '
+                               'memory' % (function.__name__, requirement))
+            ret = function(*args, **kwargs)
+            return ret
+        return dec
+    return real_decorator
+
+
+def requires_pandas(function):
+    """Decorator to skip test if pandas is not available"""
     @wraps(function)
     def dec(*args, **kwargs):
         skip = False
         try:
-            exec(call) in globals(), locals()
-        except Exception:
+            import pandas
+            version = LooseVersion(pandas.__version__)
+            if version < '0.8.0':
+                skip = True
+        except ImportError:
             skip = True
+
         if skip is True:
-            raise SkipTest('Test %s skipped, requires %s'
-                           % (function.__name__, name))
-        return function(*args, **kwargs)
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires pandas'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
     return dec
 
 
-_pandas_call = """
-import pandas
-version = LooseVersion(pandas.__version__)
-if version < '0.8.0':
-    raise ImportError
-"""
+def requires_tvtk(function):
+    """Decorator to skip test if TVTK is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            from tvtk.api import tvtk  # analysis:ignore
+        except ImportError:
+            skip = True
 
-_sklearn_call = """
-required_version = '0.14'
-import sklearn
-version = LooseVersion(sklearn.__version__)
-if version < required_version:
-    raise ImportError
-"""
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires TVTK'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
 
-_mayavi_call = """
-try:
-    from mayavi import mlab
-except ImportError:
-    from enthought.mayavi import mlab
-mlab.options.backend = 'test'
-"""
+        return ret
 
-_mne_call = """
-if not has_mne_c():
-    raise ImportError
-"""
+    return dec
 
-_fs_call = """
-if not has_freesurfer():
-    raise ImportError
-"""
 
-_n2ft_call = """
-if 'NEUROMAG2FT_ROOT' not in os.environ:
-    raise ImportError
-"""
+def requires_statsmodels(function):
+    """Decorator to skip test if statsmodels is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            import statsmodels  # noqa, analysis:ignore
+        except ImportError:
+            skip = True
 
-_fs_or_ni_call = """
-if not has_nibabel() and not has_freesurfer():
-    raise ImportError
-"""
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires statsmodels'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
 
-requires_pandas = partial(requires_module, name='pandas', call=_pandas_call)
-requires_sklearn = partial(requires_module, name='sklearn', call=_sklearn_call)
-requires_mayavi = partial(requires_module, name='mayavi', call=_mayavi_call)
-requires_mne = partial(requires_module, name='MNE-C', call=_mne_call)
-requires_freesurfer = partial(requires_module, name='Freesurfer',
-                              call=_fs_call)
-requires_neuromag2ft = partial(requires_module, name='neuromag2ft',
-                               call=_n2ft_call)
-requires_fs_or_nibabel = partial(requires_module, name='nibabel or Freesurfer',
-                                 call=_fs_or_ni_call)
+        return ret
 
-requires_tvtk = partial(requires_module, name='TVTK',
-                        call='from tvtk.api import tvtk')
-requires_statsmodels = partial(requires_module, name='statsmodels',
-                               call='import statsmodels')
-requires_patsy = partial(requires_module, name='patsy',
-                         call='import patsy')
-requires_pysurfer = partial(requires_module, name='PySurfer',
-                            call='from surfer import Brain')
-requires_PIL = partial(requires_module, name='PIL',
-                       call='from PIL import Image')
-requires_good_network = partial(
-    requires_module, name='good network connection',
-    call='if int(os.environ.get("MNE_SKIP_NETWORK_TESTS", 0)):\n'
-         '    raise ImportError')
-requires_nitime = partial(requires_module, name='nitime',
-                          call='import nitime')
-requires_traits = partial(requires_module, name='traits',
-                          call='import traits')
-requires_pytables = partial(requires_module, name='pytables',
-                            call='import tables')
+    return dec
+
+
+def requires_patsy(function):
+    """
+    Decorator to skip test if patsy is not available. Patsy should be a
+    statsmodels dependency but apparently it's possible to install statsmodels
+    without it.
+    """
+    @wraps(function)
+    def dec(*args, **kwargs):
+        skip = False
+        try:
+            import patsy  # noqa, analysis:ignore
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires patsy'
+                           % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
+def requires_sklearn(function):
+    """Decorator to skip test if sklearn is not available"""
+    @wraps(function)
+    def dec(*args, **kwargs):
+        required_version = '0.14'
+        skip = False
+        try:
+            import sklearn
+            version = LooseVersion(sklearn.__version__)
+            if version < required_version:
+                skip = True
+        except ImportError:
+            skip = True
+
+        if skip is True:
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires sklearn (version >= %s)'
+                           % (function.__name__, required_version))
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
+def requires_mayavi():
+    """Decorator to skip test if mayavi is not available"""
+
+    lacks_mayavi = False
+    try:
+        from mayavi import mlab
+    except ImportError:
+        try:
+            from enthought.mayavi import mlab
+        except ImportError:
+            lacks_mayavi = True
+            mlab = False
+    requires_mayavi = np.testing.dec.skipif(lacks_mayavi, 'Requires mayavi')
+
+    if not lacks_mayavi:
+        mlab.options.backend = 'test'
+
+    return requires_mayavi
+
+
+def requires_pysurfer():
+    """Decorator to skip test if PySurfer is not available"""
+    try:
+        from surfer import Brain  # noqa, analysis:ignore
+    except Exception:
+        lacks_surfer = True
+    else:
+        lacks_surfer = False
+    requires_mayavi = np.testing.dec.skipif(lacks_surfer, 'Requires PySurfer')
+    return requires_mayavi
+
+
+def requires_PIL():
+    """Decorator to skip test if PIL is not available"""
+    try:
+        from PIL import Image  # noqa, analysis:ignore
+    except Exception:
+        lacks_PIL = True
+    else:
+        lacks_PIL = False
+    requires_PIL = np.testing.dec.skipif(lacks_PIL, 'Requires PIL')
+    return requires_PIL
+
+
+def requires_good_network(function):
+    """Helper for testing"""
+
+    @wraps(function)
+    def dec(*args, **kwargs):
+        if int(os.environ.get('MNE_SKIP_NETWORK_TESTS', 0)):
+            from nose.plugins.skip import SkipTest
+            raise SkipTest('Test %s skipped, requires a good network '
+                           'connection' % function.__name__)
+        ret = function(*args, **kwargs)
+
+        return ret
+
+    return dec
+
+
+def make_skipper_dec(module, skip_str):
+    """Helper to make skipping decorators"""
+    skip = False
+    try:
+        __import__(module)
+    except ImportError:
+        skip = True
+    return np.testing.dec.skipif(skip, skip_str)
+
+
+requires_nitime = make_skipper_dec('nitime', 'nitime not installed')
+requires_traits = make_skipper_dec('traits', 'traits not installed')
+travis_skip = np.testing.dec.skipif(os.getenv('TRAVIS', '') == 'true',
+                                    'Test does not run on Travis platforms')
+
+
+def _mne_fs_not_in_env():
+    """Aux function"""
+    return (('FREESURFER_HOME' not in os.environ) or
+            ('MNE_ROOT' not in os.environ))
+
+requires_mne_fs_in_env = np.testing.dec.skipif(_mne_fs_not_in_env(),
+                                               'MNE or Freesurfer not found')
 
 
 def _check_mayavi_version(min_version='4.3.0'):
@@ -645,7 +818,8 @@ def _check_mayavi_version(min_version='4.3.0'):
     """
     import mayavi
     require_mayavi = LooseVersion(min_version)
-    if LooseVersion(mayavi.__version__) < require_mayavi:
+    has_mayavi = LooseVersion(mayavi.__version__)
+    if has_mayavi < require_mayavi:
         raise RuntimeError("Need mayavi >= %s" % require_mayavi)
 
 
@@ -680,6 +854,32 @@ def check_scipy_version(min_version):
     """
     this_version = LooseVersion(scipy.__version__)
     return False if this_version < min_version else True
+
+
+def requires_scipy_version(min_version):
+    """Helper for testing"""
+    ok = check_scipy_version(min_version)
+    return np.testing.dec.skipif(not ok, 'Requires scipy version >= %s'
+                                 % min_version)
+
+
+def _check_pytables():
+    """Helper to error if Pytables is not found"""
+    try:
+        import tables as tb
+    except ImportError:
+        raise ImportError('pytables could not be imported')
+    return tb
+
+
+def requires_pytables():
+    """Helper for testing"""
+    have = True
+    try:
+        _check_pytables()
+    except ImportError:
+        have = False
+    return np.testing.dec.skipif(not have, 'Requires pytables')
 
 
 @verbose
@@ -763,7 +963,7 @@ def set_log_level(verbose=None, return_old_level=False):
         INFO, WARNING, ERROR, or CRITICAL. Note that these are for
         convenience and are equivalent to passing in logging.DEBUG, etc.
         For bool, True is the same as 'INFO', False is the same as 'WARNING'.
-        If None, the environment variable MNE_LOGGING_LEVEL is read, and if
+        If None, the environment variable MNE_LOG_LEVEL is read, and if
         it doesn't exist, defaults to INFO.
     return_old_level : bool
         If True, return the old verbosity level.
@@ -990,7 +1190,7 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     """
 
     if key is not None and not isinstance(key, string_types):
-        raise TypeError('key must be a string')
+        raise ValueError('key must be a string')
 
     # first, check to see if key is in env
     if key is not None and key in os.environ:
@@ -1038,11 +1238,11 @@ def set_config(key, value, home_dir=None):
         If None, it is found automatically.
     """
     if not isinstance(key, string_types):
-        raise TypeError('key must be a string')
+        raise ValueError('key must be a string')
     # While JSON allow non-string types, we allow users to override config
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
-        raise TypeError('value must be a string or None')
+        raise ValueError('value must be a string or None')
     if not key in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
@@ -1112,7 +1312,7 @@ class ProgressBar(object):
     template = '\r[{0}{1}] {2:.05f} {3} {4}   '
 
     def __init__(self, max_value, initial_value=0, mesg='', max_chars=40,
-                 progress_character='.', spinner=False, verbose_bool=True):
+                 progress_character='.', spinner=False):
         self.cur_value = initial_value
         self.max_value = float(max_value)
         self.mesg = mesg
@@ -1121,7 +1321,6 @@ class ProgressBar(object):
         self.spinner = spinner
         self.spinner_index = 0
         self.n_spinner = len(self.spinner_symbols)
-        self._do_print = verbose_bool
 
     def update(self, cur_value, mesg=None):
         """Update progressbar with current value of process
@@ -1156,14 +1355,14 @@ class ProgressBar(object):
                                    progress * 100,
                                    self.spinner_symbols[self.spinner_index],
                                    self.mesg)
-        # Force a flush because sometimes when using bash scripts and pipes,
-        # the output is not printed until after the program exits.
-        if self._do_print:
-            sys.stdout.write(bar)
-            sys.stdout.flush()
+        sys.stdout.write(bar)
         # Increament the spinner
         if self.spinner:
             self.spinner_index = (self.spinner_index + 1) % self.n_spinner
+
+        # Force a flush because sometimes when using bash scripts and pipes,
+        # the output is not printed until after the program exits.
+        sys.stdout.flush()
 
     def update_with_increment_value(self, increment_value, mesg=None):
         """Update progressbar with the value of the increment instead of the
@@ -1184,8 +1383,21 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
-                verbose_bool=True):
+class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
+    """Create sub-class in order to overide error 206.
+
+    This error means a partial file is being sent, which is ok in this case.
+    Do nothing with this error.
+    """
+    # Adapted from:
+    # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
+    # http://code.activestate.com/recipes/83208-resuming-download-of-a-file/
+
+    def http_error_206(self, url, fp, errcode, errmsg, headers, data=None):
+        pass
+
+
+def _chunk_read(response, local_file, chunk_size=65536, initial_size=0):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -1204,25 +1416,24 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
 
+    bytes_so_far = initial_size
     # Returns only amount left to download when resuming, not the size of the
     # entire file
     total_size = int(response.headers.get('Content-Length', '1').strip())
     total_size += initial_size
 
-    progress = ProgressBar(total_size, initial_value=initial_size,
-                           max_chars=40, spinner=True, mesg='downloading',
-                           verbose_bool=verbose_bool)
+    progress = ProgressBar(total_size, initial_value=bytes_so_far,
+                           max_chars=40, spinner=True, mesg='downloading')
     while True:
         chunk = response.read(chunk_size)
+        bytes_so_far += len(chunk)
         if not chunk:
-            if verbose_bool:
-                sys.stdout.write('\n')
-                sys.stdout.flush()
+            sys.stderr.write('\n')
             break
         _chunk_write(chunk, local_file, progress)
 
 
-def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
+def _chunk_read_ftp_resume(url, temp_file_name, local_file):
     """Resume downloading of a file from an FTP server"""
     # Adapted from: https://pypi.python.org/pypi/fileDownloader.py
     # but with changes
@@ -1246,15 +1457,12 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     down_cmd = "RETR " + file_name
     file_size = data.size(file_name)
     progress = ProgressBar(file_size, initial_value=local_file_size,
-                           max_chars=40, spinner=True, mesg='downloading',
-                           verbose_bool=verbose_bool)
+                           max_chars=40, spinner=True, mesg='downloading')
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
     chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
-    sys.stdout.write('\n')
-    sys.stdout.flush()
 
 
 def _chunk_write(chunk, local_file, progress):
@@ -1263,9 +1471,8 @@ def _chunk_write(chunk, local_file, progress):
     progress.update_with_increment_value(len(chunk))
 
 
-@verbose
 def _fetch_file(url, file_name, print_destination=True, resume=True,
-                hash_=None, verbose=None):
+                verbose=None):
     """Load requested file, downloading it if needed or requested
 
     Parameters
@@ -1279,82 +1486,60 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
         download finishes.
     resume: bool, optional
         If true, try to resume partially downloaded files.
-    hash_ : str | None
-        The hash of the file to check. If None, no checking is
-        performed.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
-    if hash_ is not None and (not isinstance(hash_, string_types) or
-                              len(hash_) != 32):
-        raise ValueError('Bad hash value given, should be a 32-character '
-                         'string:\n%s' % (hash_,))
+
     temp_file_name = file_name + ".part"
     local_file = None
     initial_size = 0
-    verbose_bool = (logger.level <= 20)  # 20 is info
     try:
         # Checking file size and displaying it alongside the download url
         u = urllib.request.urlopen(url, timeout=10.)
         try:
             file_size = int(u.headers.get('Content-Length', '1').strip())
         finally:
-            u.close()
             del u
-        logger.info('Downloading data from %s (%s)\n'
-                    % (url, sizeof_fmt(file_size)))
+        print('Downloading data from %s (%s)' % (url, sizeof_fmt(file_size)))
         # Downloading data
         if resume and os.path.exists(temp_file_name):
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures
             scheme = urllib.parse.urlparse(url).scheme
             if scheme == 'http':
+                url_opener = _HTTPResumeURLOpener()
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
-                req = urllib.request.Request(url)
-                req.headers["Range"] = "bytes=%s-" % local_file_size
+                url_opener.addheader("Range", "bytes=%s-" % (local_file_size))
                 try:
-                    data = urllib.request.urlopen(req)
-                except Exception:
+                    data = url_opener.open(url)
+                except urllib.request.HTTPError:
                     # There is a problem that may be due to resuming, some
                     # servers may not support the "Range" header. Switch back
                     # to complete download method
-                    logger.info('Resuming download failed. Attempting to '
-                                'restart downloading the entire file.')
+                    print('Resuming download failed. Attempting to restart '
+                          'downloading the entire file.')
                     _fetch_file(url, resume=False)
                 else:
-                    _chunk_read(data, local_file, initial_size=local_file_size,
-                                verbose_bool=verbose_bool)
-                    data.close()
+                    _chunk_read(data, local_file, initial_size=local_file_size)
                     del data  # should auto-close
             else:
-                _chunk_read_ftp_resume(url, temp_file_name, local_file,
-                                       verbose_bool=verbose_bool)
+                _chunk_read_ftp_resume(url, temp_file_name, local_file)
         else:
             local_file = open(temp_file_name, "wb")
             data = urllib.request.urlopen(url)
             try:
-                _chunk_read(data, local_file, initial_size=initial_size,
-                            verbose_bool=verbose_bool)
+                _chunk_read(data, local_file, initial_size=initial_size)
             finally:
-                data.close()
                 del data  # should auto-close
         # temp file must be closed prior to the move
         if not local_file.closed:
             local_file.close()
-        # check md5sum
-        if hash_ is not None:
-            logger.info('Verifying download hash.')
-            md5 = md5sum(temp_file_name)
-            if hash_ != md5:
-                raise RuntimeError('Hash mismatch for downloaded file %s, '
-                                   'expected %s but got %s'
-                                   % (temp_file_name, hash_, md5))
         shutil.move(temp_file_name, file_name)
         if print_destination is True:
-            logger.info('File saved as %s.\n' % file_name)
+            stdout.write('File saved as %s.\n' % file_name)
     except Exception as e:
         logger.error('Error while fetching file %s.'
                      ' Dataset fetching aborted.' % url)
@@ -1400,10 +1585,10 @@ def _get_stim_channel(stim_channel):
     if stim_channel is not None:
         if not isinstance(stim_channel, list):
             if not isinstance(stim_channel, string_types):
-                raise TypeError('stim_channel must be a str, list, or None')
+                raise ValueError('stim_channel must be a str, list, or None')
             stim_channel = [stim_channel]
         if not all([isinstance(s, string_types) for s in stim_channel]):
-            raise TypeError('stim_channel list must contain all strings')
+            raise ValueError('stim_channel list must contain all strings')
         return stim_channel
 
     stim_channel = list()
@@ -1552,7 +1737,7 @@ def run_tests_if_main(measure_mem=True):
         elif callable(val) and name.startswith('test'):
             count += 1
             doc = val.__doc__.strip() if val.__doc__ else name
-            sys.stdout.write('%s ... ' % doc)
+            print('%s ... ' % doc, end='')
             sys.stdout.flush()
             try:
                 t1 = time.time()
@@ -1567,62 +1752,14 @@ def run_tests_if_main(measure_mem=True):
                 elapsed = int(round(time.time() - t1))
                 if elapsed >= max_elapsed:
                     max_elapsed, elapsed_name = elapsed, name
-                sys.stdout.write('time: %s sec%s\n' % (elapsed, mem))
+                print('time: %s sec%s' % (elapsed, mem))
                 sys.stdout.flush()
             except Exception as err:
                 if 'skiptest' in err.__class__.__name__.lower():
-                    sys.stdout.write('SKIP (%s)\n' % str(err))
+                    print('SKIP')
                     sys.stdout.flush()
                 else:
                     raise
     elapsed = int(round(time.time() - t0))
-    sys.stdout.write('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory'
-                     ' %s MB (%s)\n' % (count, elapsed, max_elapsed,
-                                        elapsed_name, peak_mem, peak_name))
-
-
-class ArgvSetter(object):
-    """Temporarily set sys.argv"""
-    def __init__(self, args=(), disable_stdout=True, disable_stderr=True):
-        self.argv = list(('python',) + args)
-        self.stdout = StringIO() if disable_stdout else sys.stdout
-        self.stderr = StringIO() if disable_stderr else sys.stderr
-
-    def __enter__(self):
-        self.orig_argv = sys.argv
-        sys.argv = self.argv
-        self.orig_stdout = sys.stdout
-        sys.stdout = self.stdout
-        self.orig_stderr = sys.stderr
-        sys.stderr = self.stderr
-        return self
-
-    def __exit__(self, *args):
-        sys.argv = self.orig_argv
-        sys.stdout = self.orig_stdout
-        sys.stderr = self.orig_stderr
-
-
-def md5sum(fname, block_size=1048576):  # 2 ** 20
-    """Calculate the md5sum for a file
-
-    Parameters
-    ----------
-    fname : str
-        Filename.
-    block_size : int
-        Block size to use when reading.
-
-    Returns
-    -------
-    hash_ : str
-        The hexidecimal digest of the hash.
-    """
-    md5 = hashlib.md5()
-    with open(fname, 'rb') as fid:
-        while True:
-            data = fid.read(block_size)
-            if not data:
-                break
-            md5.update(data)
-    return md5.hexdigest()
+    print('Total: %s tests\n• %s sec (%s sec for %s)\n• Peak memory %s MB (%s)'
+          % (count, elapsed, max_elapsed, elapsed_name, peak_mem, peak_name))

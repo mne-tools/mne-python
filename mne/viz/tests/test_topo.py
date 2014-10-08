@@ -7,7 +7,6 @@
 
 import os.path as op
 import warnings
-from collections import namedtuple
 
 import numpy as np
 from numpy.testing import assert_raises
@@ -21,9 +20,8 @@ from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
 from mne.layouts import read_layout
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import run_tests_if_main
 
-from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
+from mne.viz import plot_topo, plot_topo_image_epochs
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -90,10 +88,7 @@ def test_plot_topo():
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
-        fig = plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
-        func = _get_presser(fig)
-        event = namedtuple('Event', 'inaxes')
-        func(event(inaxes=fig.axes[0]))
+        plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
 
 
 def test_plot_topo_image_epochs():
@@ -117,6 +112,3 @@ def test_plot_tfr_topo():
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
                   vmin=0., vmax=14.)
     tfr.plot([4], baseline=(None, 0), mode='ratio')
-
-
-run_tests_if_main()

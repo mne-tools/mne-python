@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os
-import warnings
 
 import numpy as np
 from numpy.testing import assert_allclose, assert_array_equal
@@ -12,7 +11,7 @@ from nose.tools import assert_true, assert_false, assert_equal
 import mne
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.io import Raw
-from mne.utils import _TempDir, requires_traits, run_tests_if_main
+from mne.utils import _TempDir, requires_traits
 
 mrk_pre_path = os.path.join(kit_data_dir, 'test_mrk_pre.sqd')
 mrk_post_path = os.path.join(kit_data_dir, 'test_mrk_post.sqd')
@@ -21,13 +20,11 @@ hsp_path = os.path.join(kit_data_dir, 'test_hsp.txt')
 fid_path = os.path.join(kit_data_dir, 'test_elp.txt')
 fif_path = os.path.join(kit_data_dir, 'test_bin_raw.fif')
 
-warnings.simplefilter('always')
-
 
 @requires_traits
 def test_kit2fiff_model():
     """Test CombineMarkersModel Traits Model"""
-    from mne.gui._kit2fiff_gui import Kit2FiffModel, Kit2FiffPanel
+    from mne.gui._kit2fiff_gui import Kit2FiffModel
     tempdir = _TempDir()
     tgt_fname = os.path.join(tempdir, 'test-raw.fif')
 
@@ -87,14 +84,3 @@ def test_kit2fiff_model():
     raw = model.get_raw()
     events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
-
-    os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
-    try:
-        with warnings.catch_warnings(record=True):  # traits warnings
-            warnings.simplefilter('always')
-            Kit2FiffPanel()
-    finally:
-        del os.environ['_MNE_GUI_TESTING_MODE']
-
-
-run_tests_if_main()

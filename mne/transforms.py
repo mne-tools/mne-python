@@ -301,6 +301,7 @@ def write_trans(fname, trans):
         Trans file data, as returned by read_trans.
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+
     fid = start_file(fname)
     write_coord_trans(fid, trans)
     end_file(fid)
@@ -365,7 +366,6 @@ def transform_coordinates(filename, pos, orig, dest):
     filename: string
         Name of a fif file containing the coordinate transformations
         This file can be conveniently created with mne_collect_transforms
-        or ``collect_transforms``.
     pos: array of shape N x 3
         array of locations to transform (in meters)
     orig: 'meg' | 'mri'
@@ -463,18 +463,77 @@ def transform_coordinates(filename, pos, orig, dest):
     return trans_pos
 
 
-def collect_transforms(fname, xforms):
-    """Collect a set of transforms in a single FIFF file
+# @verbose
+# def transform_meg_chs(chs, trans, verbose=None):
+#     """
+#     %
+#     % [res, count] = fiff_transform_meg_chs(chs,trans)
+#     %
+#     % Move to another coordinate system in MEG channel channel info
+#     % Count gives the number of channels transformed
+#     %
+#     % NOTE: Only the coil_trans field is modified by this routine, not
+#     % loc which remains to reflect the original data read from the fif file
+#     %
+#     %
+#
+#     XXX
+#     """
+#
+#     res = copy.deepcopy(chs)
+#
+#     count = 0
+#     t = trans['trans']
+#     for ch in res:
+#         if (ch['kind'] == FIFF.FIFFV_MEG_CH
+#                                     or ch['kind'] == FIFF.FIFFV_REF_MEG_CH):
+#             if (ch['coord_frame'] == trans['from']
+#                                             and ch['coil_trans'] is not None):
+#                 ch['coil_trans'] = np.dot(t, ch['coil_trans'])
+#                 ch['coord_frame'] = trans['to']
+#                 count += 1
+#
+#     if count > 0:
+#         logger.info('    %d MEG channel locations transformed' % count)
+#
+#     return res, count
 
-    Parameters
-    ----------
-    fname : str
-        Filename to save to.
-    xforms : list of dict
-        List of transformations.
-    """
-    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
-    with start_file(fname) as fid:
-        for xform in xforms:
-            write_coord_trans(fid, xform)
-        end_file(fid)
+# @verbose
+# def transform_eeg_chs(chs, trans, verbose=None):
+#     """
+#     %
+#     % [res, count] = fiff_transform_eeg_chs(chs,trans)
+#     %
+#     % Move to another coordinate system in EEG channel channel info
+#     % Count gives the number of channels transformed
+#     %
+#     % NOTE: Only the eeg_loc field is modified by this routine, not
+#     % loc which remains to reflect the original data read from the fif file
+#     %
+#
+#     XXX
+#     """
+#     res = copy.deepcopy(chs)
+#
+#     count = 0
+#     #
+#     #   Output unaugmented vectors from the transformation
+#     #
+#     t = trans['trans'][:3,:]
+#     for ch in res:
+#         if ch['kind'] == FIFF.FIFFV_EEG_CH:
+#             if (ch['coord_frame'] == trans['from']
+#                                             and ch['eeg_loc'] is not None):
+#                 #
+#                 # Transform the augmented EEG location vectors
+#                 #
+#                 for p in range(ch['eeg_loc'].shape[1]):
+#                     ch['eeg_loc'][:, p] = np.dot(t,
+#                                                 np.r_[ch['eeg_loc'][:,p], 1])
+#                 count += 1
+#                 ch['coord_frame'] = trans['to']
+#
+#     if count > 0:
+#         logger.info('    %d EEG electrode locations transformed\n' % count)
+#
+#     return res, count

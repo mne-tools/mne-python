@@ -105,7 +105,9 @@ def run():
 
     if raw_in is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     tmin = options.tmin
     tmax = options.tmax
@@ -134,8 +136,7 @@ def run():
     ch_name = options.ch_name
 
     if bad_fname is not None:
-        with open(bad_fname, 'r') as fid:
-            bads = [w.rstrip() for w in fid.readlines()]
+        bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
         print('Bad channels read : %s' % bads)
     else:
         bads = []

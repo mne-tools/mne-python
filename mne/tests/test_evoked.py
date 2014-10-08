@@ -60,7 +60,6 @@ def test_io_evoked():
     assert_equal(ave.kind, ave2.kind)
     assert_equal(ave.last, ave2.last)
     assert_equal(ave.first, ave2.first)
-    assert_true(repr(ave))
 
     # test compressed i/o
     ave2 = read_evokeds(fname_gz, 0)

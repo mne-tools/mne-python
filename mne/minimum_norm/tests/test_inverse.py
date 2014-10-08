@@ -309,7 +309,6 @@ def test_inverse_operator_volume():
     tempdir = _TempDir()
     evoked = _get_evoked()
     inverse_operator_vol = read_inverse_operator(fname_vol_inv)
-    assert_true(repr(inverse_operator_vol))
     stc = apply_inverse(evoked, inverse_operator_vol, lambda2, "dSPM")
     assert_true(isinstance(stc, VolSourceEstimate))
     # volume inverses don't have associated subject IDs

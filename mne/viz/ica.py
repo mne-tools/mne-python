@@ -405,7 +405,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
                  'grad': 'Gradiometers',
                  'eeg': 'EEG'}
     ch_types = ', '.join([_ch_types[k] for k in ch_types_used])
-    ax2.set_title('Average across channels ({0})'.format(ch_types))
+    ax2.set_title('Average across channels ({})'.format(ch_types))
     ax2.plot(times, data.mean(0), color='r')
     ax2.plot(times, data_cln.mean(0), color='k')
     ax2.set_xlim(100, 106)

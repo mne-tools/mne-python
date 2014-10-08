@@ -10,14 +10,8 @@ MNE-sample-data/MEG/sample/sample_audvis-ave.fif -d MNE-sample-data/subjects/ \
 """
 
 import sys
-import time
 
 from mne.report import Report
-from mne.utils import verbose, logger
-
-@verbose
-def log_elapsed(t, verbose=None):
-    logger.info('Report complete in %s seconds' % round(t, 1))
 
 
 def run():
@@ -42,30 +36,25 @@ def run():
                       help="Overwrite html report if it already exists")
     parser.add_option("-j", "--jobs", dest="n_jobs", help="Number of jobs to"
                       " run in parallel")
-    parser.add_option("-m", "--mri-decim", type="int", dest="mri_decim",
-                      default=2, help="Integer factor used to decimate "
-                      "BEM plots")
 
     options, args = parser.parse_args()
     path = options.path
     if path is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
     info_fname = options.info_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
-    mri_decim = int(options.mri_decim)
     verbose = True if options.verbose is not None else False
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
-    t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
                     verbose=verbose)
-    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
-                        mri_decim=mri_decim)
-    log_elapsed(time.time() - t0, verbose=verbose)
+    report.parse_folder(path, verbose=verbose, n_jobs=n_jobs)
     report.save(open_browser=open_browser, overwrite=overwrite)
 
 is_main = (__name__ == '__main__')

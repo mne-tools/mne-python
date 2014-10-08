@@ -1,5 +1,5 @@
 from .forward import (Forward, read_forward_solution, write_forward_solution,
-                      is_fixed_orient, _read_forward_meas_info,
+                      is_fixed_orient, read_forward_meas_info,
                       write_forward_meas_info,
                       compute_orient_prior, compute_depth_prior,
                       apply_forward, apply_forward_raw,

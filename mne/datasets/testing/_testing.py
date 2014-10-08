@@ -22,7 +22,8 @@ def data_path(path=None, force_update=False, update_path=True,
         raise RuntimeError('Cannot download data if skipping is forced')
     return _data_path(path=path, force_update=force_update,
                       update_path=update_path, name='testing',
-                      download=download)
+                      download=download,
+                      verbose=verbose)
 
 data_path.__doc__ = _doc.format(name='testing',
                                 conf='MNE_DATASETS_TESTING_PATH')

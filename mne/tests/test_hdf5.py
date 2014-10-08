@@ -8,7 +8,7 @@ from mne._hdf5 import write_hdf5, read_hdf5
 from mne.utils import requires_pytables, _TempDir, object_diff
 
 
-@requires_pytables
+@requires_pytables()
 def test_hdf5():
     """Test HDF5 IO
     """

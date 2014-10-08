@@ -6,6 +6,7 @@
 import numpy as np
 from os import path as op
 
+from .utils import _check_pytables
 from .externals.six import string_types, text_type
 
 
@@ -26,7 +27,7 @@ def write_hdf5(fname, data, overwrite=False):
     overwrite : bool
         If True, overwrite file (if it exists).
     """
-    import tables as tb
+    tb = _check_pytables()
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
@@ -46,7 +47,7 @@ def write_hdf5(fname, data, overwrite=False):
 
 
 def _triage_write(key, value, root, *write_params):
-    import tables as tb
+    tb = _check_pytables()
     create_group, create_table, create_c_array, filters = write_params
     if isinstance(value, dict):
         sub_root = create_group(root, key, 'dict')
@@ -112,7 +113,7 @@ def read_hdf5(fname):
     data : object
         The loaded data. Can be of any type supported by ``write_hdf5``.
     """
-    import tables as tb
+    tb = _check_pytables()
     if not op.isfile(fname):
         raise IOError('file "%s" not found' % fname)
     o_f = tb.open_file if hasattr(tb, 'open_file') else tb.openFile
@@ -124,7 +125,7 @@ def read_hdf5(fname):
 
 
 def _triage_read(node):
-    import tables as tb
+    tb = _check_pytables()
     type_str = node._v_title
     if isinstance(node, tb.Group):
         if type_str == 'dict':

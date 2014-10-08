@@ -94,7 +94,9 @@ def run():
 
     if in_fname is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     out_fname = options.out_fname
     origin = options.origin
