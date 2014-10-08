@@ -1,7 +1,7 @@
 import os.path as op
 import os
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_raises)
@@ -143,6 +143,10 @@ def test_find_events():
         del os.environ['MNE_STIM_CHANNEL_1']
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+    # now test with mask
+    events11 = find_events(raw, mask=3)
+    events22 = read_events(fname, mask=3)
+    assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
     raw.first_samp = 0
@@ -151,6 +155,21 @@ def test_find_events():
     stim_channel = 'STI 014'
     stim_channel_idx = pick_channels(raw.info['ch_names'],
                                      include=stim_channel)
+
+    # test digital masking
+    raw._data[stim_channel_idx, :5] = np.arange(5)
+    raw._data[stim_channel_idx, 5:] = 0
+    # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
+
+    assert_raises(TypeError, find_events, raw, mask="0")
+    assert_array_equal(find_events(raw, shortest_event=1, mask=1),
+                       [[2,    0,    2], [4,    2,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=2),
+                       [[1,    0,    1], [3,    0,    1], [4,    1,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=3),
+                       [[4,    0,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=4),
+                       [[1,    0,    1], [2,    1,    2], [3,    2,    3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0

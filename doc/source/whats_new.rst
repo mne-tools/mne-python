@@ -39,6 +39,8 @@ API
 ~~~
 
    - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False.
+   
+   - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
 
 .. _changes_0_8:

@@ -3,6 +3,7 @@
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -174,7 +175,7 @@ def _read_events_fif(fid, tree):
     return event_list, mappings
 
 
-def read_events(filename, include=None, exclude=None):
+def read_events(filename, include=None, exclude=None, mask=0):
     """Reads events from fif or text file
 
     Parameters
@@ -193,6 +194,9 @@ def read_events(filename, include=None, exclude=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
+    mask : int
+        The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -240,6 +244,8 @@ def read_events(filename, include=None, exclude=None):
             event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
+    event_list = _mask_trigs(event_list, mask)
+
     return event_list
 
 
@@ -306,7 +312,7 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
         idx = (diff <= abs(merge))
         if np.any(idx):
             where = np.where(idx)[0]
-            keep = (idx == False)
+            keep = np.logical_not(idx)
             if merge > 0:
                 # drop the earlier event
                 steps[where + 1, 1] = steps[where, 1]
@@ -379,7 +385,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 @verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0):
+                 consecutive='increasing', min_samples=0, mask=0):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -395,6 +401,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     data = data.astype(np.int)
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+    events = _mask_trigs(events, mask)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -446,7 +453,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
                 consecutive='increasing', min_duration=0,
-                shortest_event=2):
+                shortest_event=2, mask=0):
     """Find events from raw file
 
     Parameters
@@ -476,6 +483,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     shortest_event : int
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
+    mask : int
+        The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -539,6 +549,14 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
+    For the digital mask, it will take the binary representation of the
+    digital mask, e.g. 5 -> '00000101', and will block the values
+    where mask is one.
+
+    e.g.      7 '0000111' <- trigger value
+             37 '0100101' <- mask
+         ----------------
+              2 '0000010'
 
     See Also
     --------
@@ -555,7 +573,8 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     data, _ = raw[pick, :]
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
-                          consecutive=consecutive, min_samples=min_samples)
+                          consecutive=consecutive, min_samples=min_samples,
+                          mask=mask)
 
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
@@ -566,6 +585,19 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
                          "may want to set min_duration to a larger value e.g."
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
+
+    return events
+
+
+def _mask_trigs(events, mask):
+    """Helper function for masking digital trigger values"""
+    if not isinstance(mask, int):
+        raise TypeError('You provided a(n) %s. Mask must be an int.'
+                        % type(mask))
+    n_events = len(events)
+    mask = np.bitwise_not(mask)
+    events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
+    events = events[events[:, 1] != events[:, 2]]
 
     return events
 
