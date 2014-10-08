@@ -38,8 +38,8 @@ matplotlib.use('Agg')  # for testing don't use X server
 
 
 @testing.requires_testing_data
-@requires_pysurfer
-@requires_mayavi
+@requires_pysurfer()
+@requires_mayavi()
 def test_plot_sparse_source_estimates():
     """Test plotting of (sparse) source estimates
     """
@@ -75,7 +75,7 @@ def test_plot_sparse_source_estimates():
 
 
 @testing.requires_testing_data
-@requires_mayavi
+@requires_mayavi()
 def test_plot_evoked_field():
     """Test plotting evoked field
     """
@@ -91,7 +91,7 @@ def test_plot_evoked_field():
 
 
 @testing.requires_testing_data
-@requires_mayavi
+@requires_mayavi()
 def test_plot_trans():
     """Test plotting of -trans.fif files
     """

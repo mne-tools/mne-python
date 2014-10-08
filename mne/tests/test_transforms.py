@@ -1,19 +1,15 @@
-import os
+from math import pi
 import os.path as op
-import numpy as np
 
 from nose.tools import assert_true, assert_raises
 from numpy.testing import assert_array_equal, assert_equal, assert_allclose
 import warnings
 
-from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne import read_trans, write_trans
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir
 from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
-                            rotation, rotation3d, rotation_angles, _find_trans,
-                            combine_transforms, transform_coordinates,
-                            collect_transforms)
+                            rotation, rotation3d, rotation_angles)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -41,12 +37,9 @@ def test_io_trans():
     """Test reading and writing of trans files
     """
     tempdir = _TempDir()
-    os.mkdir(op.join(tempdir, 'sample'))
-    assert_raises(RuntimeError, _find_trans, 'sample', subjects_dir=tempdir)
     trans0 = read_trans(fname)
-    fname1 = op.join(tempdir, 'sample', 'test-trans.fif')
+    fname1 = op.join(tempdir, 'test-trans.fif')
     write_trans(fname1, trans0)
-    assert_true(fname1 == _find_trans('sample', subjects_dir=tempdir))
     trans1 = read_trans(fname1)
 
     # check all properties
@@ -65,9 +58,8 @@ def test_io_trans():
 
 
 def test_rotation():
-    """Test conversion between rotation angles and transformation matrix
-    """
-    tests = [(0, 0, 1), (.5, .5, .5), (np.pi, 0, -1.5)]
+    """Test conversion between rotation angles and transformation matrix"""
+    tests = [(0, 0, 1), (.5, .5, .5), (pi, 0, -1.5)]
     for rot in tests:
         x, y, z = rot
         m = rotation3d(x, y, z)
@@ -77,51 +69,3 @@ def test_rotation():
         assert_equal(back, rot)
         back4 = rotation_angles(m4)
         assert_equal(back4, rot)
-
-
-@testing.requires_testing_data
-def test_combine():
-    """Test combining transforms
-    """
-    trans = read_trans(fname)
-    inv = invert_transform(trans)
-    combine_transforms(trans, inv, trans['from'], trans['from'])
-    assert_raises(RuntimeError, combine_transforms, trans, inv,
-                  trans['to'], trans['from'])
-    assert_raises(RuntimeError, combine_transforms, trans, inv,
-                  trans['from'], trans['to'])
-    assert_raises(RuntimeError, combine_transforms, trans, trans,
-                  trans['from'], trans['to'])
-
-
-@testing.requires_testing_data
-def test_transform_coords():
-    """Test transforming coordinates
-    """
-    # normal trans won't work
-    assert_raises(ValueError, transform_coordinates,
-                  fname, np.eye(3), 'meg', 'fs_tal')
-    # needs to have all entries
-    pairs = [[FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_COORD_HEAD],
-             [FIFF.FIFFV_COORD_MRI, FIFF.FIFFV_MNE_COORD_RAS],
-             [FIFF.FIFFV_MNE_COORD_RAS, FIFF.FIFFV_MNE_COORD_MNI_TAL],
-             [FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ],
-             [FIFF.FIFFV_MNE_COORD_MNI_TAL, FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ],
-             ]
-    xforms = []
-    for fro, to in pairs:
-        xforms.append({'to': to, 'from': fro, 'trans': np.eye(4)})
-    tempdir = _TempDir()
-    all_fname = op.join(tempdir, 'all-trans.fif')
-    collect_transforms(all_fname, xforms)
-    for fro in ['meg', 'mri']:
-        for to in ['meg', 'mri', 'fs_tal', 'mni_tal']:
-            out = transform_coordinates(all_fname, np.eye(3), fro, to)
-            assert_allclose(out, np.eye(3))
-    assert_raises(ValueError,
-                  transform_coordinates, all_fname, np.eye(4), 'meg', 'meg')
-    assert_raises(ValueError,
-                  transform_coordinates, all_fname, np.eye(3), 'fs_tal', 'meg')
-
-
-run_tests_if_main()

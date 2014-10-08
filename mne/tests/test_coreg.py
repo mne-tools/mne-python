@@ -13,8 +13,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _is_mri_subject, scale_labels, scale_source_space,
                        read_elp)
 from mne.io.kit.tests import data_dir as kit_data_dir
-from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main)
+from mne.utils import requires_mne_fs_in_env, _TempDir
 from functools import reduce
 
 
@@ -26,8 +25,7 @@ def test_read_elp():
     assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
 
 
-@requires_mne
-@requires_freesurfer
+@requires_mne_fs_in_env
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
@@ -164,6 +162,3 @@ def test_fit_point_cloud():
     err = _point_cloud_error(est_pts, tgt_pts)
     assert_array_less(err, .1, "fit_point_cloud with rotation and 3 scaling "
                       "parameters.")
-
-
-run_tests_if_main()

@@ -1,10 +1,6 @@
 from __future__ import print_function
-import os
 import os.path as op
 import numpy as np
-import warnings
-from shutil import copyfile
-from scipy import sparse
 from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_array_almost_equal,
                            assert_allclose, assert_equal)
@@ -12,8 +8,8 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 from mne.datasets import testing
 from mne import (read_bem_surfaces, write_bem_surface, read_surface,
                  write_surface, decimate_surface)
-from mne.surface import (read_morph_map, _compute_nearest,
-                         fast_cross_3d, get_head_surf, read_curvature,
+from mne.surface import (_make_morph_map, read_morph_map, _compute_nearest,
+                         fast_cross_3d, get_head_surf,
                          get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
 from mne.io import read_info
@@ -23,8 +19,6 @@ data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname = op.join(subjects_dir, 'sample', 'bem',
                 'sample-1280-1280-1280-bem-sol.fif')
-
-warnings.simplefilter('always')
 
 
 def test_helmet():
@@ -91,29 +85,15 @@ def test_compute_nearest():
 def test_make_morph_maps():
     """Test reading and creating morph maps
     """
-    # make a new fake subjects_dir
-    tempdir = _TempDir()
-    for subject in ('sample', 'sample_ds', 'fsaverage_ds'):
-        os.mkdir(op.join(tempdir, subject))
-        os.mkdir(op.join(tempdir, subject, 'surf'))
-        for hemi in ['lh', 'rh']:
-            args = [subject, 'surf', hemi + '.sphere.reg']
-            copyfile(op.join(subjects_dir, *args),
-                     op.join(tempdir, *args))
-
-    # this should trigger the creation of morph-maps dir and create the map
-    mmap = read_morph_map('fsaverage_ds', 'sample_ds', tempdir)
-    mmap2 = read_morph_map('fsaverage_ds', 'sample_ds', subjects_dir)
+    mmap = read_morph_map('fsaverage_ds', 'sample_ds',
+                          subjects_dir=subjects_dir)
+    mmap2 = _make_morph_map('fsaverage_ds', 'sample_ds',
+                            subjects_dir=subjects_dir)
     assert_equal(len(mmap), len(mmap2))
     for m1, m2 in zip(mmap, mmap2):
         # deal with sparse matrix stuff
         diff = (m1 - m2).data
         assert_allclose(diff, np.zeros_like(diff), atol=1e-3, rtol=0)
-
-    # This will also trigger creation, but it's trivial
-    mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
-    for mm in mmap:
-        assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
 
 
 @testing.requires_testing_data
@@ -138,29 +118,12 @@ def test_io_surface():
     """Test reading and writing of Freesurfer surface mesh files
     """
     tempdir = _TempDir()
-    fname_quad = op.join(data_path, 'subjects', 'bert', 'surf',
-                         'lh.inflated.nofix')
-    fname_tri = op.join(data_path, 'subjects', 'fsaverage', 'surf',
-                        'lh.inflated')
-    for fname in (fname_quad, fname_tri):
-        pts, tri = read_surface(fname)
-        write_surface(op.join(tempdir, 'tmp'), pts, tri)
-        c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
-        assert_array_equal(pts, c_pts)
-        assert_array_equal(tri, c_tri)
-
-
-@testing.requires_testing_data
-def test_read_curv():
-    """Test reading curvature data
-    """
-    fname_curv = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.curv')
-    fname_surf = op.join(data_path, 'subjects', 'fsaverage', 'surf',
-                         'lh.inflated')
-    bin_curv = read_curvature(fname_curv)
-    rr = read_surface(fname_surf)[0]
-    assert_true(len(bin_curv) == len(rr))
-    assert_true(np.logical_or(bin_curv == 0, bin_curv == 1).all())
+    fname = op.join(data_path, 'subjects', 'fsaverage', 'surf', 'lh.inflated')
+    pts, tri = read_surface(fname)
+    write_surface(op.join(tempdir, 'tmp'), pts, tri)
+    c_pts, c_tri = read_surface(op.join(tempdir, 'tmp'))
+    assert_array_equal(pts, c_pts)
+    assert_array_equal(tri, c_tri)
 
 
 @requires_tvtk

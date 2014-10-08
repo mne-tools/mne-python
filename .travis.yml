@@ -7,8 +7,6 @@ env:
     #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
-    # Note that we don't run coverage on Py3k because it slows our tests
-    # by a factor of 2 (!)
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=full TEST_LOCATION=install
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
@@ -34,28 +32,31 @@ install:
     - if [ "${DEPS}" == "full" ]; then
         curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
-        export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
         source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas scikit-learn patsy pytables pillow;
-        pip install -q joblib;
+        pip install -q nibabel joblib;
+        if [ ${PYTHON:0:1} == "2" ]; then
+          pip install -q nitime;
+        fi;
         if [ "${PYTHON}" == "3.4" ]; then
-          pip install -q nibabel;
           conda install --yes --quiet ipython > /dev/null;
         else
-          pip install -q git+git://github.com/nipy/nibabel.git;
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
-          pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
-            pip install -q pysurfer faulthandler;
+            pip install -q pysurfer;
           fi;
         fi;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
+    # Skip tests that require large downloads over the network to save bandwith
+    # usage as travis workers are stateless and therefore traditional local
+    # disk caching does not work.
+    - export MNE_SKIP_NETWORK_TESTS=1
     - python setup.py build > /dev/null
     - python setup.py install > /dev/null
     - myscripts='browse_raw bti2fiff surf2bem'
@@ -90,19 +91,13 @@ install:
       else
         cd ${SRC_DIR};
       fi;
-    - if [ "${PYTHON}" != "3.4" ]; then
-        COVERAGE=--with-coverage;
-      else
-        COVERAGE=;
-      fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2
 
 after_success:
     # Need to run from source dir to exectue "git" commands
-    # Coverage not collected for 3.4, so don't report it
-    - if [ "${TEST_LOCATION}" == "src" ] && [ "${PYTHON}" != "3.4" ]; then
+    - if [ "${TEST_LOCATION}" == "src" ]; then
         echo "Running coveralls";
         cd ${SRC_DIR};
         coveralls;

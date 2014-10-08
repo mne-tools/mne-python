@@ -29,6 +29,7 @@ from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
 
+from .externals.decorator import decorator
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
 from .externals.six import moves
@@ -45,28 +46,64 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
-def _fig_to_img(function=None, fig=None, **kwargs):
-    """Wrapper function to plot figure and create a binary image"""
+@decorator
+def _check_report_mode(function, *args, **kwargs):
+    """Check whether to actually render or not.
+
+    Parameters
+    ----------
+    function : function
+        Function to be decorated by setting the verbosity level.
+
+    Returns
+    -------
+    dec : function
+        The decorated function
+    """
+
+    if 'MNE_REPORT_TESTING' not in os.environ:
+        return function(*args, **kwargs)
+    else:
+        return ''
+
+
+@_check_report_mode
+def _fig_to_img(function=None, fig=None, close_fig=True, **kwargs):
+    """Wrapper function to plot figure and
+       for fig <-> binary image.
+    """
     import matplotlib.pyplot as plt
+
     if function is not None:
         plt.close('all')
         fig = function(**kwargs)
+
     output = BytesIO()
     fig.savefig(output, format='png', bbox_inches='tight')
-    plt.close(fig)
+    if close_fig is True:
+        plt.close(fig)
+
     return base64.b64encode(output.getvalue()).decode('ascii')
 
 
-def _figs_to_mrislices(sl, n_jobs, **kwargs):
+@_check_report_mode
+def _fig_to_mrislice(function, orig_size, sl, **kwargs):
     import matplotlib.pyplot as plt
+
     plt.close('all')
-    use_jobs = min(n_jobs, max(1, len(sl)))
-    parallel, p_fun, _ = parallel_func(_plot_mri_contours, use_jobs)
-    outs = parallel(p_fun(slices=s, **kwargs)
-                    for s in np.array_split(sl, use_jobs))
-    for o in outs[1:]:
-        outs[0] += o
-    return outs[0]
+    fig = _plot_mri_contours(**kwargs)
+
+    fig_size = fig.get_size_inches()
+    w, h = orig_size[0], orig_size[1]
+    w2 = fig_size[0]
+    fig.set_size_inches([(w2 / w) * w, (w2 / w) * h])
+    a = fig.gca()
+    a.set_xticks([]), a.set_yticks([])
+    plt.xlim(0, h), plt.ylim(w, 0)
+    output = BytesIO()
+    fig.savefig(output, bbox_inches='tight',
+                pad_inches=0, format='png')
+    return base64.b64encode(output.getvalue()).decode('ascii')
 
 
 def _iterate_trans_views(function, **kwargs):
@@ -78,26 +115,26 @@ def _iterate_trans_views(function, **kwargs):
 
     fig = function(**kwargs)
 
-    assert isinstance(fig, mayavi.core.scene.Scene)
+    if isinstance(fig, mayavi.core.scene.Scene):
 
-    views = [(90, 90), (0, 90), (0, -90)]
-    fig2, axes = plt.subplots(1, len(views))
-    for view, ax in zip(views, axes):
-        mayavi.mlab.view(view[0], view[1])
-        # XXX: save_bmp / save_png / ...
-        tempdir = _TempDir()
-        temp_fname = op.join(tempdir, 'test.png')
-        if fig.scene is not None:
-            fig.scene.save_png(temp_fname)
+        views = [(90, 90), (0, 90), (0, -90)]
+        fig2, axes = plt.subplots(1, len(views))
+        for view, ax in zip(views, axes):
+            mayavi.mlab.view(view[0], view[1])
+            # XXX: save_bmp / save_png / ...
+            tempdir = _TempDir()
+            temp_fname = op.join(tempdir, 'test')
+            fig.scene.save_bmp(temp_fname)
             im = imread(temp_fname)
-        else:  # Testing mode
-            im = np.zeros((2, 2, 3))
-        ax.imshow(im)
-        ax.axis('off')
+            ax.imshow(im)
+            ax.axis('off')
 
-    mayavi.mlab.close(fig)
-    img = _fig_to_img(fig=fig2)
-    return img
+        img = _fig_to_img(fig=fig2)
+        mayavi.mlab.close(all=True)
+
+        return img
+    else:
+        return None
 
 ###############################################################################
 # TOC FUNCTIONS
@@ -218,7 +255,7 @@ def _iterate_files(report, fnames, info, sfreq):
                 report_fname = None
                 report_sectionlabel = None
         except Exception as e:
-            logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+            logger.info(e)
             html = None
             report_fname = None
             report_sectionlabel = None
@@ -257,7 +294,7 @@ def _iterate_sagittal_slices(array, limits=None):
     """Iterate sagittal slice.
     """
     shape = array.shape[0]
-    for ind in range(shape):
+    for ind in xrange(shape):
         if limits and ind not in limits:
             continue
         yield ind, array[ind, :, :]
@@ -267,7 +304,7 @@ def _iterate_axial_slices(array, limits=None):
     """Iterate axial slice.
     """
     shape = array.shape[1]
-    for ind in range(shape):
+    for ind in xrange(shape):
         if limits and ind not in limits:
             continue
         yield ind, array[:, ind, :]
@@ -277,7 +314,7 @@ def _iterate_coronal_slices(array, limits=None):
     """Iterate coronal slice.
     """
     shape = array.shape[2]
-    for ind in range(shape):
+    for ind in xrange(shape):
         if limits and ind not in limits:
             continue
         yield ind, np.flipud(np.rot90(array[:, :, ind]))
@@ -297,6 +334,29 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
                              img_klass, caption,
                              first)
     return ind, html
+
+
+def _iterate_bem_slices(name, global_id, slides_klass, orig_size,
+                        mri_fname, surf_fnames, orientation, sl):
+    """Auxiliary function for parallel processing of bem slices.
+    """
+
+    img_klass = 'slideimg-%s' % name
+    logger.info('Rendering BEM contours : orientation = %s, '
+                'slice = %d' % (orientation, sl))
+    caption = u'Slice %s %s' % (name, sl)
+    slice_id = '%s-%s-%s' % (name, global_id, sl)
+    div_klass = 'span12 %s' % slides_klass
+
+    kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames,
+                  orientation=orientation, slices=[sl],
+                  show=False)
+    img = _fig_to_mrislice(function=_plot_mri_contours,
+                           orig_size=orig_size, sl=sl, **kwargs)
+    first = True if sl == 0 else False
+    return _build_html_image(img, slice_id, div_klass,
+                             img_klass, caption,
+                             first)
 
 
 ###############################################################################
@@ -324,7 +384,7 @@ slider_template = HTMLTemplate(u"""
                        /*orientation: "vertical",*/
                        min: {{minvalue}},
                        max: {{maxvalue}},
-                       step: {{step}},
+                       step: 2,
                        value: {{startvalue}},
                        create: function(event, ui) {
                        $(".{{klass}}").hide();
@@ -340,10 +400,9 @@ slider_template = HTMLTemplate(u"""
 def _build_html_slider(slices_range, slides_klass, slider_id):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = slices_range[len(slices_range) // 2]
+    startvalue = (slices_range[0] + slices_range[-1]) // 2 + 1
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
-                                      step=slices_range[1] - slices_range[0],
                                       minvalue=slices_range[0],
                                       maxvalue=slices_range[-1],
                                       startvalue=startvalue)
@@ -630,7 +689,7 @@ class Report(object):
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
 
-        self._init_render()  # Initialize the renderer
+        self._init_render(verbose=self.verbose)  # Initialize the renderer
 
     def _get_id(self):
         """Get id of plot.
@@ -659,6 +718,7 @@ class Report(object):
     def _add_figs_to_section(self, figs, captions, section='custom'):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
+        import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, analysis:ignore... mlab imported
@@ -669,6 +729,7 @@ class Report(object):
                           ' will throw an error.')
 
         figs, captions = self._validate_input(figs, captions, section)
+
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -677,14 +738,15 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if isinstance(fig, mayavi.core.scene.Scene):
+                from scipy.misc import imread
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
-                fig.scene.save_png(temp_fname)
-                mayavi.mlab.close(fig)
-                with open(temp_fname, 'rb') as fid:
-                    img = base64.b64encode(fid.read()).decode('ascii')
-            else:
-                img = _fig_to_img(fig=fig)
+                fig.scene.save_bmp(temp_fname)
+                im = imread(temp_fname)
+                fig = plt.imshow(im).figure
+                plt.axis('off')
+
+            img = _fig_to_img(fig=fig)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -769,6 +831,7 @@ class Report(object):
             output = BytesIO()
             im.save(output, format='png')
             img = base64.b64encode(output.getvalue()).decode('ascii')
+
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
@@ -781,9 +844,9 @@ class Report(object):
 
     ###########################################################################
     # HTML rendering
-    def _render_one_axis(self, slices_iter, name, global_id, cmap,
-                         n_elements, n_jobs):
-        """Render one axis of the array.
+    def _render_one_axe(self, slices_iter, name, global_id=None, cmap='gray',
+                        n_jobs=1):
+        """Render one axe of the array.
         """
         global_id = global_id or name
         html = []
@@ -791,8 +854,7 @@ class Report(object):
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
-        use_jobs = min(n_jobs, max(1, n_elements))
-        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, use_jobs)
+        parallel, p_fun, _ = parallel_func(_iterate_mri_slices, n_jobs)
         r = parallel(p_fun(name, ind, global_id, slides_klass, data, cmap)
                      for ind, data in slices_iter)
         slices_range, slices = zip(*r)
@@ -835,8 +897,7 @@ class Report(object):
         self.include = ''.join(include)
 
     @verbose
-    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
-                     verbose=None):
+    def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -849,9 +910,6 @@ class Report(object):
             include all evoked files.
         n_jobs : int
           Number of jobs to run in parallel.
-        mri_decim : int
-            Use this decimation factor for generating MRI/BEM images
-            (since it can be time consuming).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -871,13 +929,10 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             info, sfreq = None, None
 
-        # render plots in parallel; check that n_jobs <= # of files
-        logger.info('Iterating over %s potential files (this may take some '
-                    'time)' % len(fnames))
-        use_jobs = min(n_jobs, max(1, len(fnames)))
-        parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
+        # render plots in parallel
+        parallel, p_fun, _ = parallel_func(_iterate_files, n_jobs)
         r = parallel(p_fun(self, fname, info, sfreq) for fname in
-                     np.array_split(fnames, use_jobs))
+                     np.array_split(fnames, n_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered
@@ -894,9 +949,10 @@ class Report(object):
 
         # render mri
         if self.subjects_dir is not None and self.subject is not None:
-            logger.info('Rendering BEM')
-            self.html.append(self._render_bem(self.subject, self.subjects_dir,
-                                              mri_decim, n_jobs))
+            self.html.append(self._render_bem(subject=self.subject,
+                                              subjects_dir=
+                                              self.subjects_dir,
+                                              n_jobs=n_jobs))
             self.fnames.append('bem')
             self._sectionlabels.append('mri')
         else:
@@ -1047,30 +1103,30 @@ class Report(object):
         axial_limit = limits.get('axial')
         axial_slices_gen = _iterate_axial_slices(array, axial_limit)
         html.append(
-            self._render_one_axis(axial_slices_gen, 'axial',
-                                  global_id, cmap, array.shape[1], n_jobs))
+            self._render_one_axe(axial_slices_gen, 'axial', global_id, cmap,
+                                 n_jobs=n_jobs))
         # Sagittal
         sagittal_limit = limits.get('sagittal')
         sagittal_slices_gen = _iterate_sagittal_slices(array, sagittal_limit)
-        html.append(
-            self._render_one_axis(sagittal_slices_gen, 'sagittal',
-                                  global_id, cmap, array.shape[1], n_jobs))
+        html.append(self._render_one_axe(sagittal_slices_gen, 'sagittal',
+                    global_id, cmap, n_jobs=n_jobs))
         html.append(u'</div>')
         html.append(u'<div class="row">')
         # Coronal
         coronal_limit = limits.get('coronal')
         coronal_slices_gen = _iterate_coronal_slices(array, coronal_limit)
         html.append(
-            self._render_one_axis(coronal_slices_gen, 'coronal',
-                                  global_id, cmap, array.shape[1], n_jobs))
+            self._render_one_axe(coronal_slices_gen, 'coronal',
+                                 global_id, cmap, n_jobs=n_jobs))
         # Close section
         html.append(u'</div>')
         return '\n'.join(html)
 
-    def _render_one_bem_axis(self, mri_fname, surf_fnames, global_id,
-                             shape, orientation='coronal', decim=2, n_jobs=1):
-        """Render one axis of bem contours.
+    def _render_one_bem_axe(self, mri_fname, surf_fnames, global_id,
+                            shape, orientation='coronal', n_jobs=1):
+        """Render one axe of bem contours.
         """
+
         orientation_name2axis = dict(sagittal=0, axial=1, coronal=2)
         orientation_axis = orientation_name2axis[orientation]
         n_slices = shape[orientation_axis]
@@ -1078,22 +1134,16 @@ class Report(object):
 
         name = orientation
         html = []
+        slices, slices_range = [], []
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
-        sl = np.arange(0, n_slices, decim)
-        kwargs = dict(mri_fname=mri_fname, surf_fnames=surf_fnames, show=False,
-                      orientation=orientation, img_output=orig_size)
-        imgs = _figs_to_mrislices(sl, n_jobs, **kwargs)
-        slices = []
-        img_klass = 'slideimg-%s' % name
-        div_klass = 'span12 %s' % slides_klass
-        for ii, img in enumerate(imgs):
-            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
-            caption = u'Slice %s %s' % (name, sl[ii])
-            first = True if ii == 0 else False
-            slices.append(_build_html_image(img, slice_id, div_klass,
-                          img_klass, caption, first))
+        slices_range = range(0, n_slices, 2)
+
+        parallel, p_fun, _ = parallel_func(_iterate_bem_slices, n_jobs)
+        slices = parallel(p_fun(name, global_id, slides_klass, orig_size,
+                          mri_fname, surf_fnames, orientation, sl)
+                          for sl in slices_range)
 
         # Render the slider
         slider_id = 'select-%s-%s' % (name, global_id)
@@ -1102,8 +1152,9 @@ class Report(object):
         # Render the slices
         html.append(u'\n'.join(slices))
         html.append(u'</ul>')
-        html.append(_build_html_slider(sl, slides_klass, slider_id))
+        html.append(_build_html_slider(slices_range, slides_klass, slider_id))
         html.append(u'</div>')
+
         return '\n'.join(html)
 
     def _render_image(self, image, cmap='gray', n_jobs=1):
@@ -1208,7 +1259,7 @@ class Report(object):
             global_id = self._get_id()
 
             kwargs = dict(show=False)
-            img = _fig_to_img(ev.plot, **kwargs)
+            img = _fig_to_img(function=ev.plot, **kwargs)
 
             caption = u'Evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'evoked'
@@ -1219,16 +1270,10 @@ class Report(object):
                                                   img_klass=img_klass,
                                                   caption=caption,
                                                   show=show))
-            has_types = []
-            if len(pick_types(ev.info, meg=False, eeg=True)) > 0:
-                has_types.append('eeg')
-            if len(pick_types(ev.info, meg='grad', eeg=False)) > 0:
-                has_types.append('grad')
-            if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
-                has_types.append('mag')
-            for ch_type in has_types:
+
+            for ch_type in ['eeg', 'grad', 'mag']:
                 kwargs = dict(ch_type=ch_type, show=False)
-                img = _fig_to_img(ev.plot_topomap, **kwargs)
+                img = _fig_to_img(function=ev.plot_topomap, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
                                                       div_klass=div_klass,
@@ -1245,7 +1290,7 @@ class Report(object):
         events = read_events(eve_fname)
 
         kwargs = dict(events=events, sfreq=sfreq, show=False)
-        img = _fig_to_img(plot_events, **kwargs)
+        img = _fig_to_img(function=plot_events, **kwargs)
 
         caption = 'Events : ' + eve_fname
         div_klass = 'events'
@@ -1266,7 +1311,7 @@ class Report(object):
 
         epochs = read_epochs(epo_fname)
         kwargs = dict(subject=self.subject, show=False, return_fig=True)
-        img = _fig_to_img(epochs.plot_drop_log, **kwargs)
+        img = _fig_to_img(function=epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'
         img_klass = 'epochs'
@@ -1284,6 +1329,7 @@ class Report(object):
         global_id = self._get_id()
         cov = Covariance(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
+
         img = _fig_to_img(fig=fig)
         caption = 'Covariance : ' + cov_fname
         div_klass = 'covariance'
@@ -1305,7 +1351,9 @@ class Report(object):
         img = _iterate_trans_views(function=plot_trans, **kwargs)
 
         if img is not None:
+
             global_id = self._get_id()
+
             caption = 'Trans : ' + trans_fname
             div_klass = 'trans'
             img_klass = 'trans'
@@ -1318,7 +1366,7 @@ class Report(object):
                                              show=show)
             return html
 
-    def _render_bem(self, subject, subjects_dir, decim, n_jobs):
+    def _render_bem(self, subject, subjects_dir, n_jobs=1):
         """Render mri+bem.
         """
         import nibabel as nib
@@ -1367,13 +1415,16 @@ class Report(object):
         html += u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
         html += u'<div class="row">'
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'axial', decim, n_jobs)
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'sagittal', decim, n_jobs)
+        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                         shape, orientation='axial',
+                                         n_jobs=n_jobs)
+        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                         shape, orientation='sagittal',
+                                         n_jobs=n_jobs)
         html += u'</div><div class="row">'
-        html += self._render_one_bem_axis(mri_fname, surf_fnames, global_id,
-                                          shape, 'coronal', decim, n_jobs)
+        html += self._render_one_bem_axe(mri_fname, surf_fnames, global_id,
+                                         shape, orientation='coronal',
+                                         n_jobs=n_jobs)
         html += u'</div>'
         html += u'</li>\n'
         return ''.join(html)

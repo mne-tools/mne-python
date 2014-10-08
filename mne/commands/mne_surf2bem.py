@@ -33,7 +33,9 @@ def run():
 
     if options.surf is None:
         parser.print_help()
-        sys.exit(1)
+        if is_main:
+            sys.exit(1)
+        return
 
     print("Converting %s to BEM FIF file." % options.surf)
     points, tris = mne.read_surface(options.surf)

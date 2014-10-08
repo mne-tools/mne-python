@@ -189,7 +189,6 @@ class RtEpochs(_BaseEpochs):
 
     @property
     def events(self):
-        """The events associated with the epochs currently in the queue."""
         return np.array(self._events)
 
     def start(self):

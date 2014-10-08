@@ -171,7 +171,7 @@ class SourceSpaces(list):
         try:
             import nibabel as nib
         except ImportError:
-            raise ImportError('This function requires nibabel.')
+            raise RuntimeError('This function requires nibabel.')
 
         # Check coordinate frames of each source space
         coord_frames = np.array([s['coord_frame'] for s in self])
@@ -231,11 +231,16 @@ class SourceSpaces(list):
         # Loop through the volume sources
         for vs in src_types['volume']:
             # read the lookup table value for segmented volume
-            if 'seg_name' not in vs:
+            if 'seg_name' in vs:
+                # find the color value for this volume
+                i = _get_lut_id(lut, vs['seg_name'], True)
+            else:
+                # raise error for whole brain volume
                 raise ValueError('Volume sources should be segments, '
                                  'not the entire volume.')
-            # find the color value for this volume
-            i = _get_lut_id(lut, vs['seg_name'], use_lut)
+
+            if not use_lut:
+                i = 1  # default value for no lookup table color matching
 
             if first_vol:
                 # get the inuse array
@@ -461,7 +466,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
+def read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -527,8 +532,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        src = _read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
-                                            verbose=verbose)
+        src = read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+                                           verbose=verbose)
         src.info['fname'] = fname
         node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
         if node:
@@ -835,8 +840,7 @@ def label_src_vertno_sel(label, src):
         Indices of the selected vertices in sourse space
     """
     if src[0]['type'] != 'surf':
-        return Exception('Labels are only supported with surface source '
-                         'spaces')
+        return Exception('Label are only supported with surface source spaces')
 
     vertno = [src[0]['vertno'], src[1]['vertno']]
 
@@ -1059,7 +1063,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     This function requires either nibabel (in Python) or Freesurfer
     (with utility "mri_info") to be correctly installed.
     """
-    if not has_freesurfer() and not has_nibabel():
+    if not has_freesurfer and not has_nibabel():
         raise RuntimeError('NiBabel (Python) or Freesurfer (Unix) must be '
                            'correctly installed and accessible from Python')
 

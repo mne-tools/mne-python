@@ -107,41 +107,44 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     if fs_home is None:
         fs_home = get_config('FREESURFER_HOME', fs_home)
         if fs_home is None:
-            raise ValueError(
-                "FREESURFER_HOME environment variable not found. Please "
-                "specify the fs_home parameter in your call to "
-                "create_default_subject().")
+            err = ("FREESURFER_HOME environment variable not found. Please "
+                   "specify the fs_home parameter in your call to "
+                   "create_default_subject().")
+            raise ValueError(err)
     if mne_root is None:
         mne_root = get_config('MNE_ROOT', mne_root)
         if mne_root is None:
-            raise ValueError("MNE_ROOT environment variable not found. Please "
-                             "specify the mne_root parameter in your call to "
-                             "create_default_subject().")
+            err = ("MNE_ROOT environment variable not found. Please "
+                   "specify the mne_root parameter in your call to "
+                   "create_default_subject().")
+            raise ValueError(err)
 
     # make sure freesurfer files exist
     fs_src = os.path.join(fs_home, 'subjects', 'fsaverage')
     if not os.path.exists(fs_src):
-        raise IOError('fsaverage not found at %r. Is fs_home specified '
-                      'correctly?' % fs_src)
+        err = ('fsaverage not found at %r. Is fs_home specified '
+               'correctly?' % fs_src)
+        raise IOError(err)
     for name in ('label', 'mri', 'surf'):
         dirname = os.path.join(fs_src, name)
         if not os.path.isdir(dirname):
-            raise IOError("Freesurfer fsaverage seems to be incomplete: No "
-                          "directory named %s found in %s" % (name, fs_src))
+            err = ("Freesurfer fsaverage seems to be incomplete: No directory "
+                   "named %s found in %s" % (name, fs_src))
+            raise IOError(err)
 
     # make sure destination does not already exist
     dest = os.path.join(subjects_dir, 'fsaverage')
     if dest == fs_src:
-        raise IOError(
-            "Your subjects_dir points to the freesurfer subjects_dir (%r). "
-            "The default subject can not be created in the freesurfer "
-            "installation directory; please specify a different "
-            "subjects_dir." % subjects_dir)
+        err = ("Your subjects_dir points to the freesurfer subjects_dir (%r). "
+               "The default subject can not be created in the freesurfer "
+               "installation directory; please specify a different "
+               "subjects_dir." % subjects_dir)
+        raise IOError(err)
     elif (not update) and os.path.exists(dest):
-        raise IOError(
-            "Can not create fsaverage because %r already exists in "
-            "subjects_dir %r. Delete or rename the existing fsaverage "
-            "subject folder." % ('fsaverage', subjects_dir))
+        err = ("Can not create fsaverage because %r already exists in "
+               "subjects_dir %r. Delete or rename the existing fsaverage "
+               "subject folder." % ('fsaverage', subjects_dir))
+        raise IOError(err)
 
     # make sure mne files exist
     mne_fname = os.path.join(mne_root, 'share', 'mne', 'mne_analyze',
@@ -150,8 +153,9 @@ def create_default_subject(mne_root=None, fs_home=None, update=False,
     for name in mne_files:
         fname = mne_fname % name
         if not os.path.isfile(fname):
-            raise IOError("MNE fsaverage incomplete: %s file not found at "
-                          "%s" % (name, fname))
+            err = ("MNE fsaverage incomplete: %s file not found at "
+                   "%s" % (name, fname))
+            raise IOError(err)
 
     # copy fsaverage from freesurfer
     logger.info("Copying fsaverage subject from freesurfer directory...")
@@ -313,8 +317,9 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
-        raise ValueError("src_pts and tgt_pts must have same shape (got "
-                         "{0}, {1})".format(src_pts.shape, tgt_pts.shape))
+        err = ("src_pts and tgt_pts must have same shape "
+               "(got {0}, {1})".format(src_pts.shape, tgt_pts.shape))
+        raise ValueError(err)
 
     rotate = bool(rotate)
     translate = bool(translate)
@@ -357,9 +362,9 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         if x0 is None:
             x0 = (0, 0, 0, 0, 0, 0, 1)
     else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info)
+        err = ("The specified parameter combination is not implemented: "
+               "rotate=%r, translate=%r, scale=%r" % param_info)
+        raise NotImplementedError(err)
 
     x, _, _, _, _ = leastsq(error, x0, full_output=True)
 
@@ -381,8 +386,9 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
     elif out == 'trans':
         return trans
     else:
-        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
-                         "'trans'." % out)
+        err = ("Invalid out parameter: %r. Needs to be 'params' or "
+               "'trans'." % out)
+        raise ValueError(err)
 
 
 def get_ras_to_neuromag_trans(nasion, lpa, rpa):
@@ -413,8 +419,9 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
     rpa = np.asarray(rpa)
     for pt in (nasion, lpa, rpa):
         if pt.ndim != 1 or len(pt) != 3:
-            raise ValueError("Points have to be provided as one dimensional "
-                             "arrays of length 3.")
+            err = ("Points have to be provided as one dimensional arrays of "
+                   "length 3.")
+            raise ValueError(err)
 
     right = rpa - lpa
     right_unit = right / norm(right)
@@ -549,7 +556,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     param_info = (rotate, translate, scale)
     if param_info == (True, False, 0):
         x0 = x0 or (0, 0, 0)
-
         def error(x):
             rx, ry, rz = x
             trans = rotation3d(rx, ry, rz)
@@ -558,7 +564,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, False, 1):
         x0 = x0 or (0, 0, 0, 1)
-
         def error(x):
             rx, ry, rz, s = x
             trans = rotation3d(rx, ry, rz) * s
@@ -567,7 +572,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, False, 3):
         x0 = x0 or (0, 0, 0, 1, 1, 1)
-
         def error(x):
             rx, ry, rz, sx, sy, sz = x
             trans = rotation3d(rx, ry, rz) * [sx, sy, sz]
@@ -576,7 +580,6 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             return err
     elif param_info == (True, True, 0):
         x0 = x0 or (0, 0, 0, 0, 0, 0)
-
         def error(x):
             rx, ry, rz, tx, ty, tz = x
             trans = dot(translation(tx, ty, tz), rotation(rx, ry, rz))
@@ -584,9 +587,9 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
             err = errfunc(est[:, :3], tgt_pts)
             return err
     else:
-        raise NotImplementedError(
-            "The specified parameter combination is not implemented: "
-            "rotate=%r, translate=%r, scale=%r" % param_info)
+        err = ("The specified parameter combination is not implemented: "
+               "rotate=%r, translate=%r, scale=%r" % param_info)
+        raise NotImplementedError(err)
 
     est, _, info, msg, _ = leastsq(error, x0, full_output=True, **kwargs)
     logger.debug("fit_point_cloud leastsq (%i calls) info: %s", info['nfev'],
@@ -597,8 +600,9 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     elif out == 'trans':
         return _trans_from_params(param_info, est)
     else:
-        raise ValueError("Invalid out parameter: %r. Needs to be 'params' or "
-                         "'trans'." % out)
+        err = ("Invalid out parameter: %r. Needs to be 'params' or "
+               "'trans'." % out)
+        raise ValueError(err)
 
 
 def _find_label_paths(subject='fsaverage', pattern=None, subjects_dir=None):
@@ -784,8 +788,9 @@ def read_elp(fname):
         elp_points = pattern.findall(fid.read())
     elp_points = np.array(elp_points, dtype=float)
     if elp_points.shape[1] != 3:
-        raise ValueError("File %r does not contain 3 columns as required; got "
-                         "shape %s." % (fname, elp_points.shape))
+        err = ("File %r does not contain 3 columns as required; got shape "
+               "%s." % (fname, elp_points.shape))
+        raise ValueError(err)
 
     return elp_points
 
@@ -809,8 +814,9 @@ def read_mri_cfg(subject, subjects_dir=None):
     fname = os.path.join(subjects_dir, subject, 'MRI scaling parameters.cfg')
 
     if not os.path.exists(fname):
-        raise IOError("%r does not seem to be a scaled mri subject: %r does "
-                      "not exist." % (subject, fname))
+        err = ("%r does not seem to be a scaled mri subject: %r does not "
+               "exist." % (subject, fname))
+        raise IOError(err)
 
     logger.info("Reading MRI cfg file %s" % fname)
     config = configparser.RawConfigParser()
@@ -866,8 +872,9 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
     subjects_dir = get_subjects_dir(subjects_dir, True)
     if (subject_from is None) != (scale is None):
-        raise TypeError("Need to provide either both subject_from and scale "
-                        "parameters, or neither.")
+        err = ("Need to provide either both subject_from and scale "
+               "parameters, or neither.")
+        raise TypeError(err)
 
     if subject_from is None:
         cfg = read_mri_cfg(subject_to, subjects_dir)
@@ -881,8 +888,9 @@ def _scale_params(subject_to, subject_from, scale, subjects_dir):
         elif scale.shape == (3,):
             n_params = 3
         else:
-            raise ValueError("Invalid shape for scale parameer. Need scalar "
-                             "or array of length 3. Got %s." % str(scale))
+            err = ("Invalid shape for scale parameer. Need scalar or array of "
+                   "length 3. Got %s." % str(scale))
+            raise ValueError(err)
 
     return subjects_dir, subject_from, n_params, scale
 
@@ -922,8 +930,8 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
 
     surfs = read_bem_surfaces(src)
     if len(surfs) != 1:
-        raise NotImplementedError("BEM file with more than one surface: %r"
-                                  % src)
+        err = ("BEM file with more than one surface: %r" % src)
+        raise NotImplementedError(err)
     surf0 = surfs[0]
     surf0['rr'] = surf0['rr'] * scale
     write_bem_surface(dst, surf0)
@@ -1022,8 +1030,9 @@ def scale_mri(subject_from, subject_to, scale, overwrite=False,
         if overwrite:
             shutil.rmtree(dest)
         else:
-            raise IOError("Subject directory for %s already exists: %r"
-                          % (subject_to, dest))
+            err = ("Subject directory for %s already exists: "
+                   "%r" % (subject_to, dest))
+            raise IOError(err)
 
     for dirname in paths['dirs']:
         dir_ = dirname.format(subject=subject_to, subjects_dir=subjects_dir)
@@ -1128,8 +1137,8 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
     elif n_params == 3:
         norm_scale = 1. / scale
     else:
-        raise RuntimeError("Invalid n_params entry in MRI cfg file: %s"
-                           % str(n_params))
+        err = ("Invalid n_params entry in MRI cfg file: %s" % str(n_params))
+        raise RuntimeError(err)
 
     # read and scale the source space [in m]
     sss = read_source_spaces(src)

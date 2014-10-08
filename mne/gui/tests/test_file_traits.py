@@ -10,8 +10,7 @@ from nose.tools import assert_equal, assert_false, assert_raises, assert_true
 
 from mne.datasets import testing
 from mne.io.tests import data_dir as fiff_data_dir
-from mne.utils import (_TempDir, requires_mne, requires_freesurfer,
-                       requires_traits)
+from mne.utils import _TempDir, requires_mne_fs_in_env, requires_traits
 
 data_path = testing.data_path(download=False)
 subjects_dir = os.path.join(data_path, 'subjects')
@@ -88,8 +87,7 @@ def test_subject_source():
 
 @testing.requires_testing_data
 @requires_traits
-@requires_mne
-@requires_freesurfer
+@requires_mne_fs_in_env
 def test_subject_source_with_fsaverage():
     """Test SubjectSelector"""
     from mne.gui._file_traits import MRISubjectSource

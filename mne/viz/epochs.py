@@ -198,13 +198,12 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     perc = _drop_log_stats(drop_log, ignore)
     scores = Counter([ch for d in drop_log for ch in d if ch not in ignore])
     ch_names = np.array(list(scores.keys()))
-    fig = plt.figure()
     if perc < threshold or len(ch_names) == 0:
-        plt.text(0, 0, 'No drops')
-        return fig
+        return perc
     counts = 100 * np.array(list(scores.values()), dtype=float) / len(drop_log)
     n_plot = min(n_max_plot, len(ch_names))
     order = np.flipud(np.argsort(counts))
+    fig = plt.figure()
     plt.title('%s: %0.1f%%' % (subject, perc))
     x = np.arange(n_plot)
     plt.bar(x, counts[order[:n_plot]], color=color, width=width)
@@ -436,8 +435,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         'title_str': title_str,
         'reject_idx': [],
         'axes_handler': axes_handler,
-        'data': data,
-        'navigation': navigation,
+        'data': data
     }
     fig.canvas.mpl_connect('button_press_event',
                            partial(_epochs_axes_onclick, params=params))
