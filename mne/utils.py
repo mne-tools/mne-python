@@ -752,7 +752,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
     logger.addHandler(lh)
 
 
-#
+###############################################################################
 # CONFIG / PREFS
 
 def get_subjects_dir(subjects_dir=None, raise_error=False):
