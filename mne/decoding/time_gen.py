@@ -32,7 +32,7 @@ class GeneralizationAcrossTime(object):
         sklearn.cross_validation module for the list of possible objects.
     picks : array (n_selected_chans) | None, optional, default: None
         Channels to be included in Sklearn model fitting.
-    train_times : dict, optional, default: {} 
+    train_times : dict, optional, default: None 
         'slices' : array, shape(n_clfs)
             Array of time slices (in indices) used for each classifier.
         'start' : float
@@ -65,7 +65,7 @@ class GeneralizationAcrossTime(object):
 
     def __init__(self, cv=5, clf=None,
                  picks=None,
-                 train_times={}):
+                 train_times=None):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.svm import SVC
@@ -121,8 +121,11 @@ class GeneralizationAcrossTime(object):
         self.cv = check_cv(self.cv, X, y, classifier=True)
 
         # Define training sliding window
-        self.train_times['slices'] = _sliding_window(
-            epochs.times, self.train_times)
+        if self.train_times is None:
+            self.train_times = {}
+        if not 'slices' in self.train_times:
+            self.train_times['slices'] = _sliding_window(
+                epochs.times, self.train_times)
 
         # Keep last training times in milliseconds
         self.train_times['s'] = epochs.times[[t[-1]
@@ -182,6 +185,8 @@ class GeneralizationAcrossTime(object):
             'length' : float
                 Duration of each classifier (in seconds). By default, equals 
                 one time sample.
+        predict_type : str
+            Indicates the type of prediction ('predict', 'proba', 'distance').
         n_jobs : int
             Number of jobs to run in parallel. Each fold is fit
             in parallel.
@@ -200,12 +205,6 @@ class GeneralizationAcrossTime(object):
         # Cross validation scheme: if same data set use CV for prediction, else
         # predict each trial with all folds' classifiers
         self.independent = independent  # XXX Good name?
-
-        # Store y for scorer
-        if not independent:
-            self.y_true = self.y_train  # 'y_true': Good name?
-        else:
-            self.y_true = y
 
         # Store type of prediction (continuous, categorical etc)
         self.predict_type = predict_type
@@ -238,9 +237,6 @@ class GeneralizationAcrossTime(object):
 
         # Prepare parallel predictions
         parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
-
-        # Initialize results
-        self.y_pred = [[]] * len(test_times['slices'])
 
         # Loop across estimators (i.e. training times)
         packed = parallel(p_time_gen(
@@ -312,7 +308,10 @@ class GeneralizationAcrossTime(object):
         
         # If no regressor is passed, use default epochs events
         if y is None:
-            y = self.y_true  # XXX good name?
+            if not independent:
+                y = self.y_train  # XXX good name?
+            else:
+                y = epochs.events[:,2]
         self.y_true = y  # true regressor to be compared with y_pred
 
         # Setup scorer
@@ -370,9 +369,8 @@ def _predict_time_loop(X, estimator, cv, slices, independent,
 
     """
     n_trial = len(X)
-    n_time = len(slices)
     # Loop across testing slices
-    y_pred = [[]] * n_time
+    y_pred = [[]] * len(slices)
     for t, indices in enumerate(slices):
         # Flatten features in case of multiple time samples
         Xtrain = X[:, :, indices].reshape(
