@@ -595,6 +595,9 @@ def _mask_trigs(events, mask):
         raise TypeError('You provided a(n) %s. Mask must be an int.'
                         % type(mask))
     n_events = len(events)
+    if n_events == 0:
+        return events.copy()
+
     mask = np.bitwise_not(mask)
     events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
     events = events[events[:, 1] != events[:, 2]]
