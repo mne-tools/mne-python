@@ -114,47 +114,47 @@ def test_GeneralizationAcrossTime():
 
         # Test basics
         # --- number of trials
-        assert_true(gat.y_train.shape[0] ==
-                    gat.y_true.shape[0] ==
-                    gat.y_pred.shape[2] == 14)
+        assert_true(gat.y_train_.shape[0] ==
+                    gat.y_true_.shape[0] ==
+                    gat.y_pred_.shape[2] == 14)
         # ---  number of folds
-        assert_true(np.shape(gat.estimators)[1] == gat.cv.n_folds)
+        assert_true(np.shape(gat.estimators_)[1] == gat.cv_.n_folds)
         # --- by default, prediction made from cv
-        assert_true(not gat.independent)
+        assert_true(not gat.independent_)
         # ---  length training size
         assert_true(
-            len(gat.train_times['slices']) == 15 == np.shape(gat.estimators)[0])
+            len(gat.train_times_['slices']) == 15 == np.shape(gat.estimators_)[0])
         # ---  length testing sizes
         assert_true(
-            len(gat.test_times['slices']) == 15 == np.shape(gat.scores)[0])
+            len(gat.test_times_['slices']) == 15 == np.shape(gat.scores_)[0])
         assert_true(
-            len(gat.test_times['slices'][0]) == 15 == np.shape(gat.scores)[1])
+            len(gat.test_times_['slices'][0]) == 15 == np.shape(gat.scores_)[1])
         
         # Test longer time window
         gat = GeneralizationAcrossTime(train_times={'length': .100})
         gat.fit(epochs)
         gat.score(epochs)
-        assert(len(gat.test_times['slices'][0][0])==2)
+        assert(len(gat.test_times_['slices'][0][0])==2)
         # Decim training steps
         gat = GeneralizationAcrossTime(train_times={'step': .100})
         gat.fit(epochs)
         gat.score(epochs)
-        assert(len(gat.scores)==8)
+        assert(len(gat.scores_)==8)
 
         # Test start stop training
         gat = GeneralizationAcrossTime(
             train_times={'start': 0.090, 'stop': 0.250})
         gat.fit(epochs)
         gat.score(epochs)
-        assert(len(gat.scores)==4)
-        assert(gat.train_times['s'][0]==epochs.times[6])
-        assert(gat.train_times['s'][-1]==epochs.times[9])
+        assert(len(gat.scores_)==4)
+        assert(gat.train_times_['s'][0]==epochs.times[6])
+        assert(gat.train_times_['s'][-1]==epochs.times[9])
         
         # Test diagonal decoding
         gat = GeneralizationAcrossTime()
         gat.fit(epochs)
         gat.score(epochs, test_times='diagonal')
-        assert(np.shape(gat.scores)==(15, 1))
+        assert(np.shape(gat.scores_)==(15, 1))
 
         # Test generalization across conditions
         gat = GeneralizationAcrossTime()

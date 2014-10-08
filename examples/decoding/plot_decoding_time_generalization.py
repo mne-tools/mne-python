@@ -27,7 +27,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.feature_selection import SelectPercentile, f_regression
 import mne
 from mne.datasets import sample
-from mne.decoding import GeneralizationAcrossTime, plot_decod, plot_gat
+from mne.decoding import GeneralizationAcrossTime
 
 # --------------------------------------------------------------
 # PREPROCESS DATA
@@ -47,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     reject=dict(mag=5e-12), decim=decim)
 # Define events of interest
 y_vis_audio = epochs.events[:, 2] <= 2
-y_left_right = np.mod(epochs.events[:, 2], 2) == 1
+y_left_right = np.mod(epochs.events[:, 2], 2)
 
 
 # ----------------------------------------------------------------------------
@@ -59,8 +59,8 @@ y_left_right = np.mod(epochs.events[:, 2], 2) == 1
 gat = GeneralizationAcrossTime()
 gat.fit(epochs, y=y_vis_audio)
 gat.score(epochs, y=y_vis_audio)
-plot_decod(gat)  # plot decoding across time (correspond to GAT diagonal)
-plot_gat(gat)  # plot full GAT matrix
+gat.plot_diagonal()  # plot decoding across time (correspond to GAT diagonal)
+gat.plot()  # plot full GAT matrix
 
 
 # ----------------------------------------------------------------------------
@@ -71,10 +71,10 @@ plot_gat(gat)  # plot full GAT matrix
 # Sciences, 18(4), 203-210.
 gat = GeneralizationAcrossTime()
 # Train on visual versus audio: left stimuli only.
-gat.fit(epochs[y_left_right], y=y_vis_audio[y_left_right])
+gat.fit(epochs[y_left_right==1], y=y_vis_audio[y_left_right==1])
 # Test on visual versus audio: right stimuli only.
 # In this case, because the test data is independent, we test the
 # classifier of each folds and average their respective prediction:
-gat.score(epochs[-y_left_right], y=y_vis_audio[-y_left_right], independent=True)
-plot_gat(gat)
+gat.score(epochs[y_left_right==0], y=y_vis_audio[y_left_right==0], independent=True)
+gat.plot()
 

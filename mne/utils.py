@@ -39,7 +39,7 @@ logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-#
+###############################################################################
 # RANDOM UTILITIES
 
 def check_random_state(seed):
@@ -100,9 +100,7 @@ def sum_squared(X):
 
 
 class WrapStdOut(object):
-
     """Ridiculous class to work around how doctest captures stdout"""
-
     def __getattr__(self, name):
         # Even more ridiculous than this class, this must be sys.stdout (not
         # just stdout) in order for this to work (tested on OSX and Linux)
@@ -110,7 +108,6 @@ class WrapStdOut(object):
 
 
 class _TempDir(str):
-
     """Class for creating and auto-destroying temp dir
 
     This is designed to be used with testing modules.
@@ -119,7 +116,6 @@ class _TempDir(str):
     function may be cleaned up before this object, so we use the atexit module
     instead.
     """
-
     def __new__(self):
         new = str.__new__(self, tempfile.mkdtemp())
         return new
@@ -236,9 +232,7 @@ def run_subprocess(command, *args, **kwargs):
 
 
 class _FormatDict(dict):
-
     """Helper for pformat()"""
-
     def __missing__(self, key):
         return "{" + key + "}"
 
@@ -262,7 +256,7 @@ def trait_wraith(*args, **kwargs):
     return lambda x: x
 
 
-#
+###############################################################################
 # DECORATORS
 
 # Following deprecated class copied from scikit-learn
@@ -272,7 +266,6 @@ warnings.simplefilter('default')
 
 
 class deprecated(object):
-
     """Decorator to mark a function or class as deprecated.
 
     Issue a warning when the function is called/the class is instantiated and
@@ -677,7 +670,7 @@ def requires_scipy_version(min_version):
                                  % min_version)
 
 
-#
+###############################################################################
 # LOGGING
 
 def set_log_level(verbose=None, return_old_level=False):
@@ -881,12 +874,12 @@ known_config_types = [
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_SAMPLE_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-]
+    ]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
-]
+    ]
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -995,7 +988,6 @@ def set_config(key, value, home_dir=None):
 
 
 class ProgressBar(object):
-
     """Class for generating a command-line progressbar
 
     Parameters
@@ -1109,7 +1101,6 @@ class ProgressBar(object):
 
 
 class _HTTPResumeURLOpener(urllib.request.FancyURLopener):
-
     """Create sub-class in order to overide error 206.
 
     This error means a partial file is being sent, which is ok in this case.

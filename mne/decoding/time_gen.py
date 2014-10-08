@@ -23,7 +23,7 @@ class GeneralizationAcrossTime(object):
     Parameters
     ----------
     clf : object | None
-        A object Scikit-Learn estimator API (fit & predict).
+        A object scikit-learn estimator API (fit & predict).
         If None the classifier will be a standard pipeline:
         (scaler, linear SVM (C=1.)).
     cv : int | object, optional, default: 5
@@ -52,7 +52,13 @@ class GeneralizationAcrossTime(object):
     -------
     gat : object
         gat.fit() is used to train classifiers
-        gat.predict() is used to test the classifiers on existing or novel data
+        gat.predict() is used to test the classifiers on existing or novel 
+            data.
+        gat.score() is used to test and estimate the classifier on existing or
+            novel data.
+        gat.plot() is used to plot the full generalization across time scores
+        gat.plot_diagonal() is used to plot the score of each classifier 
+            trained and tested at a given (set of) time point(s).
 
     Notes
     -----
@@ -72,18 +78,17 @@ class GeneralizationAcrossTime(object):
         from sklearn.pipeline import Pipeline
 
         # Store parameters in object
-        self.cv = cv
-        self.clf = clf
-        self.picks = picks
-        self.train_times = train_times
-        self.picks = picks
+        self.cv_ = cv
+        self.clf_ = clf
+        self.train_times_ = train_times
+        self.picks_ = picks
 
         # Default classification pipeline
         if clf is None:
             scaler = StandardScaler()
             svc = SVC(C=1, kernel='linear')
             clf = Pipeline([('scaler', scaler), ('svc', svc)])
-        self.clf = clf
+        self.clf_ = clf
 
     def fit(self, epochs, y=None, n_jobs=1):
         """ Train a classifier on each specified time slice.
@@ -104,32 +109,32 @@ class GeneralizationAcrossTime(object):
         # Default channel selection
         # XXX Channel selection should be transformed into a make_chans_pick,
         # and defined in __init__
-        if self.picks is None:
+        if self.picks_ is None:
             info = epochs.info
-            self.picks = pick_types(
+            self.picks_ = pick_types(
                 info, meg=True, eeg=True, exclude='bads')
 
         # Extract data from MNE structure
-        X, y = _format_data(epochs, y, self.picks)
-        self.y_train = y
+        X, y = _format_data(epochs, y, self.picks_)
+        self.y_train_ = y
 
         # Cross validation scheme
         # XXX Cross validation should be transformed into a make_cv, and
         # defined in __init__
-        if self.cv.__class__ == int:
-            self.cv = StratifiedKFold(y, self.cv)
-        self.cv = check_cv(self.cv, X, y, classifier=True)
+        if self.cv_.__class__ == int:
+            self.cv_ = StratifiedKFold(y, self.cv_)
+        self.cv_ = check_cv(self.cv_, X, y, classifier=True)
 
         # Define training sliding window
-        if self.train_times is None:
-            self.train_times = {}
-        if not 'slices' in self.train_times:
-            self.train_times['slices'] = _sliding_window(
-                epochs.times, self.train_times)
+        if self.train_times_ is None:
+            self.train_times_ = {}
+        if not 'slices' in self.train_times_:
+            self.train_times_['slices'] = _sliding_window(
+                epochs.times, self.train_times_)
 
         # Keep last training times in milliseconds
-        self.train_times['s'] = epochs.times[[t[-1]
-                                        for t in self.train_times['slices']]]
+        self.train_times_['s'] = epochs.times[[t[-1]
+                                        for t in self.train_times_['slices']]]
 
         # Chunk X for parallelization
         if n_jobs > 0:
@@ -139,20 +144,20 @@ class GeneralizationAcrossTime(object):
             n_chunk = multiprocessing.cpu_count()
         # Parallel across training time
         parallel, p_time_gen, _ = parallel_func(_fit_slices, n_jobs)
-        packed = parallel(p_time_gen(clone(self.clf),
+        packed = parallel(p_time_gen(clone(self.clf_),
                                      X[:, :, np.unique(
                                          np.concatenate(train_slices_chunk))],
                                      y,
                                      train_slices_chunk,
-                                     self.cv)
+                                     self.cv_)
                           for train_slices_chunk in np.array_split(
-            self.train_times['slices'], n_chunk))
+            self.train_times_['slices'], n_chunk))
         # Unpack estimators
         unpacked = []
         for ii in range(len(packed)):
             for jj in range(len(packed[ii])):
                 unpacked += [packed[ii][jj]]
-        self.estimators = unpacked
+        self.estimators_ = unpacked
 
     def predict(self, epochs, independent=False, test_times=None,
                 predict_type='predict', n_jobs=1):
@@ -193,26 +198,26 @@ class GeneralizationAcrossTime(object):
 
         Returns
         -------
-        self.y_pred : array, shape(n_train_time, n_test_time, n_trials,
+        self.y_pred_ : array, shape(n_train_time, n_test_time, n_trials,
                                    n_prediction_dim)
         """
 
-        X, y = _format_data(epochs, None, self.picks)
+        X, y = _format_data(epochs, None, self.picks_)
         
         # Check that at least one classifier has been trained
-        assert(hasattr(self, 'estimators'))
+        assert(hasattr(self, 'estimators_'))
 
         # Cross validation scheme: if same data set use CV for prediction, else
         # predict each trial with all folds' classifiers
-        self.independent = independent  # XXX Good name?
+        self.independent_ = independent  # XXX Good name?
 
         # Store type of prediction (continuous, categorical etc)
-        self.predict_type = predict_type
+        self.predict_type_ = predict_type
 
         # Define testing sliding window
         if test_times == 'diagonal':
             test_times = {}
-            test_times['slices'] = [[s] for s in self.train_times['slices']]
+            test_times['slices'] = [[s] for s in self.train_times_['slices']]
         elif test_times is None:
             test_times = {}
         if not 'slices' in test_times:
@@ -220,9 +225,9 @@ class GeneralizationAcrossTime(object):
             test_times['slices_'] = []
             # Force same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
-            test_times['length'] = self.train_times['length']
+            test_times['length'] = self.train_times_['length']
             # Make a sliding window for each training time.
-            for t in range(0, len(self.train_times['slices'])):
+            for t in range(0, len(self.train_times_['slices'])):
                 test_times['slices_'] += [
                     _sliding_window(epochs.times, test_times)]
             test_times['slices'] = test_times['slices_']
@@ -233,7 +238,7 @@ class GeneralizationAcrossTime(object):
         test_times['s'] = [[epochs.times[t_test[-1]] for t_test in t_train]
                            for t_train in test_times['slices']]
         # Store all testing times parameters
-        self.test_times = test_times
+        self.test_times_ = test_times
 
         # Prepare parallel predictions
         parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
@@ -241,13 +246,13 @@ class GeneralizationAcrossTime(object):
         # Loop across estimators (i.e. training times)
         packed = parallel(p_time_gen(
             X,
-            self.estimators[t_train],
-            self.cv,
+            self.estimators_[t_train],
+            self.cv_,
             slices,
-            self.independent, self.predict_type)
+            self.independent_, self.predict_type_)
             for t_train, slices in enumerate(test_times['slices']))
 
-        self.y_pred = np.transpose(zip(*packed), (1, 0, 2, 3))
+        self.y_pred_ = np.transpose(zip(*packed), (1, 0, 2, 3))
 
     def score(self, epochs, y=None, scorer=None, independent=False, 
               test_times=None, predict_type='predict', n_jobs=1):
@@ -289,14 +294,6 @@ class GeneralizationAcrossTime(object):
         n_jobs : int
             Number of jobs to run in parallel. Each fold is fit
             in parallel.
-        
-        Returns
-        -------
-        self.y_pred : array, shape(n_train_time, n_test_time, n_trials,
-                                   n_prediction_dim)
-        self.scores : array, shape(n_slices)
-            Score estimated across all trials for each train/tested time slice.
-
         """
 
         from sklearn.metrics import roc_auc_score, accuracy_score
@@ -309,34 +306,138 @@ class GeneralizationAcrossTime(object):
         # If no regressor is passed, use default epochs events
         if y is None:
             if not independent:
-                y = self.y_train  # XXX good name?
+                y = self.y_train_  # XXX good name?
             else:
                 y = epochs.events[:,2]
-        self.y_true = y  # true regressor to be compared with y_pred
+        self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Setup scorer
         if scorer is None:
-            if self.predict_type == 'predict':
+            if self.predict_type_ == 'predict':
                 scorer = accuracy_score
             else:
                 scorer = roc_auc_score
-        self.scorer = scorer
+        self.scorer_ = scorer
 
         # Initialize values: Note that this is not an array as the testing
         # times per training time need not be regular
-        scores = [[]] * len(self.test_times['slices'])
+        scores = [[]] * len(self.test_times_['slices'])
 
         # Loop across training/testing times
-        for t_train, slices in enumerate(self.test_times['slices']):
+        for t_train, slices in enumerate(self.test_times_['slices']):
             n_time = len(slices)
             # Loop across testing times
             scores[t_train] = [0] * n_time
             for t, indices in enumerate(slices):
                 # Scores across trials
-                scores[t_train][t] = _scorer(self.y_true,
-                                             self.y_pred[t_train][t],
+                scores[t_train][t] = _scorer(self.y_true_,
+                                             self.y_pred_[t_train][t],
                                              scorer)
-        self.scores = scores
+        self.scores_ = scores
+
+
+    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
+                 show=True):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Predict each classifier. If multiple classifiers are passed, average 
+        prediction across all classifier to result in a single prediction per 
+        classifier.
+
+        Parameters
+        ----------
+        title : str | None, optional, default : None
+            Figure title.
+        vmin : float, optional, default:0.
+            Min color value for score.
+        vmax : float, optional, default:1.
+            Max color value for score.
+        tlim : array, (train_min_max, test_min_max) | None, optional, 
+            default: None
+        ax : object | None, optional, default: None
+            Plot pointer. If None, generate new figure.
+        show : bool, optional, default: True
+            plt.show()       
+
+        Returns
+        -------
+        ax : object
+            Plot pointer.
+        """
+
+        # Check that same amount of testing time per training time
+        assert(len(np.unique([len(t) for t in self.test_times_])))
+        # Setup plot
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+
+        # Define time limits
+        if tlim is None:
+            tlim = [self.test_times_['s'][0][0], self.test_times_['s'][-1][-1],
+                    self.train_times_['s'][0], self.train_times_['s'][-1]]
+        # Plot scores
+        im = ax.imshow(self.scores_, interpolation='nearest', origin='lower',
+                       extent=tlim, vmin=vmin, vmax=vmax)
+        ax.set_xlabel('Testing Time (s)')
+        ax.set_ylabel('Training Time (s)')
+        if not title is None:
+            ax.set_title(title)
+        ax.axvline(0, color='k')
+        ax.axhline(0, color='k')
+        plt.colorbar(im, ax=ax)
+        if show:
+            plt.show()
+        return im, ax
+
+
+    def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
+                   color='b'):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Predict each classifier. If multiple classifiers are passed, average 
+        prediction across all classifier to result in a single prediction per 
+        classifier.
+
+        Parameters
+        ----------
+        title : str | None, optional, default : None
+            Figure title.
+        ymin : float, optional, default:0.
+            Min score value.
+        ymax : float, optional, default:1.
+            Max score value.
+        tlim : array, (train_min_max, test_min_max) | None, optional, 
+            default: None
+        ax : object | None, optional, default: None
+            Plot pointer. If None, generate new figure.
+        show : bool, optional, default: True
+            plt.show()
+        color : str, optional, default: 'b'
+            Score line color.     
+
+        Returns
+        -------
+        ax : object
+            Plot pointer.
+        """
+
+        if ax is None:
+            fig, ax = plt.subplots(1, 1)
+        # detect whether gat is a full matrix or just its diagonal
+        if np.all(np.unique([len(t) for t in self.test_times_['s']]) == 1):
+            scores = self.scores_
+        else:
+            scores = np.diag(self.scores_)
+        ax.plot(self.train_times_['s'], scores, color=color, label="Classif. score")
+        ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
+        ax.set_ylim(ymin, ymax)
+        ax.set_xlabel('Time (s)')
+        ax.set_ylabel(self.scorer_.func_name)
+        ax.legend(loc='best')
+        if show:
+            plt.show()
+        return ax
+
 
 
 def _predict_time_loop(X, estimator, cv, slices, independent,
@@ -361,12 +462,6 @@ def _predict_time_loop(X, estimator, cv, slices, independent,
         corresponding fold is used.
     predict_type : str
         Indicates the type of prediction ('predict', 'proba', 'distance').
-
-    Returns
-    -------
-    y_pred : array, shape(n_slices, n_trials)
-        Single trial prediction for each train/tested time sample.
-
     """
     n_trial = len(X)
     # Loop across testing slices
@@ -411,7 +506,7 @@ def _scorer(y, y_pred, scorer):
     y_pred : list | array, shape (n_trials)
         Classifier prediction of model value
     scorer : object
-        Sklearn scoring object
+        scikit-learn scoring object
 
     Returns
     -------
@@ -443,7 +538,7 @@ def _scorer(y, y_pred, scorer):
 def _format_data(epochs, y, picks):
     """Aux function of GeneralizationAcrossTime
 
-    Format MNE data into Sklearn X and y
+    Format MNE data into scikit-learn X and y
 
     Parameters
     ----------
@@ -452,7 +547,7 @@ def _format_data(epochs, y, picks):
     y : array shape(n_trials) | list shape(n_trials) | None
         To-be-fitted model. If y is None, y = epochs.events
     picks : array (n_selected_chans) | None
-        Channels to be included in Sklearn model fitting.
+        Channels to be included in scikit-learn model fitting.
 
     Returns
     -------
@@ -479,14 +574,14 @@ def _fit_slices(clf, Xchunk, y, slices, cv):
 
     Parameters
     ----------
-    clf : Sklearn classifier
+    clf : scikit-learn classifier
     Xchunk : array, shape (n_trials, n_features, n_times)
         To-be-fitted data
     y : list | array, shape (n_trials)
         To-be-fitted model
     slices : list | array, shape(n_training_slice)
         List of training slices, indicating time sample relative to X
-    cv : Sklearn cross-validater
+    cv : scikit-learn cross-validater
 
     Returns
     -------
@@ -602,7 +697,7 @@ def _predicter(X, estimators, predict_type):
     Parameters
     ----------
     estimators : array, shape(n_folds) or shape(1)
-        Array of Sklearn classifiers to predict data
+        Array of scikit-learn classifiers to predict data
     X : array, shape (n_trials, n_features, n_times)
         To-be-predicted data
     predict_type : str, 'predict' | 'distance' | 'proba'
@@ -659,113 +754,6 @@ def _predicter(X, estimators, predict_type):
     return y_pred
 
 
-def plot_gat(gat, title=None, vmin=0., vmax=1., tlim=None, ax=None,
-             show=True):
-    """Plotting function of GeneralizationAcrossTime object
-
-    Predict each classifier. If multiple classifiers are passed, average 
-    prediction across all classifier to result in a single prediction per 
-    classifier.
-
-    Parameters
-    ----------
-    gat : object
-        GeneralizationAcrossTime object containing predictions.
-    title : str | None, optional, default : None
-        Figure title.
-    vmin : float, optional, default:0.
-        Min color value for score.
-    vmax : float, optional, default:1.
-        Max color value for score.
-    tlim : array, (train_min_max, test_min_max) | None, optional, 
-        default: None
-    ax : object | None, optional, default: None
-        Plot pointer. If None, generate new figure.
-    show : bool, optional, default: True
-        plt.show()       
-
-    Returns
-    -------
-    ax : object
-        Plot pointer.
-    """
-
-    # Check that same amount of testing time per training time
-    assert(len(np.unique([len(t) for t in gat.test_times])))
-    # Setup plot
-    if ax is None:
-        fig, ax = plt.subplots(1, 1)
-
-    # Define time limits
-    if tlim is None:
-        tlim = [gat.test_times['s'][0][0], gat.test_times['s'][-1][-1],
-                gat.train_times['s'][0], gat.train_times['s'][-1]]
-    # Plot scores
-    im = ax.imshow(gat.scores, interpolation='nearest', origin='lower',
-                   extent=tlim, vmin=vmin, vmax=vmax)
-    ax.set_xlabel('Testing Time (s)')
-    ax.set_ylabel('Training Time (s)')
-    if not title is None:
-        ax.set_title(title)
-    ax.axvline(0, color='k')
-    ax.axhline(0, color='k')
-    plt.colorbar(im, ax=ax)
-    if show:
-        plt.show()
-    return im, ax
-
-
-def plot_decod(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
-               color='b'):
-    """Plotting function of GeneralizationAcrossTime object
-
-    Predict each classifier. If multiple classifiers are passed, average 
-    prediction across all classifier to result in a single prediction per 
-    classifier.
-
-    Parameters
-    ----------
-    gat : object
-        GeneralizationAcrossTime object containing predictions.
-    title : str | None, optional, default : None
-        Figure title.
-    ymin : float, optional, default:0.
-        Min score value.
-    ymax : float, optional, default:1.
-        Max score value.
-    tlim : array, (train_min_max, test_min_max) | None, optional, 
-        default: None
-    ax : object | None, optional, default: None
-        Plot pointer. If None, generate new figure.
-    show : bool, optional, default: True
-        plt.show()
-    color : str, optional, default: 'b'
-        Score line color.     
-
-    Returns
-    -------
-    ax : object
-        Plot pointer.
-    """
-
-    if ax is None:
-        fig, ax = plt.subplots(1, 1)
-    # detect whether gat is a full matrix or just its diagonal
-    if np.all(np.unique([len(t) for t in gat.test_times['s']]) == 1):
-        scores = gat.scores
-    else:
-        scores = np.diag(gat.scores)
-    ax.plot(gat.train_times['s'], scores, color=color, label="Classif. score")
-    ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
-    ax.set_ylim(ymin, ymax)
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel(gat.scorer.func_name)
-    ax.legend(loc='best')
-    if show:
-        plt.show()
-    return ax
-
-
 #######################################################################
 # Previous time generalization script
 
@@ -778,9 +766,9 @@ def _one_fold(clf, scorer, X, y, X_gen, y_gen, train, test, train_slices,
     Parameters
     ----------
     clf : object
-        Sklearn classifier
+        scikit-learn classifier
     scorer : object
-        Sklearn object
+        scikit-learn object
     X : array, shape (n_trials, n_features, n_times)
         To-be-fitted data
     y : list | array, shape (n_trials)
@@ -1029,18 +1017,12 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
 
     Returns
     -------
-    out : dict
-        'scores' : array, shape (training_slices, testing_slices)
-                   The cross-validated scores averaged across folds. 
-                   scores[i, j] contains  the generalization score when 
-                   learning at time j and testing at time i. The diagonal
-                   is the cross-validation score at each time-independant 
-                   instant.
-        'scores_gen' : array, shape (training_slices, testing_slices)
-                       identical to scores for cross-condition generalization
-                       (i.e. epochs_list_gen)
-        'train_times' : first time samples used to train each classifier
-        'train_times' : first time samples used to test each classifier
+    scores : array, shape (training_slices, testing_slices)
+        The cross-validated scores averaged across folds. 
+        scores[i, j] contains  the generalization score when 
+        learning at time j and testing at time i. The diagonal
+        is the cross-validation score at each time-independant 
+        instant.
 
     Notes
     -----
@@ -1162,4 +1144,4 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
     out['test_times'] = epochs_list[0].times[
         [s.start for s in test_slices[0]]]
 
-    return out
+    return scores
