@@ -774,8 +774,8 @@ class ICA(ContainsMixin):
             if verbose is None:
                 verbose = self.verbose
             if isinstance(inst, (_BaseRaw, _BaseRaw)):
-                sources, target = _band_pass_filter(self, sources, target, l_freq,
-                                                    h_freq, verbose)
+                sources, target = _band_pass_filter(self, sources, target,
+                                                    l_freq, h_freq, verbose)
 
         scores = _find_sources(sources, target, score_func)
 
@@ -2071,11 +2071,11 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         logger.info('... filtering ICA sources')
         # use fft, here, steeper is better here.
         sources = band_pass_filter(sources, ica.info['sfreq'],
-                                   l_freq, h_freq,  method='fft',
+                                   l_freq, h_freq, method='fft',
                                    verbose=verbose)
         logger.info('... filtering target')
         target = band_pass_filter(target, ica.info['sfreq'],
-                                  l_freq, h_freq,  method='fft',
+                                  l_freq, h_freq, method='fft',
                                   verbose=verbose)
     elif l_freq is not None or h_freq is not None:
         raise ValueError('Must specify both pass bands')
