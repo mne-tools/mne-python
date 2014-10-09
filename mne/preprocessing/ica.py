@@ -1232,7 +1232,7 @@ class ICA(ContainsMixin):
         return self
 
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
-                        vmin=None, vmax=None, cmap='RdBu_r', sensors=None,
+                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
@@ -1260,10 +1260,10 @@ class ICA(ContainsMixin):
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
             Colormap.
-        sensors : bool | str | None
+        sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses). If None, a circle
-            will be used (via .add_artist). Defaults to None.
+            plot format string (e.g., 'r+' for red plusses). If True, a circle
+            will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
         res : int

@@ -107,7 +107,7 @@ def _plot_update_evoked_topomap(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=None,
+def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear'):
     """Plot topographic maps of SSP projections
@@ -122,10 +122,10 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=None,
         are from different sensor types.
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str | None
+    sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If None, a circle will be
-        used (via .add_artist). Defaults to None.
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
     res : int
@@ -311,14 +311,14 @@ def _griddata(x, y, v, xi, yi):
 
 def _plot_sensors(pos_x, pos_y, sensors, ax):
     """Aux function"""
-    if sensors is None:
+    if sensors is True:
         for x, y in zip(pos_x, pos_y):
             ax.add_artist(Circle(xy=(x, y), radius=0.003, color='k'))
     else:
         ax.plot(pos_x, pos_y, sensors)
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='ko',
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear'):
@@ -341,10 +341,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='ko',
         If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str | None
+    sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If None, a circle will be
-        used (via .add_artist). Defaults to None.
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
     res : int
         The resolution of the topomap image (n pixels along each side).
     axis : instance of Axis | None
@@ -544,7 +544,7 @@ def _make_image_mask(outlines, pos, res):
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
-                        sensors=None, colorbar=False, title=None,
+                        sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
@@ -574,10 +574,10 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str | None
+    sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If None, a circle
-        will be used (via .add_artist). Defaults to None.
+        plot format string (e.g., 'r+' for red plusses). If True, a circle
+        will be used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
     res : int
@@ -676,7 +676,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
-                     vmax=None, vmin=None, cmap='RdBu_r', sensors=None,
+                     vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2, format='%1.1e',
                      show_names=False, title=None, axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
@@ -732,10 +732,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
-    sensors : bool | str | None
+    sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses). If None, a circle will
-        be used (via .add_artist). Defaults to None.
+        plot format string (e.g., 'r+' for red plusses). If True, a circle will
+        be used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -833,7 +833,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
-                        vmax=None, vmin=None, cmap='RdBu_r', sensors=None,
+                        vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
@@ -869,10 +869,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
-    sensors : bool | str | None
+    sensors : bool | str
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses). If None, a circle will be
-        used (via .add_artist). Defaults to None.
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
     scale : float | None

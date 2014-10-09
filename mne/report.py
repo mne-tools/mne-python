@@ -657,7 +657,7 @@ class Report(object):
         return items, captions
 
     def _add_figs_to_section(self, figs, captions, section='custom',
-                             scale=5):
+                             scale=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
         try:
