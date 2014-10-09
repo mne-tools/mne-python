@@ -737,7 +737,7 @@ class Report(object):
             A list of captions to the figures.
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
-            If None, equals fig.get_figwidth() * 3.
+            If None, equals fig.get_figwidth() * 5.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
@@ -755,7 +755,7 @@ class Report(object):
             A list of filenames from which images are read.
         captions : list of str
             A list of captions to the images.
-        width : float
+        scale : float
             Scale the images maintaining the aspect ratio.
             Defaults to 1.
         section : str
