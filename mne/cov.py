@@ -128,6 +128,7 @@ class Covariance(dict):
 
     def __repr__(self):
         s = "size : %s x %s" % self.data.shape
+        s += ", n_samples : %s" % self.nfree
         s += ", data : %s" % self.data
         return "<Covariance  |  %s>" % s
 
