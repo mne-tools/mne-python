@@ -14,6 +14,7 @@ import copy
 
 import numpy as np
 from scipy import linalg
+from matplotlib.patches import Circle
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -66,8 +67,8 @@ def _prepare_topo_plot(obj, ch_type, layout):
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
-        # change names so that vectorview combined grads appear as MEG014x instead
-        # of MEG0142 or MEG0143 which are the 2 planar grads.
+        # change names so that vectorview combined grads appear as MEG014x
+        # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
 
     return picks, pos, merge_grads, ch_names
@@ -106,7 +107,7 @@ def _plot_update_evoked_topomap(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
+def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=None,
                        colorbar=False, res=64, size=1, show=True,
                        outlines='head', contours=6, image_interp='bilinear'):
     """Plot topographic maps of SSP projections
@@ -121,9 +122,10 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors='k,',
         are from different sensor types.
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str
+    sensors : bool | str | None
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
+        format string (e.g., 'r+' for red plusses). If None, a circle will be
+        used (via .add_artist). Defaults to None.
     colorbar : bool
         Plot a colorbar.
     res : int
@@ -237,8 +239,8 @@ def _check_outlines(pos, outlines, head_scale=0.85):
         # Define the outline of the head, ears and nose
         if outlines is not None:
             outlines = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
-                            ear_left=(ear_x,  ear_y),
-                            ear_right=(-ear_x,  ear_y))
+                            ear_left=(ear_x, ear_y),
+                            ear_right=(-ear_x, ear_y))
         else:
             outlines = dict()
 
@@ -307,7 +309,16 @@ def _griddata(x, y, v, xi, yi):
     return zi
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+def _plot_sensors(pos_x, pos_y, sensors, ax):
+    """Aux function"""
+    if sensors is None:
+        for x, y in zip(pos_x, pos_y):
+            ax.add_artist(Circle(xy=(x, y), radius=0.003, color='k'))
+    else:
+        ax.plot(pos_x, pos_y, sensors)
+
+
+def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='ko',
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear'):
@@ -330,9 +341,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
         If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str
+    sensors : bool | str | None
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
+        format string (e.g., 'r+' for red plusses). If None, a circle will be
+        used (via .add_artist). Defaults to None.
     res : int
         The resolution of the topomap image (n pixels along each side).
     axis : instance of Axis | None
@@ -475,14 +487,14 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
                 col.set_clip_path(patch)
 
     if sensors is True:
-        sensors = 'k,'
-    if sensors and mask is None:
-        ax.plot(pos_x, pos_y, sensors)
+        sensors = None
+    if sensors is not False and mask is None:
+        _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
         idx = np.where(~mask)[0]
-        ax.plot(pos_x[idx], pos_y[idx], sensors)
+        _plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
 
     if show_names:
         if show_names is True:
@@ -532,7 +544,7 @@ def _make_image_mask(outlines, pos, res):
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
-                        sensors='k,', colorbar=False, title=None,
+                        sensors=None, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
                         image_interp='bilinear'):
     """Project unmixing matrix on interpolated sensor topogrpahy.
@@ -562,9 +574,10 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         If callable, the output equals vmax(data).
     cmap : matplotlib colormap
         Colormap.
-    sensors : bool | str
+    sensors : bool | str | None
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses).
+        plot format string (e.g., 'r+' for red plusses). If None, a circle
+        will be used (via .add_artist). Defaults to None.
     colorbar : bool
         Plot a colorbar.
     res : int
@@ -663,7 +676,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
-                     vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                     vmax=None, vmin=None, cmap='RdBu_r', sensors=None,
                      colorbar=True, unit=None, res=64, size=2, format='%1.1e',
                      show_names=False, title=None, axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
@@ -719,9 +732,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
-    sensors : bool | str
+    sensors : bool | str | None
         Add markers for sensor locations to the plot. Accepts matplotlib
-        plot format string (e.g., 'r+' for red plusses).
+        plot format string (e.g., 'r+' for red plusses). If None, a circle will
+        be used (via .add_artist). Defaults to None.
     colorbar : bool
         Plot a colorbar.
     unit : str | None
@@ -819,7 +833,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
-                        vmax=None, vmin=None, cmap='RdBu_r', sensors='k,',
+                        vmax=None, vmin=None, cmap='RdBu_r', sensors=None,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, format='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
@@ -855,9 +869,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
-    sensors : bool | str
+    sensors : bool | str | None
         Add markers for sensor locations to the plot. Accepts matplotlib plot
-        format string (e.g., 'r+' for red plusses).
+        format string (e.g., 'r+' for red plusses). If None, a circle will be
+        used (via .add_artist). Defaults to None.
     colorbar : bool
         Plot a colorbar.
     scale : float | None
