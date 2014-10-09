@@ -1285,7 +1285,7 @@ class Report(object):
         cov = Covariance(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
         img = _fig_to_img(fig=fig)
-        caption = 'Covariance : ' + cov_fname
+        caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
         div_klass = 'covariance'
         img_klass = 'covariance'
         show = True
