@@ -687,7 +687,7 @@ class Report(object):
             else:
                 img = _fig_to_img(fig=fig)
             if scale is None:
-                my_scale = fig.get_figwidth() * 5
+                my_scale = fig.get_figwidth() * 5  # "magic' scaling factor
             elif callable(scale):
                 my_scale = scale(fig)
             else:
@@ -737,7 +737,8 @@ class Report(object):
             A list of captions to the figures.
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
-            If None, equals fig.get_figwidth() * 5.
+            If None, equals fig.get_figwidth() * 5. If callable, function
+            should take a figure object as input parameter.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
