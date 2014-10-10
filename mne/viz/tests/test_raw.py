@@ -85,6 +85,15 @@ def test_plot_raw():
         fig.canvas.key_press_event('o')
         fig.canvas.key_press_event('escape')
         plt.close('all')
+    # filtering of raw plots
+    assert_raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
+    assert_raises(ValueError, raw.plot, highpass=0)
+    assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
+    assert_raises(ValueError, raw.plot, lowpass=1, filtorder=0)
+    assert_raises(ValueError, raw.plot, clipping='foo')
+    raw.plot(lowpass=1, clipping='transparent')
+    raw.plot(highpass=1, clipping='clamp')
+    raw.plot(highpass=1, lowpass=2)
 
 
 def test_plot_raw_psds():
