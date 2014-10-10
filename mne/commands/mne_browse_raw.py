@@ -45,6 +45,9 @@ def run():
     parser.add_option("-s", "--show_options", dest="show_options",
                       help="Show projection options dialog",
                       default=False)
+    parser.add_option("--allowmaxshield", dest="maxshield",
+                      help="Allow loading MaxShield processed data",
+                      action="store_true")
 
     options, args = parser.parse_args()
 
@@ -57,12 +60,13 @@ def run():
     show_options = options.show_options
     proj_in = options.proj_in
     eve_in = options.eve_in
+    maxshield = options.maxshield
 
     if raw_in is None:
         parser.print_help()
         sys.exit(1)
 
-    raw = mne.io.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload, allow_maxshield=maxshield)
     if len(proj_in) > 0:
         projs = mne.read_proj(proj_in)
         raw.info['projs'] = projs
