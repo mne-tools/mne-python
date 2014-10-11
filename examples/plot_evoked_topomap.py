@@ -33,13 +33,13 @@ times = np.arange(0.05, 0.15, 0.01)
 # plot magnetometer data as topomaps
 evoked.plot_topomap(times, ch_type='mag')
 
-# compute a 50ms bin to stabilize topgraphies
+# compute a 50 ms bin to stabilize topographies
 evoked.plot_topomap(times, ch_type='mag', average=0.05)
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
 evoked.plot_topomap(times, ch_type='grad')
 
-# plot magnetometer data as topomap at 1 time point : 100ms
+# plot magnetometer data as topomap at 1 time point : 100 ms
 # and add channel labels and title
 evoked.plot_topomap(0.1, ch_type='mag', show_names=True, colorbar=False,
                     size=6, res=128, title='Auditory response')
