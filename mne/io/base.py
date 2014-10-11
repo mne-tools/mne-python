@@ -790,16 +790,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                    start, stop, buffer_size, projector, inv_comp,
                    drop_small_buffer, split_size, 0, None)
 
-    def plot(raw, events=None, duration=10.0, start=0.0, n_channels=20,
+    def plot(self, events=None, duration=10.0, start=0.0, n_channels=20,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None, show=True, block=False):
+             show_options=False, title=None, show=True, block=False,
+             highpass=None, lowpass=None, filtorder=4, clipping=None):
         """Plot raw data
 
         Parameters
         ----------
-        raw : instance of Raw
-            The raw data to plot.
         events : array | None
             Events to show with vertical bars.
         duration : float
@@ -839,6 +838,22 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         block : bool
             Whether to halt program execution until the figure is closed.
             Useful for setting bad channels on the fly (click on line).
+        highpass : float | None
+            Highpass to apply when displaying data.
+        lowpass : float | None
+            Lowpass to apply when displaying data.
+        filtorder : int
+            Filtering order. Note that for efficiency and simplicity,
+            filtering during plotting uses forward-backward IIR filtering,
+            so the effective filter order will be twice ``filtorder``.
+            Filtering the lines for display may also produce some edge
+            artifacts (at the left and right edges) of the signals
+            during display.
+        clipping : str | None
+            If None, channels are allowed to exceed their designated bounds in
+            the plot. If "clamp", then values are clamped to the appropriate
+            range for display, creating step-like artifacts. If "transparent",
+            then excessive values are not shown, creating gaps in the traces.
 
         Returns
         -------
@@ -854,9 +869,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         of a channel's time series. The changes will be reflected immediately
         in the raw object's ``raw.info['bads']`` entry.
         """
-        return plot_raw(raw, events, duration, start, n_channels, bgcolor,
+        return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
-                        order, show_options, title, show, block)
+                        order, show_options, title, show, block, highpass,
+                        lowpass, filtorder, clipping)
 
     @verbose
     def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,

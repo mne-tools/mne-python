@@ -10,6 +10,7 @@ import copy
 from functools import partial
 
 import numpy as np
+from scipy.signal import butter, filtfilt
 
 from ..externals.six import string_types
 from ..io.pick import pick_types
@@ -37,18 +38,27 @@ def _update_raw_data(params):
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
+    data_picks = pick_types(params['raw'].info, meg=True, eeg=True)
     data, times = params['raw'][:, start:stop]
     if params['projector'] is not None:
         data = np.dot(params['projector'], data)
     # remove DC
     if params['remove_dc'] is True:
         data -= np.mean(data, axis=1)[:, np.newaxis]
+    if params['ba'] is not None:
+        data[data_picks] = filtfilt(params['ba'][0], params['ba'][1],
+                                    data[data_picks], axis=1, padlen=0)
     # scale
     for di in range(data.shape[0]):
         data[di] /= params['scalings'][params['types'][di]]
         # stim channels should be hard limited
         if params['types'][di] == 'stim':
             data[di] = np.minimum(data[di], 1.0)
+    # clip
+    if params['clipping'] == 'transparent':
+        data[np.logical_or(data > 1, data < -1)] = np.nan
+    elif params['clipping'] == 'clamp':
+        data = np.clip(data, -1, 1, data)
     params['data'] = data
     params['times'] = times
 
@@ -271,7 +281,8 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              bgcolor='w', color=None, bad_color=(0.8, 0.8, 0.8),
              event_color='cyan', scalings=None, remove_dc=True, order='type',
-             show_options=False, title=None, show=True, block=False):
+             show_options=False, title=None, show=True, block=False,
+             highpass=None, lowpass=None, filtorder=4, clipping=None):
     """Plot raw data
 
     Parameters
@@ -316,6 +327,22 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
+    highpass : float | None
+        Highpass to apply when displaying data.
+    lowpass : float | None
+        Lowpass to apply when displaying data.
+    filtorder : int
+        Filtering order. Note that for efficiency and simplicity,
+        filtering during plotting uses forward-backward IIR filtering,
+        so the effective filter order will be twice ``filtorder``.
+        Filtering the lines for display may also produce some edge
+        artifacts (at the left and right edges) of the signals
+        during display.
+    clipping : str | None
+        If None, channels are allowed to exceed their designated bounds in
+        the plot. If "clamp", then values are clamped to the appropriate
+        range for display, creating step-like artifacts. If "transparent",
+        then excessive values are not shown, creating gaps in the traces.
 
     Returns
     -------
@@ -335,6 +362,33 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     import matplotlib as mpl
     color, scalings = _mutable_defaults(('color', color),
                                         ('scalings_plot_raw', scalings))
+
+    if clipping is not None and clipping not in ('clamp', 'transparent'):
+        raise ValueError('clipping must be None, "clamp", or "transparent", '
+                         'not %s' % clipping)
+    # figure out the IIR filtering parameters
+    nyq = raw.info['sfreq'] / 2.
+    if highpass is None and lowpass is None:
+        ba = None
+    else:
+        filtorder = int(filtorder)
+        if filtorder <= 0:
+            raise ValueError('filtorder (%s) must be >= 1' % filtorder)
+        if highpass is not None and highpass <= 0:
+            raise ValueError('highpass must be > 0, not %s' % highpass)
+        if lowpass is not None and lowpass >= nyq:
+            raise ValueError('lowpass must be < nyquist (%s), not %s'
+                             % (nyq, lowpass))
+        if highpass is None:
+            ba = butter(filtorder, lowpass / nyq, 'lowpass', analog=False)
+        elif lowpass is None:
+            ba = butter(filtorder, highpass / nyq, 'highpass', analog=False)
+        else:
+            if lowpass <= highpass:
+                raise ValueError('lowpass (%s) must be > highpass (%s)'
+                                 %(lowpass, highpass))
+            ba = butter(filtorder, [highpass / nyq, lowpass / nyq], 'bandpass',
+                        analog=False)
 
     # make a copy of info, remove projection (for now)
     info = copy.deepcopy(raw.info)
@@ -395,9 +449,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
-                  info=info, projs=projs, remove_dc=remove_dc,
+                  info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, events=events)
+                  n_times=n_times, events=events, clipping=clipping)
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
