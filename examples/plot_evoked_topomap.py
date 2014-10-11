@@ -33,7 +33,7 @@ times = np.arange(0.05, 0.15, 0.01)
 # plot magnetometer data as topomaps
 evoked.plot_topomap(times, ch_type='mag')
 
-# compute a 100ms bin to stabilize topgraphies
+# compute a 50ms bin to stabilize topgraphies
 evoked.plot_topomap(times, ch_type='mag', average=0.05)
 
 # plot gradiometer data (plots the RMS for each pair of gradiometers)
