@@ -774,8 +774,8 @@ class ICA(ContainsMixin):
             if verbose is None:
                 verbose = self.verbose
             if isinstance(inst, (_BaseRaw, _BaseRaw)):
-                sources, target = _band_pass_filter(self, sources, target, l_freq,
-                                                    h_freq, verbose)
+                sources, target = _band_pass_filter(self, sources, target,
+                                                    l_freq, h_freq, verbose)
 
         scores = _find_sources(sources, target, score_func)
 
@@ -1232,7 +1232,7 @@ class ICA(ContainsMixin):
         return self
 
     def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
-                        vmin=None, vmax=None, cmap='RdBu_r', sensors='k,',
+                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear'):
         """Project unmixing matrix on interpolated sensor topogrpahy.
@@ -1262,7 +1262,8 @@ class ICA(ContainsMixin):
             Colormap.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses).
+            plot format string (e.g., 'r+' for red plusses). If True, a circle
+            will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
         res : int
@@ -2070,11 +2071,11 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
         logger.info('... filtering ICA sources')
         # use fft, here, steeper is better here.
         sources = band_pass_filter(sources, ica.info['sfreq'],
-                                   l_freq, h_freq,  method='fft',
+                                   l_freq, h_freq, method='fft',
                                    verbose=verbose)
         logger.info('... filtering target')
         target = band_pass_filter(target, ica.info['sfreq'],
-                                  l_freq, h_freq,  method='fft',
+                                  l_freq, h_freq, method='fft',
                                   verbose=verbose)
     elif l_freq is not None or h_freq is not None:
         raise ValueError('Must specify both pass bands')

@@ -516,9 +516,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         return self.info['ch_names']
 
     @verbose
-    def plot(self, picks=None, baseline=None, mode='mean', tmin=None, tmax=None,
-             fmin=None, fmax=None, vmin=None, vmax=None, cmap='RdBu_r',
-             dB=False, colorbar=True, show=True, verbose=None):
+    def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
+             tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
+             cmap='RdBu_r', dB=False, colorbar=True, show=True, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -760,7 +760,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
-                     sensors='k,', colorbar=True, unit=None, res=64, size=2,
+                     sensors=True, colorbar=True, unit=None, res=64, size=2,
                      format='%1.1e', show_names=False, title=None,
                      axes=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data
@@ -818,7 +818,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             'Reds'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses).
+            plot format string (e.g., 'r+' for red plusses). If True, a circle
+            will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
         unit : str | None

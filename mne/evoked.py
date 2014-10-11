@@ -428,7 +428,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                  titles=titles, axes=axes, cmap=cmap)
 
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
-                     vmax=None, cmap='RdBu_r', sensors='k,', colorbar=True,
+                     vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
@@ -464,7 +464,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Colormap. Defaults to 'RdBu_r'
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
-            plot format string (e.g., 'r+' for red plusses).
+            plot format string (e.g., 'r+' for red plusses). If True, a circle
+            will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
         scale : float | None

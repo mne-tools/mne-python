@@ -52,7 +52,7 @@ def _fig_to_img(function=None, fig=None, **kwargs):
         plt.close('all')
         fig = function(**kwargs)
     output = BytesIO()
-    fig.savefig(output, format='png', bbox_inches='tight')
+    fig.savefig(output, format='png', bbox_inches='tight', dpi=fig.get_dpi())
     plt.close(fig)
     return base64.b64encode(output.getvalue()).decode('ascii')
 
@@ -656,7 +656,8 @@ class Report(object):
 
         return items, captions
 
-    def _add_figs_to_section(self, figs, captions, section='custom'):
+    def _add_figs_to_section(self, figs, captions, section='custom',
+                             scale=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
         try:
@@ -667,7 +668,7 @@ class Report(object):
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
-
+        import matplotlib as mpl
         figs, captions = self._validate_input(figs, captions, section)
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -685,11 +686,23 @@ class Report(object):
                     img = base64.b64encode(fid.read()).decode('ascii')
             else:
                 img = _fig_to_img(fig=fig)
+            if scale is None:
+                if isinstance(fig, mpl.figure.Figure):
+                    my_scale = fig.get_figwidth()  # "magic' scaling factor
+                else:
+                    my_scale = fig.scene.get_size()
+                my_scale *= 5
+            elif callable(scale):
+                my_scale = scale(fig)
+            else:
+                my_scale = scale
+
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
-                                             show=True)
+                                             show=True,
+                                             width=my_scale)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -714,7 +727,8 @@ class Report(object):
         return self._add_figs_to_section(figs=figs, captions=captions,
                                          section=section)
 
-    def add_figs_to_section(self, figs, captions, section='custom'):
+    def add_figs_to_section(self, figs, captions, section='custom',
+                            scale=None):
         """Append custom user-defined figures.
 
         Parameters
@@ -725,12 +739,16 @@ class Report(object):
             or np.ndarray (images read in using scipy.imread).
         captions : list of str
             A list of captions to the figures.
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, equals fig.get_figwidth() * 5. If callable, function
+            should take a figure object as input parameter.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
         """
         return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section)
+                                         section=section, scale=scale)
 
     def add_images_to_section(self, fnames, captions, scale=1.0,
                               section='custom'):
