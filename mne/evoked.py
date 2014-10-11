@@ -516,7 +516,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             accepted.
         average : float | None
             The time window around a given time to be used for averaging
-            (seconds). If float, values will be interpreted as absolute.
+            (seconds). For example, 0.01 would translate into window that
+            starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,

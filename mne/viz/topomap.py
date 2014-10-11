@@ -910,8 +910,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         accepted.
     average : float | None
         The time window around a given time to be used for averaging (seconds).
-        If float, values will be interpreted as absolute.
-        Defaults to None, which means no averaging.
+        For example, 0.01 would translate into window that starts 5 ms before
+        and ends 5 ms after a given time point. Defaults to None, which means
+        no averaging.
     """
     import matplotlib.pyplot as plt
 
@@ -969,12 +970,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         average = abs(average)
         data_ = np.zeros((len(picks), len(time_idx)))
         ave_time = float(average) / 2.
-        for ii, idx in enumerate(time_idx):
-            time = evoked.times[idx]
-            tmin_ = time - ave_time
-            tmax_ = time + ave_time
-            my_range = np.where((tmin_ < evoked.times) &
-                                (evoked.times < tmax_))[0]
+        iter_times = evoked.times[time_idx]
+        for ii, (idx, tmin_, tmax_) in enumerate(zip(time_idx,
+                                                     iter_times - ave_time,
+                                                     iter_times + ave_time)):
+            my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
             data_[:, ii] = data[picks][:, my_range].mean(-1)
         data = data_
 
