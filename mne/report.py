@@ -668,7 +668,7 @@ class Report(object):
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
-
+        import matplotlib as mpl
         figs, captions = self._validate_input(figs, captions, section)
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -687,7 +687,11 @@ class Report(object):
             else:
                 img = _fig_to_img(fig=fig)
             if scale is None:
-                my_scale = fig.get_figwidth() * 5  # "magic' scaling factor
+                if isinstance(fig, mpl.figure.Figure):
+                    my_scale = fig.get_figwidth()  # "magic' scaling factor
+                else:
+                    my_scale = fig.scene.get_size()
+                my_scale *= 5
             elif callable(scale):
                 my_scale = scale(fig)
             else:
