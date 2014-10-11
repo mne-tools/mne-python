@@ -846,7 +846,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             Filtering order. Note that for efficiency and simplicity,
             filtering during plotting uses forward-backward IIR filtering,
             so the effective filter order will be twice ``filtorder``.
-            Note filtering the lines for display may produce some edge
+            Filtering the lines for display may also produce some edge
             artifacts (at the left and right edges) of the signals
             during display.
         clipping : str | None
