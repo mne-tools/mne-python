@@ -966,8 +966,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         data = evoked.data
     if average is None:
         data = data[np.ix_(picks, time_idx)]
-    else:
-        average = abs(average)
+    elif isinstance(average, float):
+        if not average > 0:
+            raise ValueError('The average parameter must be positive. You '
+                             'passed a negative value')
         data_ = np.zeros((len(picks), len(time_idx)))
         ave_time = float(average) / 2.
         iter_times = evoked.times[time_idx]
@@ -977,6 +979,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
             data_[:, ii] = data[picks][:, my_range].mean(-1)
         data = data_
+    else:
+        raise ValueError('The average parameter must be None or a float.'
+                         'Check your input.')
 
     data *= scale
     if merge_grads:

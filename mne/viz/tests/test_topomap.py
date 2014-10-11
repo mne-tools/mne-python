@@ -68,6 +68,10 @@ def test_plot_topomap():
         evoked.plot_topomap(times, ch_type='planar2', res=res)
         evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
                             show_names=True, mask_params={'marker': 'x'})
+        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                      res=res, average=-1000)
+        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                      res=res, average='hahahahah')
 
         p = evoked.plot_topomap(times, ch_type='grad', res=res,
                                 show_names=lambda x: x.replace('MEG', ''),
