@@ -83,7 +83,7 @@ def test_plot_topomap():
             return [x.get_text() for x in p.get_children() if
                     isinstance(x, matplotlib.text.Text)]
 
-        p = evoked.plot_topomap(times, ch_type='eeg', res=res)
+        p = evoked.plot_topomap(times, ch_type='eeg', res=res, average=0.01)
         assert_equal(len(get_texts(p)), 0)
         p = evoked.plot_topomap(times, ch_type='eeg', title='Custom', res=res)
         texts = get_texts(p)

@@ -66,8 +66,8 @@ def _prepare_topo_plot(obj, ch_type, layout):
 
     ch_names = [info['ch_names'][k] for k in picks]
     if merge_grads:
-        # change names so that vectorview combined grads appear as MEG014x instead
-        # of MEG0142 or MEG0143 which are the 2 planar grads.
+        # change names so that vectorview combined grads appear as MEG014x
+        # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
 
     return picks, pos, merge_grads, ch_names
@@ -237,8 +237,8 @@ def _check_outlines(pos, outlines, head_scale=0.85):
         # Define the outline of the head, ears and nose
         if outlines is not None:
             outlines = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
-                            ear_left=(ear_x,  ear_y),
-                            ear_right=(-ear_x,  ear_y))
+                            ear_left=(ear_x, ear_y),
+                            ear_right=(-ear_x, ear_y))
         else:
             outlines = dict()
 
@@ -825,7 +825,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear'):
+                        image_interp='bilinear', average=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -908,6 +908,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
+    average : float | None
+        The time window around a given time to be used for averaging (seconds).
+        If float, values will be interpreted as absolute.
+        Defaults to None, which means no averaging.
     """
     import matplotlib.pyplot as plt
 
@@ -959,8 +963,22 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         data = evoked.copy().apply_proj().data
     else:
         data = evoked.data
+    if average is None:
+        data = data[np.ix_(picks, time_idx)]
+    else:
+        average = abs(average)
+        data_ = np.zeros((len(picks), len(time_idx)))
+        ave_time = float(average) / 2.
+        for ii, idx in enumerate(time_idx):
+            time = evoked.times[idx]
+            tmin_ = time - ave_time
+            tmax_ = time + ave_time
+            my_range = np.where((tmin_ < evoked.times) &
+                                (evoked.times < tmax_))[0]
+            data_[:, ii] = data[picks][:, my_range].mean(-1)
+        data = data_
 
-    data = data[np.ix_(picks, time_idx)] * scale
+    data *= scale
     if merge_grads:
         from ..layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)
