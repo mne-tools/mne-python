@@ -21,6 +21,8 @@ Changelog
 
    - Automatically compute proper box sizes when generating layouts on the fly by `Marijn van Vliet`_
 
+   - Average evoked topographies across time points by `Denis Engemann`_
+
 BUG
 ~~~
 

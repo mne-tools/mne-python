@@ -68,6 +68,10 @@ def test_plot_topomap():
         evoked.plot_topomap(times, ch_type='planar2', res=res)
         evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
                             show_names=True, mask_params={'marker': 'x'})
+        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                      res=res, average=-1000)
+        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                      res=res, average='hahahahah')
 
         p = evoked.plot_topomap(times, ch_type='grad', res=res,
                                 show_names=lambda x: x.replace('MEG', ''),
@@ -83,7 +87,7 @@ def test_plot_topomap():
             return [x.get_text() for x in p.get_children() if
                     isinstance(x, matplotlib.text.Text)]
 
-        p = evoked.plot_topomap(times, ch_type='eeg', res=res)
+        p = evoked.plot_topomap(times, ch_type='eeg', res=res, average=0.01)
         assert_equal(len(get_texts(p)), 0)
         p = evoked.plot_topomap(times, ch_type='eeg', title='Custom', res=res)
         texts = get_texts(p)

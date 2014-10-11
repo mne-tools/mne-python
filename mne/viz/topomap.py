@@ -837,7 +837,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear'):
+                        image_interp='bilinear', average=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -921,6 +921,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
+    average : float | None
+        The time window around a given time to be used for averaging (seconds).
+        For example, 0.01 would translate into window that starts 5 ms before
+        and ends 5 ms after a given time point. Defaults to None, which means
+        no averaging.
     """
     import matplotlib.pyplot as plt
 
@@ -972,8 +977,26 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         data = evoked.copy().apply_proj().data
     else:
         data = evoked.data
+    if average is None:
+        data = data[np.ix_(picks, time_idx)]
+    elif isinstance(average, float):
+        if not average > 0:
+            raise ValueError('The average parameter must be positive. You '
+                             'passed a negative value')
+        data_ = np.zeros((len(picks), len(time_idx)))
+        ave_time = float(average) / 2.
+        iter_times = evoked.times[time_idx]
+        for ii, (idx, tmin_, tmax_) in enumerate(zip(time_idx,
+                                                     iter_times - ave_time,
+                                                     iter_times + ave_time)):
+            my_range = (tmin_ < evoked.times) & (evoked.times < tmax_)
+            data_[:, ii] = data[picks][:, my_range].mean(-1)
+        data = data_
+    else:
+        raise ValueError('The average parameter must be None or a float.'
+                         'Check your input.')
 
-    data = data[np.ix_(picks, time_idx)] * scale
+    data *= scale
     if merge_grads:
         from ..layouts.layout import _merge_grad_data
         data = _merge_grad_data(data)

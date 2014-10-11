@@ -268,7 +268,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
 
-
     def save(self, fname):
         """Save dataset to file.
 
@@ -433,7 +432,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                      format="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear'):
+                     image_interp='bilinear', average=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -516,7 +515,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         image_interp : str
             The image interpolation to be used. All matplotlib options are
             accepted.
-
+        average : float | None
+            The time window around a given time to be used for averaging
+            (seconds). For example, 0.01 would translate into window that
+            starts 5 ms before and ends 5 ms after a given time point.
+            Defaults to None, which means no averaging.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -529,7 +532,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
                                    title=title, mask=mask,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
-                                   image_interp=image_interp)
+                                   image_interp=image_interp,
+                                   average=average)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
