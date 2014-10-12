@@ -900,16 +900,23 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              check_disjoint=False, buffer_size=1000):
     """Cluster-level statistical permutation test
 
-    For a list of 2d-arrays of data, e.g. power values, calculate some
-    statistics for each timepoint (dim 1) over groups.  Do a cluster
-    analysis with permutation test for calculating corrected p-values.
-    Randomized data are generated with random partitions of the data.
+    For a list of nd-arrays of data, e.g. 2d for time series or 3d for
+    time-frequency power values, calculate some statistics corrected for
+    multiple comparisons using permutations and cluster level correction.
+    Each element of the list X contains the data for one group of
+    observations. Randomized data are generated with random partitions
+    of the data.
 
     Parameters
     ----------
     X : list
-        List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
-        elements of groups.
+        List of nd-arrays containing the data. Each element of X contains
+        the samples for one group. First dimension of each element is the
+        number of samples/observations in this group. The other dimensions
+        are for the size of the observations. For example if X = [X1, X2]
+        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4) one has
+        2 groups with respectively 20 and 17 observations in each.
+        Each data point is of shape (50, 4).
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
