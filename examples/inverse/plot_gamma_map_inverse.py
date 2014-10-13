@@ -51,15 +51,16 @@ scale_factors = np.max(np.abs(stc.data), axis=1)
 scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
 
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-    modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
-    fig_name="Gamma-MAP")
+                             modes=['sphere'], opacity=0.1,
+                             scale_factors=(scale_factors, None),
+                             fig_name="Gamma-MAP")
 
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
 evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
-evoked.plot(titles=dict(grad='Evoked Response Gradiometers'), ylim=ylim,
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
             proj=True)
 
 residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
-residual.plot(titles=dict(grad='Residuals Gradiometers'), ylim=ylim,
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True)
