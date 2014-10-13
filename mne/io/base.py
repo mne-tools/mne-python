@@ -848,7 +848,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             so the effective filter order will be twice ``filtorder``.
             Filtering the lines for display may also produce some edge
             artifacts (at the left and right edges) of the signals
-            during display.
+            during display. Filtering requires scipy >= 0.10.
         clipping : str | None
             If None, channels are allowed to exceed their designated bounds in
             the plot. If "clamp", then values are clamped to the appropriate
