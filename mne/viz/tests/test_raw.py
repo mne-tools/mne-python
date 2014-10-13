@@ -8,7 +8,7 @@ import warnings
 from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types
-
+from mne.utils import requires_scipy_version, run_tests_if_main
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -85,7 +85,13 @@ def test_plot_raw():
         fig.canvas.key_press_event('o')
         fig.canvas.key_press_event('escape')
         plt.close('all')
-    # filtering of raw plots
+
+
+@requires_scipy_version('0.10')
+def test_plot_raw_filtered():
+    """Test filtering of raw plots
+    """
+    raw = _get_raw()
     assert_raises(ValueError, raw.plot, lowpass=raw.info['sfreq'] / 2.)
     assert_raises(ValueError, raw.plot, highpass=0)
     assert_raises(ValueError, raw.plot, lowpass=1, highpass=1)
@@ -111,3 +117,6 @@ def test_plot_raw_psds():
     assert_raises(ValueError, raw.plot_psds, ax=ax)
     raw.plot_psds(picks=picks, ax=ax)
     plt.close('all')
+
+
+run_tests_if_main()
