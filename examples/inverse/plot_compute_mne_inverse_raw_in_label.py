@@ -9,7 +9,7 @@ visualisation.
 
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -18,7 +18,7 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.minimum_norm import apply_inverse_raw, read_inverse_operator
 
 

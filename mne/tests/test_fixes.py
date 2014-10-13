@@ -1,19 +1,21 @@
 # Authors: Emmanuelle Gouillart <emmanuelle.gouillart@normalesup.org>
 #          Gael Varoquaux <gael.varoquaux@normalesup.org>
-#          Alex Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD
 
 import numpy as np
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
-from scipy import signal
+from scipy import signal, sparse
 
-from ..fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
-                     _Counter, _unique, _bincount)
-from ..fixes import _firwin2 as mne_firwin2
-from ..fixes import _filtfilt as mne_filtfilt
+from mne.utils import run_tests_if_main
+from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
+                       _Counter, _unique, _bincount, _digitize,
+                       _sparse_block_diag, _matrix_rank)
+from mne.fixes import _firwin2 as mne_firwin2
+from mne.fixes import _filtfilt as mne_filtfilt
 
 
 def test_counter():
@@ -21,13 +23,16 @@ def test_counter():
     import collections
     try:
         Counter = collections.Counter
-    except:
+    except Exception:
         pass
     else:
         a = Counter([1, 2, 1, 3])
         b = _Counter([1, 2, 1, 3])
+        c = _Counter()
+        c.update(b)
         for key, count in zip([1, 2, 3], [2, 1, 1]):
             assert_equal(a[key], b[key])
+            assert_equal(a[key], c[key])
 
 
 def test_unique():
@@ -76,6 +81,19 @@ def test_in1d():
     assert_equal(_in1d(a, b).sum(), 5)
 
 
+def test_digitize():
+    """Test numpy.digitize() replacement"""
+    data = np.arange(9)
+    bins = [0, 5, 10]
+    left = np.array([1, 1, 1, 1, 1, 2, 2, 2, 2])
+    right = np.array([0, 1, 1, 1, 1, 1, 2, 2, 2])
+
+    assert_array_equal(_digitize(data, bins), left)
+    assert_array_equal(_digitize(data, bins, True), right)
+    assert_raises(NotImplementedError, _digitize, data + 0.1, bins, True)
+    assert_raises(NotImplementedError, _digitize, data, [0., 5, 10], True)
+
+
 def test_tril_indices():
     """Test numpy.tril_indices() replacement"""
     il1 = _tril_indices(4)
@@ -87,7 +105,7 @@ def test_tril_indices():
                   [13, 14, 15, 16]])
 
     assert_array_equal(a[il1],
-                       np.array([1,  5,  6,  9, 10, 11, 13, 14, 15, 16]))
+                       np.array([1, 5, 6, 9, 10, 11, 13, 14, 15, 16]))
 
     assert_array_equal(a[il2], np.array([5, 9, 10, 13, 14, 15]))
 
@@ -127,3 +145,22 @@ def test_filtfilt():
     # Filter with an impulse
     y = mne_filtfilt([1, 0], [1, 0], x, padlen=0)
     assert_array_equal(x, y)
+
+
+def test_sparse_block_diag():
+    """Test sparse block diag replacement"""
+    x = _sparse_block_diag([sparse.eye(2, 2), sparse.eye(2, 2)])
+    x = x - sparse.eye(4, 4)
+    x.eliminate_zeros()
+    assert_equal(len(x.data), 0)
+
+
+def test_rank():
+    """Test rank replacement"""
+    assert_equal(_matrix_rank(np.ones(10)), 1)
+    assert_equal(_matrix_rank(np.eye(10)), 10)
+    assert_equal(_matrix_rank(np.ones((10, 10))), 1)
+    assert_raises(TypeError, _matrix_rank, np.ones((10, 10, 10)))
+
+
+run_tests_if_main()

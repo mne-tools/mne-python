@@ -1,10 +1,9 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Egnemann <d.engemann@fz-juelich.de>
+#          Denis Egnemann <denis.engemann@gmail.com>
 # License: BSD Style.
 
-from ..externals.six import string_types
 import os
 import os.path as op
 import shutil
@@ -13,6 +12,8 @@ from warnings import warn
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger
+from ..externals.six import string_types
+from ..externals.six.moves import input
 
 
 _doc = """Get path to local copy of {name} dataset
@@ -51,9 +52,8 @@ def _dataset_version(path, name):
     """Get the version of the dataset"""
     ver_fname = op.join(path, 'version.txt')
     if op.exists(ver_fname):
-        fid = open(ver_fname, 'r')
-        version = fid.readline().strip()  # version is on first line
-        fid.close()
+        with open(ver_fname, 'r') as fid:
+            version = fid.readline().strip()  # version is on first line
     else:
         # Sample dataset versioning was introduced after 0.3
         # SPM dataset was introduced with 0.7
@@ -62,50 +62,80 @@ def _dataset_version(path, name):
     return version
 
 
-def _data_path(path=None, force_update=False, update_path=True,
-               download=True, name=None, check_version=True, verbose=None):
+def _data_path(path=None, force_update=False, update_path=True, download=True,
+               name=None, check_version=True):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
-           'spm': 'MNE_DATASETS_SPM_FACE_PATH'}[name]
+           'spm': 'MNE_DATASETS_SPM_FACE_PATH',
+           'somato': 'MNE_DATASETS_SOMATO_PATH',
+           'testing': 'MNE_DATASETS_TESTING_PATH',
+           }[name]
 
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__),
                                        '..', '..', 'examples'))
 
+        # backward compatibility
+        if get_config(key) is None:
+            key = 'MNE_DATA'
+
         path = get_config(key, def_path)
+
         # use the same for all datasets
-        if not os.path.exists(path):
-            path = def_path
+        if not op.exists(path) or not os.access(path, os.W_OK):
+            try:
+                os.mkdir(path)
+            except OSError:
+                try:
+                    logger.info("Checking for dataset in '~/mne_data'...")
+                    path = op.join(op.expanduser("~"), "mne_data")
+                    if not op.exists(path):
+                        logger.info("Trying to create "
+                                    "'~/mne_data' in home directory")
+                        os.mkdir(path)
+                except OSError:
+                    raise OSError("User does not have write permissions "
+                                  "at '%s', try giving the path as an argument"
+                                  " to data_path() where user has write "
+                                  "permissions, for ex:data_path"
+                                  "('/home/xyz/me2/')" % (path))
 
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
-
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/" + archive_name
         folder_name = "MNE-sample-data"
-        folder_path = op.join(path, folder_name)
-        rm_archive = False
+        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
+        hash_ = '1bb9f993bfba2057e0039c306a717109'
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         folder_name = "MNE-spm-face"
-        folder_path = op.join(path, folder_name)
-        rm_archive = False
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        hash_ = '3e9e83c642136e5b720e2ecc5dcc3244'
+    elif name == 'somato':
+        archive_name = 'MNE-somato-data.tar.gz'
+        folder_name = "MNE-somato-data"
+        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        hash_ = 'f3e3a8441477bb5bacae1d0c6e0964fb'
+    elif name == 'testing':
+        archive_name = 'MNE-testing-data.tar.gz'
+        folder_name = 'MNE-testing-data'
+        url = 'http://lester.ilabs.uw.edu/files/' + archive_name
+        hash_ = 'f66d60852e5f42a4940fb22bc1e92dc2'
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
+    folder_path = op.join(path, folder_name)
 
+    rm_archive = False
     martinos_path = '/cluster/fusion/sample_data/' + archive_name
     neurospin_path = '/neurospin/tmp/gramfort/' + archive_name
-
     if not op.exists(folder_path) and not download:
         return ''
-
     if not op.exists(folder_path) or force_update:
-        logger.info('Downloading or reinstalling data archive %s at location %s' %
-                    (archive_name, path))
+        logger.info('Downloading or reinstalling '
+                    'data archive %s at location %s' % (archive_name, path))
 
         if op.exists(martinos_path):
             archive_name = martinos_path
@@ -117,20 +147,21 @@ def _data_path(path=None, force_update=False, update_path=True,
             fetch_archive = True
             if op.exists(archive_name):
                 msg = ('Archive already exists. Overwrite it (y/[n])? ')
-                answer = raw_input(msg)
+                answer = input(msg)
                 if answer.lower() == 'y':
                     os.remove(archive_name)
                 else:
                     fetch_archive = False
 
             if fetch_archive:
-                _fetch_file(url, archive_name, print_destination=False)
+                _fetch_file(url, archive_name, print_destination=False,
+                            hash_=hash_)
 
         if op.exists(folder_path):
             shutil.rmtree(folder_path)
 
-        logger.info('Decompressing the archive: ' + archive_name)
-        logger.info('... please be patient, this can take some time')
+        logger.info('Decompressing the archive: %s' % archive_name)
+        logger.info('(please be patient, this can take some time)')
         for ext in ['gz', 'bz2']:  # informed guess (and the only 2 options).
             try:
                 tarfile.open(archive_name, 'r:%s' % ext).extractall(path=path)
@@ -148,7 +179,7 @@ def _data_path(path=None, force_update=False, update_path=True,
             msg = ('Do you want to set the path:\n    %s\nas the default '
                    'sample dataset path in the mne-python config [y]/n? '
                    % path)
-            answer = raw_input(msg)
+            answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
         else:
@@ -180,6 +211,9 @@ def _data_path(path=None, force_update=False, update_path=True,
 def has_dataset(name):
     """Helper for sample dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
-                'spm': 'MNE-spm-face'}[name]
+                'spm': 'MNE-spm-face',
+                'somato': 'MNE-somato-data',
+                'testing': 'MNE-testing-data',
+                }[name]
     dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)

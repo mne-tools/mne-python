@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larsoner@uw.edu>
@@ -10,8 +10,11 @@ import os
 from os import path as op
 import numpy as np
 
-from ..fiff import read_info, pick_types, pick_info, FIFF, _has_kit_refs
-from .forward import write_forward_solution, _merge_meg_eeg_fwds
+from .. import pick_types, pick_info
+from ..io.pick import _has_kit_refs
+from ..io import read_info
+from ..io.constants import FIFF
+from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
 from ..transforms import (invert_transform, transform_surface_to,
                           read_trans, _get_mri_head_t_from_trans_file,
@@ -169,7 +172,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | str
+    info : instance of mne.io.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -209,8 +212,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     Returns
     -------
-    fwd : dict
-        The generated forward solution.
+    fwd : instance of Forward
+        The forward solution.
 
     Notes
     -----
@@ -225,6 +228,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     # 3. --fixed option (can be computed post-hoc)
     # 4. --mricoord option (probably not necessary)
 
+    # read the transformation from MRI to HEAD coordinates
+    # (could also be HEAD to MRI)
     if isinstance(mri, string_types):
         if not op.isfile(mri):
             raise IOError('mri file "%s" not found' % mri)
@@ -262,6 +267,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
+    # set default forward solution coordinate frame to HEAD
     # this could, in principle, be an option
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
@@ -397,6 +403,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates
+    # (will either be HEAD or MRI)
     for s in src:
         transform_surface_to(s, coord_frame, mri_head_t)
     logger.info('Source spaces are now in %s coordinates.'
@@ -443,7 +450,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     megfwd, eegfwd = _compute_forwards(src, bem, coils, cfs, ccoils, ccfs,
                                        infos, coil_types, n_jobs)
 
-    # merge forwards into one
+    # merge forwards into one (creates two Forward objects)
     megfwd = _to_forward_dict(megfwd, None, megnames, coord_frame,
                               FIFF.FIFFV_MNE_FREE_ORI)
     eegfwd = _to_forward_dict(eegfwd, None, eegnames, coord_frame,
@@ -456,7 +463,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     info = pick_info(info, picks)
     source_rr = np.concatenate([s['rr'][s['vertno']] for s in src])
     # deal with free orientations:
-    nsource = fwd['sol']['data'].shape[1] / 3
+    nsource = fwd['sol']['data'].shape[1] // 3
     source_nn = np.tile(np.eye(3), (nsource, 1))
 
     # Don't transform the source spaces back into MRI coordinates (which is
@@ -484,10 +491,10 @@ def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
     if fwd is not None:
         sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
                    row_names=names, col_names=[])
-        fwd = dict(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
-                   coord_frame=coord_frame, sol_grad=None,
-                   nchan=sol['nrow'], _orig_source_ori=source_ori,
-                   _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
+        fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
+                      coord_frame=coord_frame, sol_grad=None,
+                      nchan=sol['nrow'], _orig_source_ori=source_ori,
+                      _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
         if fwd_grad is not None:
             sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
                             ncol=fwd_grad.shape[0], row_names=names,

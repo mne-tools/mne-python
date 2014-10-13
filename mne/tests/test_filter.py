@@ -1,6 +1,7 @@
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_almost_equal
-from nose.tools import assert_true, assert_raises
+from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
+                           assert_array_equal)
+from nose.tools import assert_equal, assert_true, assert_raises
 import os.path as op
 import warnings
 from scipy.signal import resample as sp_resample
@@ -10,13 +11,10 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         notch_filter, detrend)
 
 from mne import set_log_file
-from mne.utils import _TempDir, sum_squared
-from mne.cuda import requires_cuda
+from mne.utils import _TempDir, sum_squared, run_tests_if_main
+from mne.cuda import cuda_capable
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
-tempdir = _TempDir()
-log_file = op.join(tempdir, 'temp_log.txt')
 
 
 def test_iir_stability():
@@ -40,10 +38,15 @@ def test_iir_stability():
     assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
                   method='fir', iir_params='blah')
 
+    # should pass because dafault trans_bandwidth is not relevant
+    high_pass_filter(sig, 250, 0.5, method='iir',
+                     iir_params=dict(ftype='butter', order=6))
 
 def test_notch_filters():
     """Test notch filters
     """
+    tempdir = _TempDir()
+    log_file = op.join(tempdir, 'temp_log.txt')
     # let's use an ugly, prime Fs for fun
     Fs = 487.0
     sig_len_secs = 20
@@ -73,13 +76,30 @@ def test_notch_filters():
 
         if lf is None:
             set_log_file()
-            out = open(log_file).readlines()
+            with open(log_file) as fid:
+                out = fid.readlines()
             if len(out) != 2:
                 raise ValueError('Detected frequencies not logged properly')
             out = np.fromstring(out[1], sep=', ')
             assert_array_almost_equal(out, freqs)
         new_power = np.sqrt(sum_squared(b) / b.size)
         assert_almost_equal(new_power, orig_power, tol)
+
+
+def test_resample():
+    """Test resampling"""
+    x = np.random.normal(0, 1, (10, 10, 10))
+    x_rs = resample(x, 1, 2, 10)
+    assert_equal(x.shape, (10, 10, 10))
+    assert_equal(x_rs.shape, (10, 10, 5))
+
+    x_2 = x.swapaxes(0, 1)
+    x_2_rs = resample(x_2, 1, 2, 10)
+    assert_array_equal(x_2_rs.swapaxes(0, 1), x_rs)
+
+    x_3 = x.swapaxes(0, 2)
+    x_3_rs = resample(x_3, 1, 2, 10, 0)
+    assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
 
 def test_filters():
@@ -170,12 +190,15 @@ def test_filters():
     assert_true(iir_params['b'].size - 1 == 4)
 
 
-@requires_cuda
 def test_cuda():
     """Test CUDA-based filtering
     """
     # NOTE: don't make test_cuda() the last test, or pycuda might spew
     # some warnings about clean-up failing
+    # Also, using `n_jobs='cuda'` on a non-CUDA system should be fine,
+    # as it should fall back to using n_jobs=1.
+    tempdir = _TempDir()
+    log_file = op.join(tempdir, 'temp_log.txt')
     Fs = 500
     sig_len_secs = 20
     a = np.random.randn(sig_len_secs * Fs)
@@ -204,9 +227,12 @@ def test_cuda():
 
     # check to make sure we actually used CUDA
     set_log_file()
-    out = open(log_file).readlines()
+    with open(log_file) as fid:
+        out = fid.readlines()
+    # triage based on whether or not we actually expected to use CUDA
+    tot = 12 if cuda_capable else 0
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
-                     for o in out]) == 12)
+                     for o in out]) == tot)
 
     # check resampling
     a = np.random.RandomState(0).randn(3, sig_len_secs * Fs)
@@ -225,3 +251,6 @@ def test_detrend():
     assert_array_almost_equal(detrend(x, 1), np.zeros_like(x))
     x = np.ones(10)
     assert_array_almost_equal(detrend(x, 0), np.zeros_like(x))
+
+
+run_tests_if_main()

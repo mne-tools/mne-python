@@ -6,6 +6,7 @@ from warnings import warn
 
 import numpy as np
 from scipy import fftpack, linalg, interpolate
+import warnings
 
 from ..parallel import parallel_func
 from ..utils import verbose, sum_squared
@@ -228,8 +229,8 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     # compute autocorr using FFT (same as nitime.utils.autocorr(dpss) * N)
     rxx_size = 2 * N - 1
-    NFFT = 2 ** int(np.ceil(np.log2(rxx_size)))
-    dpss_fft = fftpack.fft(dpss, NFFT)
+    n_fft = 2 ** int(np.ceil(np.log2(rxx_size)))
+    dpss_fft = fftpack.fft(dpss, n_fft)
     dpss_rxx = np.real(fftpack.ifft(dpss_fft * dpss_fft.conj()))
     dpss_rxx = dpss_rxx[:, :N]
 
@@ -239,8 +240,12 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
 
     if low_bias:
         idx = (eigvals > 0.9)
+        if not idx.any():
+            warnings.warn('Could not properly use low_bias, '
+                          'keeping lowest-bias taper')
+            idx = [np.argmax(eigvals)]
         dpss, eigvals = dpss[idx], eigvals[idx]
-
+    assert len(dpss) > 0  # should never happen
     return dpss, eigvals
 
 
@@ -452,7 +457,8 @@ def _mt_spectra(x, dpss, sfreq, n_fft=None):
 
 @verbose
 def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                   adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+                   adaptive=False, low_bias=True, n_jobs=1,
+                   normalization='length', verbose=None):
     """Compute power spectrum density (PSD) using a multi-taper method
 
     Parameters
@@ -475,6 +481,10 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -485,6 +495,9 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
     freqs : array
         The frequency points in Hz of the PSD.
     """
+    if normalization not in ('length', 'full'):
+        raise ValueError('Normalization must be "length" or "full", not %s'
+                         % normalization)
     if x.ndim > 2:
         raise ValueError('x can only be 1d or 2d')
 
@@ -531,5 +544,7 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         psd = psd[0, :]
 
     freqs = freqs[freq_mask]
+    if normalization == 'full':
+        psd /= sfreq
 
     return psd, freqs

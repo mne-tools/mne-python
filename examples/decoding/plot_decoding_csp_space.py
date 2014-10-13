@@ -13,7 +13,7 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
     and Clinical Neurophysiology, 79(6):440--447, December 1991.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Romain Trachel <romain.trachel@inria.fr>
 #
 # License: BSD (3-clause)
@@ -22,7 +22,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -35,13 +35,13 @@ tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname, preload=True)
+raw = io.Raw(raw_fname, preload=True)
 raw.filter(2, None, method='iir')  # replace baselining with high-pass
 events = mne.read_events(event_fname)
 
 raw.info['bads'] = ['MEG 2443']  # set bad channels
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
-                        exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
+                       exclude='bads')
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,

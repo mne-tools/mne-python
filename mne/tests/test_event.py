@@ -1,20 +1,23 @@
 import os.path as op
 import os
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_raises)
+import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, find_stim_steps, fiff)
+                 find_events, find_stim_steps, io, pick_channels)
 from mne.utils import _TempDir
 from mne.event import define_target_events, merge_events
 
-base_dir = op.join(op.dirname(__file__), '..', 'fiff', 'tests', 'data')
+warnings.simplefilter('always')
+
+base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
 fname = op.join(base_dir, 'test-eve.fif')
 fname_gz = op.join(base_dir, 'test-eve.fif.gz')
-fname_1 = op.join(base_dir, 'test-eve-1.fif')
+fname_1 = op.join(base_dir, 'test-1-eve.fif')
 fname_txt = op.join(base_dir, 'test-eve.eve')
 fname_txt_1 = op.join(base_dir, 'test-eve-1.eve')
 
@@ -23,7 +26,28 @@ fname_txt_mpr = op.join(base_dir, 'test-mpr-eve.eve')
 fname_old_txt = op.join(base_dir, 'test-eve-old-style.eve')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
-tempdir = _TempDir()
+
+def test_add_events():
+    """Test adding events to a Raw file"""
+    # need preload
+    raw = io.Raw(raw_fname, preload=False)
+    events = np.array([[raw.first_samp, 0, 1]])
+    assert_raises(RuntimeError, raw.add_events, events, 'STI 014')
+    raw = io.Raw(raw_fname, preload=True)
+    orig_events = find_events(raw, 'STI 014')
+    # add some events
+    events = np.array([raw.first_samp, 0, 1])
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad shape
+    events[0] = raw.first_samp + raw.n_times + 1
+    events = events[np.newaxis, :]
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    events[0, 0] = raw.first_samp - 1
+    assert_raises(ValueError, raw.add_events, events, 'STI 014')  # bad time
+    events[0, 0] = raw.first_samp + 1  # can't actually be first_samp
+    assert_raises(ValueError, raw.add_events, events, 'STI FOO')
+    raw.add_events(events, 'STI 014')
+    new_events = find_events(raw, 'STI 014')
+    assert_array_equal(new_events, np.concatenate((events, orig_events)))
 
 
 def test_merge_events():
@@ -47,17 +71,18 @@ def test_merge_events():
 def test_io_events():
     """Test IO for events
     """
+    tempdir = _TempDir()
     # Test binary fif IO
     events = read_events(fname)  # Use as the gold standard
-    write_events(op.join(tempdir, 'events.fif'), events)
-    events2 = read_events(op.join(tempdir, 'events.fif'))
+    write_events(op.join(tempdir, 'events-eve.fif'), events)
+    events2 = read_events(op.join(tempdir, 'events-eve.fif'))
     assert_array_almost_equal(events, events2)
 
     # Test binary fif.gz IO
     events2 = read_events(fname_gz)  # Use as the gold standard
     assert_array_almost_equal(events, events2)
-    write_events(op.join(tempdir, 'events.fif.gz'), events2)
-    events2 = read_events(op.join(tempdir, 'events.fif.gz'))
+    write_events(op.join(tempdir, 'events-eve.fif.gz'), events2)
+    events2 = read_events(op.join(tempdir, 'events-eve.fif.gz'))
     assert_array_almost_equal(events, events2)
 
     # Test new format text file IO
@@ -75,18 +100,20 @@ def test_io_events():
     assert_array_almost_equal(events, events2)
 
     # Test event selection
-    a = read_events(op.join(tempdir, 'events.fif'), include=1)
-    b = read_events(op.join(tempdir, 'events.fif'), include=[1])
-    c = read_events(op.join(tempdir, 'events.fif'), exclude=[2, 3, 4, 5, 32])
-    d = read_events(op.join(tempdir, 'events.fif'), include=1, exclude=[2, 3])
+    a = read_events(op.join(tempdir, 'events-eve.fif'), include=1)
+    b = read_events(op.join(tempdir, 'events-eve.fif'), include=[1])
+    c = read_events(op.join(tempdir, 'events-eve.fif'),
+                    exclude=[2, 3, 4, 5, 32])
+    d = read_events(op.join(tempdir, 'events-eve.fif'), include=1,
+                    exclude=[2, 3])
     assert_array_equal(a, b)
     assert_array_equal(a, c)
     assert_array_equal(a, d)
 
     # Test binary file IO for 1 event
     events = read_events(fname_1)  # Use as the new gold standard
-    write_events(op.join(tempdir, 'events.fif'), events)
-    events2 = read_events(op.join(tempdir, 'events.fif'))
+    write_events(op.join(tempdir, 'events-eve.fif'), events)
+    events2 = read_events(op.join(tempdir, 'events-eve.fif'))
     assert_array_almost_equal(events, events2)
 
     # Test text file IO for 1 event
@@ -94,12 +121,20 @@ def test_io_events():
     events2 = read_events(op.join(tempdir, 'events.eve'))
     assert_array_almost_equal(events, events2)
 
+    # test warnings on bad filenames
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        fname2 = op.join(tempdir, 'test-bad-name.fif')
+        write_events(fname2, events)
+        read_events(fname2)
+    assert_true(len(w) == 2)
+
 
 def test_find_events():
     """Test find events in raw file
     """
     events = read_events(fname)
-    raw = fiff.Raw(raw_fname, preload=True)
+    raw = io.Raw(raw_fname, preload=True)
     # let's test the defaulting behavior while we're at it
     extra_ends = ['', '_1']
     orig_envs = [os.getenv('MNE_STIM_CHANNEL%s' % s) for s in extra_ends]
@@ -108,14 +143,33 @@ def test_find_events():
         del os.environ['MNE_STIM_CHANNEL_1']
     events2 = find_events(raw)
     assert_array_almost_equal(events, events2)
+    # now test with mask
+    events11 = find_events(raw, mask=3)
+    events22 = read_events(fname, mask=3)
+    assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
     raw.first_samp = 0
     raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'
-    stim_channel_idx = fiff.pick_channels(raw.info['ch_names'],
-                                      include=stim_channel)
+    stim_channel_idx = pick_channels(raw.info['ch_names'],
+                                     include=stim_channel)
+
+    # test digital masking
+    raw._data[stim_channel_idx, :5] = np.arange(5)
+    raw._data[stim_channel_idx, 5:] = 0
+    # 1 == '0b1', 2 == '0b10', 3 == '0b11', 4 == '0b100'
+
+    assert_raises(TypeError, find_events, raw, mask="0")
+    assert_array_equal(find_events(raw, shortest_event=1, mask=1),
+                       [[2,    0,    2], [4,    2,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=2),
+                       [[1,    0,    1], [3,    0,    1], [4,    1,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=3),
+                       [[4,    0,    4]])
+    assert_array_equal(find_events(raw, shortest_event=1, mask=4),
+                       [[1,    0,    1], [2,    1,    2], [3,    2,    3]])
 
     # test empty events channel
     raw._data[stim_channel_idx, :] = 0
@@ -158,7 +212,8 @@ def test_find_events():
                         [31, 0, 5],
                         [40, 0, 6],
                         [14399, 0, 9]])
-    assert_raises(ValueError,find_events,raw, output='step', consecutive=True)
+    assert_raises(ValueError, find_events, raw, output='step',
+                  consecutive=True)
     assert_array_equal(find_events(raw, output='step', consecutive=True,
                                    shortest_event=1),
                        [[10, 0, 5],
@@ -224,7 +279,7 @@ def test_find_events():
 def test_make_fixed_length_events():
     """Test making events of a fixed length
     """
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
     events = make_fixed_length_events(raw, id=1)
     assert_true(events.shape[1], 3)
 
@@ -233,7 +288,7 @@ def test_define_events():
     """Test defining response events
     """
     events = read_events(fname)
-    raw = fiff.Raw(raw_fname)
+    raw = io.Raw(raw_fname)
     events_, _ = define_target_events(events, 5, 32, raw.info['sfreq'],
                                       .2, 0.7, 42, 99)
     n_target = events[events[:, 2] == 5].shape[0]

@@ -37,9 +37,8 @@ def _get_legen_der(xx, n_coeff=100):
         p0ds[:2] = [0.0, 1.0]
         p0dds[:2] = [0.0, 0.0]
         for n in range(2, n_coeff):
-            p0s[n], p0ds[n], p0dds[n] = _next_legen_der(n, x, p0s[n - 1],
-                                            p0s[n - 2], p0ds[n - 1],
-                                            p0dds[n - 1])
+            p0s[n], p0ds[n], p0dds[n] = _next_legen_der(
+                n, x, p0s[n - 1], p0s[n - 2], p0ds[n - 1], p0dds[n - 1])
     return coeffs
 
 
@@ -50,7 +49,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
         raise RuntimeError('n_interp must be even')
     fname = op.join(_get_extra_data_path(), 'tables')
     if not op.isdir(fname):
-        os.mkdir(fname)
+        # Updated due to API chang (GH 1167)
+        os.makedirs(fname)
     if ch_type == 'meg':
         fname = op.join(fname, 'legder_%s_%s.bin' % (n_coeff, n_interp))
         leg_fun = _get_legen_der

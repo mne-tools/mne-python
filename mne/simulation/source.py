@@ -1,10 +1,11 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Daniel Strohmeier <daniel.strohmeier@tu-ilmenau.de>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+
 from ..source_estimate import SourceEstimate
 from ..utils import check_random_state
 from ..externals.six.moves import zip

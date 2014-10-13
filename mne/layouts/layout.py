@@ -1,17 +1,18 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
 
-import warnings
 from collections import defaultdict
+from itertools import combinations
 import os.path as op
 import numpy as np
-from scipy.optimize import leastsq
+from scipy.spatial.distance import pdist
 from ..preprocessing.maxfilter import fit_sphere_to_headshape
-from ..fiff import FIFF, pick_types
+from .. import pick_types
+from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
 
@@ -167,7 +168,7 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=20, width=5, height=4):
+def make_eeg_layout(info, radius=0.5, width=None, height=None):
     """Create .lout file from EEG electrode digitization
 
     Parameters
@@ -175,17 +176,26 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     info : dict
         Measurement info (e.g., raw.info)
     radius : float
-        Viewport radius
-    width : float
-        Viewport width
-    height : float
-        Viewport height
+        Viewport radius as a fraction of main figure height.
+    width : float | None
+        Width of sensor axes as a fraction of main figure height. If None, this
+        will be the maximum width possible without axes overlapping.
+    height : float | None
+        Height of sensor axes as a fraction of main figure height. If None,
+        this will be the maximum height possible withough axes overlapping.
 
     Returns
     -------
     layout : Layout
         The generated Layout
     """
+    if not (0 <= radius <= 0.5):
+        raise ValueError('The radius parameter should be between 0 and 0.5.')
+    if width is not None and not (0 <= width <= 1.0):
+        raise ValueError('The width parameter should be between 0 and 1.')
+    if height is not None and not (0 <= height <= 1.0):
+        raise ValueError('The height parameter should be between 0 and 1.')
+
     if info['dig'] in [[], None]:
         raise RuntimeError('Did not find any digitization points in the info. '
                            'Cannot generate layout based on the subject\'s '
@@ -221,18 +231,42 @@ def make_eeg_layout(info, radius=20, width=5, height=4):
     x = radius * (2.0 * theta / np.pi) * np.cos(phi)
     y = radius * (2.0 * theta / np.pi) * np.sin(phi)
 
+    # Scale [x, y] to [-0.5, 0.5]
+    x = (x - (np.max(x) + np.min(x)) / 2.) / (np.max(x) - np.min(x))
+    y = (y - (np.max(y) + np.min(y)) / 2.) / (np.max(y) - np.min(y))
+
+    # If no width or height specified, calculate the maximum value possible
+    # without axes overlapping.
+    if width is None or height is None:
+        width, height = _box_size(np.c_[x, y], width, height, padding=0.1)
+
+    # Scale to viewport radius
+    x *= 2 * radius
+    y *= 2 * radius
+
+    # Some subplot centers will be at the figure edge. Shrink everything so it
+    # fits in the figure.
+    scaling = min(1 / (1. + width), 1 / (1. + height))
+    x *= scaling
+    y *= scaling
+    width *= scaling
+    height *= scaling
+
+    # Shift to center
+    x += 0.5
+    y += 0.5
+
     n_channels = len(x)
-    pos = np.c_[x, y, width * np.ones(n_channels),
+    pos = np.c_[x - 0.5 * width, y - 0.5 * height, width * np.ones(n_channels),
                 height * np.ones(n_channels)]
 
-    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
-           y.min() - 0.1 * width, y.max() + 1.1 * height)
+    box = (0, 1, 0, 1)
     ids = 1 + np.arange(n_channels)
     layout = Layout(box=box, pos=pos, names=names, kind='EEG', ids=ids)
     return layout
 
 
-def make_grid_layout(info, picks=None):
+def make_grid_layout(info, picks=None, n_col=None):
     """ Generate .lout file for custom data, i.e., ICA sources
 
     Parameters
@@ -240,9 +274,11 @@ def make_grid_layout(info, picks=None):
     info : dict
         Measurement info (e.g., raw.info). If None, default names will be
         employed.
-    picks : array-like | None
+    picks : array-like of int | None
         The indices of the channels to be included. If None, al misc channels
         will be included.
+    n_col : int | None
+        Number of columns to generate. If None, a square grid will be produced.
 
     Returns
     -------
@@ -260,75 +296,71 @@ def make_grid_layout(info, picks=None):
     ids = list(range(len(picks)))
     size = len(picks)
 
-    # prepare square-like layout
-    ht = wd = np.sqrt(size)  # try square
-    if wd % 1:
-        wd, ht = int(wd + 1), int(ht)  # try n * (n-1) rectangle
+    if n_col is None:
+        # prepare square-like layout
+        n_row = n_col = np.sqrt(size)  # try square
+        if n_col % 1:
+            # try n * (n-1) rectangle
+            n_col, n_row = int(n_col + 1), int(n_row)
 
-    if wd * ht < size:  # jump to the next full square
-        ht += 1
+        if n_col * n_row < size:  # jump to the next full square
+            n_row += 1
+    else:
+        n_row = np.ceil(size / float(n_col))
 
-    # setup position grid and fill up
-    x, y = np.meshgrid(np.linspace(0, 1, wd), np.linspace(0, 1, ht))
+    # setup position grid
+    x, y = np.meshgrid(np.linspace(-0.5, 0.5, n_col),
+                       np.linspace(-0.5, 0.5, n_row))
+    x, y = x.ravel()[:size], y.ravel()[:size]
+    width, height = _box_size(np.c_[x, y], padding=0.1)
 
-    # scale boxes depending on size such that square is always filled
-    width = size * .15  # value depends on mne default full-view size
-    spacing = (width * ht)
+    # Some axes will be at the figure edge. Shrink everything so it fits in the
+    # figure. Add 0.01 border around everything
+    border_x, border_y = (0.01, 0.01)
+    x_scaling = 1 / (1. + width + border_x)
+    y_scaling = 1 / (1. + height + border_y)
+    x = x * x_scaling
+    y = y * y_scaling
+    width *= x_scaling
+    height *= y_scaling
 
-    # XXX : width and height are here assumed to be equal. Could be improved.
-    x, y = (x.ravel()[:size] * spacing, y.ravel()[:size] * spacing)
+    # Shift to center
+    x += 0.5
+    y += 0.5
 
     # calculate pos
-    pos = np.c_[x, y, width * np.ones(size), width * np.ones(size)]
-
-    # calculate box
-    box = (x.min() - 0.1 * width, x.max() + 1.1 * width,
-           y.min() - 0.1 * width, y.max() + 1.1 * width)
+    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(size), height *
+                np.ones(size)]
+    box = (0, 1, 0, 1)
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
     return layout
 
 
-def find_layout(info=None, ch_type=None, chs=None):
+def find_layout(info=None, ch_type=None):
     """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
     ----------
-    info : instance of mne.fiff.meas_info.Info | None
+    info : instance of mne.io.meas_info.Info | None
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
-    chs : instance of mne.fiff.meas_info.Info | None
-        The measurement info. Defaults to None. This keyword is deprecated and
-        will be removed in MNE-Python 0.9. Use `info` instead.
 
     Returns
     -------
     layout : Layout instance | None
         None if layout not found.
     """
-    msg = ("The 'chs' argument is deprecated and will be "
-           "removed in MNE-Python 0.9 Please use "
-           "'info' instead to pass the measurement info")
-    if chs is not None:
-        warnings.warn(msg, DeprecationWarning)
-    elif isinstance(info, list):
-        warnings.warn(msg, DeprecationWarning)
-        chs = info
-    else:
-        chs = info.get('chs')
-    if not chs:
-        raise ValueError('Could not find any channels. The info structure '
-                         'is not valid.')
-
     our_types = ' or '.join(['`None`', '`mag`', '`grad`', '`meg`'])
     if ch_type not in (None, 'meg', 'mag', 'grad', 'eeg'):
         raise ValueError('Invalid channel type (%s) requested '
                          '`ch_type` must be %s' % (ch_type, our_types))
 
+    chs = info['chs']
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
@@ -337,7 +369,8 @@ def find_layout(info=None, ch_type=None, chs=None):
                                                 FIFF.FIFFV_COIL_VV_MAG_T3]])
     has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
                                                  FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]])
+                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]]
+                      )
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -350,8 +383,8 @@ def find_layout(info=None, ch_type=None, chs=None):
     has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any([k in ctf_other_types for k in coil_types])))
-                    # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = len([ch for ch in chs 
+    # hack due to MNE-C bug in IO of CTF
+    n_kit_grads = len([ch for ch in chs
                        if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
@@ -367,7 +400,7 @@ def find_layout(info=None, ch_type=None, chs=None):
         raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
 
     if ((has_vv_meg and ch_type is None) or
-        (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
+            (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
     elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'
@@ -395,6 +428,89 @@ def find_layout(info=None, ch_type=None, chs=None):
         layout.names = _clean_names(layout.names, before_dash=True)
 
     return layout
+
+
+def _box_size(points, width=None, height=None, padding=0.0):
+    """ Given a series of points, calculate an appropriate box size.
+
+    Parameters
+    ----------
+    points : array, shape (n_points, 2)
+        The centers of the axes as a list of (x, y) coordinate pairs. Normally
+        these are points in the range [0, 1] centered at 0.5.
+    width : float | None
+        An optional box width to enforce. When set, only the box height will be
+        calculated by the function.
+    height : float | None
+        An optional box height to enforce. When set, only the box width will be
+        calculated by the function.
+    padding : float
+        Portion of the box to reserve for padding. The value can range between
+        0.0 (boxes will touch) to 1.0 (boxes consist of only padding).
+
+    Returns
+    -------
+    width : float
+        Width of the box
+    height : float
+        Height of the box
+    """
+    xdiff = lambda a, b: np.abs(a[0] - b[0])
+    ydiff = lambda a, b: np.abs(a[1] - b[1])
+
+    points = np.asarray(points)
+    all_combinations = list(combinations(points, 2))
+
+    if width is None and height is None:
+        if len(points) <= 1:
+            # Trivial case first
+            width = 1.0
+            height = 1.0
+        else:
+            # Find the closest two points A and B.
+            a, b = all_combinations[np.argmin(pdist(points))]
+
+            # The closest points define either the max width or max height.
+            w, h = xdiff(a, b), ydiff(a, b)
+            if w > h:
+                width = w
+            else:
+                height = h
+
+    # At this point, either width or height is known, or both are known.
+    if height is None:
+        # Find all axes that could potentially overlap horizontally.
+        hdist = pdist(points, xdiff)
+        candidates = [all_combinations[i] for i, d in enumerate(hdist)
+                      if d < width]
+
+        if len(candidates) == 0:
+            # No axes overlap, take all the height you want.
+            height = 1.0
+        else:
+            # Find an appropriate height so all none of the found axes will
+            # overlap.
+            height = np.min([ydiff(*c) for c in candidates])
+
+    elif width is None:
+        # Find all axes that could potentially overlap vertically.
+        vdist = pdist(points, ydiff)
+        candidates = [all_combinations[i] for i, d in enumerate(vdist)
+                      if d < height]
+
+        if len(candidates) == 0:
+            # No axes overlap, take all the width you want.
+            width = 1.0
+        else:
+            # Find an appropriate width so all none of the found axes will
+            # overlap.
+            width = np.min([xdiff(*c) for c in candidates])
+
+    # Add a bit of padding between boxes
+    width *= 1 - padding
+    height *= 1 - padding
+
+    return width, height
 
 
 def _find_topomap_coords(chs, layout=None):
@@ -426,6 +542,22 @@ def _find_topomap_coords(chs, layout=None):
     return pos
 
 
+def _cart_to_sph(x, y, z):
+    """Aux function"""
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    return az, elev, r
+
+
+def _pol_to_cart(th, r):
+    """Aux function"""
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+    return x, y
+
+
 def _auto_topomap_coords(chs):
     """Make a 2 dimensional sensor map from sensor positions in an info dict
 
@@ -442,33 +574,11 @@ def _auto_topomap_coords(chs):
     locs3d = np.array([ch['loc'][:3] for ch in chs
                        if ch['kind'] in [FIFF.FIFFV_MEG_CH,
                                          FIFF.FIFFV_EEG_CH]])
-    if len(locs3d) < 1:
-        raise RuntimeError('No MEG or EEG channels found.')
-    # fit the 3d sensor locations to a sphere with center (cx, cy, cz)
-    # and radius r
-
-    # error function
-    def err(params):
-        r, cx, cy, cz = params
-        return np.sum((locs3d - [cx, cy, cz]) ** 2, 1) - r ** 2
-
-    (r, cx, cy, cz), _ = leastsq(err, (1, 0, 0, 0))
-
-    # center the sensor locations based on the sphere and scale to
-    # radius 1
-    sphere_center = np.array((cx, cy, cz))
-    locs3d -= sphere_center
-    locs3d /= r
-
-    # implement projection
-    locs2d = np.copy(locs3d[:, :2])
-    z = max(locs3d[:, 2]) - locs3d[:, 2]  # distance form top
-    r = np.sqrt(z)  # desired 2d radius
-    r_xy = np.sqrt(np.sum(locs3d[:, :2] ** 2, 1))  # current radius in xy
-    idx = (r_xy != 0)  # avoid zero division
-    F = r[idx] / r_xy[idx]  # stretching factor accounting for current r
-    locs2d[idx, :] *= F[:, None]
-
+    if not np.any(locs3d):
+        raise RuntimeError('Cannot compute layout, no positions found')
+    x, y, z = locs3d[:, :3].T
+    az, el, r = _cart_to_sph(x, y, z)
+    locs2d = np.c_[_pol_to_cart(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -490,7 +600,7 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
 
     Returns
     -------
-    picks : list of int
+    picks : array of int
         Picks for the grad channels, ordered in pairs.
     coords : array, shape = (n_grad_channels, 3)
         Coordinates for a topomap plot (optional, only returned if
@@ -518,12 +628,14 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     if topomap_coords:
         shape = (len(pairs), 2, -1)
         coords = (_find_topomap_coords(grad_chs, layout)
-                                      .reshape(shape).mean(axis=1))
+                  .reshape(shape).mean(axis=1))
         return picks, coords
     else:
         return picks
 
 
+# this function is used to pair grad when info is not present
+# it is the case of Projection that don't have the info.
 def _pair_grad_sensors_from_ch_names(ch_names):
     """Find the indexes for pairing grad channels
 

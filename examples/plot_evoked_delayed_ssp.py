@@ -12,8 +12,8 @@ Then we will explore the impact of the particular SSP projectors
 on the evoked data.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -21,7 +21,7 @@ print(__doc__)
 
 import matplotlib.pyplot as plt
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -32,12 +32,13 @@ event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 event_id, tmin, tmax = 1, -0.2, 0.5
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname, preload=True)
+raw.filter(1, 40, method='iir')
 events = mne.read_events(event_fname)
 
 # pick magnetometer channels
-picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
-                        include=[], exclude='bads')
+picks = mne.pick_types(raw.info, meg='mag', stim=False, eog=True,
+                       include=[], exclude='bads')
 
 # If we suspend SSP projection at the epochs stage we might reject
 # more epochs than necessary. To deal with this we set proj to `delayed`
@@ -50,7 +51,7 @@ picks = fiff.pick_types(raw.info, meg='mag', stim=False, eog=True,
 # projections at the evoked stage.
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(mag=4e-12),
+                    baseline=None, reject=dict(mag=4e-12),
                     proj='delayed')
 
 evoked = epochs.average()  # average epochs and get an Evoked dataset.

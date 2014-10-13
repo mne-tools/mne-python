@@ -24,7 +24,7 @@ What you can do with MNE Python
     - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
     - **Connectivity estimation** in sensor and source space
     - **Visualization of sensor and source space data**
-    - **Time-frequency** analysis with Morlet wavelets (induced power, phase lock value) also in the source space
+    - **Time-frequency** analysis with Morlet wavelets (induced power, intertrial coherence, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
@@ -45,47 +45,17 @@ Installation of the required materials
 
 See :ref:`getting_started` with Python.
 
-Get the code
-^^^^^^^^^^^^
 
-  You can manually get the latest version of the code at:
+.. note:: The expected location for the MNE-sample data is my-path-to/mne-python/examples.
+    If you downloaded data and an example asks you whether to download it again, make sure
+    the data reside in the examples directory and you run the script from its current directory.
 
-  https://github.com/mne-tools/mne-python
+    From IPython e.g. say::
 
-  Then from the mne-python folder (containing a setup.py file) you can install with::
-
-      python setup.py install
-
-  You can also install the latest release with easy_install::
-
-      easy_install -U mne
-
-  or with pip::
-
-      pip install mne --upgrade
-
-  For the latest development version (the most up to date)::
-
-      pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
+    cd examples/preprocessing
 
 
-Make life easier
-~~~~~~~~~~~~~~~~
-
-  For optimal performance we recommend using numpy / scipy with the multi-threaded
-  ATLAS, gotoblas2, or intel MKL. For example, the Enthought Canopy and the Anaconda distributions
-  ship with tested MKL-compiled numpy / scipy versions. Depending on the use case and your system
-  this may speed up operations by a factor greater than 10.
-
-  The expected location for the MNE-sample data is my-path-to/mne-python/examples.
-  If you downloaded data and an example asks you whether to download it again, make sure
-  the data reside in the examples directory and you run the script from its current directory.
-
-  From IPython e.g. say::
-
-   cd examples/preprocessing
-
-   %run plot_find_ecg_artifacts.py
+    %run plot_find_ecg_artifacts.py
 
 
 From raw data to evoked data
@@ -135,13 +105,13 @@ Access raw data
 
 Read data from file:
 
-    >>> raw = mne.fiff.Raw(raw_fname) # doctest:+ELLIPSIS
+    >>> raw = mne.io.Raw(raw_fname) # doctest:+ELLIPSIS
     Opening raw data ...
     Ready.
     >>> print(raw)
     <Raw  |  n_channels x n_times : 376 x 41700>
     >>> print(raw.info) # doctest:+ELLIPSIS
-    <Info | 19 non-empty ...
+    <Info | 17 non-empty ...
 
 Look at the channels in raw:
 
@@ -168,7 +138,7 @@ Read and plot a segment of raw data
 
 Save a segment of 150s of raw data (MEG only):
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
+    >>> picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
     >>> raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks, overwrite=True) # doctest: +ELLIPSIS
     Reading ...
 
@@ -212,12 +182,12 @@ The variable raw.info['bads'] is just a python list.
 
 Pick the good channels, excluding raw.info['bads']:
 
-    >>> picks = mne.fiff.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
+    >>> picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
 
 Alternatively one can restrict to magnetometers or gradiometers with:
 
-    >>> mag_picks = mne.fiff.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
-    >>> grad_picks = mne.fiff.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
+    >>> mag_picks = mne.pick_types(raw.info, meg='mag', eog=True, exclude='bads')
+    >>> grad_picks = mne.pick_types(raw.info, meg='grad', eog=True, exclude='bads')
 
 Define the baseline period:
 
@@ -285,7 +255,7 @@ Compute evoked responses for auditory responses by averaging and plot it:
 It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-    >>> evoked1 = mne.fiff.read_evoked(evoked_fname, setno='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
@@ -301,7 +271,7 @@ It is also possible to read evoked data stored in a fif file:
 
 Or another one stored in the same file:
 
-    >>> evoked2 = mne.fiff.read_evoked(evoked_fname, setno='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
+    >>> evoked2 = mne.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
     Reading ...
 
 Compute a contrast:
@@ -311,20 +281,20 @@ Compute a contrast:
     >>> print(contrast)
     <Evoked  |  comment : 'Left Auditory - Right Auditory', time : [-0.199795, 0.499488], n_epochs : 116, n_channels x n_times : 376 x 421>
 
-Time-Frequency: Induced power and phase-locking values
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Time-Frequency: Induced power and inter trial coherence
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Define parameters:
 
     >>> import numpy as np
     >>> n_cycles = 2  # number of cycles in Morlet wavelet
-    >>> frequencies = np.arange(7, 30, 3)  # frequencies of interest
-    >>> Fs = raw.info['sfreq']  # sampling in Hz
+    >>> freqs = np.arange(7, 30, 3)  # frequencies of interest
 
 Compute induced power and phase-locking values:
 
-    >>> from mne.time_frequency import induced_power
-    >>> power, phase_lock = induced_power(epochs_data, Fs=Fs, frequencies=frequencies, n_cycles=2, n_jobs=1)
+    >>> from mne.time_frequency import tfr_morlet
+    >>> power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=True, decim=3, n_jobs=1) # doctest: +ELLIPSIS
+    Reading 712 ...
 
 .. figure:: _images/plot_time_frequency.png
     :alt: Time-Frequency

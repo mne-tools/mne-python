@@ -1,5 +1,5 @@
 # Authors: Mainak Jas <mainak@neuro.hut.fi>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -7,11 +7,12 @@ import numpy as np
 
 from .mixin import TransformerMixin
 
+from .. import pick_types
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       band_stop_filter)
 from ..time_frequency import multitaper_psd
-from ..fiff import pick_types
 from ..externals import six
+from ..utils import _check_type_picks
 
 
 class Scaler(TransformerMixin):
@@ -189,11 +190,16 @@ class PSDEstimator(TransformerMixin):
         bandwidth.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
+    normalization : str
+        Either "full" or "length" (default). If "full", the PSD will
+        be normalized by the sampling rate as well as the length of
+        the signal (as in nitime).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1, verbose=None):
+                 adaptive=False, low_bias=True, n_jobs=1, normalization='length',
+                 verbose=None):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -202,6 +208,7 @@ class PSDEstimator(TransformerMixin):
         self.low_bias = low_bias
         self.n_jobs = n_jobs
         self.verbose = verbose
+        self.normalization = normalization
 
     def fit(self, epochs_data, y):
         """Compute power spectrum density (PSD) using a multi-taper method
@@ -248,9 +255,12 @@ class PSDEstimator(TransformerMixin):
         n_epochs, n_channels, n_times = epochs_data.shape
         X = epochs_data.reshape(n_epochs * n_channels, n_times)
 
-        psd, _ = multitaper_psd(X, self.sfreq, self.fmin, self.fmax,
-                                self.bandwidth, self.adaptive, self.low_bias,
-                                self.n_jobs, self.verbose)
+        psd, _ = multitaper_psd(x=X, sfreq=self.sfreq, fmin=self.fmin,
+                                fmax=self.fmax, bandwidth=self.bandwidth,
+                                adaptive=self.adaptive, low_bias=self.low_bias,
+                                n_jobs=self.n_jobs,
+                                normalization=self.normalization,
+                                verbose=self.verbose)
 
         _, n_freqs = psd.shape
         psd = psd.reshape(n_epochs, n_channels, n_freqs)
@@ -283,7 +293,7 @@ class FilterEstimator(TransformerMixin):
     h_freq : float | None
         High cut-off frequency in Hz. If None the data are only
         high-passed.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices of channels to filter. If None only the data (MEG/EEG)
         channels will be filtered.
     filter_length : str (Default: '10s') | int | None
@@ -317,7 +327,7 @@ class FilterEstimator(TransformerMixin):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
-        self.picks = picks
+        self.picks = _check_type_picks(picks)
         self.filter_length = filter_length
         self.l_trans_bandwidth = l_trans_bandwidth
         self.h_trans_bandwidth = h_trans_bandwidth

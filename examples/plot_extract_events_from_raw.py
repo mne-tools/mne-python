@@ -6,7 +6,7 @@ Find events in a raw file
 Find events from the stimulation/trigger channel in the raw data.
 The plot them to get an idea of the paradigm.
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -14,7 +14,7 @@ print(__doc__)
 
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw
+from mne.io import Raw
 
 data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -32,4 +32,10 @@ for ind, before, after in events[:5]:
           % (ind, before, after))
 
 # Plot the events to get an idea of the paradigm
-mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp)
+# Specify colors and an event_id dictionary for the legend.
+event_id = {'aud_l': 1, 'aud_r': 2, 'vis_l': 3, 'vis_r': 4, 'smiley': 5,
+            'button': 32}
+color = {1: 'green', 2: 'yellow', 3: 'red', 4: 'c', 5: 'black', 32: 'blue'}
+
+mne.viz.plot_events(events, raw.info['sfreq'], raw.first_samp, color=color,
+                    event_id=event_id)

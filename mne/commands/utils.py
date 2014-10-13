@@ -1,5 +1,3 @@
-#emacs: -*- mode: python-mode; py-indent-offset: 4; tab-width: 4; indent-tabs-mode: nil -*- 
-#ex: set sts=4 ts=4 sw=4 noet:
 """Some utility functions for commands (e.g. for cmdline handling)
 """
 
@@ -7,11 +5,13 @@
 #
 # License: BSD (3-clause)
 
-import imp, os, re
+import imp
+import os
+import re
 from optparse import OptionParser
-from subprocess import Popen, PIPE
 
 import mne
+
 
 def get_optparser(cmdpath):
     """Create OptionParser with cmd source specific settings (e.g. prog value)
@@ -19,9 +19,14 @@ def get_optparser(cmdpath):
     command = os.path.basename(cmdpath)
     if re.match('mne_(.*).py', command):
         command = command[4:-3]
+    elif re.match('mne_(.*).pyc', command):
+        command = command[4:-4]
 
     # Fetch description
-    mod = imp.load_source('__temp', cmdpath)
+    if cmdpath.endswith('.pyc'):
+        mod = imp.load_compiled('__temp', cmdpath)
+    else:
+        mod = imp.load_source('__temp', cmdpath)
     if mod.__doc__:
         doc, description, epilog = mod.__doc__, None, None
 
@@ -38,11 +43,3 @@ def get_optparser(cmdpath):
                           epilog=epilog)
 
     return parser
-
-def get_status_output(cmd):
-    """ Replacement for commands.getstatusoutput which has been deprecated since 2.6
-        Returns the error status, output and error output"""
-    pipe = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
-    output, error = pipe.communicate()
-    status = pipe.returncode
-    return status, output, error

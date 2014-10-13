@@ -3,16 +3,19 @@
 
 """ Import KIT / NYU data to fif file.
 
-example usage: mne kit2fiff --input input.sqd --output output.fif
+example usage:  $ mne kit2fiff --input input.sqd --output output.fif
+Use without arguments to invoke GUI:  $ mne kt2fiff
 
 """
 
+import os
 import sys
 
-from mne.fiff.kit import read_raw_kit
+import mne
+from mne.io import read_raw_kit
 
-if __name__ == '__main__':
 
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -41,8 +44,9 @@ if __name__ == '__main__':
 
     input_fname = options.input_fname
     if input_fname is None:
-        parser.print_help()
-        sys.exit(1)
+        os.environ['ETS_TOOLKIT'] = 'qt4'
+        mne.gui.kit2fiff()
+        sys.exit(0)
 
     hsp_fname = options.hsp_fname
     elp_fname = options.elp_fname
@@ -62,3 +66,7 @@ if __name__ == '__main__':
     raw.save(out_fname)
     raw.close()
     sys.exit(0)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

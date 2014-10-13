@@ -85,7 +85,7 @@ Reference
 More information and additional introductory materials can be found at the
 pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 """
-# Author: Denis Engemann <d.engemann@fz-juelich.de>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -94,7 +94,7 @@ print(__doc__)
 import mne
 import matplotlib.pyplot as plt
 import numpy as np
-from mne.fiff import Raw
+from mne.io import Raw
 from mne.datasets import sample
 
 
@@ -112,8 +112,8 @@ events = mne.read_events(event_fname)[:10]
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
-picks = mne.fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                            stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, exclude='bads')
 
 tmin, tmax = -0.2, 0.5
 baseline = (None, 0)

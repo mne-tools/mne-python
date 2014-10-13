@@ -17,23 +17,24 @@ coding is done saves everyone time and effort!
 What you will need
 ------------------
 
-#. A Unix (Linux or Mac OS) box: `MNE command line utilities`_ and Freesurfer_
-   that are required to make the best out of this toolbox require a Unix platform.
-
 #. A good python editor: Spyder_ IDE is suitable for those migrating from
    Matlab. EPD_ and Anaconda_ both ship Spyder and all its dependencies. For
    Mac users, TextMate_ and `Sublime Text`_ are good choices. `Sublime Text`_
-   is available on all three major platforms.
+   is available on all three major platforms. As always, Vim or Emacs will
+   suffice as well.
 
 #. Basic scientific tools in python: numpy_, scipy_, matplotlib_
 
-#. Development related tools: nosetests_, coverage_, mayavi_, sphinx_,
+#. Development related tools: nosetests_, coverage_, nose-timer_, mayavi_, sphinx_,
    pep8_, and pyflakes_
 
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
    joblib_, nibabel_, and scikit-learn_
 
-#. External tools: `MNE command line utilities`_, Freesurfer_, and `mne-scripts`_
+#. `MNE command line utilities`_ and Freesurfer_ are optional but will allow you
+   to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
+   system. If you are on Windows, you can install these applications inside a
+   Unix virtual machine.
 
 General code guidelines
 -----------------------
@@ -59,10 +60,11 @@ General code guidelines
   New public functions should have all variables defined.
 
 * New functionality should be covered by appropriate tests, e.g. a method in
-  ``mne/fiff/raw.py`` should have a corresponding test in
-  ``mne/fiff/tests/test_raw.py``. You can use the ``coverage`` module in
+  ``mne/evoked.py`` should have a corresponding test in
+  ``mne/tests/test_evoked.py``. You can use the ``coverage`` module in
   conjunction with ``nosetests`` (nose can automatically determine the code
   coverage if ``coverage`` is installed) to see how well new code is covered.
+  The ambition is to achieve around 85% coverage with tests.
 
 * After changes have been made, **ensure all tests pass**. This can be done
   by running the following from the ``mne-python`` root directory::
@@ -77,13 +79,55 @@ General code guidelines
      make inplace
      nosetests
 
-  Note that the first time this is run, the `mne-python sample dataset`_
-  (~1.2 GB) will be downloaded to the root directory and extracted. This is
-  necessary for running some of the tests and nearly all of the examples.
+  To explicitly download and extract the mne-python testing dataset (~320 MB)
+  run::
+
+     make testing-data
+
+  Alternatively::
+
+     python -c "import mne; mne.datasets.testing.data_path(verbose=True)"
+
+  downloads the test data as well. Having a complete testing dataset is
+  necessary for running the tests. To run the examples you'll need
+  the `mne-python sample dataset`_ which is automatically downloaded
+  when running an example for the first time.
 
   You can also run ``nosetests -x`` to have nose stop as soon as a failed
-  test is found, or run e.g., ``nosetests mne/fiff/tests/test_raw.py`` to run
-  a specific test.
+  test is found, or run e.g., ``nosetests mne/tests/test_event.py`` to run
+  a specific test. In addition, one can run individual tests from python::
+
+     >>> from mne.utils import run_tests_if_main
+     >>> run_tests_if_main()
+
+  For more details see troubleshooting_.
+
+* Update relevant documentation. Update :doc:`whats_new.rst <whats_new>` for new features and :doc:`python_reference.rst <python_reference>` for new classes and standalone functions. :doc:`whats_new.rst <whats_new>` is organized in chronological order with the last feature at the end of the document.
+
+ To ensure that these files were rendered correctly, run the following command::
+
+     make html-noplot
+
+ This will build the docs without building all the examples, which can save some time.
+
+
+More mne-python specific guidelines
+-----------------------------------
+
+* Use underscores to separate words in non class names: n_samples rather than nsamples.
+* Use CamelCase for class names.
+* Use relative imports for references inside mne-python.
+* Use nested imports for ``matplotlib``, ``sklearn``, and ``pandas``.
+* Use ``RdBu_r`` colormap for signed data and ``Reds`` for unsigned data in visualization functions and examples.
+* All visualization functions must accept a ``show`` parameter and return a ``fig`` handle.
+* Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command::
+
+    nosetests --with-timer --timer-top-n 30
+
+Profiling in Python
+-------------------
+
+To learn more about profiling python codes please see `the scikit learn profiling site <http://scikit-learn.org/stable/developers/performance.html#performance-howto>`_.
 
 Configuring git
 ---------------
@@ -167,51 +211,6 @@ These steps can be broken out to be more explicit as:
 
     git clone git@github.com:your-user-name/mne-python.git
 
-#. Create a symbolic link to your mne directory::
-
-   To find the directory in which python packages are installed, go to python
-   and type::
-
-    import site; site.getsitepackages()
-
-   This gives two directories::
-
-    ['/usr/local/lib/python2.7/dist-packages', '/usr/lib/python2.7/dist-packages']
-
-   When you write examples and import the MNE modules, this is where python
-   searches and imports them from. If you want to avoid installing the
-   package again when you make changes in your source code, it is better to
-   create a symbolic link from the installation directory to the ``mne/``
-   folder containing your source code.
-
-   First, check if there are any ``mne`` or ``mne-*.egg-info`` files in
-   these directories and delete them. Then, find the user directory for
-   installing python packages::
-
-    import site; site.getusersitepackages()
-
-   This might give for instance::
-
-    '~/.local/lib/python2.7/site-packages'
-
-   Then, make a symbolic link to your working directory::
-
-    ln -s <path to mne-python>/mne ~/.local/lib/python2.7/site-packages/mne
-
-   Also for the mne-python scripts::
-   
-    ln -s <path to mne-python>/bin/mne /usr/local/bin/mne
-
-   Since you make a symbolic link to the local directory, you won't require
-   root access while editing the files and the changes in your working
-   directory are automatically reflected in the installation directory. To
-   verify that it works, go to a directory other than the installation
-   directory, run ipython, and then type ``import mne; print mne.__path__``.
-   This will show you from where it imported MNE-Python.
-
-   Now, whenever you make any changes to the code, just restart the
-   ipython kernel for the changes to take effect.
-
 #. Change directory to your new repo::
 
     cd mne-python
@@ -254,6 +253,16 @@ These steps can be broken out to be more explicit as:
 
    Your fork is now set up correctly.
 
+#. Install mne with editing permissions to the installed folder::
+
+   To be able to conveniently edit your files after installing mne-python,
+   install using the following setting::
+
+    python setup.py develop --user
+
+   To make changes in the code, edit the relevant files and restart the
+   ipython kernel for changes to take effect.
+
 #. Ensure unit tests pass and html files can be compiled
 
    Make sure before starting to code that all unit tests pass and the
@@ -288,7 +297,7 @@ sections.
 
 * If you do find yourself merging from the trunk, consider :ref:`rebase-on-trunk`
 
-* **Ensure all tests still pass**
+* **Ensure all tests still pass**. Make `travis`_ happy.
 
 * Ask for code review!
 
@@ -449,6 +458,11 @@ When you are ready to ask for someone to review your code and consider a merge:
    deal of time for you, as the code maintainers may have "suggestions" about
    how the code should be written (features, style, etc.) that are easier to
    implement from the start.
+
+#. Finally, make `travis`_ happy. Ensure that builds in all four jobs pass. To make code python3 compatible, refer to ``externals/six.py``. Use virtual environments to test code on different python versions. Please remember that `travis`_ only runs a subset of the tests and is thus not a substitute for running the entire test suite locally.
+
+#. For the code to be mergeable, please rebase w.r.t master branch.
+
 
 If you are uncertain about what would or would not be appropriate to contribute
 to mne-python, don't hesitate to either send a pull request, or open an issue
@@ -752,6 +766,8 @@ Editing \*.rst files
 These are reStructuredText files. Consult the Sphinx documentation to learn
 more about editing them.
 
+.. _troubleshooting:
+
 Troubleshooting
 ---------------
 
@@ -770,5 +786,13 @@ Cannot import class from a new \*.py file
 
 You need to update the corresponding ``__init__.py`` file and then
 restart the ipython kernel.
+
+ICE default IO error handler doing an exit()
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If the make test command fails with the error ``ICE default IO error
+handler doing an exit()``, try backing up or removing .ICEauthority::
+
+    mv ~/.ICEauthority ~/.ICEauthority.bak
 
 .. include:: links.inc

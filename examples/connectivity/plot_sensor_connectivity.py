@@ -18,7 +18,7 @@ import numpy as np
 from scipy import linalg
 
 import mne
-from mne import fiff
+from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
 
@@ -29,14 +29,14 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
                         exclude='bads')
 
 # Create epochs for the visual condition
@@ -76,7 +76,7 @@ sens_loc = [raw.info['chs'][picks[i]]['loc'][:3] for i in idx]
 sens_loc = np.array(sens_loc)
 
 pts = mlab.points3d(sens_loc[:, 0], sens_loc[:, 1], sens_loc[:, 2],
-                    color=(0, 0, 1), opacity=0.5, scale_factor=0.01)
+                    color=(1, 1, 1), opacity=1, scale_factor=0.005)
 
 # Get the strongest connections
 n_con = 20  # show up to 20 connections
@@ -100,8 +100,11 @@ vmin = np.min(con_val)
 for val, nodes in zip(con_val, con_nodes):
     x1, y1, z1 = sens_loc[nodes[0]]
     x2, y2, z2 = sens_loc[nodes[1]]
-    mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
-                vmin=vmin, vmax=vmax, tube_radius=0.002)
+    points = mlab.plot3d([x1, x2], [y1, y2], [z1, z2], [val, val],
+                         vmin=vmin, vmax=vmax, tube_radius=0.001,
+                         colormap='RdBu')
+    points.module_manager.scalar_lut_manager.reverse_lut = True
+
 
 mlab.scalarbar(title='Phase Lag Index (PLI)', nb_labels=4)
 

@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Martin Luessi <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 # License: Simplified BSD
 from copy import deepcopy
 
@@ -7,7 +7,7 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..fiff.pick import pick_channels_evoked
+from ..io.pick import pick_channels_evoked
 from ..minimum_norm.inverse import _prepare_forward
 from ..utils import logger, verbose
 from .mxne_inverse import _make_sparse_stc, _prepare_gain

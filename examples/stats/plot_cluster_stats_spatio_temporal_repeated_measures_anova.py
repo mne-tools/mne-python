@@ -14,9 +14,9 @@ comparisons problem is addressed with a cluster-level permutation test
 across space and time.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemannn <d.engemann@fz-juelich.de>
+#          Denis Engemannn <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -27,7 +27,7 @@ import numpy as np
 from numpy.random import randn
 
 import mne
-from mne import (fiff, spatial_tris_connectivity, compute_morph_matrix,
+from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
                  grade_to_tris)
 from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
                        f_twoway_rm, summarize_clusters_stc)
@@ -46,13 +46,13 @@ tmin = -0.2
 tmax = 0.3  # Use a lower tmax to reduce multiple comparisons
 
 #   Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 ###############################################################################
 # Read epochs for all channels, removing a bad one
 raw.info['bads'] += ['MEG 2443']
-picks = fiff.pick_types(raw.info, meg=True, eog=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eog=True, exclude='bads')
 # we'll load all four conditions that make up the 'two ways' of our ANOVA
 
 event_id = dict(l_aud=1, r_aud=2, l_vis=3, r_vis=4)
@@ -166,15 +166,11 @@ def stat_fun(*args):
     # flattened array, necessitated by the clustering procedure.
     # The ANOVA however expects an input array of dimensions:
     # subjects X conditions X observations (optional).
-    # The following expression catches the list input, swaps the first and the
-    # second dimension and puts the remaining observations in the third
-    # dimension.
-    data = np.swapaxes(np.asarray(args), 1, 0).reshape(n_subjects,
-                                                       n_conditions, n_times *
-                                                       n_vertices_fsave)
-    return f_twoway_rm(data, factor_levels=factor_levels, effects=effects,
-                       return_pvals=return_pvals)[0]
-                       #  drop p-values (empty array).
+    # The following expression catches the list input
+    # and swaps the first and the second dimension, and finally calls ANOVA.
+    return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
+                        effects=effects, return_pvals=return_pvals)[0]
+    # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
 
@@ -192,10 +188,11 @@ connectivity = spatial_tris_connectivity(lh_source_space)
 
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
-#    To speed things up a bit we will
-pthresh = 0.001
+pthresh = 0.0005
 f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
-n_permutations = 100  # ... run fewer permutations (reduces sensitivity)
+
+#    To speed things up a bit we will ...
+n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
 
 print('Clustering.')
 T_obs, clusters, cluster_p_values, H0 = clu = \
@@ -245,7 +242,7 @@ inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
 
 times = np.arange(X[0].shape[1]) * tstep * 1e3
 
-plt.clf()
+plt.figure()
 colors = ['y', 'b', 'g', 'purple']
 event_ids = ['l_aud', 'r_aud', 'l_vis', 'r_vis']
 
@@ -261,10 +258,12 @@ for ii, (condition, color, eve_id) in enumerate(zip(X, colors, event_ids)):
     plt.fill_between(times, mean_tc + std_tc, mean_tc - std_tc, color='gray',
                      alpha=0.5, label='')
 
+ymin, ymax = mean_tc.min() - 5, mean_tc.max() + 5
 plt.xlabel('Time (ms)')
 plt.ylabel('Activation (F-values)')
 plt.xlim(times[[0, -1]])
-plt.fill_betweenx(np.arange(*plt.ylim()), times[inds_t[0]],
+plt.ylim(ymin, ymax)
+plt.fill_betweenx((ymin, ymax), times[inds_t[0]],
                   times[inds_t[-1]], color='orange', alpha=0.3)
 plt.legend()
 plt.title('Interaction between stimulus-modality and location.')

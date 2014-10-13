@@ -1,28 +1,33 @@
 """A module which implements the continuous wavelet transform
 with complex Morlet wavelets.
 
-Author : Alexandre Gramfort, gramfort@nmr.mgh.harvard.edu (2011)
+Author : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
 License : BSD 3-clause
 
 inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 
+import warnings
 from math import sqrt
+from copy import deepcopy
 import numpy as np
 from scipy import linalg
 from scipy.fftpack import fftn, ifftn
 
+from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose
+from ..channels import ContainsMixin, PickDropChannelsMixin
+from ..io.pick import pick_info, pick_types
 
 
-def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
+def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """Compute Wavelets for the given frequency range
 
     Parameters
     ----------
-    Fs : float
+    sfreq : float
         Sampling Frequency
     freqs : array
         frequency range of interest (1 x Frequencies)
@@ -46,6 +51,13 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
+
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
@@ -61,7 +73,7 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
             sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
         # this scaling factor is proportional to (Tallon-Baudry 98):
         # (sigma_t*sqrt(pi))^(-1/2);
-        t = np.arange(0, 5 * sigma_t, 1.0 / Fs)
+        t = np.arange(0, 5 * sigma_t, 1.0 / sfreq)
         t = np.r_[-t[::-1], t[1:]]
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
         gaussian_enveloppe = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
@@ -75,10 +87,11 @@ def morlet(Fs, freqs, n_cycles=7, sigma=None, zero_mean=False):
 
 
 def _centered(arr, newsize):
+    """Aux Function to center data"""
     # Return the center newsize portion of the array.
     newsize = np.asarray(newsize)
     currsize = np.array(arr.shape)
-    startind = (currsize - newsize) / 2
+    startind = (currsize - newsize) // 2
     endind = startind + newsize
     myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
     return arr[tuple(myslice)]
@@ -151,14 +164,15 @@ def _cwt_convolve(X, Ws, mode='same'):
         yield tfr
 
 
-def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
+               Fs=None):
     """Compute time freq decomposition with Morlet wavelets
 
     Parameters
     ----------
     X : array of shape [n_signals, n_times]
         signals (one per line)
-    Fs : float
+    sfreq : float
         sampling Frequency
     freqs : array
         Array of frequencies of interest
@@ -174,13 +188,19 @@ def cwt_morlet(X, Fs, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     mode = 'same'
     # mode = "valid"
     n_signals, n_times = X.shape
     n_frequencies = len(freqs)
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = morlet(sfreq, freqs, n_cycles=n_cycles, zero_mean=zero_mean)
 
     if use_fft:
         coefs = _cwt_fft(X, Ws, mode)
@@ -253,16 +273,17 @@ def _time_frequency(X, Ws, use_fft):
 
 
 @verbose
-def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
+def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
+                       decim=1, n_jobs=1, zero_mean=False, Fs=None,
+                       verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
     ----------
     data : array of shape [n_epochs, n_channels, n_times]
         The epochs
-    Fs : float
+    sfreq : float
         Sampling rate
     frequencies : array-like
         The frequencies
@@ -300,12 +321,18 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
+    # deprecate Fs
+    if Fs is not None:
+        sfreq = Fs
+        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
+                      "Use `sfreq` instead", DeprecationWarning)
+
     mode = 'same'
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     parallel, my_cwt, _ = parallel_func(cwt, n_jobs)
 
@@ -334,8 +361,8 @@ def single_trial_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     return power
 
 
-def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
-                  decim=1, n_jobs=1, zero_mean=False):
+def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
+                   decim=1, n_jobs=1, zero_mean=False, Fs=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -344,7 +371,7 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     ----------
     data : array
         3D array of shape [n_epochs, n_channels, n_times]
-    Fs : float
+    sfreq : float
         sampling Frequency
     frequencies : array
         Array of frequencies of interest
@@ -373,14 +400,14 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = morlet(Fs, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
+    Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     if n_jobs == 1:
         psd = np.empty((n_channels, n_frequencies, n_times))
         plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
 
         for c in range(n_channels):
-            X = np.squeeze(data[:, c, :])
+            X = data[:, c, :]
             this_psd, this_plf = _time_frequency(X, Ws, use_fft)
             psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
     else:
@@ -398,3 +425,479 @@ def induced_power(data, Fs, frequencies, use_fft=True, n_cycles=7,
     psd /= n_epochs
     plf = np.abs(plf) / n_epochs
     return psd, plf
+
+
+def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
+                 baseline, vmin, vmax, dB):
+    """Aux Function to prepare tfr computation"""
+    from ..viz.utils import _setup_vmin_vmax
+
+    if mode is not None and baseline is not None:
+        logger.info("Applying baseline correction '%s' during %s" %
+                    (mode, baseline))
+        data = rescale(data.copy(), times, baseline, mode)
+
+    # crop time
+    itmin, itmax = None, None
+    if tmin is not None:
+        itmin = np.where(times >= tmin)[0][0]
+    if tmax is not None:
+        itmax = np.where(times <= tmax)[0][-1]
+
+    times = times[itmin:itmax]
+
+    # crop freqs
+    ifmin, ifmax = None, None
+    if fmin is not None:
+        ifmin = np.where(freqs >= fmin)[0][0]
+    if fmax is not None:
+        ifmax = np.where(freqs <= fmax)[0][-1]
+
+    freqs = freqs[ifmin:ifmax]
+
+    # crop data
+    data = data[:, ifmin:ifmax, itmin:itmax]
+
+    times *= 1e3
+    if dB:
+        data = 20 * np.log10(data)
+
+    vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
+    return data, times, freqs, vmin, vmax
+
+
+# XXX : todo IO of TFRs
+class AverageTFR(ContainsMixin, PickDropChannelsMixin):
+    """Container for Time-Frequency data
+
+    Can for example store induced power at sensor level or intertrial
+    coherence.
+
+    Parameters
+    ----------
+    info : Info
+        The measurement info.
+    data : ndarray, shape (n_channels, n_freqs, n_times)
+        The data.
+    times : ndarray, shape (n_times,)
+        The time values in seconds.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    nave : int
+        The number of averaged TFRs.
+
+    Attributes
+    ----------
+    ch_names : list
+        The names of the channels.
+    """
+    @verbose
+    def __init__(self, info, data, times, freqs, nave, verbose=None):
+        self.info = info
+        if data.ndim != 3:
+            raise ValueError('data should be 3d. Got %d.' % data.ndim)
+        n_channels, n_freqs, n_times = data.shape
+        if n_channels != len(info['chs']):
+            raise ValueError("Number of channels and data size don't match"
+                             " (%d != %d)." % (n_channels, len(info['chs'])))
+        if n_freqs != len(freqs):
+            raise ValueError("Number of frequencies and data size don't match"
+                             " (%d != %d)." % (n_freqs, len(freqs)))
+        if n_times != len(times):
+            raise ValueError("Number of times and data size don't match"
+                             " (%d != %d)." % (n_times, len(times)))
+        self.data = data
+        self.times = times
+        self.freqs = freqs
+        self.nave = nave
+
+    @property
+    def ch_names(self):
+        return self.info['ch_names']
+
+    @verbose
+    def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
+             tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
+             cmap='RdBu_r', dB=False, colorbar=True, show=True, verbose=None):
+        """Plot TFRs in a topography with images
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            The indices of the channels to plot.
+        baseline : None (default) or tuple of length 2
+            The time interval to apply baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal ot (None, None) all the time
+            interval is used.
+        mode : None | 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)).
+            If None no baseline correction is applied.
+        tmin : None | float
+            The first time instant to display. If None the first time point
+            available is used.
+        tmax : None | float
+            The last time instant to display. If None the last time point
+            available is used.
+        fmin : None | float
+            The first frequency to display. If None the first frequency
+            available is used.
+        fmax : None | float
+            The last frequency to display. If None the last frequency
+            available is used.
+        vmin : float | None
+            The mininum value an the color scale. If vmin is None, the data
+            minimum value is used.
+        vmax : float | None
+            The maxinum value an the color scale. If vmax is None, the data
+            maximum value is used.
+        layout : Layout | None
+            Layout instance specifying sensor positions. If possible, the
+            correct layout is inferred from the data.
+        cmap : matplotlib colormap | str
+            The colormap to use. Defaults to 'RdBu_r'.
+        dB : bool
+            If True, 20*log10 is applied to the data to get dB.
+        colorbar : bool
+            If true, colorbar will be added to the plot
+        layout_scale : float
+            Scaling factor for adjusting the relative size of the layout
+            on the canvas
+        show : bool
+            Call pyplot.show() at the end.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        from ..viz.topo import _imshow_tfr
+        import matplotlib.pyplot as plt
+        times, freqs = self.times.copy(), self.freqs.copy()
+        data = self.data[picks]
+
+        data, times, freqs, vmin, vmax = \
+            _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
+                         baseline, vmin, vmax, dB)
+
+        tmin, tmax = times[0], times[-1]
+
+        for k, p in zip(range(len(data)), picks):
+            plt.figure()
+            _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
+                        tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
+                        y_label='Frequency (Hz)', colorbar=colorbar,
+                        picker=False, cmap=cmap)
+
+        if show:
+            import matplotlib.pyplot as plt
+            plt.show()
+
+    def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
+                  tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
+                  layout=None, cmap='RdBu_r', title=None, dB=False,
+                  colorbar=True, layout_scale=0.945, show=True,
+                  border='none', fig_facecolor='k', font_color='w'):
+        """Plot TFRs in a topography with images
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            The indices of the channels to plot. If None all available
+            channels are displayed.
+        baseline : None (default) or tuple of length 2
+            The time interval to apply baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal ot (None, None) all the time
+            interval is used.
+        mode : None | 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or zscore (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline)).
+            If None no baseline correction is applied.
+        tmin : None | float
+            The first time instant to display. If None the first time point
+            available is used.
+        tmax : None | float
+            The last time instant to display. If None the last time point
+            available is used.
+        fmin : None | float
+            The first frequency to display. If None the first frequency
+            available is used.
+        fmax : None | float
+            The last frequency to display. If None the last frequency
+            available is used.
+        vmin : float | None
+            The mininum value an the color scale. If vmin is None, the data
+            minimum value is used.
+        vmax : float | None
+            The maxinum value an the color scale. If vmax is None, the data
+            maximum value is used.
+        layout : Layout | None
+            Layout instance specifying sensor positions. If possible, the
+            correct layout is inferred from the data.
+        cmap : matplotlib colormap | str
+            The colormap to use. Defaults to 'RdBu_r'.
+        title : str
+            Title of the figure.
+        dB : bool
+            If True, 20*log10 is applied to the data to get dB.
+        colorbar : bool
+            If true, colorbar will be added to the plot
+        layout_scale : float
+            Scaling factor for adjusting the relative size of the layout
+            on the canvas.
+        show : bool
+            Call pyplot.show() at the end.
+        border : str
+            matplotlib borders style to be used for each sensor plot.
+        fig_facecolor : str | obj
+            The figure face color. Defaults to black.
+        font_color: str | obj
+            The color of tick labels in the colorbar. Defaults to white.
+        """
+        from ..viz.topo import _imshow_tfr, _plot_topo
+        times = self.times.copy()
+        freqs = self.freqs
+        data = self.data
+        info = self.info
+
+        if picks is not None:
+            data = data[picks]
+            info = pick_info(info, picks)
+
+        data, times, freqs, vmin, vmax = \
+            _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
+                         mode, baseline, vmin, vmax, dB)
+
+        if layout is None:
+            from mne.layouts.layout import find_layout
+            layout = find_layout(self.info)
+
+        imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
+
+        fig = _plot_topo(info=info, times=times,
+                         show_func=imshow, layout=layout,
+                         colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                         layout_scale=layout_scale, title=title, border=border,
+                         x_label='Time (ms)', y_label='Frequency (Hz)',
+                         fig_facecolor=fig_facecolor,
+                         font_color=font_color)
+
+        if show:
+            import matplotlib.pyplot as plt
+            plt.show()
+
+        return fig
+
+    def _check_compat(self, tfr):
+        """checks that self and tfr have the same time-frequency ranges"""
+        assert np.all(tfr.times == self.times)
+        assert np.all(tfr.freqs == self.freqs)
+
+    def __add__(self, tfr):
+        self._check_compat(tfr)
+        out = self.copy()
+        out.data += tfr.data
+        return out
+
+    def __iadd__(self, tfr):
+        self._check_compat(tfr)
+        self.data += tfr.data
+        return self
+
+    def __sub__(self, tfr):
+        self._check_compat(tfr)
+        out = self.copy()
+        out.data -= tfr.data
+        return out
+
+    def __isub__(self, tfr):
+        self._check_compat(tfr)
+        self.data -= tfr.data
+        return self
+
+    def copy(self):
+        """Return a copy of the instance."""
+        return deepcopy(self)
+
+    def __repr__(self):
+        s = "time : [%f, %f]" % (self.times[0], self.times[-1])
+        s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
+        s += ", nave : %d" % self.nave
+        s += ', channels : %d' % self.data.shape[1]
+        return "<AverageTFR  |  %s>" % s
+
+    def apply_baseline(self, baseline, mode='mean'):
+        """Baseline correct the data
+
+        Parameters
+        ----------
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or z-score (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline))
+            If None, baseline no correction will be performed.
+        """
+        self.data = rescale(self.data, self.times, baseline, mode, copy=False)
+
+    def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
+                     ch_type='mag', baseline=None, mode='mean',
+                     layout=None, vmin=None, vmax=None, cmap='RdBu_r',
+                     sensors=True, colorbar=True, unit=None, res=64, size=2,
+                     format='%1.1e', show_names=False, title=None,
+                     axes=None, show=True):
+        """Plot topographic maps of time-frequency intervals of TFR data
+
+        Parameters
+        ----------
+        tfr : AvereageTFR
+            The AvereageTFR object.
+        tmin : None | float
+            The first time instant to display. If None the first time point
+            available is used.
+        tmax : None | float
+            The last time instant to display. If None the last time point
+            available is used.
+        fmin : None | float
+            The first frequency to display. If None the first frequency
+            available is used.
+        fmax : None | float
+            The last frequency to display. If None the last frequency
+            available is used.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in pairs and the RMS for each pair is plotted.
+        baseline : tuple or list of length 2
+            The time interval to apply rescaling / baseline correction.
+            If None do not apply it. If baseline is (a, b)
+            the interval is between "a (s)" and "b (s)".
+            If a is None the beginning of the data is used
+            and if b is None then b is set to the end of the interval.
+            If baseline is equal to (None, None) all the time
+            interval is used.
+        mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+            Do baseline correction with ratio (power is divided by mean
+            power during baseline) or z-score (power is divided by standard
+            deviation of power during baseline after subtracting the mean,
+            power = [power - mean(power_baseline)] / std(power_baseline))
+            If None, baseline no correction will be performed.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout
+            file is inferred from the data; if no appropriate layout file was
+            found, the layout is automatically generated from the sensor
+            locations.
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
+        cmap : matplotlib colormap
+            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+            'Reds'.
+        sensors : bool | str
+            Add markers for sensor locations to the plot. Accepts matplotlib
+            plot format string (e.g., 'r+' for red plusses). If True, a circle
+            will be used (via .add_artist). Defaults to True.
+        colorbar : bool
+            Plot a colorbar.
+        unit : str | None
+            The unit of the channel type used for colorbar labels.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
+        size : float
+            Side length per topomap in inches.
+        format : str
+            String format for colorbar values.
+        show_names : bool | callable
+            If True, show channel names on top of the map. If a callable is
+            passed, channel names will be formatted using the callable; e.g.,
+            to delete the prefix 'MEG ' from all channel names, pass the
+            function lambda x: x.replace('MEG ', ''). If `mask` is not None,
+            only significant sensors will be shown.
+        title : str | None
+            Title. If None (default), no title is displayed.
+        axes : instance of Axes | None
+            The axes to plot to. If None the axes is defined automatically.
+        show : bool
+            Call pyplot.show() at the end.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
+        """
+        from ..viz import plot_tfr_topomap
+        return plot_tfr_topomap(self, tmin=tmin, tmax=tmax, fmin=fmin,
+                                fmax=fmax, ch_type=ch_type, baseline=baseline,
+                                mode=mode, layout=layout, vmin=vmin, vmax=vmax,
+                                cmap=cmap, sensors=sensors, colorbar=colorbar,
+                                unit=unit, res=res, size=size, format=format,
+                                show_names=show_names, title=title, axes=axes,
+                                show=show)
+
+
+def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
+               return_itc=True, decim=1, n_jobs=1):
+    """Compute Time-Frequency Representation (TFR) using Morlet wavelets
+
+    Parameters
+    ----------
+    epochs : Epochs
+        The epochs.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+    use_fft : bool
+        The fft based convolution or not.
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
+    decim : int
+        The decimation factor on the time axis. To reduce memory usage.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    power : AverageTFR
+        The averaged power.
+    itc : AverageTFR
+        The intertrial coherence (ITC). Only returned if return_itc
+        is True.
+    """
+    data = epochs.get_data()
+    picks = pick_types(epochs.info, meg=True, eeg=True)
+    info = pick_info(epochs.info, picks)
+    data = data[:, picks, :]
+    power, itc = _induced_power(data, sfreq=info['sfreq'], frequencies=freqs,
+                                n_cycles=n_cycles, n_jobs=n_jobs,
+                                use_fft=use_fft, decim=decim,
+                                zero_mean=True)
+    times = epochs.times[::decim].copy()
+    nave = len(data)
+    out = AverageTFR(info, power, times, freqs, nave)
+    if return_itc:
+        out = (out, AverageTFR(info, itc, times, freqs, nave))
+    return out

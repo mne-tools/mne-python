@@ -1,8 +1,8 @@
 # Authors: Christoph Dinh <chdinh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 import time
@@ -10,13 +10,13 @@ import copy
 
 import numpy as np
 
-from ..fiff import pick_channels, pick_types
+from .. import pick_channels, pick_types
 from ..utils import logger, verbose
 from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
 from ..filter import detrend
-from ..fiff.proj import setup_proj
+from ..io.proj import setup_proj
 
 
 class RtEpochs(_BaseEpochs):
@@ -116,7 +116,7 @@ class RtEpochs(_BaseEpochs):
         Names of  of conditions corresponding to event_ids.
     ch_names : list of string
         List of channels' names.
-    events : list of tuples
+    events : array, shape (n_events, 3)
         The events associated with the epochs currently in the queue.
     verbose : bool, str, int, or None
         See above.
@@ -171,7 +171,7 @@ class RtEpochs(_BaseEpochs):
 
         # FIFO queues for received epochs and events
         self._epoch_queue = list()
-        self.events = list()
+        self._events = list()
 
         # variables needed for receiving raw buffers
         self._last_buffer = None
@@ -186,6 +186,11 @@ class RtEpochs(_BaseEpochs):
         self._last_time = time.time()
 
         self.isi_max = isi_max
+
+    @property
+    def events(self):
+        """The events associated with the epochs currently in the queue."""
+        return np.array(self._events)
 
     def start(self):
         """Start receiving epochs
@@ -235,7 +240,7 @@ class RtEpochs(_BaseEpochs):
                 raise StopIteration
             if len(self._epoch_queue) > self._current:
                 epoch = self._epoch_queue[self._current]
-                event_id = self.events[self._current][-1]
+                event_id = self._events[self._current][-1]
                 self._current += 1
                 self._last_time = current_time
                 if return_event_id:
@@ -362,26 +367,15 @@ class RtEpochs(_BaseEpochs):
         if self.proj and self._projector is not None:
             epoch = np.dot(self._projector, epoch)
 
-        # Detrend
-        if self.detrend is not None:
-            picks = pick_types(self.info, meg=True, eeg=True, stim=False,
-                               eog=False, ecg=False, emg=False, ref_meg=False)
-            epoch[picks] = detrend(epoch[picks], self.detrend, axis=1)
-
-        # Baseline correct
-        epoch = rescale(epoch, self._raw_times, self.baseline, 'mean',
-                        copy=False, verbose='ERROR')
-
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
+        # Detrend, baseline correct, decimate
+        epoch = self._preprocess(epoch, verbose='ERROR')
 
         # Decide if this is a good epoch
         is_good, _ = self._is_good_epoch(epoch, verbose='ERROR')
 
         if is_good:
             self._epoch_queue.append(epoch)
-            self.events.append((event_samp, 0, event_id))
+            self._events.append((event_samp, 0, event_id))
             self._n_good += 1
         else:
             self._n_bad += 1

@@ -21,10 +21,10 @@ print(__doc__)
 
 import numpy as np
 import mne
-from mne import fiff
+from mne import io
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
-from mne.viz import plot_topo_tfr
+from mne.time_frequency import AverageTFR
 
 ###############################################################################
 # Set parameters
@@ -33,20 +33,21 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 # Add a bad channel
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Create epochs for left-visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6))
+                    baseline=(None, 0), reject=dict(grad=4000e-13, eog=150e-6),
+                    preload=True)
 
 # Use 'MEG 2343' as seed
 seed_ch = 'MEG 2343'
@@ -71,9 +72,9 @@ con, freqs, times, _, _ = spectral_connectivity(epochs, indices=indices,
 con[np.where(indices[1] == seed)] = 1.0
 
 # Show topography of connectivity from seed
-import matplotlib.pyplot as plt
 title = 'WPLI2 - Visual - Seed %s' % seed_ch
 
 layout = mne.find_layout(epochs.info, 'meg')  # use full layout
-plot_topo_tfr(epochs, con, freqs, layout=layout, title=title)
-plt.show()
+
+tfr = AverageTFR(epochs.info, con, times, freqs, len(epochs))
+tfr.plot_topo(fig_facecolor='w', font_color='k', border='k')

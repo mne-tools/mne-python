@@ -13,17 +13,16 @@ Runs a full pipeline using MNE-Python:
 print(__doc__)
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import spm_face
-from mne.preprocessing import ICA
-from mne import fiff
+from mne.preprocessing import ICA, create_eog_epochs
+from mne import io
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
 
@@ -35,41 +34,38 @@ subjects_dir = data_path + '/subjects'
 
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
-raw = fiff.Raw(raw_fname % 1, preload=True) # Take first run
+raw = io.Raw(raw_fname % 1, preload=True)  # Take first run
 
-picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
-raw.filter(1, 45, method='iir')
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')
+raw.filter(1, 30, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
 
 # plot the events to get an idea of the paradigm
 mne.viz.plot_events(events, raw.info['sfreq'])
 
-event_ids = {"faces":1, "scrambled":2}
+event_ids = {"faces": 1, "scrambled": 2}
 
 tmin, tmax = -0.2, 0.6
 baseline = None  # no baseline as high-pass is applied
-reject = dict(mag=1.5e-12)
+reject = dict(mag=5e-12)
 
 epochs = mne.Epochs(raw, events, event_ids, tmin, tmax,  picks=picks,
                     baseline=baseline, preload=True, reject=reject)
 
 # Fit ICA, find and remove major artifacts
+ica = ICA(n_components=0.95).fit(raw, decim=6, reject=reject)
 
-ica = ICA(None, 50).decompose_epochs(epochs, decim=2)
+# compute correlation scores, get bad indices sorted by score
+eog_epochs = create_eog_epochs(raw, ch_name='MRT31-2908', reject=reject)
+eog_inds, eog_scores = ica.find_bads_eog(eog_epochs, ch_name='MRT31-2908')
+ica.plot_scores(eog_scores, eog_inds)  # see scores the selection is based on
+ica.plot_components(eog_inds)  # view topographic sensitivity of components
+ica.exclude += eog_inds[:1]  # we saw the 2nd ECG component looked too dipolar
+ica.plot_overlay(eog_epochs.average())  # inspect artifact removal
+epochs_cln = ica.apply(epochs, copy=True)  # clean data, default in place
 
-for ch_name in ['MRT51-2908', 'MLF14-2908']:  # ECG, EOG contaminated chs
-    scores = ica.find_sources_epochs(epochs, ch_name, 'pearsonr')
-    ica.exclude += list(np.argsort(np.abs(scores))[-2:])
-
-ica.plot_topomap(np.unique(ica.exclude))  # plot components found
-
-
-# select ICA sources and reconstruct MEG signals, compute clean ERFs
-
-epochs = ica.pick_sources_epochs(epochs)
-
-evoked = [epochs[k].average() for k in event_ids]
+evoked = [epochs_cln[k].average() for k in event_ids]
 
 contrast = evoked[1] - evoked[0]
 
@@ -81,16 +77,18 @@ for e in evoked:
 plt.show()
 
 # estimate noise covarariance
-noise_cov = mne.compute_covariance(epochs.crop(None, 0, copy=True))
+noise_cov = mne.compute_covariance(epochs_cln, tmax=0)
 
 ###############################################################################
 # Visualize fields on MEG helmet
 
-trans_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+trans_fname = data_path + ('/MEG/spm/SPM_CTF_MEG_example_faces1_3D_'
+                           'raw-trans.fif')
 
 maps = mne.make_field_map(evoked[0], trans_fname=trans_fname,
                           subject='spm', subjects_dir=subjects_dir,
                           n_jobs=1)
+
 
 evoked[0].plot_field(maps, time=0.170)
 
@@ -110,7 +108,7 @@ forward = mne.convert_forward_solution(forward, surf_ori=True)
 ###############################################################################
 # Compute inverse solution
 
-snr = 5.0
+snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
 
@@ -126,7 +124,7 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method,
 # Plot brain in 3D with PySurfer if available. Note that the subject name
 # is already known by the SourceEstimate stc object.
 brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir)
-brain.set_data_time_index(173)
+brain.set_time(170.0)  # milliseconds
 brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')

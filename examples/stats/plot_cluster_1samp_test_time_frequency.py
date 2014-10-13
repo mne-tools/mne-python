@@ -16,7 +16,7 @@ The procedure consists in:
   - compute stats to see if ratio deviates from 1.
 
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -25,7 +25,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import permutation_cluster_1samp_test
 from mne.datasets import sample
@@ -39,15 +39,15 @@ tmin = -0.3
 tmax = 0.6
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # picks MEG gradiometers
-picks = fiff.pick_types(raw.info, meg='grad', eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True,
+                       stim=False, include=include, exclude='bads')
 
 # Load condition 1
 event_id = 1
@@ -127,7 +127,7 @@ vmin = -vmax
 plt.imshow(T_obs, cmap=plt.cm.gray,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
            aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
-plt.imshow(T_obs_plot, cmap=plt.cm.jet,
+plt.imshow(T_obs_plot, cmap=plt.cm.RdBu_r,
            extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
            aspect='auto', origin='lower', vmin=vmin, vmax=vmax)
 plt.colorbar()

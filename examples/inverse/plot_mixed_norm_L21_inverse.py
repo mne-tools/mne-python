@@ -9,14 +9,13 @@ Mixed-norm estimates for the M/EEG inverse problem using accelerated
 gradient methods, Physics in Medicine and Biology, 2012
 http://dx.doi.org/10.1088/0031-9155/57/7/1937
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
 print(__doc__)
 
 import mne
-from mne import fiff
 from mne.datasets import sample
 from mne.inverse_sparse import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
@@ -26,12 +25,13 @@ data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+subjects_dir = data_path + '/subjects'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
 # Handling average file
-setno = 0
-evoked = fiff.read_evoked(ave_fname, setno=setno, baseline=(None, 0))
+condition = 'Left Auditory'
+evoked = mne.read_evokeds(ave_fname, condition=condition, baseline=(None, 0))
 evoked.crop(tmin=0, tmax=0.3)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
@@ -63,4 +63,13 @@ residual.plot(ylim=ylim, proj=True)
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1, fig_name="MxNE (cond %s)" % setno)
+                             opacity=0.1, fig_name="MxNE (cond %s)" % condition)
+
+# and on the fsaverage brain after morphing
+stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',
+                          grade=None, sparse=True, subjects_dir=subjects_dir)
+src_fsaverage_fname = subjects_dir + '/fsaverage/bem/fsaverage-ico-5-src.fif'
+src_fsaverage = mne.read_source_spaces(src_fsaverage_fname)
+
+plot_sparse_source_estimates(src_fsaverage, stc_fsaverage, bgcolor=(1, 1, 1),
+                             opacity=0.1)

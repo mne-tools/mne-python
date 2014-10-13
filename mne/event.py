@@ -1,22 +1,22 @@
 """IO with fif files containing events
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Teon Brooks <teon@nyu.edu>
 #
 # License: BSD (3-clause)
 
-from .externals.six import string_types
 import numpy as np
 from os.path import splitext
 
-from .fiff.constants import FIFF
-from .fiff.tree import dir_tree_find
-from .fiff.tag import read_tag
-from .fiff.open import fiff_open
-from .fiff.write import write_int, start_block, start_file, end_block, end_file
-from .fiff.pick import pick_channels
-from .utils import get_config, logger, verbose
+from .utils import check_fname, logger, verbose, _get_stim_channel
+from .io.constants import FIFF
+from .io.tree import dir_tree_find
+from .io.tag import read_tag
+from .io.open import fiff_open
+from .io.write import write_int, start_block, start_file, end_block, end_file
+from .io.pick import pick_channels
 
 
 def pick_events(events, include=None, exclude=None):
@@ -167,14 +167,15 @@ def _read_events_fif(fid, tree):
     else:
         mappings = None
 
-    if mappings is not None:
-        m_ = (m.split(':') for m in mappings.split(';'))
-        mappings = dict((k, int(v)) for k, v in m_)
+    if mappings is not None:  # deal with ':' in keys
+        m_ = [[s[::-1] for s in m[::-1].split(':', 1)]
+              for m in mappings.split(';')]
+        mappings = dict((k, int(v)) for v, k in m_)
     event_list = event_list.reshape(len(event_list) // 3, 3)
     return event_list, mappings
 
 
-def read_events(filename, include=None, exclude=None):
+def read_events(filename, include=None, exclude=None, mask=0):
     """Reads events from fif or text file
 
     Parameters
@@ -193,6 +194,9 @@ def read_events(filename, include=None, exclude=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
+    mask : int
+        The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -208,11 +212,16 @@ def read_events(filename, include=None, exclude=None):
     was decimated are no longer valid. Please recompute your events after
     decimation.
     """
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         fid, tree, _ = fiff_open(filename)
-        event_list, _ = _read_events_fif(fid, tree)
-        fid.close()
+        try:
+            event_list, _ = _read_events_fif(fid, tree)
+        finally:
+            fid.close()
     else:
         #  Have to read this in as float64 then convert because old style
         #  eve/lst files had a second float column that will raise errors
@@ -235,6 +244,8 @@ def read_events(filename, include=None, exclude=None):
             event_list = event_list[1:]
 
     event_list = pick_events(event_list, include, exclude)
+    event_list = _mask_trigs(event_list, mask)
+
     return event_list
 
 
@@ -254,6 +265,9 @@ def write_events(filename, event_list):
     event_list : array, shape (n_events, 3)
         The list of events
     """
+    check_fname(filename, 'events', ('.eve', '-eve.fif', '-eve.fif.gz',
+                                     '-eve.lst', '-eve.txt'))
+
     ext = splitext(filename)[1].lower()
     if ext == '.fif' or ext == '.gz':
         #   Start writing...
@@ -298,7 +312,7 @@ def _find_stim_steps(data, first_samp, pad_start=None, pad_stop=None, merge=0):
         idx = (diff <= abs(merge))
         if np.any(idx):
             where = np.where(idx)[0]
-            keep = (idx == False)
+            keep = np.logical_not(idx)
             if merge > 0:
                 # drop the earlier event
                 steps[where + 1, 1] = steps[where, 1]
@@ -371,7 +385,7 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
 
 @verbose
 def _find_events(data, first_samp, verbose=None, output='onset',
-                 consecutive='increasing', min_samples=0):
+                 consecutive='increasing', min_samples=0, mask=0):
     """Helper function for find events"""
     if min_samples > 0:
         merge = int(min_samples // 1)
@@ -387,6 +401,7 @@ def _find_events(data, first_samp, verbose=None, output='onset',
     data = data.astype(np.int)
 
     events = _find_stim_steps(data, first_samp, pad_stop=0, merge=merge)
+    events = _mask_trigs(events, mask)
 
     # Determine event onsets and offsets
     if consecutive == 'increasing':
@@ -437,8 +452,8 @@ def _find_events(data, first_samp, verbose=None, output='onset',
 
 @verbose
 def find_events(raw, stim_channel=None, verbose=None, output='onset',
-                consecutive='increasing', min_duration=0, 
-                shortest_event=2):
+                consecutive='increasing', min_duration=0,
+                shortest_event=2, mask=0):
     """Find events from raw file
 
     Parameters
@@ -468,6 +483,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     shortest_event : int
         Minimum number of samples an event must last (default is 2). If the
         duration is less than this an exception will be raised.
+    mask : int
+        The value of the digital mask to apply to the stim channel values.
+        The default value is 0.
 
     Returns
     -------
@@ -531,6 +549,14 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
         ...                   min_duration=0.002))
         [[ 1  0 32]]
 
+    For the digital mask, it will take the binary representation of the
+    digital mask, e.g. 5 -> '00000101', and will block the values
+    where mask is one.
+
+    e.g.      7 '0000111' <- trigger value
+             37 '0100101' <- mask
+         ----------------
+              2 '0000010'
 
     See Also
     --------
@@ -547,17 +573,34 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     data, _ = raw[pick, :]
 
     events = _find_events(data, raw.first_samp, verbose=verbose, output=output,
-                          consecutive=consecutive, min_samples=min_samples)
-                          
+                          consecutive=consecutive, min_samples=min_samples,
+                          mask=mask)
+
     # add safety check for spurious events (for ex. from neuromag syst.) by
     # checking the number of low sample events
     n_short_events = np.sum(np.diff(events[:, 0]) < shortest_event)
     if n_short_events > 0:
-        raise ValueError("You have %i events shorter than "
+        raise ValueError("You have %i events shorter than the "
                          "shortest_event. These are very unusual and you "
                          "may want to set min_duration to a larger value e.g."
                          " x / raw.info['sfreq']. Where x = 1 sample shorter "
                          "than the shortest event length." % (n_short_events))
+
+    return events
+
+
+def _mask_trigs(events, mask):
+    """Helper function for masking digital trigger values"""
+    if not isinstance(mask, int):
+        raise TypeError('You provided a(n) %s. Mask must be an int.'
+                        % type(mask))
+    n_events = len(events)
+    if n_events == 0:
+        return events.copy()
+
+    mask = np.bitwise_not(mask)
+    events[:, 1:] = np.bitwise_and(events[:, 1:], mask)
+    events = events[events[:, 1] != events[:, 2]]
 
     return events
 
@@ -705,26 +748,3 @@ def concatenate_events(events, first_samps, last_samps):
         events_out = np.concatenate((events_out, e2), axis=0)
 
     return events_out
-
-
-def _get_stim_channel(stim_channel):
-    """Helper to determine the appropriate stim_channel"""
-    if stim_channel is not None:
-        if not isinstance(stim_channel, list):
-            if not isinstance(stim_channel, string_types):
-                raise ValueError('stim_channel must be a str, list, or None')
-            stim_channel = [stim_channel]
-        if not all([isinstance(s, string_types) for s in stim_channel]):
-            raise ValueError('stim_channel list must contain all strings')
-        return stim_channel
-
-    stim_channel = list()
-    ch_count = 0
-    ch = get_config('MNE_STIM_CHANNEL')
-    while(ch is not None):
-        stim_channel.append(ch)
-        ch_count += 1
-        ch = get_config('MNE_STIM_CHANNEL_%d' % ch_count)
-    if ch_count == 0:
-        stim_channel = ['STI 014']
-    return stim_channel

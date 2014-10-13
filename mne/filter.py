@@ -1,6 +1,6 @@
 """IIR and FIR filtering functions"""
 
-from .externals.six import string_types
+from .externals.six import string_types, integer_types
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq
@@ -62,7 +62,7 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     zero_phase : bool
         If True: the filter is applied in forward and backward direction,
         resulting in a zero-phase filter.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -258,7 +258,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -279,7 +279,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     min_att_db = 20
 
     # normalize frequencies
-    freq = np.array(freq) / (Fs/2)
+    freq = np.array(freq) / (Fs / 2.)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
 
@@ -474,11 +474,11 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         [b, a] = [iir_params['b'], iir_params['a']]
     else:
         # ensure we have a valid ftype
-        if not 'ftype' in iir_params:
+        if 'ftype' not in iir_params:
             raise RuntimeError('ftype must be an entry in iir_params if ''b'' '
                                'and ''a'' are not specified')
         ftype = iir_params['ftype']
-        if not ftype in filter_dict:
+        if ftype not in filter_dict:
             raise RuntimeError('ftype must be in filter_dict from '
                                'scipy.signal (e.g., butter, cheby1, etc.) not '
                                '%s' % ftype)
@@ -491,7 +491,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         else:
             # use gpass / gstop design
             Ws = np.asanyarray(f_stop) / (float(sfreq) / 2)
-            if not 'gpass' in iir_params or not 'gstop' in iir_params:
+            if 'gpass' not in iir_params or 'gstop' not in iir_params:
                 raise ValueError('iir_params must have at least ''gstop'' and'
                                  ' ''gpass'' (or ''N'') entries')
             [b, a] = iirdesign(Wp, Ws, iir_params['gpass'],
@@ -501,7 +501,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
         raise RuntimeError('coefficients could not be created from iir_params')
 
     # now deal with padding
-    if not 'padlen' in iir_params:
+    if 'padlen' not in iir_params:
         padlen = _estimate_ringing_samples(b, a)
     else:
         padlen = iir_params['padlen']
@@ -559,10 +559,13 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -570,7 +573,7 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -607,8 +610,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fs = float(Fs)
     Fp1 = float(Fp1)
     Fp2 = float(Fp2)
-    Fs1 = Fp1 - l_trans_bandwidth
-    Fs2 = Fp2 + h_trans_bandwidth
+    Fs1 = Fp1 - l_trans_bandwidth if method == 'fft' else Fp1
+    Fs2 = Fp2 + h_trans_bandwidth if method == 'fft' else Fp2
     if Fs2 > Fs / 2:
         raise ValueError('Effective band-stop frequency (%s) is too high '
                          '(maximum based on Nyquist is %s)' % (Fs2, Fs / 2.))
@@ -659,10 +662,13 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     l_trans_bandwidth : float
         Width of the transition band at the low cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     h_trans_bandwidth : float
         Width of the transition band at the high cut-off frequency in Hz.
+        Not used if 'order' is specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -670,7 +676,7 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -699,8 +705,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
               Fp1  Fs1       Fs2  Fp2
 
     Where
-    Fs1 = Fp1 - l_trans_bandwidth in Hz
-    Fs2 = Fp2 + h_trans_bandwidth in Hz
+    Fs1 = Fp1 + l_trans_bandwidth in Hz
+    Fs2 = Fp2 - h_trans_bandwidth in Hz
 
     Note that multiple stop bands can be specified using arrays.
     """
@@ -714,8 +720,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     Fs = float(Fs)
     Fp1 = Fp1.astype(float)
     Fp2 = Fp2.astype(float)
-    Fs1 = Fp1 + l_trans_bandwidth
-    Fs2 = Fp2 - h_trans_bandwidth
+    Fs1 = Fp1 + l_trans_bandwidth if method == 'fft' else Fp1
+    Fs2 = Fp2 - h_trans_bandwidth if method == 'fft' else Fp2
 
     if np.any(Fs1 <= 0):
         raise ValueError('Filter specification invalid: Lower stop frequency '
@@ -767,8 +773,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is specified
+        in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -776,7 +784,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -808,7 +816,7 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     iir_params = _check_method(method, iir_params, [])
     Fs = float(Fs)
     Fp = float(Fp)
-    Fstop = Fp + trans_bandwidth
+    Fstop = Fp + trans_bandwidth if method == 'fft' else Fp
     if Fstop > Fs / 2.:
         raise ValueError('Effective stop frequency (%s) is too high '
                          '(maximum based on Nyquist is %s)' % (Fstop, Fs / 2.))
@@ -850,8 +858,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is
+        specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt).
@@ -859,7 +869,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -893,7 +903,7 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     Fs = float(Fs)
     Fp = float(Fp)
 
-    Fstop = Fp - trans_bandwidth
+    Fstop = Fp - trans_bandwidth if method == 'fft' else Fp
     if Fstop <= 0:
         raise ValueError('Filter specification invalid: Stop frequency too low'
                          '(%0.1fHz). Increase Fp or reduce transition '
@@ -939,11 +949,13 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         used (faster for long signals). If str, a human-readable time in
         units of "s" or "ms" (e.g., "10s" or "5500ms") will be converted
         to the shortest power-of-two length at least that duration.
+        Not used for 'iir' filters.
     notch_widths : float | array of float | None
         Width of the stop band (centred at each freq in freqs) in Hz.
         If None, freqs / 200 is used.
     trans_bandwidth : float
-        Width of the transition band in Hz.
+        Width of the transition band in Hz. Not used if 'order' is
+        specified in iir_params.
     method : str
         'fft' will use overlap-add FIR filtering, 'iir' will use IIR
         forward-backward filtering (via filtfilt). 'spectrum_fit' will
@@ -962,7 +974,7 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         sinusoidal components to remove when method='spectrum_fit' and
         freqs=None. Note that this will be Bonferroni corrected for the
         number of frequencies, so large p-values may be justified.
-    picks : list of int | None
+    picks : array-like of int | None
         Indices to filter. If None all indices will be filtered.
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
@@ -1068,7 +1080,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
         if line_freqs is None:
             if len(rm_freqs) > 0:
                 logger.info('Detected notch frequencies:\n%s'
-                            % ', '.join([str(f) for f in rm_freqs]))
+                            % ', '.join([str(rm_f) for rm_f in rm_freqs]))
             else:
                 logger.info('Detected notch frequecies:\nNone')
 
@@ -1176,7 +1188,8 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
 
 
 @verbose
-def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
+def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
+             verbose=None):
     """Resample the array x
 
     Operates along the last dimension of the array.
@@ -1191,6 +1204,8 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
         Factor to downsample by.
     npad : integer
         Number of samples to use at the beginning and end for padding.
+    axis : int
+        Axis along which to resample (default is the last axis).
     window : string or tuple
         See scipy.signal.resample for description.
     n_jobs : int | str
@@ -1217,56 +1232,70 @@ def resample(x, up, down, npad=100, window='boxcar', n_jobs=1, verbose=None):
     current implementation is functionally equivalent to passing
     up=up/down and down=1.
     """
+    # check explicitly for backwards compatibility
+    if not isinstance(axis, int):
+        err = ("The axis parameter needs to be an integer (got %s). "
+               "The axis parameter was missing from this function for a "
+               "period of time, you might be intending to specify the "
+               "subsequent window parameter." % repr(axis))
+        raise TypeError(err)
+
     # make sure our arithmetic will work
     ratio = float(up) / down
-    x, orig_shape = _prep_for_filtering(x, False)[:2]
-
-    x_len = x.shape[1]
-    if x_len > 0:
-        # prep for resampling now
-        orig_len = x_len + 2 * npad  # length after padding
-        new_len = int(round(ratio * orig_len))  # length after resampling
-        to_remove = np.round(ratio * npad).astype(int)
-
-        # figure out windowing function
-        if window is not None:
-            if callable(window):
-                W = window(fftfreq(orig_len))
-            elif isinstance(window, np.ndarray) and \
-                    window.shape == (orig_len,):
-                W = window
-            else:
-                W = ifftshift(get_window(window, orig_len))
-        else:
-            W = np.ones(orig_len)
-        W *= (float(new_len) / float(orig_len))
-        W = W.astype(np.complex128)
-
-        # figure out if we should use CUDA
-        n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
-
-        # do the resampling using an adaptation of scipy's FFT-based resample()
-        # use of the 'flat' window is recommended for minimal ringing
-        if n_jobs == 1:
-            y = np.zeros((len(x), new_len - 2 * to_remove), dtype=x.dtype)
-            for xi, x_ in enumerate(x):
-                y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
-                                     cuda_dict)
-        else:
-            _check_njobs(n_jobs, can_be_cuda=True)
-            parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
-            y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
-                         for x_ in x)
-            y = np.array(y)
-
-        # Restore the original array shape (modified for resampling)
-        orig_shape = list(orig_shape)
-        orig_shape[-1] = y.shape[1]
-        y.shape = tuple(orig_shape)
-    else:
+    if axis < 0:
+        axis = x.ndim + axis
+    orig_last_axis = x.ndim - 1
+    if axis != orig_last_axis:
+        x = x.swapaxes(axis, orig_last_axis)
+    orig_shape = x.shape
+    x_len = orig_shape[-1]
+    if x_len == 0:
         warnings.warn('x has zero length along last axis, returning a copy of '
                       'x')
-        y = x.copy()
+        return x.copy()
+
+    # prep for resampling now
+    x_flat = x.reshape((-1, x_len))
+    orig_len = x_len + 2 * npad  # length after padding
+    new_len = int(round(ratio * orig_len))  # length after resampling
+    to_remove = np.round(ratio * npad).astype(int)
+
+    # figure out windowing function
+    if window is not None:
+        if callable(window):
+            W = window(fftfreq(orig_len))
+        elif isinstance(window, np.ndarray) and \
+                window.shape == (orig_len,):
+            W = window
+        else:
+            W = ifftshift(get_window(window, orig_len))
+    else:
+        W = np.ones(orig_len)
+    W *= (float(new_len) / float(orig_len))
+    W = W.astype(np.complex128)
+
+    # figure out if we should use CUDA
+    n_jobs, cuda_dict, W = setup_cuda_fft_resample(n_jobs, W, new_len)
+
+    # do the resampling using an adaptation of scipy's FFT-based resample()
+    # use of the 'flat' window is recommended for minimal ringing
+    if n_jobs == 1:
+        y = np.zeros((len(x_flat), new_len - 2 * to_remove), dtype=x.dtype)
+        for xi, x_ in enumerate(x_flat):
+            y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
+                                 cuda_dict)
+    else:
+        _check_njobs(n_jobs, can_be_cuda=True)
+        parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
+        y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
+                     for x_ in x_flat)
+        y = np.array(y)
+
+    # Restore the original array shape (modified for resampling)
+    y.shape = orig_shape[:-1] + (y.shape[1],)
+    if axis != orig_last_axis:
+        y = y.swapaxes(axis, orig_last_axis)
+
     return y
 
 
@@ -1347,7 +1376,7 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
                           % (filter_length, filter_length / float(sfreq)))
 
     if filter_length is not None:
-        if not isinstance(filter_length, int):
+        if not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be str, int, or None')
     return filter_length
 

@@ -1,4 +1,4 @@
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Romain Trachel <romain.trachel@inria.fr>
 #
 # License: BSD (3-clause)
@@ -9,13 +9,11 @@ from nose.tools import assert_true, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 
-from mne import fiff, Epochs, read_events
+from mne import io, Epochs, read_events, pick_types
 from mne.decoding.csp import CSP
-from mne.utils import _TempDir, requires_sklearn
+from mne.utils import requires_sklearn
 
-tempdir = _TempDir()
-
-data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
@@ -28,10 +26,10 @@ start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
 def test_csp():
     """Test Common Spatial Patterns algorithm on epochs
     """
-    raw = fiff.Raw(raw_fname, preload=False)
+    raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -64,10 +62,10 @@ def test_csp():
 def test_regularized_csp():
     """Test Common Spatial Patterns algorithm using regularized covariance
     """
-    raw = fiff.Raw(raw_fname, preload=False)
+    raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)

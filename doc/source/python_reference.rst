@@ -14,7 +14,7 @@ a module heading are found in the :py:mod:`mne` namespace.
 
 .. toctree::
    :maxdepth: 2
-   
+
    python_reference
 
 
@@ -27,10 +27,13 @@ Classes
    :toctree: generated/
    :template: class.rst
 
-   fiff.Raw
+   io.Raw
+   io.RawFIFF
    Epochs
-   fiff.Evoked
+   Evoked
    SourceEstimate
+   VolSourceEstimate
+   MixedSourceEstimate
    Covariance
    Label
    BiHemiLabel
@@ -45,6 +48,7 @@ Classes
    realtime.MockRtClient
    realtime.StimServer
    realtime.StimClient
+   report.Report
 
 Logging and Configuration
 =========================
@@ -75,10 +79,12 @@ Logging and Configuration
 
    init_cuda
 
-File I/O
-========
+Reading raw data
+================
 
-.. currentmodule:: mne
+:py:mod:`mne.io`:
+
+.. currentmodule:: mne.io
 
 Classes:
 
@@ -86,8 +92,39 @@ Classes:
    :toctree: generated/
    :template: class.rst
 
-   fiff.Evoked
-   fiff.Raw
+   Raw
+
+Functions:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+  read_raw_bti
+  read_raw_edf
+  read_raw_kit
+  read_raw_brainvision
+  read_raw_egi
+
+.. currentmodule:: mne.io.kit
+
+:py:mod:`mne.io.kit`:
+
+.. autosummary::
+  :toctree: generated/
+  :template: function.rst
+
+   read_elp
+   read_hsp
+   read_mrk
+   write_hsp
+   write_mrk
+
+
+File I/O
+========
+
+.. currentmodule:: mne
 
 Functions:
 
@@ -99,12 +136,14 @@ Functions:
    get_head_surf
    get_meg_helmet_surf
    parse_config
+   read_labels_from_annot
    read_bem_solution
    read_bem_surfaces
    read_cov
    read_dip
    read_epochs
    read_events
+   read_evokeds
    read_forward_solution
    read_label
    read_morph_map
@@ -116,9 +155,11 @@ Functions:
    read_surface
    read_trans
    save_stc_as_volume
+   write_labels_to_annot
    write_bem_surface
    write_cov
    write_events
+   write_evokeds
    write_forward_solution
    write_label
    write_proj
@@ -126,52 +167,48 @@ Functions:
    write_surface
    write_trans
 
-.. currentmodule:: mne.fiff.bti
 
-:py:mod:`mne.fiff.bti`:
+Creating data objects from arrays
+=================================
+
+Classes:
+
+.. currentmodule:: mne
+
+:py:mod:`mne`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   EvokedArray
+   EpochsArray
+
+.. currentmodule:: mne.io
+
+:py:mod:`mne.io`:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RawArray
 
 Functions:
 
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
+.. currentmodule:: mne
 
-  read_raw_bti
-
-.. currentmodule:: mne.fiff.kit
-
-:py:mod:`mne.fiff.kit`:
+:py:mod:`mne`:
 
 .. autosummary::
   :toctree: generated/
   :template: function.rst
 
-   read_raw_kit
-   read_elp
-   read_hsp
-   read_mrk
-   write_hsp
-   write_mrk
+  create_info
 
-.. currentmodule:: mne.fiff.edf
 
-:py:mod:`mne.fiff.edf`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_edf
-
-.. currentmodule:: mne.fiff.brainvision
-
-:py:mod:`mne.fiff.brainvision`:
-
-.. autosummary::
-  :toctree: generated/
-  :template: function.rst
-
-   read_raw_brainvision
+Sample datasets
+===============
 
 :py:mod:`mne.datasets.sample`:
 
@@ -238,9 +275,13 @@ Visualization
    plot_cov
    plot_drop_log
    plot_evoked
+   plot_evoked_image
    plot_evoked_topomap
    plot_evoked_field
-   plot_ica_panel
+   plot_ica_sources
+   plot_ica_components
+   plot_ica_scores
+   plot_ica_overlay
    plot_image_epochs
    plot_raw
    plot_raw_psds
@@ -248,13 +289,10 @@ Visualization
    plot_sparse_source_estimates
    plot_topo
    plot_topo_image_epochs
-   plot_topo_phase_lock
-   plot_topo_power
-   plot_topo_tfr
    plot_topomap
    compare_fiff
 
-.. currentmodule:: mne.fiff
+.. currentmodule:: mne.io
 
 .. autosummary::
    :toctree: generated/
@@ -293,12 +331,16 @@ Projections:
 
    compute_proj_ecg
    compute_proj_eog
+   create_ecg_epochs
+   create_eog_epochs
    find_ecg_events
    find_eog_events
+   find_outlier_adaptive
    ica_find_ecg_events
    ica_find_eog_events
    read_ica
    run_ica
+   infomax
 
 :py:mod:`mne.filter`:
 
@@ -353,7 +395,7 @@ Events
 
    combine_event_ids
    equalize_epoch_counts
-
+   add_channels_epochs
 
 Sensor Space Data
 =================
@@ -364,19 +406,21 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
-   fiff.concatenate_raws
-   fiff.get_chpi_positions
-   fiff.pick_channels
-   fiff.pick_channels_cov
-   fiff.pick_channels_forward
-   fiff.pick_channels_regexp
-   fiff.pick_types
-   fiff.pick_types_evoked
-   fiff.pick_types_forward
-
+   concatenate_raws
+   equalize_channels
+   get_chpi_positions
+   pick_channels
+   pick_channels_cov
+   pick_channels_forward
+   pick_channels_regexp
+   pick_types
+   pick_types_evoked
+   pick_types_forward
+   read_ch_connectivity
    read_epochs
    read_reject_parameters
    read_selection
+   rename_channels
 
 
 Covariance
@@ -422,7 +466,11 @@ Step by step instructions for using :func:`gui.coregistration`:
 Forward Modeling
 ================
 
+:py:mod:`mne`:
+
 .. currentmodule:: mne
+
+Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -456,6 +504,29 @@ Forward Modeling
    restrict_forward_to_label
    restrict_forward_to_stc
 
+:py:mod:`mne.source_space`:
+
+.. automodule:: mne.source_space
+   :no-members:
+   :no-inherited-members:
+
+.. currentmodule:: mne.source_space
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   SourceSpaces
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   get_volume_labels_from_aseg
 
 Inverse Solutions
 =================
@@ -467,6 +538,16 @@ Inverse Solutions
   :no-inherited-members:
 
 .. currentmodule:: mne.minimum_norm
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   InverseOperator
+
+Functions:
 
 .. autosummary::
    :toctree: generated/
@@ -481,6 +562,8 @@ Inverse Solutions
    source_band_induced_power
    source_induced_power
    write_inverse_operator
+   point_spread_function
+   cross_talk_function
 
 :py:mod:`mne.inverse_sparse`:
 
@@ -527,15 +610,16 @@ Source Space Data
    :toctree: generated/
    :template: function.rst
 
+   collect_transforms
    compute_morph_matrix
    extract_label_time_course
    grade_to_tris
    grade_to_vertices
    grow_labels
-   labels_from_parc
    label_sign_flip
    morph_data
    morph_data_precomputed
+   read_annot
    read_dip
    read_label
    read_source_estimate
@@ -545,6 +629,7 @@ Source Space Data
    transform_coordinates
    transform_surface_to
    vertex_to_mni
+   write_annot
    write_label
 
 
@@ -567,8 +652,8 @@ Time-Frequency
    compute_raw_psd
    compute_epochs_psd
    iir_filter_raw
-   induced_power
    morlet
+   tfr_morlet
    single_trial_power
    yule_walker
    ar_raw
@@ -621,6 +706,7 @@ Statistics
    spatio_temporal_cluster_test
    spatio_temporal_cluster_1samp_test
    ttest_1samp_no_p
+   linear_regression
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 
@@ -664,7 +750,19 @@ Decoding
 
 .. automodule:: mne.decoding
    :no-members:
+   :no-inherited-members:
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Scaler
+   ConcatenateChannels
+   PSDEstimator
+   FilterEstimator
+   CSP
 
 Realtime
 ========
@@ -673,3 +771,36 @@ Realtime
 
 .. automodule:: mne.realtime
    :no-members:
+   :no-inherited-members:
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   RtEpochs
+   RtClient
+   MockRtClient
+   FieldTripClient
+   StimServer
+   StimClient
+
+MNE-Report
+==========
+
+:py:mod:`mne.report`:
+
+.. automodule:: mne.report
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.report
+
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   Report

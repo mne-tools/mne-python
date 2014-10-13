@@ -3,7 +3,7 @@
 Read a forward operator and display sensitivity maps
 ====================================================
 """
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -26,10 +26,10 @@ mag_map = mne.sensitivity_map(fwd, ch_type='mag', mode='fixed')
 eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 
 ###############################################################################
-# Show gain matrix a.k.a. leadfield matrix with sensitivy map
+# Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
 import matplotlib.pyplot as plt
-plt.matshow(leadfield[:, :500])
+plt.matshow(leadfield[:, :500], cmap='RdBu_r')
 plt.xlabel('sources')
 plt.ylabel('sensors')
 plt.title('Lead field matrix (500 dipoles only)')

@@ -260,6 +260,9 @@ class StimClient(object):
                                'computer connection (host: %s '
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
+    def close(self):
+        """Close the socket object"""
+        self._sock.close()
 
     @verbose
     def get_trigger(self, timeout=5.0, verbose=None):

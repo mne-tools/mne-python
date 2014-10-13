@@ -10,7 +10,7 @@ is ordered based on the locations of the regions.
 """
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Nicolas P. Rougier (graph code borrowed from his matplotlib gallery)
 #
 # License: BSD (3-clause)
@@ -20,7 +20,7 @@ print(__doc__)
 import numpy as np
 import mne
 from mne.datasets import sample
-from mne.fiff import Raw, pick_types
+from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
 from mne.viz import circular_layout, plot_connectivity_circle
@@ -40,8 +40,8 @@ events = mne.read_events(fname_event)
 raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG channels
-picks = pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
+                       exclude='bads')
 
 # Define epochs for left-auditory condition
 event_id, tmin, tmax = 1, -0.2, 0.5
@@ -58,8 +58,9 @@ stcs = apply_inverse_epochs(epochs, inverse_operator, lambda2, method,
                             pick_ori="normal", return_generator=True)
 
 # Get labels for FreeSurfer 'aparc' cortical parcellation with 34 labels/hemi
-labels, label_colors = mne.labels_from_parc('sample', parc='aparc',
-                                            subjects_dir=subjects_dir)
+labels = mne.read_labels_from_annot('sample', parc='aparc',
+                                    subjects_dir=subjects_dir)
+label_colors = [label.color for label in labels]
 
 # Average the source estimates within each label using sign-flips to reduce
 # signal cancellations, also here we return a generator

@@ -1,0 +1,171 @@
+# Author: Mainak Jas <mainak@neuro.hut.fi>
+#
+# License: BSD (3-clause)
+import os
+import os.path as op
+import glob
+import warnings
+import shutil
+
+from nose.tools import assert_true, assert_equal, assert_raises
+
+from mne import Epochs, read_events, pick_types
+from mne.io import Raw
+from mne.datasets import testing
+from mne.report import Report
+from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
+                       requires_PIL, run_tests_if_main)
+
+data_dir = testing.data_path(download=False)
+subjects_dir = op.join(data_dir, 'subjects')
+report_dir = op.join(data_dir, 'MEG', 'sample')
+raw_fname = op.join(report_dir, 'sample_audvis_trunc_raw.fif')
+event_fname = op.join(report_dir, 'sample_audvis_trunc_raw-eve.fif')
+cov_fname = op.join(report_dir, 'sample_audvis_trunc-cov.fif')
+fwd_fname = op.join(report_dir, 'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+trans_fname = op.join(report_dir, 'sample_audvis_trunc-trans.fif')
+inv_fname = op.join(report_dir,
+                    'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
+mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
+
+base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
+                               'data'))
+
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+
+@testing.requires_testing_data
+@requires_PIL
+def test_render_report():
+    """Test rendering -*.fif files for mne report.
+    """
+    tempdir = _TempDir()
+    raw_fname_new = op.join(tempdir, 'temp_raw.fif')
+    event_fname_new = op.join(tempdir, 'temp_raw-eve.fif')
+    cov_fname_new = op.join(tempdir, 'temp_raw-cov.fif')
+    fwd_fname_new = op.join(tempdir, 'temp_raw-fwd.fif')
+    inv_fname_new = op.join(tempdir, 'temp_raw-inv.fif')
+    for a, b in [[raw_fname, raw_fname_new],
+                 [event_fname, event_fname_new],
+                 [cov_fname, cov_fname_new],
+                 [fwd_fname, fwd_fname_new],
+                 [inv_fname, inv_fname_new]]:
+        shutil.copyfile(a, b)
+
+    # create and add -epo.fif and -ave.fif files
+    epochs_fname = op.join(tempdir, 'temp-epo.fif')
+    evoked_fname = op.join(tempdir, 'temp-ave.fif')
+    raw = Raw(raw_fname_new)
+    picks = pick_types(raw.info, meg='mag', eeg=False)  # faster with one type
+    epochs = Epochs(raw, read_events(event_fname), 1, -0.2, 0.2, picks=picks)
+    epochs.save(epochs_fname)
+    epochs.average().save(evoked_fname)
+
+    report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=tempdir)
+    assert_true(len(w) >= 1)
+
+    # Check correct paths and filenames
+    fnames = glob.glob(op.join(tempdir, '*.fif'))
+    for fname in fnames:
+        assert_true(op.basename(fname) in
+                    [op.basename(x) for x in report.fnames])
+        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+
+    assert_equal(len(report.fnames), len(fnames))
+    assert_equal(len(report.html), len(report.fnames))
+
+    # Check saving functionality
+    report.data_path = tempdir
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False)
+    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+
+    assert_equal(len(report.html), len(fnames))
+    assert_equal(len(report.html), len(report.fnames))
+
+    # Check saving same report to new filename
+    report.save(fname=op.join(tempdir, 'report2.html'), open_browser=False)
+    assert_true(op.isfile(op.join(tempdir, 'report2.html')))
+
+    # Check overwriting file
+    report.save(fname=op.join(tempdir, 'report.html'), open_browser=False,
+                overwrite=True)
+    assert_true(op.isfile(op.join(tempdir, 'report.html')))
+
+
+@requires_mayavi
+@requires_PIL
+def test_render_add_sections():
+    """Test adding figures/images to section.
+    """
+    tempdir = _TempDir()
+    import matplotlib.pyplot as plt
+
+    report = Report(subjects_dir=subjects_dir)
+    # Check add_figs_to_section functionality
+    fig = plt.plot([1, 2], [1, 2])[0].figure
+    report.add_figs_to_section(figs=fig,  # test non-list input
+                               captions=['evoked response'])
+    assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
+                  captions='H')
+
+    # Check add_images_to_section
+    img_fname = op.join(tempdir, 'testimage.png')
+    fig.savefig(img_fname)
+    report.add_images_to_section(fnames=[img_fname],
+                                 captions=['evoked response'])
+    assert_raises(ValueError, report.add_images_to_section,
+                  fnames=[img_fname, img_fname], captions='H')
+
+    # Check deprecation of add_section
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.add_section(figs=fig,
+                           captions=['evoked response'])
+        assert_true(w[0].category == DeprecationWarning)
+
+
+@testing.requires_testing_data
+@requires_mayavi
+@requires_nibabel()
+def test_render_mri():
+    """Test rendering MRI for mne report.
+    """
+    tempdir = _TempDir()
+    trans_fname_new = op.join(tempdir, 'temp-trans.fif')
+    for a, b in [[trans_fname, trans_fname_new]]:
+        shutil.copyfile(a, b)
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=tempdir, mri_decim=30, pattern='*',
+                            n_jobs=2)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_render_mri_without_bem():
+    """Test rendering MRI without BEM for mne report.
+    """
+    tempdir = _TempDir()
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(op.join(tempdir, 'sample', 'mri'))
+    shutil.copyfile(mri_fname, op.join(tempdir, 'sample', 'mri', 'T1.mgz'))
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=tempdir)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.parse_folder(tempdir)
+    assert_true(len(w) >= 1)
+    report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+
+run_tests_if_main()

@@ -1,7 +1,7 @@
 """T-test with permutations
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Fernando Perez (bin_perm_rep function)
 #
 # License: Simplified BSD
@@ -37,7 +37,7 @@ def bin_perm_rep(ndim, a=0, b=1):
     nperms = 2 ** ndim
     perms = np.empty((nperms, ndim), type(a))
     perms.fill(a)
-    half_point = nperms / 2
+    half_point = nperms // 2
     perms[half_point:, 0] = b
     # Fill the rest of the table by sampling the pervious column every 2 items
     for j in range(1, ndim):

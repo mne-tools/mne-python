@@ -9,7 +9,7 @@ in stc files for visualisation.
 
 """
 
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -18,7 +18,6 @@ print(__doc__)
 import matplotlib.pyplot as plt
 import mne
 from mne.datasets import sample
-from mne.fiff import Evoked
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
 
@@ -32,7 +31,7 @@ snr = 3.0
 lambda2 = 1.0 / snr ** 2
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 forward_meeg = mne.read_forward_solution(fname_fwd_meeg, surf_ori=True)
 noise_cov = mne.read_cov(fname_cov)
 
@@ -41,7 +40,7 @@ noise_cov = mne.cov.regularize(noise_cov, evoked.info,
                                mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 # Restrict forward solution as necessary for MEG
-forward_meg = mne.fiff.pick_types_forward(forward_meeg, meg=True, eeg=False)
+forward_meg = mne.pick_types_forward(forward_meeg, meg=True, eeg=False)
 # Alternatively, you can just load a forward solution that is restricted
 forward_eeg = mne.read_forward_solution(fname_fwd_eeg, surf_ori=True)
 

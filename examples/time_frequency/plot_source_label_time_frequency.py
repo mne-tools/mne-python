@@ -11,7 +11,7 @@ when they are computed with and without subtracting the evoked response
 from each epoch. The former results in induced activity only while the
 latter also includes evoked (stimulus-locked) activity.
 """
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -20,7 +20,7 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import fiff
+from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
 
@@ -35,7 +35,7 @@ fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 tmin, tmax, event_id = -0.2, 0.5, 2
 
 # Setup for reading the raw data
-raw = fiff.Raw(raw_fname)
+raw = io.Raw(raw_fname)
 events = mne.find_events(raw, stim_channel='STI 014')
 inverse_operator = read_inverse_operator(fname_inv)
 
@@ -43,7 +43,7 @@ include = []
 raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Picks MEG channels
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
                         stim=False, include=include, exclude='bads')
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
@@ -82,7 +82,7 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.subplot(2, 2, 2 * ii + 1)
     plt.imshow(20 * power,
                extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
-               aspect='auto', origin='lower', vmin=0., vmax=30.)
+               aspect='auto', origin='lower', vmin=0., vmax=30., cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
     plt.title('Power (%s)' % title)
@@ -91,7 +91,8 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
     plt.subplot(2, 2, 2 * ii + 2)
     plt.imshow(phase_lock,
                extent=[times[0], times[-1], frequencies[0], frequencies[-1]],
-               aspect='auto', origin='lower', vmin=0, vmax=0.7)
+               aspect='auto', origin='lower', vmin=0, vmax=0.7,
+               cmap='RdBu_r')
     plt.xlabel('Time (s)')
     plt.ylabel('Frequency (Hz)')
     plt.title('Phase-lock (%s)' % title)

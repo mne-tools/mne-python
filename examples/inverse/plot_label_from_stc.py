@@ -22,7 +22,6 @@ import matplotlib.pyplot as plt
 
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
-from mne.fiff import Evoked
 from mne.datasets import sample
 
 data_path = sample.data_path()
@@ -42,7 +41,7 @@ aparc_label_name = 'bankssts-lh'
 tmin, tmax = 0.080, 0.120
 
 # Load data
-evoked = Evoked(fname_evoked, setno=0, baseline=(None, 0))
+evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 inverse_operator = read_inverse_operator(fname_inv)
 src = inverse_operator['src']  # get the source space
 
@@ -56,22 +55,23 @@ stc_mean = stc.copy().crop(tmin, tmax).mean()
 # use the stc_mean to generate a functional label
 # region growing is halted at 60% of the peak value within the
 # anatomical label / ROI specified by aparc_label_name
-label = mne.labels_from_parc(subject, parc='aparc', subjects_dir=subjects_dir,
-                             regexp=aparc_label_name)[0][0]
+label = mne.read_labels_from_annot(subject, parc='aparc',
+                                   subjects_dir=subjects_dir,
+                                   regexp=aparc_label_name)[0]
 stc_mean_label = stc_mean.in_label(label)
 data = np.abs(stc_mean_label.data)
 stc_mean_label.data[data < 0.6 * np.max(data)] = 0.
 
-func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=5,
+func_labels, _ = mne.stc_to_label(stc_mean_label, src=src, smooth=True,
                                   subjects_dir=subjects_dir, connected=True)
 
 # take first as func_labels are ordered based on maximum values in stc
 func_label = func_labels[0]
 
 # load the anatomical ROI for comparison
-anat_label = mne.labels_from_parc(subject, parc='aparc',
-                                  subjects_dir=subjects_dir,
-                                  regexp=aparc_label_name)[0][0]
+anat_label = mne.read_labels_from_annot(subject, parc='aparc',
+                                        subjects_dir=subjects_dir,
+                                        regexp=aparc_label_name)[0]
 
 # extract the anatomical time course for each label
 stc_anat_label = stc.in_label(anat_label)

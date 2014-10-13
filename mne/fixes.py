@@ -19,14 +19,36 @@ import inspect
 import warnings
 import numpy as np
 import scipy
-from scipy import linalg
+from scipy import linalg, sparse
 from math import ceil, log
 from numpy.fft import irfft
+from nose.tools import assert_true
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
 from .externals import six
 from .externals.six.moves import copyreg
+from gzip import GzipFile
+
+
+###############################################################################
+# Misc
+
+class gzip_open(GzipFile):  # python2.6 doesn't have context managing
+    def __init__(self, *args, **kwargs):
+        return GzipFile.__init__(self, *args, **kwargs)
+
+    def __enter__(self):
+        if hasattr(GzipFile, '__enter__'):
+            return GzipFile.__enter__(self)
+        else:
+            return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if hasattr(GzipFile, '__exit__'):
+            return GzipFile.__exit__(self, exc_type, exc_value, traceback)
+        else:
+            return self.close()
 
 
 class _Counter(collections.defaultdict):
@@ -150,6 +172,30 @@ if not hasattr(np, 'in1d'):
     in1d = _in1d
 else:
     in1d = np.in1d
+
+
+def _digitize(x, bins, right=False):
+    """Replacement for digitize with right kwarg (numpy < 1.7).
+
+    Notes
+    -----
+    This fix is only meant for integer arrays. If ``right==True`` but either
+    ``x`` or ``bins`` are of a different type, a NotImplementedError will be
+    raised.
+    """
+    if right:
+        x = np.asarray(x)
+        bins = np.asarray(bins)
+        if (x.dtype.kind not in 'ui') or (bins.dtype.kind not in 'ui'):
+            raise NotImplementedError("Only implemented for integer input")
+        return np.digitize(x - 1e-5, bins)
+    else:
+        return np.digitize(x, bins)
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    digitize = _digitize
+else:
+    digitize = np.digitize
 
 
 def _tril_indices(n, k=0):
@@ -525,3 +571,53 @@ def normalize_colors(vmin, vmax, clip=False):
         return plt.Normalize(vmin, vmax, clip=clip)
     else:
         return plt.normalize(vmin, vmax, clip=clip)
+
+
+def _assert_is(expr1, expr2, msg=None):
+    """Fake assert_is without message"""
+    assert_true(expr2 is expr2, msg)
+
+def _assert_is_not(expr1, expr2, msg=None):
+    """Fake assert_is_not without message"""
+    assert_true(expr2 is not expr2, msg)
+
+try:
+    from nose.tools import assert_is, assert_is_not
+except ImportError:
+    assert_is = _assert_is
+    assert_is_not = _assert_is_not
+
+
+def _sparse_block_diag(mats, format=None, dtype=None):
+    """An implementation of scipy.sparse.block_diag since old versions of
+    scipy don't have it. Forms a sparse matrix by stacking matrices in block
+    diagonal form.
+
+    Parameters
+    ----------
+    mats : list of matrices
+        Input matrices.
+    format : str, optional
+        The sparse format of the result (e.g. "csr"). If not given, the
+        matrix is returned in "coo" format.
+    dtype : dtype specifier, optional
+        The data-type of the output matrix. If not given, the dtype is
+        determined from that of blocks.
+
+    Returns
+    -------
+    res : sparse matrix
+    """
+    nmat = len(mats)
+    rows = []
+    for ia, a in enumerate(mats):
+        row = [None] * nmat
+        row[ia] = a
+        rows.append(row)
+    return sparse.bmat(rows, format=format, dtype=dtype)
+
+try:
+    from scipy.sparse import block_diag as sparse_block_diag
+except Exception:
+    sparse_block_diag = _sparse_block_diag
+

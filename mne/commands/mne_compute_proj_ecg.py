@@ -10,14 +10,13 @@ from __future__ import print_function
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from ..externals.six import string_types
+from mne.externals.six import string_types
 import os
 import sys
 import mne
 
 
-if __name__ == '__main__':
-
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -155,7 +154,8 @@ if __name__ == '__main__':
             raise ValueError('qrsthr must be "auto" or a float')
 
     if bad_fname is not None:
-        bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
+        with open(bad_fname, 'r') as fid:
+            bads = [w.rstrip() for w in fid.readlines()]
         print('Bad channels read : %s' % bads)
     else:
         bads = []
@@ -172,10 +172,10 @@ if __name__ == '__main__':
     else:
         ecg_proj_fname = prefix + '_ecg_proj.fif'
 
-    raw = mne.fiff.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.fiff.Raw(raw_event_fname)
+        raw_event = mne.io.Raw(raw_event_fname)
     else:
         raw_event = raw
 
@@ -205,3 +205,7 @@ if __name__ == '__main__':
 
     print("Writing ECG events in %s" % ecg_event_fname)
     mne.write_events(ecg_event_fname, events)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

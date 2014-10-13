@@ -7,7 +7,6 @@
 from glob import glob
 import os
 from ..externals.six.moves import map
-from ..externals.six.moves import zip
 
 # allow import without traits
 try:
@@ -23,29 +22,15 @@ try:
     from tvtk.pyface.scene_editor import SceneEditor
 except:
     from ..utils import trait_wraith
-    HasTraits = object
-    HasPrivateTraits = object
-    cached_property = trait_wraith
-    on_trait_change = trait_wraith
-    MayaviScene = trait_wraith
-    MlabSceneModel = trait_wraith
-    Array = trait_wraith
-    Bool = trait_wraith
-    Button = trait_wraith
-    DelegatesTo = trait_wraith
-    Enum = trait_wraith
-    Event = trait_wraith
-    Instance = trait_wraith
-    Property = trait_wraith
-    View = trait_wraith
-    Item = trait_wraith
-    HGroup = trait_wraith
-    VGroup = trait_wraith
-    SceneEditor = trait_wraith
-    NoButtons = trait_wraith
+    HasTraits = HasPrivateTraits = object
+    cached_property = on_trait_change = MayaviScene = MlabSceneModel = \
+        Array = Bool = Button = DelegatesTo = Enum = Event = Instance = \
+        Property = View = Item = HGroup = VGroup = SceneEditor = \
+        NoButtons = trait_wraith
 
 from ..coreg import fid_fname, fid_fname_general, head_bem_fname
-from ..fiff import FIFF, write_fiducials
+from ..io import write_fiducials
+from ..io.constants import FIFF
 from ..utils import get_subjects_dir, logger
 from ._file_traits import (BemSource, fid_wildcard, FiducialsSource,
                            MRISubjectSource, SubjectSelectorPanel)
@@ -80,6 +65,7 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
     subject = DelegatesTo('subject_source')
     subject_has_bem = DelegatesTo('subject_source')
     points = DelegatesTo('bem')
+    norms = DelegatesTo('bem')
     tris = DelegatesTo('bem')
     lpa = Array(float, (1, 3))
     nasion = Array(float, (1, 3))

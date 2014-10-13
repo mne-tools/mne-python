@@ -49,7 +49,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     n_signals, T = x.shape
     wsize = int(wsize)
 
-    ### Errors and warnings ###
+    # Errors and warnings
     if wsize % 4:
         raise ValueError('The window length must be a multiple of 4.')
 
@@ -67,7 +67,7 @@ def stft(x, wsize, tstep=None, verbose=None):
                          'window length.')
 
     n_step = int(ceil(T / float(tstep)))
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     logger.info("Number of frequencies: %d" % n_freq)
     logger.info("Number of time steps: %d" % n_step)
 
@@ -88,7 +88,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     # Zero-padding and Pre-processing for edges
     xp = np.zeros((n_signals, wsize + (n_step - 1) * tstep),
                   dtype=x.dtype)
-    xp[:, (wsize - tstep) / 2: (wsize - tstep) / 2 + T] = x
+    xp[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T] = x
     x = xp
 
     for t in range(n_step):
@@ -129,7 +129,7 @@ def istft(X, tstep=None, Tx=None):
     --------
     stft
     """
-    ### Errors and warnings ###
+    # Errors and warnings
     n_signals, n_win, n_step = X.shape
     if (n_win % 2 == 0):
         ValueError('The number of rows of the STFT matrix must be odd.')
@@ -159,28 +159,28 @@ def istft(X, tstep=None, Tx=None):
     if n_signals == 0:
         return x[:, :Tx]
 
-    ### Computing inverse STFT signal ###
     # Defining sine window
     win = np.sin(np.arange(.5, wsize + .5) / wsize * np.pi)
     # win = win / norm(win);
+
     # Pre-processing for edges
     swin = np.zeros(T + wsize - tstep, dtype=np.float)
     for t in range(n_step):
         swin[t * tstep:t * tstep + wsize] += win ** 2
     swin = np.sqrt(swin / wsize)
 
-    fframe = np.empty((n_signals, n_win + wsize / 2 - 1), dtype=X.dtype)
+    fframe = np.empty((n_signals, n_win + wsize // 2 - 1), dtype=X.dtype)
     for t in range(n_step):
         # IFFT
         fframe[:, :n_win] = X[:, :, t]
-        fframe[:, n_win:] = np.conj(X[:, wsize / 2 - 1: 0: -1, t])
+        fframe[:, n_win:] = np.conj(X[:, wsize // 2 - 1: 0: -1, t])
         frame = ifft(fframe)
         wwin = win / swin[t * tstep:t * tstep + wsize]
         # Overlap-add
         x[:, t * tstep: t * tstep + wsize] += np.real(np.conj(frame) * wwin)
 
     # Truncation
-    x = x[:, (wsize - tstep) / 2: (wsize - tstep) / 2 + T + 1][:, :Tx].copy()
+    x = x[:, (wsize - tstep) // 2: (wsize - tstep) // 2 + T + 1][:, :Tx].copy()
     return x
 
 
@@ -228,9 +228,10 @@ def stft_norm2(X):
     Returns
     -------
     norms2 : array
-        The squared L2 norm of every raw of X.
+        The squared L2 norm of every row of X.
     """
     X2 = np.abs(X) ** 2
-    # compute all L2 coefs and remove freq zero once.
-    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1))
+    # compute all L2 coefs and remove first and last frequency once.
+    norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
+              np.sum(X2[:, -1, :], axis=1))
     return norms2

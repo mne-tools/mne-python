@@ -1,5 +1,5 @@
 from __future__ import print_function
-# Author: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 
@@ -586,8 +586,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         active_set[active_set_l1] = active_set_l21
 
         # Check convergence : max(abs(Z - Z0)) < tol
-        stop = (safe_max_abs(Z, True - active_set_0[active_set]) < tol and
-                safe_max_abs(Z0, True - active_set[active_set_0]) < tol and
+        stop = (safe_max_abs(Z, ~active_set_0[active_set]) < tol and
+                safe_max_abs(Z0, ~active_set[active_set_0]) < tol and
                 safe_max_abs_diff(Z, active_set_0[active_set],
                                   Z0, active_set[active_set_0]) < tol)
         if stop:

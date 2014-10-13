@@ -1,4 +1,4 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
@@ -9,30 +9,64 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 
-from ..fiff.constants import FIFF
-from ..fiff.open import fiff_open
-from ..fiff.tag import find_tag
-from ..fiff.matrix import (_read_named_matrix, _transpose_named_matrix,
-                           write_named_matrix)
-from ..fiff.proj import read_proj, make_projector, write_proj
-from ..fiff.tree import dir_tree_find
-from ..fiff.write import (write_int, write_float_matrix, start_file,
-                          start_block, end_block, end_file, write_float,
-                          write_coord_trans, write_string)
+from ..io.constants import FIFF
+from ..io.open import fiff_open
+from ..io.tag import find_tag
+from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
+                         write_named_matrix)
+from ..io.proj import _read_proj, make_projector, _write_proj
+from ..io.tree import dir_tree_find
+from ..io.write import (write_int, write_float_matrix, start_file,
+                        start_block, end_block, end_file, write_float,
+                        write_coord_trans, write_string)
 
-from ..fiff.cov import read_cov, write_cov
-from ..fiff.pick import channel_type, pick_info
-from ..cov import prepare_noise_cov
-from ..forward import (compute_depth_prior, read_forward_meas_info,
+from ..io.pick import channel_type, pick_info, pick_types
+from ..cov import prepare_noise_cov, _read_cov, _write_cov
+from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
                        compute_orient_prior, _to_fixed_ori)
-from ..source_space import (read_source_spaces_from_tree,
+from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
 from ..transforms import invert_transform, transform_surface_to
 from ..source_estimate import _make_stc
-from ..utils import logger, verbose
+from ..utils import check_fname, logger, verbose
 from functools import reduce
+
+
+class InverseOperator(dict):
+    """InverseOperator class to represent info from inverse operator
+    """
+
+    def __repr__(self):
+        """Summarize inverse info instead of printing all"""
+
+        entr = '<InverseOperator'
+
+        nchan = len(pick_types(self['info'], meg=True, eeg=False))
+        entr += ' | ' + 'MEG channels: %d' % nchan
+        nchan = len(pick_types(self['info'], meg=False, eeg=True))
+        entr += ' | ' + 'EEG channels: %d' % nchan
+
+        # XXX TODO: This and the __repr__ in SourceSpaces should call a
+        # function _get_name_str() in source_space.py
+        if self['src'][0]['type'] == 'surf':
+            entr += (' | Source space: Surface with %d vertices'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'vol':
+            entr += (' | Source space: Volume with %d grid points'
+                     % self['nsource'])
+        elif self['src'][0]['type'] == 'discrete':
+            entr += (' | Source space: Discrete with %d dipoles'
+                     % self['nsource'])
+
+        source_ori = {FIFF.FIFFV_MNE_UNKNOWN_ORI: 'Unknown',
+                      FIFF.FIFFV_MNE_FIXED_ORI: 'Fixed',
+                      FIFF.FIFFV_MNE_FREE_ORI: 'Free'}
+        entr += ' | Source orientation: %s' % source_ori[self['source_ori']]
+        entr += '>'
+
+        return entr
 
 
 def _pick_channels_inverse_operator(ch_names, inv):
@@ -59,233 +93,219 @@ def read_inverse_operator(fname, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         The inverse operator.
     """
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+
     #
     #   Open the file, create directory
     #
     logger.info('Reading inverse operator decomposition from %s...'
                 % fname)
-    fid, tree, _ = fiff_open(fname, preload=True)
-    #
-    #   Find all inverse operators
-    #
-    invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
-    if invs is None or len(invs) < 1:
-        fid.close()
-        raise Exception('No inverse solutions in %s' % fname)
+    f, tree, _ = fiff_open(fname, preload=True)
+    with f as fid:
+        #
+        #   Find all inverse operators
+        #
+        invs = dir_tree_find(tree, FIFF.FIFFB_MNE_INVERSE_SOLUTION)
+        if invs is None or len(invs) < 1:
+            raise Exception('No inverse solutions in %s' % fname)
 
-    invs = invs[0]
-    #
-    #   Parent MRI data
-    #
-    parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
-    if len(parent_mri) == 0:
-        fid.close()
-        raise Exception('No parent MRI information in %s' % fname)
-    parent_mri = parent_mri[0]  # take only first one
+        invs = invs[0]
+        #
+        #   Parent MRI data
+        #
+        parent_mri = dir_tree_find(tree, FIFF.FIFFB_MNE_PARENT_MRI_FILE)
+        if len(parent_mri) == 0:
+            raise Exception('No parent MRI information in %s' % fname)
+        parent_mri = parent_mri[0]  # take only first one
 
-    logger.info('    Reading inverse operator info...')
-    #
-    #   Methods and source orientations
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
-    if tag is None:
-        fid.close()
-        raise Exception('Modalities not found')
+        logger.info('    Reading inverse operator info...')
+        #
+        #   Methods and source orientations
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INCLUDED_METHODS)
+        if tag is None:
+            raise Exception('Modalities not found')
 
-    inv = dict()
-    inv['methods'] = int(tag.data)
+        inv = dict()
+        inv['methods'] = int(tag.data)
 
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
-    if tag is None:
-        fid.close()
-        raise Exception('Source orientation constraints not found')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_ORIENTATION)
+        if tag is None:
+            raise Exception('Source orientation constraints not found')
 
-    inv['source_ori'] = int(tag.data)
+        inv['source_ori'] = int(tag.data)
 
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
-    if tag is None:
-        fid.close()
-        raise Exception('Number of sources not found')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS)
+        if tag is None:
+            raise Exception('Number of sources not found')
 
-    inv['nsource'] = int(tag.data)
-    inv['nchan'] = 0
-    #
-    #   Coordinate frame
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        fid.close()
-        raise Exception('Coordinate frame tag not found')
+        inv['nsource'] = int(tag.data)
+        inv['nchan'] = 0
+        #
+        #   Coordinate frame
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_COORD_FRAME)
+        if tag is None:
+            raise Exception('Coordinate frame tag not found')
 
-    inv['coord_frame'] = tag.data
+        inv['coord_frame'] = tag.data
 
-    #
-    #   Units
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
-    if tag is not None:
-        if tag.data == FIFF.FIFF_UNIT_AM:
-            inv['units'] = 'Am'
-        elif tag.data == FIFF.FIFF_UNIT_AM_M2:
-            inv['units'] = 'Am/m^2'
-        elif tag.data == FIFF.FIFF_UNIT_AM_M3:
-            inv['units'] = 'Am/m^3'
-        else:
-            inv['units'] = None
-    else:
-        inv['units'] = None
-    #
-    #   The actual source orientation vectors
-    #
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
-    if tag is None:
-        fid.close()
-        raise Exception('Source orientation information not found')
+        #
+        #   Units
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT)
+        unit_dict = {FIFF.FIFF_UNIT_AM: 'Am',
+                     FIFF.FIFF_UNIT_AM_M2: 'Am/m^2',
+                     FIFF.FIFF_UNIT_AM_M3: 'Am/m^3'}
+        inv['units'] = unit_dict.get(int(getattr(tag, 'data', -1)), None)
 
-    inv['source_nn'] = tag.data
-    logger.info('    [done]')
-    #
-    #   The SVD decomposition...
-    #
-    logger.info('    Reading inverse operator decomposition...')
-    tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
-    if tag is None:
-        fid.close()
-        raise Exception('Singular values not found')
+        #
+        #   The actual source orientation vectors
+        #
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SOURCE_ORIENTATIONS)
+        if tag is None:
+            raise Exception('Source orientation information not found')
 
-    inv['sing'] = tag.data
-    inv['nchan'] = len(inv['sing'])
-    #
-    #   The eigenleads and eigenfields
-    #
-    inv['eigen_leads_weighted'] = False
-    eigen_leads = _read_named_matrix(fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
-    if eigen_leads is None:
-        inv['eigen_leads_weighted'] = True
-        eigen_leads = _read_named_matrix(fid, invs,
-                                         FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
-    if eigen_leads is None:
-        raise ValueError('Eigen leads not found in inverse operator.')
-    #
-    #   Having the eigenleads as columns is better for the inverse calculations
-    #
-    inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
-    inv['eigen_fields'] = _read_named_matrix(fid, invs,
-                                             FIFF.FIFF_MNE_INVERSE_FIELDS)
-    logger.info('    [done]')
-    #
-    #   Read the covariance matrices
-    #
-    inv['noise_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
-    logger.info('    Noise covariance matrix read.')
+        inv['source_nn'] = tag.data
+        logger.info('    [done]')
+        #
+        #   The SVD decomposition...
+        #
+        logger.info('    Reading inverse operator decomposition...')
+        tag = find_tag(fid, invs, FIFF.FIFF_MNE_INVERSE_SING)
+        if tag is None:
+            raise Exception('Singular values not found')
 
-    inv['source_cov'] = read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
-    logger.info('    Source covariance matrix read.')
-    #
-    #   Read the various priors
-    #
-    inv['orient_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
-    if inv['orient_prior'] is not None:
-        logger.info('    Orientation priors read.')
+        inv['sing'] = tag.data
+        inv['nchan'] = len(inv['sing'])
+        #
+        #   The eigenleads and eigenfields
+        #
+        inv['eigen_leads_weighted'] = False
+        eigen_leads = _read_named_matrix(
+            fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS)
+        if eigen_leads is None:
+            inv['eigen_leads_weighted'] = True
+            eigen_leads = _read_named_matrix(
+                fid, invs, FIFF.FIFF_MNE_INVERSE_LEADS_WEIGHTED)
+        if eigen_leads is None:
+            raise ValueError('Eigen leads not found in inverse operator.')
+        #
+        #   Having the eigenleads as cols is better for the inverse calcs
+        #
+        inv['eigen_leads'] = _transpose_named_matrix(eigen_leads, copy=False)
+        inv['eigen_fields'] = _read_named_matrix(fid, invs,
+                                                 FIFF.FIFF_MNE_INVERSE_FIELDS)
+        logger.info('    [done]')
+        #
+        #   Read the covariance matrices
+        #
+        inv['noise_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_NOISE_COV)
+        logger.info('    Noise covariance matrix read.')
 
-    inv['depth_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
-    if inv['depth_prior'] is not None:
-        logger.info('    Depth priors read.')
+        inv['source_cov'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_SOURCE_COV)
+        logger.info('    Source covariance matrix read.')
+        #
+        #   Read the various priors
+        #
+        inv['orient_prior'] = _read_cov(fid, invs,
+                                        FIFF.FIFFV_MNE_ORIENT_PRIOR_COV)
+        if inv['orient_prior'] is not None:
+            logger.info('    Orientation priors read.')
 
-    inv['fmri_prior'] = read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
-    if inv['fmri_prior'] is not None:
-        logger.info('    fMRI priors read.')
+        inv['depth_prior'] = _read_cov(fid, invs,
+                                       FIFF.FIFFV_MNE_DEPTH_PRIOR_COV)
+        if inv['depth_prior'] is not None:
+            logger.info('    Depth priors read.')
 
-    #
-    #   Read the source spaces
-    #
-    inv['src'] = read_source_spaces_from_tree(fid, tree, add_geom=False)
+        inv['fmri_prior'] = _read_cov(fid, invs, FIFF.FIFFV_MNE_FMRI_PRIOR_COV)
+        if inv['fmri_prior'] is not None:
+            logger.info('    fMRI priors read.')
 
-    for s in inv['src']:
-        s['id'] = find_source_space_hemi(s)
+        #
+        #   Read the source spaces
+        #
+        inv['src'] = _read_source_spaces_from_tree(fid, tree, add_geom=False)
 
-    #
-    #   Get the MRI <-> head coordinate transformation
-    #
-    tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
-    if tag is None:
-        fid.close()
-        raise Exception('MRI/head coordinate transformation not found')
-    else:
+        for s in inv['src']:
+            s['id'] = find_source_space_hemi(s)
+
+        #
+        #   Get the MRI <-> head coordinate transformation
+        #
+        tag = find_tag(fid, parent_mri, FIFF.FIFF_COORD_TRANS)
+        if tag is None:
+            raise Exception('MRI/head coordinate transformation not found')
         mri_head_t = tag.data
         if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                        mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
+                mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
             mri_head_t = invert_transform(mri_head_t)
             if mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or \
-                        mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
-                fid.close()
+                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD:
                 raise Exception('MRI/head coordinate transformation '
                                 'not found')
 
-    inv['mri_head_t'] = mri_head_t
+        inv['mri_head_t'] = mri_head_t
 
-    #
-    # get parent MEG info
-    #
-    inv['info'] = read_forward_meas_info(tree, fid)
+        #
+        # get parent MEG info
+        #
+        inv['info'] = _read_forward_meas_info(tree, fid)
 
-    #
-    #   Transform the source spaces to the correct coordinate frame
-    #   if necessary
-    #
-    if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
-            inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
-        fid.close()
-        raise Exception('Only inverse solutions computed in MRI or '
-                        'head coordinates are acceptable')
+        #
+        #   Transform the source spaces to the correct coordinate frame
+        #   if necessary
+        #
+        if inv['coord_frame'] != FIFF.FIFFV_COORD_MRI and \
+                inv['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+            raise Exception('Only inverse solutions computed in MRI or '
+                            'head coordinates are acceptable')
 
-    #
-    #  Number of averages is initially one
-    #
-    inv['nave'] = 1
-    #
-    #  We also need the SSP operator
-    #
-    inv['projs'] = read_proj(fid, tree)
+        #
+        #  Number of averages is initially one
+        #
+        inv['nave'] = 1
+        #
+        #  We also need the SSP operator
+        #
+        inv['projs'] = _read_proj(fid, tree)
 
-    #
-    #  Some empty fields to be filled in later
-    #
-    inv['proj'] = []       # This is the projector to apply to the data
-    inv['whitener'] = []   # This whitens the data
-    inv['reginv'] = []     # This the diagonal matrix implementing
-                           # regularization and the inverse
-    inv['noisenorm'] = []  # These are the noise-normalization factors
-    #
-    nuse = 0
-    for k in range(len(inv['src'])):
-        try:
-            inv['src'][k] = transform_surface_to(inv['src'][k],
-                                                 inv['coord_frame'],
-                                                 mri_head_t)
-        except Exception as inst:
-            fid.close()
-            raise Exception('Could not transform source space (%s)' % inst)
+        #
+        #  Some empty fields to be filled in later
+        #
+        inv['proj'] = []       # This is the projector to apply to the data
+        inv['whitener'] = []   # This whitens the data
+        inv['reginv'] = []     # This the diagonal matrix implementing
+                               # regularization and the inverse
+        inv['noisenorm'] = []  # These are the noise-normalization factors
+        #
+        nuse = 0
+        for k in range(len(inv['src'])):
+            try:
+                inv['src'][k] = transform_surface_to(inv['src'][k],
+                                                     inv['coord_frame'],
+                                                     mri_head_t)
+            except Exception as inst:
+                raise Exception('Could not transform source space (%s)' % inst)
 
-        nuse += inv['src'][k]['nuse']
+            nuse += inv['src'][k]['nuse']
 
-    logger.info('    Source spaces transformed to the inverse solution '
-                'coordinate frame')
-    #
-    #   Done!
-    #
-    fid.close()
+        logger.info('    Source spaces transformed to the inverse solution '
+                    'coordinate frame')
+        #
+        #   Done!
+        #
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -295,12 +315,14 @@ def write_inverse_operator(fname, inv, verbose=None):
     Parameters
     ----------
     fname : string
-        The name of the FIF file.
+        The name of the FIF file, which ends with -inv.fif or -inv.fif.gz.
     inv : dict
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
+    check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
+
     #
     #   Open the file, create directory
     #
@@ -326,7 +348,7 @@ def write_inverse_operator(fname, inv, verbose=None):
     #
     #   Write SSP operator
     #
-    write_proj(fid, inv['projs'])
+    _write_proj(fid, inv['projs'])
 
     #
     #   Write the source spaces
@@ -341,16 +363,11 @@ def write_inverse_operator(fname, inv, verbose=None):
     write_int(fid, FIFF.FIFF_MNE_INCLUDED_METHODS, inv['methods'])
     write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, inv['coord_frame'])
 
-    if 'units' in inv:
-        if inv['units'] == 'Am':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM)
-        elif inv['units'] == 'Am/m^2':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M2)
-        elif inv['units'] == 'Am/m^3':
-            write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT,
-                      FIFF.FIFF_UNIT_AM_M3)
+    udict = {'Am': FIFF.FIFF_UNIT_AM,
+             'Am/m^2': FIFF.FIFF_UNIT_AM_M2,
+             'Am/m^3': FIFF.FIFF_UNIT_AM_M3}
+    if 'units' in inv and inv['units'] is not None:
+        write_int(fid, FIFF.FIFF_MNE_INVERSE_SOURCE_UNIT, udict[inv['units']])
 
     write_int(fid, FIFF.FIFF_MNE_SOURCE_ORIENTATION, inv['source_ori'])
     write_int(fid, FIFF.FIFF_MNE_SOURCE_SPACE_NPOINTS, inv['nsource'])
@@ -366,21 +383,21 @@ def write_inverse_operator(fname, inv, verbose=None):
     #   write the covariance matrices
     #
     logger.info('    Writing noise covariance matrix.')
-    write_cov(fid, inv['noise_cov'])
+    _write_cov(fid, inv['noise_cov'])
 
     logger.info('    Writing source covariance matrix.')
-    write_cov(fid, inv['source_cov'])
+    _write_cov(fid, inv['source_cov'])
 
     #
     #   write the various priors
     #
     logger.info('    Writing orientation priors.')
     if inv['depth_prior'] is not None:
-        write_cov(fid, inv['depth_prior'])
+        _write_cov(fid, inv['depth_prior'])
     if inv['orient_prior'] is not None:
-        write_cov(fid, inv['orient_prior'])
+        _write_cov(fid, inv['orient_prior'])
     if inv['fmri_prior'] is not None:
-        write_cov(fid, inv['fmri_prior'])
+        _write_cov(fid, inv['fmri_prior'])
 
     write_named_matrix(fid, FIFF.FIFF_MNE_INVERSE_FIELDS, inv['eigen_fields'])
 
@@ -478,7 +495,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Prepared inverse operator.
     """
     if nave <= 0:
@@ -597,7 +614,7 @@ def prepare_inverse_operator(orig, nave, lambda2, method, verbose=None):
     else:
         inv['noisenorm'] = []
 
-    return inv
+    return InverseOperator(inv)
 
 
 @verbose
@@ -647,8 +664,8 @@ def _assemble_kernel(inv, label, method, pick_ori, verbose=None):
 
     trans = inv['reginv'][:, None] * reduce(np.dot,
                                             [inv['eigen_fields']['data'],
-                                            inv['whitener'],
-                                            inv['proj']])
+                                             inv['whitener'],
+                                             inv['proj']])
     #
     #   Transformation into current distributions by weighting the eigenleads
     #   with the weights computed above
@@ -706,19 +723,17 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, verbose=None, pick_normal=None):
+                  pick_ori=None, pick_normal=None, prepared=False,
+                  verbose=None):
     """Apply inverse operator to evoked data
-
-    Computes a L2-norm inverse solution
-    Actual code using these principles might be different because
-    the inverse operator is often reused across data sets.
 
     Parameters
     ----------
     evoked : Evoked object
         Evoked data.
-    inverse_operator: dict
-        Inverse operator read with mne.read_inverse_operator.
+    inverse_operator: instance of InverseOperator
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -727,6 +742,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         If "normal", rather than pooling the orientations by taking the norm,
         only the radial component is kept. This is only implemented
         when working with loose orientations.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -744,7 +761,10 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     _check_ch_names(inverse_operator, evoked.info)
 
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -755,7 +775,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -781,20 +801,17 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
                       time_func=None, pick_ori=None,
-                      buffer_size=None, verbose=None,
-                      pick_normal=None):
+                      buffer_size=None, pick_normal=None, prepared=False,
+                      verbose=None):
     """Apply inverse operator to Raw data
-
-    Computes a L2-norm inverse solution
-    Actual code using these principles might be different because
-    the inverse operator is often reused across data sets.
 
     Parameters
     ----------
     raw : Raw object
         Raw data.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -823,6 +840,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
         buffer_size << data length).
         Note that this setting has no effect for fixed-orientation inverse
         operators.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -839,7 +858,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -855,7 +877,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -865,7 +887,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
         # Allocate space for inverse solution
         n_times = data.shape[1]
-        sol = np.empty((K.shape[0] / 3, n_times),
+        sol = np.empty((K.shape[0] // 3, n_times),
                        dtype=(K[0, 0] * data[0, 0]).dtype)
 
         for pos in range(0, n_times, buffer_size):
@@ -893,9 +915,9 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     return stc
 
 
-def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
+def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              verbose=None, pick_normal=None):
+                              pick_normal=None, prepared=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
@@ -905,7 +927,10 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     #
     #   Set up the inverse according to the parameters
     #
-    inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    if not prepared:
+        inv = prepare_inverse_operator(inverse_operator, nave, lambda2, method)
+    else:
+        inv = inverse_operator
     #
     #   Pick the correct channels from the data
     #
@@ -918,7 +943,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
     tmin = epochs.times[0]
 
     is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori == None)
+                   and pick_ori is None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
@@ -954,19 +979,17 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method="dSPM",
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, verbose=None,
-                         pick_normal=None):
+                         return_generator=False, pick_normal=None,
+                         prepared=False, verbose=None):
     """Apply inverse operator to Epochs
-
-    Computes a L2-norm inverse solution on each epochs and returns
-    single trial source estimates.
 
     Parameters
     ----------
     epochs : Epochs object
         Single trial epochs.
     inverse_operator : dict
-        Inverse operator read with mne.read_inverse_operator.
+        Inverse operator returned from `mne.read_inverse_operator`,
+        `prepare_inverse_operator` or `make_inverse_operator`.
     lambda2 : float
         The regularization parameter.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -984,6 +1007,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return_generator : bool
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
+    prepared : bool
+        If True, do not call `prepare_inverse_operator`.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -995,7 +1020,8 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
-                                     pick_normal=pick_normal)
+                                     pick_normal=pick_normal,
+                                     prepared=prepared)
 
     if not return_generator:
         # return a list
@@ -1004,6 +1030,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     return stcs
 
 
+'''
 def _xyz2lf(Lf_xyz, normals):
     """Reorient leadfield to one component matching the normal to the cortex
 
@@ -1046,6 +1073,7 @@ def _xyz2lf(Lf_xyz, normals):
 
     Lf_cortex = Lf_cortex.reshape(n_sensors, n_dipoles)
     return Lf_cortex
+'''
 
 
 ###############################################################################
@@ -1134,7 +1162,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
 
     Returns
     -------
-    inv : dict
+    inv : instance of InverseOperator
         Inverse operator.
 
     Notes
@@ -1332,7 +1360,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     has_meg = False
     has_eeg = False
     ch_idx = [k for k, c in enumerate(info['chs'])
-                                    if c['ch_name'] in gain_info['ch_names']]
+              if c['ch_name'] in gain_info['ch_names']]
     for idx in ch_idx:
         ch_type = channel_type(info, idx)
         if ch_type == 'eeg':
@@ -1364,7 +1392,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     inv_op['units'] = 'Am'
     inv_op['info'] = inv_info
 
-    return inv_op
+    return InverseOperator(inv_op)
 
 
 def compute_rank_inverse(inv):

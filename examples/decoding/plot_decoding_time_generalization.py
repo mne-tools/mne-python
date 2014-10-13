@@ -22,8 +22,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
-from mne import fiff
-from mne.fiff import Raw
 from mne.datasets import spm_face
 from mne.decoding import time_generalization
 
@@ -34,10 +32,10 @@ data_path = spm_face.data_path()
 
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 
-raw = Raw(raw_fname % 1, preload=True)  # Take first run
-raw.append(Raw(raw_fname % 2, preload=True))  # Take second run too
+raw = mne.io.Raw(raw_fname % 1, preload=True)  # Take first run
+raw.append(mne.io.Raw(raw_fname % 2, preload=True))  # Take second run too
 
-picks = mne.fiff.pick_types(raw.info, meg=True, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
 
 events = mne.find_events(raw, stim_channel='UPPT001')
@@ -45,8 +43,8 @@ event_id = {"faces": 1, "scrambled": 2}
 tmin, tmax = -0.1, 0.5
 
 # Set up pick list
-picks = fiff.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
-                        ref_meg=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
+                       ref_meg=False, exclude='bads')
 
 # Read epochs
 decim = 4  # decimate to make the example faster to run
@@ -74,7 +72,7 @@ times = 1e3 * epochs.times  # convert times to ms
 plt.figure()
 plt.imshow(scores, interpolation='nearest', origin='lower',
            extent=[times[0], times[-1], times[0], times[-1]],
-           vmin=0., vmax=1.)
+           vmin=0.1, vmax=0.9, cmap='RdBu_r')
 plt.xlabel('Times Test (ms)')
 plt.ylabel('Times Train (ms)')
 plt.title('Time generalization (%s vs. %s)' % tuple(event_id.keys()))

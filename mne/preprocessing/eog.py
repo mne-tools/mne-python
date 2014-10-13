@@ -1,9 +1,10 @@
 import numpy as np
 
 from .peak_finder import peak_finder
-from ..fiff import pick_types, pick_channels
+from .. import pick_types, pick_channels
 from ..utils import logger, verbose
 from ..filter import band_pass_filter
+from ..epochs import Epochs
 
 
 @verbose
@@ -37,40 +38,11 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         Events.
     """
 
-    info = raw.info
-
     # Getting EOG Channel
-    if ch_name is None:
-        ch_eog = pick_types(info, meg=False, eeg=False, stim=False,
-                            eog=True, ecg=False, emg=False, ref_meg=False,
-                            exclude='bads')
-        if len(ch_eog) == 0:
-            logger.info('No EOG channels found')
-            logger.info('Trying with EEG 061 and EEG 062')
-            ch_eog = pick_channels(raw.ch_names,
-                                   include=['EEG 061', 'EEG 062'])
-            if len(ch_eog) != 2:
-                raise ValueError('EEG 61 or EEG 62 channel not found !!')
+    eog_inds = _get_eog_channel_index(ch_name, raw)
+    logger.info('EOG channel index for this subject is: %s' % eog_inds)
 
-    else:
-
-        # Check if multiple EOG Channels
-        if ',' in ch_name:
-            ch_name = ch_name.split(',')
-        else:
-            ch_name = [ch_name]
-
-        ch_eog = pick_channels(raw.ch_names, include=ch_name)
-
-        if len(ch_eog) == 0:
-            raise ValueError('%s not in channel list' % ch_name)
-        else:
-            logger.info('Using channel %s as EOG channel%s' % (
-                        " and ".join(ch_name), '' if len(ch_eog) < 2 else 's'))
-
-    logger.info('EOG channel index for this subject is: %s' % ch_eog)
-
-    eog, _ = raw[ch_eog, :]
+    eog, _ = raw[eog_inds, :]
 
     eog_events = _find_eog_events(eog, event_id=event_id, l_freq=l_freq,
                                   h_freq=h_freq,
@@ -120,3 +92,102 @@ def _find_eog_events(eog, event_id, l_freq, h_freq, sampling_rate, first_samp,
                        event_id * np.ones(n_events)]
 
     return eog_events
+
+
+def _get_eog_channel_index(ch_name, inst):
+    if isinstance(ch_name, str):
+        # Check if multiple EOG Channels
+        if ',' in ch_name:
+            ch_name = ch_name.split(',')
+        else:
+            ch_name = [ch_name]
+
+        eog_inds = pick_channels(inst.ch_names, include=ch_name)
+
+        if len(eog_inds) == 0:
+            raise ValueError('%s not in channel list' % ch_name)
+        else:
+            logger.info('Using channel %s as EOG channel%s' % (
+                        " and ".join(ch_name),
+                        '' if len(eog_inds) < 2 else 's'))
+    elif ch_name is None:
+
+        eog_inds = pick_types(inst.info, meg=False, eeg=False, stim=False,
+                              eog=True, ecg=False, emg=False, ref_meg=False,
+                              exclude='bads')
+
+        if len(eog_inds) == 0:
+            logger.info('No EOG channels found')
+            logger.info('Trying with EEG 061 and EEG 062')
+            eog_inds = pick_channels(inst.ch_names,
+                                     include=['EEG 061', 'EEG 062'])
+            if len(eog_inds) != 2:
+                raise RuntimeError('EEG 61 or EEG 62 channel not found !!')
+
+    else:
+        raise ValueError('Could not find EOG channel.')
+    return eog_inds
+
+
+@verbose
+def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
+                      tmin=-0.5, tmax=0.5, l_freq=1, h_freq=10,
+                      reject=None, flat=None,
+                      baseline=None, verbose=None):
+    """Conveniently generate epochs around EOG artifact events
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        The raw data
+    ch_name : str
+        The name of the channel to use for ECG peak detection.
+        The argument is mandatory if the dataset contains no ECG channels.
+    event_id : int
+        The index to assign to found events
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels
+        are used).
+    tmin : float
+        Start time before event.
+    tmax : float
+        End time after event.
+    l_freq : float
+        Low pass frequency.
+    h_freq : float
+        High pass frequency.
+    reject : dict | None
+        Rejection parameters based on peak to peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done. You should
+        use such parameters to reject big measurement artifacts
+        and not ECG for example
+    flat : dict | None
+        Rejection parameters based on flatness of signal
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If flat is None then no rejection is done.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    baseline : tuple or list of length 2, or None
+        The time interval to apply rescaling / baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal ot (None, None) all the time
+        interval is used. If None, no correction is applied.
+
+    Returns
+    -------
+    ecg_epochs : instance of Epochs
+        Data epoched around ECG r-peaks.
+    """
+    events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
+                             l_freq=l_freq, h_freq=h_freq)
+
+    # create epochs around EOG events
+    eog_epochs = Epochs(raw, events=events, event_id=event_id,
+                        tmin=tmin, tmax=tmax, proj=False, reject=reject,
+                        flat=flat, picks=picks, baseline=baseline,
+                        preload=True)
+    return eog_epochs

@@ -16,14 +16,13 @@ from __future__ import print_function
 # Authors : Alexandre Gramfort, Ph.D.
 #           Martin Luessi, Ph.D.
 
-from ..externals.six import string_types
+from mne.externals.six import string_types
 import os
 import sys
 import mne
 
 
-if __name__ == '__main__':
-
+def run():
     from mne.commands.utils import get_optparser
 
     parser = get_optparser(__file__)
@@ -31,11 +30,9 @@ if __name__ == '__main__':
     parser.add_option("-i", "--in", dest="raw_in",
                       help="Input raw FIF file", metavar="FILE")
     parser.add_option("--tmin", dest="tmin", type="float",
-                      help="Time before event in seconds",
-                      default=-0.2)
+                      help="Time before event in seconds", default=-0.2)
     parser.add_option("--tmax", dest="tmax", type="float",
-                      help="Time after event in seconds",
-                      default=0.2)
+                      help="Time after event in seconds", default=0.2)
     parser.add_option("-g", "--n-grad", dest="n_grad", type="int",
                       help="Number of SSP vectors for gradiometers",
                       default=2)
@@ -43,8 +40,7 @@ if __name__ == '__main__':
                       help="Number of SSP vectors for magnetometers",
                       default=2)
     parser.add_option("-e", "--n-eeg", dest="n_eeg", type="int",
-                      help="Number of SSP vectors for EEG",
-                      default=2)
+                      help="Number of SSP vectors for EEG", default=2)
     parser.add_option("--l-freq", dest="l_freq", type="float",
                       help="Filter low cut-off frequency in Hz",
                       default=1)
@@ -52,14 +48,14 @@ if __name__ == '__main__':
                       help="Filter high cut-off frequency in Hz",
                       default=35)
     parser.add_option("--eog-l-freq", dest="eog_l_freq", type="float",
-                      help="Filter low cut-off frequency in Hz used for EOG event detection",
-                      default=1)
+                      help="Filter low cut-off frequency in Hz used for "
+                      "EOG event detection", default=1)
     parser.add_option("--eog-h-freq", dest="eog_h_freq", type="float",
-                      help="Filter high cut-off frequency in Hz used for EOG event detection",
-                      default=10)
+                      help="Filter high cut-off frequency in Hz used for "
+                      "EOG event detection", default=10)
     parser.add_option("-p", "--preload", dest="preload",
-                      help="Temporary file used during computation (to save memory)",
-                      default=True)
+                      help="Temporary file used during computation (to "
+                      "save memory)", default=True)
     parser.add_option("-a", "--average", dest="average", action="store_true",
                       help="Compute SSP after averaging",
                       default=False)
@@ -70,36 +66,36 @@ if __name__ == '__main__':
                       help="Number of taps to use for filtering",
                       default=2048)
     parser.add_option("-j", "--n-jobs", dest="n_jobs", type="int",
-                      help="Number of jobs to run in parallel",
-                      default=1)
+                      help="Number of jobs to run in parallel", default=1)
     parser.add_option("--rej-grad", dest="rej_grad", type="float",
-                      help="Gradiometers rejection parameter in fT/cm (peak to peak amplitude)",
-                      default=2000)
+                      help="Gradiometers rejection parameter in fT/cm (peak "
+                      "to peak amplitude)", default=2000)
     parser.add_option("--rej-mag", dest="rej_mag", type="float",
-                      help="Magnetometers rejection parameter in fT (peak to peak amplitude)",
-                      default=3000)
+                      help="Magnetometers rejection parameter in fT (peak to "
+                      "peak amplitude)", default=3000)
     parser.add_option("--rej-eeg", dest="rej_eeg", type="float",
-                      help="EEG rejection parameter in uV (peak to peak amplitude)",
-                      default=50)
+                      help="EEG rejection parameter in uV (peak to peak "
+                      "amplitude)", default=50)
     parser.add_option("--rej-eog", dest="rej_eog", type="float",
-                      help="EOG rejection parameter in uV (peak to peak amplitude)",
-                      default=1e9)
+                      help="EOG rejection parameter in uV (peak to peak "
+                      "amplitude)", default=1e9)
     parser.add_option("--avg-ref", dest="avg_ref", action="store_true",
                       help="Add EEG average reference proj",
                       default=False)
     parser.add_option("--no-proj", dest="no_proj", action="store_true",
-                      help="Exclude the SSP projectors currently in the fiff file",
-                      default=False)
+                      help="Exclude the SSP projectors currently in the "
+                      "fiff file",  default=False)
     parser.add_option("--bad", dest="bad_fname",
-                      help="Text file containing bad channels list (one per line)",
-                      default=None)
+                      help="Text file containing bad channels list "
+                      "(one per line)", default=None)
     parser.add_option("--event-id", dest="event_id", type="int",
                       help="ID to use for events", default=998)
     parser.add_option("--event-raw", dest="raw_event_fname",
                       help="raw file to use for event detection", default=None)
     parser.add_option("--tstart", dest="tstart", type="float",
-                      help="Start artifact detection after tstart seconds", default=0.)
-    parser.add_option("-c","--channel", dest="ch_name", type="string",
+                      help="Start artifact detection after tstart seconds",
+                      default=0.)
+    parser.add_option("-c", "--channel", dest="ch_name", type="string",
                       help="Custom EOG channel(s), comma separated",
                       default=None)
 
@@ -138,7 +134,8 @@ if __name__ == '__main__':
     ch_name = options.ch_name
 
     if bad_fname is not None:
-        bads = [w.rstrip().split()[0] for w in open(bad_fname).readlines()]
+        with open(bad_fname, 'r') as fid:
+            bads = [w.rstrip() for w in fid.readlines()]
         print('Bad channels read : %s' % bads)
     else:
         bads = []
@@ -155,22 +152,22 @@ if __name__ == '__main__':
     else:
         eog_proj_fname = prefix + '_eog_proj.fif'
 
-    raw = mne.fiff.Raw(raw_in, preload=preload)
+    raw = mne.io.Raw(raw_in, preload=preload)
 
     if raw_event_fname is not None:
-        raw_event = mne.fiff.Raw(raw_event_fname)
+        raw_event = mne.io.Raw(raw_event_fname)
     else:
         raw_event = raw
 
     flat = None  # XXX : not exposed to the user
-    projs, events = mne.preprocessing.compute_proj_eog(raw=raw,
-                    raw_event=raw_event, tmin=tmin, tmax=tmax, n_grad=n_grad,
-                    n_mag=n_mag, n_eeg=n_eeg, l_freq=l_freq, h_freq=h_freq,
-                    average=average, filter_length=filter_length,
-                    n_jobs=n_jobs, reject=reject, flat=flat, bads=bads,
-                    avg_ref=avg_ref, no_proj=no_proj, event_id=event_id,
-                    eog_l_freq=eog_l_freq, eog_h_freq=eog_h_freq, 
-                    tstart=tstart, ch_name=ch_name, copy=False)
+    projs, events = mne.preprocessing.compute_proj_eog(
+        raw=raw, raw_event=raw_event, tmin=tmin, tmax=tmax, n_grad=n_grad,
+        n_mag=n_mag, n_eeg=n_eeg, l_freq=l_freq, h_freq=h_freq,
+        average=average, filter_length=filter_length,
+        n_jobs=n_jobs, reject=reject, flat=flat, bads=bads,
+        avg_ref=avg_ref, no_proj=no_proj, event_id=event_id,
+        eog_l_freq=eog_l_freq, eog_h_freq=eog_h_freq,
+        tstart=tstart, ch_name=ch_name, copy=False)
 
     raw.close()
 
@@ -190,3 +187,7 @@ if __name__ == '__main__':
 
     print("Writing EOG events in %s" % eog_event_fname)
     mne.write_events(eog_event_fname, events)
+
+is_main = (__name__ == '__main__')
+if is_main:
+    run()

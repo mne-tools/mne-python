@@ -1,12 +1,14 @@
 import numpy as np
 from scipy import stats
+from scipy.stats import f
+fprob = f.sf  # stats.fprob is deprecated
 from scipy.signal import detrend
 from ..fixes import matrix_rank
 from functools import reduce
-from ..externals.six.moves import map
+from ..externals.six.moves import map  # analysis:ignore
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
@@ -93,7 +95,7 @@ def _f_oneway(*args):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     f = msb / msw
-    prob = stats.fprob(dfbn, dfwn, f)
+    prob = fprob(dfbn, dfwn, f)
     return f, prob
 
 

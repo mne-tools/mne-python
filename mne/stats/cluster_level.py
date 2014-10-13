@@ -2,20 +2,21 @@
 # -*- coding: utf-8 -*-
 
 # Authors: Thorsten Kranz <thorstenkranz@gmail.com>
-#          Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
-#          Denis Engemann <d.engemann@fz-juelich.de>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: Simplified BSD
 
 import numpy as np
 from scipy import stats, sparse, ndimage
 import warnings
+import logging
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import split_list, logger, verbose
+from ..utils import split_list, logger, verbose, ProgressBar
 from ..fixes import in1d, unravel_index
 from ..source_estimate import SourceEstimate
 
@@ -42,7 +43,7 @@ def _get_clusters_spatial(s, neighbors):
             # look across other vertices
             buddies = np.where(r)[0]
             buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
-                                      assume_unique=True)]
+                                   assume_unique=True)]
             t_inds += buddies.tolist()
             r[buddies] = False
             icount += 1
@@ -152,7 +153,7 @@ def _get_clusters_st_multistep(keepers, neighbors, max_step=1):
                 buddies = inds[t_border[t[ind]]:t_border[t[ind] + 1]]
                 buddies = buddies[r[buddies]]
                 buddies = buddies[in1d(s[buddies], neighbors[s[ind]],
-                                          assume_unique=True)]
+                                       assume_unique=True)]
                 buddies = np.concatenate((selves, buddies))
                 t_inds += buddies.tolist()
                 r[buddies] = False
@@ -292,7 +293,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     sums: array
         Sum of x values in clusters.
     """
-    if not tail in [-1, 0, 1]:
+    if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
     x = np.asanyarray(x)
@@ -432,15 +433,15 @@ def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
             # slices
             clusters = ndimage.find_objects(labels, n_labels)
             if len(clusters) == 0:
-                sums = []
+                sums = list()
             else:
+                index = list(range(1, n_labels + 1))
                 if t_power == 1:
-                    sums = ndimage.measurements.sum(x, labels,
-                                                  index=list(range(1, n_labels + 1)))
+                    sums = ndimage.measurements.sum(x, labels, index=index)
                 else:
                     sums = ndimage.measurements.sum(np.sign(x) *
-                                                  np.abs(x) ** t_power, labels,
-                                                  index=list(range(1, n_labels + 1)))
+                                                    np.abs(x) ** t_power,
+                                                    labels, index=index)
         else:
             # boolean masks (raveled)
             clusters = list()
@@ -494,7 +495,7 @@ def _pval_from_histogram(T, H0, tail):
     For each stat compute a p-value as percentile of its statistics
     within all statistics in surrogate data
     """
-    if not tail in [-1, 0, 1]:
+    if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
     # from pct to fraction
@@ -526,7 +527,7 @@ def _setup_connectivity(connectivity, n_vertices, n_times):
 
 def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                      max_step, include, partitions, t_power, seeds,
-                     sample_shape, buffer_size):
+                     sample_shape, buffer_size, progress_bar):
 
     n_samp, n_vars = X_full.shape
 
@@ -542,6 +543,10 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
                     for s in slices]
 
     for seed_idx, seed in enumerate(seeds):
+        if progress_bar is not None:
+            if (not (seed_idx + 1) % 32) or (seed_idx == 0):
+                progress_bar.update(seed_idx + 1)
+
         # shuffle sample indices
         rng = np.random.RandomState(seed)
         idx_shuffled = np.arange(n_samp)
@@ -590,7 +595,7 @@ def _do_permutations(X_full, slices, threshold, tail, connectivity, stat_fun,
 
 def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
                            max_step, include, partitions, t_power, seeds,
-                           sample_shape, buffer_size):
+                           sample_shape, buffer_size, progress_bar):
     n_samp, n_vars = X.shape
     assert slices is None  # should be None for the 1 sample case
 
@@ -605,6 +610,10 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
         X_flip_buffer = np.empty((n_samp, buffer_size), dtype=X.dtype)
 
     for seed_idx, seed in enumerate(seeds):
+        if progress_bar is not None:
+            if not (seed_idx + 1) % 32 or seed_idx == 0:
+                progress_bar.update(seed_idx + 1)
+
         if isinstance(seed, np.ndarray):
             # new surrogate data with specified sign flip
             if not seed.size == n_samp:
@@ -671,8 +680,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
     either a 1 sample t-test or an f-test / more sample permutation scheme
     is elicited.
     """
-
-    if not out_type in ['mask', 'indices']:
+    if out_type not in ['mask', 'indices']:
         raise ValueError('out_type must be either \'mask\' or \'indices\'')
 
     # check dimensions for each group in X (a list at this stage).
@@ -726,7 +734,7 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         partitions = _get_partitions_from_connectivity(connectivity, n_times)
     else:
         partitions = None
-
+    logger.info('Running intial clustering')
     out = _find_clusters(T_obs, threshold, tail, connectivity,
                          max_step=max_step, include=include,
                          partitions=partitions, t_power=t_power,
@@ -761,12 +769,17 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
         n_samples_per_condition = [x.shape[0] for x in X]
         splits_idx = np.append([0], np.cumsum(n_samples_per_condition))
         slices = [slice(splits_idx[k], splits_idx[k + 1])
-                                                    for k in range(len(X))]
-
+                  for k in range(len(X))]
     parallel, my_do_perm_func, _ = parallel_func(do_perm_func, n_jobs)
 
     # Step 2: If we have some clusters, repeat process on permuted data
     # -------------------------------------------------------------------
+
+    def get_progress_bar(seeds):
+        # make sure the progress bar adds to up 100% across n jobs
+        return (ProgressBar(len(seeds), spinner=True) if
+                logger.level <= logging.INFO else None)
+
     if len(clusters) > 0:
         # check to see if we can do an exact test
         # note for a two-tailed test, we can exploit symmetry to just do half
@@ -786,11 +799,12 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                 seeds = list(seed + np.arange(n_permutations))
 
         # Step 3: repeat permutations for step-down-in-jumps procedure
-        smallest_p = -1
-        clusters_kept = 0
+        n_removed = 1  # number of new clusters added
+        total_removed = 0
         step_down_include = None  # start out including all points
-        step_down_iteration = 0
-        while smallest_p < step_down_p:
+        n_step_downs = 0
+
+        while n_removed > 0:
             # actually do the clustering for each partition
             if include is not None:
                 if step_down_include is not None:
@@ -799,35 +813,33 @@ def _permutation_cluster_test(X, threshold, n_permutations, tail, stat_fun,
                     this_include = include
             else:
                 this_include = step_down_include
+            logger.info('Permuting ...')
             H0 = parallel(my_do_perm_func(X_full, slices, threshold, tail,
                           connectivity, stat_fun, max_step, this_include,
-                          partitions, t_power, s, sample_shape, buffer_size)
+                          partitions, t_power, s, sample_shape, buffer_size,
+                          get_progress_bar(s))
                           for s in split_list(seeds, n_jobs))
             H0 = np.concatenate(H0)
+            logger.info('Computing cluster p-values')
             cluster_pv = _pval_from_histogram(cluster_stats, H0, tail)
 
-            # sort them by significance; for backward compat, don't sort the
-            # clusters themselves
-            inds = np.argsort(cluster_pv)
-            ord_pv = cluster_pv[inds]
-            smallest_p = ord_pv[clusters_kept]
+            # figure out how many new ones will be removed for step-down
+            to_remove = np.where(cluster_pv < step_down_p)[0]
+            n_removed = to_remove.size - total_removed
+            total_removed = to_remove.size
             step_down_include = np.ones(n_tests, dtype=bool)
-            under = np.where(cluster_pv < step_down_p)[0]
-            for ci in under:
-                step_down_include[clusters[ci]] = False
+            for ti in to_remove:
+                step_down_include[clusters[ti]] = False
             if connectivity is None:
                 step_down_include.shape = sample_shape
-            step_down_iteration += 1
+            n_step_downs += 1
             if step_down_p > 0:
-                extra_text = 'additional ' if step_down_iteration > 1 else ''
-                new_count = under.size - clusters_kept
-                plural = '' if new_count == 1 else 's'
-                logger.info('Step-down-in-jumps iteration'
-                            '%i found %i %scluster%s'
-                            % (step_down_iteration, new_count,
-                               extra_text, plural))
-            clusters_kept += under.size
-
+                a_text = 'additional ' if n_step_downs > 1 else ''
+                pl = '' if n_removed == 1 else 's'
+                logger.info('Step-down-in-jumps iteration #%i found %i %s'
+                            'cluster%s to exclude from subsequent iterations'
+                            % (n_step_downs, n_removed, a_text, pl))
+        logger.info('Done.')
         # The clusters should have the same shape as the samples
         clusters = _reshape_clusters(clusters, sample_shape)
         return T_obs, clusters, cluster_pv, H0
@@ -869,7 +881,7 @@ def ttest_1samp_no_p(X, sigma=0, method='relative'):
     voxels in statistical parametric mapping; a new hat avoids a 'haircut'",
     NeuroImage. 2012 Feb 1;59(3):2131-41.
     """
-    if not method in ['absolute', 'relative']:
+    if method not in ['absolute', 'relative']:
         raise ValueError('method must be "absolute" or "relative", not %s'
                          % method)
     var = np.var(X, axis=0, ddof=1)
@@ -888,16 +900,23 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
                              check_disjoint=False, buffer_size=1000):
     """Cluster-level statistical permutation test
 
-    For a list of 2d-arrays of data, e.g. power values, calculate some
-    statistics for each timepoint (dim 1) over groups.  Do a cluster
-    analysis with permutation test for calculating corrected p-values.
-    Randomized data are generated with random partitions of the data.
+    For a list of nd-arrays of data, e.g. 2d for time series or 3d for
+    time-frequency power values, calculate some statistics corrected for
+    multiple comparisons using permutations and cluster level correction.
+    Each element of the list X contains the data for one group of
+    observations. Randomized data are generated with random partitions
+    of the data.
 
     Parameters
     ----------
     X : list
-        List of 2d-arrays containing the data, dim 1: timepoints, dim 2:
-        elements of groups.
+        List of nd-arrays containing the data. Each element of X contains
+        the samples for one group. First dimension of each element is the
+        number of samples/observations in this group. The other dimensions
+        are for the size of the observations. For example if X = [X1, X2]
+        with X1.shape = (20, 50, 4) and X2.shape = (17, 50, 4) one has
+        2 groups with respectively 20 and 17 observations in each.
+        Each data point is of shape (50, 4).
     threshold : float | dict | None
         If threshold is None, it will choose a t-threshold equivalent to
         p < 0.05 for the given number of (within-subject) observations.
@@ -991,13 +1010,16 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
             threshold = -threshold
 
     return _permutation_cluster_test(X=X, threshold=threshold,
-                        n_permutations=n_permutations,
-                        tail=tail, stat_fun=stat_fun,
-                        connectivity=connectivity, verbose=verbose,
-                        n_jobs=n_jobs, seed=seed, max_step=max_step,
-                        exclude=exclude, step_down_p=step_down_p,
-                        t_power=t_power, out_type=out_type,
-                        check_disjoint=check_disjoint, buffer_size=buffer_size)
+                                     n_permutations=n_permutations,
+                                     tail=tail, stat_fun=stat_fun,
+                                     connectivity=connectivity,
+                                     verbose=verbose,
+                                     n_jobs=n_jobs, seed=seed,
+                                     max_step=max_step,
+                                     exclude=exclude, step_down_p=step_down_p,
+                                     t_power=t_power, out_type=out_type,
+                                     check_disjoint=check_disjoint,
+                                     buffer_size=buffer_size)
 
 
 permutation_cluster_test.__test__ = False
@@ -1121,14 +1143,18 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
             threshold = -threshold
 
     X = [X]  # for one sample only one data array
-    return _permutation_cluster_test(X=X, threshold=threshold,
-                        n_permutations=n_permutations,
-                        tail=tail, stat_fun=stat_fun,
-                        connectivity=connectivity, verbose=verbose,
-                        n_jobs=n_jobs, seed=seed, max_step=max_step,
-                        exclude=exclude, step_down_p=step_down_p,
-                        t_power=t_power, out_type=out_type,
-                        check_disjoint=check_disjoint, buffer_size=buffer_size)
+    return _permutation_cluster_test(X=X,
+                                     threshold=threshold,
+                                     n_permutations=n_permutations,
+                                     tail=tail, stat_fun=stat_fun,
+                                     connectivity=connectivity,
+                                     verbose=verbose,
+                                     n_jobs=n_jobs, seed=seed,
+                                     max_step=max_step,
+                                     exclude=exclude, step_down_p=step_down_p,
+                                     t_power=t_power, out_type=out_type,
+                                     check_disjoint=check_disjoint,
+                                     buffer_size=buffer_size)
 
 
 permutation_cluster_1samp_test.__test__ = False
@@ -1136,10 +1162,13 @@ permutation_cluster_1samp_test.__test__ = False
 
 @verbose
 def spatio_temporal_cluster_1samp_test(X, threshold=None,
-        n_permutations=1024, tail=0, stat_fun=ttest_1samp_no_p,
-        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
-        spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=1000):
+                                       n_permutations=1024, tail=0,
+                                       stat_fun=ttest_1samp_no_p,
+                                       connectivity=None, verbose=None,
+                                       n_jobs=1, seed=None, max_step=1,
+                                       spatial_exclude=None, step_down_p=0,
+                                       t_power=1, out_type='indices',
+                                       check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level 1 sample T-test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -1252,11 +1281,15 @@ def spatio_temporal_cluster_1samp_test(X, threshold=None,
 
     # do the heavy lifting
     out = permutation_cluster_1samp_test(X, threshold=threshold,
-              stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
-              connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_step=max_step, exclude=exclude, step_down_p=step_down_p,
-              t_power=t_power, out_type=out_type,
-              check_disjoint=check_disjoint, buffer_size=buffer_size)
+                                         stat_fun=stat_fun, tail=tail,
+                                         n_permutations=n_permutations,
+                                         connectivity=connectivity,
+                                         n_jobs=n_jobs, seed=seed,
+                                         max_step=max_step, exclude=exclude,
+                                         step_down_p=step_down_p,
+                                         t_power=t_power, out_type=out_type,
+                                         check_disjoint=check_disjoint,
+                                         buffer_size=buffer_size)
     return out
 
 
@@ -1264,11 +1297,12 @@ spatio_temporal_cluster_1samp_test.__test__ = False
 
 
 @verbose
-def spatio_temporal_cluster_test(X, threshold=1.67,
-        n_permutations=1024, tail=0, stat_fun=f_oneway,
-        connectivity=None, verbose=None, n_jobs=1, seed=None, max_step=1,
-        spatial_exclude=None, step_down_p=0, t_power=1, out_type='indices',
-        check_disjoint=False, buffer_size=1000):
+def spatio_temporal_cluster_test(X, threshold=1.67, n_permutations=1024,
+                                 tail=0, stat_fun=f_oneway,
+                                 connectivity=None, verbose=None, n_jobs=1,
+                                 seed=None, max_step=1, spatial_exclude=None,
+                                 step_down_p=0, t_power=1, out_type='indices',
+                                 check_disjoint=False, buffer_size=1000):
     """Non-parametric cluster-level test for spatio-temporal data
 
     This function provides a convenient wrapper for data organized in the form
@@ -1365,11 +1399,14 @@ def spatio_temporal_cluster_test(X, threshold=1.67,
 
     # do the heavy lifting
     out = permutation_cluster_test(X, threshold=threshold,
-              stat_fun=stat_fun, tail=tail, n_permutations=n_permutations,
-              connectivity=connectivity, n_jobs=n_jobs, seed=seed,
-              max_step=max_step, exclude=exclude, step_down_p=step_down_p,
-              t_power=t_power, out_type=out_type,
-              check_disjoint=check_disjoint, buffer_size=buffer_size)
+                                   stat_fun=stat_fun, tail=tail,
+                                   n_permutations=n_permutations,
+                                   connectivity=connectivity, n_jobs=n_jobs,
+                                   seed=seed, max_step=max_step,
+                                   exclude=exclude, step_down_p=step_down_p,
+                                   t_power=t_power, out_type=out_type,
+                                   check_disjoint=check_disjoint,
+                                   buffer_size=buffer_size)
     return out
 
 
@@ -1450,7 +1487,7 @@ def _reshape_clusters(clusters, sample_shape):
 
 
 def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
-    subject='fsaverage', vertno=[np.arange(10242), np.arange(10242)]):
+                           subject='fsaverage', vertno=None):
     """ Assemble summary SourceEstimate from spatiotemporal cluster results
 
     This helps visualizing results from spatio-temporal-clustering
@@ -1468,16 +1505,21 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
         The time of the first sample.
     subject : str
         The name of the subject.
-    vertno : list of arrays
-        The vertex numbers associated with the source space locations.
+    vertno : list of arrays | None
+        The vertex numbers associated with the source space locations. Defaults
+        to None. If None, equals ```[np.arange(10242), np.arange(10242)]```.
 
     Returns
     -------
     out : instance of SourceEstimate
     """
+    if vertno is None:
+        vertno = [np.arange(10242), np.arange(10242)]
+
     T_obs, clusters, clu_pvals, _ = clu
     n_times, n_vertices = T_obs.shape
     good_cluster_inds = np.where(clu_pvals < p_thresh)[0]
+
     #  Build a convenient representation of each cluster, where each
     #  cluster becomes a "time point" in the SourceEstimate
     if len(good_cluster_inds) > 0:
@@ -1488,7 +1530,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
             v_inds = clusters[cluster_ind][1]
             t_inds = clusters[cluster_ind][0]
             data[v_inds, t_inds] = T_obs[t_inds, v_inds]
-            # Store a nice visualization of the cluster by summing across time (in ms)
+            # Store a nice visualization of the cluster by summing across time
             data = np.sign(data) * np.logical_not(data == 0) * tstep
             data_summary[:, ii + 1] = 1e3 * np.sum(data, axis=1)
             # Make the first "time point" a sum across all clusters for easy
@@ -1499,4 +1541,5 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
                               subject=subject)
     else:
         raise RuntimeError('No significant clusters available. Please adjust '
-                           'your threshold or check your statistical analysis.')
+                           'your threshold or check your statistical '
+                           'analysis.')

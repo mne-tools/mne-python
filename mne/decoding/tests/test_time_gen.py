@@ -7,13 +7,11 @@ import os.path as op
 
 from nose.tools import assert_true
 
-from mne import fiff, Epochs, read_events
-from mne.utils import _TempDir, requires_sklearn
+from mne import io, Epochs, read_events, pick_types
+from mne.utils import requires_sklearn
 from mne.decoding import time_generalization
 
-tempdir = _TempDir()
-
-data_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
@@ -25,14 +23,14 @@ event_id = dict(aud_l=1, vis_l=3)
 def test_time_generalization():
     """Test time generalization decoding
     """
-    raw = fiff.Raw(raw_fname, preload=False)
+    raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
-    picks = fiff.pick_types(raw.info, meg='mag', stim=False, ecg=False,
-                            eog=False, exclude='bads')
+    picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     decim = 30
 
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
 

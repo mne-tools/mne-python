@@ -11,4 +11,9 @@ If you use the Python code you should cite as well:
 
     [2] A. Gramfort, M. Luessi, E. Larson, D. Engemann, D. Strohmeier, C. Brodbeck, R. Goj, M. Jas, T. Brooks, L. Parkkonen, M. Hämäläinen, `MEG and EEG data analysis with MNE-Python <http://www.frontiersin.org/Journal/Abstract.aspx?s=1304&name=brain_imaging_methods&ART_DOI=10.3389/fnins.2013.00267>`_, Frontiers in Neuroscience, Volume 7, 2013, ISSN 1662-453X, `[DOI] <http://dx.doi.org/10.3389/fnins.2013.00267>`_
 
+To cite specific versions of the software, you can use the DOIs provided by
+`Zenodo <https://zenodo.org/search?ln=en&p=mne-python>`_.
+
+
+
 You should as well cite the related method papers, some of which are listed in :ref:`ch_reading`.

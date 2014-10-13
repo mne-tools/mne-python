@@ -6,7 +6,7 @@ import numpy as np
 
 from ..utils import logger, verbose
 from ..parallel import parallel_func
-from ..fiff.pick import channel_type, pick_types
+from ..io.pick import channel_type, pick_types
 
 
 def _time_gen_one_fold(clf, X, y, train, test, scoring):
@@ -106,9 +106,9 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
 
     cv = check_cv(cv, X, y, classifier=True)
 
-    ch_types = set([channel_type(info, idx) for idx in data_picks])
+    ch_types = set(channel_type(info, idx) for idx in data_picks)
     logger.info('Running time generalization on %s epochs using %s.' %
-                (len(X), ch_types.pop()))
+                (len(X), ' and '.join(ch_types)))
 
     if shuffle:
         rng = check_random_state(random_state)

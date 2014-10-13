@@ -1,20 +1,19 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
+import os
+import glob
 import numpy as np
 from numpy import sin, cos
 from scipy import linalg
-from copy import deepcopy
 
-from .fiff import FIFF
-from .fiff.open import fiff_open
-from .fiff.tag import read_tag, find_tag
-from .fiff.tree import dir_tree_find
-from .fiff.write import (start_file, end_file, start_block, end_block,
-                         write_coord_trans, write_dig_point, write_int)
-from .utils import logger
+from .io.constants import FIFF
+from .io.open import fiff_open
+from .io.tag import read_tag
+from .io.write import start_file, end_file, write_coord_trans
+from .utils import check_fname, logger
 from .externals.six import string_types
 
 
@@ -53,6 +52,24 @@ def _print_coord_trans(t, prefix='Coordinate transformation: '):
     for tt in t['trans']:
         logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
                     (tt[0], tt[1], tt[2], 1000 * tt[3]))
+
+
+def _find_trans(subject, subjects_dir=None):
+    if subject is None:
+        if 'SUBJECT' in os.environ:
+            subject = os.environ['SUBJECT']
+        else:
+            raise ValueError('SUBJECT environment variable not set')
+
+    trans_fnames = glob.glob(os.path.join(subjects_dir, subject,
+                                          '*-trans.fif'))
+    if len(trans_fnames) < 1:
+        raise RuntimeError('Could not find the transformation for '
+                           '{subject}'.format(subject=subject))
+    elif len(trans_fnames) > 1:
+        raise RuntimeError('Found multiple transformations for '
+                           '{subject}'.format(subject=subject))
+    return trans_fnames[0]
 
 
 def apply_trans(trans, pts, move=True):
@@ -251,68 +268,41 @@ def read_trans(fname):
 
     Returns
     -------
-    info : dict
-        The contents of the trans file.
+    trans : dict
+        The transformation dictionary from the fif file.
+
+    Notes
+    -----
+    The trans dictionary has the following structure:
+    trans = {'from': int, 'to': int, 'trans': numpy.ndarray <4x4>}
     """
-    info = {}
-    fid, tree, _ = fiff_open(fname)
-    block = dir_tree_find(tree, FIFF.FIFFB_MNE)[0]
+    fid, tree, directory = fiff_open(fname)
 
-    tag = find_tag(fid, block, FIFF.FIFF_COORD_TRANS)
-    info.update(tag.data)
+    with fid:
+        for t in directory:
+            if t.kind == FIFF.FIFF_COORD_TRANS:
+                tag = read_tag(fid, t.pos)
+                break
+        else:
+            raise IOError('This does not seem to be a -trans.fif file.')
 
-    isotrak = dir_tree_find(block, FIFF.FIFFB_ISOTRAK)
-    isotrak = isotrak[0]
-
-    tag = find_tag(fid, isotrak, FIFF.FIFF_MNE_COORD_FRAME)
-    if tag is None:
-        coord_frame = 0
-    else:
-        coord_frame = int(tag.data)
-
-    info['dig'] = dig = []
-    for k in range(isotrak['nent']):
-        kind = isotrak['directory'][k].kind
-        pos = isotrak['directory'][k].pos
-        if kind == FIFF.FIFF_DIG_POINT:
-            tag = read_tag(fid, pos)
-            tag.data['coord_frame'] = coord_frame
-            dig.append(tag.data)
-
-    fid.close()
-    return info
+    trans = tag.data
+    return trans
 
 
-def write_trans(fname, info):
+def write_trans(fname, trans):
     """Write a -trans.fif file
 
     Parameters
     ----------
     fname : str
-        The name of the file.
-    info : dict
+        The name of the file, which should end in '-trans.fif'.
+    trans : dict
         Trans file data, as returned by read_trans.
     """
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
     fid = start_file(fname)
-    start_block(fid, FIFF.FIFFB_MNE)
-
-    write_coord_trans(fid, info)
-
-    dig = info['dig']
-    if dig:
-        start_block(fid, FIFF.FIFFB_ISOTRAK)
-
-        coord_frames = set(d['coord_frame'] for d in dig)
-        if len(coord_frames) > 1:
-            raise ValueError("dig points in different coord_frames")
-        coord_frame = coord_frames.pop()
-        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, coord_frame)
-
-        for d in dig:
-            write_dig_point(fid, d)
-        end_block(fid, FIFF.FIFFB_ISOTRAK)
-
-    end_block(fid, FIFF.FIFFB_MNE)
+    write_coord_trans(fid, trans)
     end_file(fid)
 
 
@@ -375,6 +365,7 @@ def transform_coordinates(filename, pos, orig, dest):
     filename: string
         Name of a fif file containing the coordinate transformations
         This file can be conveniently created with mne_collect_transforms
+        or ``collect_transforms``.
     pos: array of shape N x 3
         array of locations to transform (in meters)
     orig: 'meg' | 'mri'
@@ -472,77 +463,18 @@ def transform_coordinates(filename, pos, orig, dest):
     return trans_pos
 
 
-# @verbose
-# def transform_meg_chs(chs, trans, verbose=None):
-#     """
-#     %
-#     % [res, count] = fiff_transform_meg_chs(chs,trans)
-#     %
-#     % Move to another coordinate system in MEG channel channel info
-#     % Count gives the number of channels transformed
-#     %
-#     % NOTE: Only the coil_trans field is modified by this routine, not
-#     % loc which remains to reflect the original data read from the fif file
-#     %
-#     %
-#
-#     XXX
-#     """
-#
-#     res = copy.deepcopy(chs)
-#
-#     count = 0
-#     t = trans['trans']
-#     for ch in res:
-#         if (ch['kind'] == FIFF.FIFFV_MEG_CH
-#                                     or ch['kind'] == FIFF.FIFFV_REF_MEG_CH):
-#             if (ch['coord_frame'] == trans['from']
-#                                             and ch['coil_trans'] is not None):
-#                 ch['coil_trans'] = np.dot(t, ch['coil_trans'])
-#                 ch['coord_frame'] = trans['to']
-#                 count += 1
-#
-#     if count > 0:
-#         logger.info('    %d MEG channel locations transformed' % count)
-#
-#     return res, count
+def collect_transforms(fname, xforms):
+    """Collect a set of transforms in a single FIFF file
 
-# @verbose
-# def transform_eeg_chs(chs, trans, verbose=None):
-#     """
-#     %
-#     % [res, count] = fiff_transform_eeg_chs(chs,trans)
-#     %
-#     % Move to another coordinate system in EEG channel channel info
-#     % Count gives the number of channels transformed
-#     %
-#     % NOTE: Only the eeg_loc field is modified by this routine, not
-#     % loc which remains to reflect the original data read from the fif file
-#     %
-#
-#     XXX
-#     """
-#     res = copy.deepcopy(chs)
-#
-#     count = 0
-#     #
-#     #   Output unaugmented vectors from the transformation
-#     #
-#     t = trans['trans'][:3,:]
-#     for ch in res:
-#         if ch['kind'] == FIFF.FIFFV_EEG_CH:
-#             if (ch['coord_frame'] == trans['from']
-#                                             and ch['eeg_loc'] is not None):
-#                 #
-#                 # Transform the augmented EEG location vectors
-#                 #
-#                 for p in range(ch['eeg_loc'].shape[1]):
-#                     ch['eeg_loc'][:, p] = np.dot(t,
-#                                                 np.r_[ch['eeg_loc'][:,p], 1])
-#                 count += 1
-#                 ch['coord_frame'] = trans['to']
-#
-#     if count > 0:
-#         logger.info('    %d EEG electrode locations transformed\n' % count)
-#
-#     return res, count
+    Parameters
+    ----------
+    fname : str
+        Filename to save to.
+    xforms : list of dict
+        List of transformations.
+    """
+    check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
+    with start_file(fname) as fid:
+        for xform in xforms:
+            write_coord_trans(fid, xform)
+        end_file(fid)
