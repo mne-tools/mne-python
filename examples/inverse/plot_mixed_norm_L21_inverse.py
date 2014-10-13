@@ -57,14 +57,13 @@ stc, residual = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                            depth=depth, maxit=3000, tol=1e-4,
                            active_set_size=10, debias=True, weights=stc_dspm,
                            weights_min=8., return_residual=True)
-
 residual.plot(ylim=ylim, proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1,
-                             fig_name="MxNE (cond %s)" % condition)
+                             fig_name="MxNE (cond %s)" % condition,
+                             opacity=0.1)
 
 # and on the fsaverage brain after morphing
 stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',

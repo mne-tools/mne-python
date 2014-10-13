@@ -45,6 +45,7 @@ from mne.viz import plot_sparse_source_estimates
 print(__doc__)
 
 data_path = sample.data_path()
+subjects_dir = data_path + '/subjects'
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
@@ -95,14 +96,15 @@ stc.crop(tmin=-0.05, tmax=0.3)
 evoked.crop(tmin=-0.05, tmax=0.3)
 residual.crop(tmin=-0.05, tmax=0.3)
 
-ylim = dict(eeg=[-10, 10], grad=[-200, 250], mag=[-600, 600])
-picks = mne.pick_types(evoked.info, meg='grad', exclude='bads')
-evoked.plot(picks=picks, ylim=ylim, proj=True,
-            titles=dict(grad='Evoked Response (grad)'))
+# Show the evoked response and the residual for gradiometers
+ylim = dict(grad=[-120, 120])
+evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
+evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
+            proj=True)
 
-picks = mne.pick_types(residual.info, meg='grad', exclude='bads')
-residual.plot(picks=picks, ylim=ylim, proj=True,
-              titles=dict(grad='Residual (grad)'))
+residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
+residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
+              proj=True)
 
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
