@@ -15,7 +15,7 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        read_elp)
 from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
-                       run_tests_if_main)
+                       run_tests_if_main, requires_scipy_version)
 from functools import reduce
 
 
@@ -29,6 +29,7 @@ def test_read_elp():
 
 @requires_mne
 @requires_freesurfer
+@requires_scipy_version('0.11')
 def test_scale_mri():
     """Test creating fsaverage and scaling it"""
     # create fsaverage
