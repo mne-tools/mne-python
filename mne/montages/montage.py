@@ -9,6 +9,29 @@ import numpy as np
 from ..externals.six import BytesIO
 from ..channels import _contains_ch_type
 from ..viz import plot_montage
+from ..transforms import apply_trans
+
+
+def _rotate_montage(f):
+    f = f * np.pi / 180.
+    rx = f[0]
+    ry = f[1]
+    rz = f[2]
+    cX = np.cos(rx)
+    cY = np.cos(ry)
+    cZ = np.cos(rz)
+    sX = np.sin(rx)
+    sY = np.sin(ry)
+    sZ = np.sin(rz)
+
+    H = np.array([[cZ * cY, -sZ * cY, sY, 0],
+                  [cZ * sY * sX + sZ * cX, -sZ * sY * sX + cZ * cX,
+                   -cY * sX, 0],
+                  [-cZ * sY * cX + sZ * sX, sZ * sY * cX + cZ * sX,
+                   cY * cX, 0],
+                  [0, 0, 0, 1]])
+
+    return H
 
 
 class Montage(object):
@@ -119,7 +142,11 @@ def read_montage(kind, names=None, path=None, scale=True):
         x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
         y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
         z = 85. * np.cos(np.deg2rad(theta))
-        pos = np.c_[x, y, z]
+        # import pdb;pdb.set_trace()
+        # XXX something is weird here
+        pos = np.c_[x, z, y]  # topos correct like this
+        # trans = _rotate_montage(np.array([0, 0, 0]))
+        # pos = apply_trans(trans, pos)
         names_ = data['f0']
     elif ext == '.csd':
         # CSD toolbox
