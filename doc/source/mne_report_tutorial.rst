@@ -43,12 +43,12 @@ if available)::
 To properly render `trans` and `covariance` files, add the measurement information::
 
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
-        --subject sample --subjects_dir MNE-sample-data/subjects --verbose
+        --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
 To generate the report in parallel::
 
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
-        --subject sample --subjects_dir MNE-sample-data/subjects --verbose --jobs 6
+        --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
 
 The Python interface
 --------------------

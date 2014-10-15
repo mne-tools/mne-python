@@ -45,16 +45,45 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
-def _fig_to_img(function=None, fig=None, **kwargs):
+def _fig_to_img(function=None, fig=None, image_format='png',
+                scale=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
     import matplotlib.pyplot as plt
     if function is not None:
         plt.close('all')
         fig = function(**kwargs)
     output = BytesIO()
-    fig.savefig(output, format='png', bbox_inches='tight', dpi=fig.get_dpi())
+    if scale is not None:
+        _scale_mpl_figure(fig, scale)
+    fig.savefig(output, format=image_format, bbox_inches='tight',
+                dpi=fig.get_dpi())
     plt.close(fig)
-    return base64.b64encode(output.getvalue()).decode('ascii')
+    output = output.getvalue()
+    return (output if image_format == 'svg' else
+            base64.b64encode(output).decode('ascii'))
+
+
+def _scale_mpl_figure(fig, scale):
+    """Magic scaling helper
+
+    Keeps font-size and artist sizes constant
+    0.5 : current font - 4pt
+    2.0 : current font + 4pt
+
+    XXX it's unclear why this works, but good to go for most cases
+    """
+    fig.set_size_inches(fig.get_size_inches() * scale)
+    fig.set_dpi(fig.get_dpi() * scale)
+    import matplotlib as mpl
+    if scale >= 1:
+        sfactor = scale ** 2
+    elif scale < 1:
+        sfactor = -((1. / scale) ** 2)
+    for text in fig.findobj(mpl.text.Text):
+        fs = text.get_fontsize()
+        text.set_fontsize(fs + sfactor)
+
+    fig.canvas.draw()
 
 
 def _figs_to_mrislices(sl, n_jobs, **kwargs):
@@ -75,7 +104,6 @@ def _iterate_trans_views(function, **kwargs):
     from scipy.misc import imread
     import matplotlib.pyplot as plt
     import mayavi
-
     fig = function(**kwargs)
 
     assert isinstance(fig, mayavi.core.scene.Scene)
@@ -283,7 +311,8 @@ def _iterate_coronal_slices(array, limits=None):
         yield ind, np.flipud(np.rot90(array[:, :, ind]))
 
 
-def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
+def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap,
+                        image_format='png'):
     """Auxiliary function for parallel processing of mri slices.
     """
     img_klass = 'slideimg-%s' % name
@@ -294,8 +323,7 @@ def _iterate_mri_slices(name, ind, global_id, slides_klass, data, cmap):
     img = _build_image(data, cmap=cmap)
     first = True if ind == 0 else False
     html = _build_html_image(img, slice_id, div_klass,
-                             img_klass, caption,
-                             first)
+                             img_klass, caption, first)
     return ind, html
 
 
@@ -497,6 +525,8 @@ image_template = Template(u"""
 {{default interactive = False}}
 {{default width = 50}}
 {{default id = False}}
+{{default image_format = 'png'}}
+{{default scale = None}}
 
 <li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
 {{if not show}}style="display: none"{{endif}}>
@@ -506,8 +536,19 @@ image_template = Template(u"""
 {{endif}}
 <div class="thumbnail">
 {{if not interactive}}
-    <img alt="" style="width:{{width}}%;"
-    src="data:image/png;base64,{{img}}">
+    {{if image_format == 'png'}}
+        {{if scale is not None}}
+            <img alt="" style="width:{{width}}%;"
+             src="data:image/png;base64,{{img}}">
+        {{else}}
+            <img alt=""
+             src="data:image/png;base64,{{img}}">
+        {{endif}}
+    {{elif image_format == 'svg'}}
+        <div style="text-align:center;">
+            {{img}}
+        </div>
+    {{endif}}
 {{else}}
     <center>{{interactive}}</center>
 {{endif}}
@@ -657,7 +698,7 @@ class Report(object):
         return items, captions
 
     def _add_figs_to_section(self, figs, captions, section='custom',
-                             scale=None):
+                             image_format='png', scale=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
         try:
@@ -668,7 +709,6 @@ class Report(object):
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
-        import matplotlib as mpl
         figs, captions = self._validate_input(figs, captions, section)
         for fig, caption in zip(figs, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -682,27 +722,16 @@ class Report(object):
                 temp_fname = op.join(tempdir, 'test')
                 fig.scene.save_png(temp_fname)
                 mayavi.mlab.close(fig)
-                with open(temp_fname, 'rb') as fid:
-                    img = base64.b64encode(fid.read()).decode('ascii')
             else:
-                img = _fig_to_img(fig=fig)
-            if scale is None:
-                if isinstance(fig, mpl.figure.Figure):
-                    my_scale = fig.get_figwidth()  # "magic' scaling factor
-                else:
-                    my_scale = fig.scene.get_size()
-                my_scale *= 5
-            elif callable(scale):
-                my_scale = scale(fig)
-            else:
-                my_scale = scale
-
+                img = _fig_to_img(fig=fig, scale=scale,
+                                  image_format=image_format)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
                                              show=True,
-                                             width=my_scale)
+                                             image_format=image_format,
+                                             width=scale)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -728,7 +757,7 @@ class Report(object):
                                          section=section)
 
     def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None):
+                            scale=None, image_format='png'):
         """Append custom user-defined figures.
 
         Parameters
@@ -739,18 +768,23 @@ class Report(object):
             or np.ndarray (images read in using scipy.imread).
         captions : list of str
             A list of captions to the figures.
-        scale : float | None | callable
-            Scale the images maintaining the aspect ratio.
-            If None, equals fig.get_figwidth() * 5. If callable, function
-            should take a figure object as input parameter.
         section : str
             Name of the section. If section already exists, the figures
             will be appended to the end of the section
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, no scaling is applied.
+            If float, scale will determine the relative width in percent.
+            If function, should take a figure object as input parameter.
+            Defaults to None.
+        image_format : {'png', 'svg'}
+            The image format to be used for the report. Defaults to 'png'.
         """
         return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section, scale=scale)
+                                         section=section, scale=scale,
+                                         image_format=image_format)
 
-    def add_images_to_section(self, fnames, captions, scale=1.0,
+    def add_images_to_section(self, fnames, captions, scale=None,
                               section='custom'):
         """Append custom user-defined images.
 
@@ -760,9 +794,9 @@ class Report(object):
             A list of filenames from which images are read.
         captions : list of str
             A list of captions to the images.
-        scale : float
+        scale : float | None
             Scale the images maintaining the aspect ratio.
-            Defaults to 1.
+            Defaults to None. If None, no scaling will be applied.
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
@@ -771,8 +805,6 @@ class Report(object):
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
         from PIL import Image
-
-        scale *= 100
         fnames, captions = self._validate_input(fnames, captions, section)
 
         for fname, caption in zip(fnames, captions):
@@ -1245,7 +1277,7 @@ class Report(object):
             if len(pick_types(ev.info, meg='mag', eeg=False)) > 0:
                 has_types.append('mag')
             for ch_type in has_types:
-                kwargs = dict(ch_type=ch_type, show=False)
+                kwargs.update(ch_type=ch_type)
                 img = _fig_to_img(ev.plot_topomap, **kwargs)
                 caption = u'Topomap (ch_type = %s)' % ch_type
                 html.append(image_template.substitute(img=img,
@@ -1315,7 +1347,7 @@ class Report(object):
         return html
 
     def _render_trans(self, trans_fname, path, info, subject,
-                      subjects_dir):
+                      subjects_dir, image_format='png'):
         """Render trans.
         """
         kwargs = dict(info=info, trans_fname=trans_fname, subject=subject,

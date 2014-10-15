@@ -111,7 +111,8 @@ def test_render_add_sections():
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
     report.add_figs_to_section(figs=fig,  # test non-list input
-                               captions=['evoked response'])
+                               captions=['evoked response'], scale=1.2,
+                               image_format='svg')
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
 
