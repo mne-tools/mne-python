@@ -23,7 +23,7 @@ Changelog
 
    - Average evoked topographies across time points by `Denis Engemann`_
 
-   - Add svg backend to Report class by `Denis Engemann`_
+   - Add option to Report class to save images as vector graphics (SVG) by `Denis Engemann`_
 
 BUG
 ~~~

@@ -796,7 +796,7 @@ class Report(object):
             A list of captions to the images.
         scale : float | None
             Scale the images maintaining the aspect ratio.
-            Defaults to None. Ff None, no scaling will be applied.
+            Defaults to None. If None, no scaling will be applied.
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
