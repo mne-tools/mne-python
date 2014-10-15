@@ -259,10 +259,6 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     else:
         group_size = 3
 
-    # if not isinstance(depth, float):
-    #     raise Exception('Only depth values of type float '
-    #                     'are currently supported in Gamma MAP.')
-
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, None, None,
         depth_method=depth_method, limit_depth_chs=limit_depth_chs)
