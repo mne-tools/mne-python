@@ -108,7 +108,7 @@ class RawEDF(_BaseRaw):
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([self._edf_info['nsamples']])
         self.rawdirs = np.array([])
-        self.cals = np.array([])
+        self.cals = np.array([ch['cal'] for ch in self.info['chs']])
         self.orig_format = 'int'
 
         if preload:
