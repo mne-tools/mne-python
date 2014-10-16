@@ -197,13 +197,13 @@ class PickDropChannelsMixin(object):
             self._projector = self._projector[idx][:, idx]
 
         if isinstance(self, _BaseRaw) and inst_has('_data'):
-            self._data = self._data[idx, :]
+            self._data = self._data.take(idx, axis=0)
         elif isinstance(self, Epochs) and inst_has('_data'):
-            self._data = self._data[:, idx, :]
+            self._data = self._data.take(idx, axis=1)
         elif isinstance(self, AverageTFR) and inst_has('data'):
-            self.data = self.data[idx, :, :]
+            self.data = self.data.take(idx, axis=0)
         elif isinstance(self, Evoked):
-            self.data = self.data[idx, :]
+            self.data = self.data.take(idx, axis=0)
 
 
 def rename_channels(info, mapping):
