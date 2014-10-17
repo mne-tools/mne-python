@@ -309,11 +309,13 @@ def _read_vmrk_events(fname):
     events = []
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
-        if mtype == 'Stimulus':
-            trigger = int(re.findall('S\s*?(\d+)', mdesc)[0])
+        try:
+            trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
             onset = int(onset)
             duration = int(duration)
             events.append((onset, duration, trigger))
+        except IndexError:
+            pass
 
     events = np.array(events)
     return events
