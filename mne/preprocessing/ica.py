@@ -870,11 +870,10 @@ class ICA(ContainsMixin):
         """
         if verbose is None:
             verbose = self.verbose
-        try:
-            idx_ecg = _get_ecg_channel_index(ch_name, inst)
-        except RuntimeError:
-            idx_ecg = []
-        if not np.any(idx_ecg):
+
+        idx_ecg = _get_ecg_channel_index(ch_name, inst)
+
+        if idx_ecg is None:
             if verbose is not None:
                 verbose = self.verbose
             ecg, times = _make_ecg(inst, start, stop, verbose)
@@ -884,7 +883,10 @@ class ICA(ContainsMixin):
 
         # some magic we need inevitably ...
         if inst.ch_names != self.ch_names:
-            inst = inst.pick_channels(self.ch_names, copy=True)
+            extra_picks = pick_types(inst.info, meg=False, eog=True, ecg=True)
+            ch_names_to_pick = (self.ch_names +
+                                [inst.ch_names[k] for k in extra_picks])
+            inst = inst.pick_channels(ch_names_to_pick, copy=True)
 
         if method == 'ctps':
             if threshold is None:
@@ -909,7 +911,7 @@ class ICA(ContainsMixin):
                                         verbose=verbose)
             ecg_idx = find_outliers(scores, threshold=threshold)
         else:
-            raise ValueError('Mehtod "%s" not supported.' % method)
+            raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
         return list(ecg_idx), scores
