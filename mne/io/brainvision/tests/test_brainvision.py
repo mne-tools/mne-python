@@ -8,7 +8,7 @@ from __future__ import print_function
 import os.path as op
 import inspect
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -38,6 +38,8 @@ eog = ('HL', 'HR', 'Vb')
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, elp_path,
+                  elp_names, preload=True, scale="0")
     raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
