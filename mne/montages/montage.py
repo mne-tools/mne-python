@@ -60,15 +60,15 @@ class Montage(object):
                                                    ', '.join(self.names[:3]))
         return s
 
-    def plot(self, scale_factor=1.5, draw_names=False):
+    def plot(self, scale_factor=1.5, show_names=False):
         """Plot EEG sensor montage
 
         Parameters
         ----------
         scale_factor : float
             Determines the size of the points. Defaults to 1.5
-        draw_names : bool
-            Whether to draw the channel names. Defaults to False
+        show_names : bool
+            Whether to show the channel names. Defaults to False
 
         Returns
         -------
@@ -76,7 +76,7 @@ class Montage(object):
             The malab scene object.
         """
         return plot_montage(self, scale_factor=scale_factor,
-                            draw_names=draw_names)
+                            show_names=show_names)
 
 
 def read_montage(kind, names=None, path=None, scale=True):

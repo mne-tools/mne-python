@@ -4,7 +4,7 @@ import numpy as np
 """
 
 
-def plot_montage(montage, scale_factor=1.5, draw_names=False):
+def plot_montage(montage, scale_factor=1.5, show_names=False):
     """Plot EEG sensor montage
 
     Parameters
@@ -13,8 +13,8 @@ def plot_montage(montage, scale_factor=1.5, draw_names=False):
         The montage to visualize
     scale_factor : float
         Determines the size of the points. Defaults to 1.5
-    draw_names : bool
-        Whether to draw the channel names. Defaults to False
+    show_names : bool
+        Whether to show the channel names. Defaults to False
 
     Returns
     -------
@@ -31,7 +31,7 @@ def plot_montage(montage, scale_factor=1.5, draw_names=False):
     mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2],
                   color=(1.0, 1.0, 1.0), scale_factor=1.5)
 
-    if draw_names:
+    if show_names:
         for p, n in zip(pos, montage.names):
             mlab.text(p[0], p[1], z=p[2] + scale_factor, text=n, width=0.05)
 
