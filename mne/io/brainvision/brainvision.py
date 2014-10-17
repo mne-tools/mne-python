@@ -289,9 +289,13 @@ def _read_vmrk_events(fname):
     with open(fname) as fid:
         txt = fid.read()
 
-    start_tag = 'Brain Vision Data Exchange Marker File, Version 1.0'
-    if not txt.startswith(start_tag):
+    header = txt.split('\n')[0].strip()
+    start_tag = 'Brain Vision Data Exchange Marker File'
+    if not header.startswith(start_tag):
         raise ValueError("vmrk file should start with %r" % start_tag)
+    end_tag = 'Version 1.0'
+    if not header.endswith(end_tag):
+        raise ValueError("vmrk file should be %r" % end_tag)
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -449,7 +453,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
         assert l == 'Brain Vision Data Exchange Header File Version 1.0'
         settings = f.read()
 
-    params, settings = settings.split('[Comment]')
+    if settings.find('[Comment]') != -1:
+        params, settings = settings.split('[Comment]')
+    else:
+        params, settings = settings, str()
     cfg = configparser.ConfigParser()
     if hasattr(cfg, 'read_file'):  # newer API
         cfg.read_file(StringIO(params))
@@ -489,7 +496,12 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     units = ['UNKNOWN'] * n_eeg_chan
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0])
-        name, _, resolution, unit = props.split(',')[:4]
+        props = props.split(',')
+        if len(props) < 4:
+            name, _, resolution = props
+            unit = 'V'
+        else:
+            name, _, resolution, unit = props[:4]
         ch_names[n - 1] = name
         cals[n - 1] = float(resolution)
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
