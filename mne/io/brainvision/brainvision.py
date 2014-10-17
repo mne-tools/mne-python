@@ -50,6 +50,10 @@ class RawBrainVision(_BaseRaw):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    scale : int | float
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 1. For microvolts, the scale factor would be 1e-6. This is
+        used when the header file does not specify the scale factor.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -60,7 +64,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
                  preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -69,9 +73,15 @@ class RawBrainVision(_BaseRaw):
         # Channel info and events
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
+        if isinstance(scale, int):
+            scale = float(scale)
+        if not isinstance(scale, float):
+            raise TypeError('Scale factor must be an int or float. '
+                            '%s provided' % type(scale))
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           elp_fname, elp_names,
-                                                          reference, eog)
+                                                          reference, eog,
+                                                          scale)
         self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
@@ -165,7 +175,6 @@ class RawBrainVision(_BaseRaw):
             chs = chs[:-1]
         n_eeg = len(chs)
         cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
-        mults = np.atleast_2d([chan_info['unit_mul'] for chan_info in chs])
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(sfreq),
@@ -184,8 +193,7 @@ class RawBrainVision(_BaseRaw):
         elif eeg_info['data_orientation'] == 'VECTORIZED':
             data = data.reshape((n_eeg, -1), order='C')
 
-        gains = cals * mults
-        data = data * gains.T
+        data = data * cals.T
 
         # add reference channel and stim channel (if applicable)
         data_segments = [data]
@@ -289,9 +297,13 @@ def _read_vmrk_events(fname):
     with open(fname) as fid:
         txt = fid.read()
 
-    start_tag = 'Brain Vision Data Exchange Marker File, Version 1.0'
-    if not txt.startswith(start_tag):
+    header = txt.split('\n')[0].strip()
+    start_tag = 'Brain Vision Data Exchange Marker File'
+    if not header.startswith(start_tag):
         raise ValueError("vmrk file should start with %r" % start_tag)
+    end_tag = 'Version 1.0'
+    if not header.endswith(end_tag):
+        raise ValueError("vmrk file should be %r" % end_tag)
 
     # extract Marker Infos block
     m = re.search("\[Marker Infos\]", txt)
@@ -307,11 +319,13 @@ def _read_vmrk_events(fname):
     events = []
     for info in items:
         mtype, mdesc, onset, duration = info.split(',')[:4]
-        if mtype == 'Stimulus':
-            trigger = int(re.findall('S\s*?(\d+)', mdesc)[0])
+        try:
+            trigger = int(re.findall('[A-Za-z]*\s*?(\d+)', mdesc)[0])
             onset = int(onset)
             duration = int(duration)
             events.append((onset, duration, trigger))
+        except IndexError:
+            pass
 
     events = np.array(events)
     return events
@@ -385,7 +399,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
+def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
     """Extracts all the information from the header file.
 
     Parameters
@@ -409,6 +423,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
+    scale : int | float
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 1. For microvolts, the scale factor would be 1e-6. This is
+        used when the header file does not specify the scale factor.
 
     Returns
     -------
@@ -449,7 +467,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
         assert l == 'Brain Vision Data Exchange Header File Version 1.0'
         settings = f.read()
 
-    params, settings = settings.split('[Comment]')
+    if settings.find('[Comment]') != -1:
+        params, settings = settings.split('[Comment]')
+    else:
+        params, settings = settings, str()
     cfg = configparser.ConfigParser()
     if hasattr(cfg, 'read_file'):  # newer API
         cfg.read_file(StringIO(params))
@@ -489,14 +510,19 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     units = ['UNKNOWN'] * n_eeg_chan
     for chan, props in cfg.items('Channel Infos'):
         n = int(re.findall(r'ch(\d+)', chan)[0])
-        name, _, resolution, unit = props.split(',')[:4]
+        props = props.split(',')
+        if len(props) < 4:
+            name, _, resolution = props
+            unit = 'V'
+        else:
+            name, _, resolution, unit = props[:4]
         ch_names[n - 1] = name
         cals[n - 1] = float(resolution)
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         if u(unit) == u('\xb5V'):
             units[n - 1] = 1e-6
         elif unit == 'V':
-            units[n - 1] = 0
+            units[n - 1] = 1
         else:
             units[n - 1] = unit
 
@@ -587,7 +613,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
 
     missing_positions = []
     idxs = range(1, len(ch_names) + 1)
-    for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
+    for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
         is_eog = ch_name in eog
         if ch_locs is None:
             loc = np.zeros(3)
@@ -608,9 +634,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal,
+                     'cal': cal * unit * scale,
                      'range': 1.,
-                     'unit_mul': unit_mul,
+                     'unit_mul': 0.,  # always zero- mne manual pg. 273
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'eeg_loc': loc,
@@ -634,7 +660,8 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
                          preload=False, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1,
+                         verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -661,6 +688,10 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    scale : int | float
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 1. For microvolts, the scale factor would be 1e-6. This is
+        used when the header file does not specify the scale factor.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -669,5 +700,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, verbose)
+                         reference, eog, scale, verbose)
     return raw
