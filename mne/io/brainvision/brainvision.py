@@ -50,6 +50,10 @@ class RawBrainVision(_BaseRaw):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    scale : int
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 0. For microvolts, the scale factor would be -6. This is
+        used when the header file does not specify the scale factor.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -60,7 +64,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
                  preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=0, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -69,9 +73,13 @@ class RawBrainVision(_BaseRaw):
         # Channel info and events
         logger.info('Extracting eeg Parameters from %s...' % vhdr_fname)
         vhdr_fname = os.path.abspath(vhdr_fname)
+        if not isinstance(scale, int):
+            raise TypeError('Scale factor must be an int. %s provided'
+                            % type(scale))
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           elp_fname, elp_names,
-                                                          reference, eog)
+                                                          reference, eog,
+                                                          scale)
         self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
@@ -389,7 +397,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
+def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
     """Extracts all the information from the header file.
 
     Parameters
@@ -413,6 +421,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
+    scale : int
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 0. For microvolts, the scale factor would be -6. This is
+        used when the header file does not specify the scale factor.
 
     Returns
     -------
@@ -463,6 +475,8 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
     else:
         cfg.readfp(StringIO(params))
 
+    # get scaling factor
+    scale = 10 ** scale
     # get sampling info
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
@@ -620,7 +634,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal * unit_mul,
+                     'cal': cal * unit_mul * scale,
                      'range': 1.,
                      'unit_mul': 0.,
                      'unit': FIFF.FIFF_UNIT_V,
@@ -646,7 +660,8 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
 
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
                          preload=False, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], verbose=None):
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=0,
+                         verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -673,6 +688,10 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    scale : int
+        The scaling factor for EEG data. Units are in volts. Default scale
+        factor is 0. For microvolts, the scale factor would be -6. This is
+        used when the header file does not specify the scale factor.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -681,5 +700,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, verbose)
+                         reference, eog, scale, verbose)
     return raw
