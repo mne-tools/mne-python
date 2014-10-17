@@ -613,7 +613,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
 
     missing_positions = []
     idxs = range(1, len(ch_names) + 1)
-    for idx, ch_name, cal, unit_mul in zip(idxs, ch_names, cals, units):
+    for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
         is_eog = ch_name in eog
         if ch_locs is None:
             loc = np.zeros(3)
@@ -634,9 +634,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal * unit_mul * scale,
+                     'cal': cal * unit * scale,
                      'range': 1.,
-                     'unit_mul': 0.,
+                     'unit_mul': 0.,  # always zero- mne manual pg. 273
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'eeg_loc': loc,
