@@ -165,7 +165,6 @@ class RawBrainVision(_BaseRaw):
             chs = chs[:-1]
         n_eeg = len(chs)
         cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
-        mults = np.atleast_2d([chan_info['unit_mul'] for chan_info in chs])
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(sfreq),
@@ -184,8 +183,7 @@ class RawBrainVision(_BaseRaw):
         elif eeg_info['data_orientation'] == 'VECTORIZED':
             data = data.reshape((n_eeg, -1), order='C')
 
-        gains = cals * mults
-        data = data * gains.T
+        data = data * cals.T
 
         # add reference channel and stim channel (if applicable)
         data_segments = [data]
@@ -508,7 +506,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
         if u(unit) == u('\xb5V'):
             units[n - 1] = 1e-6
         elif unit == 'V':
-            units[n - 1] = 0
+            units[n - 1] = 1
         else:
             units[n - 1] = unit
 
@@ -620,9 +618,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog):
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal,
+                     'cal': cal * unit_mul,
                      'range': 1.,
-                     'unit_mul': unit_mul,
+                     'unit_mul': 0.,
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
                      'eeg_loc': loc,
