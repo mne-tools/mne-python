@@ -33,7 +33,7 @@ def plot_montage(montage, scale_factor=1.5, draw_names=False):
 
     if draw_names:
         for p, n in zip(pos, montage.names):
-            mlab.text(p[0], p[1], z=p[2]+1.5, text=n, width=0.05)
+            mlab.text(p[0], p[1], z=p[2] + scale_factor, text=n, width=0.05)
 
     mlab.text(0.01, 0.01, montage.kind, width=0.4)
     mlab.view(0, 0)
