@@ -1,13 +1,15 @@
 import numpy as np
 import os.path as op
-from numpy.testing import assert_array_almost_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
+from mne.utils import _TempDir
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
+from mne.time_frequency.tfr import AverageTFR, read_tfr
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -135,7 +137,7 @@ def test_tfr_multitaper():
     rng = np.random.RandomState(seed)
     noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
     t = np.arange(n_times, dtype=np.float) / sfreq
-    signal = np.sin(np.pi * 2.* 50. * t)  # 50 Hz sinusoid signal
+    signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
     on_time = np.logical_and(t >= 0.45, t <= 0.55)
     signal[on_time] *= np.hanning(on_time.sum())  # Ramping
@@ -159,3 +161,24 @@ def test_tfr_multitaper():
     assert_true(tmax > 0.3 and tmax < 0.7)
     assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)
+
+
+def test_io():
+    """Test TFR IO capacities"""
+    tempdir = _TempDir()
+    fname = op.join(tempdir, 'test-tfr.fif')
+    raw = io.Raw(raw_fname)
+    data = np.zeros((raw.info['nchan'], 2, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    tfr = AverageTFR(raw.info, data=data, times=times, freqs=freqs,
+                     nave=20, kind='test')
+    tfr.save(fname)
+    tfr2 = read_tfr(fname)
+    assert_array_equal(tfr.data, tfr2.data)
+    assert_array_equal(tfr.times, tfr2.times)
+    assert_array_equal(tfr.freqs, tfr2.freqs)
+    assert_equal(tfr.kind, tfr2.kind)
+    assert_equal(tfr.nave, tfr2.nave)
+
+test_io()
