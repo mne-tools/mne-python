@@ -558,7 +558,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         The names of the channels.
     """
     @verbose
-    def __init__(self, info, data, times, freqs, nave, verbose=None):
+    def __init__(self, info, data, times, freqs, nave, kind, verbose=None):
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -576,6 +576,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.times = times
         self.freqs = freqs
         self.nave = nave
+        self.kind = kind
 
     @property
     def ch_names(self):
@@ -926,6 +927,39 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 
+    def save(self, fname):
+        """Save TFR object to fiff file
+
+        Parameters
+        ----------
+        fname : str
+            The file name
+        """
+        check_fname(fname, 'tfr', ('-tfr.h5',))
+        write_hdf5(fname, vars(self))
+
+
+def read_tfr(fname):
+    """
+    Read TFR dataset
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.fif or -tfr.fif.gz.
+    """
+    check_fname(fname, 'evoked', ('-tfr.h5',))
+
+    logger.info('Reading %s ...' % fname)
+
+    tfr_dict = read_hdf5(fname)
+
+    tfr = AverageTFR(**tfr_dict)
+
+    fid.close()
+
+    return tfr
+
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                return_itc=True, decim=1, n_jobs=1):
@@ -966,9 +1000,9 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                                 zero_mean=True)
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave)
+    out = AverageTFR(info, power, times, freqs, nave, 'morlet-itc')
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave))
+        out = (out, AverageTFR(info, itc, times, freqs, nave, 'morlet-itc'))
     return out
 
 
