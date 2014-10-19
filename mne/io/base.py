@@ -109,7 +109,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
             # Let's do automated type conversion to integer here
             if np.array(item[1]).dtype.kind == 'i':
                 item1 = int(item1)
-            if isinstance(item1, int):
+            if isinstance(item1, (int, np.integer)):
                 start, stop, step = item1, item1 + 1, 1
             else:
                 raise ValueError('Must pass int or slice to __getitem__')
@@ -119,7 +119,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         if (step is not None) and (step is not 1):
             raise ValueError('step needs to be 1 : %d given' % step)
 
-        if isinstance(sel, int):
+        if isinstance(sel, (int, np.integer)):
             sel = np.array([sel])
 
         if sel is not None and len(sel) == 0:

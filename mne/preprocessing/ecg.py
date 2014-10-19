@@ -1,3 +1,4 @@
+import warnings
 from ..externals.six import string_types
 import numpy as np
 
@@ -160,16 +161,13 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
     average_pulse : float
         Estimated average pulse.
     """
-    try:
-        idx_ecg = _get_ecg_channel_index(ch_name, raw)
-        assert len(idx_ecg) == 1
-        logger.info('Using channel %s to identify heart beats'
-                    % raw.ch_names[idx_ecg[0]])
-
+    idx_ecg = _get_ecg_channel_index(ch_name, raw)
+    if idx_ecg is not None:
+        logger.info('Using channel %s to identify heart beats.'
+                    % raw.ch_names[idx_ecg])
         ecg, times = raw[idx_ecg, :]
-    except RuntimeError:
+    else:
         ecg, times = _make_ecg(raw, None, None, verbose)
-        idx_ecg = None
 
     # detecting QRS and generating event file
     ecg_events = qrs_detector(raw.info['sfreq'], ecg.ravel(), tstart=tstart,
@@ -187,22 +185,27 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
 
 
 def _get_ecg_channel_index(ch_name, inst):
-     # Geting ECG Channel
+    """Geting ECG channel index. If no channel found returns None."""
     if ch_name is None:
         ecg_idx = pick_types(inst.info, meg=False, eeg=False, stim=False,
                              eog=False, ecg=True, emg=False, ref_meg=False,
                              exclude='bads')
     else:
-        ecg_idx = pick_channels(inst.ch_names, include=[ch_name])
-        if len(ecg_idx) == 0:
+        if ch_name not in inst.ch_names:
             raise ValueError('%s not in channel list (%s)' %
                              (ch_name, inst.ch_names))
+        ecg_idx = pick_channels(inst.ch_names, include=[ch_name])
 
-    if len(ecg_idx) == 0 and ch_name is None:
-        raise RuntimeError('No ECG channel found. Please specify ch_name '
-                           'parameter e.g. MEG 1531')
+    if len(ecg_idx) == 0:
+        return None
+        # raise RuntimeError('No ECG channel found. Please specify ch_name '
+        #                    'parameter e.g. MEG 1531')
 
-    return ecg_idx
+    if len(ecg_idx) > 1:
+        warnings.warn('More than one ECG channel found. Using only %s.'
+                      % inst.ch_names[ecg_idx[0]])
+
+    return ecg_idx[0]
 
 
 @verbose
