@@ -28,9 +28,9 @@ rename_channels(evoked.info, dict(zip(eeg_channels, names)))
 
 # Read montage and plot
 montage = read_montage('easycap-M10', names)
-montage.plot()
+montage.plot(show_names=True)
 
-# Apply montage
-evoked.plot_topomap(size=1, ch_type='eeg')
+# Auditorpply montage
+evoked.plot_topomap([.1], show_names=True, size=4, ch_type='eeg')
 apply_montage(evoked.info, montage)
-evoked.plot_topomap(size=1, ch_type='eeg')
+evoked.plot_topomap([.1], show_names=True, size=4, ch_type='eeg')
