@@ -883,7 +883,7 @@ class ICA(ContainsMixin):
 
         # some magic we need inevitably ...
         if inst.ch_names != self.ch_names:
-            extra_picks = pick_types(inst.info, meg=False, eog=True, ecg=True)
+            extra_picks = pick_types(inst.info, meg=False, ecg=True)
             ch_names_to_pick = (self.ch_names +
                                 [inst.ch_names[k] for k in extra_picks])
             inst = inst.pick_channels(ch_names_to_pick, copy=True)
