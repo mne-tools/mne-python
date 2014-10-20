@@ -490,8 +490,8 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ev_mask = events[:, 2] == ev
         kwargs = {}
         if event_id is not None:
-            event_label = '{} ({})'.format(event_id_rev[ev],
-                                           np.sum(ev_mask))
+            event_label = '{0} ({1})'.format(event_id_rev[ev],
+                                             np.sum(ev_mask))
             kwargs['label'] = event_label
         if ev in color:
             kwargs['color'] = color[ev]
