@@ -490,7 +490,9 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
         ev_mask = events[:, 2] == ev
         kwargs = {}
         if event_id is not None:
-            kwargs['label'] = event_id_rev[ev]
+            event_label = '{0} ({1})'.format(event_id_rev[ev],
+                                             np.sum(ev_mask))
+            kwargs['label'] = event_label
         if ev in color:
             kwargs['color'] = color[ev]
         if equal_spacing:
@@ -512,13 +514,16 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
 
     ax.grid('on')
 
+    fig = fig if fig is not None else plt.gcf()
     if event_id is not None:
-        ax.legend()
-
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+        fig.canvas.draw()
     if show:
         plt.show()
 
-    return fig if fig is not None else plt.gcf()
+    return fig
 
 
 def _get_presser(fig):

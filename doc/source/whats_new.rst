@@ -25,6 +25,8 @@ Changelog
 
    - Add option to Report class to save images as vector graphics (SVG) by `Denis Engemann`_
 
+   - Add events count to `mne.viz.plot_events` (SVG) by `Denis Engemann`_
+
 BUG
 ~~~
 
