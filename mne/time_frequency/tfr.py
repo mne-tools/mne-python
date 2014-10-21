@@ -551,14 +551,20 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-
+    comment : str | None
+        Comment on the data, e.g., the experimental condition.
+        Defaults to None.
+    method : str | None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
+        Defaults to None.
     Attributes
     ----------
     ch_names : list
         The names of the channels.
     """
     @verbose
-    def __init__(self, info, data, times, freqs, nave, kind, verbose=None):
+    def __init__(self, info, data, times, freqs, nave, comment=None,
+                 method=None, verbose=None):
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -576,7 +582,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.times = times
         self.freqs = freqs
         self.nave = nave
-        self.kind = kind
+        self.comment = comment
+        self.method = method
 
     @property
     def ch_names(self):
