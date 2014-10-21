@@ -1830,6 +1830,8 @@ def read_ica(fname):
     logger.info('Now restoring ICA solution ...')
     # make sure dtypes are np.float64 to satisfy fast_dot
     f = lambda x: x.astype(np.float64)
+    ica_init = dict((k, v) for k, v in ica_init.items()
+                    if k in getargspec(ICA.__init__).args)
     ica = ICA(**ica_init)
     ica.current_fit = current_fit
     ica.ch_names = ch_names.split(':')
