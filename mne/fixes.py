@@ -22,7 +22,6 @@ import scipy
 from scipy import linalg, sparse
 from math import ceil, log
 from numpy.fft import irfft
-from nose.tools import assert_true
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
@@ -571,6 +570,16 @@ def normalize_colors(vmin, vmax, clip=False):
         return plt.Normalize(vmin, vmax, clip=clip)
     else:
         return plt.normalize(vmin, vmax, clip=clip)
+
+
+def _assert_true(expr, msg):
+    """Fake assert_true without message"""
+    assert expr
+
+try:
+    from nose.tools import assert_true
+except ImportError:
+    assert_true = _assert_true
 
 
 def _assert_is(expr1, expr2, msg=None):
