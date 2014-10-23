@@ -406,8 +406,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
                      resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
-                     seeg=seeg,
-                     include=include, exclude=exclude)
+                     seeg=seeg, include=include, exclude=exclude)
 
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
@@ -475,8 +474,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     return fwd
 
 
-def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
-                       exclude=[]):
+def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
+                       include=[], exclude=[]):
     """Pick by channel type and names from a forward operator
 
     Parameters
@@ -491,6 +490,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
         If True include EEG channels
     ref_meg : bool
         If True include CTF / 4D reference channels
+    seeg : bool
+        If True include stereotactic EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -514,7 +515,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
 def channel_indices_by_type(info):
     """Get indices of channels by type
     """
-    idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
+    idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[])
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
