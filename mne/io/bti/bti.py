@@ -986,7 +986,7 @@ class RawBTi(_BaseRaw):
                              'r pass the full file name.' % head_shape_fname)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
-        self._bti_info = bti_info = _read_bti_header(pdf_fname, config_fname)
+        bti_info = _read_bti_header(pdf_fname, config_fname)
 
          # XXX indx is informed guess. Normally only one transform is stored.
         dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
@@ -1182,6 +1182,7 @@ class RawBTi(_BaseRaw):
                     float(self.last_samp) / info['sfreq']))
 
         logger.info('Ready.')
+
 
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
