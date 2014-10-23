@@ -590,7 +590,7 @@ def test_as_data_frame():
             assert_array_equal(df.values.T[ncat:], stc.data)
             # test that non-indexed data were present as categorial variables
             with warnings.catch_warnings(record=True):  # pandas
-                df.reset_index().columns[:3] == ['subject', 'time']
+                df.reset_index().columns[:2] == ['subject', 'time']
 
 
 def test_get_peak():
