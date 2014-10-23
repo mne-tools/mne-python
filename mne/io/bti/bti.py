@@ -1025,6 +1025,7 @@ class RawBTi(_BaseRaw):
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]
+        self.bti_ch_labels = [c['chan_label'] for c in bti_info['chs']]
         info['ch_names'] = _rename_channels(ch_names)
         ch_mapping = zip(ch_names, info['ch_names'])
         logger.info('... Setting channel info structure.')
