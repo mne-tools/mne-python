@@ -1182,6 +1182,9 @@ class RawBTi(_BaseRaw):
 
         logger.info('Ready.')
 
+    @property
+    def bti_chan_labels(self):
+        return [c['chan_label'] for c in self._bti_info['chs']]
 
 @verbose
 def read_raw_bti(pdf_fname, config_fname='config',
