@@ -624,6 +624,8 @@ class ICA(ContainsMixin):
         stop : int | float | None
             Last sample to not include. If float, data will be interpreted as
             time in seconds. If None, the entire data will be used.
+        one_based : bool | True
+            If True, source channel names' index start with 1, otherwise 0.
 
         Returns
         -------
