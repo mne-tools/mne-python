@@ -153,6 +153,7 @@ FIFF.FIFFV_EMG_CH     = 302
 FIFF.FIFFV_ECG_CH     = 402
 FIFF.FIFFV_MISC_CH    = 502
 FIFF.FIFFV_RESP_CH    = 602  # Respiration monitoring
+FIFF.FIFFV_SEEG_CH    = 702  # stereotactic EEG
 FIFF.FIFFV_SYST_CH    = 900  # some system status information (on Triux systems only)
 FIFF.FIFFV_IAS_CH     = 910  # Internal Active Shielding data (maybe on Triux only)
 FIFF.FIFFV_EXCI_CH    = 920  # flux excitation channel used to be a stimulus channel
