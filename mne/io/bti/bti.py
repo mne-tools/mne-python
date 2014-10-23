@@ -986,7 +986,7 @@ class RawBTi(_BaseRaw):
                              'r pass the full file name.' % head_shape_fname)
 
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
-        bti_info = _read_bti_header(pdf_fname, config_fname)
+        self._bti_info = bti_info = _read_bti_header(pdf_fname, config_fname)
 
          # XXX indx is informed guess. Normally only one transform is stored.
         dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
