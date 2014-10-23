@@ -391,6 +391,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         Internal Active Shielding data (maybe on Triux only).
     syst : bool
         System status channel information (on Triux systems only).
+    seeg : bool
+        Stereotactic EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
