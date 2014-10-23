@@ -600,7 +600,8 @@ class ICA(ContainsMixin):
 
         return sources
 
-    def get_sources(self, inst, add_channels=None, start=None, stop=None):
+    def get_sources(self, inst, add_channels=None, start=None, stop=None,
+                    one_based=True):
         """Estimate sources given the unmixing matrix
 
         This method will return the sources in the container format passed.
@@ -630,18 +631,21 @@ class ICA(ContainsMixin):
             The ICA sources time series.
         """
         if isinstance(inst, _BaseRaw):
-            sources = self._sources_as_raw(inst, add_channels, start, stop)
+            sources = self._sources_as_raw(inst, add_channels, start, stop,
+                                           one_based=one_based)
         elif isinstance(inst, _BaseEpochs):
-            sources = self._sources_as_epochs(inst, add_channels, False)
+            sources = self._sources_as_epochs(inst, add_channels, False,
+                                              one_based=one_based)
         elif isinstance(inst, Evoked):
-            sources = self._sources_as_evoked(inst, add_channels)
+            sources = self._sources_as_evoked(inst, add_channels,
+                                              one_based=one_based)
         else:
             raise ValueError('Data input must be of Raw, Epochs or Evoked '
                              'type')
 
         return sources
 
-    def _sources_as_raw(self, raw, add_channels, start, stop):
+    def _sources_as_raw(self, raw, add_channels, start, stop, one_based=True):
         """Aux method
         """
         # merge copied instance and picked data with sources
@@ -673,11 +677,12 @@ class ICA(ContainsMixin):
         out.last_samp = out.first_samp + stop if stop else raw.last_samp
 
         out._projector = None
-        self._export_info(out.info, raw, add_channels)
+        self._export_info(out.info, raw, add_channels, one_based=one_based)
 
         return out
 
-    def _sources_as_epochs(self, epochs, add_channels, concatenate):
+    def _sources_as_epochs(self, epochs, add_channels, concatenate,
+                           one_based=True):
         """Aux method"""
         out = epochs.copy()
         sources = self._transform_epochs(epochs, concatenate)
@@ -688,14 +693,14 @@ class ICA(ContainsMixin):
         out._data = np.concatenate([sources, epochs.get_data()[:, picks]],
                                    axis=1) if len(picks) > 0 else sources
 
-        self._export_info(out.info, epochs, add_channels)
+        self._export_info(out.info, epochs, add_channels, one_based=one_based)
         out.preload = True
         out.raw = None
         out._projector = None
 
         return out
 
-    def _sources_as_evoked(self, evoked, add_channels):
+    def _sources_as_evoked(self, evoked, add_channels, one_based=True):
         """Aux method
         """
         if add_channels is not None:
@@ -710,18 +715,18 @@ class ICA(ContainsMixin):
             data = sources
         out = evoked.copy()
         out.data = data
-        self._export_info(out.info, evoked, add_channels)
+        self._export_info(out.info, evoked, add_channels, one_based=one_based)
 
         return out
 
-    def _export_info(self, info, container, add_channels):
+    def _export_info(self, info, container, add_channels, one_based=True):
         """Aux method
         """
         # set channel names and info
         ch_names = info['ch_names'] = []
         ch_info = info['chs'] = []
         for ii in range(self.n_components_):
-            this_source = 'ICA %03d' % (ii + 1)
+            this_source = 'ICA %03d' % (ii + (1 if one_based else 0))
             ch_names.append(this_source)
             ch_info.append(dict(ch_name=this_source, cal=1,
                                 logno=ii + 1, coil_type=FIFF.FIFFV_COIL_NONE,
