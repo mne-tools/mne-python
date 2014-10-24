@@ -319,7 +319,7 @@ class FieldTripClient(object):
 
         iter_times = zip(range(self.tmin_samp, self.tmax_samp,
                                self.buffer_size),
-                         range(self.tmin_samp + self.buffer_size,
+                         range(self.tmin_samp + self.buffer_size - 1,
                                self.tmax_samp, self.buffer_size))
 
         for ii, (start, stop) in enumerate(iter_times):
