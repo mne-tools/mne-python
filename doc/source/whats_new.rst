@@ -41,6 +41,8 @@ BUG
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_.
 
+   - Fix repeated samples in client to FieldTrip buffer by `Mainak Jas`_ and `Federico Raimondo`_.
+
 API
 ~~~
 
