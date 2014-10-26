@@ -571,7 +571,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             else:
                 info['highpass'] = float(highpass[0])
         else:
-            info['highpass'] = float(p.min(highpass))
+            info['highpass'] = np.min(np.array(highpass, dtype=np.float))
             warnings.warn('%s' % ('Channels contain different highpass '
                                   'filters. Highest filter setting will '
                                   'be stored.'))
@@ -583,7 +583,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             else:
                 info['lowpass'] = float(lowpass[0])
         else:
-            info['lowpass'] = float(np.min(lowpass))
+            info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
 
