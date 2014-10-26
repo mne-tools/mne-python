@@ -503,9 +503,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
             elif highpass[0] == 'DC':
                 info['highpass'] = 0.
             else:
-                info['highpass'] = int(highpass[0])
+                info['highpass'] = float(highpass[0])
         else:
-            info['highpass'] = np.min(highpass)
+            info['highpass'] = float(np.min(highpass))
             warnings.warn('%s' % ('Channels contain different highpass'
                                   + 'filters. Highest filter setting will'
                                   + 'be stored.'))
@@ -516,9 +516,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
             if lowpass[0] == 'NaN':
                 info['lowpass'] = None
             else:
-                info['lowpass'] = int(lowpass[0])
+                info['lowpass'] = float(lowpass[0])
         else:
-            info['lowpass'] = np.min(lowpass)
+            info['lowpass'] = float(np.min(lowpass))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
         n_samples_per_record = [int(fid.read(8)) for _ in channels]
