@@ -183,31 +183,38 @@ class RawBrainVision(_BaseRaw):
         dtype = np.dtype(eeg_info['dtype'])
         buffer_size = (stop - start)
         pointer = start * n_eeg * dtype.itemsize
+
         with open(self.info['file_id'], 'rb') as f:
             f.seek(pointer)
             # extract data
-            data = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
+            data_buffer = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
-            data = data.reshape((n_eeg, -1), order='F')
+            data_buffer = data_buffer.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':
-            data = data.reshape((n_eeg, -1), order='C')
+            data_buffer = data_buffer.reshape((n_eeg, -1), order='C')
 
-        data = data * cals.T
+        n_channels, n_times = data_buffer.shape
+        # Total number of channels
+        n_channels += int(self._reference is not None)
+        n_channels += int(len(self._events) > 0)
+
+        # Preallocate data array
+        data = np.empty((n_channels, n_times), dtype=np.float64)
+        data[:len(data_buffer)] = data_buffer  # cast to float64
+        data[:len(data_buffer)] *= cals.T
+        ch_idx = len(data_buffer)
+        del data_buffer
 
         # add reference channel and stim channel (if applicable)
-        data_segments = [data]
         if self._reference:
-            shape = (1, data.shape[1])
-            ref_channel = np.zeros(shape)
-            data_segments.append(ref_channel)
+            data[ch_idx] = 0.
+            ch_idx += 1
         if len(self._events):
-            stim_channel = _synthesize_stim_channel(self._events, start, stop)
-            data_segments.append(stim_channel)
-        if len(data_segments) > 1:
-            data = np.vstack(data_segments)
+            data[ch_idx] = _synthesize_stim_channel(self._events, start, stop)
+            ch_idx += 1
 
         if sel is not None:
-            data = data[sel]
+            data = data.take(sel)
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
