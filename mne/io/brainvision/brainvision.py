@@ -214,7 +214,7 @@ class RawBrainVision(_BaseRaw):
             ch_idx += 1
 
         if sel is not None:
-            data = data.take(sel)
+            data = data.take(sel, axis=0)
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
