@@ -550,6 +550,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
                 break
             else:
                 idx = None
+
     if idx:
         lowpass = []
         highpass = []
@@ -566,7 +567,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             if highpass[0] == 'NaN':
                 info['highpass'] = None
             elif highpass[0] == 'DC':
-                info['highpass'] = 0
+                info['highpass'] = 0.
             else:
                 info['highpass'] = float(highpass[0])
         else:
@@ -585,6 +586,15 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             info['lowpass'] = float(np.min(lowpass))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
+
+        # Post process highpass and lowpass to take into account units
+        header = settings[idx].split('  ')
+        header = [h for h in header if len(h)]
+        if '[s]' in header[4] and info['highpass'] is not None \
+                and (info['highpass'] > 0):
+            info['highpass'] = 1. / info['highpass']
+        if '[s]' in header[5] and info['lowpass'] is not None:
+            info['lowpass'] = 1. / info['lowpass']
     else:
         info['highpass'] = None
         info['lowpass'] = None

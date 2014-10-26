@@ -22,6 +22,7 @@ from mne.io import read_raw_brainvision
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
+vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
 elp_path = op.join(data_dir, 'test_elp.txt')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
 elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
@@ -35,12 +36,25 @@ elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
 eog = ('HL', 'HR', 'Vb')
 
 
+def test_brainvision_data_filters():
+    """Test reading raw Brain Vision files
+    """
+    raw = read_raw_brainvision(vhdr_highpass_path, elp_path, elp_names,
+                               preload=False)
+    assert_equal(raw.info['highpass'], 0.1)
+    assert_equal(raw.info['lowpass'], 250.)
+
+
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, elp_path,
                   elp_names, preload=True, scale="0")
     raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, preload=True)
+
+    assert_equal(raw_py.info['highpass'], 0.)
+    assert_equal(raw_py.info['lowpass'], 250.)
+
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, times_py = raw_py[picks]
 
