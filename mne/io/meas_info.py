@@ -69,7 +69,7 @@ class Info(dict):
                 entr = dt.fromtimestamp(v[0]).strftime('%Y-%m-%d %H:%M:%S')
             else:
                 this_len = (len(v) if hasattr(v, '__len__') else
-                           ('%s' % v if v is not None else None))
+                            ('%s' % v if v is not None else None))
                 entr = (('%d items' % this_len) if isinstance(this_len, int)
                         else ('%s' % this_len if this_len else ''))
             if entr:
@@ -79,7 +79,8 @@ class Info(dict):
                 ch_types = [channel_type(self, idx) for idx in range(len(v))]
                 ch_counts = Counter(ch_types)
                 entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
-                                           for ch_type, count in ch_counts.items())
+                                            for ch_type, count
+                                            in ch_counts.items())
             strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
@@ -288,10 +289,10 @@ def read_meas_info(fid, tree, verbose=None):
             tag = read_tag(fid, pos)
             cand = tag.data
             if cand['from'] == FIFF.FIFFV_COORD_DEVICE and \
-                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                    cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 dev_head_t = cand
             elif cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and \
-                                cand['to'] == FIFF.FIFFV_COORD_HEAD:
+                    cand['to'] == FIFF.FIFFV_COORD_HEAD:
                 ctf_head_t = cand
         elif kind == FIFF.FIFF_EXPERIMENTER:
             tag = read_tag(fid, pos)
@@ -333,8 +334,8 @@ def read_meas_info(fid, tree, verbose=None):
                     tag = read_tag(fid, pos)
                     cand = tag.data
                     if (cand['from'] == FIFF.FIFFV_COORD_DEVICE and
-                        cand['to'] == FIFF.FIFFV_COORD_HEAD and
-                        dev_head_t is None):
+                            cand['to'] == FIFF.FIFFV_COORD_HEAD and
+                            dev_head_t is None):
                         dev_head_t = cand
                     elif (cand['from'] == FIFF.FIFFV_MNE_COORD_CTF_HEAD and
                           cand['to'] == FIFF.FIFFV_COORD_HEAD and
@@ -665,7 +666,7 @@ def _is_equal_dict(dicts):
     for d in tests:
         k0, v0 = d[0]
         is_equal.append(all([np.all(k == k0) and
-                        np.all(v == v0)  for k, v in d]))
+                        np.all(v == v0) for k, v in d]))
     return all(is_equal)
 
 
@@ -701,7 +702,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             return values[int(idx)]
         elif len(idx) > 1:
             lists = (d[key] for d in dicts if isinstance(d[key], list))
-            return  _flatten(lists)
+            return _flatten(lists)
     # dict
     elif _check_isinstance(values, dict, all):
         is_qual = _is_equal_dict(values)
