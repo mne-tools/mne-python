@@ -568,9 +568,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             elif highpass[0] == 'DC':
                 info['highpass'] = 0
             else:
-                info['highpass'] = int(highpass[0])
+                info['highpass'] = float(highpass[0])
         else:
-            info['highpass'] = np.min(highpass)
+            info['highpass'] = float(p.min(highpass))
             warnings.warn('%s' % ('Channels contain different highpass '
                                   'filters. Highest filter setting will '
                                   'be stored.'))
@@ -580,9 +580,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             if lowpass[0] == 'NaN':
                 info['lowpass'] = None
             else:
-                info['lowpass'] = int(lowpass[0])
+                info['lowpass'] = float(lowpass[0])
         else:
-            info['lowpass'] = np.min(lowpass)
+            info['lowpass'] = float(np.min(lowpass))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
     else:
