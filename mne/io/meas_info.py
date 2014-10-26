@@ -11,6 +11,7 @@ from scipy import linalg
 from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
 
+from .pick import channel_type
 from .constants import FIFF
 from .open import fiff_open
 from .tree import dir_tree_find, copy_tree
@@ -22,6 +23,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
 from ..utils import logger, verbose
+from ..fixes import Counter
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -73,6 +75,11 @@ class Info(dict):
             if entr:
                 non_empty += 1
                 entr = ' | ' + entr
+            if k == 'chs':
+                ch_types = [channel_type(self, idx) for idx in range(len(v))]
+                ch_counts = Counter(ch_types)
+                entr += " (%s)" % ', '.join("%s: %d" % (ch_type.upper(), count)
+                                           for ch_type, count in ch_counts.items())
             strs.append('%s : %s%s' % (k, str(type(v))[7:-2], entr))
         strs_non_empty = sorted(s for s in strs if '|' in s)
         strs_empty = sorted(s for s in strs if '|' not in s)
