@@ -66,9 +66,7 @@ def test_pick_forward_seeg():
         fwd_ = pick_types_forward(fwd, **picks[type])
         _check_fwd_n_chan_consistent(fwd_, counts[type])
     # should raise exception related to emptiness
-    with assert_raises(ValueError) as ar:
-        pick_types_forward(fwd, **picks['seeg'])
-    assert_equal(ar.exception.args, ('No valid channels found',))
+    assert_raises(ValueError, pick_types_forward, fwd, **picks['seeg'])
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
     rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
