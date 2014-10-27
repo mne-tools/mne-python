@@ -58,6 +58,8 @@ def channel_type(info, idx):
         return 'ias'
     elif kind == FIFF.FIFFV_SYST_CH:
         return 'syst'
+    elif kind == FIFF.FIFFV_SEEG_CH:
+        return 'seeg'
     elif kind in [FIFF.FIFFV_QUAT_0, FIFF.FIFFV_QUAT_1, FIFF.FIFFV_QUAT_2,
                   FIFF.FIFFV_QUAT_3, FIFF.FIFFV_QUAT_4, FIFF.FIFFV_QUAT_5,
                   FIFF.FIFFV_QUAT_6, FIFF.FIFFV_HPI_G, FIFF.FIFFV_HPI_ERR,
@@ -129,7 +131,7 @@ def pick_channels_regexp(ch_names, regexp):
 
 def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                emg=False, ref_meg='auto', misc=False, resp=False, chpi=False,
-               exci=False, ias=False, syst=False,
+               exci=False, ias=False, syst=False, seeg=False,
                include=[], exclude='bads', selection=None):
     """Pick channels by type and names
 
@@ -168,6 +170,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         Internal Active Shielding data (maybe on Triux only).
     syst : bool
         System status channel information (on Triux systems only).
+    seeg : bool
+        Stereotactic EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -232,6 +236,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         elif kind == FIFF.FIFFV_RESP_CH and resp:
             pick[k] = True
         elif kind == FIFF.FIFFV_SYST_CH and syst:
+            pick[k] = True
+        elif kind == FIFF.FIFFV_SEEG_CH and seeg:
             pick[k] = True
         elif kind == FIFF.FIFFV_IAS_CH and ias:
             pick[k] = True
@@ -349,7 +355,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
 def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, include=[], exclude='bads'):
+                      syst=False, seeg=False, include=[], exclude='bads'):
     """Pick by channel type and names from evoked data
 
     Parameters
@@ -385,6 +391,8 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
         Internal Active Shielding data (maybe on Triux only).
     syst : bool
         System status channel information (on Triux systems only).
+    seeg : bool
+        Stereotactic EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -400,7 +408,7 @@ def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
     sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
                      resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
-                     include=include, exclude=exclude)
+                     seeg=seeg, include=include, exclude=exclude)
 
     include_ch_names = [orig.ch_names[k] for k in sel]
     return pick_channels_evoked(orig, include_ch_names)
@@ -468,8 +476,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     return fwd
 
 
-def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
-                       exclude=[]):
+def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
+                       include=[], exclude=[]):
     """Pick by channel type and names from a forward operator
 
     Parameters
@@ -484,6 +492,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
         If True include EEG channels
     ref_meg : bool
         If True include CTF / 4D reference channels
+    seeg : bool
+        If True include stereotactic EEG channels
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
@@ -496,8 +506,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
         Forward solution restricted to selected channel types.
     """
     info = orig['info']
-    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, include=include,
-                     exclude=exclude)
+    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg,
+                     include=include, exclude=exclude)
     if len(sel) == 0:
         raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]
@@ -507,7 +517,7 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, include=[],
 def channel_indices_by_type(info):
     """Get indices of channels by type
     """
-    idx = dict(grad=[], mag=[], eeg=[], eog=[], ecg=[])
+    idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[])
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:

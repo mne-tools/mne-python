@@ -66,7 +66,7 @@ def _contains_ch_type(info, ch_type):
                          '`str`'.format(actual_class=type(ch_type)))
 
     valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp '
-                           'exci ias syst misc').split()
+                           'exci ias syst seeg misc').split()
 
     if ch_type not in valid_channel_types:
         msg = ('The ch_type passed ({passed}) is not valid. '
@@ -225,6 +225,7 @@ def rename_channels(info, mapping):
     human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
                   'emg': FIFF.FIFFV_EMG_CH,
                   'ecg': FIFF.FIFFV_ECG_CH,
+                  'seeg': FIFF.FIFFV_SEEG_CH,
                   'misc': FIFF.FIFFV_MISC_CH}
 
     bads, chs = info['bads'], info['chs']
