@@ -506,8 +506,8 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
         Forward solution restricted to selected channel types.
     """
     info = orig['info']
-    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, include=include,
-                     exclude=exclude)
+    sel = pick_types(info, meg, eeg, ref_meg=ref_meg, seeg=seeg,
+                     include=include, exclude=exclude)
     if len(sel) == 0:
         raise ValueError('No valid channels found')
     include_ch_names = [info['ch_names'][k] for k in sel]

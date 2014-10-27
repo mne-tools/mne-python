@@ -1,11 +1,14 @@
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 from numpy import zeros, array
-from mne import pick_channels_regexp, pick_types, Epochs
+from mne import (pick_channels_regexp, pick_types, Epochs, 
+        read_forward_solution, rename_channels)
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
         pick_types_evoked, pick_types_forward)
+from mne.datasets import testing
+from mne.forward.tests import test_forward
 
 
 def test_pick_channels_regexp():
@@ -35,3 +38,43 @@ def test_pick_seeg():
     e_seeg = pick_types_evoked(evoked, meg=False, seeg=True)
     for l, r in zip(e_seeg.ch_names, names[4:]):
         assert_equal(l, r)
+
+def _check_fwd_n_chan_consistent(fwd, n_expected):
+    n_bad = len(fwd['info']['bads'])
+    n_ok = len(fwd['info']['ch_names']) - n_bad
+    n_sol = fwd['sol']['data'].shape[0] - n_bad
+    assert_equal(n_expected, n_sol)
+    assert_equal(n_expected, n_ok)
+
+@testing.requires_testing_data
+def test_pick_forward_seeg():
+    fwd = read_forward_solution(test_forward.fname_meeg)
+    # XXX non hard coded values?
+    counts = {
+        'meg': 305, 
+        'eeg': 59, 
+        'seeg': 0
+    }
+    picks = {k: {k_: k_==k for k_ in counts.keys()} for k in counts.keys()}
+    # check meg & eeg picks are ok
+    for type in ('meg', 'eeg'):
+        fwd_ = pick_types_forward(fwd, **picks[type])
+        _check_fwd_n_chan_consistent(fwd_, counts[type])
+    # should raise exception related to emptiness
+    with assert_raises(ValueError) as ar:
+        pick_types_forward(fwd, **picks['seeg'])
+    assert_equal(ar.exception.message, 'No valid channels found')
+    # change last chan from EEG to sEEG
+    seeg_name = 'OTp1'
+    rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
+    fwd['sol']['row_names'][-1] = fwd['info']['chs'][-1]['ch_name']
+    counts['eeg'] -= 1
+    counts['seeg'] += 1
+    # repick & check
+    fwd_seeg = pick_types_forward(fwd, **picks['seeg'])
+    assert_equal(fwd_seeg['sol']['row_names'], [seeg_name])
+    assert_equal(fwd_seeg['info']['ch_names'], [seeg_name])
+    # should work fine
+    for type, count in counts.items():
+        fwd_ = pick_types_forward(fwd, **picks[type])
+        _check_fwd_n_chan_consistent(fwd_, counts[type])
