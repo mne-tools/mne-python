@@ -9,8 +9,10 @@ from scipy import fftpack
 from scipy.linalg import toeplitz
 
 from .multitaper import sine_tapers
+from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
 from ..parallel import parallel_func, check_n_jobs
+from .tfr import AverageTFR
 
 
 def _is_power_of_two(n):
@@ -205,6 +207,8 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
     st_power : ndarray
         The multitaper power of the Stockwell transformed data.
         The last two dimensions are frequency and time.
+    freds : ndarray
+        The frequencies.
 
     References
     ----------
@@ -234,7 +238,55 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
     out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2)
                    for x in np.array_split(x_in, n_jobs))
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
+    freqs = freqs[freq_mask]
+
     if zero_pad is not None:
         st = st[..., :-zero_pad]
 
-    return st
+    return st, freqs
+
+
+def tfr_stockwell(epochs, n_tapers=3, fmin=None, fmax=None, n_fft=None,
+                  decim=1, n_jobs=1):
+    """Compute Time-Frequency Representation (TFR) using Stockwell Transform
+
+    Parameters
+    ----------
+    epochs : Epochs
+        The epochs.
+    n_tapers : int
+        The number of tapers to be used. If 0, only the power
+        of the S transform will be returned without applying tapers.
+    fmin : None, float
+        The minimum frequency to include. If None defaults to 0.
+    fmax : None, float
+        The maximum frequency to include. If None defaults to np.inf
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
+    decim : int
+        The decimation factor on the time axis. To reduce memory usage.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    power : AverageTFR
+        The averaged power.
+    """
+    data = epochs.get_data()
+    picks = pick_types(epochs.info, meg=True, eeg=True)
+    info = pick_info(epochs.info, picks)
+    data = data[:, picks, :]
+    times = epochs.times[::decim].copy()
+    n_channels = len(picks)
+    power = []
+    for idx in range(n_channels):
+        this_power, freqs = stockwell_power(data[:, idx], sfreq=info['sfreq'],
+                                            fmin=fmin, fmax=fmax,
+                                            n_tapers=n_tapers, n_fft=n_fft,
+                                            n_jobs=n_jobs)
+        power.append(np.mean(this_power[..., ::decim], axis=0))
+    power = np.array(power)
+    nave = len(data)
+    out = AverageTFR(info, power, times, freqs, nave)
+    return out
