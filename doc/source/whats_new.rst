@@ -45,6 +45,8 @@ BUG
 
    - Fix repeated samples in client to FieldTrip buffer by `Mainak Jas`_ and `Federico Raimondo`_.
 
+   - Fix highpass and lowpass units read from Brainvision vhdr files by `Alex Gramfort`_.
+
 API
 ~~~
 

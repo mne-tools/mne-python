@@ -183,31 +183,38 @@ class RawBrainVision(_BaseRaw):
         dtype = np.dtype(eeg_info['dtype'])
         buffer_size = (stop - start)
         pointer = start * n_eeg * dtype.itemsize
+
         with open(self.info['file_id'], 'rb') as f:
             f.seek(pointer)
             # extract data
-            data = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
+            data_buffer = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
-            data = data.reshape((n_eeg, -1), order='F')
+            data_buffer = data_buffer.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':
-            data = data.reshape((n_eeg, -1), order='C')
+            data_buffer = data_buffer.reshape((n_eeg, -1), order='C')
 
-        data = data * cals.T
+        n_channels, n_times = data_buffer.shape
+        # Total number of channels
+        n_channels += int(self._reference is not None)
+        n_channels += int(len(self._events) > 0)
+
+        # Preallocate data array
+        data = np.empty((n_channels, n_times), dtype=np.float64)
+        data[:len(data_buffer)] = data_buffer  # cast to float64
+        data[:len(data_buffer)] *= cals.T
+        ch_idx = len(data_buffer)
+        del data_buffer
 
         # add reference channel and stim channel (if applicable)
-        data_segments = [data]
         if self._reference:
-            shape = (1, data.shape[1])
-            ref_channel = np.zeros(shape)
-            data_segments.append(ref_channel)
+            data[ch_idx] = 0.
+            ch_idx += 1
         if len(self._events):
-            stim_channel = _synthesize_stim_channel(self._events, start, stop)
-            data_segments.append(stim_channel)
-        if len(data_segments) > 1:
-            data = np.vstack(data_segments)
+            data[ch_idx] = _synthesize_stim_channel(self._events, start, stop)
+            ch_idx += 1
 
         if sel is not None:
-            data = data[sel]
+            data = data.take(sel, axis=0)
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / sfreq
@@ -543,6 +550,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
                 break
             else:
                 idx = None
+
     if idx:
         lowpass = []
         highpass = []
@@ -559,11 +567,11 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             if highpass[0] == 'NaN':
                 info['highpass'] = None
             elif highpass[0] == 'DC':
-                info['highpass'] = 0
+                info['highpass'] = 0.
             else:
-                info['highpass'] = int(highpass[0])
+                info['highpass'] = float(highpass[0])
         else:
-            info['highpass'] = np.min(highpass)
+            info['highpass'] = np.min(np.array(highpass, dtype=np.float))
             warnings.warn('%s' % ('Channels contain different highpass '
                                   'filters. Highest filter setting will '
                                   'be stored.'))
@@ -573,11 +581,20 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
             if lowpass[0] == 'NaN':
                 info['lowpass'] = None
             else:
-                info['lowpass'] = int(lowpass[0])
+                info['lowpass'] = float(lowpass[0])
         else:
-            info['lowpass'] = np.min(lowpass)
+            info['lowpass'] = np.min(np.array(lowpass, dtype=np.float))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
+
+        # Post process highpass and lowpass to take into account units
+        header = settings[idx].split('  ')
+        header = [h for h in header if len(h)]
+        if '[s]' in header[4] and info['highpass'] is not None \
+                and (info['highpass'] > 0):
+            info['highpass'] = 1. / info['highpass']
+        if '[s]' in header[5] and info['lowpass'] is not None:
+            info['lowpass'] = 1. / info['lowpass']
     else:
         info['highpass'] = None
         info['lowpass'] = None
