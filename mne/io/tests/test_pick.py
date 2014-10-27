@@ -41,9 +41,8 @@ def test_pick_seeg():
 
 
 def _check_fwd_n_chan_consistent(fwd, n_expected):
-    n_bad = len(fwd['info']['bads'])
-    n_ok = len(fwd['info']['ch_names']) - n_bad
-    n_sol = fwd['sol']['data'].shape[0] - n_bad
+    n_ok = len(fwd['info']['ch_names'])
+    n_sol = fwd['sol']['data'].shape[0]
     assert_equal(n_expected, n_sol)
     assert_equal(n_expected, n_ok)
 
@@ -51,24 +50,17 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 @testing.requires_testing_data
 def test_pick_forward_seeg():
     fwd = read_forward_solution(test_forward.fname_meeg)
-    # XXX non hard coded values?
-    counts = {
-        'meg': 305, 
-        'eeg': 59, 
-        'seeg': 0
-    }
-    types = counts.keys()
-    # make convenient type selection kwds
-    picks = dict()
-    for t in types:
-        picks[t] = dict()
-        for t_ in types:
-            picks[t][t_] = t_ == t
-    for type in ('meg', 'eeg'):
-        fwd_ = pick_types_forward(fwd, **picks[type])
-        _check_fwd_n_chan_consistent(fwd_, counts[type])
+    counts = channel_indices_by_type(fwd['info'])
+    for key in counts.keys():
+        counts[key] = len(counts[key])
+    counts['meg'] = counts['mag'] + counts['grad']
+    fwd_ = pick_types_forward(fwd, meg=True, eeg=False, seeg=False)
+    _check_fwd_n_chan_consistent(fwd_, counts['meg'])
+    fwd_ = pick_types_forward(fwd, meg=False, eeg=True, seeg=False)
+    _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
     # should raise exception related to emptiness
-    assert_raises(ValueError, pick_types_forward, fwd, **picks['seeg'])
+    assert_raises(ValueError, pick_types_forward, fwd, meg=False, eeg=False, 
+                  seeg=True)
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
     rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
@@ -76,10 +68,13 @@ def test_pick_forward_seeg():
     counts['eeg'] -= 1
     counts['seeg'] += 1
     # repick & check
-    fwd_seeg = pick_types_forward(fwd, **picks['seeg'])
+    fwd_seeg = pick_types_forward(fwd, meg=False, eeg=False, seeg=True)
     assert_equal(fwd_seeg['sol']['row_names'], [seeg_name])
     assert_equal(fwd_seeg['info']['ch_names'], [seeg_name])
     # should work fine
-    for type, count in counts.items():
-        fwd_ = pick_types_forward(fwd, **picks[type])
-        _check_fwd_n_chan_consistent(fwd_, counts[type])
+    fwd_ = pick_types_forward(fwd, meg=True, eeg=False, seeg=False)
+    _check_fwd_n_chan_consistent(fwd_, counts['meg'])
+    fwd_ = pick_types_forward(fwd, meg=False, eeg=True, seeg=False)
+    _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
+    fwd_ = pick_types_forward(fwd, meg=False, eeg=False, seeg=True)
+    _check_fwd_n_chan_consistent(fwd_, counts['seeg'])
