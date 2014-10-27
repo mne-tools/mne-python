@@ -39,12 +39,14 @@ def test_pick_seeg():
     for l, r in zip(e_seeg.ch_names, names[4:]):
         assert_equal(l, r)
 
+
 def _check_fwd_n_chan_consistent(fwd, n_expected):
     n_bad = len(fwd['info']['bads'])
     n_ok = len(fwd['info']['ch_names']) - n_bad
     n_sol = fwd['sol']['data'].shape[0] - n_bad
     assert_equal(n_expected, n_sol)
     assert_equal(n_expected, n_ok)
+
 
 @testing.requires_testing_data
 def test_pick_forward_seeg():
