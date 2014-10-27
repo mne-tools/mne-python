@@ -55,15 +55,20 @@ def test_pick_forward_seeg():
         'eeg': 59, 
         'seeg': 0
     }
-    picks = {k: {k_: k_==k for k_ in counts.keys()} for k in counts.keys()}
-    # check meg & eeg picks are ok
+    types = counts.keys()
+    # make convenient type selection kwds
+    picks = dict()
+    for t in types:
+        picks[t] = dict()
+        for t_ in types:
+            picks[t][t_] = t_ == t
     for type in ('meg', 'eeg'):
         fwd_ = pick_types_forward(fwd, **picks[type])
         _check_fwd_n_chan_consistent(fwd_, counts[type])
     # should raise exception related to emptiness
     with assert_raises(ValueError) as ar:
         pick_types_forward(fwd, **picks['seeg'])
-    assert_equal(ar.exception.message, 'No valid channels found')
+    assert_equal(ar.exception.args, ('No valid channels found',))
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
     rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
