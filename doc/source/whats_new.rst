@@ -27,6 +27,8 @@ Changelog
 
    - Add events count to `mne.viz.plot_events` (SVG) by `Denis Engemann`_
 
+   - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
+
 BUG
 ~~~
 
@@ -862,3 +864,5 @@ of commits):
 .. _Alan Leggitt: https://github.com/leggitta
 
 .. _Marijn van Vliet: http://github.com/wmvanvliet
+
+.. _Marmaduke Woodman: https://github.com/maedoc
