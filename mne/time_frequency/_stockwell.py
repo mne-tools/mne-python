@@ -20,7 +20,7 @@ def _is_power_of_two(n):
     return not (n > 0 and ((n & (n - 1))))
 
 
-def _st(x_in, n_fft, freqs):
+def _st(x_in, n_fft, freqs, width):
     """Compute Stockwell on one or multiple signals"""
     ndim = x_in.ndim
 
@@ -31,10 +31,11 @@ def _st(x_in, n_fft, freqs):
     f_half = n_fft // 2
 
     # Compute all frequency domain Gaussians as one matrix
-    W = 2. * np.pi * (freqs[np.newaxis, :] / freqs[1:f_half + 1, np.newaxis])
+    W = (width * np.pi * (freqs[np.newaxis, :] /
+         freqs[1:f_half + 1, np.newaxis]))
 
     W *= W  # faster than W = np.pow(W, 2)
-    G = np.exp(-W / 2.)  # Gaussian in freq domain
+    G = np.exp(-W / width)  # Gaussian in freq domain
 
     #  Exclude the first row, corresponding to zero frequency
     #  and compute S Transform
@@ -54,12 +55,12 @@ def _st(x_in, n_fft, freqs):
     return ST
 
 
-def _st_mt(tapers, x_in, n_fft, freqs, K2):
+def _st_mt(tapers, x_in, n_fft, freqs, K2, width):
     """Compute stockwell power with multitaper"""
 
     n, st = 0., 0.
     for k, taper in enumerate(tapers):
-        X = _st(taper * x_in, n_fft, freqs)
+        X = _st(taper * x_in, n_fft, freqs, width)
         mu = 1. - k * k / K2
         st += mu * np.abs(X) ** 2
         n += mu
@@ -68,12 +69,12 @@ def _st_mt(tapers, x_in, n_fft, freqs, K2):
     return st
 
 
-def _st_mt_parallel(tapers, x_in, n_fft, freqs, K2):
+def _st_mt_parallel(tapers, x_in, n_fft, freqs, K2, width):
     """Aux function"""
     out = np.zeros((len(x_in), n_fft // 2 + 1, n_fft),
                    dtype=np.float64)
     for ii, x in enumerate(x_in):
-        out[ii] = _st_mt(tapers, x, n_fft, freqs, K2)
+        out[ii] = _st_mt(tapers, x, n_fft, freqs, K2, width)
     return out
 
 
@@ -115,7 +116,7 @@ def _restore_shape(x_out, x_outer_shape):
 
 @verbose
 def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None, n_jobs=1,
-              verbose=None):
+              width=2.0, verbose=None):
     """Computes Stockwell a.k.a. S transform
 
     Based on MATLAB code by Kalyan S. Das
@@ -161,7 +162,7 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None, n_jobs=1,
         n_jobs = 1
 
     parallel, my_st, n_jobs = parallel_func(_st, n_jobs)
-    out = parallel(my_st(x, n_fft_, freqs) for x in
+    out = parallel(my_st(x, n_fft_, freqs, width=width) for x in
                    np.array_split(x_in, n_jobs))
 
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
@@ -174,7 +175,7 @@ def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None, n_jobs=1,
 
 @verbose
 def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
-                    n_fft=None, n_jobs=1, verbose=None):
+                    n_fft=None, width=2.0, n_jobs=1, verbose=None):
     """Computes multitaper power using Stockwell a.k.a. S transform
 
     Based on MATLAB code by Kalyan S. Das and Python code by the NIH
@@ -235,7 +236,7 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
         n_jobs = 1
 
     parallel, my_st_mt, n_jobs = parallel_func(_st_mt_parallel, n_jobs)
-    out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2)
+    out = parallel(my_st_mt(tapers, x, n_fft_, freqs, K2, width=width)
                    for x in np.array_split(x_in, n_jobs))
     st = _restore_shape(np.concatenate(out)[:, freq_mask], x_outer_shape)
     freqs = freqs[freq_mask]
@@ -247,7 +248,7 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
 
 
 def tfr_stockwell(epochs, n_tapers=3, fmin=None, fmax=None, n_fft=None,
-                  decim=1, n_jobs=1):
+                  width=2.0, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using Stockwell Transform
 
     Parameters
@@ -281,6 +282,7 @@ def tfr_stockwell(epochs, n_tapers=3, fmin=None, fmax=None, n_fft=None,
     power, freqs = stockwell_power(data, sfreq=info['sfreq'],
                                    fmin=fmin, fmax=fmax,
                                    n_tapers=n_tapers, n_fft=n_fft,
+                                   width=width,
                                    n_jobs=n_jobs)
     power = np.mean(power[..., ::decim], axis=0)
     power = np.array(power)
