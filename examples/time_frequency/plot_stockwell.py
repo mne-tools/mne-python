@@ -42,8 +42,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 epochs = epochs.pick_channels([epochs.ch_names[82]])
 
-power = tfr_stockwell(epochs[:60], fmin=6., fmax=30., decim=3, n_jobs=1,
-                      n_tapers=7)
+power = tfr_stockwell(epochs[:60], fmin=6., fmax=30., decim=3, n_jobs=6)
 
 power.plot([0], baseline=(-0.5, 0), mode=None)
 

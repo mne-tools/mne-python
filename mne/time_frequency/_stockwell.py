@@ -207,7 +207,7 @@ def stockwell_power(data, sfreq, n_tapers=3, fmin=0, fmax=np.inf,
     st_power : ndarray
         The multitaper power of the Stockwell transformed data.
         The last two dimensions are frequency and time.
-    freds : ndarray
+    freqs : ndarray
         The frequencies.
 
     References
@@ -278,14 +278,11 @@ def tfr_stockwell(epochs, n_tapers=3, fmin=None, fmax=None, n_fft=None,
     info = pick_info(epochs.info, picks)
     data = data[:, picks, :]
     times = epochs.times[::decim].copy()
-    n_channels = len(picks)
-    power = []
-    for idx in range(n_channels):
-        this_power, freqs = stockwell_power(data[:, idx], sfreq=info['sfreq'],
-                                            fmin=fmin, fmax=fmax,
-                                            n_tapers=n_tapers, n_fft=n_fft,
-                                            n_jobs=n_jobs)
-        power.append(np.mean(this_power[..., ::decim], axis=0))
+    power, freqs = stockwell_power(data, sfreq=info['sfreq'],
+                                   fmin=fmin, fmax=fmax,
+                                   n_tapers=n_tapers, n_fft=n_fft,
+                                   n_jobs=n_jobs)
+    power = np.mean(power[..., ::decim], axis=0)
     power = np.array(power)
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)
