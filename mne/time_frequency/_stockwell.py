@@ -109,8 +109,8 @@ def _check_input_st(x_in, n_fft, verbose):
 
 def _restore_shape(x_out, x_outer_shape):
     """Aux function"""
-    _reshape = list(x_outer_shape) + list(x_out.shape[-2:])
-    return x_out.reshape(tuple(_reshape))
+    _reshape = x_outer_shape + x_out.shape[-2:]
+    return x_out.reshape(_reshape)
 
 
 @verbose

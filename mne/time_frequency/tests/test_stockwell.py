@@ -8,21 +8,21 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_equals
 
-from mne import fiff, read_events, Epochs
-from mne.time_frequency import stockwell, stockwell_power
+from mne import io, read_events, Epochs, pick_types
+from mne.time_frequency import stockwell, stockwell_power, tfr_stockwell
 from mne.utils import _TempDir
 
-base_dir = op.join(op.dirname(__file__), '..', '..', 'fiff', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
-raw = fiff.Raw(raw_fname, add_eeg_ref=False)
+raw = io.Raw(raw_fname, add_eeg_ref=False)
 event_name = op.join(base_dir, 'test-eve.fif')
 events = read_events(event_name)
-picks = fiff.pick_types(raw.info, meg=True, eeg=True, stim=True,
-                        ecg=True, eog=True, include=['STI 014'],
-                        exclude='bads')
+picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
+                   ecg=True, eog=True, include=['STI 014'],
+                   exclude='bads')
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
@@ -54,8 +54,8 @@ def test_stockwell_core():
         st_pulse = stockwell(pulse, sfreq=sfreq, n_fft=n_fft)
         st_pulse = stockwell(pulse, sfreq=sfreq)  # with next power of 2
 
-        assert_equals(st_pulse.shape[-1], len(pulse))
-        assert_equals(st_pulse.max(axis=1).argmax(axis=0), pulse_freq)  # max freq
+        assert_equals(st_pulse.shape[-1], len(pulse))  # max freq
+        assert_equals(st_pulse.max(axis=1).argmax(axis=0), pulse_freq)
         assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
 
 
@@ -88,20 +88,20 @@ def test_stockwell_api():
     st_power_args = dict(n_fft=n_fft, sfreq=epochs.info['sfreq'], n_jobs=1)
 
     fun = stockwell_power
-    st_power1 = fun(data, **st_power_args)
+    st_power1, _ = fun(data, **st_power_args)
     # outer dimensions should be the same as input
     assert_equals(st_power1.shape[:-2], data.shape[:-1])
     # one dimension only
-    st_power2 = fun(data[0, 0, :], **st_power_args)
+    st_power2, _ = fun(data[0, 0, :], **st_power_args)
     assert_equals(st_power1.shape[-2:], st_power2.shape)
     assert_equals(st_power1.shape[:2], data.shape[:2])
     # two dimensions dimensions
-    st_power3 = fun(data[0, :, :], **st_power_args)
+    st_power3, _ = fun(data[0, :, :], **st_power_args)
     assert_equals(st_power2.shape, st_power3.shape[1:])
     assert_equals(data.shape[1], st_power3.shape[0])
 
     # taper == 0 just returns the power
     st_power_args.update({'n_tapers': None})
-    st_power5 = fun(data, **st_power_args)
+    st_power5, _ = fun(data, **st_power_args)
 
     assert_array_almost_equal(st_power5, np.abs(st1) ** 2)
