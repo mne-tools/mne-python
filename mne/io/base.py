@@ -1386,7 +1386,7 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
     '''
     This function can be used to specify the EEG electrode types, e.g. which
     electrodes record EEG and EOG, which reference(s) to use and which channels
-    are considered 'bad' and should not be used. Multiple reference types can
+    are considered bad and should not be used. Multiple reference types can
     be specified.
 
     Channels can be specified either as a string name, or an integer index.
@@ -1396,26 +1396,29 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
     raw : instance of Raw
         Instance of Raw with all channels.
 
-    eeg : list of channels (default None)
+    eeg : list of (str | int)
         Use this parameter to specify a subset of the channels to be regarded
         as EEG.  Specify an empty list to indicate no EEG channels are present.
         By default, `raw.info` is used to determine EEG channels.
 
-    eog : list of channels (default None)
+    eog : list of (str | int)
         Use this parameter to specify a subset of the channels to be regarded
         as EOG. When EOG channels are specified, the `calc_reog` parameter can
         be used to caluclate the radial EOG channel. Specify an empty list to
         indicate no EOG channels are present. By default, `raw.info` is used to
         determine EOG channels.
 
-    ref : list of channels (default [] = CAR)
+    ref : list of (str | int)
         Set to a single channel to use a single electrode as reference. Set to
         a list of channels to use the mean of multiple electordes as reference.
         Set to an empty list to use CAR (common average reference, e.g. the
         mean of all EEG channels). Specify `None` to indicate no referencing 
         should be done (for example if the signal has already been referenced).
+        Defaults to CAR. Be aware that an average eeg reference SSP projector
+        might be added to the data when creating epochs (see the `add_eeg_ref`
+        parameter of the `Epochs` constructor).
         
-    bads : list of channels (default None)
+    bads : list of (str | int)
         Use this parameter to specify a subset of channels that are considered
         'bad' and should not be used. These could for example be electrodes
         with bad contact, or unusual artifacts. Bad channels are not used to
@@ -1423,29 +1426,30 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
         channels are present. By default, `raw.info` is used to determine bad
         channels.
 
-    bipolar : dict: str -> (channel, channel) (default None)
+    bipolar : dict: str -> ((str | int), (str | int))
         Compute the difference between the specified electrode pairs as signal.
         Electrode pairs are specified in a dictionary, where each value is a
         pair of two channels. The difference between them will be computed and
         stored as a new channel. The channel name is specified as the
         corresponding string key in the dictionary. 
 
-    calc_reog : bool (default False)
+    calc_reog : bool
         When set to `True`, the rEOG component is computed by taking the mean
         of the EOG channels and substracting the EEG reference. This only works
         if EOG channels have been specified and the reference is not set to
         `None`. The name of the rEOG channel is 'rEOG'.
 
-    drop : list of channels (default None)
+    drop : list of (str | int)
         Specifies channels to be dropped from the recording. For example, use
         this to remove channels that are not connected to any electrode.
    
-    drop_ref : bool (default False)
+    drop_ref : bool
         By default, the reference channels are kept. Set this parameter to
-        True to drop the reference channels.
+        `True` to drop the reference channels. Defaults to False
 
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
+        Defaults to in place.
 
     Returns
     -------
@@ -1478,7 +1482,8 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
 
     _ch_idx = lambda channels: \
         set([]) if channels == None else \
-        set([raw.ch_names.index(ch) if type(ch) == str else ch for ch in channels])
+        set([raw.ch_names.index(ch) if type(ch) == str else ch
+             for ch in channels])
 
     # Copy raw data or modify raw data in place
     if copy:  # copy data
