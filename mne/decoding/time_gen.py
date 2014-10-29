@@ -11,8 +11,8 @@ from scipy.stats import mode, rankdata
 import matplotlib.pyplot as plt
 
 from mne.parallel import parallel_func
-from mne import pick_types
 from ..utils import logger, verbose, deprecated
+from ..io.pick import channel_type, pick_types
 
 
 class GeneralizationAcrossTime(object):
@@ -464,8 +464,8 @@ def _predict_time_loop(X, estimators, cv, slices, independent,
         classifier. If independent == True, the predictions from each cv fold
         classifier are averaged. Else, only the prediction from the
         corresponding fold is used.
-    predict_type : str
-        Indicates the type of prediction ('predict', 'proba', 'distance').
+    predict_type : {'predict', 'proba', 'distance'}
+        Indicates the type of prediction .
     """
     n_trial = len(X)
     # Loop across testing slices
@@ -686,10 +686,10 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data
     X : array, shape (n_trials, n_features, n_times)
         To-be-predicted data
-    predict_type : str, 'predict' | 'distance' | 'proba'
-        'predict' : simple prediction of y (e.g. SVC, SVR)
-        'distance': continuous prediction (e.g. decision_function)
-        'proba': probabilistic prediction (e.g. SVC(probability=True))
+    predict_type : {'predict', 'distance', 'proba'}
+        'predict' => simple prediction of y (e.g. SVC, SVR)
+        'distance' => continuous prediction (e.g. decision_function)
+        'proba' => probabilistic prediction (e.g. SVC(probability=True))
 
     Returns
     -------
@@ -705,7 +705,12 @@ def _predict(X, estimators, predict_type):
     if predict_type == 'predict':
         n_class = 1
     elif predict_type == 'distance':
-        n_class = estimators[0].decision_function(X[0, :]).shape[1]
+        dec_func = estimators[0].decision_function(X[0, :])
+        if len(dec_func.shape) > 1:
+            n_class = dec_func.shape[1]
+        else:  # certain binary cases for which output is raveled.
+            n_class = 2
+
     elif predict_type == 'proba':
         n_class = estimators[0].predict_proba(X[0, :]).shape[1]
     y_pred = np.ones((n_trial, n_class, n_clf))
@@ -721,7 +726,12 @@ def _predict(X, estimators, predict_type):
             y_pred[:, :, fold] = clf.predict_proba(X)
         elif predict_type == 'distance':
             # Continuous non-probabilistic predict
-            y_pred[:, :, fold] = clf.decision_function(X)
+            # XXX branching fixes test for binary cases.
+            dec_func = clf.decision_function(X)
+            if len(dec_func.shape) > 1:
+                y_pred[:, :, fold] = dec_func
+            else:
+                y_pred[:, 0, fold] = dec_func
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
@@ -738,71 +748,6 @@ def _predict(X, estimators, predict_type):
     # Format shape
     y_pred = y_pred.reshape((n_trial, n_class))
     return y_pred
-
-
-def _one_fold(clf, scorer, X, y, X_gen, y_gen, train, test, train_slices,
-              test_slices, n_jobs=1):
-    """Aux function of time_generalization
-
-    Parameters
-    ----------
-    clf : object
-        scikit-learn classifier
-    scorer : object
-        scikit-learn object
-    X : array, shape (n_trials, n_features, n_times)
-        To-be-fitted data
-    y : list | array, shape (n_trials)
-        To-be-fitted model
-    X_gen : array, shape (m_trials, n_features, n_times)
-        Data used solely for clf testing
-    y_gen : list | array, shape (m_trials)
-        Model used solely for clf testing
-
-    Returns
-    -------
-    scores : array
-        Classification scores at each training/testing sample.
-    scores_gen : array
-        Classification scores of generalization set at each training/testing
-        sample.
-    tested : bool array
-        Indicate which training/testing sample was used.
-    """
-
-    from sklearn.base import clone
-
-    # Initialize results
-    n_train_t = max([t.stop for t in train_slices])  # get maximum time sample
-    n_test_t = max([t.stop for tt in test_slices for t in tt])
-    scores = np.zeros((n_train_t, n_test_t))  # scores
-    tested = np.zeros((n_train_t, n_test_t), dtype=bool)  # tested time points
-    if (X_gen is not None) and (y_gen is not None):
-        scores_gen = np.zeros((n_train_t, n_test_t))
-    else:
-        scores_gen = None
-
-    # Loop across time points
-    # Parallel across training time
-    parallel, p_time_gen, _ = parallel_func(_time_loop, n_jobs)
-    packed = parallel(p_time_gen(clone(clf), scorer, X, y, train, test,
-                                 X_gen, y_gen, train_slices[t_train],
-                                 test_slices[t_train])
-                      for t_train in range(len(train_slices)))
-    # Unpack results in temporary variables
-    scores_, scores_gen_, tested_ = zip(*packed)
-
-    # Store results in absolute sampling-time
-    for t_train, train_time in enumerate(train_slices):
-        for t_test, test_time in enumerate(test_slices[t_train]):
-            scores[train_time.start, test_time.start] = scores_[
-                t_train][t_test]
-            tested[train_time.start, test_time.start] = tested_[
-                t_train][t_test]
-            if X_gen is not None and y_gen is not None:
-                scores_gen[train_time.start, test_time.start] = scores_gen_[
-                    t_train][t_test]
-    return scores, scores_gen, tested
 
 
 def _time_loop(clf, scorer, X, y, train, test, X_gen, y_gen, train_slice,
@@ -933,15 +878,30 @@ def _gen_type(n_samples, relative_test_slice=False, train_slices=None,
     return train_slices, test_slices
 
 
+def _time_gen_one_fold(clf, X, y, train, test, scoring):
+    """Aux function of time_generalization"""
+    from sklearn.metrics import SCORERS
+    n_times = X.shape[2]
+    scores = np.zeros((n_times, n_times))
+    scorer = SCORERS[scoring]
+
+    for t_train in range(n_times):
+        X_train = X[train, :, t_train]
+        clf.fit(X_train, y[train])
+        for t_test in range(n_times):
+            X_test = X[test, :, t_test]
+            scores[t_test, t_train] += scorer(clf, X_test, y[test])
+
+    return scores
+
+
 @deprecated("'time_generalization' will be removed"
             " in MNE v0.10. Use 'GeneralizationAcrossTime' instead.")
 @verbose
-def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
-                        scoring="roc_auc", cv=5, train_slices=None,
-                        test_slices=None, relative_test_slice=False,
-                        shuffle=True, random_state=None,
-                        compress_results=True, n_jobs=1,
-                        parallel_across='folds', verbose=None):
+@verbose
+def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
+                        shuffle=True, random_state=None, n_jobs=1,
+                        verbose=None):
     """Fit decoder at each time instant and test at all others
 
     The function returns the cross-validation scores when the train set
@@ -953,17 +913,13 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
 
     Parameters
     ----------
-    epochs_list : list
-        These epochs are used to train the classifiers (using a cross-
-        validation scheme).
-    epochs_list_gen : list | None
-        Epochs used to test the classifiers' generalization performance
-        in novel experimental conditions.
+    epochs_list : list of Epochs
+        The epochs in all the conditions.
     clf : object | None
         A object following scikit-learn estimator API (fit & predict).
         If None the classifier will be a linear SVM (C=1.) after
         feature standardization.
-    cv : int | object
+    cv : integer or cross-validation generator, optional
         If an integer is passed, it is the number of fold (default 5).
         Specific cross-validation objects can be passed, see
         sklearn.cross_validation module for the list of possible objects.
@@ -976,43 +932,25 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
     random_state : None | int
         The random state used to shuffle the epochs. Ignored if
         shuffle is False.
-    train_slices : list | callable | None
-        List of slices generated with create_slices(). By default the
-        classifiers are trained on all time points (i.e.
-        create_slices(n_time)).
-    test_slices : list |  callable | None
-        List of slices generated with create_slices(). By default the
-        classifiers are tested on all time points (i.e.
-        [create_slices(n_time)] * n_time).
-    relative_test_slice: bool
-        True implies that the samples indicated in test_slices are relative to
-        the samples in train_slices. False implies that the samples in
-        test_slices corresponds to the actual data samples.
-    compress_results : bool
-        If true returns only training/tested time samples.
     n_jobs : int
         Number of jobs to run in parallel. Each fold is fit
         in parallel.
-    parallel_across : str, 'folds' | 'time_samples'
-        Set the parallel (multi-core) computation across folds or across
-        time samples.
 
     Returns
     -------
-    scores : array, shape (training_slices, testing_slices)
-        The cross-validated scores averaged across folds.
-        scores[i, j] contains  the generalization score when
-        learning at time j and testing at time i. The diagonal
-        is the cross-validation score at each time-independant
-        instant.
+    scores : array, shape (n_times, n_times)
+        The scores averaged across folds. scores[i, j] contains
+        the generalization score when learning at time j and testing
+        at time i. The diagonal is the cross-validation score
+        at each time-independant instant.
 
     Notes
     -----
     The function implements the method used in:
 
     Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection
-    of unexpected sounds", PLOS ONE, 2013
+    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
+    unexpected sounds", PLOS ONE, 2013
     """
     from sklearn.base import clone
     from sklearn.utils import check_random_state
@@ -1020,10 +958,12 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import StandardScaler
     from sklearn.cross_validation import check_cv
-    from sklearn.metrics import SCORERS
-    from ..pick import channel_type, pick_types
 
-    # Extract MNE data
+    if clf is None:
+        scaler = StandardScaler()
+        svc = SVC(C=1, kernel='linear')
+        clf = Pipeline([('scaler', scaler), ('svc', svc)])
+
     info = epochs_list[0].info
     data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
@@ -1035,93 +975,21 @@ def time_generalization(epochs_list, epochs_list_gen=None, clf=None,
     y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
     X = np.concatenate(X)
     y = np.concatenate(y)
-    n_trials, n_channels, n_samples = X.shape
 
-    # Apply same procedure with optional generalization set
-    if epochs_list_gen is None:
-        X_gen, y_gen = None, None
-    else:
-        info = epochs_list_gen[0].info
-        data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
-        X_gen = [e.get_data()[:, data_picks, :]
-                 for e in epochs_list_gen]
-        y_gen = [k * np.ones(len(this_X)) for k, this_X in enumerate(X_gen)]
-        X_gen = np.concatenate(X_gen)
-        y_gen = np.concatenate(y_gen)
+    cv = check_cv(cv, X, y, classifier=True)
 
-    # check data sets
-    assert(X.shape[0] == y.shape[0] == n_trials)
-    if X_gen is not None and y_gen is not None:
-        assert(X_gen.shape[0] == y_gen.shape[0])
+    ch_types = set(channel_type(info, idx) for idx in data_picks)
+    logger.info('Running time generalization on %s epochs using %s.' %
+                (len(X), ' and '.join(ch_types)))
 
-    # re-order data to avoid taking to avoid folding bias
     if shuffle:
         rng = check_random_state(random_state)
-        order = np.argsort(rng.randn(n_trials))
+        order = np.argsort(rng.randn(len(X)))
         X = X[order]
         y = y[order]
 
-    # Set default MVPA: support vector classifier
-    if clf is None:
-        scaler = StandardScaler()
-        svc = SVC(C=1, kernel='linear')
-        clf = Pipeline([('scaler', scaler), ('svc', svc)])
-
-    # Set default cross validation scheme
-    cv = check_cv(cv, X, y, classifier=True)
-
-    # Set default scoring scheme
-    if type(scoring) is str:
-        scorer = SCORERS[scoring]
-    else:
-        scorer = scoring
-
-    # Set default train and test slices
-    my_slices = _gen_type(n_samples, relative_test_slice=relative_test_slice,
-                          train_slices=train_slices, test_slices=test_slices)
-    train_slices, test_slices = my_slices
-    # Chose parallization type
-    if parallel_across == 'folds':
-        n_jobs_time = 1
-        n_jobs_fold = n_jobs
-    elif parallel_across == 'time_samples':
-        n_jobs_time = n_jobs
-        n_jobs_fold = 1
-
-    # Launch main script
-    ch_types = set([channel_type(info, idx) for idx in data_picks])
-    logger.info('Running time generalization on %s epochs using %s.' %
-                (len(X), ch_types.pop()))
-
-    # Cross-validation loop
-    parallel, p_time_gen, _ = parallel_func(_one_fold, n_jobs_fold)
-    packed = parallel(p_time_gen(clone(clf), scorer, X, y, X_gen,
-                                 y_gen, train, test, train_slices, test_slices,
-                                 n_jobs=n_jobs_time)
+    parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
+    scores = parallel(p_time_gen(clone(clf), X, y, train, test, scoring)
                       for train, test in cv)
-
-    # Unpack MVPA results from parallel outputs
-    scores, scores_gen, tested = zip(*packed)
-
-    # Mean scores across folds
     scores = np.mean(scores, axis=0)
-    tested = tested[0]
-
-    # Simplify results
-    if compress_results:
-        scores = _compress_results(scores, tested)
-
-    # Output results in a dictionary to allow future extensions
-    out = dict(scores=scores)
-    if X_gen is not None:
-        scores_gen = np.mean(scores_gen, axis=0)
-        if compress_results:
-            scores_gen = _compress_results(scores_gen, tested)
-        out['scores_gen'] = scores_gen
-
-    out['train_times'] = epochs_list[0].times[
-        [s.start for s in train_slices]]
-    out['test_times'] = epochs_list[0].times[
-        [s.start for s in test_slices[0]]]
-
     return scores
