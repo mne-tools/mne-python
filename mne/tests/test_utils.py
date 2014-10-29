@@ -414,9 +414,6 @@ def test_check_type_picks():
     assert_raises(ValueError, _check_type_picks, picks)
 
 
-<<<<<<< HEAD
-run_tests_if_main()
-=======
 def test_create_slices():
     """Test checking the create of time create_slices
     """
@@ -451,4 +448,5 @@ def test_create_slices():
     assert_true(slices[0].stop == 3)
     assert_true(slices[-1].start == 6)
     assert_true(slices[-1].stop == 9)
->>>>>>> Add support for cross generalization for time_gen
+
+run_tests_if_main()
