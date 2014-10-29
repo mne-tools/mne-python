@@ -8,8 +8,7 @@ import multiprocessing
 
 import numpy as np
 from scipy.stats import mode, rankdata
-import matplotlib.pyplot as plt
-
+from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func
 from ..utils import logger, verbose, deprecated
 from ..io.pick import channel_type, pick_types
@@ -359,54 +358,31 @@ class GeneralizationAcrossTime(object):
 
         Parameters
         ----------
-        title : str | None, optional, default : None
-            Figure title.
-        vmin : float, optional, default:0.
-            Min color value for score.
-        vmax : float, optional, default:1.
-            Max color value for score.
+        title : str | None, optional
+        Figure title. Defaults to None.
+        vmin : float, optional
+            Min color value for score. Defaults to None.
+        vmax : float, optional
+            Max color value for score. Defaults to None.
         tlim : np.ndarray, (train_min, test_max) | None, optional,
-            default: None
-        ax : object | None, optional, default: None
-            Plot pointer. If None, generate new figure.
+            The temporal boundries. defaults to None.
+        ax : object | None, optional
+            Plot pointer. If None, generate new figure. Defaults to None.
         cmap : str | cmap object
             The color map to be used. Defaults to 'RdBu_r'.
         show : bool, optional, default: True
-            plt.show()
+            If True, the figure will will be shown. Defaults to True.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        # XXX actually the test seemed wrong and obsolete (D.E.)
-        # Check that same amount of testing time per training time
-        # assert len(np.unique([len(t) for t in self.test_times_])) == 1
-        # Setup plot
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
-
-        # Define time limits
-        if tlim is None:
-            tlim = [self.test_times_['s'][0][0], self.test_times_['s'][-1][-1],
-                    self.train_times['s'][0], self.train_times['s'][-1]]
-        # Plot scores
-        im = ax.imshow(self.scores_, interpolation='nearest', origin='lower',
-                       extent=tlim, vmin=vmin, vmax=vmax,
-                       cmap=cmap)
-        ax.set_xlabel('Testing Time (s)')
-        ax.set_ylabel('Training Time (s)')
-        if not title is None:
-            ax.set_title(title)
-        ax.axvline(0, color='k')
-        ax.axhline(0, color='k')
-        plt.colorbar(im, ax=ax)
-        if show:
-            plt.show()
-        return fig if ax is None else ax.get_figure()
+        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
+                               tlim=tlim, ax=ax, cmap=cmap, show=show)
 
     def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='b'):
+                      color='steelblue'):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -415,44 +391,28 @@ class GeneralizationAcrossTime(object):
 
         Parameters
         ----------
-        title : str | None, optional, default : None
-            Figure title.
-        ymin : float, optional, default:0.
+        title : str | None, optional
+        Figure title. Defaults to None.
+        ymin : float, optional, defaults to 0.
             Min score value.
-        ymax : float, optional, default:1.
+        ymax : float, optional, defaults to 1.
             Max score value.
         tlim : np.ndarray, (train_min_max, test_min_max) | None, optional,
-            default: None
-        ax : object | None, optional, default: None
-            Plot pointer. If None, generate new figure.
-        show : bool, optional, default: True
-            plt.show()
-        color : str, optional, default: 'b'
-            Score line color.
+            The temporal boundries. Defaults to None.
+        ax : object | None, optional
+            Plot pointer. If None, generate new figure. Defaults to None.
+        show : bool, optional, defaults to True.
+            If True, the figure will will be shown. Defaults to True.
+        color : str, optional
+            Score line color. Defaults to 'steelblue'.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-
-        if ax is None:
-            fig, ax = plt.subplots(1, 1)
-        # detect whether gat is a full matrix or just its diagonal
-        if np.all(np.unique([len(t) for t in self.test_times_['s']]) == 1):
-            scores = self.scores_
-        else:
-            scores = np.diag(self.scores_)
-        ax.plot(self.train_times['s'], scores, color=color,
-                label="Classif. score")
-        ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
-        ax.set_ylim(ymin, ymax)
-        ax.set_xlabel('Time (s)')
-        ax.set_ylabel(self.scorer_.func_name)
-        ax.legend(loc='best')
-        if show:
-            plt.show()
-        return fig if ax is None else ax.get_figure()
+        return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
+                                 ax=ax, show=show, color=color)
 
 
 def _predict_time_loop(X, estimators, cv, slices, independent,
