@@ -5,7 +5,7 @@
 import warnings
 import os.path as op
 
-from nose.tools import assert_equal, assert_true
+from nose.tools import assert_equal, assert_true, assert_raises
 import numpy as np
 
 from mne import io, Epochs, read_events, pick_types
@@ -93,8 +93,12 @@ def test_generalization_across_time():
 
     # Test longer time window
     gat = GeneralizationAcrossTime(train_times={'length': .100})
-    gat.fit(epochs)
-    gat.score(epochs)
+    gat2 = gat.fit(epochs)
+    assert_true(gat is gat2)  # return self
+    scores = gat.score(epochs)
+    assert_true(isinstance(scores, list))  # type check
+    assert_equal(len(scores[0]), len(scores))  # shape check
+
     assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
     gat = GeneralizationAcrossTime(train_times={'step': .100})
@@ -105,6 +109,8 @@ def test_generalization_across_time():
     # Test start stop training
     gat = GeneralizationAcrossTime(train_times={'start': 0.090,
                                                 'stop': 0.250})
+    # predict without fit
+    assert_raises(RuntimeError, gat.predict, epochs)
     gat.fit(epochs)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
@@ -114,16 +120,19 @@ def test_generalization_across_time():
     # Test diagonal decoding
     gat = GeneralizationAcrossTime()
     gat.fit(epochs)
-    gat.score(epochs, test_times='diagonal')
+    scores = gat.score(epochs, test_times='diagonal')
+    assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
 
     # Test generalization across conditions
     gat = GeneralizationAcrossTime()
     gat.fit(epochs[0:6])
     gat.predict(epochs[7:], independent=True)
+    assert_raises(ValueError, gat.predict, epochs, test_times='hahahaha')
     gat.score(epochs[7:], independent=True)
 
     # Test continuous metrics
+    # XXX use case and test seem unclear to me (D.E.)
     gat = GeneralizationAcrossTime(predict_type='distance')
     gat.fit(epochs)
     gat.score(epochs)
@@ -131,4 +140,7 @@ def test_generalization_across_time():
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_type='proba')
     gat.fit(epochs)
-    gat.score(epochs)
+    scores = gat.score(epochs)
+    scores = sum(scores, [])  # flatten
+    assert_true(0.0 <= min(scores) <= 1.0)
+    assert_true(0.0 <= max(scores) <= 1.0)

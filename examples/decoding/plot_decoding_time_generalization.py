@@ -18,6 +18,7 @@ can predict accurately over time.
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
+import numpy as np
 
 import mne
 from mne.datasets import sample
@@ -52,7 +53,7 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
 # subtend the detection of unexpected sounds", PLOS ONE, 2013
 
 # Define events of interest
-y_vis_audio = epochs.events[:, 2] <= 2
+y_vis_audio = (epochs.events[:, 2] <= 2).astype(np.int)
 
 gat = GeneralizationAcrossTime()
 gat.fit(epochs, y=y_vis_audio)
