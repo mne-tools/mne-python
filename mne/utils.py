@@ -1647,3 +1647,72 @@ def _sphere_to_cartesian(theta, phi, r):
     x = rcos_phi * np.cos(theta)
     y = rcos_phi * np.sin(theta)
     return x, y, z
+
+def in_place_drop_add_rows(data, to_drop, new_data):
+    '''
+    Replace some rows by new ones. The original array is modified in-place.
+
+    Parameters
+    ----------
+    data : nd-array
+        The data (presumably 2D, but also words in higher dimensions) on which
+        to perform the operation
+    to_drop : list of int
+        Indices of the rows to drop.
+    new_data : nd-array
+        New rows to add to the `data` array.
+
+    Returns
+    -------
+    data : nd-array
+        The resized version of the original data
+    new_idx : list of int
+        Row indices where the new data was added
+    moved_idx : list of pairs of int
+        New row indices of any original rows that were moved (old_idx, new_idx)
+
+    Notes
+    -----
+    The number of new rows to insert cannot exceed the number of rows to drop.
+    No specific ordering of the rows is enforced during the operation.
+    '''
+    n_rows = len(data)
+    n_rows_to_drop = len(to_drop)
+    n_rows_to_add = new_data.shape[0]
+
+    assert n_rows_to_drop >= n_rows_to_add, ('Must drop more rows and add new '
+                                             'ones on order to do this '
+                                             'in-place.')
+
+    # Replace rows to drop with new rows
+    new_idx = []
+    for new_data_idx, to_drop_idx in enumerate(to_drop):
+        if new_data_idx >= n_rows_to_add:
+            break  # no more new data to add
+
+        # Replace a row to drop with a new row
+        data[to_drop_idx] = new_data[new_data_idx]
+        new_idx.append(to_drop_idx)
+
+    # These should still be dropped
+    to_drop = to_drop[n_rows_to_add:]
+    to_drop.sort()
+
+    # Make a list of row indices to keep, last rows first
+    to_keep = set(range(n_rows)) - set(to_drop)
+    to_keep = list(to_keep)
+    to_keep.sort()
+    to_keep = to_keep[-len(to_drop):][::-1]
+
+    # Replace rows to drop with rows at the end of the matrix
+    moved_idx = []
+    for to_drop_idx, to_keep_idx in zip(to_drop, to_keep):
+        if to_drop_idx > to_keep_idx:
+            # All remaining rows to drop are at the end of the matrix
+            break
+        data[to_drop_idx] = data[to_keep_idx]
+        moved_idx.append((to_keep_idx, to_drop_idx))
+
+    # Return a resized view of the matrix
+    return (data[:n_rows - n_rows_to_drop + n_rows_to_add, :],
+            new_idx, moved_idx)
