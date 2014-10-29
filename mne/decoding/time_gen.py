@@ -311,6 +311,9 @@ class GeneralizationAcrossTime(object):
                 y = self.y_train_  # XXX good name?
             else:
                 y = epochs.events[:, 2]
+            # make sure it's int
+            y = (rankdata(y, 'dense') - 1).astype(np.int)
+
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Setup scorer
@@ -545,7 +548,7 @@ def _check_epochs_input(epochs, y, picks):
     epochs : instance of Epochs
             The epochs.
     y : array shape(n_trials) | list shape(n_trials) | None
-        To-be-fitted model. If y is None, y = epochs.events
+        To-be-fitted model. If y is None, y == epochs.events
     picks : array (n_selected_chans) | None
         Channels to be included in scikit-learn model fitting.
 
@@ -557,9 +560,10 @@ def _check_epochs_input(epochs, y, picks):
         To-be-fitted model
     picks : array, shape()
     """
-    # If no regressor is passed, use default epochs events
     if y is None:
-        y = rankdata(epochs.events[:, 2], 'dense') - 1
+        y = epochs.events[:, 2]
+        y = (rankdata(y, 'dense') - 1).astype(np.int)
+
     # Convert MNE data into trials x features x time matrix
     X = epochs.get_data()[:, picks, :]
     # Check data sets

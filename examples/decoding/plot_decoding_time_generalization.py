@@ -19,7 +19,6 @@ can predict accurately over time.
 #
 # License: BSD (3-clause)
 
-import numpy as np
 import mne
 from mne.datasets import sample
 from mne.decoding import GeneralizationAcrossTime
@@ -44,10 +43,6 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(mag=5e-12), decim=decim)
 
-# Define events of interest
-y_vis_audio = epochs.events[:, 2] <= 2
-y_left_right = np.mod(epochs.events[:, 2], 2)
-
 
 # ----------------------------------------------------------------------------
 # Generalization across time (GAT)
@@ -55,6 +50,9 @@ y_left_right = np.mod(epochs.events[:, 2], 2)
 # The function implements the method used in:
 # King, Gramfort, Schurger, Naccache & Dehaene, "Two distinct dynamic modes
 # subtend the detection of unexpected sounds", PLOS ONE, 2013
+
+# Define events of interest
+y_vis_audio = epochs.events[:, 2] <= 2
 
 gat = GeneralizationAcrossTime()
 gat.fit(epochs, y=y_vis_audio)
@@ -73,11 +71,11 @@ gat.plot()  # plot full GAT matrix
 gat = GeneralizationAcrossTime()
 
 # Train on visual versus audio: left stimuli only.
-gat.fit(epochs[y_left_right == 1], y=y_vis_audio[y_left_right == 1])
+gat.fit(epochs[('AudL', 'VisL')])
 
 # Test on visual versus audio: right stimuli only.
 # In this case, because the test data is independent, we test the
 # classifier of each folds and average their respective prediction:
-gat.score(epochs[y_left_right == 0], y=y_vis_audio[y_left_right == 0],
-          independent=True)
+
+gat.score(epochs[('AudR', 'VisR')], independent=True)
 gat.plot()
