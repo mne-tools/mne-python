@@ -98,6 +98,9 @@ class RawBrainVision(_BaseRaw):
         n_chan = self.info['nchan']
         self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
         self._reference = reference
+        self._raw_lengths = np.array([self.n_times])
+        self._first_samps = np.array([self.first_samp])
+        self._last_samps = np.array([self.last_samp])
 
         if preload:
             self.preload = preload
