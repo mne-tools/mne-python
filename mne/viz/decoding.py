@@ -28,13 +28,13 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     vmax : float, optional
         Max color value for score. Defaults to None.
     tlim : np.ndarray, (train_min, test_max) | None, optional,
-        The temporal boundries. defaults to None.
+        The temporal boundaries. defaults to None.
     ax : object | None, optional
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
         The color map to be used. Defaults to 'RdBu_r'.
     show : bool, optional, default: True
-        If True, the figure will will be shown. Defaults to True.
+        If True, the figure will be shown. Defaults to True.
 
     Returns
     -------
@@ -91,11 +91,11 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
     ymax : float, optional, defaults to 1.
         Max score value.
     tlim : np.ndarray, (train_min_max, test_min_max) | None, optional,
-        The temporal boundries. Defaults to None.
+        The temporal boundaries. Defaults to None.
     ax : object | None, optional
         Plot pointer. If None, generate new figure. Defaults to None.
     show : bool, optional, defaults to True.
-        If True, the figure will will be shown. Defaults to True.
+        If True, the figure will be shown. Defaults to True.
     color : str, optional
         Score line color. Defaults to 'steelblue'.
 
@@ -105,7 +105,8 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
         The figure.
     """
     if not hasattr(gat, 'scores_'):
-        raise RuntimeError('Please score your data before trying to plot scores')
+        raise RuntimeError('Please score your data before trying to plot '
+                           'scores')
     import matplotlib.pyplot as plt
     if ax is None:
         fig, ax = plt.subplots(1, 1)
@@ -120,8 +121,8 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
     ax.set_ylim(ymin, ymax)
     ax.set_xlabel('Time (s)')
     ax.set_ylabel('Classif. score ({0})'.format(
-            'AUC' if 'roc' in repr(gat.scorer_) else r'%'
-        ))
+        'AUC' if 'roc' in repr(gat.scorer_) else r'%'
+    ))
     ax.legend(loc='best')
     if show:
         plt.show()
