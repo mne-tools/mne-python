@@ -254,7 +254,7 @@ class GeneralizationAcrossTime(object):
                           for t_train, slices in
                           enumerate(test_times_['slices']))
 
-        self.y_pred_ = np.transpose(zip(*packed), (1, 0, 2, 3))
+        self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
     def score(self, epochs, y=None, scorer=None, independent=False,
