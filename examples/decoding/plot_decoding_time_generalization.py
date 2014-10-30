@@ -69,7 +69,7 @@ gat.plot()  # plot full GAT matrix
 # representations: the temporal generalization method', Trends In Cognitive
 # Sciences, 18(4), 203-210.
 
-gat = GeneralizationAcrossTime()
+gat = GeneralizationAcrossTime(predict_mode='independent')
 
 # Train on visual versus audio: left stimuli only.
 gat.fit(epochs[('AudL', 'VisL')])
@@ -78,5 +78,5 @@ gat.fit(epochs[('AudL', 'VisL')])
 # In this case, because the test data is independent, we test the
 # classifier of each folds and average their respective prediction:
 
-gat.score(epochs[('AudR', 'VisR')], independent=True)
+gat.score(epochs[('AudR', 'VisR')])
 gat.plot()

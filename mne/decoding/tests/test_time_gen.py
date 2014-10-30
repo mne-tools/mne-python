@@ -80,8 +80,6 @@ def test_generalization_across_time():
                 gat.y_pred_.shape[2] == 14)
     # ---  number of folds
     assert_true(np.shape(gat.estimators_)[1] == gat.cv)
-    # --- by default, prediction made from cv
-    assert_true(not gat.independent_)
     # ---  length training size
     assert_true(len(gat.train_times['slices']) == 15 ==
                 np.shape(gat.estimators_)[0])
@@ -125,17 +123,11 @@ def test_generalization_across_time():
     assert_equal(np.shape(gat.scores_), (15, 1))
 
     # Test generalization across conditions
-    gat = GeneralizationAcrossTime()
+    gat = GeneralizationAcrossTime(predict_mode='independent')
     gat.fit(epochs[0:6])
-    gat.predict(epochs[7:], independent=True)
+    gat.predict(epochs[7:])
     assert_raises(ValueError, gat.predict, epochs, test_times='hahahaha')
-    gat.score(epochs[7:], independent=True)
-
-    # Test continuous metrics
-    # XXX use case and test seem unclear to me (D.E.)
-    gat = GeneralizationAcrossTime(predict_type='distance')
-    gat.fit(epochs)
-    gat.score(epochs)
+    gat.score(epochs[7:])
 
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_type='proba')

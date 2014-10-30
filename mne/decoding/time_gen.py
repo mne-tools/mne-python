@@ -48,8 +48,11 @@ class GeneralizationAcrossTime(object):
         'length' : float
             Duration of each classifier (in seconds). By default, equals one
             time sample. TODO (do you allow length=None and step > 1 sample?)
-    predict_type : {'predict', 'proba', 'distance'}
+    predict_type : {'predict', 'proba'}
         Indicates the type of prediction.
+    predict_mode : {'fold-wise', 'independent'}
+        Indicates how the prediction is achieved with regards to inputs and
+        procedure.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -68,11 +71,6 @@ class GeneralizationAcrossTime(object):
         need not be regular.
     test_times_ : dict
         The same structure as ``train_times``.
-    independent_ : bool
-        Indicates whether data X is independent from the data used to fit
-        the  classifier. If independent == True, the predictions from each
-        cv fold classifier are averaged. Else, only the prediction from the
-        corresponding fold is used.
 
     Notes
     -----
@@ -83,7 +81,7 @@ class GeneralizationAcrossTime(object):
     unexpected sounds", PLOS ONE, 2013
     """
     def __init__(self, cv=5, clf=None, train_times=None,
-                 predict_type='predict', n_jobs=1):
+                 predict_type='predict', predict_mode='fold-wise', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.svm import SVC
@@ -101,6 +99,7 @@ class GeneralizationAcrossTime(object):
             clf = Pipeline([('scaler', scaler), ('svc', svc)])
         self.clf = clf
         self.predict_type = predict_type
+        self.predict_mode = predict_mode
         self.n_jobs = n_jobs
 
     def fit(self, epochs, y=None, picks=None):
@@ -157,7 +156,7 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, [])
         return self
 
-    def predict(self, epochs, independent=False, test_times=None, picks=None):
+    def predict(self, epochs, test_times=None, picks=None):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
@@ -168,11 +167,6 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs
             The epochs. Can be similar to fitted epochs or not. See independent
             parameter.
-        independent : bool
-            Indicates whether data X is independent from the data used to fit
-            the  classifier. If independent == True, the predictions from each
-            cv fold classifier are averaged. Else, only the prediction from the
-            corresponding fold is used.
         test_times : str | dict | None, optional, default: None
             if test_times = 'diagonal', test_times = train_times: decode at
             each time point but does not generalize.
@@ -209,10 +203,6 @@ class GeneralizationAcrossTime(object):
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
             raise RuntimeError('Please fit models before trying to predict')
-
-        # Cross validation scheme: if same data set use CV for prediction, else
-        # predict each trial with all folds' classifiers
-        self.independent_ = independent
 
         # Store type of prediction (continuous, categorical etc)
         # Define testing sliding window
@@ -252,15 +242,14 @@ class GeneralizationAcrossTime(object):
 
         # Loop across estimators (i.e. training times)
         packed = parallel(p_time_gen(X, self.estimators_[t_train], cv,
-                          slices, self.independent_, self.predict_type)
+                          slices, self.predict_mode, self.predict_type)
                           for t_train, slices in
                           enumerate(test_times_['slices']))
 
         self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
-    def score(self, epochs, y=None, scorer=None, independent=False,
-              test_times=None):
+    def score(self, epochs, y=None, scorer=None, test_times=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
@@ -278,11 +267,6 @@ class GeneralizationAcrossTime(object):
             Defaults to None.
         scorer : object
             scikit-learn Scorer instance.
-        independent : bool
-            Indicates whether data X is independent from the data used to fit
-            the  classifier. If independent == True, the predictions from each
-            cv fold classifier are averaged. Else, only the prediction from the
-            corresponding fold is used.
         test_times : str | dict | None, optional, default: None
             if test_times = 'diagonal', test_times = train_times: decode at
             each time point but does not generalize.
@@ -313,12 +297,12 @@ class GeneralizationAcrossTime(object):
         from sklearn.metrics import roc_auc_score, accuracy_score
 
         # Run predictions
-        self.predict(epochs, independent=independent, test_times=test_times)
+        self.predict(epochs, test_times=test_times)
 
         # If no regressor is passed, use default epochs events
         if y is None:
-            if not independent:
-                y = self.y_train_  # XXX good name?
+            if self.predict_mode == 'fold-wise':
+                y = self.y_train_
             else:
                 y = epochs.events[:, 2]
             # make sure it's int
@@ -418,8 +402,7 @@ class GeneralizationAcrossTime(object):
                                  ax=ax, show=show, color=color)
 
 
-def _predict_time_loop(X, estimators, cv, slices, independent,
-                       predict_type):
+def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     """Aux function of GeneralizationAcrossTime
 
     Run classifiers predictions loop across time samples.
@@ -433,12 +416,7 @@ def _predict_time_loop(X, estimators, cv, slices, independent,
     slices : list, shape(n_slices)
         List of slices selecting data from X from which is prediction is
         generated.
-    independent : bool
-        Indicates whether data X is independent from the data used to fit the
-        classifier. If independent == True, the predictions from each cv fold
-        classifier are averaged. Else, only the prediction from the
-        corresponding fold is used.
-    predict_type : {'predict', 'proba', 'distance'}
+    predict_type : {'predict', 'proba'}
         Indicates the type of prediction .
     """
     n_trial = len(X)
@@ -450,13 +428,13 @@ def _predict_time_loop(X, estimators, cv, slices, independent,
             n_trial, np.prod(X[:, :, indices].shape[1:]))
 
         # Single trial predictions
-        if not independent:
+        if predict_mode == 'fold-wise':
             # If predict within cross validation, only predict with
             # corresponding classifier, else predict with each fold's
             # classifier and average prediction.
             for k, (train, test) in enumerate(cv):
-                # XXX I didn't manage to initalize correctly this array, as
-                # its size depends on the the type of predicter and the
+                # XXX I didn't manage to initialize correctly this array, as
+                # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
                     y_pred_ = _predict(Xtrain[test, :],
@@ -593,7 +571,7 @@ def _fit_slices(clf, Xchunk, y, slices, cv):
     return estimators
 
 
-def _sliding_window(times, tt_times):
+def _sliding_window(times, window_params):
     """Aux function of GeneralizationAcrossTime
 
     Define the slices on which to train each classifier.
@@ -602,7 +580,7 @@ def _sliding_window(times, tt_times):
     ----------
     times : np.ndarray, shape (n_times,)
         Array of times from MNE epochs
-    tt_times : dict, optional keys: ('start', 'stop', 'step', 'length' )
+    window_params : dict, optional keys: ('start', 'stop', 'step', 'length' )
         Either train or test times. See GAT documentation.
 
     Returns
@@ -616,28 +594,29 @@ def _sliding_window(times, tt_times):
     freq = (times[-1] - times[0]) / len(times)
 
     # Default values
-    if ('slices' in tt_times and
-            all(k in tt_times for k in ('start', 'stop', 'step', 'length'))):
-        time_pick = tt_times['slices']
+    if ('slices' in window_params and
+            all(k in window_params for k in
+                ('start', 'stop', 'step', 'length'))):
+        time_pick = window_params['slices']
     else:
-        if not 'start' in tt_times:
-            tt_times['start'] = times[0]
-        if not 'stop' in tt_times:
-            tt_times['stop'] = times[-1]
-        if not 'step' in tt_times:
-            tt_times['step'] = freq
-        if not 'length' in tt_times:
-            tt_times['length'] = freq
+        if not 'start' in window_params:
+            window_params['start'] = times[0]
+        if not 'stop' in window_params:
+            window_params['stop'] = times[-1]
+        if not 'step' in window_params:
+            window_params['step'] = freq
+        if not 'length' in window_params:
+            window_params['length'] = freq
 
         # Convert seconds to index
 
         def find_time_idx(t):  # find closest time point
             return np.argmin(np.abs(np.asarray(times) - t))
 
-        start = find_time_idx(tt_times['start'])
-        stop = find_time_idx(tt_times['stop'])
-        step = int(round(tt_times['step'] / freq))
-        length = int(round(tt_times['length'] / freq))
+        start = find_time_idx(window_params['start'])
+        stop = find_time_idx(window_params['stop'])
+        step = int(round(window_params['step'] / freq))
+        length = int(round(window_params['length'] / freq))
 
         # For each training slice, give time samples to be included
         time_pick = [range(start, start + length)]
@@ -661,9 +640,8 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : {'predict', 'distance', 'proba'}
+    predict_type : {'predict', 'proba'}
         'predict' => simple prediction of y (e.g. SVC, SVR)
-        'distance' => continuous prediction (e.g. decision_function)
         'proba' => probabilistic prediction (e.g. SVC(probability=True))
 
     Returns
@@ -679,13 +657,6 @@ def _predict(X, estimators, predict_type):
     n_clf = len(estimators)
     if predict_type == 'predict':
         n_class = 1
-    elif predict_type == 'distance':
-        dec_func = estimators[0].decision_function(X[0, :])
-        if len(dec_func.shape) > 1:
-            n_class = dec_func.shape[1]
-        else:  # certain binary cases for which output is raveled.
-            n_class = 2
-
     elif predict_type == 'proba':
         n_class = estimators[0].predict_proba(X[0, :]).shape[1]
     y_pred = np.ones((n_trial, n_class, n_clf))
@@ -699,15 +670,6 @@ def _predict(X, estimators, predict_type):
         elif predict_type == 'proba':
             # Probabilistic prediction
             y_pred[:, :, fold] = clf.predict_proba(X)
-        elif predict_type == 'distance':
-            # Continuous non-probabilistic predict
-            # XXX branching fixes test for binary cases.
-            dec_func = clf.decision_function(X)
-            if len(dec_func.shape) > 1:
-                y_pred[:, :, fold] = dec_func
-            else:
-                y_pred[:, 0, fold] = dec_func
-            # XXX but something seems buggy here anyways.
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
