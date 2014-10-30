@@ -8,6 +8,7 @@ import multiprocessing
 
 import numpy as np
 from scipy.stats import mode, rankdata
+
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func
 from ..utils import logger, verbose, deprecated
@@ -15,7 +16,6 @@ from ..io.pick import channel_type, pick_types
 
 
 class GeneralizationAcrossTime(object):
-
     """Create object used to 1) fit a series of classifiers on
     multidimensional time-resolved data, and 2) test the ability of each
     classifier to generalize across other time samples.
