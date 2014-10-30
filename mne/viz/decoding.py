@@ -119,7 +119,9 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
     ax.set_ylim(ymin, ymax)
     ax.set_xlabel('Time (s)')
-    ax.set_ylabel(gat.scorer_.func_name)
+    ax.set_ylabel('Classif. score ({0})'.format(
+            'AUC' if 'roc' in repr(gat.scorer_) else r'%'
+        ))
     ax.legend(loc='best')
     if show:
         plt.show()
