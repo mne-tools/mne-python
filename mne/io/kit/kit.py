@@ -90,6 +90,9 @@ class RawKIT(_BaseRaw):
         self.last_samp = self._sqd_params['nsamples'] - 1
         self.comp = None  # no compensation for KIT
         self.proj = False
+        self._raw_lengths = np.array([self.n_times])
+        self._first_samps = np.array([self.first_samp])
+        self._last_samps = np.array([self.last_samp])
 
         # Create raw.info dict for raw fif object with SQD data
         self.info = Info()
