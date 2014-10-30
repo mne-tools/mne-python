@@ -27,8 +27,10 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         Min color value for score. Defaults to None.
     vmax : float, optional
         Max color value for score. Defaults to None.
-    tlim : np.ndarray, (train_min, test_max) | None, optional,
-        The temporal boundaries. defaults to None.
+    tlim : array-like, (4,) | None, optional,
+        The temporal boundaries. If None, defaults to
+        [tmin_train, tmax_train, tmin_test, tmax_test]
+        Defaults to None.
     ax : object | None, optional
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
@@ -54,8 +56,9 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
 
     # Define time limits
     if tlim is None:
-        tlim = [gat.test_times_['s'][0][0], gat.test_times_['s'][-1][-1],
-                gat.train_times['s'][0], gat.train_times['s'][-1]]
+        tt_times = gat.train_times['times_']
+        tn_times = gat.test_times_['times_']
+        tlim = [tn_times[0][0], tn_times[-1][-1], tt_times[0], tt_times[-1]]
     # Plot scores
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',
                    extent=tlim, vmin=vmin, vmax=vmax,
@@ -90,8 +93,6 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
         Min score value.
     ymax : float, optional, defaults to 1.
         Max score value.
-    tlim : np.ndarray, (train_min_max, test_min_max) | None, optional,
-        The temporal boundaries. Defaults to None.
     ax : object | None, optional
         Plot pointer. If None, generate new figure. Defaults to None.
     show : bool, optional, defaults to True.
@@ -111,11 +112,11 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
     if ax is None:
         fig, ax = plt.subplots(1, 1)
     # detect whether gat is a full matrix or just its diagonal
-    if np.all(np.unique([len(t) for t in gat.test_times_['s']]) == 1):
+    if np.all(np.unique([len(t) for t in gat.test_times_['times_']]) == 1):
         scores = gat.scores_
     else:
         scores = np.diag(gat.scores_)
-    ax.plot(gat.train_times['s'], scores, color=color,
+    ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
     ax.set_ylim(ymin, ymax)

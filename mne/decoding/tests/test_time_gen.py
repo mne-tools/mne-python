@@ -114,8 +114,8 @@ def test_generalization_across_time():
     gat.fit(epochs)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
-    assert_equal(gat.train_times['s'][0], epochs.times[6])
-    assert_equal(gat.train_times['s'][-1], epochs.times[9])
+    assert_equal(gat.train_times['times_'][0], epochs.times[6])
+    assert_equal(gat.train_times['times_'][-1], epochs.times[9])
 
     # Test diagonal decoding
     gat = GeneralizationAcrossTime()

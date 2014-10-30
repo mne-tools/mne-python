@@ -136,7 +136,7 @@ class GeneralizationAcrossTime(object):
 
         # Keep last training times in milliseconds
         t_inds_ = [t[-1] for t in self.train_times['slices']]
-        self.train_times['s'] = epochs.times[t_inds_]
+        self.train_times['times_'] = epochs.times[t_inds_]
 
         # Chunk X for parallelization
         if n_jobs > 0:
@@ -241,8 +241,9 @@ class GeneralizationAcrossTime(object):
 
         # Testing times in milliseconds (only keep last time if multiple time
         # slices)
-        test_times_['s'] = [[epochs.times[t_test[-1]] for t_test in t_train]
-                            for t_train in test_times_['slices']]
+        test_times_['times_'] = [[epochs.times[t_test[-1]]
+                                 for t_test in t_train]
+                                 for t_train in test_times_['slices']]
         # Store all testing times parameters
         self.test_times_ = test_times_
 
