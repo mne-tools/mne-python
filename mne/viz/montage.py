@@ -1,5 +1,3 @@
-import numpy as np
-
 """Functions to plot EEG sensor montages
 """
 
@@ -10,31 +8,31 @@ def plot_montage(montage, scale_factor=1.5, show_names=False):
     Parameters
     ----------
     montage : instance of Montage
-        The montage to visualize
+        The montage to visualize.
     scale_factor : float
-        Determines the size of the points. Defaults to 1.5
+        Determines the size of the points. Defaults to 1.5.
     show_names : bool
-        Whether to show the channel names. Defaults to False
+        Whether to show the channel names. Defaults to False.
 
     Returns
     -------
-    fig : isntance of mayavi.Scene
-        The malab scene object.
+    fig : Instance of matplotlib.figure.Figure
+        The figure object.
     """
-    try:
-        from mayavi import mlab
-    except ImportError:
-        from enthought.mayavi import mlab
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
 
-    fig = mlab.figure(bgcolor=(0.0, 0.0, 0.0), size=(600, 600))
     pos = montage.pos
-    mlab.points3d(pos[:, 0], pos[:, 1], pos[:, 2],
-                  color=(1.0, 1.0, 1.0), scale_factor=1.5)
+    ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
     if show_names:
-        for p, n in zip(pos, montage.names):
-            mlab.text(p[0], p[1], z=p[2] + scale_factor, text=n, width=0.05)
+        ch_names = montage.ch_names
+        for ch_name, x, y, z in zip(ch_names, pos[:, 0], pos[:, 1], pos[:, 2]):
+            ax.text(x, y, z, ch_name)
 
-    mlab.text(0.01, 0.01, montage.kind, width=0.4)
-    mlab.view(0, 0)
     return fig
