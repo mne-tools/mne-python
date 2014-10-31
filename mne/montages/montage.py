@@ -135,15 +135,18 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
                  ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                  ('off_sph', 'f8')]
         table = np.loadtxt(fname, skiprows=2, dtype=dtype)
-        pos = np.c_[table['x'], table['y'], table['z']]
         ch_names_ = table['label']
+        theta = (2 * np.pi * table['theta']) / 360.
+        phi = (2 * np.pi * table['phi']) / 360.
+        pos = _sphere_to_cartesian(theta, phi, r=1.0)
+        pos = np.asarray(pos).T
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
     selection = np.arange(len(pos))
     if ch_names is not None:
         sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
-                            if e in ch_names])
+                             if e in ch_names])
         sel = list(sel)
         pos = pos[sel]
         selection = selection[sel]
@@ -189,3 +192,12 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
+
+
+def _sphere_to_cartesian(theta, phi, r):
+    """Transform spherical coordinates to cartesian"""
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    return x, y, z
