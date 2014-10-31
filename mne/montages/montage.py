@@ -8,7 +8,6 @@ import os
 import os.path as op
 import numpy as np
 
-from ..externals.six import BytesIO
 from ..channels import _contains_ch_type
 from ..viz import plot_montage
 
@@ -110,25 +109,25 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
             for line in fid:
                 if 'Positions\n' in line:
                     break
+            pos = []
             for line in fid:
                 if 'Labels\n' in line:
                     break
-                pos.append(line)
+                pos.append(list(map(float, line.split())))
             for line in fid:
                 if not line or not set(line) - set([' ']):
                     break
                 ch_names_.append(line.strip(' ').strip('\n'))
-        pos = np.loadtxt(BytesIO(''.join(pos)))
+        pos = np.array(pos)
     elif ext == '.txt':
         # easycap
-        dtype = np.dtype('S4, f8, f8')
-        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
-        theta, phi = data['f1'], data['f2']
+        data = np.genfromtxt(fname, dtype='str', skiprows=1)
+        ch_names_ = list(data[:, 0])
+        theta, phi = data[:, 1].astype(float), data[:, 2].astype(float)
         x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
         y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
         z = 85. * np.cos(np.deg2rad(theta))
         pos = np.c_[x, y, z]
-        ch_names_ = data['f0']
     elif ext == '.csd':
         # CSD toolbox
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
