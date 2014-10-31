@@ -1,4 +1,6 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: Simplified BSD
 
@@ -12,29 +14,31 @@ from ..viz import plot_montage
 
 
 class Montage(object):
-    """Sensor layouts
+    """Montage for EEG cap
 
     Montages are typically loaded from a file using read_montage. Only use this
-    class directly if you're constructing a new layout.
+    class directly if you're constructing a new montage.
 
     Parameters
     ----------
     pos : array, shape (n_channels, 3)
         The positions of the channels in 3d.
-    names : list
-        The channel names
+    ch_names : list
+        The channel names.
     kind : str
-        The type of Layout (e.g. 'standard_1005')
+        The type of montage (e.g. 'standard_1005').
+    selection : array of int
+        The indices of the selected channels in the montage file.
     """
-    def __init__(self, pos, names, kind, ids):
+    def __init__(self, pos, ch_names, kind, selection):
         self.pos = pos
-        self.names = names
+        self.ch_names = ch_names
         self.kind = kind
-        self.ids = ids
+        self.selection = selection
 
     def __repr__(self):
-        s = '<Montage | %s - Channels: %s ...>' % (self.kind,
-                                                   ', '.join(self.names[:3]))
+        s = '<Montage | %s - %d Channels: %s ...>'
+        s %= self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
@@ -56,25 +60,26 @@ class Montage(object):
                             show_names=show_names)
 
 
-def read_montage(kind, names=None, path=None, scale=True):
-    """Read layout from a file
+def read_montage(kind, ch_names=None, path=None, scale=True):
+    """Read montage from a file
 
     Parameters
     ----------
     kind : str
-        The name of the .lout file (e.g. kind='Vectorview-all' for
-        'Vectorview-all.lout'
-    names : list of str
+        The name of the montage file (e.g. kind='easycap-M10' for
+        'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd'
+        or '.sfp' are supported.
+    ch_names : list of str
         The names to read. If None, all names are returned.
     path : str | None
-        The path of the folder containing the Layout file
+        The path of the folder containing the montage file
     scale : bool
-        Apply useful scaling for out the box plotting using layout.pos
+        Apply useful scaling for out the box plotting using montage.pos
 
     Returns
     -------
-    layout : instance of Layout
-        The layout
+    montage : instance of Montage
+        The montage.
     """
     if path is None:
         path = op.dirname(__file__)
@@ -83,8 +88,8 @@ def read_montage(kind, names=None, path=None, scale=True):
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
-            raise ValueError('Could not find the montage. Please provide the'
-                             'full path')
+            raise ValueError('Could not find the montage. Please provide the '
+                             'full path.')
         kind, ext = montages[0]
         fname = op.join(path, kind + ext)
     else:
@@ -96,10 +101,10 @@ def read_montage(kind, names=None, path=None, scale=True):
         dtype = np.dtype('S4, f8, f8, f8')
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.c_[data['f1'], data['f2'], data['f3']]
-        names_ = data['f0']
+        ch_names_ = data['f0']
     elif ext == '.elc':
         # 10-5 system
-        names_ = []
+        ch_names_ = []
         pos = []
         with open(fname) as fid:
             for line in fid:
@@ -112,7 +117,7 @@ def read_montage(kind, names=None, path=None, scale=True):
             for line in fid:
                 if not line or not set(line) - set([' ']):
                     break
-                names_.append(line.strip(' ').strip('\n'))
+                ch_names_.append(line.strip(' ').strip('\n'))
         pos = np.loadtxt(BytesIO(''.join(pos)))
     elif ext == '.txt':
         # easycap
@@ -123,7 +128,7 @@ def read_montage(kind, names=None, path=None, scale=True):
         y = 85. * np.sin(np.deg2rad(theta)) * np.sin(np.deg2rad(phi))
         z = 85. * np.cos(np.deg2rad(theta))
         pos = np.c_[x, y, z]
-        names_ = data['f0']
+        ch_names_ = data['f0']
     elif ext == '.csd':
         # CSD toolbox
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
@@ -131,51 +136,53 @@ def read_montage(kind, names=None, path=None, scale=True):
                  ('off_sph', 'f8')]
         table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         pos = np.c_[table['x'], table['y'], table['z']]
-        names_ = table['label']
+        ch_names_ = table['label']
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
-    ids = np.arange(len(pos))
-    if names is not None:
-        sel, names_ = zip(*[(i, e) for i, e in enumerate(names_)
-                            if e in names])
+    selection = np.arange(len(pos))
+    if ch_names is not None:
+        sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
+                            if e in ch_names])
         sel = list(sel)
         pos = pos[sel]
-        ids = ids[sel]
+        selection = selection[sel]
     else:
-        names_ = list(names_)
+        ch_names_ = list(ch_names_)
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, names=names_, kind=kind, ids=ids)
+    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
 
 def apply_montage(info, montage):
     """Apply montage to EEG data.
 
-    This function will replace the eeg channel names and locations with
+    This function will replace the EEG channel names and locations with
     the values specified for the particular montage.
-    Note. You have to rename your object to correclty map
+
+    Note: You have to rename your object to correclty map
     the montage names.
-    Note. This function will change the info in place.
+
+    Note: This function will change the info variable in place.
 
     Parameters
     ----------
-    inst : instance of Info
-        The info to update.
+    info : instance of Info
+        The measurement info to update.
     montage : instance of Montage
         The montage to apply.
     """
     if not _contains_ch_type(info, 'eeg'):
-        raise ValueError('No eeg channels found')
+        raise ValueError('No EEG channels found.')
 
     sensors_found = False
-    for pos, name in zip(montage.pos, montage.names):
-        if name not in info['ch_names']:
+    for pos, ch_name in zip(montage.pos, montage.ch_names):
+        if ch_name not in info['ch_names']:
             continue
 
-        ch_idx = info['ch_names'].index(name)
-        info['ch_names'][ch_idx] = name
-        info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0] * 3]
-        info['chs'][ch_idx]['loc'] = np.r_[pos, [0] * 9]
+        ch_idx = info['ch_names'].index(ch_name)
+        info['ch_names'][ch_idx] = ch_name
+        info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0.] * 3]
+        info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
         sensors_found = True
 
     if not sensors_found:

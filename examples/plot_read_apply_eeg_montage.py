@@ -1,10 +1,10 @@
 """
 ==================================
-Reading and applyting EEG Montages
+Reading and applying EEG Montages
 ==================================
 
 """
-# Author: Denis Engemann <dneis.engemann@gmail.com>
+# Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
