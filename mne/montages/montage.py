@@ -53,8 +53,8 @@ class Montage(object):
 
         Returns
         -------
-        fig : isntance of mayavi.Scene
-            The malab scene object.
+        fig : Instance of matplotlib.figure.Figure
+            The figure object.
         """
         return plot_montage(self, scale_factor=scale_factor,
                             show_names=show_names)
