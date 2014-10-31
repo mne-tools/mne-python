@@ -29,6 +29,8 @@ Changelog
 
    - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
 
+   - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_ and `Alex Gramfort`_.
+
 BUG
 ~~~
 

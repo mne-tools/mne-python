@@ -957,12 +957,12 @@ known_config_types = [
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_TESTING_DATASET_TESTS',
     'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
-    ]
+]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
 known_config_wildcards = [
     'MNE_STIM_CHANNEL',
-    ]
+]
 
 
 def get_config(key=None, default=None, raise_error=False, home_dir=None):
@@ -1626,3 +1626,12 @@ def md5sum(fname, block_size=1048576):  # 2 ** 20
                 break
             md5.update(data)
     return md5.hexdigest()
+
+
+def _sphere_to_cartesian(theta, phi, r):
+    """Transform spherical coordinates to cartesian"""
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    return x, y, z

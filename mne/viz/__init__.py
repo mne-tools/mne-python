@@ -17,3 +17,4 @@ from .epochs import (plot_image_epochs, plot_drop_log, plot_epochs,
                      _drop_log_stats)
 from .raw import plot_raw, plot_raw_psds
 from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
+from .montage import plot_montage

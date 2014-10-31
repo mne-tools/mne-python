@@ -317,6 +317,28 @@ Projections:
    read_proj
    write_proj
 
+Set sensors locations for processing and plotting:
+
+.. currentmodule:: mne.montages
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   read_montage
+   apply_montage
+
+.. currentmodule:: mne.layouts
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   read_layout
+   find_layout
+   make_eeg_layout
+   make_grid_layout
+
 :py:mod:`mne.preprocessing`:
 
 .. automodule:: mne.preprocessing

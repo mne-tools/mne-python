@@ -47,6 +47,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 epochs.plot()
 
+# Look at channels that caused dropped events, showing that the subject's
+# blinks were likely to blame for most epochs being dropped
+epochs.drop_bad_epochs()
+epochs.plot_drop_log(subject='sample')
+
 evoked = epochs.average()  # average epochs and get an Evoked dataset.
 
 evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
@@ -65,14 +70,9 @@ plt.xlabel('time (ms)')
 plt.ylabel('Potential (uV)')
 plt.title('EEG evoked potential')
 
-plt.axvline(latency * 1e3, color='red', 
+plt.axvline(latency * 1e3, color='red',
             label=ch_max_name, linewidth=2,
             linestyle='--')
 plt.legend(loc='best')
 
 plt.show()
-
-# Look at channels that caused dropped events, showing that the subject's
-# blinks were likely to blame for most epochs being dropped
-epochs.drop_bad_epochs()
-epochs.plot_drop_log(subject='sample')
