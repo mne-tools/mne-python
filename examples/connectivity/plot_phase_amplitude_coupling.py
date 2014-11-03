@@ -51,8 +51,9 @@ surr_mean_amp_dist = surr_amp_dist.mean(axis=0)
 
 import matplotlib.pyplot as plt
 
-# plot the phase amplitude plot of the mean modulation
-#plot_phase_amplitude_coupling(phase_bins, mean_amplitude_distribution)
+# plot the phase amplitude plots of the mean modulation compared
+# to that of the surrogates obtained by shuffling the phase series
+#  and the amplitude envelope.
 
 plt.figure('Phase Amplitude(PA) Plots')
 plt.subplot(1, 3, 1)
