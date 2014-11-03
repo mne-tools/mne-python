@@ -662,4 +662,3 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
     if show:
         plt.show()
     return fig
-
