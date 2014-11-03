@@ -8,6 +8,7 @@ from mne.connectivity.cfc import (generate_pac_signal,
                                   make_surrogate_data,
                                   modulation_index)
 from mne.viz.misc import plot_phase_amplitude_coupling
+from mne.viz.utils import tight_layout
 
 # First, generate the synthetic data
 fs = 1000. # sampling frequency
@@ -66,12 +67,11 @@ axes = plt.subplot(1, 3, 3)
 ticks = axes.get_xticks().tolist()
 plt.xlim(0, 3)
 plt.bar([1, 2], [mean_mi, surr_mean_mi], width=0.9, align='center')
-ticks[2] = 'MI data'
-ticks[4] = 'MI surrogates'
+ticks[2] = 'data'
+ticks[4] = 'surrogates'
 ticks[0] = ticks[3] = ticks[1] = ticks[5] = ''
 axes.set_xticklabels(ticks)
 plt.title('MI values')
 plt.ylabel('Modulation Index (MI)')
-plt.tight_layout()
+tight_layout()
 plt.show()
-
