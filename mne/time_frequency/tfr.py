@@ -20,6 +20,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
+from ..multitaper import dpss_windows
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -82,6 +83,60 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
             oscillation -= real_offset
         W = oscillation * gaussian_enveloppe
         W /= sqrt(0.5) * linalg.norm(W.ravel())
+        Ws.append(W)
+    return Ws
+
+
+def dpsswavelet(freqs, n_cycles=7, TW=2.0, zero_mean=False, Fs=None):
+    """Compute Wavelets for the given frequency range
+
+    Parameters
+    ----------
+    Fs : float
+        Sampling Frequency
+    freqs : array
+        frequency range of interest (1 x Frequencies)
+    n_cycles: float | array of float
+        Number of cycles. Fixed number or one per frequency.
+    TW : float, (optional)
+        Half time-bandwidth product. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        TW = 2.0, giving 3 good tapers.
+    zero_mean : bool
+        Make sure the wavelet is zero mean
+
+    Returns
+    -------
+    Ws : list of array
+        Wavelets time series
+    """
+    Ws = list()
+    n_cycles = np.atleast_1d(n_cycles)
+
+    if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
+        raise ValueError("n_cycles should be fixed or defined for "
+                         "each frequency.")
+    for k, f in enumerate(freqs):
+        if len(n_cycles) != 1:
+            this_n_cycles = n_cycles[k]
+        else:
+            this_n_cycles = n_cycles[0]
+
+        t_win = this_n_cycles / (2.0 * np.pi * f)
+        t = np.arange(0, t_win, 1.0 / Fs)
+        oscillation = np.exp(2.0 * 1j * np.pi * f * t)
+
+        # Get dpss tapers
+        tapers, conc = dpss_windows(np.numel(t), TW,  np.floor(2 * TW - 1))
+        W = list()
+
+        for m, envelope in enumerate(tapers):
+            Wk = oscillation * envelope
+            if zero_mean:  # to make it zero mean
+                real_offset = W.mean()
+                W -= real_offset
+            Wk /= sqrt(0.5) * linalg.norm(W.ravel())
+            W.append(Wk)
         Ws.append(W)
     return Ws
 
