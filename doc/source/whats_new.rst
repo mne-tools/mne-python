@@ -51,6 +51,8 @@ BUG
 
    - Add missing attributes for Brainvision and KIT systems needed for resample by `Teon Brooks`_
 
+   - Fix file extensions of SSP projection files written by mne commands (from _proj.fif to -prof.fif) by `Alex Gramfort`_
+
 API
 ~~~
 
