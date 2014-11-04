@@ -959,3 +959,136 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
     if return_itc:
         out = (out, AverageTFR(info, itc, times, freqs, nave))
     return out
+
+
+def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
+                       n_cycles=7, decim=1, n_jobs=1, zero_mean=False):
+    """Compute time induced power and inter-trial phase-locking factor
+
+    The time frequency decomposition is done with DPSS wavelets
+
+    Parameters
+    ----------
+    data : array
+        3D array of shape [n_epochs, n_channels, n_times]
+    sfreq : float
+        sampling Frequency
+    frequencies : array
+        Array of frequencies of interest
+    TW : float, (optional)
+        Half time-bandwidth product. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        TW = 2.0, giving 3 good tapers.
+    use_fft : bool
+        Compute transform with fft based convolutions or temporal
+        convolutions.
+    n_cycles : float | array of float
+        Number of cycles. Fixed number or one per frequency.
+    decim: int
+        Temporal decimation factor
+    n_jobs : int
+        The number of CPUs used in parallel. All CPUs are used in -1.
+        Requires joblib package.
+    zero_mean : bool
+        Make sure the wavelets are zero mean.
+
+    Returns
+    -------
+    power : 3D array
+        Induced power (Channels x Frequencies x Timepoints).
+        Squared amplitude of time-frequency coefficients.
+    plv : sD array
+         (Channels x Frequencies x Timepoints)
+    """
+    n_frequencies = len(frequencies)
+    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+
+    # Precompute wavelets for given frequency range to save time
+    Ws = dpsswavelet(sfreq, frequencies, n_cycles=n_cycles, TW=TW,
+                     zero_mean=zero_mean)
+    n_taps = len(Ws)
+    psd, plv = 0., 0.
+    for m in range(n_taps):  # n_taps is typically small, better to save RAM
+        if n_jobs == 1:
+            psd_m = np.empty((n_channels, n_frequencies, n_times))
+            plv_m = np.empty((n_channels, n_frequencies, n_times),
+                             dtype=np.complex)
+
+            for c in range(n_channels):
+                X = data[:, c, :]
+                this_psd, this_plv = _time_frequency(X, Ws[m], use_fft)
+                psd_m[c], plv_m[c] = this_psd[:, ::decim], this_plv[:, ::decim]
+        else:
+            parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                           n_jobs)
+
+            psd_plv = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
+                                                 Ws, use_fft)
+                               for c in range(n_channels))
+
+            psd_m = np.zeros((n_channels, n_frequencies, n_times))
+            plv_m = np.zeros((n_channels, n_frequencies, n_times),
+                             dtype=np.complex)
+            for c, (psd_c, plv_c) in enumerate(psd_plv):
+                psd_m[c, :, :] = psd_c[:, ::decim]
+                plv_m[c, :, :] = plv_c[:, ::decim]
+
+        psd_m /= n_epochs
+        plv_m = np.abs(plv_m) / n_epochs
+        psd += psd_m
+        plv += plv_m
+
+    psd /= n_taps
+    plv /= n_taps
+    return psd, plv
+
+
+def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
+            return_itc=True, decim=1, n_jobs=1):
+    """Compute Time-Frequency Representation (TFR) using DPSS wavelets
+
+    Parameters
+    ----------
+    epochs : Epochs
+        The epochs.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+    TW : float, (optional)
+        Half time-bandwidth product. The number of good tapers (low-bias) is
+        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        TW = 2.0, giving 3 good tapers.
+    use_fft : bool
+        The fft based convolution or not.
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
+    decim : int
+        The decimation factor on the time axis. To reduce memory usage.
+        Note than this is brute force decimation, no anti-aliasing is done.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    power : AverageTFR
+        The averaged power.
+    itc : AverageTFR
+        The intertrial coherence (ITC). Only returned if return_itc
+        is True.
+    """
+    data = epochs.get_data()
+    picks = pick_types(epochs.info, meg=True, eeg=True)
+    info = pick_info(epochs.info, picks)
+    data = data[:, picks, :]
+    power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
+                                    frequencies=freqs, TW=TW,
+                                    n_cycles=n_cycles, n_jobs=n_jobs,
+                                    use_fft=use_fft, decim=decim,
+                                    zero_mean=True)
+    times = epochs.times[::decim].copy()
+    nave = len(data)
+    out = AverageTFR(info, power, times, freqs, nave)
+    if return_itc:
+        out = (out, AverageTFR(info, itc, times, freqs, nave))
+    return out
