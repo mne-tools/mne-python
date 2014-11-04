@@ -48,9 +48,9 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
     if out_fif_fname is None:
         out_fif_fname = prefix + '_clean_ecg_eog_raw.fif'
     if ecg_proj_fname is None:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg-proj.fif'
     if eog_proj_fname is None:
-        eog_proj_fname = prefix + '_eog_proj.fif'
+        eog_proj_fname = prefix + '_eog-proj.fif'
     if ecg_event_fname is None:
         ecg_event_fname = prefix + '_ecg-eve.fif'
     if eog_event_fname is None:

@@ -168,9 +168,9 @@ def run():
     ecg_event_fname = prefix + '_ecg-eve.fif'
 
     if average:
-        ecg_proj_fname = prefix + '_ecg_avg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg_avg-proj.fif'
     else:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg-proj.fif'
 
     raw = mne.io.Raw(raw_in, preload=preload)
 
