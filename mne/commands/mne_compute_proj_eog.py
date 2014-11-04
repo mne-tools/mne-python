@@ -7,7 +7,7 @@ $ mne compute_proj_eog -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-gra
 
 or
 
-$ mne compute_proj_eog -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 --proj sample_audvis_ecg_proj.fif
+$ mne compute_proj_eog -i sample_audvis_raw.fif --l-freq 1 --h-freq 35 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100 --proj sample_audvis_ecg-proj.fif
 
 to exclude ECG artifacts from projection computation.
 """
@@ -148,9 +148,9 @@ def run():
     eog_event_fname = prefix + '_eog-eve.fif'
 
     if average:
-        eog_proj_fname = prefix + '_eog_avg_proj.fif'
+        eog_proj_fname = prefix + '_eog_avg-proj.fif'
     else:
-        eog_proj_fname = prefix + '_eog_proj.fif'
+        eog_proj_fname = prefix + '_eog-proj.fif'
 
     raw = mne.io.Raw(raw_in, preload=preload)
 

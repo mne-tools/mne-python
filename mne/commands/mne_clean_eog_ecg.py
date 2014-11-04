@@ -48,9 +48,9 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
     if out_fif_fname is None:
         out_fif_fname = prefix + '_clean_ecg_eog_raw.fif'
     if ecg_proj_fname is None:
-        ecg_proj_fname = prefix + '_ecg_proj.fif'
+        ecg_proj_fname = prefix + '_ecg-proj.fif'
     if eog_proj_fname is None:
-        eog_proj_fname = prefix + '_eog_proj.fif'
+        eog_proj_fname = prefix + '_eog-proj.fif'
     if ecg_event_fname is None:
         ecg_event_fname = prefix + '_ecg-eve.fif'
     if eog_event_fname is None:
@@ -67,7 +67,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         command = ('mne_process_raw', '--cd', in_path, '--raw', in_fif_fname,
                    '--events', ecg_event_fname, '--makeproj',
                    '--projtmin', '-0.08', '--projtmax', '0.08',
-                   '--saveprojtag', '_ecg_proj', '--projnmag', '2',
+                   '--saveprojtag', '_ecg-proj', '--projnmag', '2',
                    '--projngrad', '1', '--projevent', '999', '--highpass', '5',
                    '--lowpass', '35', '--projmagrej', '4000',
                    '--projgradrej', '3000')
@@ -80,7 +80,7 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
         command = ('mne_process_raw', '--cd', in_path, '--raw', in_fif_fname,
                    '--events', eog_event_fname, '--makeproj',
                    '--projtmin', '-0.15', '--projtmax', '0.15',
-                   '--saveprojtag', '_eog_proj', '--projnmag', '2',
+                   '--saveprojtag', '_eog-proj', '--projnmag', '2',
                    '--projngrad', '2', '--projevent', '998', '--lowpass', '35',
                    '--projmagrej', '4000', '--projgradrej', '3000')
         mne.utils.run_subprocess(command, **kwargs)
