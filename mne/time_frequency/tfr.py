@@ -962,7 +962,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
 
 
 def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
-                       n_cycles=7, decim=1, n_jobs=1, zero_mean=False):
+                       n_cycles=7, decim=1, n_jobs=1, zero_mean=True):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with DPSS wavelets

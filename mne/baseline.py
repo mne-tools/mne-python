@@ -29,7 +29,7 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used. If None, no correction is applied.
-    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent'
+    mode : 'logratio' | 'ratio' | 'zscore' | 'mean' | 'percent' | 'zlogratio'
         Do baseline correction with ratio (power is divided by mean
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
@@ -47,7 +47,8 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
     if copy:
         data = data.copy()
 
-    valid_modes = ['logratio', 'ratio', 'zscore', 'mean', 'percent']
+    valid_modes = ['logratio', 'ratio', 'zscore', 'mean', 'percent',
+                   'zlogratio']
     if mode not in valid_modes:
         raise Exception('mode should be any of : %s' % valid_modes)
 
@@ -82,6 +83,11 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         elif mode == 'percent':
             data -= mean
             data /= mean
+        elif mode == 'zlogratio':
+            data /= mean
+            data = np.log10(data)
+            std = np.std(data[..., imin:imax], axis=-1)[..., None]
+            data /= std
 
     else:
         logger.info("No baseline correction applied...")
