@@ -5,6 +5,9 @@
 #
 # License: BSD (3-clause)
 
+import os
+import os.path as op
+
 import numpy as np
 from scipy.io import loadmat
 from scipy import sparse
@@ -178,7 +181,7 @@ class PickDropChannelsMixin(object):
         from .evoked import Evoked
         from .time_frequency import AverageTFR
 
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, (_BaseRaw, Epochs)):
             if not self.preload:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
                                    ' channels')
@@ -293,6 +296,16 @@ def read_ch_connectivity(fname, picks=None):
     ch_connectivity : scipy.sparse matrix
         The connectivity matrix.
     """
+    if not op.isabs(fname):
+        templates_dir = op.realpath(op.join(op.dirname(__file__),
+                                            'neighbors'))
+        templates = os.listdir(templates_dir)
+        if not any(f not in templates for f in (fname, fname + '.mat')):
+            raise ValueError('I do not know about this neighbor '
+                             'template: "{}"'.format(fname))
+        else:
+            fname = op.join(templates_dir, fname)
+
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], string_types)
     neighbors = [_recursive_flatten(c, string_types) for c in

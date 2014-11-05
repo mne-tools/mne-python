@@ -144,7 +144,7 @@ def test_read_write_epochs():
     raw, events, picks = _get_data()
     tempdir = _TempDir()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+                    baseline=(None, 0), preload=True)
     evoked = epochs.average()
     data = epochs.get_data()
 
@@ -1033,7 +1033,7 @@ def test_drop_channels_mixin():
     raw, events = _get_data()[:2]
     # here without picks to get additional coverage
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=None,
-                    baseline=(None, 0))
+                    baseline=(None, 0), preload=True)
     drop_ch = epochs.ch_names[:3]
     ch_names = epochs.ch_names[3:]
 
@@ -1053,9 +1053,11 @@ def test_pick_channels_mixin():
     """
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0))
+                    baseline=(None, 0), preload=True)
     ch_names = epochs.ch_names[:3]
-
+    epochs.preload = False
+    assert_raises(RuntimeError, epochs.drop_channels, ['foo'])
+    epochs.preload = True
     ch_names_orig = epochs.ch_names
     dummy = epochs.pick_channels(ch_names, copy=True)
     assert_equal(ch_names, dummy.ch_names)
@@ -1072,7 +1074,7 @@ def test_equalize_channels():
     """
     raw, events, picks = _get_data()
     epochs1 = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                     baseline=(None, 0), proj=False)
+                     baseline=(None, 0), proj=False, preload=True)
     epochs2 = epochs1.copy()
     ch_names = epochs1.ch_names[2:]
     epochs1.drop_channels(epochs1.ch_names[:1])
