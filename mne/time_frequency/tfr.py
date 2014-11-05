@@ -1023,7 +1023,7 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
                                                            n_jobs)
 
             psd_plv = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
-                                                 Ws, use_fft)
+                                                 Ws[m], use_fft)
                                for c in range(n_channels))
 
             psd_m = np.zeros((n_channels, n_frequencies, n_times))
