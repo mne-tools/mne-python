@@ -20,7 +20,7 @@ import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_types
-from mne.layouts import read_layout
+from mne.channels import read_layout
 
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings

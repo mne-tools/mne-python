@@ -21,7 +21,7 @@ from .pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from ..channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
