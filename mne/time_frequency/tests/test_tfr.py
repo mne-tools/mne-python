@@ -133,7 +133,9 @@ def test_tfr_mtm():
 
     n_times = int(sfreq)  # Second long epochs
     n_epochs = 40
-    noise = 0.1 * np.random.rand(n_epochs, len(ch_names), n_times)
+    noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
+    while np.any(noise > 0.4):
+        noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
     t = np.arange(n_times) / sfreq
     signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
