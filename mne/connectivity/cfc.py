@@ -28,13 +28,13 @@ def make_surrogate_data(data):
     """
     Returns a copy of the shuffled surrogate data.
     """
-    from numpy.random import shuffle
     shuffled_data = data.copy()
     map(shuffle, shuffled_data)
     return shuffled_data
 
 
-def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2, const=1, random_state=0, mean=0, std=0.2):
+def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2,
+                        const=1, random_state=0, mean=0, std=0.2):
     """
     Generate a phase amplitude coupled signal based on the given parameters.
 
@@ -72,7 +72,7 @@ def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2, 
 
     # Generate amplitude envelope of modulated signal
     amp_fa = (const * ((1 - amp_ratio) * np.sin(2 * np.pi * f_phase * times)
-                      + 1 + amp_ratio) / 2)
+                       + 1 + amp_ratio) / 2)
     # Generate the phase amplitude coupled signal
     pac_signal = (amp_fa * np.sin(2 * np.pi * f_amplitude * times) +
                   const * np.sin(2 * np.pi * f_phase * times) +
@@ -195,7 +195,8 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
 
 
 def phase_amplitude_coupling(data, fs, fp_low, fp_high,
-                             fa_low, fa_high, bin_num=18, method='iir', n_jobs=1, surrogates=False):
+                             fa_low, fa_high, bin_num=18, method='iir',
+                             n_jobs=1, surrogates=False):
     """
     Compute modulation index for the given data.
 
@@ -239,7 +240,7 @@ def phase_amplitude_coupling(data, fs, fp_low, fp_high,
 
     assert len(x_fp) == len(x_fa), 'The data should have same dimensions.'
     assert x_fp.ndim == x_fa.ndim, 'The data should have same dimensions.'
-    
+
     # Calculate phase series of phase modulating signal
     phase_series_fp = np.angle(hilbert(x_fp)) + np.pi
 
@@ -251,8 +252,9 @@ def phase_amplitude_coupling(data, fs, fp_low, fp_high,
         amp_envelope_fa = make_surrogate_data(amp_envelope_fa)
 
     # Bin the phases
-    bin_size = 2 * np.pi / bin_num # 360 degrees divided by number of bins
-    phase_bins = np.arange(phase_series_fp.min(), phase_series_fp.max() + bin_size, bin_size)
+    bin_size = 2 * np.pi / bin_num  # 360 degrees divided by number of bins
+    phase_bins = np.arange(phase_series_fp.min(), phase_series_fp.max() +
+                           bin_size, bin_size)
     assert len(phase_bins) - 1 == bin_num, 'Phase bins are incorrect.'
 
     # Initialize the arrays
@@ -261,21 +263,24 @@ def phase_amplitude_coupling(data, fs, fp_low, fp_high,
 
     # Calculate the amplitude distribution for every trial
     for trial in range(trials):
-        digitized[trial] = np.digitize(phase_series_fp[trial], phase_bins, right=False)
+        digitized[trial] = np.digitize(phase_series_fp[trial], phase_bins,
+                                       right=False)
 
         # Calculate mean amplitude at each phase bin
         amplitude_bin_means[trial] = [amp_envelope_fa[trial][digitized[trial] == i].mean()
                                       for i in range(1, len(phase_bins))]
         if np.isnan(np.sum(amplitude_bin_means[trial])):
-            raise ValueError('Encountered nan when calculating mean amplitude for bins.')
+            raise ValueError('Encountered nan when calculating mean\
+                               amplitude for bins.')
 
         # Calculate normalized mean amplitude.
         normalized_amplitude[trial] = (amplitude_bin_means[trial] /
-                                      np.sum(amplitude_bin_means[trial]))
-        assert np.round(normalized_amplitude[trial].sum()) == 1,\
-               'Normalized amplitudes are incorrect'
+                                       np.sum(amplitude_bin_means[trial]))
+        assert np.round(normalized_amplitude[trial].sum()) == 1, ('Normalized\
+                        amplitudes are incorrect')
 
     return normalized_amplitude, phase_bins
+
 
 def modulation_index(amplitude_distribution):
     """
@@ -299,5 +304,6 @@ def modulation_index(amplitude_distribution):
         #  distance and Shannon entropy)
         mi[trial] = 1 - (entropy(amplitude_distribution[trial]) /
                          np.log(len(amplitude_distribution[trial])))
-        assert 0 <= mi[trial] <= 1, 'MI is normalised and should lie between 0 and 1.'
+        assert 0 <= mi[trial] <= 1, ('MI is normalised and should\
+                                     lie between 0 and 1.')
     return mi

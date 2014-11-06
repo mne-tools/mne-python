@@ -1,5 +1,5 @@
 """
-Plot phase amplitude plots showing coupling for synthetic signal and surrogates.
+Plot phase amplitude plot showing coupling for synthetic signal and surrogates.
 The modulation index is also calculated and shown.
 """
 
@@ -11,18 +11,18 @@ from mne.viz.misc import plot_phase_amplitude_coupling
 from mne.viz.utils import tight_layout
 
 # First, generate the synthetic data
-fs = 1000. # sampling frequency
+fs = 1000.  # sampling frequency
 
-times, trials = 10, 100 # let us create 100 trials of 10s each
+times, trials = 10, 100  # let us create 100 trials of 10s each
 
 # set the phase modulating freq and amplitude modulated freq
 f_phase, f_amplitude = 10., 60.
 
 data = generate_pac_signal(fs, times, trials, f_phase, f_amplitude)
 
-bin_num = 18 # number of bins
-fp_low, fp_high = 5, 10 # range of phase modulating freq
-fa_low, fa_high = 60, 140 # range of amplitude modulated freq
+bin_num = 18  # number of bins
+fp_low, fp_high = 5, 10  # range of phase modulating freq
+fa_low, fa_high = 60, 140  # range of amplitude modulated freq
 
 # Calculate amplitude distribution and the phase bins
 amplitude_distribution, phase_bins = phase_amplitude_coupling(data, fs,
@@ -46,7 +46,6 @@ surr_amp_dist, surr_phase_bins = phase_amplitude_coupling(surrogate_data,
                                           bin_num, n_jobs=2, surrogates=True)
 
 surr_mi_trials = modulation_index(surr_amp_dist)
-
 surr_mean_mi = surr_mi_trials.mean()
 surr_mean_amp_dist = surr_amp_dist.mean(axis=0)
 
@@ -58,10 +57,12 @@ import matplotlib.pyplot as plt
 
 plt.figure('Phase Amplitude(PA) Plots')
 plt.subplot(1, 3, 1)
-plot_phase_amplitude_coupling(phase_bins, mean_amplitude_distribution, title='PA plot data', show=False)
+plot_phase_amplitude_coupling(phase_bins, mean_amplitude_distribution,
+                              title='PA plot data', show=False)
 plt.xlim(0, 360)
 plt.subplot(1, 3, 2)
-plot_phase_amplitude_coupling(surr_phase_bins, surr_mean_amp_dist, title='PA plot surrogates', show=False)
+plot_phase_amplitude_coupling(surr_phase_bins, surr_mean_amp_dist,
+                              title='PA plot surrogates', show=False)
 plt.xlim(0, 360)
 axes = plt.subplot(1, 3, 3)
 ticks = axes.get_xticks().tolist()
