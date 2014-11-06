@@ -5,7 +5,7 @@ from nose.tools import assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.montages import read_montage, apply_montage
+from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
 

@@ -18,7 +18,7 @@ from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
 from ..utils import logger, verbose
-from ..channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 
 
@@ -678,7 +678,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          mode, baseline, vmin, vmax, dB)
 
         if layout is None:
-            from mne.layouts.layout import find_layout
+            from mne import find_layout
             layout = find_layout(self.info)
 
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)

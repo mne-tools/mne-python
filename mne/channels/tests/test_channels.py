@@ -18,7 +18,7 @@ from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
@@ -110,3 +110,5 @@ def test_read_ch_connectivity():
                   neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
     assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    read_ch_connectivity('neuromag306mag_neighb')
+    assert_raises(ValueError, read_ch_connectivity, 'bananas!')

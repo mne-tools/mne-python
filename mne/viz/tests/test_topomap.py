@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 from mne import io
 from mne import read_evokeds, read_proj
 from mne.io.constants import FIFF
-from mne.layouts import read_layout
+from mne.channels import read_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 

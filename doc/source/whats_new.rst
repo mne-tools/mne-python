@@ -31,6 +31,8 @@ Changelog
 
    - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_ and `Alex Gramfort`_.
 
+   - Add support for spatiotemporal permutation clustering on sensors by `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -59,6 +61,9 @@ API
    - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False
    
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
+
+   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
+	``mne.layouts`` by `Denis Engemann`_
 
 
 .. _changes_0_8:

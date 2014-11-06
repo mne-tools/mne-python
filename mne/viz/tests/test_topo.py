@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
-from mne.layouts import read_layout
+from mne.channels import read_layout
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
