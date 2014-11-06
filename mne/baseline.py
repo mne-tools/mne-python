@@ -34,6 +34,8 @@ def rescale(data, times, baseline, mode, verbose=None, copy=True):
         power during baseline) or zscore (power is divided by standard
         deviation of power during baseline after subtracting the mean,
         power = [power - mean(power_baseline)] / std(power_baseline)).
+        logratio is the same an mean but in log-scale, zlogratio is the
+        same as zscore but data is rendered in log-scale first.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     copy : bool
