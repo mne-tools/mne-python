@@ -7,7 +7,7 @@ import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
-from mne.time_frequency.tfr import dpsswavelet, tfr_mtm
+from mne.time_frequency.tfr import _dpss_wavelet, tfr_mtm
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -113,8 +113,8 @@ def test_time_frequency():
 def test_dpsswavelet():
     """Some tests for DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
-    Ws = dpsswavelet(1000, freqs=freqs, n_cycles=freqs/2., TW=2.0,
-                     zero_mean=True)
+    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2., TW=2.0,
+                       zero_mean=True)
 
     assert_true(len(Ws) == 3)  # 3 tapers expected
 
