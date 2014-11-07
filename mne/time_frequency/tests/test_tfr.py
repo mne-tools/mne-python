@@ -41,7 +41,7 @@ def test_time_frequency():
 
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg='grad', eeg=False,
-                            stim=False, include=include, exclude=exclude)
+                       stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -116,7 +116,7 @@ def test_dpsswavelet():
     Ws = dpsswavelet(1000, freqs=freqs, n_cycles=freqs/2., TW=2.0,
                      zero_mean=True)
 
-    assert_true(len(Ws) == 5)  # 3 tapers expected
+    assert_true(len(Ws) == 3)  # 3 tapers expected
 
     # Check that zero mean is true
     assert_true(np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5)
@@ -134,6 +134,8 @@ def test_tfr_mtm():
     n_times = int(sfreq)  # Second long epochs
     n_epochs = 40
     noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
+    # To make sure tests don't fail, avoiding low-probability cases where
+    # noise can be very high affecting which time-freq region has max power.
     while np.any(noise > 0.4):
         noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
     t = np.arange(n_times) / sfreq
