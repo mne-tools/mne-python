@@ -4,6 +4,7 @@ from mne.utils import check_random_state
 from scipy.signal import hilbert
 from mne.connectivity.cfc import modulation_index
 
+
 def test_phase_amplitude_coupling():
 
     fs, times, trials = 100., 1, 10
@@ -14,7 +15,8 @@ def test_phase_amplitude_coupling():
 
     phase_series_fp = np.angle(hilbert(white_noise)) + np.pi
     bin_size = 2 * np.pi / 18  # for 18 bins
-    phase_bins = np.arange(phase_series_fp.min(), phase_series_fp.max() + bin_size, bin_size)
+    phase_bins = np.arange(phase_series_fp.min(),
+                           phase_series_fp.max() + bin_size, bin_size)
     assert_true(len(phase_bins) - 1 == 18)
 
     amplitude_bin_means = np.zeros((trials, 18))

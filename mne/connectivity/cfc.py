@@ -38,8 +38,9 @@ def make_surrogate_data(data):
     return shuffled_data
 
 
-def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude, amp_ratio=0.2,
-                        const=1, random_state=0, mean=0, std=0.2):
+def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
+                        amp_ratio=0.2, const=1, random_state=0,
+                        mean=0, std=0.2):
     """
     Generate a phase amplitude coupled signal based on the given parameters.
 

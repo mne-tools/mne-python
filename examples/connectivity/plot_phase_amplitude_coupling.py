@@ -6,7 +6,6 @@ The modulation index is also calculated and shown.
 import numpy as np
 from mne.connectivity.cfc import (generate_pac_signal,
                                   phase_amplitude_coupling,
-                                  make_surrogate_data,
                                   modulation_index)
 from mne.viz.misc import plot_phase_amplitude_coupling
 from mne.viz.utils import tight_layout
@@ -21,14 +20,17 @@ duration, trials = 10, 100  # let us create 100 trials of 10s each
 f_phase, f_amplitude = 8., 80.
 
 # To produce a realistic PAC signal, include multiple levels of modulation
-data = generate_pac_signal(sfreq, duration, 1, f_phase, f_amplitude, amp_ratio=0.2)
+data = generate_pac_signal(sfreq, duration, 1, f_phase, f_amplitude,
+                           amp_ratio=0.2)
 sigma = 5  # standard deviation of the gaussian window
 from scipy.signal import gaussian
 win = gaussian(trials - 1, sigma)
-win = (win - np.min(win)) / (np.max(win) - np.min(win))  # normalize the gaussian window
+# normalize the gaussian window
+win = (win - np.min(win)) / (np.max(win) - np.min(win))
 # Construct the signal with many levels of modulation
 for sig in range(len(win)):
-    signal = generate_pac_signal(sfreq, duration, 1, f_phase, f_amplitude, amp_ratio=win[sig])
+    signal = generate_pac_signal(sfreq, duration, 1, f_phase,
+                                 f_amplitude, amp_ratio=win[sig])
     data = np.concatenate((data, signal), axis=0)
 
 assert len(data) == trials, 'The length of the data does not match trials.'
@@ -58,8 +60,9 @@ mean_amplitude_distribution = amplitude_distribution.mean(axis=0)
 
 # Surrogate analysis, perform similar calculations for surrogate data
 surr_amp_dist, surr_phase_bins = phase_amplitude_coupling(data,
-                                          sfreq, fp_low, fp_high, fa_low, fa_high,
-                                          n_bins, n_jobs=2, surrogates=True)
+                                          sfreq, fp_low, fp_high, fa_low,
+                                          fa_high, n_bins, n_jobs=2,
+                                          surrogates=True)
 
 surr_mi_trials = modulation_index(surr_amp_dist)
 surr_mean_mi = surr_mi_trials.mean()
@@ -71,8 +74,10 @@ from scipy import stats
 from mne.stats import fdr_correction
 p_values = stats.norm.pdf(zscore)
 accept, _ = fdr_correction(p_values, alpha=0.001)
-assert accept.any() == True, ('Normalized amplitude values are not statistically significant.\
-                               Please try with lower alpha value.')
+normalize_error_msg = 'Normalized amplitude values are not\
+                       statistically significant.\
+                       Please try with lower alpha value.'
+assert accept.any(), normalize_error_msg
 
 z_threshold = np.abs(mi_trials[accept]).min()
 
