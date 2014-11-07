@@ -17,7 +17,7 @@ from ..time_frequency.tfr import cwt
 from ..preprocessing.peak_finder import peak_finder
 from ..filter import band_pass_filter
 from ..parallel import parallel_func
-from ..utils import logger
+from ..utils import logger, check_random_state
 
 
 def _abs_cwt(x, W):
@@ -27,23 +27,30 @@ def _abs_cwt(x, W):
 def make_surrogate_data(data):
     """
     Returns a copy of the shuffled surrogate data.
+
+    Parameters
+    ----------
+    data : ndarray (n_epochs x n_times)
+        Data matrix to be shuffled.
     """
     shuffled_data = data.copy()
     map(shuffle, shuffled_data)
     return shuffled_data
 
 
-def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2,
+def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude, amp_ratio=0.2,
                         const=1, random_state=0, mean=0, std=0.2):
     """
     Generate a phase amplitude coupled signal based on the given parameters.
 
     Parameters
     ----------
-    times : int
+    sfreq : float
+        Sampling frequency.
+    duration : float
         Time in seconds.
-    trials : int
-        Number of trials to be generated.
+    n_epochs : int
+        Number of epochs to be generated.
     f_phase : float
         Phase modulating frequency eg. alpha, theta
     f_amplitude : float
@@ -63,10 +70,9 @@ def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2,
         Phase amplitude coupled signal (n_trials x n_times)
     """
 
-    times = np.linspace(0, times, fs * times)
+    times = np.linspace(0, duration, sfreq * duration)
 
-    from numpy.random import RandomState
-    rng = RandomState(random_state)
+    rng = check_random_state(random_state)
     # noise from normal distribution with mean 0 and std 0.2.
     white_noise = rng.normal(mean, std, len(times))
 
@@ -78,7 +84,7 @@ def generate_pac_signal(fs, times, trials, f_phase, f_amplitude, amp_ratio=0.2,
                   const * np.sin(2 * np.pi * f_phase * times) +
                   white_noise)
 
-    return np.tile(pac_signal, (trials, 1))
+    return np.tile(pac_signal, (n_epochs, 1))
 
 
 def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
@@ -87,7 +93,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
     """
     Compute the cross frequency coupling.
 
-    data : array
+    data : array (n_channels x n_times)
         Signal time series.
     sfreq : float
         Sampling frequency.
@@ -194,15 +200,15 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
     return times, freqs, traces, ztraces, z_threshold, erp
 
 
-def phase_amplitude_coupling(data, fs, fp_low, fp_high,
+def phase_amplitude_coupling(data, sfreq, fp_low, fp_high,
                              fa_low, fa_high, bin_num=18, method='iir',
                              n_jobs=1, surrogates=False):
     """
     Compute modulation index for the given data.
 
-    data : array
+    data : array (n_epochs x n_times)
         Signal time series.
-    fs : float
+    sfreq : float
         Sampling frequency.
     fp_low : float
         Lower edge of phase modulating frequency.
@@ -228,14 +234,14 @@ def phase_amplitude_coupling(data, fs, fp_low, fp_high,
     Tort ABL, Komorowski R, Eichenbaum H, Kopell N., (J Neurophysiol. 2010)
     """
 
-    # obtained numbr of trials
+    # obtained number of trials
     trials = len(data)
 
     # Filter data into phase modulating freq and amplitude modulated freq.
     # Fp = 5-10 Hz and Fa = 30-100Hz
-    x_fp = band_pass_filter(data, fs, fp_low, fp_high,
+    x_fp = band_pass_filter(data, sfreq, fp_low, fp_high,
                             method=method, n_jobs=n_jobs)
-    x_fa = band_pass_filter(data, fs, fa_low, fa_high,
+    x_fa = band_pass_filter(data, sfreq, fa_low, fa_high,
                             method=method, n_jobs=n_jobs)
 
     assert len(x_fp) == len(x_fa), 'The data should have same dimensions.'
