@@ -87,23 +87,25 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     return Ws
 
 
-def dpsswavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
+def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
     """Compute Wavelets for the given frequency range
 
     Parameters
     ----------
     sfreq : float
         Sampling Frequency
-    freqs : array
-        frequency range of interest (1 x Frequencies)
-    n_cycles: float | array of float
-        Number of cycles. Fixed number or one per frequency.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+        Defaults to 7.
     TW : float, (optional)
-        Half time-bandwidth product. The number of good tapers (low-bias) is
-        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        Time (T) x half-bandwidth (W) product.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(2*TW - 1). Default is
         TW = 2.0, giving 3 good tapers.
     zero_mean : bool
-        Make sure the wavelet is zero mean
+        Make sure the wavelet is zero mean.
 
     Returns
     -------
@@ -976,8 +978,9 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     frequencies : array
         Array of frequencies of interest
     TW : float, (optional)
-        Half time-bandwidth product. The number of good tapers (low-bias) is
-        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        Time (T) x half-bandwidth (W) product.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(2*TW - 1). Default is
         TW = 2.0, giving 3 good tapers.
     use_fft : bool
         Compute transform with fft based convolutions or temporal
@@ -988,7 +991,7 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
         Temporal decimation factor
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
-        Requires joblib package.
+        Requires joblib package. Defaults to 1.
     zero_mean : bool
         Make sure the wavelets are zero mean.
 
@@ -1004,8 +1007,8 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
 
     # Precompute wavelets for given frequency range to save time
-    Ws = dpsswavelet(sfreq, frequencies, n_cycles=n_cycles, TW=TW,
-                     zero_mean=zero_mean)
+    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles, TW=TW,
+                       zero_mean=zero_mean)
     n_taps = len(Ws)
     psd, plv = 0., 0.
     for m in range(n_taps):  # n_taps is typically small, better to save RAM
@@ -1056,8 +1059,9 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
     TW : float, (optional)
-        Half time-bandwidth product. The number of good tapers (low-bias) is
-        chosen automatically based on this to equal floor(2*TW - 1). Default is
+        Time (T) x half-bandwidth (W) product.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(2*TW - 1). Default is
         TW = 2.0, giving 3 good tapers.
     use_fft : bool
         The fft based convolution or not.
@@ -1067,7 +1071,7 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
         The decimation factor on the time axis. To reduce memory usage.
         Note than this is brute force decimation, no anti-aliasing is done.
     n_jobs : int
-        The number of jobs to run in parallel.
+        The number of jobs to run in parallel. Defaults to 1.
 
     Returns
     -------
