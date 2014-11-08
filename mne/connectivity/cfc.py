@@ -6,8 +6,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.signal import hilbert
-from scipy.stats import entropy
+from scipy.signal import hilbert, gaussian
 from scipy import stats
 from numpy.random import shuffle
 
@@ -30,8 +29,13 @@ def make_surrogate_data(data):
 
     Parameters
     ----------
-    data : ndarray (n_epochs x n_times)
-        Data matrix to be shuffled.
+    data : ndarray (n_epochs, n_times)
+        Data to be shuffled.
+
+    Returns
+    -------
+    shuffled_data : ndarray, shape (n_epochs, n_times)
+        The shuffled data, with each epoch shuffled across n_times.
     """
     shuffled_data = data.copy()
     map(shuffle, shuffled_data)
@@ -39,10 +43,12 @@ def make_surrogate_data(data):
 
 
 def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
-                        amp_ratio=0.2, const=1, random_state=0,
+                        sigma=5, max_amp=1, random_state=0,
                         mean=0, std=0.2):
     """
     Generate a phase amplitude coupled signal based on the given parameters.
+    The phase amplitude signal consists of n_epochs with varying amounts of
+    phase amplitude coupling based on a gaussian window.
 
     Parameters
     ----------
@@ -56,52 +62,80 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
         Phase modulating frequency eg. alpha, theta
     f_amplitude : float
         Amplitude modulated frequency eg. gamma
-    amp_ratio : float
-        Ratio of unmodulated signal, determines degree of modulation.
+    sigma : float
+        Standard deviation of gaussian window used. The gaussian window
+        determines various levels of modulation in the trials.
+        Default value is 5.
     max_amp : float
         Constant that determines maximum amplitude of both signals.
+        Default value is 1.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the noise estimation.
-    mean, std : float
+        Default value is 0.
+    mean : float
         Parameters used to generate noise from normal distribution.
+        Default value is 0.
+    std : float
+        Parameters used to generate noise from normal distribution.
+        Default value is 0.2
 
     Returns
     -------
-    pac_signal : ndarray
-        Phase amplitude coupled signal (n_trials x n_times)
+    pac_signal : ndarray,shape (n_epochs, n_times)
+        Phase amplitude coupled signal.
     """
 
     times = np.linspace(0, duration, sfreq * duration)
+    n_times = len(times)
 
     rng = check_random_state(random_state)
-    # noise from normal distribution with mean 0 and std 0.2.
-    white_noise = rng.normal(mean, std, len(times))
+    # generate white noise
+    white_noise = rng.normal(mean, std, n_times * n_epochs)
+    white_noise = np.reshape(white_noise, (n_epochs, n_times))
 
-    # Generate amplitude envelope of modulated signal
-    amp_fa = (const * ((1 - amp_ratio) * np.sin(2 * np.pi * f_phase * times)
-                       + 1 + amp_ratio) / 2)
-    # Generate the phase amplitude coupled signal
-    pac_signal = (amp_fa * np.sin(2 * np.pi * f_amplitude * times) +
-                  const * np.sin(2 * np.pi * f_phase * times) +
-                  white_noise)
+    # make a gaussian window
+    win = gaussian(n_epochs, sigma)
+    # normalize the gaussian window
+    win = (win - np.min(win)) / (np.max(win) - np.min(win))
+    # Construct the signal with many levels of modulation
+    pac_signal = np.zeros((n_epochs, n_times))
 
-    return np.tile(pac_signal, (n_epochs, 1))
+    for sig in range(n_epochs):
+        # Generate amplitude envelope of modulated signal
+        amp_fa = (max_amp * ((1 - win[sig]) *
+                             np.sin(2 * np.pi * f_phase * times)
+                             + 1 + win[sig]) / 2)
+        # Generate the phase amplitude coupled signal
+        pac_signal[sig] = (amp_fa * np.sin(2 * np.pi * f_amplitude * times) +
+                           max_amp * np.sin(2 * np.pi * f_phase * times) +
+                           white_noise[sig])
+
+    if len(pac_signal) != n_epochs:
+        raise RuntimeError('Data not equal to epochs.')
+
+    # mix the trials
+    order = np.argsort(rng.randn(len(pac_signal)))
+    pac_signal = pac_signal[order, :]
+
+    return pac_signal
 
 
-def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
-                             fa_low=60., fa_high=100., f_n=100, alpha=0.001,
+def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
+                             fa_low, fa_high, f_n, alpha=0.001,
                              n_surrogates=10 ** 4, n_jobs=1):
     """
     Compute the cross frequency coupling.
 
-    data : array (n_channels x n_times)
+    Parameters
+    ----------
+    data : ndarray, shape (n_channels, n_times)
         Signal time series.
     sfreq : float
         Sampling frequency.
     phase_freq : float
         The phase modulating frequency. Default of 10Hz is used.
     n_cycles : float | array of float
-        Number of cycles used to compute morlet wavelets. Default 10.
+        Number of cycles used to compute morlet wavelets.
     fa_low : float
         Lower edge of amplitude modulated frequency band. Default 60 Hz.
     fa_high : float
@@ -111,9 +145,24 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
     alpha : float
         Error rate allowed. Default 0.001.
     n_surrogates : int
-        Number of surrogates.
+        Number of surrogates. Default 10 ** 4.
     n_jobs : int
         Number of jobs to run in parallel. Default 1.
+
+    Returns
+    -------
+    times : array, shape (n_times)
+        Time points for signal plotting.
+    freqs : array, shape (f_n)
+        Frequency points across range at which amplitudes are computed.
+    traces : ndarray, shape (n_epochs, n_times)
+        Normalized amplitude traces.
+    ztraces : ndarray, shape (n_epochs, n_times)
+        Statistically significant amplitude traces.
+    z_threshold : float
+        Threshold of statistically significant amplitude traces.
+    erp : array, shape (n_times)
+        Evoked related potential.
 
     References:
     High gamma power is phase-locked to theta oscillations in human neocortex.
@@ -135,7 +184,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
     n_samples = data.size
 
     # define epoch for averaging:
-    n_times = np.round(sfreq)  # +/- 1 second around trigger
+    n_times = int(np.round(sfreq))  # +/- 1 second around trigger
 
     # makes sure all triggers allow full epoch, get rid of those that don't:
     trigger_inds = trigger_inds[trigger_inds > n_times]
@@ -146,9 +195,9 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
                 zero_mean=True)
 
     parallel, my_abs_cwt, _ = parallel_func(_abs_cwt, n_jobs)
-    ampmat = np.empty((n_freqs, n_samples), dtype=np.float)
 
     if n_jobs == 1:
+        ampmat = np.empty((n_freqs, n_samples), dtype=np.float)
         for e, W in enumerate(Ws):
             ampmat[e] = np.array(_abs_cwt(data, W))
     else:
@@ -196,6 +245,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq=10., n_cycles=10.,
     accept, _ = fdr_correction(p_values, alpha=alpha)
     z_threshold = np.abs(ztraces[accept]).min()
 
+    # time points used to plot the ERP signal
     times = np.arange(-n_times, n_times, dtype=np.float) / sfreq
 
     return times, freqs, traces, ztraces, z_threshold, erp
@@ -207,7 +257,9 @@ def phase_amplitude_coupling(data, sfreq, fp_low, fp_high,
     """
     Compute modulation index for the given data.
 
-    data : array (n_epochs x n_times)
+    Parameters
+    ----------
+    data : ndarray (n_epochs, n_times)
         Signal time series.
     sfreq : float
         Sampling frequency.
@@ -228,6 +280,14 @@ def phase_amplitude_coupling(data, sfreq, fp_low, fp_high,
     surrogates : bool
         Return surrogates values for data specific to PAC,
         the phase series and amplitude envelope are shuffled for every trial.
+        Default value is False.
+
+    Returns
+    -------
+    normalized_amplitude : ndarray, shape (n_epochs, bin_num)
+        The normalized amplitude values across each bin.
+    phase_bins : array, shape (number of bins + 1)
+        Binned phase points. Used for plotting.
 
     References:
     Measuring phase-amplitude coupling between neuronal oscillations
@@ -236,17 +296,17 @@ def phase_amplitude_coupling(data, sfreq, fp_low, fp_high,
     """
 
     # obtained number of trials
-    trials = len(data)
+    n_trials = len(data)
 
     # Filter data into phase modulating freq and amplitude modulated freq.
-    # Fp = 5-10 Hz and Fa = 30-100Hz
     x_fp = band_pass_filter(data, sfreq, fp_low, fp_high,
                             method=method, n_jobs=n_jobs)
     x_fa = band_pass_filter(data, sfreq, fa_low, fa_high,
                             method=method, n_jobs=n_jobs)
 
-    assert len(x_fp) == len(x_fa), 'The data should have same dimensions.'
-    assert x_fp.ndim == x_fa.ndim, 'The data should have same dimensions.'
+    if len(x_fp) != len(x_fa) or x_fp.ndim != x_fa.ndim:
+        raise RuntimeError('Phase and amplitude filtered data does not have\
+                            same dimensions.')
 
     # Calculate phase series of phase modulating signal
     phase_series_fp = np.angle(hilbert(x_fp)) + np.pi
@@ -262,14 +322,16 @@ def phase_amplitude_coupling(data, sfreq, fp_low, fp_high,
     bin_size = 2 * np.pi / bin_num  # 360 degrees divided by number of bins
     phase_bins = np.arange(phase_series_fp.min(), phase_series_fp.max() +
                            bin_size, bin_size)
-    assert len(phase_bins) - 1 == bin_num, 'Phase bins are incorrect.'
+    if len(phase_bins) - 1 != bin_num:
+        raise RuntimeError('Phase bins are incorrect,\
+                            please check the number of bins used')
 
     # Initialize the arrays
     digitized = np.zeros(phase_series_fp.shape)
-    amplitude_bin_means = normalized_amplitude = np.zeros((trials, bin_num))
+    amplitude_bin_means = normalized_amplitude = np.zeros((n_trials, bin_num))
 
     # Calculate the amplitude distribution for every trial
-    for trial in range(trials):
+    for trial in range(n_trials):
         digitized[trial] = np.digitize(phase_series_fp[trial], phase_bins,
                                        right=False)
 
@@ -295,22 +357,24 @@ def modulation_index(amplitude_distribution):
 
     Parameters
     ----------
-    amplitude_distribution : ndarray
+    amplitude_distribution : ndarray, shape (n_epochs, bin_num)
         Amplitude distribution across phase bins.
 
     Returns
     -------
-    mi : ndarray
-        Modulation index
+    mi : array, shape (n_epochs)
+        Modulation index values.
     """
-    trials = len(amplitude_distribution)
-    mi = np.zeros((trials))
-    for trial in range(trials):
+    n_trial = len(amplitude_distribution)
+    mi = np.zeros(n_trial)
+    for trial in range(n_trial):
         # Calculate the modulation index for every trial
         # (modulation index calculated from Kullback Liebler
         #  distance and Shannon entropy)
-        mi[trial] = 1 - (entropy(amplitude_distribution[trial]) /
-                         np.log(len(amplitude_distribution[trial])))
-        assert 0 <= mi[trial] <= 1, ('MI is normalised and should\
-                                     lie between 0 and 1.')
+        mi[trial] = 1. - (stats.entropy(amplitude_distribution[trial]) /
+                          np.log(len(amplitude_distribution[trial])))
+        if mi[trial] > 1 or mi[trial] < 0:
+            raise ValueError('MI is normalized and should\
+                              lie between 0 and 1.')
+
     return mi

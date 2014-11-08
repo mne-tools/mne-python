@@ -541,3 +541,93 @@ def _get_presser(fig):
     assert func is not None
     return func
 
+
+def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
+                                  title=None, show=True):
+    """
+    Plot the phase amplitude plot.
+
+    Parameters
+    ----------
+    phase_bins : array, shape (number of bins + 1)
+        Binned phase time series of phase modulating signal.
+    normalized_amplitude : ndarray, shape (n_epochs, bin_num)
+        The normalized amplitude values across each bin.
+    title : str, None
+        Title, default is 'Phase amplitude plot'.
+    show : bool
+        Call pyplot.show() at the end. Default is True.
+
+    Returns
+    -------
+    None
+    """
+    if title is None:
+        title = 'Phase amplitude plot'
+    import matplotlib.pyplot as plt
+    for i in range(len(phase_bins) - 1):  # the bins are always more
+        plt.locator_params(axis='x', nbins=4)
+        plt.bar(np.rad2deg(phase_bins[i]), normalized_amplitude[i],
+                width=10, align='edge')
+        plt.xlabel('Phase bins (deg)')
+        plt.ylabel('Normalized Mean Amplitude')
+        plt.title(title)
+
+    if show:
+        plt.show()
+    return
+
+
+def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
+                                  z_threshold, erp, show=True):
+    """
+    Plot showing cross frequency coupling between evoked related potentials
+    across frequency points.
+
+    Parameters
+    ----------
+    times : array, shape (n_times)
+        Time points for signal plotting.
+    freqs : array, shape (f_n)
+        Frequency points across range at which amplitudes are computed.
+    traces : ndarray, shape (n_epochs, n_times)
+        Normalized amplitude traces.
+    ztraces : ndarray, shape (n_epochs, n_times)
+        Statistically significant amplitude traces.
+    z_threshold : float
+        Threshold of statistically significant amplitude traces.
+    erp : array, shape (n_times)
+        Evoked related potential.
+    show : bool
+        Call pyplot.show() at the end. Default True.
+
+    Returns
+    -------
+    fig : Instance of matplotlib.figure.Figure
+          Figure
+
+    """
+    import matplotlib.pyplot as plt
+
+    fig = plt.figure()
+    ax1 = plt.subplot2grid((3, 1), (0, 0), rowspan=2)
+    ax2 = plt.subplot2grid((3, 1), (2, 0), rowspan=1)
+    vmax = np.max(np.abs(traces))
+    vmin = -vmax
+    traces_plot = np.ma.masked_array(traces, np.abs(ztraces) < z_threshold)
+
+    ax1.pcolor(times, freqs, traces, vmin=vmin, vmax=vmax,
+               cmap=plt.cm.gray)
+    ax1.pcolor(times, freqs, traces_plot, vmin=vmin, vmax=vmax,
+               cmap=plt.cm.jet)
+    ax1.axis('tight')
+    ax1.set_ylabel('Freq (Hz)')
+
+    ax2.plot(times, erp, 'k')
+    ax2.set_ylim([np.min(erp), np.max(erp)])
+    ax2.set_xlabel('Times (s)')
+    ax2.set_ylabel('ERP')
+    tight_layout()
+    if show:
+        plt.show()
+    return fig
