@@ -137,7 +137,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
 
     Parameters
     ----------
-    data : ndarray, shape (n_channels, n_times)
+    data : array, shape (1, n_times)
         Signal time series.
     sfreq : float
         Sampling frequency.
