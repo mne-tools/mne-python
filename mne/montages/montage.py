@@ -100,7 +100,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         dtype = np.dtype('S4, f8, f8, f8')
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.c_[data['f1'], data['f2'], data['f3']]
-        ch_names_ = (data['f0']).astype(np.str)
+        ch_names_ = data['f0'].astype(np.str)
     elif ext == '.elc':
         # 10-5 system
         ch_names_ = []
