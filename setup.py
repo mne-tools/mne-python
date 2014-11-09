@@ -96,7 +96,7 @@ if __name__ == "__main__":
                     'mne.externals.tempita',
                     'mne.layouts',
                     'mne.channels',
-                    'mne.channels.test'],
+                    'mne.channels.tests'],
           package_data={'mne': [op.join('data', '*.sel'),
                                 op.join('data', 'icos.fif.gz'),
                                 op.join('data', 'coil_def.dat'),
