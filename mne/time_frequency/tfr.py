@@ -1012,7 +1012,7 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     n_taps = len(Ws)
     n_times_wavelets = Ws[0][0].shape[0]
     if n_times <= n_times_wavelets:
-        warnings.warn("Time windows are las long or onger than the epoch."
+        warnings.warn("Time windows are as long or longer than the epoch."
                       "Consider reducing n_cycles.")
     psd, plv = 0., 0.
     for m in range(n_taps):  # n_taps is typically small, better to save RAM
