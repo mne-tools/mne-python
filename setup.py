@@ -96,8 +96,7 @@ if __name__ == "__main__":
                     'mne.externals.tempita',
                     'mne.layouts',
                     'mne.channels',
-                    'mne.channels.tests',
-                    'mne.channels.data'],
+                    'mne.channels.tests'],
           package_data={'mne': [op.join('data', '*.sel'),
                                 op.join('data', 'icos.fif.gz'),
                                 op.join('data', 'coil_def.dat'),
@@ -108,7 +107,7 @@ if __name__ == "__main__":
                                 op.join('channels', 'data', 'montages', '*.sfp'),
                                 op.join('channels', 'data', 'montages', '*.txt'),
                                 op.join('channels', 'data', 'montages', '*.elc'),
-                                op.join('channels', 'data', 'neighbors', '.mat'),
+                                op.join('channels', 'data', 'neighbors', '*.mat'),
                                 op.join('html', '*.js'),
                                 op.join('html', '*.css')]},
           scripts=['bin/mne'])
