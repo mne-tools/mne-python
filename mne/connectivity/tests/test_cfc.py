@@ -1,6 +1,7 @@
 import numpy as np
 from nose.tools import assert_true
 from mne.utils import check_random_state
+from scipy import stats
 from scipy.signal import hilbert
 from mne.connectivity.cfc import modulation_index
 
@@ -23,3 +24,15 @@ def test_phase_amplitude_coupling():
     amplitude_bin_means[:, rng.randint(0, 19)] = 1
     for i in range(trials):
         assert_true(modulation_index(amplitude_bin_means)[i] == 1.)
+
+
+def test_modulation_index():
+
+    dist = np.random.rand(1, 18)
+    dist /= dist.sum()
+    mi = 1. - (stats.entropy(dist[0]) / np.log(len(dist[0])))
+    assert_true(0. <= mi <= 1.)
+
+
+def test_cross_frequency_coupling():
+    pass
