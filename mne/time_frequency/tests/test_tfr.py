@@ -158,5 +158,5 @@ def test_tfr_mtm():
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
     assert_true(tmax > 0.4 and tmax < 0.6)
-    assert_false(np.any(itc < 0.))
+    assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)

@@ -105,7 +105,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
         this to equal floor(2*TW - 1). Default is
         TW = 2.0, giving 3 good tapers.
     zero_mean : bool
-        Make sure the wavelet is zero mean.
+        Make sure the wavelet is zero mean. Defaults to False.
 
     Returns
     -------
@@ -964,7 +964,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
 
 
 def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
-                       n_cycles=7, decim=1, n_jobs=1, zero_mean=True):
+                       n_cycles=7, decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with DPSS wavelets
@@ -984,16 +984,16 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
         TW = 2.0, giving 3 good tapers.
     use_fft : bool
         Compute transform with fft based convolutions or temporal
-        convolutions.
+        convolutions. Defaults to True.
     n_cycles : float | array of float
-        Number of cycles. Fixed number or one per frequency.
+        Number of cycles. Fixed number or one per frequency. Defaults to 7.
     decim: int
-        Temporal decimation factor
+        Temporal decimation factor. Defaults to 1.
     n_jobs : int
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package. Defaults to 1.
     zero_mean : bool
-        Make sure the wavelets are zero mean.
+        Make sure the wavelets are zero mean. Defaults to False.
 
     Returns
     -------
@@ -1010,6 +1010,10 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles, TW=TW,
                        zero_mean=zero_mean)
     n_taps = len(Ws)
+    n_times_wavelets = Ws[0][0].shape[0]
+    if n_times <= n_times_wavelets:
+        warnings.warn("Time windows are las long or onger than the epoch."
+                      "Consider reducing n_cycles.")
     psd, plv = 0., 0.
     for m in range(n_taps):  # n_taps is typically small, better to save RAM
         if n_jobs == 1:
