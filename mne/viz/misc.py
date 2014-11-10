@@ -8,6 +8,7 @@ from __future__ import print_function
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Cathy Nangini <cnangini@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Praveen Sripad <praveen.sripad@rwth-aachen.de>
 #
 # License: Simplified BSD
 
@@ -549,7 +550,7 @@ def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
 
     Parameters
     ----------
-    phase_bins : array, shape (number of bins + 1)
+    phase_bins : array, shape (number of bins + 1,)
         Binned phase time series of phase modulating signal.
     normalized_amplitude : ndarray, shape (n_epochs, bin_num)
         The normalized amplitude values across each bin.
@@ -586,9 +587,9 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
 
     Parameters
     ----------
-    times : array, shape (n_times)
+    times : array, shape (n_times,)
         Time points for signal plotting.
-    freqs : array, shape (f_n)
+    freqs : array, shape (f_n,)
         Frequency points across range at which amplitudes are computed.
     traces : ndarray, shape (n_epochs, n_times)
         Normalized amplitude traces.
@@ -596,7 +597,7 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
         Statistically significant amplitude traces.
     z_threshold : float
         Threshold of statistically significant amplitude traces.
-    erp : array, shape (n_times)
+    erp : array, shape (n_times,)
         Evoked related potential.
     show : bool
         Call pyplot.show() at the end. Default True.

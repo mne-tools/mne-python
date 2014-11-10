@@ -14,8 +14,8 @@ Berger MS, Barbaro NM, Knight RT.
 (Science. 2006)
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Praveen Sripad <praveen.sripad@rwth-aachen.de>
+# Authors: Praveen Sripad <praveen.sripad@rwth-aachen.de>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -35,14 +35,14 @@ data_fname = op.join(data_dir, 'cfc_data.npy')
 data = np.load(data_fname)
 
 # set the parameters
-sfreq, phase_freq, l_amp_freq, h_amp_freq, n_freqs = 1000., 8, 60., 100., 100
-n_cycles, n_jobs, alpha = 10, 4, 0.001
+sfreq, phase_freq, l_amp_freq, h_amp_freq, n_freqs = 1000., 8., 60., 100., 100
+n_cycles, alpha = 10, 0.001
 n_samples = data.size
 
 # computing the amplitude traces and the erp signal
 times, freqs, traces, ztraces, z_threshold, erp = cross_frequency_coupling(
     data, sfreq, phase_freq, n_cycles, l_amp_freq, h_amp_freq, n_freqs,
-    alpha, n_jobs=1)
+    alpha, random_state=42)
 
 # plotting the amplitude traces and erp for various frequency points
 plot_cross_frequency_coupling(times, freqs, traces, ztraces, z_threshold, erp)

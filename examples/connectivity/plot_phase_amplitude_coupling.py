@@ -8,8 +8,8 @@ and its surrogates and display it on a phase amplitude plot. The modulation
 index is also computed and shown.
 """
 
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Praveen Sripad <praveen.sripad@rwth-aachen.de>
+# Authors: Praveen Sripad <praveen.sripad@rwth-aachen.de>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -33,8 +33,8 @@ data = generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
                            random_state=0, sigma=5)
 
 n_bins = 18  # number of bins
-l_phase_freq, h_phase_freq = 8, 13  # range of phase modulating freq
-l_amp_freq, h_amp_freq = 60, 100  # range of amplitude modulated freq
+l_phase_freq, h_phase_freq = 8., 13.  # range of phase modulating freq
+l_amp_freq, h_amp_freq = 60., 100.  # range of amplitude modulated freq
 
 # Calculate amplitude distribution and the phase bins
 amplitude_distribution, phase_bins = phase_amplitude_coupling(
@@ -57,8 +57,8 @@ surr_amp_dist, surr_phase_bins = phase_amplitude_coupling(
     data, sfreq,
     l_phase_freq, h_phase_freq,
     l_amp_freq, h_amp_freq,
-    n_bins, n_jobs=1,
-    surrogates=True)
+    n_bins, surrogates=True,
+    n_jobs=1)
 
 surr_mi_trials = modulation_index(surr_amp_dist)
 surr_mean_mi = surr_mi_trials.mean()

@@ -1,5 +1,5 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
-#          Praveen Sripad <praveen.sripad@rwth-aachen.de>
+# Authors: Praveen Sripad <praveen.sripad@rwth-aachen.de>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -73,10 +73,10 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
         np.random.RandomState to initialize the noise estimation.
         Default value is None.
     mean : float
-        Mean ('Centre') of the Gaussian distribution (np.random.normal)
+        Mean of the Gaussian distribution (np.random.normal)
         used to generate white noise. Default value is 0.
     std : float
-        Standard deviation (spread or "width") of the Gaussian distribution
+        Standard deviation of the Gaussian distribution
         (np.random.normal) used to generate white noise.
         Default value is 0.2.
 
@@ -100,6 +100,10 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
 
     # make a gaussian window
     win = gaussian(n_epochs, sigma, sym=False)
+    if sigma == 0:
+        raise ValueError(
+            'Sigma value cannot be 0. Please choose a higher value.')
+
     # normalize the gaussian window
     win = (win - np.min(win)) / (np.max(win) - np.min(win))
     if np.isnan(np.sum(win)):
@@ -131,13 +135,14 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
 
 def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
                              l_amp_freq, h_amp_freq, n_freqs, alpha=0.001,
-                             n_surrogates=10 ** 4, n_jobs=1):
+                             n_surrogates=10 ** 4, random_state=None,
+                             n_jobs=1):
     """
     Compute the cross frequency coupling.
 
     Parameters
     ----------
-    data : array, shape (1, n_times)
+    data : array, shape (n_times,)
         Signal time series.
     sfreq : float
         Sampling frequency.
@@ -155,6 +160,9 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
         Error rate allowed. Default 0.001.
     n_surrogates : int
         Number of surrogates. Default 10 ** 4.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the noise estimation.
+        Default value is None.
     n_jobs : int
         Number of jobs to run in parallel. Default 1.
 
@@ -180,8 +188,12 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     (Science. 2006)
     """
 
+    if data.ndim != 1:
+        raise ValueError('Dimensions of data incorrect. Please use 1d array.')
+
     Ws = morlet(sfreq, [phase_freq], n_cycles=n_cycles,
                 sigma=None, zero_mean=True)
+    data = data.reshape(1, data.size)
     x_low = cwt(data, Ws, use_fft=False).ravel()
 
     phases = np.angle(x_low)
@@ -229,7 +241,8 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     # only need to compute mean and variance of surrogate distributions at one
     # time point for all frequencies, since the surrogate trigger events could
     # have occurred at any point
-    shifts = np.floor(np.random.rand(2 * n_surrogates) * n_samples)
+    rng = check_random_state(random_state)
+    shifts = np.floor(rng.rand(2 * n_surrogates) * n_samples)
     # get rid of trigger shifts within one second of actual occurances:
     shifts = shifts[shifts > sfreq]
     shifts = shifts[shifts < n_samples - sfreq]
@@ -261,7 +274,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
 
 def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
                              l_amp_freq, h_amp_freq, bin_num=18, method='iir',
-                             n_jobs=1, surrogates=False):
+                             surrogates=False, n_jobs=1):
     """
     Compute modulation index for the given data.
 
@@ -379,10 +392,16 @@ def modulation_index(amplitude_distribution):
         # Calculate the modulation index for every trial
         # (modulation index calculated from Kullback Liebler
         #  distance and Shannon entropy)
+        if len(amplitude_distribution[trial]) == 0:
+            raise ValueError('Length of amplitude distribution is 0.')
+
+        if np.sum(amplitude_distribution[trial] > 1):
+            raise ValueError('Amplitude distribution should be normalized.')
+
         mi[trial] = 1. - (stats.entropy(amplitude_distribution[trial]) /
                           np.log(len(amplitude_distribution[trial])))
         if mi[trial] > 1 or mi[trial] < 0:
-            raise ValueError('MI is normalized and should\
-                              lie between 0 and 1.')
+            raise ValueError(
+                'MI is normalized and should lie between 0 and 1.')
 
     return mi
