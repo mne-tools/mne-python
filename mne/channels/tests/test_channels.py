@@ -110,5 +110,5 @@ def test_read_ch_connectivity():
                   neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
     assert_raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
-    read_ch_connectivity('neuromag306mag_neighb')
+    read_ch_connectivity('neuromag306mag')
     assert_raises(ValueError, read_ch_connectivity, 'bananas!')
