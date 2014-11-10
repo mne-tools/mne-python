@@ -55,6 +55,8 @@ BUG
 
    - Fix file extensions of SSP projection files written by mne commands (from _proj.fif to -prof.fif) by `Alex Gramfort`_
 
+   - Generating EEG layouts no longer requires digitization points by `Marijn van Vliet`_
+
 API
 ~~~
 

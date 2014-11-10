@@ -19,14 +19,25 @@ from ..externals.six.moves import map
 
 
 @verbose
-def fit_sphere_to_headshape(info, verbose=None):
+def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
+                            verbose=None):
     """ Fit a sphere to the headshape points to determine head center for
         maxfilter.
 
     Parameters
     ----------
-    info : dict
+    info : instance of mne.io.meas_info.Info
         Measurement info.
+    dig_kinds : tuple of int
+        Kind of digitization points to use in the fitting. These can be
+        any kind defined in io.constants.FIFF:
+            FIFFV_POINT_CARDINAL
+            FIFFV_POINT_HPI
+            FIFFV_POINT_EEG
+            FIFFV_POINT_ECG
+            FIFFV_POINT_EXTRA
+        Defaults to (FIFFV_POINT_EXTRA,).
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -38,18 +49,16 @@ def fit_sphere_to_headshape(info, verbose=None):
         Head center in head coordinates (mm).
     origin_device: ndarray
         Head center in device coordinates (mm).
-
     """
-    # get head digization points, which can be of type cardinal and/or extra
-    hsp = [p['r'] for p in info['dig']
-           if (p['kind'] == FIFF.FIFFV_POINT_CARDINAL or
-               p['kind'] == FIFF.FIFFV_POINT_EXTRA)]
+    # get head digization points of the specified kind
+    hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
 
     # exclude some frontal points (nose etc.)
     hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
 
     if len(hsp) == 0:
-        raise ValueError('No head digitization points found')
+        raise ValueError('No head digitization points of the specified '
+                         'kinds (%s) found.' % dig_kinds)
 
     hsp = 1e3 * np.array(hsp)
 
