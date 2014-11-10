@@ -19,6 +19,7 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
+from ..preprocessing.maxfilter import fit_sphere_to_headshape
 
 
 class Layout(object):
