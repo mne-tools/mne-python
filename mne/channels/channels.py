@@ -300,6 +300,8 @@ def read_ch_connectivity(fname, picks=None):
     -------
     ch_connectivity : scipy.sparse matrix
         The connectivity matrix.
+    ch_names : list
+        The list of channel names present in connectivity matrix.
     """
     if not op.isabs(fname):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
@@ -332,7 +334,8 @@ def read_ch_connectivity(fname, picks=None):
     if picks is not None:
         # picking before constructing matrix is buggy
         connectivity = connectivity[picks][:, picks]
-    return connectivity
+        ch_names = [ch_names[p] for p in picks]
+    return connectivity, ch_names
 
 
 def _ch_neighbor_connectivity(ch_names, neighbors):
