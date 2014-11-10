@@ -5,10 +5,10 @@ Spatiotemporal permutation F-test on full sensor data
 
 Tests for differential evoked responses in at least
 one condition using a permutation clustering test.
-The the FieldTrip neighbor templates will be used to determine
+The FieldTrip neighbor templates will be used to determine
 the adjacency between sensors. This serves as a spatial prior
 to the clustering. Significant spatiotemporal clusters will then
-visualized using custom matplotlib code.
+be visualized using custom matplotlib code.
 """
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
@@ -20,7 +20,6 @@ print(__doc__)
 import numpy as np
 
 import mne
-from mne import io
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
 
@@ -35,7 +34,7 @@ tmin = -0.2
 tmax = 0.5
 
 #   Setup for reading the raw data
-raw = io.Raw(raw_fname, preload=True)
+raw = mne.io.Raw(raw_fname, preload=True)
 raw.filter(1, 30)
 events = mne.read_events(event_fname)
 
