@@ -19,7 +19,6 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
-from ..preprocessing.maxfilter import fit_sphere_to_headshape
 
 
 class Layout(object):
@@ -600,6 +599,7 @@ def _auto_topomap_coords(info, picks):
         dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
                      FIFF.FIFFV_POINT_EEG,
                      FIFF.FIFFV_POINT_EXTRA)
+        from ..preprocessing.maxfilter import fit_sphere_to_headshape
         _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
         origin_head /= 1000.  # to meters
         locs3d -= origin_head
