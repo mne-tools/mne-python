@@ -56,9 +56,8 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
 from .dipole import read_dip
-from .layouts.layout import find_layout
-from .channels import (equalize_channels, rename_channels,
-                       read_ch_connectivity)
+from . import channels
+from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
 from . import commands
@@ -80,7 +79,6 @@ from . import time_frequency
 from . import viz
 from . import decoding
 from . import realtime
-from . import montages
 
 # initialize logging
 set_log_level(None, False)

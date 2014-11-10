@@ -7,7 +7,7 @@
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
-from mne.montages import read_montage
+from mne.channels import read_montage
 
 
 def test_plot_montage():

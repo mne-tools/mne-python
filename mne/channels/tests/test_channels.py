@@ -11,14 +11,14 @@ import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne.channels import (rename_channels, read_ch_connectivity,
-                          ch_neighbor_connectivity)
+from mne.channels import rename_channels, read_ch_connectivity
+from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
 
-base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
+base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
 
@@ -92,21 +92,27 @@ def test_read_ch_connectivity():
     mat_fname = op.join(tempdir, 'test_mat.mat')
     savemat(mat_fname, mat)
 
-    ch_connectivity = read_ch_connectivity(mat_fname)
+    ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
     x = ch_connectivity
+    assert_equal(x.shape[0], len(ch_names))
     assert_equal(x.shape, (3, 3))
     assert_equal(x[0, 1], False)
     assert_equal(x[0, 2], True)
     assert_true(np.all(x.diagonal()))
     assert_raises(ValueError, read_ch_connectivity, mat_fname, [0, 3])
-    ch_connectivity = read_ch_connectivity(mat_fname, picks=[0, 2])
+    ch_connectivity, ch_names = read_ch_connectivity(mat_fname, picks=[0, 2])
     assert_equal(ch_connectivity.shape[0], 2)
+    assert_equal(len(ch_names), 2)
 
     ch_names = ['EEG01', 'EEG02', 'EEG03']
     neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
     neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2],
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names[:2],
                   neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
+    connectivity, ch_names = read_ch_connectivity('neuromag306mag')
+    assert_equal(connectivity.shape, (102, 102))
+    assert_equal(len(ch_names), 102)
+    assert_raises(ValueError, read_ch_connectivity, 'bananas!')

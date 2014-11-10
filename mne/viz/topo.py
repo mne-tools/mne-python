@@ -79,7 +79,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
     if layout is None:
-        from ..layouts import find_layout
+        from ..channels import find_layout
         layout = find_layout(info)
 
     if on_pick is not None:
@@ -317,7 +317,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     ch_names = _clean_names(ch_names)
 
     if layout is None:
-        from ..layouts.layout import find_layout
+        from ..channels.layout import find_layout
         layout = find_layout(info)
 
     # XXX. at the moment we are committed to 1- / 2-sensor-types layouts
@@ -500,7 +500,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     if vmax is None:
         vmax = data.max()
     if layout is None:
-        from ..layouts.layout import find_layout
+        from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,

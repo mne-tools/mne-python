@@ -19,7 +19,7 @@ import matplotlib.pyplot as plt
 from mne import io, read_events, Epochs
 from mne import pick_types
 from mne.utils import run_tests_if_main
-from mne.layouts import read_layout
+from mne.channels import read_layout
 
 from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
 

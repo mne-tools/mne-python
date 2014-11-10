@@ -31,6 +31,8 @@ Changelog
 
    - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_ and `Alex Gramfort`_.
 
+   - Add support for spatiotemporal permutation clustering on sensors by `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -59,6 +61,9 @@ API
    - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False
    
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
+
+   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
+	``mne.layouts`` by `Denis Engemann`_
 
 
 .. _changes_0_8:
@@ -129,7 +134,7 @@ Changelog
 
    - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
 
-   - Add `read_ch_connectivity` function and `ch_neighbor_connectivity` to read FieldTrip neighbor template .mat files and compute between sensor adjacency matrices by `Denis Engemann`_
+   - Add `read_ch_connectivity` function to read FieldTrip neighbor template .mat files and obtain sensor adjacency matrices by `Denis Engemann`_
 
    - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
 

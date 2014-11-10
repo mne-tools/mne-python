@@ -5,15 +5,18 @@
 #
 # License: BSD (3-clause)
 
+import os
+import os.path as op
+
 import numpy as np
 from scipy.io import loadmat
 from scipy import sparse
 
-from .externals.six import string_types
+from ..externals.six import string_types
 
-from .utils import verbose, logger
-from .io.pick import channel_type, pick_info
-from .io.constants import FIFF
+from ..utils import verbose, logger
+from ..io.pick import channel_type, pick_info
+from ..io.constants import FIFF
 
 
 def _get_meg_system(info):
@@ -89,10 +92,10 @@ def equalize_channels(candidates, verbose=None):
 
     Note. This function operates inplace.
     """
-    from .io.base import _BaseRaw
-    from .epochs import Epochs
-    from .evoked import Evoked
-    from .time_frequency import AverageTFR
+    from ..io.base import _BaseRaw
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    from ..time_frequency import AverageTFR
 
     if not all([isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
                 for c in candidates]):
@@ -173,12 +176,12 @@ class PickDropChannelsMixin(object):
 
     def _pick_drop_channels(self, idx):
         # avoid circular imports
-        from .io.base import _BaseRaw
-        from .epochs import Epochs
-        from .evoked import Evoked
-        from .time_frequency import AverageTFR
+        from ..io.base import _BaseRaw
+        from ..epochs import Epochs
+        from ..evoked import Evoked
+        from ..time_frequency import AverageTFR
 
-        if isinstance(self, _BaseRaw):
+        if isinstance(self, (_BaseRaw, Epochs)):
             if not self.preload:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
                                    ' channels')
@@ -280,11 +283,16 @@ def _recursive_flatten(cell, dtype):
 def read_ch_connectivity(fname, picks=None):
     """Parse FieldTrip neighbors .mat file
 
+    More information on these neighbor definitions can be found on the
+    related FieldTrip documentation pages:
+    http://fieldtrip.fcdonders.nl/template/neighbours
+
     Parameters
     ----------
     fname : str
-        The file name.
-    picks : array-like of int, shape (n_channels)
+        The file name. Example: 'neuromag306mag', 'neuromag306planar',
+        'ctf275', 'biosemi64', etc.
+    picks : array-like of int, shape (n_channels,)
         The indices of the channels to include. Must match the template.
         Defaults to None.
 
@@ -292,7 +300,25 @@ def read_ch_connectivity(fname, picks=None):
     -------
     ch_connectivity : scipy.sparse matrix
         The connectivity matrix.
+    ch_names : list
+        The list of channel names present in connectivity matrix.
     """
+    if not op.isabs(fname):
+        templates_dir = op.realpath(op.join(op.dirname(__file__),
+                                            'data', 'neighbors'))
+        templates = os.listdir(templates_dir)
+        for f in templates:
+            if f == fname:
+                break
+            if f == fname + '_neighb.mat':
+                fname += '_neighb.mat'
+                break
+        else:
+            raise ValueError('I do not know about this neighbor '
+                             'template: "{}"'.format(fname))
+
+        fname = op.join(templates_dir, fname)
+
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], string_types)
     neighbors = [_recursive_flatten(c, string_types) for c in
@@ -304,14 +330,15 @@ def read_ch_connectivity(fname, picks=None):
                              'channels. Found a pick ({}) which exceeds '
                              'the channel range ({})'
                              .format(max(picks), len(ch_names)))
-    connectivity = ch_neighbor_connectivity(ch_names, neighbors)
+    connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
     if picks is not None:
         # picking before constructing matrix is buggy
         connectivity = connectivity[picks][:, picks]
-    return connectivity
+        ch_names = [ch_names[p] for p in picks]
+    return connectivity, ch_names
 
 
-def ch_neighbor_connectivity(ch_names, neighbors):
+def _ch_neighbor_connectivity(ch_names, neighbors):
     """Compute sensor connectivity matrix
 
     Parameters
@@ -322,6 +349,7 @@ def ch_neighbor_connectivity(ch_names, neighbors):
         A list of list of channel names. The neighbors to
         which the channels in ch_names are connected with.
         Must be of the same length as ch_names.
+
     Returns
     -------
     ch_connectivity : scipy.sparse matrix

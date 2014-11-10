@@ -23,7 +23,7 @@ from .io.write import (write_int, write_float, write_float_matrix,
                        write_int_matrix, start_file, end_block,
                        start_block, end_file, write_string,
                        write_float_sparse_rcs)
-from .channels import _get_meg_system
+from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir
 

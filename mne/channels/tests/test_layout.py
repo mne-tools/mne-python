@@ -15,9 +15,9 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises
 
-from mne.layouts import (make_eeg_layout, make_grid_layout, read_layout,
-                         find_layout)
-from mne.layouts.layout import _box_size
+from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
+                           find_layout)
+from mne.channels.layout import _box_size
 
 from mne import pick_types, pick_info
 from mne.io import Raw
@@ -38,7 +38,7 @@ bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
 fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                         'data', 'test_ctf_comp_raw.fif')
 
-fname_kit_157 = op.join(op.dirname(__file__), '..', '..', 'io', 'kit',
+fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
 test_info = {
