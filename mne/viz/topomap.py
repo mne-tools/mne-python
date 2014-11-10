@@ -25,9 +25,10 @@ from .utils import _prepare_trellis, _check_delayed_ssp
 from .utils import _draw_proj_checkbox
 
 
-def _prepare_topo_plot(obj, ch_type, layout):
+def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
-    info = copy.deepcopy(obj.info)
+    info = copy.deepcopy(inst.info)
+
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
         layout = find_layout(info)
@@ -57,9 +58,8 @@ def _prepare_topo_plot(obj, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            chs = [info['chs'][i] for i in picks]
             from ..channels.layout  import _find_topomap_coords
-            pos = _find_topomap_coords(chs, layout)
+            pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
             pos = [layout.pos[names.index(info['ch_names'][k].upper())]
@@ -71,7 +71,7 @@ def _prepare_topo_plot(obj, ch_type, layout):
         # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
 
-    return picks, pos, merge_grads, ch_names
+    return picks, pos, merge_grads, ch_names, ch_type
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -626,8 +626,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
-    data_picks, pos, merge_grads, names = _prepare_topo_plot(ica, ch_type,
-                                                             layout)
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
+                                                                layout)
     pos, outlines = _check_outlines(pos, outlines)
     if outlines not in (None, 'head'):
         image_mask, pos = _make_image_mask(outlines, pos, res)
@@ -765,8 +765,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    picks, pos, merge_grads, names = _prepare_topo_plot(tfr, ch_type,
-                                                        layout)
+    picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
+                                                           layout)
     if not show_names:
         names = None
 
@@ -929,16 +929,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     """
     import matplotlib.pyplot as plt
 
-    if ch_type.startswith('planar'):
-        key = 'grad'
-    else:
-        key = ch_type
-
-    if scale is None:
-        scale = DEFAULTS['scalings'][key]
-    if unit is None:
-        unit = DEFAULTS['units'][key]
-
     if mask_params is None:
         mask_params = DEFAULTS['mask_params'].copy()
         mask_params['markersize'] *= size / 2.
@@ -957,8 +947,19 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
 
-    picks, pos, merge_grads, names = _prepare_topo_plot(evoked, ch_type,
-                                                        layout)
+    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
+        evoked, ch_type, layout)
+
+    if ch_type.startswith('planar'):
+        key = 'grad'
+    else:
+        key = ch_type
+
+    if scale is None:
+        scale = DEFAULTS['scalings'][key]
+    if unit is None:
+        unit = DEFAULTS['units'][key]
+
     if not show_names:
         names = None
 

@@ -9,19 +9,20 @@ from __future__ import print_function
 import copy
 import os.path as op
 import warnings
+import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
 from nose.tools import assert_true, assert_raises
-
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
-                           find_layout)
-from mne.channels.layout import _box_size
-
+                          find_layout)
+from mne.channels.layout import _box_size, _auto_topomap_coords
 from mne import pick_types, pick_info
 from mne.io import Raw
 from mne.io import read_raw_kit
+from mne.io.constants import FIFF
+from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')
@@ -112,8 +113,66 @@ def test_io_layout_lay():
     assert_true(layout.names, layout_read.names)
 
 
+def test_auto_topomap_coords():
+    """Test mapping of coordinates in 3D space to 2D"""
+    info = Raw(fif_fname).info.copy()
+    picks = pick_types(info, meg=False, eeg=True, eog=False, stim=False)
+
+    # Remove extra digitization point, so EEG digitization points match up
+    # with the EEG channels
+    del info['dig'][85]
+
+    # Remove head origin from channel locations, so mapping with digitization
+    # points yields the same result
+    dig_kinds = (FIFF.FIFFV_POINT_CARDINAL,
+                 FIFF.FIFFV_POINT_EEG,
+                 FIFF.FIFFV_POINT_EXTRA)
+    _, origin_head, _ = fit_sphere_to_headshape(info, dig_kinds)
+    origin_head /= 1000.  # to meters
+    for ch in info['chs']:
+        ch['loc'][:3] -= origin_head
+
+    # Use channel locations
+    l0 = _auto_topomap_coords(info, picks)
+
+    # Remove electrode position information, use digitization points from now
+    # on.
+    for ch in info['chs']:
+        ch['loc'] = np.zeros(12)
+
+    l1 = _auto_topomap_coords(info, picks)
+    assert_allclose(l1, l0)
+
+    # Test plotting mag topomap without channel locations: it should fail
+    mag_picks = pick_types(info, meg='mag')
+    assert_raises(ValueError, _auto_topomap_coords, info, mag_picks)
+
+    # Test function with too many EEG digitization points: it should fail
+    info['dig'].append({'r': [1, 2, 3], 'kind': FIFF.FIFFV_POINT_EEG})
+    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+
+    # Test function with too little EEG digitization points: it should fail
+    info['dig'] = info['dig'][:-2]
+    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+
+    # Electrode positions must be unique
+    info['dig'].append(info['dig'][-1])
+    assert_raises(ValueError, _auto_topomap_coords, info, picks)
+
+    # Test function without EEG digitization points: it should fail
+    info['dig'] = [d for d in info['dig'] if d['kind'] != FIFF.FIFFV_POINT_EEG]
+    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+
+    # Test function without any digitization points, it should fail
+    info['dig'] = None
+    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+    info['dig'] = []
+    assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
+
+
+
 def test_make_eeg_layout():
-    """ Test creation of EEG layout """
+    """Test creation of EEG layout"""
     tempdir = _TempDir()
     tmp_name = 'foo'
     lout_name = 'test_raw'
@@ -134,15 +193,9 @@ def test_make_eeg_layout():
     assert_raises(ValueError, make_eeg_layout, info, height=-0.1)
     assert_raises(ValueError, make_eeg_layout, info, height=1.1)
 
-    bad_info = info.copy()
-    bad_info['dig'] = None
-    assert_raises(RuntimeError, make_eeg_layout, bad_info)
-    bad_info['dig'] = []
-    assert_raises(RuntimeError, make_eeg_layout, bad_info)
-
 
 def test_make_grid_layout():
-    """ Test creation of grid layout """
+    """Test creation of grid layout"""
     tempdir = _TempDir()
     tmp_name = 'bar'
     lout_name = 'test_ica'
@@ -182,8 +235,8 @@ def test_find_layout():
         sample_info4['ch_names'][ii] = new
         sample_info4['chs'][ii]['ch_name'] = new
 
-    mags = pick_types(sample_info, meg=False, eeg=True)
-    sample_info5 = pick_info(sample_info, mags)
+    eegs = pick_types(sample_info, meg=False, eeg=True)
+    sample_info5 = pick_info(sample_info, eegs)
 
     lout = find_layout(sample_info, ch_type=None)
     assert_true(lout.kind == 'Vectorview-all')
@@ -232,9 +285,6 @@ def test_find_layout():
 
     lout = find_layout(read_raw_kit(fname_kit_157).info)
     assert_true(lout.kind == 'KIT-157')
-
-    sample_info5['dig'] = []
-    assert_raises(RuntimeError, find_layout, sample_info5)
 
 
 def test_box_size():

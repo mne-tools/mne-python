@@ -96,7 +96,7 @@ def test_plot_topomap():
 
         # delaunay triangulation warning
         with warnings.catch_warnings(record=True):
-            evoked.plot_topomap(times, ch_type='mag', layout='auto', res=res)
+            evoked.plot_topomap(times, ch_type='mag', layout=None, res=res)
         assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
                       proj='interactive')  # projs have already been applied
 
@@ -117,6 +117,14 @@ def test_plot_topomap():
                 if ch['eeg_loc'] is not None:
                     ch['eeg_loc'].fill(0)
                 ch['loc'].fill(0)
+
+        # Remove extra digitization point, so EEG digitization points
+        # correspond with the EEG electrodes
+        del evoked.info['dig'][85] 
+        plot_evoked_topomap(evoked, times, ch_type='eeg')
+
+        # Remove digitization points. Now topomap should fail
+        evoked.info['dig'] = None 
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       times, ch_type='eeg')
 
@@ -133,3 +141,7 @@ def test_plot_tfr_topomap():
     tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=16)
+
+
+def test_prepare_topo_plot():
+    """Test obtaining 2D coordinates from 3D sensor locations"""
