@@ -335,7 +335,6 @@ Manipulate channels and set sensors locations for processing and plotting:
    read_ch_connectivity
    equalize_channels
    rename_channels
-   ch_neighbor_connectivity
 
 :py:mod:`mne.preprocessing`:
 

@@ -134,7 +134,7 @@ Changelog
 
    - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
 
-   - Add `read_ch_connectivity` function and `ch_neighbor_connectivity` to read FieldTrip neighbor template .mat files and compute between sensor adjacency matrices by `Denis Engemann`_
+   - Add `read_ch_connectivity` function to read FieldTrip neighbor template .mat files and obtain sensor adjacency matrices by `Denis Engemann`_
 
    - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
 
