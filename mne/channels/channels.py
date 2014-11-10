@@ -339,6 +339,7 @@ def ch_neighbor_connectivity(ch_names, neighbors):
         A list of list of channel names. The neighbors to
         which the channels in ch_names are connected with.
         Must be of the same length as ch_names.
+
     Returns
     -------
     ch_connectivity : scipy.sparse matrix
