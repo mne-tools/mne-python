@@ -104,8 +104,6 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(2*TW - 1). Default is
         TW = 2.0, giving 3 good tapers.
-    zero_mean : bool
-        Make sure the wavelet is zero mean. Defaults to False.
 
     Returns
     -------
@@ -127,13 +125,19 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
             else:
                 this_n_cycles = n_cycles[0]
 
-            t_win = this_n_cycles / (2.0 * np.pi * f)
+            t_win = this_n_cycles / f
             t = np.arange(0, t_win, 1.0 / sfreq)
-            oscillation = np.exp(2.0 * 1j * np.pi * f * t)
+            # Making sure wavelets are centered before tapering
+            oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win/2.))
 
             # Get dpss tapers
             tapers, conc = dpss_windows(t.shape[0], TW, n_taps)
 
+            tapers[m, ] -= tapers[m, 0]
+
+            # Always pad data for safety
+            # Wk = np.r_[np.zeros(t.shape[0]), oscillation * tapers[m, ],
+            #           np.zeros(t.shape[0])]
             Wk = oscillation * tapers[m, ]
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
@@ -1093,7 +1097,7 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
                                     frequencies=freqs, TW=TW,
                                     n_cycles=n_cycles, n_jobs=n_jobs,
                                     use_fft=use_fft, decim=decim,
-                                    zero_mean=True)
+                                    zero_mean=False)
     times = epochs.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)
