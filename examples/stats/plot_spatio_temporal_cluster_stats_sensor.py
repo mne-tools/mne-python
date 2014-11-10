@@ -91,7 +91,7 @@ linestyles = '-', '--', '-', '--'
 grand_ave = np.array(X).mean(1)
 
 # get sensor positions via layout
-pos = mne.layouts.find_layout(epochs.info).pos
+pos = mne.find_layout(epochs.info).pos
 
 # loop over significant clusters
 for i_clu, clu_idx in enumerate(good_cluster_inds):

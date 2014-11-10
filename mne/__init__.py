@@ -57,8 +57,7 @@ from .proj import (read_proj, write_proj, compute_proj_epochs,
 from .selection import read_selection
 from .dipole import read_dip
 from . import channels
-from .channels import (equalize_channels, rename_channels,
-                       read_ch_connectivity, find_layout)
+from .channels import equalize_channels, rename_channels, find_layout
 
 from . import beamformer
 from . import commands
