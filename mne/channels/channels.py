@@ -305,11 +305,17 @@ def read_ch_connectivity(fname, picks=None):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
                                             'data', 'neighbors'))
         templates = os.listdir(templates_dir)
-        if not any(f in templates for f in (fname, fname + '_neighb.mat')):
+        for f in templates:
+            if f == fname:
+                break
+            if f == fname + '_neighb.mat':
+                fname += '_neighb.mat'
+                break
+        else:
             raise ValueError('I do not know about this neighbor '
                              'template: "{}"'.format(fname))
-        else:
-            fname = op.join(templates_dir, fname)
+
+        fname = op.join(templates_dir, fname)
 
     nb = loadmat(fname)['neighbours']
     ch_names = _recursive_flatten(nb['label'], string_types)
