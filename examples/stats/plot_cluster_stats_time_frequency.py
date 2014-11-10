@@ -84,14 +84,14 @@ times = 1e3 * epochs_condition_1.times  # change unit to ms
 # spectrotemporal resolution.
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
-Fs = raw.info['sfreq']  # sampling in Hz
+sfreq = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
-epochs_power_1 = single_trial_power(data_condition_1, Fs=Fs,
+epochs_power_1 = single_trial_power(data_condition_1, sfreq=sfreq,
                                     frequencies=frequencies,
                                     n_cycles=n_cycles, use_fft=False,
                                     decim=decim)
 
-epochs_power_2 = single_trial_power(data_condition_2, Fs=Fs,
+epochs_power_2 = single_trial_power(data_condition_2, sfreq=sfreq,
                                     frequencies=frequencies,
                                     n_cycles=n_cycles, use_fft=False,
                                     decim=decim)

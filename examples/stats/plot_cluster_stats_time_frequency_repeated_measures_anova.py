@@ -74,14 +74,14 @@ times = 1e3 * epochs.times  # change unit to ms
 # single_trial_power.
 decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
-Fs = raw.info['sfreq']  # sampling in Hz
+sfreq = raw.info['sfreq']  # sampling in Hz
 n_cycles = frequencies / frequencies[0]
 baseline_mask = times[::decim] < 0
 
 # now create TFR representations for all conditions
 epochs_power = []
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
-    this_power = single_trial_power(condition, Fs=Fs, frequencies=frequencies,
+    this_power = single_trial_power(condition, sfreq=sfreq, frequencies=frequencies,
                                     n_cycles=n_cycles, use_fft=False,
                                     decim=decim)
     this_power = this_power[:, 0, :, :]  # we only have one channel.
