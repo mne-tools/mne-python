@@ -290,8 +290,9 @@ def read_ch_connectivity(fname, picks=None):
     Parameters
     ----------
     fname : str
-        The file name.
-    picks : array-like of int, shape (n_channels)
+        The file name. Example: 'neuromag306mag', 'neuromag306planar',
+        'ctf275', 'biosemi64', etc.
+    picks : array-like of int, shape (n_channels,)
         The indices of the channels to include. Must match the template.
         Defaults to None.
 
@@ -304,7 +305,7 @@ def read_ch_connectivity(fname, picks=None):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
                                             'data', 'neighbors'))
         templates = os.listdir(templates_dir)
-        if not any(f in templates for f in (fname, fname + '.mat')):
+        if not any(f in templates for f in (fname, fname + '_neighb.mat')):
             raise ValueError('I do not know about this neighbor '
                              'template: "{}"'.format(fname))
         else:
@@ -321,14 +322,14 @@ def read_ch_connectivity(fname, picks=None):
                              'channels. Found a pick ({}) which exceeds '
                              'the channel range ({})'
                              .format(max(picks), len(ch_names)))
-    connectivity = ch_neighbor_connectivity(ch_names, neighbors)
+    connectivity = _ch_neighbor_connectivity(ch_names, neighbors)
     if picks is not None:
         # picking before constructing matrix is buggy
         connectivity = connectivity[picks][:, picks]
     return connectivity
 
 
-def ch_neighbor_connectivity(ch_names, neighbors):
+def _ch_neighbor_connectivity(ch_names, neighbors):
     """Compute sensor connectivity matrix
 
     Parameters

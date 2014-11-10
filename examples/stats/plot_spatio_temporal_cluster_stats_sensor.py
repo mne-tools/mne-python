@@ -57,7 +57,7 @@ X = [np.transpose(x, (0, 2, 1)) for x in X] # transpose for clustering
 
 # load FieldTrip neighbor definition to setup sensor connectivity
 from mne.channels import read_ch_connectivity
-connectivity = read_ch_connectivity('neuromag306mag_neighb')
+connectivity = read_ch_connectivity('neuromag306mag')
 
 ###############################################################################
 # Compute statistic

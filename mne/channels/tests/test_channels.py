@@ -11,8 +11,8 @@ import numpy as np
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne.channels import (rename_channels, read_ch_connectivity,
-                          ch_neighbor_connectivity)
+from mne.channels import rename_channels, read_ch_connectivity
+from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info
 from mne.io.constants import FIFF
 from mne.fixes import partial
@@ -104,11 +104,11 @@ def test_read_ch_connectivity():
 
     ch_names = ['EEG01', 'EEG02', 'EEG03']
     neighbors = [['EEG02'], ['EEG04'], ['EEG02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
     neighbors = [['EEG02'], ['EEG01', 'EEG03'], ['EEG 02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names[:2],
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names[:2],
                   neighbors)
     neighbors = [['EEG02'], 'EEG01', ['EEG 02']]
-    assert_raises(ValueError, ch_neighbor_connectivity, ch_names, neighbors)
+    assert_raises(ValueError, _ch_neighbor_connectivity, ch_names, neighbors)
     read_ch_connectivity('neuromag306mag_neighb')
     assert_raises(ValueError, read_ch_connectivity, 'bananas!')
