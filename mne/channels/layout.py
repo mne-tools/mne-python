@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #          Jona Sassenhagen
 #
 # License: Simplified BSD
@@ -20,6 +21,8 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
+from ..transforms import (sphere_to_cartesian, polar_to_cartesian,
+                          cartesian_to_sphere)
 
 
 class Layout(object):
@@ -527,22 +530,6 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _cart_to_sph(x, y, z):
-    """Aux function"""
-    hypotxy = np.hypot(x, y)
-    r = np.hypot(hypotxy, z)
-    elev = np.arctan2(z, hypotxy)
-    az = np.arctan2(y, x)
-    return az, elev, r
-
-
-def _pol_to_cart(th, r):
-    """Aux function"""
-    x = r * np.cos(th)
-    y = r * np.sin(th)
-    return x, y
-
-
 def _auto_topomap_coords(info, picks):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
     The default is to use the electrode locations. The fallback option is to
@@ -622,8 +609,8 @@ def _auto_topomap_coords(info, picks):
         raise ValueError('Electrode positions must be unique.')
 
     x, y, z = locs3d.T
-    az, el, r = _cart_to_sph(x, y, z)
-    locs2d = np.c_[_pol_to_cart(az, np.pi / 2 - el)]
+    az, el, r = cartesian_to_sphere(x, y, z)
+    locs2d = np.c_[polar_to_cartesian(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -852,7 +839,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         ch_names_ = table['label']
         theta = (2 * np.pi * table['theta']) / 360.
         phi = (2 * np.pi * table['phi']) / 360.
-        pos = _sphere_to_cartesian(theta, phi, r=1.0)
+        pos = sphere_to_cartesian(theta, phi, r=1.0)
         pos = np.asarray(pos).T
     elif ext == '.elp':
         # standard BESA spherical
@@ -931,10 +918,3 @@ def apply_montage(info, montage):
                          'names.')
 
 
-def _sphere_to_cartesian(theta, phi, r):
-    """Transform spherical coordinates to cartesian"""
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    return x, y, z
