@@ -5,7 +5,7 @@ from ..channels import Layout as _Layout
 from ..utils import deprecated as dep
 
 msg = ('The module ``mne.layouts`` is deprecated and will be removed in '
-       'MNE-Python 0.10. Please import ``{0}`` from ``mne.templates``')
+       'MNE-Python 0.10. Please import ``{0}`` from ``mne.channels``')
 
 
 dep(msg.format('Layout'))
