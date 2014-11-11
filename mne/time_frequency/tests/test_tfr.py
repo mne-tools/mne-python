@@ -141,6 +141,8 @@ def test_tfr_mtm():
     t = np.arange(n_times) / sfreq
     signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
+    on_time = np.logical_and(t >= 0.45, t <= 0.55)
+    signal[on_time] *= np.hanning(on_time.sum())  # Ramping
     dat = noise + signal
 
     reject = dict(grad=4000)
