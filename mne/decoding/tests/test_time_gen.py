@@ -24,7 +24,6 @@ event_id_gen = dict(aud_l=2, vis_l=4)
 
 
 @requires_sklearn
-@requires_sklearn
 def test_time_generalization():
     """Test time generalization decoding
     """
@@ -136,5 +135,5 @@ def test_generalization_across_time():
     gat.fit(epochs)
     scores = gat.score(epochs)
     scores = sum(scores, [])  # flatten
-    assert_true(0.0 <= min(scores) <= 1.0)
-    assert_true(0.0 <= max(scores) <= 1.0)
+    assert_true(0.0 <= np.min(scores) <= 1.0)
+    assert_true(0.0 <= np.max(scores) <= 1.0)
