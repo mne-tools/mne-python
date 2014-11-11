@@ -36,7 +36,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=baseline, reject=dict(grad=4000e-13))
 
 ###############################################################################
-# Calculate power and intertrial coherence
+# Calculate power
 
 freqs = np.arange(5, 50, 2)  # define frequencies of interest
 n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
@@ -67,7 +67,9 @@ info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
 n_times = int(sfreq)  # Second long epochs
 n_epochs = 40
-noise = np.random.randn(n_epochs, len(ch_names), n_times)
+seed = 42
+rng = np.random.RandomState(seed)
+noise = rng.randn(n_epochs, len(ch_names), n_times)
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times) / sfreq
@@ -96,8 +98,8 @@ freqs = np.arange(5, 100, 3)
 # You can trade time resolution or frequency resolution or both
 # in order to get a reduction in variance
 
-# (1) Lease smoothing (most variance/background fluctuations).
-n_cycles = freqs/2.
+# (1) Least smoothing (most variance/background fluctuations).
+n_cycles = freqs / 2.
 time_bandwidth = 2.0  # Least possible frequency-smoothing (1 taper)
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
@@ -117,7 +119,7 @@ power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
 
 
 # (3) Less time smoothing, more frequency smoothing.
-n_cycles = freqs/2.
+n_cycles = freqs / 2.
 time_bandwidth = 8.0  # Same time-smoothing as (1), 7 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
