@@ -87,7 +87,8 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     return Ws
 
 
-def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
+def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
+                  zero_mean=False):
     """Compute Wavelets for the given frequency range
 
     Parameters
@@ -99,11 +100,11 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         Defaults to 7.
-    TW : float, (optional)
-        Time (T) x half-bandwidth (W) product.
+    time_bandwidth : float, (optional)
+        Time x Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
-        this to equal floor(2*TW - 1). Default is
-        TW = 2.0, giving 3 good tapers.
+        this to equal floor(time_bandwidth - 1).
+        Default is 4.0, giving 3 good tapers.
 
     Returns
     -------
@@ -111,7 +112,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
         Wavelets time series
     """
     Ws = list()
-    n_taps = int(np.floor(2 * TW - 1))
+    n_taps = int(np.floor(time_bandwidth - 1))
     n_cycles = np.atleast_1d(n_cycles)
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
@@ -131,7 +132,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, TW=2.0, zero_mean=False):
             oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win/2.))
 
             # Get dpss tapers
-            tapers, conc = dpss_windows(t.shape[0], TW, n_taps)
+            tapers, conc = dpss_windows(t.shape[0], time_bandwidth/2., n_taps)
 
             tapers[m, ] -= tapers[m, 0]
 
@@ -967,8 +968,10 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
     return out
 
 
-def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
-                       n_cycles=7, decim=1, n_jobs=1, zero_mean=False):
+@verbose
+def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
+                       use_fft=True, n_cycles=7, decim=1, n_jobs=1,
+                       zero_mean=False, verbose=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with DPSS wavelets
@@ -981,11 +984,10 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
         sampling Frequency
     frequencies : array
         Array of frequencies of interest
-    TW : float, (optional)
-        Time (T) x half-bandwidth (W) product.
+    time_bandwidth : float, (optional)
+        Time x (Full) Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
-        this to equal floor(2*TW - 1). Default is
-        TW = 2.0, giving 3 good tapers.
+        this to equal floor(time_bandwidth - 1). Default is 4.0 (3 tapers).
     use_fft : bool
         Compute transform with fft based convolutions or temporal
         convolutions. Defaults to True.
@@ -998,6 +1000,8 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
         Requires joblib package. Defaults to 1.
     zero_mean : bool
         Make sure the wavelets are zero mean. Defaults to False.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1007,13 +1011,17 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     plv : sD array
          (Channels x Frequencies x Timepoints)
     """
-    n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    logger.info('Data is %d trials and %d channels', n_epochs, n_channels)
+    n_frequencies = len(frequencies)
+    logger.info('Multitaper time-frequency analysis for %d frequencies',
+                n_frequencies)
 
     # Precompute wavelets for given frequency range to save time
-    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles, TW=TW,
-                       zero_mean=zero_mean)
+    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
+                       time_bandwidth=time_bandwidth, zero_mean=zero_mean)
     n_taps = len(Ws)
+    logger.info('Using %d tapers', n_taps)
     n_times_wavelets = Ws[0][0].shape[0]
     if n_times <= n_times_wavelets:
         warnings.warn("Time windows are as long or longer than the epoch."
@@ -1026,6 +1034,7 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
                              dtype=np.complex)
 
             for c in range(n_channels):
+                logger.debug('Analysing channel #%d', c)
                 X = data[:, c, :]
                 this_psd, this_plv = _time_frequency(X, Ws[m], use_fft)
                 psd_m[c], plv_m[c] = this_psd[:, ::decim], this_plv[:, ::decim]
@@ -1054,8 +1063,8 @@ def _induced_power_mtm(data, sfreq, frequencies, TW=2.0, use_fft=True,
     return psd, plv
 
 
-def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
-            return_itc=True, decim=1, n_jobs=1):
+def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
+                   return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1067,13 +1076,14 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    TW : float, (optional)
-        Time (T) x half-bandwidth (W) product. Choose this along with n_cycles
-        to get the desired frequency resolution (2 * W). The number of good
-        tapers (low-bias) is chosen automatically based on this to equal
-        floor(2*TW - 1). Default is TW = 2.0 (3 good tapers).
-        E.g., With freq = 20 Hz and n_cycles = 5, we get T = 0.25 s.
-        If TW = 2, then frequency smoothing is 2 * W = 2 * (2 / T) = 8 Hz.
+    time_bandwidth : float, (optional)
+        Time x (Full) Bandwidth product.
+        Choose this along with n_cycles to get desired frequency resolution.
+        The number of good tapers (least leakage from far away frequencies)
+        is chosen automatically based on this to floor(time_bandwidth - 1).
+        Default is 4.0 (3 good tapers).
+        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
+        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
     use_fft : bool
         The fft based convolution or not.
         Defaults to True.
@@ -1100,10 +1110,11 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
     info = pick_info(epochs.info, picks)
     data = data[:, picks, :]
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
-                                    frequencies=freqs, TW=TW,
-                                    n_cycles=n_cycles, n_jobs=n_jobs,
+                                    frequencies=freqs, n_cycles=n_cycles,
+                                    time_bandwidth=time_bandwidth,
                                     use_fft=use_fft, decim=decim,
-                                    zero_mean=False)
+                                    n_jobs=n_jobs, zero_mean=False,
+                                    verbose='INFO')
     times = epochs.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)

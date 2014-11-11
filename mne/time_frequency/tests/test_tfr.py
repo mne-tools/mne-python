@@ -7,7 +7,7 @@ import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
-from mne.time_frequency.tfr import _dpss_wavelet, tfr_mtm
+from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -113,8 +113,8 @@ def test_time_frequency():
 def test_dpsswavelet():
     """Some tests for DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
-    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2., TW=2.0,
-                       zero_mean=True)
+    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2.,
+                       time_bandwidth=4.0, zero_mean=True)
 
     assert_true(len(Ws) == 3)  # 3 tapers expected
 
@@ -124,7 +124,7 @@ def test_dpsswavelet():
     assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
-def test_tfr_mtm():
+def test_tfr_multitaper():
     """ Some tests for tfr_mtm() """
     sfreq = 1000.0
     ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
@@ -156,7 +156,8 @@ def test_tfr_mtm():
                          reject=reject)
 
     freqs = np.arange(5, 100, 3)
-    power, itc = tfr_mtm(epochs, freqs=freqs, n_cycles=freqs/2., TW=2.0)
+    power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs/2.,
+                                time_bandwidth=4.0)
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
     assert_true(tmax > 0.4 and tmax < 0.6)
