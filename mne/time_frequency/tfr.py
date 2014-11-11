@@ -112,6 +112,8 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
         Wavelets time series
     """
     Ws = list()
+    if time_bandwidth < 2.0:
+        raise ValueError("time_bandwidth should be >= 2.0 for good tapers")
     n_taps = int(np.floor(time_bandwidth - 1))
     n_cycles = np.atleast_1d(n_cycles)
 
@@ -583,7 +585,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True, verbose=None):
+             cmap='RdBu_r', dB=False, colorbar=True, show=True,
+             title=None, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -636,6 +639,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             on the canvas
         show : bool
             Call pyplot.show() at the end.
+        title : str
+            String for title. Defaults to None.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -655,7 +660,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
-                        picker=False, cmap=cmap)
+                        picker=False, cmap=cmap, title=title)
 
         if show:
             import matplotlib.pyplot as plt
@@ -1077,7 +1082,7 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
     time_bandwidth : float, (optional)
-        Time x (Full) Bandwidth product.
+        Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
         The number of good tapers (least leakage from far away frequencies)
         is chosen automatically based on this to floor(time_bandwidth - 1).
@@ -1105,6 +1110,7 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
     """
+
     data = epochs.get_data()
     picks = pick_types(epochs.info, meg=True, eeg=True)
     info = pick_info(epochs.info, picks)
