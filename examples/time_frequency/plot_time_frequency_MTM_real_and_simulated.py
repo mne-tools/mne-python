@@ -15,7 +15,7 @@ print(__doc__)
 import numpy as np
 import mne
 from mne import io, create_info, EpochsArray
-from mne.time_frequency import tfr_mtm
+from mne.time_frequency import tfr_multitaper
 from mne.datasets import somato
 
 ###############################################################################
@@ -39,9 +39,14 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # Calculate power and intertrial coherence
 
 freqs = np.arange(5, 50, 2)  # define frequencies of interest
-n_cycles = freqs / 2.  # 0.5 second time windows
-power = tfr_mtm(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                TW=2.0, return_itc=False, n_jobs=1)
+n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
+
+# Choose time x (full) bandwidth product
+time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
+
+power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
+                       time_bandwidth=time_bandwidth, return_itc=False,
+                       n_jobs=1)
 
 # Baseline correction can be applied to power or done in plots
 # To illustrate the baseline correction in plots the next line is commented
@@ -80,8 +85,8 @@ epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
                      reject=reject)
 
 freqs = np.arange(5, 100, 3)
-power = tfr_mtm(epochs, freqs=freqs, n_cycles=freqs/2., TW=2.0,
-                return_itc=False)
+power = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs/2.,
+                       time_bandwidth=4.0, return_itc=False)
 
 # Plot results. Baseline correct based on first 100 ms.
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=0., vmax=5.)
