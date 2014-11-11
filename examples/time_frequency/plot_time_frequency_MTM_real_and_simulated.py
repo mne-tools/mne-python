@@ -73,7 +73,7 @@ noise = np.random.randn(n_epochs, len(ch_names), n_times)
 t = np.arange(n_times) / sfreq
 signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
 signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
-on_time = np.logical_and(t >= 0.48, t <= 0.52)
+on_time = np.logical_and(t >= 0.45, t <= 0.55)
 signal[on_time] *= np.hanning(on_time.sum())  # Ramping
 dat = noise + signal
 
@@ -96,31 +96,31 @@ freqs = np.arange(5, 100, 3)
 # You can trade time resolution or frequency resolution or both
 # in order to get a reduction in variance
 
-# (1) Lease smoothing (most variance/background fluctuations)
+# (1) Lease smoothing (most variance/background fluctuations).
 n_cycles = freqs/2.
 time_bandwidth = 2.0  # Least possible frequency-smoothing (1 taper)
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=0., vmax=5.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Least smoothing, most variance')
 
 
-# (2) Less frequency smoothing, more time smoothing
-n_cycles = freqs
-time_bandwidth = 4.0  # Least possible frequency-smoothing (3 tapers)
+# (2) Less frequency smoothing, more time smoothing.
+n_cycles = freqs  # Increase time-window length to 1 second.
+time_bandwidth = 4.0  # Same frequency-smoothing as (1) 3 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=0., vmax=5.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less frequency smoothing, more time smoothing')
 
 
-# (3) Less-time smoothing, more frequency smoothing
+# (3) Less time smoothing, more frequency smoothing.
 n_cycles = freqs/2.
-time_bandwidth = 8.0  # Least possible frequency-smoothing (6 taper)
+time_bandwidth = 8.0  # Same time-smoothing as (1), 7 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-power.plot([0], baseline=(0., 0.1), mode='mean', vmin=0., vmax=5.,
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
