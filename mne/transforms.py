@@ -478,3 +478,27 @@ def collect_transforms(fname, xforms):
         for xform in xforms:
             write_coord_trans(fid, xform)
         end_file(fid)
+
+
+def sphere_to_cartesian(theta, phi, r):
+    """Transform spherical coordinates to cartesian"""
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    return x, y, z
+
+
+def polar_to_cartesian(th, r):
+    """Aux function"""
+    x = r * np.cos(th)
+    y = r * np.sin(th)
+    return x, y
+    
+def cartesian_to_sphere(x, y, z):
+    """Aux function"""
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    return az, elev, r
