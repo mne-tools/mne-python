@@ -93,6 +93,8 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(train_times={'length': .100})
     gat2 = gat.fit(epochs)
     assert_true(gat is gat2)  # return self
+    assert_true(hasattr(gat2, 'cv_'))
+    assert_true(gat2.cv_ != gat.cv)
     scores = gat.score(epochs)
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
@@ -123,7 +125,7 @@ def test_generalization_across_time():
     assert_equal(np.shape(gat.scores_), (15, 1))
 
     # Test generalization across conditions
-    gat = GeneralizationAcrossTime(predict_mode='independent')
+    gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
     gat.fit(epochs[0:6])
     gat.predict(epochs[7:])
     assert_raises(ValueError, gat.predict, epochs, test_times='hahahaha')

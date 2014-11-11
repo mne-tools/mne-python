@@ -21,21 +21,21 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     ----------
     gat : instance of mne.decoding.GeneralizationAcrossTime
         The gat object.
-    title : str | None, optional
+    title : str | None
         Figure title. Defaults to None.
-    vmin : float, optional
-        Min color value for score. Defaults to None.
-    vmax : float, optional
-        Max color value for score. Defaults to None.
-    tlim : array-like, (4,) | None, optional,
-        The temporal boundaries. If None, defaults to
+    vmin : float
+        Min color value for score. Defaults to 0.
+    vmax : float
+        Max color value for score. Defaults to 1.
+    tlim : array-like, (4,) | None
+        The temporal boundaries. If None, expands to
         [tmin_train, tmax_train, tmin_test, tmax_test]
         Defaults to None.
-    ax : object | None, optional
+    ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
         The color map to be used. Defaults to 'RdBu_r'.
-    show : bool, optional, default: True
+    show : bool
         If True, the figure will be shown. Defaults to True.
 
     Returns
@@ -47,10 +47,6 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         raise RuntimeError('Please score your data before trying to plot '
                            'scores')
     import matplotlib.pyplot as plt
-    # XXX actually the test seemed wrong and obsolete (D.E.)
-    # Check that same amount of testing time per training time
-    # assert len(np.unique([len(t) for t in gat.test_times_])) == 1
-    # Setup plot
     if ax is None:
         fig, ax = plt.subplots(1, 1)
 
@@ -87,17 +83,17 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
     ----------
     gat : instance of mne.decoding.GeneralizationAcrossTime
         The gat object.
-    title : str | None, optional
+    title : str | None
         Figure title. Defaults to None.
     ymin : float, optional, defaults to 0.
         Min score value.
     ymax : float, optional, defaults to 1.
         Max score value.
-    ax : object | None, optional
+    ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
     show : bool, optional, defaults to True.
         If True, the figure will be shown. Defaults to True.
-    color : str, optional
+    color : str
         Score line color. Defaults to 'steelblue'.
 
     Returns
