@@ -33,6 +33,8 @@ Changelog
 
    - Add support for spatiotemporal permutation clustering on sensors by `Denis Engemann`_
 
+   - Add support for multitaper time-frequency analysis by `Hari Bharadwaj`_
+
 BUG
 ~~~
 
