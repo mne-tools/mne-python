@@ -188,7 +188,7 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
                 freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap=None):
+                colorbar=False, picker=True, cmap=None, title=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     if cmap is None:
@@ -203,6 +203,8 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
         plt.ylabel(y_label)
     if colorbar:
         plt.colorbar()
+    if title:
+        plt.title(title)
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
