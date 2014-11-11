@@ -117,7 +117,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
     n_taps = int(np.floor(time_bandwidth - 1))
     n_cycles = np.atleast_1d(n_cycles)
 
-    if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
+    if n_cycles.size != 1 and n_cycles.size != len(freqs):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
     for m in range(n_taps):
@@ -131,17 +131,14 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
             t_win = this_n_cycles / f
             t = np.arange(0, t_win, 1.0 / sfreq)
             # Making sure wavelets are centered before tapering
-            oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win/2.))
+            oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win / 2.))
 
             # Get dpss tapers
-            tapers, conc = dpss_windows(t.shape[0], time_bandwidth/2., n_taps)
+            tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
+                                        n_taps)
 
-            tapers[m, ] -= tapers[m, 0]
-
-            # Always pad data for safety
-            # Wk = np.r_[np.zeros(t.shape[0]), oscillation * tapers[m, ],
-            #           np.zeros(t.shape[0])]
-            Wk = oscillation * tapers[m, ]
+            tapers[m] -= tapers[m, 0]
+            Wk = oscillation * tapers[m]
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
                 Wk -= real_offset
@@ -639,8 +636,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             on the canvas
         show : bool
             Call pyplot.show() at the end.
-        title : str
-            String for title. Defaults to None.
+        title : str | None
+            String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -983,20 +980,20 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
 
     Parameters
     ----------
-    data : array
-        3D array of shape [n_epochs, n_channels, n_times]
+    data : np.ndarray, shape (n_epochs, n_channels, n_times)
+        The input data.
     sfreq : float
         sampling Frequency
-    frequencies : array
+    frequencies : np.ndarray, shape (n_frequencies,)
         Array of frequencies of interest
-    time_bandwidth : float, (optional)
+    time_bandwidth : float
         Time x (Full) Bandwidth product.
         The number of good tapers (low-bias) is chosen automatically based on
         this to equal floor(time_bandwidth - 1). Default is 4.0 (3 tapers).
     use_fft : bool
         Compute transform with fft based convolutions or temporal
         convolutions. Defaults to True.
-    n_cycles : float | array of float
+    n_cycles : float | np.ndarray shape (n_frequencies,)
         Number of cycles. Fixed number or one per frequency. Defaults to 7.
     decim: int
         Temporal decimation factor. Defaults to 1.
@@ -1010,11 +1007,10 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
 
     Returns
     -------
-    power : 3D array
-        Induced power (Channels x Frequencies x Timepoints).
-        Squared amplitude of time-frequency coefficients.
-    plv : sD array
-         (Channels x Frequencies x Timepoints)
+    power : np.ndarray, shape (n_channels, n_frequencies, n_times)
+        Induced power. Squared amplitude of time-frequency coefficients.
+    plv : np.ndarray, shape (n_channels, n_frequencies, n_times)
+        Phase locking value.
     """
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
     logger.info('Data is %d trials and %d channels', n_epochs, n_channels)

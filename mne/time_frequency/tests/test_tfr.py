@@ -133,11 +133,9 @@ def test_tfr_multitaper():
 
     n_times = int(sfreq)  # Second long epochs
     n_epochs = 40
-    noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
-    # To make sure tests don't fail, avoiding low-probability cases where
-    # noise can be very high affecting which time-freq region has max power.
-    while np.any(noise > 0.4):
-        noise = 0.1 * np.random.randn(n_epochs, len(ch_names), n_times)
+    seed = 42
+    rng = np.random.RandomState(seed)
+    noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
     t = np.arange(n_times) / sfreq
     signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
@@ -156,7 +154,7 @@ def test_tfr_multitaper():
                          reject=reject)
 
     freqs = np.arange(5, 100, 3)
-    power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs/2.,
+    power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
