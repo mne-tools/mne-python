@@ -673,6 +673,7 @@ Time-Frequency
    iir_filter_raw
    morlet
    tfr_morlet
+   tfr_multitaper
    single_trial_power
    yule_walker
    ar_raw
