@@ -22,6 +22,8 @@ from ..base import _BaseRaw
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
 
+from ...montages.montage import read_montage
+
 
 class RawBrainVision(_BaseRaw):
     """Raw object from Brain Vision EEG file
@@ -54,6 +56,12 @@ class RawBrainVision(_BaseRaw):
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    montage_file : str
+        If not None, will use apply_montage to search for a montage file and 
+        apply the montage. Montage file must contain all, and only, the channels
+        in the raw file. apply_montage currently ignores file endings, so files
+        in the target directory with the same name, butdifferent endings will confuse 
+        it (e.g., '64-chan.sfp' and '64-chan.elp').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -64,7 +72,8 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
                  preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1., verbose=None):
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1., 
+                 montage_file=None, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -80,7 +89,7 @@ class RawBrainVision(_BaseRaw):
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           elp_fname, elp_names,
                                                           reference, eog,
-                                                          scale)
+                                                          scale, montage_file)
         self.set_brainvision_events(events)
         logger.info('Creating Raw.info structure...')
 
@@ -408,7 +417,7 @@ def _get_elp_locs(elp_fname, elp_names):
     return chs_neuromag
 
 
-def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
+def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale, montage_file):
     """Extracts all the information from the header file.
 
     Parameters
@@ -436,6 +445,13 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    montage_file : str
+        Alternaitve to specifying elp_names and elp_fname. If not None, will use 
+        apply_montage to search for a montage file specified by the keyword and 
+        apply the montage. Montage file must contain all, and only, the channels
+        in the raw file. apply_montage currently ignores file endings, so files
+        in the target directory with the same name, butdifferent endings will 
+        confuse it (e.g., '64-chan.sfp' and '64-chan.elp').
 
     Returns
     -------
@@ -627,6 +643,14 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
                        {'r': ch_locs['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD}]
+    elif montage_file:
+        ch_locs = dict()
+        filename = montage_file.split('/')[-1].split('.')[0]
+        filepath = "/".join(montage_file.split('/')[:-1]) + '/'
+        chnames = list(set(ch_names) - set('STI 014'))
+        m = read_montage(filename, ch_names=chnames, path=filepath, scale=True)
+        for name, loc in zip(m.ch_names, m.pos): 
+            ch_locs[name] = loc                        
     else:
         ch_locs = None
 
@@ -680,7 +704,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
 def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
                          preload=False, reference=None,
                          eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
-                         verbose=None):
+                         verbose=None, montage_file=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -711,6 +735,12 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    montage_file : str
+        If not None, will use apply_montage to search for a montage file and 
+        apply the montage. Montage file must contain all, and only, the channels
+        in the raw file. apply_montage currently ignores file endings, so files
+        in the target directory with the same name, butdifferent endings will confuse 
+        it (e.g., '64-chan.sfp' and '64-chan.elp').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -719,5 +749,5 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, scale, verbose)
+                         reference, eog, scale, montage_file, verbose)
     return raw
