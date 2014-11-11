@@ -9,7 +9,6 @@ from __future__ import print_function
 import copy
 import os.path as op
 import warnings
-import warnings
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -168,7 +167,6 @@ def test_auto_topomap_coords():
     assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
     info['dig'] = []
     assert_raises(RuntimeError, _auto_topomap_coords, info, picks)
-
 
 
 def test_make_eeg_layout():

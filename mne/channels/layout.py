@@ -129,10 +129,12 @@ def read_layout(kind, path=None, scale=True):
         'Vectorview-all.lout').
 
     path : str | None
-        The path of the folder containing the Layout file.
+        The path of the folder containing the Layout file. Defaults to the
+        mne/channels/data/layouts folder inside your mne-python installation.
 
     scale : bool
         Apply useful scaling for out the box plotting using layout.pos.
+        Defaults to True.
 
     Returns
     -------
@@ -180,12 +182,12 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     info : instance of mne.io.meas_info.Info
         Measurement info (e.g., raw.info).
     radius : float
-        Viewport radius as a fraction of main figure height.
+        Viewport radius as a fraction of main figure height. Defaults to 0.5.
     width : float | None
-        Width of sensor axes as a fraction of main figure height. If None, this
-        will be the maximum width possible without axes overlapping.
+        Width of sensor axes as a fraction of main figure height. By default,
+        this will be the maximum width possible without axes overlapping.
     height : float | None
-        Height of sensor axes as a fraction of main figure height. If None,
+        Height of sensor axes as a fraction of main figure height. By default,
         this will be the maximum height possible withough axes overlapping.
 
     Returns
@@ -311,12 +313,12 @@ def make_grid_layout(info, picks=None, n_col=None):
     return layout
 
 
-def find_layout(info=None, ch_type=None):
+def find_layout(info, ch_type=None):
     """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | None
+    info : instance of mne.io.meas_info.Info
         The measurement info.
     ch_type : {'mag', 'grad', 'meg', 'eeg'} | None
         The channel type for selecting single channel layouts.
@@ -420,7 +422,7 @@ def _box_size(points, width=None, height=None, padding=0.0):
         calculated by the function.
     padding : float
         Portion of the box to reserve for padding. The value can range between
-        0.0 (boxes will touch) to 1.0 (boxes consist of only padding).
+        0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).
 
     Returns
     -------
@@ -626,14 +628,14 @@ def _pair_grad_sensors(info, layout=None, topomap_coords=True, exclude='bads'):
     ----------
     info : instance of mne.io.meas_info.Info
         An info dictionary containing channel information.
-    layout : Layout
-        The layout if available.
+    layout : Layout | None
+        The layout if available. Defaults to None.
     topomap_coords : bool
         Return the coordinates for a topomap plot along with the picks. If
-        False, only picks are returned.
+        False, only picks are returned. Defaults to True.
     exclude : list of str | str
         List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
 
     Returns
     -------
@@ -773,12 +775,14 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         The name of the montage file (e.g. kind='easycap-M10' for
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd'
         or '.sfp' are supported.
-    ch_names : list of str
+    ch_names : list of str | None
         The names to read. If None, all names are returned.
     path : str | None
-        The path of the folder containing the montage file
+        The path of the folder containing the montage file. Defaults to the
+        mne/channels/data/montages folder in your mne-python installation.
     scale : bool
-        Apply useful scaling for out the box plotting using montage.pos
+        Apply useful scaling for out the box plotting using montage.pos.
+        Defaults to True.
 
     Returns
     -------
