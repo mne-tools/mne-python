@@ -98,17 +98,19 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
     white_noise = rng.normal(mean, std, n_times * n_epochs)
     white_noise = np.reshape(white_noise, (n_epochs, n_times))
 
-    # make a gaussian window
-    win = gaussian(n_epochs, sigma, sym=False)
     if sigma == 0:
         raise ValueError(
             'Sigma value cannot be 0. Please choose a higher value.')
 
+    # make a gaussian window
+    win = gaussian(n_epochs, sigma, sym=False)
+
+    if np.max(win) == np.min(win):
+        raise RuntimeError(
+            'win values lead to divide by 0.')
+
     # normalize the gaussian window
     win = (win - np.min(win)) / (np.max(win) - np.min(win))
-    if np.isnan(np.sum(win)):
-        raise ValueError(
-            'Encountered nan calculating gaussian window.')
 
     # Construct the signal with many levels of modulation
     pac_signal = np.zeros((n_epochs, n_times))

@@ -3,19 +3,14 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import numpy as np
 from scipy import stats
 from scipy.signal import hilbert
-from nose.tools import assert_true, assert_false, assert_raises
-import mne
+from nose.tools import assert_true, assert_raises
 from mne.utils import check_random_state, run_tests_if_main
 from mne.connectivity.cfc import (modulation_index, make_surrogate_data,
                                   cross_frequency_coupling,
                                   generate_pac_signal)
-from mne.time_frequency import morlet
-from mne.time_frequency.tfr import cwt
-from mne.preprocessing.peak_finder import peak_finder
 
 
 def test_generate_pac_data():
@@ -70,11 +65,9 @@ def test_make_surrogate_data():
 
 def test_cross_frequency_coupling():
 
-    data_dir = op.join(op.dirname(mne.__file__), 'data')
-    data_fname = op.join(data_dir, 'cfc_data.npy')
-    data = np.load(data_fname)
+    data = np.ones((1, 100))
     assert_raises(ValueError, cross_frequency_coupling,
-                  data.reshape(1, data.size),
+                  data,
                   1000., 8., 5, 60., 80., 20)
 
 run_tests_if_main()
