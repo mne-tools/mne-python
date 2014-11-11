@@ -1066,18 +1066,24 @@ def tfr_mtm(epochs, freqs, n_cycles, TW=2.0, use_fft=True,
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
+        The time-window length is thus T = n_cycles / freq.
     TW : float, (optional)
-        Time (T) x half-bandwidth (W) product.
-        The number of good tapers (low-bias) is chosen automatically based on
-        this to equal floor(2*TW - 1). Default is
-        TW = 2.0, giving 3 good tapers.
+        Time (T) x half-bandwidth (W) product. Choose this along with n_cycles
+        to get the desired frequency resolution (2 * W). The number of good
+        tapers (low-bias) is chosen automatically based on this to equal
+        floor(2*TW - 1). Default is TW = 2.0 (3 good tapers).
+        E.g., With freq = 20 Hz and n_cycles = 5, we get T = 0.25 s.
+        If TW = 2, then frequency smoothing is 2 * W = 2 * (2 / T) = 8 Hz.
     use_fft : bool
         The fft based convolution or not.
+        Defaults to True.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
+        Defaults to True.
     decim : int
         The decimation factor on the time axis. To reduce memory usage.
         Note than this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
     n_jobs : int
         The number of jobs to run in parallel. Defaults to 1.
 
