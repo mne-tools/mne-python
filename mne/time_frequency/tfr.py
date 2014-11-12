@@ -137,7 +137,6 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
             tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
                                         n_taps)
 
-            tapers[m] -= tapers[m, 0]
             Wk = oscillation * tapers[m]
             if zero_mean:  # to make it zero mean
                 real_offset = Wk.mean()
