@@ -25,6 +25,7 @@ import json
 import ftplib
 import hashlib
 from functools import partial
+import atexit
 
 import numpy as np
 import scipy
@@ -870,7 +871,12 @@ def _get_extra_data_path(home_dir=None):
             # of script that isn't launched via the command line (e.g. a script
             # launched via Upstart) then the HOME environment variable will
             # not be set.
-            home_dir = os.path.expanduser('~')
+            if os.getenv('MNE_DONTWRITE_HOME', '') == 'true':
+                home_dir = tempfile.mkdtemp()
+                atexit.register(partial(shutil.rmtree, home_dir,
+                                        ignore_errors=True))
+            else:
+                home_dir = os.path.expanduser('~')
 
         if home_dir is None:
             raise ValueError('mne-python config file path could '
