@@ -22,7 +22,7 @@ from ..base import _BaseRaw
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
 
-from ...montages.montage import read_montage
+from ...channels.layout import read_montage
 
 
 class RawBrainVision(_BaseRaw):
