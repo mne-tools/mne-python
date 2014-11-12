@@ -9,7 +9,7 @@ env:
     #               dependencies are supposed to be skipped
     # Note that we don't run coverage on Py3k because it slows our tests
     # by a factor of 2 (!)
-    - PYTHON=2.7 DEPS=full TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=full TEST_LOCATION=src MNE_DONTWRITE_HOME=true
     - PYTHON=2.7 DEPS=full TEST_LOCATION=install
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
     - PYTHON=3.4 DEPS=full TEST_LOCATION=src
