@@ -11,7 +11,7 @@ from .utils import logger, verbose
 
 
 @verbose
-def rescale(data, times, baseline, mode='mean', verbose=None, copy=True):
+def rescale(data, times, baseline, mode, verbose=None, copy=True):
     """Rescale aka baseline correct data
 
     Parameters
@@ -36,7 +36,6 @@ def rescale(data, times, baseline, mode='mean', verbose=None, copy=True):
         power = [power - mean(power_baseline)] / std(power_baseline)).
         logratio is the same an mean but in log-scale, zlogratio is the
         same as zscore but data is rendered in log-scale first.
-        Defaults to 'mean'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     copy : bool

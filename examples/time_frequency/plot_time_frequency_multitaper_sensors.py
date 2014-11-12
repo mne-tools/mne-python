@@ -3,8 +3,7 @@
 Time-frequency analysis using multitaper method
 ==============================================================
 
-Plot for real data rendered in z-score relative to baseline.
-The z-score calculation is done in log-scale.
+Plot rendered so that baseline is mean zero.
 """
 print(__doc__)
 
@@ -44,13 +43,12 @@ n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
 # Choose time x (full) bandwidth product
 time_bandwidth = 4.0  # With 0.5 s time windows, this gives 8 Hz smoothing
 
-power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=True,
-                       time_bandwidth=time_bandwidth, return_itc=False,
-                       n_jobs=1)
+power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
+                            use_fft=True, time_bandwidth=time_bandwidth,
+                            return_itc=True, n_jobs=1)
 
-# Baseline correction can be applied to power or done in plots
-# To illustrate the baseline correction in plots the next line is commented
-# power.apply_baseline(baseline=(-0.5, 0), mode='zlogratio')
 
-# Plot power. BAseline correct using z-score in log-scale.
-power.plot([0], baseline=(-0.5, 0), mode='zlogratio', vmin=-10, vmax=50)
+# Plot results after baseline correction
+power.plot([0], baseline=(-0.5, 0), mode='mean', title='MEG 1142 - Power')
+itc.plot([0], baseline=(-0.5, 0), mode='mean',
+         title='MEG 1142 - Intertrial Coherence')
