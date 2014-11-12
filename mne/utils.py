@@ -858,8 +858,12 @@ def get_subjects_dir(subjects_dir=None, raise_error=False):
     return subjects_dir
 
 
+_temp_home_dir = None
+
+
 def _get_extra_data_path(home_dir=None):
     """Get path to extra data (config, tables, etc.)"""
+    global _temp_home_dir
     if home_dir is None:
         # this has been checked on OSX64, Linux64, and Win32
         if 'nt' == os.name.lower():
@@ -872,9 +876,11 @@ def _get_extra_data_path(home_dir=None):
             # launched via Upstart) then the HOME environment variable will
             # not be set.
             if os.getenv('MNE_DONTWRITE_HOME', '') == 'true':
-                home_dir = tempfile.mkdtemp()
-                atexit.register(partial(shutil.rmtree, home_dir,
-                                        ignore_errors=True))
+                if _temp_home_dir is None:
+                    _temp_home_dir = tempfile.mkdtemp()
+                    atexit.register(partial(shutil.rmtree, _temp_home_dir,
+                                            ignore_errors=True))
+                home_dir = _temp_home_dir
             else:
                 home_dir = os.path.expanduser('~')
 
