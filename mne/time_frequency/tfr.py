@@ -972,7 +972,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
 @verbose
 def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
                        use_fft=True, n_cycles=7, decim=1, n_jobs=1,
-                       zero_mean=False, verbose=None):
+                       zero_mean=True, verbose=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with DPSS wavelets
@@ -1000,7 +1000,7 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
         The number of CPUs used in parallel. All CPUs are used in -1.
         Requires joblib package. Defaults to 1.
     zero_mean : bool
-        Make sure the wavelets are zero mean. Defaults to False.
+        Make sure the wavelets are zero mean. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1008,7 +1008,7 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     -------
     power : np.ndarray, shape (n_channels, n_frequencies, n_times)
         Induced power. Squared amplitude of time-frequency coefficients.
-    plv : np.ndarray, shape (n_channels, n_frequencies, n_times)
+    itc : np.ndarray, shape (n_channels, n_frequencies, n_times)
         Phase locking value.
     """
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
@@ -1024,43 +1024,43 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     logger.info('Using %d tapers', n_taps)
     n_times_wavelets = Ws[0][0].shape[0]
     if n_times <= n_times_wavelets:
-        warnings.warn("Time windows are as long or longer than the epoch."
+        warnings.warn("Time windows are as long or longer than the epoch. "
                       "Consider reducing n_cycles.")
-    psd, plv = 0., 0.
+    psd, itc = 0., 0.
     for m in range(n_taps):  # n_taps is typically small, better to save RAM
         if n_jobs == 1:
             psd_m = np.empty((n_channels, n_frequencies, n_times))
-            plv_m = np.empty((n_channels, n_frequencies, n_times),
+            itc_m = np.empty((n_channels, n_frequencies, n_times),
                              dtype=np.complex)
 
             for c in range(n_channels):
                 logger.debug('Analysing channel #%d', c)
                 X = data[:, c, :]
-                this_psd, this_plv = _time_frequency(X, Ws[m], use_fft)
-                psd_m[c], plv_m[c] = this_psd[:, ::decim], this_plv[:, ::decim]
+                this_psd, this_itc = _time_frequency(X, Ws[m], use_fft)
+                psd_m[c], itc_m[c] = this_psd[:, ::decim], this_itc[:, ::decim]
         else:
             parallel, my_time_frequency, _ = parallel_func(_time_frequency,
                                                            n_jobs)
 
-            psd_plv = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
+            psd_itc = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
                                                  Ws[m], use_fft)
                                for c in range(n_channels))
 
             psd_m = np.zeros((n_channels, n_frequencies, n_times))
-            plv_m = np.zeros((n_channels, n_frequencies, n_times),
+            itc_m = np.zeros((n_channels, n_frequencies, n_times),
                              dtype=np.complex)
-            for c, (psd_c, plv_c) in enumerate(psd_plv):
+            for c, (psd_c, itc_c) in enumerate(psd_itc):
                 psd_m[c, :, :] = psd_c[:, ::decim]
-                plv_m[c, :, :] = plv_c[:, ::decim]
+                itc_m[c, :, :] = itc_c[:, ::decim]
 
         psd_m /= n_epochs
-        plv_m = np.abs(plv_m) / n_epochs
+        itc_m = np.abs(itc_m) / n_epochs
         psd += psd_m
-        plv += plv_m
+        itc += itc_m
 
     psd /= n_taps
-    plv /= n_taps
-    return psd, plv
+    itc /= n_taps
+    return psd, itc
 
 
 def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
@@ -1114,7 +1114,7 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                                     frequencies=freqs, n_cycles=n_cycles,
                                     time_bandwidth=time_bandwidth,
                                     use_fft=use_fft, decim=decim,
-                                    n_jobs=n_jobs, zero_mean=False,
+                                    n_jobs=n_jobs, zero_mean=True,
                                     verbose='INFO')
     times = epochs.times[::decim].copy()
     nave = len(data)

@@ -13,7 +13,7 @@ print(__doc__)
 
 import numpy as np
 from mne import create_info, EpochsArray
-from mne.time_frequency import tfr_multitaper
+from mne.time_frequency import tfr_multitaper, tfr_morlet
 
 ###############################################################################
 # Simulate data
@@ -31,12 +31,12 @@ rng = np.random.RandomState(seed)
 noise = rng.randn(n_epochs, len(ch_names), n_times)
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
-t = np.arange(n_times) / sfreq
+t = np.arange(n_times, dtype=np.float) / sfreq
 signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
 signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
 signal[on_time] *= np.hanning(on_time.sum())  # Ramping
-dat = noise + signal
+data = noise + signal
 
 reject = dict(grad=4000)
 events = np.empty((n_epochs, 3))
@@ -45,7 +45,7 @@ event_id = dict(Sin50Hz=1)
 for k in range(n_epochs):
     events[k, :] = first_event_sample + k * n_times, 0, event_id['Sin50Hz']
 
-epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
+epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
                      reject=reject)
 
 
@@ -85,3 +85,10 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 # Plot results. Baseline correct based on first 100 ms.
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
+
+
+# Finally, compare to morlet wavelet
+n_cycles = freqs / 2.
+power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
+power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
+           title='Sim: Using Morlet wavelet')
