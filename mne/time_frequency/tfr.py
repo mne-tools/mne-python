@@ -732,7 +732,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         s = "time : [%f, %f]" % (self.times[0], self.times[-1])
         s += ", freq : [%f, %f]" % (self.freqs[0], self.freqs[-1])
         s += ", nave : %d" % self.nave
-        s += ', channels : %d' % self.data.shape[1]
+        s += ', channels : %d' % self.data.shape[0]
         return "<AverageTFR  |  %s>" % s
 
     def apply_baseline(self, baseline, mode='mean'):
