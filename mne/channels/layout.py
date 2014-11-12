@@ -773,8 +773,8 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     ----------
     kind : str
         The name of the montage file (e.g. kind='easycap-M10' for
-        'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd'
-        or '.sfp' are supported.
+        'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
+        '.elp' or '.sfp' are supported.
     ch_names : list of str | None
         The names to read. If None, all names are returned.
     path : str | None
@@ -792,7 +792,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
-        supported = ('.elc', '.txt', '.csd', '.sfp')
+        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -848,6 +848,28 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         phi = (2 * np.pi * table['phi']) / 360.
         pos = _sphere_to_cartesian(theta, phi, r=1.0)
         pos = np.asarray(pos).T
+    elif ext == '.elp':
+        # standard BESA spherical
+        dtype = np.dtype('S8, S8, f8, f8, f8')
+        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+
+        az = data['f2']
+        horiz  = data['f3']
+
+        radius = np.abs(az/180)
+        angles = np.array([90-h if a>=0 else -90-h for h, a in zip(horiz, az)])
+
+        sph_phi = (0.5-radius)*180
+        sph_theta = angles
+
+        azimuth = sph_theta/180*np.pi
+        elevation = sph_phi/180*np.pi
+        r = 85
+
+        y,x,z = _sphere_to_cartesian(azimuth, elevation, r)
+
+        pos = np.c_[x,y,z]
+        ch_names_ = data['f1'].astype(np.str)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
