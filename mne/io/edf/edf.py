@@ -25,6 +25,7 @@ from ..constants import FIFF
 from ...coreg import get_ras_to_neuromag_trans
 from ...filter import resample
 from ...externals.six.moves import zip
+from ...channels.layout import read_montage, apply_montage
 
 
 class RawEDF(_BaseRaw):
@@ -60,8 +61,8 @@ class RawEDF(_BaseRaw):
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
 
-    hpts : str | None
-        Path to the hpts file containing electrode positions.
+    montage : str | None
+        Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
     preload : bool
@@ -81,14 +82,20 @@ class RawEDF(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, hpts=None, preload=False,
-                 verbose=None):
+                 annotmap=None, tal_channel=None, montage=None, preload=False,
+                 verbose=None, **kwargs):
+        if 'hpts' in kwargs:
+            logger.warning('This keyword argument is deprecated and will be '
+                           'removed in 0.10. Please use the argument ' 
+                           '`montage`.')
+            montage=kwargs['hpts']
+        
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
                                                   stim_channel, annot,
                                                   annotmap, tal_channel,
-                                                  hpts, preload)
+                                                  montage, preload)
         logger.info('Creating Raw.info structure...')
 
         if bool(annot) != bool(annotmap):
@@ -377,7 +384,7 @@ def _parse_tal_channel(tal_channel_data):
 
 
 def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
-                  hpts, preload):
+                  montage, preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
@@ -410,8 +417,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
 
-    hpts : str | None
-        Path to the hpts file containing electrode positions.
+    montage : str | None
+        Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
 
     preload : bool
@@ -553,6 +560,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
 
+###
     if hpts and os.path.lexists(hpts):
         with open(hpts, 'rb') as fid:
             ff = fid.read().decode()
@@ -569,6 +577,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
                                           rpa=locs['3'])
         for loc in locs:
             locs[loc] = apply_trans(trans, locs[loc])
+###
         info['dig'] = []
 
         point_dict = {}
