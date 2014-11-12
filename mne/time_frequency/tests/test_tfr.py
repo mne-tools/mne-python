@@ -125,7 +125,7 @@ def test_dpsswavelet():
 
 
 def test_tfr_multitaper():
-    """ Some tests for tfr_mtm() """
+    """ Some tests for tfr_multitaper() """
     sfreq = 1000.0
     ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
     ch_types = ['grad', 'grad', 'grad']
@@ -136,7 +136,7 @@ def test_tfr_multitaper():
     seed = 42
     rng = np.random.RandomState(seed)
     noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
-    t = np.arange(n_times) / sfreq
+    t = np.arange(n_times, dtype=np.float) / sfreq
     signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
     signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
     on_time = np.logical_and(t >= 0.45, t <= 0.55)
@@ -158,6 +158,6 @@ def test_tfr_multitaper():
                                 time_bandwidth=4.0)
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
-    assert_true(tmax > 0.4 and tmax < 0.6)
+    assert_true(tmax > 0.3 and tmax < 0.7)
     assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)
