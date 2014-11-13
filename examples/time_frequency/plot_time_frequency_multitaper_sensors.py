@@ -37,7 +37,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 ###############################################################################
 # Calculate power
 
-freqs = np.arange(5, 50, 2)  # define frequencies of interest
+freqs = np.arange(5., 50., 2.)  # define frequencies of interest
 n_cycles = freqs / 2.  # 0.5 second time windows for all frequencies
 
 # Choose time x (full) bandwidth product
@@ -50,5 +50,4 @@ power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 
 # Plot results after baseline correction
 power.plot([0], baseline=(-0.5, 0), mode='mean', title='MEG 1142 - Power')
-itc.plot([0], baseline=(-0.5, 0), mode='mean',
-         title='MEG 1142 - Intertrial Coherence')
+itc.plot([0], title='MEG 1142 - Intertrial Coherence')
