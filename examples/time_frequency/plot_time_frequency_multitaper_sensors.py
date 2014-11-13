@@ -1,9 +1,11 @@
 """
-==============================================================
+===============================================
 Time-frequency analysis using multitaper method
-==============================================================
+===============================================
 
-Plot rendered so that baseline is mean zero.
+This examples computes induced power and intertrial
+coherence (ITC) using a multitaper method on a somato sensory MEG data.
+The power plot is rendered so that baseline is mean zero.
 """
 print(__doc__)
 
@@ -47,7 +49,6 @@ power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, time_bandwidth=time_bandwidth,
                             return_itc=True, n_jobs=1)
 
-
-# Plot results after baseline correction
+# Plot results (with baseline correction only for power)
 power.plot([0], baseline=(-0.5, 0), mode='mean', title='MEG 1142 - Power')
 itc.plot([0], title='MEG 1142 - Intertrial Coherence')
