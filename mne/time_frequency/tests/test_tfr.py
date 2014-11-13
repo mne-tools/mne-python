@@ -124,34 +124,34 @@ def test_dpsswavelet():
 
 def test_tfr_multitaper():
     """ Some tests for tfr_multitaper() """
-    sfreq = 1000.0
+    sfreq = 200.0
     ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
     ch_types = ['grad', 'grad', 'grad']
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
     n_times = int(sfreq)  # Second long epochs
-    n_epochs = 40
+    n_epochs = 3
     seed = 42
     rng = np.random.RandomState(seed)
     noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
     t = np.arange(n_times, dtype=np.float) / sfreq
-    signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
-    signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
+    signal = np.sin(np.pi * 2.* 50. * t)  # 50 Hz sinusoid signal
+    signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
     on_time = np.logical_and(t >= 0.45, t <= 0.55)
     signal[on_time] *= np.hanning(on_time.sum())  # Ramping
     dat = noise + signal
 
-    reject = dict(grad=4000)
+    reject = dict(grad=4000.)
     events = np.empty((n_epochs, 3))
     first_event_sample = 100
-    event_id = dict(Sin50Hz=1)
+    event_id = dict(sin50hz=1)
     for k in range(n_epochs):
-        events[k, :] = first_event_sample + k * n_times, 0, event_id['Sin50Hz']
+        events[k, :] = first_event_sample + k * n_times, 0, event_id['sin50hz']
 
     epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
                          reject=reject)
 
-    freqs = np.arange(5, 100, 3)
+    freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
