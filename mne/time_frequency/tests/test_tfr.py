@@ -4,9 +4,10 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_false, assert_equal
 
 import mne
-from mne import io, Epochs, read_events, pick_types
+from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
+from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -40,7 +41,7 @@ def test_time_frequency():
 
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg='grad', eeg=False,
-                            stim=False, include=include, exclude=exclude)
+                       stim=False, include=include, exclude=exclude)
 
     picks = picks[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -60,11 +61,9 @@ def test_time_frequency():
                             use_fft=True, return_itc=True)
 
     print(itc)  # test repr
-    print(itc.ch_names) # test property
-    itc = itc + power # test add
-    itc = itc - power # test add
-    itc -= power
-    itc += power
+    print(itc.ch_names)  # test property
+    itc += power  # test add
+    itc -= power  # test add
 
     power.apply_baseline(baseline=(-0.1, 0), mode='logratio')
 
@@ -107,3 +106,56 @@ def test_time_frequency():
     mne.equalize_channels([power_pick, power_drop])
     assert_equal(power_pick.ch_names, power_drop.ch_names)
     assert_equal(power_pick.data.shape, power_drop.data.shape)
+
+
+def test_dpsswavelet():
+    """Some tests for DPSS wavelet"""
+    freqs = np.arange(5, 25, 3)
+    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2.,
+                       time_bandwidth=4.0, zero_mean=True)
+
+    assert_true(len(Ws) == 3)  # 3 tapers expected
+
+    # Check that zero mean is true
+    assert_true(np.abs(np.mean(np.real(Ws[0][0]))) < 1e-5)
+
+    assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
+
+
+def test_tfr_multitaper():
+    """ Some tests for tfr_multitaper() """
+    sfreq = 1000.0
+    ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
+    ch_types = ['grad', 'grad', 'grad']
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+
+    n_times = int(sfreq)  # Second long epochs
+    n_epochs = 40
+    seed = 42
+    rng = np.random.RandomState(seed)
+    noise = 0.1 * rng.randn(n_epochs, len(ch_names), n_times)
+    t = np.arange(n_times, dtype=np.float) / sfreq
+    signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
+    signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
+    on_time = np.logical_and(t >= 0.45, t <= 0.55)
+    signal[on_time] *= np.hanning(on_time.sum())  # Ramping
+    dat = noise + signal
+
+    reject = dict(grad=4000)
+    events = np.empty((n_epochs, 3))
+    first_event_sample = 100
+    event_id = dict(Sin50Hz=1)
+    for k in range(n_epochs):
+        events[k, :] = first_event_sample + k * n_times, 0, event_id['Sin50Hz']
+
+    epochs = EpochsArray(data=dat, info=info, events=events, event_id=event_id,
+                         reject=reject)
+
+    freqs = np.arange(5, 100, 3)
+    power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
+                                time_bandwidth=4.0)
+    tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
+    fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
+    assert_true(tmax > 0.3 and tmax < 0.7)
+    assert_false(np.any(itc.data < 0.))
+    assert_true(fmax > 40 and fmax < 60)

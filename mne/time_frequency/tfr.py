@@ -20,6 +20,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
+from .multitaper import dpss_windows
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -83,6 +84,68 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
         W = oscillation * gaussian_enveloppe
         W /= sqrt(0.5) * linalg.norm(W.ravel())
         Ws.append(W)
+    return Ws
+
+
+def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
+                  zero_mean=False):
+    """Compute Wavelets for the given frequency range
+
+    Parameters
+    ----------
+    sfreq : float
+        Sampling Frequency
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+        Defaults to 7.
+    time_bandwidth : float, (optional)
+        Time x Bandwidth product.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(time_bandwidth - 1).
+        Default is 4.0, giving 3 good tapers.
+
+    Returns
+    -------
+    Ws : list of array
+        Wavelets time series
+    """
+    Ws = list()
+    if time_bandwidth < 2.0:
+        raise ValueError("time_bandwidth should be >= 2.0 for good tapers")
+    n_taps = int(np.floor(time_bandwidth - 1))
+    n_cycles = np.atleast_1d(n_cycles)
+
+    if n_cycles.size != 1 and n_cycles.size != len(freqs):
+        raise ValueError("n_cycles should be fixed or defined for "
+                         "each frequency.")
+    for m in range(n_taps):
+        Wm = list()
+        for k, f in enumerate(freqs):
+            if len(n_cycles) != 1:
+                this_n_cycles = n_cycles[k]
+            else:
+                this_n_cycles = n_cycles[0]
+
+            t_win = this_n_cycles / f
+            t = np.arange(0, t_win, 1.0 / sfreq)
+            # Making sure wavelets are centered before tapering
+            oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win / 2.))
+
+            # Get dpss tapers
+            tapers, conc = dpss_windows(t.shape[0], time_bandwidth / 2.,
+                                        n_taps)
+
+            Wk = oscillation * tapers[m]
+            if zero_mean:  # to make it zero mean
+                real_offset = Wk.mean()
+                Wk -= real_offset
+            Wk /= sqrt(0.5) * linalg.norm(Wk.ravel())
+
+            Wm.append(Wk)
+
+        Ws.append(Wm)
     return Ws
 
 
@@ -518,7 +581,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True, verbose=None):
+             cmap='RdBu_r', dB=False, colorbar=True, show=True,
+             title=None, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -571,6 +635,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             on the canvas
         show : bool
             Call pyplot.show() at the end.
+        title : str | None
+            String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
@@ -590,7 +656,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
-                        picker=False, cmap=cmap)
+                        picker=False, cmap=cmap, title=title)
 
         if show:
             import matplotlib.pyplot as plt
@@ -895,6 +961,161 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                                 n_cycles=n_cycles, n_jobs=n_jobs,
                                 use_fft=use_fft, decim=decim,
                                 zero_mean=True)
+    times = epochs.times[::decim].copy()
+    nave = len(data)
+    out = AverageTFR(info, power, times, freqs, nave)
+    if return_itc:
+        out = (out, AverageTFR(info, itc, times, freqs, nave))
+    return out
+
+
+@verbose
+def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
+                       use_fft=True, n_cycles=7, decim=1, n_jobs=1,
+                       zero_mean=True, verbose=None):
+    """Compute time induced power and inter-trial phase-locking factor
+
+    The time frequency decomposition is done with DPSS wavelets
+
+    Parameters
+    ----------
+    data : np.ndarray, shape (n_epochs, n_channels, n_times)
+        The input data.
+    sfreq : float
+        sampling Frequency
+    frequencies : np.ndarray, shape (n_frequencies,)
+        Array of frequencies of interest
+    time_bandwidth : float
+        Time x (Full) Bandwidth product.
+        The number of good tapers (low-bias) is chosen automatically based on
+        this to equal floor(time_bandwidth - 1). Default is 4.0 (3 tapers).
+    use_fft : bool
+        Compute transform with fft based convolutions or temporal
+        convolutions. Defaults to True.
+    n_cycles : float | np.ndarray shape (n_frequencies,)
+        Number of cycles. Fixed number or one per frequency. Defaults to 7.
+    decim: int
+        Temporal decimation factor. Defaults to 1.
+    n_jobs : int
+        The number of CPUs used in parallel. All CPUs are used in -1.
+        Requires joblib package. Defaults to 1.
+    zero_mean : bool
+        Make sure the wavelets are zero mean. Defaults to True.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    power : np.ndarray, shape (n_channels, n_frequencies, n_times)
+        Induced power. Squared amplitude of time-frequency coefficients.
+    itc : np.ndarray, shape (n_channels, n_frequencies, n_times)
+        Phase locking value.
+    """
+    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    logger.info('Data is %d trials and %d channels', n_epochs, n_channels)
+    n_frequencies = len(frequencies)
+    logger.info('Multitaper time-frequency analysis for %d frequencies',
+                n_frequencies)
+
+    # Precompute wavelets for given frequency range to save time
+    Ws = _dpss_wavelet(sfreq, frequencies, n_cycles=n_cycles,
+                       time_bandwidth=time_bandwidth, zero_mean=zero_mean)
+    n_taps = len(Ws)
+    logger.info('Using %d tapers', n_taps)
+    n_times_wavelets = Ws[0][0].shape[0]
+    if n_times <= n_times_wavelets:
+        warnings.warn("Time windows are as long or longer than the epoch. "
+                      "Consider reducing n_cycles.")
+    psd, itc = 0., 0.
+    for m in range(n_taps):  # n_taps is typically small, better to save RAM
+        if n_jobs == 1:
+            psd_m = np.empty((n_channels, n_frequencies, n_times))
+            itc_m = np.empty((n_channels, n_frequencies, n_times),
+                             dtype=np.complex)
+
+            for c in range(n_channels):
+                logger.debug('Analysing channel #%d', c)
+                X = data[:, c, :]
+                this_psd, this_itc = _time_frequency(X, Ws[m], use_fft)
+                psd_m[c], itc_m[c] = this_psd[:, ::decim], this_itc[:, ::decim]
+        else:
+            parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                           n_jobs)
+
+            psd_itc = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
+                                                 Ws[m], use_fft)
+                               for c in range(n_channels))
+
+            psd_m = np.zeros((n_channels, n_frequencies, n_times))
+            itc_m = np.zeros((n_channels, n_frequencies, n_times),
+                             dtype=np.complex)
+            for c, (psd_c, itc_c) in enumerate(psd_itc):
+                psd_m[c, :, :] = psd_c[:, ::decim]
+                itc_m[c, :, :] = itc_c[:, ::decim]
+
+        psd_m /= n_epochs
+        itc_m = np.abs(itc_m) / n_epochs
+        psd += psd_m
+        itc += itc_m
+
+    psd /= n_taps
+    itc /= n_taps
+    return psd, itc
+
+
+def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
+                   return_itc=True, decim=1, n_jobs=1):
+    """Compute Time-Frequency Representation (TFR) using DPSS wavelets
+
+    Parameters
+    ----------
+    epochs : Epochs
+        The epochs.
+    freqs : ndarray, shape (n_freqs,)
+        The frequencies in Hz.
+    n_cycles : float | ndarray, shape (n_freqs,)
+        The number of cycles globally or for each frequency.
+        The time-window length is thus T = n_cycles / freq.
+    time_bandwidth : float, (optional)
+        Time x (Full) Bandwidth product. Should be >= 2.0.
+        Choose this along with n_cycles to get desired frequency resolution.
+        The number of good tapers (least leakage from far away frequencies)
+        is chosen automatically based on this to floor(time_bandwidth - 1).
+        Default is 4.0 (3 good tapers).
+        E.g., With freq = 20 Hz and n_cycles = 10, we get time = 0.5 s.
+        If time_bandwidth = 4., then frequency smoothing is (4 / time) = 8 Hz.
+    use_fft : bool
+        The fft based convolution or not.
+        Defaults to True.
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
+        Defaults to True.
+    decim : int
+        The decimation factor on the time axis. To reduce memory usage.
+        Note than this is brute force decimation, no anti-aliasing is done.
+        Defaults to 1.
+    n_jobs : int
+        The number of jobs to run in parallel. Defaults to 1.
+
+    Returns
+    -------
+    power : AverageTFR
+        The averaged power.
+    itc : AverageTFR
+        The intertrial coherence (ITC). Only returned if return_itc
+        is True.
+    """
+
+    data = epochs.get_data()
+    picks = pick_types(epochs.info, meg=True, eeg=True)
+    info = pick_info(epochs.info, picks)
+    data = data[:, picks, :]
+    power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
+                                    frequencies=freqs, n_cycles=n_cycles,
+                                    time_bandwidth=time_bandwidth,
+                                    use_fft=use_fft, decim=decim,
+                                    n_jobs=n_jobs, zero_mean=True,
+                                    verbose='INFO')
     times = epochs.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)
