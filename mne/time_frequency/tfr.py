@@ -1,10 +1,11 @@
-"""A module which implements the continuous wavelet transform
-with complex Morlet wavelets.
+"""A module which implements the time frequency estimation.
 
-Author : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr (2011)
+Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr
+          Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
+
 License : BSD 3-clause
 
-inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
+Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
 
 import warnings
@@ -74,7 +75,7 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
             sigma_t = this_n_cycles / (2.0 * np.pi * sigma)
         # this scaling factor is proportional to (Tallon-Baudry 98):
         # (sigma_t*sqrt(pi))^(-1/2);
-        t = np.arange(0, 5 * sigma_t, 1.0 / sfreq)
+        t = np.arange(0., 5. * sigma_t, 1.0 / sfreq)
         t = np.r_[-t[::-1], t[1:]]
         oscillation = np.exp(2.0 * 1j * np.pi * f * t)
         gaussian_enveloppe = np.exp(-t ** 2 / (2.0 * sigma_t ** 2))
@@ -94,7 +95,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
     Parameters
     ----------
     sfreq : float
-        Sampling Frequency
+        Sampling Frequency.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -120,6 +121,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
     if n_cycles.size != 1 and n_cycles.size != len(freqs):
         raise ValueError("n_cycles should be fixed or defined for "
                          "each frequency.")
+
     for m in range(n_taps):
         Wm = list()
         for k, f in enumerate(freqs):
@@ -128,8 +130,8 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
             else:
                 this_n_cycles = n_cycles[0]
 
-            t_win = this_n_cycles / f
-            t = np.arange(0, t_win, 1.0 / sfreq)
+            t_win = this_n_cycles / float(f)
+            t = np.arange(0., t_win, 1.0 / sfreq)
             # Making sure wavelets are centered before tapering
             oscillation = np.exp(2.0 * 1j * np.pi * f * (t - t_win / 2.))
 
@@ -146,6 +148,7 @@ def _dpss_wavelet(sfreq, freqs, n_cycles=7, time_bandwidth=4.0,
             Wm.append(Wk)
 
         Ws.append(Wm)
+
     return Ws
 
 
