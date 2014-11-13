@@ -1,9 +1,11 @@
 """
-==============================================================
-Multitaper time-frequency on simulated data
-==============================================================
+========================================================
+Time-frequency on simulated data (Multitaper vs. Morlet)
+========================================================
 
-Time-frequency resolution and trade-off with variance.
+This examples demonstrates on simulated data the different time-frequency
+estimation methods. It shows the time-frequency resolution trade-off
+and the problem of estimation variance.
 """
 print(__doc__)
 
@@ -17,14 +19,13 @@ from mne.time_frequency import tfr_multitaper, tfr_morlet
 
 ###############################################################################
 # Simulate data
-###############################################################################
 
 sfreq = 1000.0
 ch_names = ['SIM0001', 'SIM0002']
 ch_types = ['grad', 'grad']
 info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
-n_times = int(sfreq)  # Second long epochs
+n_times = int(sfreq)  # 1 second long epochs
 n_epochs = 40
 seed = 42
 rng = np.random.RandomState(seed)
@@ -32,8 +33,8 @@ noise = rng.randn(n_epochs, len(ch_names), n_times)
 
 # Add a 50 Hz sinusoidal burst to the noise and ramp it.
 t = np.arange(n_times, dtype=np.float) / sfreq
-signal = np.sin(np.pi * 2 * 50 * t)  # 50 Hz sinusoid signal
-signal[np.logical_or(t < 0.45, t > 0.55)] = 0  # Hard windowing
+signal = np.sin(np.pi * 2. * 50. * t)  # 50 Hz sinusoid signal
+signal[np.logical_or(t < 0.45, t > 0.55)] = 0.  # Hard windowing
 on_time = np.logical_and(t >= 0.45, t <= 0.55)
 signal[on_time] *= np.hanning(on_time.sum())  # Ramping
 data = noise + signal
@@ -41,18 +42,17 @@ data = noise + signal
 reject = dict(grad=4000)
 events = np.empty((n_epochs, 3))
 first_event_sample = 100
-event_id = dict(Sin50Hz=1)
+event_id = dict(sin50hz=1)
 for k in range(n_epochs):
-    events[k, :] = first_event_sample + k * n_times, 0, event_id['Sin50Hz']
+    events[k, :] = first_event_sample + k * n_times, 0, event_id['sin50hz']
 
 epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
                      reject=reject)
 
 
-#############################################
+###############################################################################
 # Consider different parameter possibilities
-#############################################
-freqs = np.arange(5, 100, 3)
+freqs = np.arange(5., 100., 3.)
 
 # You can trade time resolution or frequency resolution or both
 # in order to get a reduction in variance
