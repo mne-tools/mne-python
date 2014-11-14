@@ -52,13 +52,14 @@ epochs.equalize_event_counts(event_id, copy=False)
 # subtend the detection of unexpected sounds", PLOS ONE, 2013
 
 # Define events of interest
-y_vis_audio = (epochs.events[:, 2] <= 2).astype(np.int)
+events = epochs.events[:, 2]
+viz_vs_auditory = np.in1d(events, (1, 2)).astype(int)
 
 gat = GeneralizationAcrossTime(predict_mode='cross-validation')
 
 # fit and score
-gat.fit(epochs, y=y_vis_audio)
-gat.score(epochs, y=y_vis_audio)
+gat.fit(epochs, y=viz_vs_auditory)
+gat.score(epochs, y=viz_vs_auditory)
 gat.plot_diagonal()  # plot decoding across time (correspond to GAT diagonal)
 gat.plot()  # plot full GAT matrix
 
@@ -70,12 +71,24 @@ gat.plot()  # plot full GAT matrix
 # representations: the temporal generalization method', Trends In Cognitive
 # Sciences, 18(4), 203-210.
 
-# Train on visual versus audio: left stimuli only.
-# Test on visual versus audio: right stimuli only.
-# In this case, because the test data is independent, we test the
-# classifier of each folds and average their respective prediction:
+# We will train the classifier on all left visual vs auditory trials
+# and test on all right visual vs auditory trials
 
+# In this case, because the test data is independent from the train data,
+# we test the classifier of each fold and average the respective prediction:
 gat.predict_mode = 'mean-prediction'
-gat.fit(epochs[('AudL', 'VisL')])
-gat.score(epochs[('AudR', 'VisR')])
+
+
+# For our left events, which ones are visual?
+viz_vs_auditory_l = (events[np.in1d(events, (1, 3))] == 3).astype(int)
+# To make scikit-learn happy, we converted the bool array to integers
+# in the same line. This results in an array of zeros and ones:
+print np.unique(viz_vs_auditory_l)
+
+gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
+
+# For our right events, which ones are visual?
+viz_vs_auditory_r = (events[np.in1d(events, (2, 4))] == 4).astype(int)
+
+gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
 gat.plot()

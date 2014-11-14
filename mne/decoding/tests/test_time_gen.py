@@ -71,6 +71,13 @@ def test_generalization_across_time():
     gat.score(epochs)
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
+    epochs2 = epochs.copy()
+
+    # the y-check
+    gat.predict_mode = 'mean-prediction'
+    epochs2.events[:, 2] += 10
+    assert_raises(ValueError, gat.score, epochs2)
+    gat.predict_mode = 'cross-validation'
 
     # Test basics
     # --- number of trials
@@ -133,7 +140,14 @@ def test_generalization_across_time():
     svc = SVC(C=1, kernel='linear', probability=True)
     gat = GeneralizationAcrossTime(clf=svc, predict_type='proba')
     gat.fit(epochs)
-    scores = gat.score(epochs)
+
+    # sklearn needs it: c.f.
+    # https://github.com/scikit-learn/scikit-learn/issues/2723
+    # and http://bit.ly/1u7t8UT
+    assert_raises(ValueError, gat.score, epochs)
+    epochs.events[:, 2][epochs.events[:, 2] == 1] = 0
+    epochs.events[:, 2][epochs.events[:, 2] == 3] = 1
+    gat.score(epochs)
     scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)

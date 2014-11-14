@@ -7,7 +7,7 @@
 import multiprocessing
 
 import numpy as np
-from scipy.stats import mode, rankdata
+from scipy.stats import mode
 
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func
@@ -213,7 +213,6 @@ class GeneralizationAcrossTime(object):
                                n_prediction_dim)
             Class labels for samples in X.
         """
-        from sklearn.cross_validation import check_cv
         if picks is None:
             picks = pick_types(epochs.info, meg=True, eeg=True,
                                exclude='bads')
@@ -330,9 +329,10 @@ class GeneralizationAcrossTime(object):
                 y = self.y_train_
             else:
                 y = epochs.events[:, 2]
-            # make sure it's int
-            y = (rankdata(y, 'dense') - 1).astype(np.int)
-
+            if not np.all(np.unique(y) == np.unique(self.y_train_)):
+                raise ValueError('Classes (y) passed differ from classes used for'
+                                 ' training. Please explicitly pass your y for '
+                                 'scoring.')
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Setup scorer
@@ -544,7 +544,6 @@ def _check_epochs_input(epochs, y, picks):
     """
     if y is None:
         y = epochs.events[:, 2]
-        y = (rankdata(y, 'dense') - 1).astype(np.int)
 
     # Convert MNE data into trials x features x time matrix
     X = epochs.get_data()[:, picks, :]
