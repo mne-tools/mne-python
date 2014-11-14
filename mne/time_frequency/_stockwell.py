@@ -95,7 +95,7 @@ def _check_input_st(x_in, n_fft, verbose):
 
     zero_pad = None
     if n_times < n_fft:
-        msg = ('The input signal is shorter ({}) than "n_fft" ({}). '
+        msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
         logger.warn(msg)
         if not _is_power_of_two(n_fft):
