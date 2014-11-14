@@ -923,7 +923,7 @@ class ICA(ContainsMixin):
         """Detect EOG related components using correlation
 
         Detection is based on Pearson correlation between the
-        filtered data and the filtered ECG channel.
+        filtered data and the filtered EOG channel.
         Thresholding is based on adaptive z-scoring. The above threshold
         components will be masked and the z-score will be recomputed
         until no supra-threshold component remains.
@@ -933,7 +933,7 @@ class ICA(ContainsMixin):
         inst : instance of Raw, Epochs or Evoked
             Object to compute sources from.
         ch_name : str
-            The name of the channel to use for ECG peak detection.
+            The name of the channel to use for EOG peak detection.
             The argument is mandatory if the dataset contains no ECG
             channels.
         threshold : int | float
