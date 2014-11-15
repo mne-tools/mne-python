@@ -35,40 +35,32 @@ class RawEDF(_BaseRaw):
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-
     n_eeg : int | None
         Number of EEG electrodes.
         If None, all channels are considered EEG.
-
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
         If None, there will be no stim channel added.
-
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
         annotation file to interpret stim channel).
-
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-
     tal_channel : int | None
         The channel index (starting at 0).
         Index of the channel containing EDF+ annotations.
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-
     montage : str | None
         Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -83,13 +75,7 @@ class RawEDF(_BaseRaw):
     @verbose
     def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
                  annotmap=None, tal_channel=None, montage=None, preload=False,
-                 verbose=None, **kwargs):
-        if 'hpts' in kwargs:
-            logger.warning('This keyword argument is deprecated and will be '
-                           'removed in 0.10. Please use the argument ' 
-                           '`montage`.')
-            montage=kwargs['hpts']
-        
+                 verbose=None, **kwargs):        
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
@@ -97,6 +83,29 @@ class RawEDF(_BaseRaw):
                                                   annotmap, tal_channel,
                                                   montage, preload)
         logger.info('Creating Raw.info structure...')
+        if 'hpts' in kwargs:
+            logger.warning('This keyword argument is deprecated and will be '
+                           'removed in 0.10. Please use the argument ' 
+                           '`montage`.')
+            montage=kwargs['hpts']
+        if montage:
+            montage_path = os.dirname(montage)
+            m = read_montage(montage, path=montage_path, scale=True)
+            apply_montage(self.info, m)
+
+            missing_positions = []    
+            for ch in self.info['chs']:
+                if not ch['kind'] == FIFF.FIFFV_EOG_CH:
+                    if ch['loc'] == np.zeros(12):
+                        missing_positions.append(ch['ch_name'])
+
+            # raise error if positions are missing
+            if missing_positions:
+                err = ("The following positions are missing from the ELP "
+                       "definitions: %s. If those channels lack positions "
+                       "because they are EOG channels use the eog  parameter" 
+                       % str(missing_positions))
+                raise KeyError(err)
 
         if bool(annot) != bool(annotmap):
             warnings.warn(("Stimulus Channel will not be annotated. "
@@ -151,17 +160,13 @@ class RawEDF(_BaseRaw):
         start : int, (optional)
             first sample to include (first is 0). If omitted, defaults to the
             first sample in data.
-
         stop : int, (optional)
             First sample to not include.
             If omitted, data is included to the end.
-
         sel : array, optional
             Indices of channels to select.
-
         projector : array
             SSP operator to apply to the data.
-
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -169,7 +174,6 @@ class RawEDF(_BaseRaw):
         -------
         data : array, [channels x samples]
            the data matrix (channels x samples).
-
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
@@ -384,43 +388,33 @@ def _parse_tal_channel(tal_channel_data):
 
 
 def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
-                  montage, preload):
+                  preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
     ----------
     fname : str
         Raw EDF+,BDF file to be read.
-
     n_eeg : int | None
         Number of EEG electrodes.
         If None, all channels are considered EEG.
-
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel.
         If None, there will be no stim channel added.
-
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
         annotation file to interpret stim channel).
-
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-
     tal_channel : int | None
         The channel index (starting at 0).
         Index of the channel containing EDF+ annotations.
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-
-    montage : str | None
-        Path to the montage file containing electrode positions.
-        If None, sensor locations are (0,0,0).
-
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -559,58 +553,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
-
-###
-    if hpts and os.path.lexists(hpts):
-        with open(hpts, 'rb') as fid:
-            ff = fid.read().decode()
-        locs = {}
-        temp = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
-                          ff)
-        temp += re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
-                           '[\d,.]+)', ff)
-        for loc in temp:
-            coord = np.array(loc[1:], dtype=float)
-            coord = apply_trans(als_ras_trans_mm, coord)
-            locs[loc[0].lower()] = coord
-        trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
-                                          rpa=locs['3'])
-        for loc in locs:
-            locs[loc] = apply_trans(trans, locs[loc])
-###
-        info['dig'] = []
-
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = FIFF.FIFFV_POINT_NASION
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-        point_dict['r'] = apply_trans(trans, locs['2'])
-        info['dig'].append(point_dict)
-
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = FIFF.FIFFV_POINT_LPA
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-        point_dict['r'] = apply_trans(trans, locs['1'])
-        info['dig'].append(point_dict)
-
-        point_dict = {}
-        point_dict['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-        point_dict['ident'] = FIFF.FIFFV_POINT_RPA
-        point_dict['kind'] = FIFF.FIFFV_POINT_CARDINAL
-        point_dict['r'] = apply_trans(trans, locs['3'])
-        info['dig'].append(point_dict)
-
-        info['dev_head_t'] = {
-            'from': FIFF.FIFFV_COORD_DEVICE,
-            'to': FIFF.FIFFV_COORD_HEAD,
-            'trans': np.eye(4),
-        }
-    else:
-        locs = {}
-    locs = [locs[ch_name.lower()] if ch_name.lower() in locs.keys()
-            else (0, 0, 0) for ch_name in ch_names]
-    sensor_locs = np.array(locs)
+    
+    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                          'to': FIFF.FIFFV_COORD_HEAD,
+                          'trans': np.eye(4)}
 
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
@@ -618,9 +564,9 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     info['ch_names'] = ch_names
     if stim_channel == -1:
         stim_channel = info['nchan']
-    for idx, ch_info in enumerate(zip(ch_names, sensor_locs, physical_ranges,
+    for idx, ch_info in enumerate(zip(ch_names, physical_ranges,
                                       cals, units), 1):
-        ch_name, ch_loc, physical_range, cal, unit_mul = ch_info
+        ch_name, physical_range, cal, unit_mul = ch_info
         chan_info = {}
         chan_info['cal'] = cal
         chan_info['logno'] = idx
@@ -632,9 +578,8 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         chan_info['coord_frame'] = FIFF.FIFFV_COORD_HEAD
         chan_info['coil_type'] = FIFF.FIFFV_COIL_EEG
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
-        chan_info['eeg_loc'] = np.array([ch_loc]).T
+        chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
-        chan_info['loc'][:3] = ch_loc
         if idx > n_eeg:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
@@ -680,13 +625,10 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     ----------
     annot : str
         Path to annotation file.
-
     annotmap : str
         Path to annotation map file containing mapping from label to trigger.
-
     sfreq : float
         Sampling frequency.
-
     data_length : int
         Length of the data file.
 
@@ -717,52 +659,44 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, hpts=None,
-                 preload=False, verbose=None):
+                 annotmap=None, tal_channel=None, montage=None,
+                 preload=False, verbose=None, **kwargs):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-
     n_eeg : int | None
         Number of EEG electrodes.
         If None, all channels are considered EEG.
-
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel.
         If None, there will be no stim channel added.
-
     annot : str | None
         Path to annotation file.
         If None, no derived stim channel will be added (for files requiring
         annotation file to interpret stim channel).
-
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-
     tal_channel : int | None
         The channel index (starting at 0).
         Index of the channel containing EDF+ annotations.
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-
-    hpts : str | None
-        Path to the hpts file containing electrode positions.
+    montage : str | None
+        Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
-
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
-
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  tal_channel=tal_channel, hpts=hpts, preload=preload,
-                  verbose=verbose)
+                  tal_channel=tal_channel, montage=montage, preload=preload,
+                  verbose=verbose, **kwargs)
