@@ -29,7 +29,7 @@ Changelog
 
    - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
 
-   - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_ and `Alex Gramfort`_.
+   - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_, `Jona Sassenhagen`_ and `Alex Gramfort`_.
 
    - Add support for spatiotemporal permutation clustering on sensors by `Denis Engemann`_
 
@@ -883,3 +883,5 @@ of commits):
 .. _Marijn van Vliet: http://github.com/wmvanvliet
 
 .. _Marmaduke Woodman: https://github.com/maedoc
+
+.. _Jona Sassenhagen: https://github.com/jona-sassenhagen
