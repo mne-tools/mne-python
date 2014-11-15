@@ -40,8 +40,13 @@ def test_montage():
     Fp1  -92    -72
     Fp2   92     72
     F3   -60    -51
+    """,
+    """346
+     EEG	      F3	 -62.027	 -50.053	      85
+     EEG	      Fz	  45.608	      90	      85
+     EEG	      F4	   62.01	  50.103	      85
     """]
-    kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt']
+    kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp']
     for kind, text in zip(kinds, input_str):
         fname = op.join(tempdir, kind)
         with open(fname, 'w') as fid:
