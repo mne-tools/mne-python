@@ -809,7 +809,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         dtype = np.dtype('S4, f8, f8, f8')
         data = np.loadtxt(fname, dtype=dtype)
         pos = np.c_[data['f1'], data['f2'], data['f3']]
-        ch_names_ = data['f0']
+        ch_names_ = data['f0'].astype(np.str)
     elif ext == '.elc':
         # 10-5 system
         ch_names_ = []
@@ -852,12 +852,13 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         # standard BESA spherical
         dtype = np.dtype('S8, S8, f8, f8, f8')
         data = np.loadtxt(fname, dtype=dtype, skiprows=1)
-        
+
         az = data['f2']
-        horiz  = data['f3']
+        horiz = data['f3']
 
         radius = np.abs(az/180.)
-        angles = np.array([90.-h if a>=0. else -90.-h for h, a in zip(horiz, az)])
+        angles = np.array([90.-h if a >= 0. else -90.-h
+                           for h, a in zip(horiz, az)])
 
         sph_phi = (0.5-radius)*180.
         sph_theta = angles
@@ -866,9 +867,9 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         elevation = sph_phi / 180.0 * np.pi
         r = 85.
 
-        y,x,z = _sphere_to_cartesian(azimuth, elevation, r)
+        y, x, z = _sphere_to_cartesian(azimuth, elevation, r)
 
-        pos = np.c_[x,y,z]
+        pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
