@@ -856,11 +856,11 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         az = data['f2']
         horiz = data['f3']
 
-        radius = np.abs(az/180.)
-        angles = np.array([90.-h if a >= 0. else -90.-h
+        radius = np.abs(az / 180.)
+        angles = np.array([90. - h if a >= 0. else -90. - h
                            for h, a in zip(horiz, az)])
 
-        sph_phi = (0.5-radius)*180.
+        sph_phi = (0.5 - radius) * 180.
         sph_theta = angles
 
         azimuth = sph_theta / 180.0 * np.pi
