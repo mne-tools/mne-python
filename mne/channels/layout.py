@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Jona Sassenhagen
 #
 # License: Simplified BSD
 
