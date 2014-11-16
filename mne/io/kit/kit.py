@@ -17,10 +17,10 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import (read_elp, fit_matched_points, _decimate_points,
-                      get_ras_to_neuromag_trans)
+from ...coreg import (read_elp, fit_matched_points, _decimate_points)
 from ...utils import verbose, logger
-from ...transforms import apply_trans, als_ras_trans, als_ras_trans_mm
+from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
+                           get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
 from ..meas_info import Info

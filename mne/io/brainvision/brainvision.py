@@ -12,8 +12,6 @@ import warnings
 
 import numpy as np
 
-from ...coreg import get_ras_to_neuromag_trans, read_elp
-from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info

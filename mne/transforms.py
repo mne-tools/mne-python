@@ -463,6 +463,58 @@ def transform_coordinates(filename, pos, orig, dest):
     return trans_pos
 
 
+def get_ras_to_neuromag_trans(nasion, lpa, rpa):
+    """Construct a transformation matrix to the MNE head coordinate system
+
+    Construct a transformation matrix from an arbitrary RAS coordinate system
+    to the MNE head coordinate system, in which the x axis passes through the
+    two preauricular points, and the y axis passes through the nasion and is
+    normal to the x axis. (see mne manual, pg. 97)
+
+    Parameters
+    ----------
+    nasion : array_like, shape = (3,)
+        Nasion point coordinate.
+    lpa : array_like, shape = (3,)
+        Left peri-auricular point coordinate.
+    rpa : array_like, shape = (3,)
+        Right peri-auricular point coordinate.
+
+    Returns
+    -------
+    trans : numpy.array, shape = (4, 4)
+        Transformation matrix to MNE head space.
+    """
+    # check input args
+    nasion = np.asarray(nasion)
+    lpa = np.asarray(lpa)
+    rpa = np.asarray(rpa)
+    for pt in (nasion, lpa, rpa):
+        if pt.ndim != 1 or len(pt) != 3:
+            raise ValueError("Points have to be provided as one dimensional "
+                             "arrays of length 3.")
+
+    right = rpa - lpa
+    right_unit = right / linalg.norm(right)
+
+    origin = lpa + np.dot(nasion - lpa, right_unit) * right_unit
+
+    anterior = nasion - origin
+    anterior_unit = anterior / linalg.norm(anterior)
+
+    superior_unit = np.cross(right_unit, anterior_unit)
+
+    x, y, z = -origin
+    origin_trans = translation(x, y, z)
+
+    trans_l = np.vstack((right_unit, anterior_unit, superior_unit, [0, 0, 0]))
+    trans_r = np.reshape([0, 0, 0, 1], (4, 1))
+    rot_trans = np.hstack((trans_l, trans_r))
+
+    trans = np.dot(rot_trans, origin_trans)
+    return trans
+
+
 def collect_transforms(fname, xforms):
     """Collect a set of transforms in a single FIFF file
 

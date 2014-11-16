@@ -33,9 +33,9 @@ except:
 
 from ..io.kit.coreg import read_hsp
 from ..io.kit.kit import RawKIT, KIT
-from ..transforms import apply_trans, als_ras_trans, als_ras_trans_mm
-from ..coreg import (read_elp, _decimate_points, fit_matched_points,
-                     get_ras_to_neuromag_trans)
+from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
+                          get_ras_to_neuromag_trans)
+from ..coreg import read_elp, _decimate_points, fit_matched_points,
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import (HeadViewController, headview_item, PointObject,
                       _testing_mode)
