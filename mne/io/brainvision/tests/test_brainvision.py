@@ -69,6 +69,8 @@ def test_brainvision_data():
             assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
         elif ch['ch_name'] == 'STI 014':
             assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
+        elif ch['ch_name'] in raw_py.info['ch_names']:
+             assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
 
