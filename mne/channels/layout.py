@@ -3,14 +3,15 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
-#          Teon Brooks <teon.brooks@gmail.com>
 #          Jona Sassenhagen
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: Simplified BSD
 
 import logging
 from collections import defaultdict
 from itertools import combinations
+import re
 import os
 import os.path as op
 import numpy as np
@@ -864,35 +865,32 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         elevation = sph_phi / 180.0 * np.pi
         r = 85.
 
-        y, x, z = _sphere_to_cartesian(azimuth, elevation, r)
+        y, x, z = sphere_to_cartesian(azimuth, elevation, r)
 
         pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
     elif ext == '.hpts':
-        from ..coreg import get_ras_to_neuromag_trans
-        from ..transforms import als_ras_trans_mm, apply_trans
+        from ..transforms import get_ras_to_neuromag_trans, apply_trans
         # MNE-C specified format for generic digitizer data
-        with open(hpts, 'rb') as fid:
+        with open(fname, 'rb') as fid:
             ff = fid.read().decode().lower()
-        locs = {}
         pos = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
                          ff)
-        fids = re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
-                          '[\d,.]+)', ff)
-        pos.extend(fids)
-        for loc in pos:
+        fids_ = re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
+                           '[\d,.]+)', ff)
+        for i, loc in enumerate(pos):
             coord = np.array(loc[1:], dtype=float)
-            coord = apply_trans(als_ras_trans_mm, coord)
-            locs[loc[0].lower()] = coord
-        # transform points to neuromag space if fids are included
-        if fids:
-            trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
-                                              rpa=locs['3'])
-        ch_names = []
-        pos = []
-        for loc in locs:
-            ch_names.append(loc)
-            pos.append(apply_trans(trans, locs[loc]))
+            pos[i] = loc[0], coord
+        ch_names_, pos = zip(*pos)
+        if fids_:
+            fids = {}
+            for fid in fids_:
+                coord = np.array(fid[1:], dtype=float)
+                fids[fid[0].lower()] = coord
+            # transform points to neuromag space if fids are included
+            trans = get_ras_to_neuromag_trans(nasion=fids['2'], lpa=fids['1'],
+                                              rpa=fids['3'])
+            pos = apply_trans(trans, pos)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -960,19 +958,20 @@ def apply_fiducials(info, montage):
         The montage to apply.
     """
     fids = montage.fids
-
-    for point in info['dig']:
-        if point['kind'] == FIFF.FIFFV_POINT_CARDINAL:
-            info['dig'].pop(point)
-
-    fids_dig = [{'r': fids['nasion'],
+    fids_dig = [{'r': fids['2'],
                  'ident': FIFF.FIFFV_POINT_NASION,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                {'r': fids['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
+                {'r': fids['1'], 'ident': FIFF.FIFFV_POINT_LPA,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                {'r': fids['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
+                {'r': fids['3'], 'ident': FIFF.FIFFV_POINT_RPA,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-    info['dig'].append(fids_dig)
+    if info['dig']:
+        for point in info['dig']:
+            info['dig'] = [point for point in info['dig'] if
+                           point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        info['dig'].append(fids_dig)
+    else:
+        info['dig'] = fids_dig

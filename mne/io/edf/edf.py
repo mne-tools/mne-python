@@ -17,12 +17,11 @@ from math import ceil, floor
 import numpy as np
 from scipy.interpolate import interp1d
 
-from ...transforms import als_ras_trans_mm, apply_trans
 from ...utils import verbose, logger
 from ..base import _BaseRaw
 from ..meas_info import Info
 from ..constants import FIFF
-from ...coreg import get_ras_to_neuromag_trans
+from ...coreg import 
 from ...filter import resample
 from ...externals.six.moves import zip
 from ...channels.layout import read_montage, apply_montage

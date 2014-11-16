@@ -9,8 +9,8 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from mne.io.kit import read_hsp, write_hsp, read_mrk, write_mrk
-from mne.coreg import get_ras_to_neuromag_trans
-from mne.transforms import apply_trans, rotation, translation
+from mne.transforms import (apply_trans, rotation, translation,
+                            get_ras_to_neuromag_trans)
 from mne.utils import _TempDir
 
 
