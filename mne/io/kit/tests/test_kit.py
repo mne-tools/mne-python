@@ -25,6 +25,8 @@ mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
+elp_leg_path = op.join(data_dir, 'test.elp')
+hsp_leg_path = op.join(data_dir, 'test.hsp')
 
 
 def test_data():
@@ -113,3 +115,26 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
+
+def test_legacy_head_dev_t():
+    """Test raw kit usage of legacy files against txt files
+    """
+    raw = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path)
+    raw_leg = read_raw_kit(sqd_path, mrk_path, elp_leg_path, hsp_leg_path)
+
+    trans = raw.info['dev_head_t']['trans']
+    trans_leg = raw_leg.info['dev_head_t']['trans']
+    assert_array_almost_equal(trans, trans_leg, decimal=5)
+
+    raw_pts = np.array([point['r'] for point in raw.info['dig']])
+    raw_leg_pts = np.array([point['r'] for point in raw_leg.info['dig']])
+
+    # test elp
+    err = 'There is a problem with elp points for txt and legacy.'
+    assert_array_almost_equal(raw_pts[:8], raw_leg_pts[:8], decimal=5,
+                              err_msg=err)
+
+#    # test hsp
+#    err = 'There is a problem with hsp points for txt and legacy.'
+#    assert_array_almost_equal(raw_pts[8:], raw_leg_pts[8:], decimal=5,
+#                              err_msg=err)
