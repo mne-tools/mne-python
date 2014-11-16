@@ -33,6 +33,16 @@ class RawEDF(_BaseRaw):
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
+    montage : str | None
+        Path to the montage file containing electrode positions.
+        If None, sensor locations are (0,0,0).
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the electrodes in the edf file. Default is empty list.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the edf file. Default is an
+        empty list.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
@@ -50,48 +60,25 @@ class RawEDF(_BaseRaw):
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-    montage : str | None
-        Path to the montage file containing electrode positions.
-        If None, sensor locations are (0,0,0).
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is empty list.
-    misc : list of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is empty
-        list.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    There is an assumption that the data are arranged such that EEG channels
-    appear first then miscellaneous channels (EOGs, AUX, STIM).
-    The stimulus channel is saved as 'STI 014'
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, montage=None, eog=[],
-                 misc=[], preload=False, verbose=None, **kwargs):
+    def __init__(self, input_fname, montage, eog=[], misc=[], stim_channel=-1,
+                 annot=None, annotmap=None, tal_channel=None,
+                 preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, stim_channel,
                                                   annot, annotmap, tal_channel,
                                                   eog, misc, preload)
         logger.info('Creating Raw.info structure...')
-        if 'hpts' in kwargs:
-            logger.warning('This keyword argument is deprecated and will be '
-                           'removed in 0.10. Please use the argument '
-                           '`montage`.')
-            montage = kwargs['hpts']
         if montage:
             montage_path = os.path.dirname(montage)
-            m = read_montage(montage, path=montage_path, scale=True)
+            m = read_montage(montage, path=montage_path, scale=False)
             apply_montage(self.info, m)
 
             missing_positions = []
@@ -105,7 +92,7 @@ class RawEDF(_BaseRaw):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the ELP "
+                err = ("The following positions are missing from the montage "
                        "definitions: %s. If those channels lack positions "
                        "because they are EOG channels use the eog  parameter"
                        % str(missing_positions))
@@ -663,18 +650,28 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     return stim_channel
 
 
-def read_raw_edf(input_fname, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, montage=None,
-                 eog=[], misc=[], preload=False, verbose=None, **kwargs):
+def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
+                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
+                 preload=False, verbose=None, **kwargs):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
+    montage : str | None
+        Path to the montage file containing electrode positions.
+        If None, sensor locations are (0,0,0).
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the electrodes in the edf file. Default is empty list.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the edf file. Default is an
+        empty list.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel.
+        -1 corresponds to the last channel (default).
         If None, there will be no stim channel added.
     annot : str | None
         Path to annotation file.
@@ -689,16 +686,26 @@ def read_raw_edf(input_fname, stim_channel=-1, annot=None,
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-    montage : str | None
-        Path to the montage file containing electrode positions.
-        If None, sensor locations are (0,0,0).
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    There is an assumption that the data are arranged such that EEG channels
+    appear first then miscellaneous channels (EOGs, AUX, STIM).
+    The stimulus channel is saved as 'STI 014'
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
-    return RawEDF(input_fname=input_fname, stim_channel=stim_channel, 
-                  annot=annot, annotmap=annotmap, tal_channel=tal_channel, 
-                  montage=montage, eog=eog, misc=misc, preload=preload,
-                  verbose=verbose, **kwargs)
+    if 'hpts' in kwargs:
+        logger.warning('This keyword argument is deprecated and will be '
+                       'removed in 0.10. Please use the argument '
+                       '`montage`.')
+        montage = kwargs['hpts']
+
+    return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
+                  stim_channel=stim_channel, annot=annot, annotmap=annotmap,
+                  tal_channel=tal_channel, preload=preload, verbose=verbose)

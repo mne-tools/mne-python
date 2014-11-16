@@ -32,14 +32,18 @@ class RawBrainVision(_BaseRaw):
     montage : str | None
         Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file. Default is an
+        empty list.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -49,15 +53,11 @@ class RawBrainVision(_BaseRaw):
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    See Also
-    --------
-    mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vhdr_fname, montage=None, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
-                 preload=False, verbose=None, **kwargs):
+    def __init__(self, vhdr_fname, montage=None,
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=[], reference=None,
+                 scale=1., preload=False, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -72,20 +72,12 @@ class RawBrainVision(_BaseRaw):
         scale = float(scale)
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           reference, eog,
-                                                          scale)
+                                                          misc, scale)
         logger.info('Creating Raw.info structure...')
-        ch_names = None
-        if 'elp_fname' in kwargs:
-            logger.warning('This keyword argument is deprecated and will be '
-                           'removed in 0.10. Please use the argument '
-                           '`montage`.')
-            montage = kwargs['elp_fname']
-            ch_names = kwargs['elp_names']
 
         if montage:
             montage_path = os.path.dirname(montage)
-            m = read_montage(montage, path=montage_path, ch_names=ch_names,
-                             scale=True)
+            m = read_montage(montage, path=montage_path, scale=False)
             apply_montage(self.info, m)
 
             missing_positions = []
@@ -101,7 +93,7 @@ class RawBrainVision(_BaseRaw):
             if missing_positions:
                 err = ("The following positions are missing from the ELP "
                        "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog  parameter"
+                       "because they are EOG channels use the eog parameter"
                        % str(missing_positions))
                 raise KeyError(err)
 
@@ -403,7 +395,7 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_eeg_info(vhdr_fname, reference, eog, scale):
+def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
     """Extracts all the information from the header file.
 
     Parameters
@@ -418,6 +410,9 @@ def _get_eeg_info(vhdr_fname, reference, eog, scale):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -606,10 +601,15 @@ def _get_eeg_info(vhdr_fname, reference, eog, scale):
     for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
         if ch_name in eog:
             kind = FIFF.FIFFV_EOG_CH
+            coil_type = FIFF.FIFFV_COIL_EEG
+        elif ch_name in misc:
+            kind = FIFF.FIFFV_MISC_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
         else:
             kind = FIFF.FIFFV_EEG_CH
+            coil_type = FIFF.FIFFV_COIL_EEG
         chan_info = {'ch_name': ch_name,
-                     'coil_type': FIFF.FIFFV_COIL_EEG,
+                     'coil_type': coil_type,
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
@@ -628,8 +628,9 @@ def _get_eeg_info(vhdr_fname, reference, eog, scale):
     return info, eeg_info, events
 
 
-def read_raw_brainvision(vhdr_fname, montage=None, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
+def read_raw_brainvision(vhdr_fname, montage=None,
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=[],
+                         reference=None, scale=1.,
                          preload=False, verbose=None, **kwargs):
     """Reader for Brain Vision EEG file
 
@@ -640,14 +641,18 @@ def read_raw_brainvision(vhdr_fname, montage=None, reference=None,
     montage : str | None
         Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file. Default is an
+        empty list.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -662,6 +667,12 @@ def read_raw_brainvision(vhdr_fname, montage=None, reference=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname, montage, reference, eog, scale, 
-                         preload, verbose, **kwargs)
+    if 'elp_fname' in kwargs:
+        logger.warning('This keyword argument is deprecated and will be '
+                       'removed in 0.10. Please use the argument '
+                       '`montage`.')
+        montage = kwargs['elp_fname']
+    raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                         misc=misc, reference=reference, scale=scale,
+                         preload=preload, verbose=verbose)
     return raw
