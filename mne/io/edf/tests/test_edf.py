@@ -31,11 +31,14 @@ edf_path = op.join(data_dir, 'test.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
+eog = ['REOG', 'LEOG', 'IEOG']
+misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 def test_bdf_data():
     """Test reading raw bdf files
     """
-    raw_py = read_raw_edf(bdf_path, montage=montage_path, preload=True)
+    raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
+                          misc=misc, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -115,7 +118,7 @@ def test_append():
     """Test appending raw edf objects using Raw.append
     """
     # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
-    raw = read_raw_edf(bdf_path, montage=montage_path, preload=False)
+    raw = read_raw_edf(bdf_path, preload=False)
     raw0 = raw.copy()
     raw1 = raw.copy()
     raw0.append(raw1)
@@ -150,8 +153,7 @@ def test_edf_annotations():
     """
 
     # test an actual file
-    raw = read_raw_edf(edf_path, tal_channel=-1,
-                       montage=montage_path, preload=True)
+    raw = read_raw_edf(edf_path, tal_channel=-1, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
