@@ -21,7 +21,6 @@ from ...utils import verbose, logger
 from ..base import _BaseRaw
 from ..meas_info import Info
 from ..constants import FIFF
-from ...coreg import 
 from ...filter import resample
 from ...externals.six.moves import zip
 from ...channels.layout import read_montage, apply_montage
