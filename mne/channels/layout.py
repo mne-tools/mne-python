@@ -728,12 +728,15 @@ class Montage(object):
         The type of montage (e.g. 'standard_1005').
     selection : array of int
         The indices of the selected channels in the montage file.
+    fids : dict | None
+        A dictionary specifying the fiducials as keys: lpa, rpa, nasion
     """
-    def __init__(self, pos, ch_names, kind, selection):
+    def __init__(self, pos, ch_names, kind, selection, fids):
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
         self.selection = selection
+        self.fids = fids
 
     def __repr__(self):
         s = '<Montage | %s - %d Channels: %s ...>'
@@ -767,7 +770,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     kind : str
         The name of the montage file (e.g. kind='easycap-M10' for
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp' or '.sfp' are supported.
+        '.elp', '.hpts' or '.sfp' are supported.
     ch_names : list of str | None
         The names to read. If None, all names are returned.
     path : str | None
@@ -785,7 +788,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
-        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp')
+        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -796,6 +799,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     else:
         kind, ext = op.splitext(kind)
         fname = op.join(path, kind + ext)
+    fids = None
 
     if ext == '.sfp':
         # EGI geodesic
@@ -864,6 +868,31 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
 
         pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
+    elif ext == '.hpts':
+        from ..coreg import get_ras_to_neuromag_trans
+        from ..transforms import als_ras_trans_mm, apply_trans
+        # MNE-C specified format for generic digitizer data
+        with open(hpts, 'rb') as fid:
+            ff = fid.read().decode().lower()
+        locs = {}
+        pos = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
+                          ff)
+        fids = re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
+                          '[\d,.]+)', ff)
+        pos.extend(fids)
+        for loc in pos:
+            coord = np.array(loc[1:], dtype=float)
+            coord = apply_trans(als_ras_trans_mm, coord)
+            locs[loc[0].lower()] = coord
+        # transform points to neuromag space if fids are included
+        if fids:
+            trans = get_ras_to_neuromag_trans(nasion=locs['2'], lpa=locs['1'],
+                                              rpa=locs['3'])
+        ch_names = []
+        pos = []
+        for loc in locs:
+            ch_names.append(loc)
+            pos.append(apply_trans(trans, locs[loc]))
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -877,7 +906,8 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     else:
         ch_names_ = list(ch_names_)
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
+    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
+                   fids=fids)
 
 
 def apply_montage(info, montage):
@@ -886,7 +916,7 @@ def apply_montage(info, montage):
     This function will replace the EEG channel names and locations with
     the values specified for the particular montage.
 
-    Note: You have to rename your object to correclty map
+    Note: You have to rename your object to correctly map
     the montage names.
 
     Note: This function will change the info variable in place.
@@ -900,7 +930,8 @@ def apply_montage(info, montage):
     """
     if not _contains_ch_type(info, 'eeg'):
         raise ValueError('No EEG channels found.')
-
+    if montage.fids:
+        apply_fiducials(info, montage)
     sensors_found = False
     for pos, ch_name in zip(montage.pos, montage.ch_names):
         if ch_name not in info['ch_names']:
@@ -918,3 +949,30 @@ def apply_montage(info, montage):
                          'names.')
 
 
+def apply_fiducials(info, montage):
+    """Apply fiducials to EEG data.
+    
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info to update.
+    montage : instance of Montage
+        The montage to apply.
+    """
+    fids = montage.fids
+    
+    for point in info['dig']:
+        if point['kind'] == FIFF.FIFFV_POINT_CARDINAL:
+            info['dig'].pop(point)
+
+    fids_dig = [{'r': fids['nasion'],
+                 'ident': FIFF.FIFFV_POINT_NASION,
+                 'kind': FIFF.FIFFV_POINT_CARDINAL,
+                 'coord_frame':  FIFF.FIFFV_COORD_HEAD},
+                {'r': fids['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
+                 'kind': FIFF.FIFFV_POINT_CARDINAL,
+                 'coord_frame': FIFF.FIFFV_COORD_HEAD},
+                {'r': fids['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
+                 'kind': FIFF.FIFFV_POINT_CARDINAL,
+                 'coord_frame': FIFF.FIFFV_COORD_HEAD}]
+    info['dig'].append(fids_dig)
