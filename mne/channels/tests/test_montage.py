@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true, assert_false
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -79,16 +79,16 @@ def test_montage():
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
         if kind.endswith('hpts'):
-            assert montage.fids is not None
+            assert_true(montage.fids)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
-    assert info['dig'] is None
+    assert_false(info['dig'])
     apply_montage(info, montage)
     pos2 = np.array([c['loc'][:3] for c in info['chs']])
     pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
-    assert info['dig'] is not None
+    assert_true(info['dig'])
 

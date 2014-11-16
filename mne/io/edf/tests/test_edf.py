@@ -34,6 +34,7 @@ edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
+
 def test_bdf_data():
     """Test reading raw bdf files
     """
