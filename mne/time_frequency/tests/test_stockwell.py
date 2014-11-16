@@ -8,8 +8,12 @@ import os.path as op
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true, assert_equals
 
+from scipy import fftpack
+
 from mne import io, read_events, Epochs, pick_types
-from mne.time_frequency import stockwell, stockwell_power, tfr_stockwell
+from mne.time_frequency._stockwell import (tfr_stockwell, _st,
+                                           _check_input_st)
+from mne.time_frequency.tfr import AverageTFR
 from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -33,6 +37,15 @@ tempdir = _TempDir()
 def test_stockwell_core():
     """Test stockwell transform"""
     # taken from
+
+    def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None):
+        n_fft, x_in, x_outer_shape = _check_input_st(data, n_fft)
+
+        freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
+        freq_mask = (freqs >= fmin) & (freqs <= fmax)
+        st = _st(x_in, n_fft, freqs)[freq_mask]
+        return st
+
     # http://vcs.ynic.york.ac.uk/docs/naf/intro/concepts/timefreq.html
     sfreq = 1e3  # make things easy to understand
     t = np.arange(sfreq)   # make an array for time
@@ -63,45 +76,10 @@ def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,
                     event_id, tmin, tmax, picks=picks, baseline=(None, 0))
-
-    data = epochs.get_data()[:2, :3, :100]
-
-    n_fft = data.shape[-1]  # make interpretation simpler
-    st_args = dict(n_fft=n_fft, sfreq=epochs.info['sfreq'], n_jobs=1)
-
-    fun = stockwell
-    st1 = fun(data, **st_args)
-
-    # outer dimensions should be the same as input
-    assert_equals(st1.shape[:-2], data.shape[:-1])
-
-    # one dimension only
-    st2 = fun(data[0, 0, :], **st_args)
-    assert_equals(st1.shape[-2:], st2.shape)
-    assert_equals(st1.shape[:2], data.shape[:2])
-
-    # two dimensions dimensions
-    st3 = fun(data[0, :, :], **st_args)
-    assert_equals(st2.shape, st3.shape[1:])
-    assert_equals(data.shape[1], st3.shape[0])
-
-    st_power_args = dict(n_fft=n_fft, sfreq=epochs.info['sfreq'], n_jobs=1)
-
-    fun = stockwell_power
-    st_power1, _ = fun(data, **st_power_args)
-    # outer dimensions should be the same as input
-    assert_equals(st_power1.shape[:-2], data.shape[:-1])
-    # one dimension only
-    st_power2, _ = fun(data[0, 0, :], **st_power_args)
-    assert_equals(st_power1.shape[-2:], st_power2.shape)
-    assert_equals(st_power1.shape[:2], data.shape[:2])
-    # two dimensions dimensions
-    st_power3, _ = fun(data[0, :, :], **st_power_args)
-    assert_equals(st_power2.shape, st_power3.shape[1:])
-    assert_equals(data.shape[1], st_power3.shape[0])
-
-    # taper == 0 just returns the power
-    st_power_args.update({'n_tapers': None})
-    st_power5, _ = fun(data, **st_power_args)
-
-    assert_array_almost_equal(st_power5, np.abs(st1) ** 2)
+    power, itc = tfr_stockwell(epochs, return_itc=True)
+    assert_true(isinstance(power, AverageTFR))
+    assert_true(isinstance(itc, AverageTFR))
+    assert_equals(power.data.shape, itc.data.shape)
+    assert_true(itc.data.min() >= 0.0)
+    assert_true(itc.data.max() <= 1.0)
+    assert_true(itc.data.max() < 0.0)
