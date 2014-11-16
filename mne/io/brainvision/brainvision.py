@@ -59,9 +59,9 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vdhr_fname, montage=None, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1., 
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
                  preload=False, verbose=None, **kwargs):
-            
+
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
         self.preload = False
@@ -80,7 +80,7 @@ class RawBrainVision(_BaseRaw):
         ch_names = None
         if 'elp_fname' in kwargs:
             logger.warning('This keyword argument is deprecated and will be '
-                           'removed in 0.10. Please use the argument ' 
+                           'removed in 0.10. Please use the argument '
                            '`montage`.')
             montage = kwargs['elp_fname']
             ch_names = kwargs['elp_names']
@@ -91,7 +91,7 @@ class RawBrainVision(_BaseRaw):
                              scale=True)
             apply_montage(self.info, m)
 
-            missing_positions = []    
+            missing_positions = []
             for ch in self.info['chs']:
                 if not ch['kind'] == FIFF.FIFFV_EOG_CH:
                     if ch['loc'] == np.zeros(12):
@@ -101,7 +101,7 @@ class RawBrainVision(_BaseRaw):
             if missing_positions:
                 err = ("The following positions are missing from the ELP "
                        "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog  parameter" 
+                       "because they are EOG channels use the eog  parameter"
                        % str(missing_positions))
                 raise KeyError(err)
 
@@ -213,7 +213,8 @@ class RawBrainVision(_BaseRaw):
         with open(self.info['file_id'], 'rb') as f:
             f.seek(pointer)
             # extract data
-            data_buffer = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
+            data_buffer = np.fromfile(f, dtype=dtype,
+                                      count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
             data_buffer = data_buffer.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':

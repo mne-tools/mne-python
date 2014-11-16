@@ -75,7 +75,7 @@ class RawEDF(_BaseRaw):
     @verbose
     def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
                  annotmap=None, tal_channel=None, montage=None, preload=False,
-                 verbose=None, **kwargs):        
+                 verbose=None, **kwargs):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
@@ -85,15 +85,15 @@ class RawEDF(_BaseRaw):
         logger.info('Creating Raw.info structure...')
         if 'hpts' in kwargs:
             logger.warning('This keyword argument is deprecated and will be '
-                           'removed in 0.10. Please use the argument ' 
+                           'removed in 0.10. Please use the argument '
                            '`montage`.')
-            montage=kwargs['hpts']
+            montage = kwargs['hpts']
         if montage:
             montage_path = os.path.dirname(montage)
             m = read_montage(montage, path=montage_path, scale=True)
             apply_montage(self.info, m)
 
-            missing_positions = []    
+            missing_positions = []
             for ch in self.info['chs']:
                 if not ch['kind'] == FIFF.FIFFV_EOG_CH:
                     if ch['loc'] == np.zeros(12):
@@ -103,7 +103,7 @@ class RawEDF(_BaseRaw):
             if missing_positions:
                 err = ("The following positions are missing from the ELP "
                        "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog  parameter" 
+                       "because they are EOG channels use the eog  parameter"
                        % str(missing_positions))
                 raise KeyError(err)
 
@@ -553,7 +553,7 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
-    
+
     info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
                           'to': FIFF.FIFFV_COORD_HEAD,
                           'trans': np.eye(4)}
