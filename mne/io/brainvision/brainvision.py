@@ -77,6 +77,7 @@ class RawBrainVision(_BaseRaw):
                                                           reference, eog,
                                                           scale)
         logger.info('Creating Raw.info structure...')
+        ch_names = None
         if 'elp_fname' in kwargs:
             logger.warning('This keyword argument is deprecated and will be '
                            'removed in 0.10. Please use the argument ' 
@@ -85,7 +86,7 @@ class RawBrainVision(_BaseRaw):
             ch_names = kwargs['elp_names']
 
         if montage:
-            montage_path = os.dirname(montage)
+            montage_path = os.path.dirname(montage)
             m = read_montage(montage, path=montage_path, ch_names=ch_names,
                              scale=True)
             apply_montage(self.info, m)

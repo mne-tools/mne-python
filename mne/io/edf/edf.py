@@ -89,7 +89,7 @@ class RawEDF(_BaseRaw):
                            '`montage`.')
             montage=kwargs['hpts']
         if montage:
-            montage_path = os.dirname(montage)
+            montage_path = os.path.dirname(montage)
             m = read_montage(montage, path=montage_path, scale=True)
             apply_montage(self.info, m)
 

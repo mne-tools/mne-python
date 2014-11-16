@@ -25,7 +25,7 @@ from mne.event import find_events
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-hpts_path = op.join(data_dir, 'biosemi.hpts')
+montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
@@ -35,7 +35,7 @@ edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 def test_bdf_data():
     """Test reading raw bdf files
     """
-    raw_py = read_raw_edf(bdf_path, hpts=hpts_path, preload=True)
+    raw_py = read_raw_edf(bdf_path, montage=montage_path, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -115,7 +115,7 @@ def test_append():
     """Test appending raw edf objects using Raw.append
     """
     # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
-    raw = read_raw_edf(bdf_path, hpts=hpts_path, preload=False)
+    raw = read_raw_edf(bdf_path, montage=montage_path, preload=False)
     raw0 = raw.copy()
     raw1 = raw.copy()
     raw0.append(raw1)
@@ -151,7 +151,7 @@ def test_edf_annotations():
 
     # test an actual file
     raw = read_raw_edf(edf_path, tal_channel=-1,
-                       hpts=hpts_path, preload=True)
+                       montage=montage_path, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
