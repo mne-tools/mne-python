@@ -8,4 +8,4 @@ from .csd import CrossSpectralDensity, compute_epochs_csd
 from .ar import yule_walker, ar_raw, iir_filter_raw
 from .multitaper import dpss_windows, multitaper_psd
 from .stft import stft, istft, stftfreq
-from ._stockwell import tfr_stockwell, stockwell, stockwell_power
+from ._stockwell import tfr_stockwell
