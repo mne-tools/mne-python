@@ -100,52 +100,6 @@ def write_mrk(fname, points):
         raise ValueError(err)
 
 
-def read_hsp(fname):
-    """Read a Polhemus ascii head shape file
-
-    Parameters
-    ----------
-    fname : str
-        Path to head shape file acquired from Polhemus system and saved in
-        ascii format.
-
-    Returns
-    -------
-    hsp_points : numpy.array, shape = (n_points, 3)
-        Headshape points in Polhemus head space.
-        File formats allowed: *.txt, *.pickled
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
-        hsp_points = pattern.findall(fid.read())
-    hsp_points = np.array(hsp_points, dtype=float)
-    return hsp_points
-
-
-def write_hsp(fname, pts):
-    """Write a headshape hsp file
-
-    Parameters
-    ----------
-    fname : str
-        Target file.
-    pts : array, shape = (n_pts, 3)
-        Points comprising the headshape.
-    """
-    pts = np.asarray(pts)
-    if (pts.ndim != 2) or (pts.shape[1] != 3):
-        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
-        raise ValueError(err)
-
-    with open(fname, 'wb') as fid:
-        version = __version__
-        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
-        fid.write(b("% Ascii 3D points file created by mne-python version "
-                    "{version} at {now}\n".format(version=version, now=now)))
-        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(pts))))
-        np.savetxt(fid, pts, '%8.2f', ' ')
-
-
 def read_sns(fname):
     """Sensor coordinate extraction in MEG space
 

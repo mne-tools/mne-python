@@ -17,16 +17,16 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import (read_elp, fit_matched_points, _decimate_points)
+from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info
+from ..meas_info import Info, read_polhemus_elp, read_polhemus_hsp
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_hsp, read_mrk
+from .coreg import read_mrk
 from ...externals.six import string_types
 
 
@@ -394,7 +394,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = read_hsp(hsp)
+            hsp = read_polhemus_hsp(hsp)
 
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
@@ -408,7 +408,7 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = read_elp(elp)[:8]
+            elp_points = read_polhemus_elp(elp)[:8]
             if len(elp) < 8:
                 err = ("File %r contains fewer than 8 points; got shape "
                        "%s." % (elp, elp_points.shape))
