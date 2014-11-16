@@ -12,19 +12,9 @@ from mne.coreg import (fit_matched_points, fit_point_cloud,
                        _point_cloud_error, _decimate_points,
                        create_default_subject, scale_mri,
                        _is_mri_subject, scale_labels, scale_source_space)
-from mne.io.meas_info import read_polhemus_elp
-from mne.io.kit.tests import data_dir as kit_data_dir
 from mne.utils import (requires_mne, requires_freesurfer, _TempDir,
                        run_tests_if_main, requires_scipy_version)
 from functools import reduce
-
-
-def test_read_polhemus_elp():
-    """Test reading an ELP file"""
-    path = os.path.join(kit_data_dir, 'test_elp.txt')
-    points = read_polhemus_elp(path)
-    assert_equal(points.shape, (8, 3))
-    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
 
 
 @requires_mne

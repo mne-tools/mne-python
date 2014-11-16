@@ -4,7 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from datetime import datetime
 from ...externals.six.moves import cPickle as pickle
 import os
 from os import SEEK_CUR
@@ -13,9 +12,7 @@ from struct import unpack
 
 import numpy as np
 
-from ... import __version__
 from .constants import KIT
-from ...externals.six import b
 
 
 def read_mrk(fname):
