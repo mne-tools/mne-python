@@ -1,20 +1,26 @@
 import os.path as op
 
-from nose.tools import assert_true, assert_equal, assert_raises
+from nose.tools import (assert_true, assert_equal, assert_raises,
+                        assert_true, assert_false)
 import numpy as np
 from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
-from mne.io.meas_info import Info
+from mne.io.meas_info import (Info, create_info, read_polhemus_elp,
+                              read_polhemus_hsp, write_polhemus_hsp,
+                              apply_polhemus_elp, apply_polhemus_hsp)
 from mne.utils import _TempDir
+from mne.io.kit.tests import data_dir as kit_data_dir
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
+hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
+elp_fname = op.join(kit_data_dir, 'test_elp.txt')
 
 
 def test_fiducials_io():
@@ -81,3 +87,46 @@ def test_read_write_info():
     t2 = info2['dev_head_t']['trans']
     assert_true(len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
+
+
+def test_io_polhemus_hsp():
+    """Test IO for hsp files"""
+    tempdir = _TempDir()
+    points = read_polhemus_hsp(hsp_fname)
+
+    dest = op.join(tempdir, 'test.txt')
+    write_polhemus_hsp(dest, points)
+    points1 = read_polhemus_hsp(dest)
+    err = "Hsp points diverged after writing and reading."
+    assert_array_equal(points, points1, err)
+
+
+def test_read_polhemus_elp():
+    """Test reading an ELP file"""
+    points = read_polhemus_elp(elp_fname)
+    assert_equal(points.shape, (8, 3))
+    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
+
+
+def test_apply_polhemus_hsp():
+    """Test application of Polhemus HSP to info"""
+    dig = read_polhemus_hsp(hsp_fname)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    assert_false(info['dig'])
+
+    apply_polhemus_hsp(info, dig)
+    assert_true(info['dig'])
+    assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
+
+
+def test_apply_polhemus_elp():
+    """Test application of Polhemus ELP to info"""
+    dig = read_polhemus_elp(elp_fname)
+    info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
+    assert_false(info['dig'])
+
+    apply_polhemus_elp(info, dig, ['nasion', 'lpa', 'rpa',
+                                   '0', '1', '2', '3', '4'])
+    assert_true(info['dig'])
+    idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
+    assert_array_equal(info['dig'][idx]['r'], [1.3930, 13.1613, -4.6967])

@@ -8,8 +8,7 @@ import os
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
-from mne.io.kit import (read_polhemus_hsp, write_polhemus_hsp,
-                        read_mrk, write_mrk)
+from mne.io.kit import read_mrk, write_mrk
 from mne.transforms import (apply_trans, rotation, translation,
                             get_ras_to_neuromag_trans)
 from mne.utils import _TempDir
@@ -18,20 +17,7 @@ from mne.utils import _TempDir
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = os.path.dirname(os.path.abspath(FILE))
 data_dir = os.path.join(parent_dir, 'data')
-hsp_fname = os.path.join(data_dir, 'test_hsp.txt')
 mrk_fname = os.path.join(data_dir, 'test_mrk.sqd')
-
-
-def test_io_hsp():
-    """Test IO for hsp files"""
-    tempdir = _TempDir()
-    pts = read_polhemus_hsp(hsp_fname)
-
-    dest = os.path.join(tempdir, 'test.txt')
-    write_polhemus_hsp(dest, pts)
-    pts1 = read_polhemus_hsp(dest)
-    assert_array_equal(pts, pts1, "Hsp points diverged after writing and "
-                       "reading.")
 
 
 def test_io_mrk():

@@ -10,6 +10,7 @@ import numpy as np
 from scipy import linalg
 from ..externals.six import BytesIO, string_types
 from datetime import datetime as dt
+import re
 
 from .pick import channel_type
 from .constants import FIFF
@@ -24,6 +25,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian)
 from ..utils import logger, verbose
 from ..fixes import Counter
+from .. import __version__
+from ..externals.six import b
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -215,28 +218,28 @@ def read_polhemus_hsp(fname):
     return hsp_points
 
 
-def write_polhemus_hsp(fname, pts):
+def write_polhemus_hsp(fname, dig):
     """Write a headshape hsp file
 
     Parameters
     ----------
     fname : str
         Target file.
-    pts : array, shape = (n_pts, 3)
+    dig : numpy.array, shape = (n_points, 3)
         Points comprising the headshape.
     """
-    pts = np.asarray(pts)
-    if (pts.ndim != 2) or (pts.shape[1] != 3):
-        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
+    dig = np.asarray(dig)
+    if (dig.ndim != 2) or (dig.shape[1] != 3):
+        err = "Points must be of shape (n_points, 3), not %r" % str(dig.shape)
         raise ValueError(err)
 
     with open(fname, 'wb') as fid:
         version = __version__
-        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
+        now = dt.now().strftime("%I:%M%p on %B %d, %Y")
         fid.write(b("% Ascii 3D points file created by mne-python version "
                     "{version} at {now}\n".format(version=version, now=now)))
-        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(pts))))
-        np.savetxt(fid, pts, '%8.2f', ' ')
+        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(dig))))
+        np.savetxt(fid, dig, '%8.2f', ' ')
 
 
 def apply_polhemus_hsp(info, dig):
@@ -254,36 +257,41 @@ def apply_polhemus_hsp(info, dig):
         Headshape points in Polhemus head space.
         File formats allowed: *.txt, *.pickled
     """
-    dig = []
+    pts = []
     for idx, point in enumerate(dig):
-        dig.append({'r': point, 'ident': idx,
+        pts.append({'r': point, 'ident': idx,
                     'kind': FIFF.FIFFV_POINT_EXTRA,
                     'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    info['dig'] = dig
+    info['dig'] = pts
 
 
 def apply_polhemus_elp(info, dig, point_names):
-    dig = []
+    pts = []
+    idxs = []
     if 'nasion' in point_names:
-        idx = point_names.index('nasion')        
-        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_NASION,
+        idx = point_names.index('nasion')
+        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
                     'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        idxs.append(idx)
     if 'lpa' in point_names:
-        idx = point_names.index('lpa')        
-        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_LPA,
+        idx = point_names.index('lpa')
+        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_LPA,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
                     'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        idxs.append(idx)
     if 'rpa' in point_names:
-        idx = point_names.index('rpa')        
-        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_RPA,
+        idx = point_names.index('rpa')
+        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_RPA,
                     'kind': FIFF.FIFFV_POINT_CARDINAL,
                     'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        idxs.append(idx)
 
+    dig = np.delete(dig, idxs)
     for idx, point in enumerate(dig):
-        dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
+        pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
                     'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    info['dig'] = dig
+    info['dig'] = pts
 
 
 @verbose
