@@ -553,10 +553,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
 
-    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD,
-                          'trans': np.eye(4)}
-
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
