@@ -29,7 +29,7 @@ Changelog
 
    - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
 
-   - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_, `Jona Sassenhagen`_ and `Alex Gramfort`_.
+   - Add support for montage files by `Denis Engemann`_, `Marijn van Vliet`_, `Jona Sassenhagen`_, `Alex Gramfort`_ and `Teon Brooks`_
 
    - Add support for spatiotemporal permutation clustering on sensors by `Denis Engemann`_
 
@@ -72,6 +72,8 @@ API
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
 	``mne.layouts`` by `Denis Engemann`_
+    
+   - `read_raw_brainvision` and `read_raw_edf` both uses a standard `hpts` montage import with deprecation of old channel definition method by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
