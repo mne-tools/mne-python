@@ -165,6 +165,127 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
+def read_polhemus_elp(fname):
+    """Read point coordinates from a text file
+
+    Parameters
+    ----------
+    fname : str
+        Absolute path to laser point file (*.txt).
+
+    Returns
+    -------
+    elp_points : array, [n_points x 3]
+        Point coordinates.
+    """
+    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
+    with open(fname) as fid:
+        elp_points = pattern.findall(fid.read())
+    elp_points = np.array(elp_points, dtype=float)
+    if elp_points.shape[1] != 3:
+        raise ValueError("File %r does not contain 3 columns as required; got "
+                         "shape %s." % (fname, elp_points.shape))
+
+    return elp_points
+
+
+def read_polhemus_hsp(fname):
+    """Read a Polhemus ascii head shape file
+
+    Parameters
+    ----------
+    fname : str
+        Path to head shape file acquired from Polhemus system and saved in
+        ascii format.
+
+    Returns
+    -------
+    hsp_points : numpy.array, shape = (n_points, 3)
+        Headshape points in Polhemus head space.
+        File formats allowed: *.txt, *.pickled
+    """
+    float_not = '\-?\d+\.?\d*'
+    exp_not = '[eE]?[-+]?\d*'
+    pattern = re.compile('(%s%s)\s+' % (float_not, exp_not) +
+                         '(%s%s)\s+' % (float_not, exp_not) +
+                         '(%s%s)\s*[\n\r]*' % (float_not, exp_not))
+    with open(fname) as fid:
+        hsp_points = pattern.findall(fid.read())
+    hsp_points = np.array(hsp_points, dtype=float)
+    return hsp_points
+
+
+def write_polhemus_hsp(fname, pts):
+    """Write a headshape hsp file
+
+    Parameters
+    ----------
+    fname : str
+        Target file.
+    pts : array, shape = (n_pts, 3)
+        Points comprising the headshape.
+    """
+    pts = np.asarray(pts)
+    if (pts.ndim != 2) or (pts.shape[1] != 3):
+        err = "pts must be of shape (n_pts, 3), not %r" % str(pts.shape)
+        raise ValueError(err)
+
+    with open(fname, 'wb') as fid:
+        version = __version__
+        now = datetime.now().strftime("%I:%M%p on %B %d, %Y")
+        fid.write(b("% Ascii 3D points file created by mne-python version "
+                    "{version} at {now}\n".format(version=version, now=now)))
+        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(pts))))
+        np.savetxt(fid, pts, '%8.2f', ' ')
+
+
+def apply_polhemus_hsp(info, dig):
+    """Apply digitizer data to info.
+
+    This function will add digitizer data to info['dig'].
+
+    Note: This function will change the info variable in place.
+
+    Parameters
+    ----------
+    info : instance of Info
+        The measurement info to update.
+    dig : numpy.array, shape = (n_points, 3)
+        Headshape points in Polhemus head space.
+        File formats allowed: *.txt, *.pickled
+    """
+    dig = []
+    for idx, point in enumerate(dig):
+        dig.append({'r': point, 'ident': idx,
+                    'kind': FIFF.FIFFV_POINT_EXTRA,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    info['dig'] = dig
+
+
+def apply_polhemus_elp(info, dig, point_names):
+    dig = []
+    if 'nasion' in point_names:
+        idx = point_names.index('nasion')        
+        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_NASION,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+    if 'lpa' in point_names:
+        idx = point_names.index('lpa')        
+        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_LPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+    if 'rpa' in point_names:
+        idx = point_names.index('rpa')        
+        dig.append({'r': dig.pop(idx), 'ident': FIFF.FIFFV_POINT_RPA,
+                    'kind': FIFF.FIFFV_POINT_CARDINAL,
+                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+
+    for idx, point in enumerate(dig):
+        dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
+                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    info['dig'] = dig
+
+
 @verbose
 def read_info(fname, verbose=None):
     """Read measurement info from a file
