@@ -33,9 +33,6 @@ class RawEDF(_BaseRaw):
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-    n_eeg : int | None
-        Number of EEG electrodes.
-        If None, all channels are considered EEG.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
@@ -56,6 +53,13 @@ class RawEDF(_BaseRaw):
     montage : str | None
         Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the electrodes in the edf file. Default is empty list.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the edf file. Default is empty
+        list.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -71,15 +75,14 @@ class RawEDF(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, n_eeg=None, stim_channel=-1, annot=None,
-                 annotmap=None, tal_channel=None, montage=None, preload=False,
-                 verbose=None, **kwargs):
+    def __init__(self, input_fname, stim_channel=-1, annot=None,
+                 annotmap=None, tal_channel=None, montage=None, eog=[],
+                 misc=[], preload=False, verbose=None, **kwargs):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self.info, self._edf_info = _get_edf_info(input_fname, n_eeg,
-                                                  stim_channel, annot,
-                                                  annotmap, tal_channel,
-                                                  montage, preload)
+        self.info, self._edf_info = _get_edf_info(input_fname, stim_channel,
+                                                  annot, annotmap, tal_channel,
+                                                  eog, misc, preload)
         logger.info('Creating Raw.info structure...')
         if 'hpts' in kwargs:
             logger.warning('This keyword argument is deprecated and will be '
@@ -92,9 +95,12 @@ class RawEDF(_BaseRaw):
             apply_montage(self.info, m)
 
             missing_positions = []
+            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH)
             for ch in self.info['chs']:
-                if not ch['kind'] == FIFF.FIFFV_EOG_CH:
-                    if ch['loc'] == np.zeros(12):
+                if ch['kind'] == FIFF.FIFFV_STIM_CH:
+                    continue
+                if not ch['kind'] in exclude:
+                    if np.unique(ch['loc']).size == 1:
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
@@ -385,17 +391,14 @@ def _parse_tal_channel(tal_channel_data):
     return events
 
 
-def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
-                  preload):
+def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
+                  eog, misc, preload):
     """Extracts all the information from the EDF+,BDF file.
 
     Parameters
     ----------
     fname : str
         Raw EDF+,BDF file to be read.
-    n_eeg : int | None
-        Number of EEG electrodes.
-        If None, all channels are considered EEG.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel.
@@ -413,6 +416,13 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
+    eog : list of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the electrodes in the edf file. Default is empty list.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the edf file. Default is empty
+        list.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -470,8 +480,6 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         # record length in seconds
         edf_info['record_length'] = record_length = float(fid.read(8))
         info['nchan'] = int(fid.read(4))
-        if n_eeg is None:
-            n_eeg = info['nchan']
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for _ in channels]
         _ = [fid.read(80).strip() for _ in channels]  # transducer type
@@ -574,7 +582,10 @@ def _get_edf_info(fname, n_eeg, stim_channel, annot, annotmap, tal_channel,
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
         chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
-        if idx > n_eeg:
+        if ch_name in eog:
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+        if ch_name in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
         check1 = stim_channel == ch_name
@@ -652,18 +663,15 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     return stim_channel
 
 
-def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
+def read_raw_edf(input_fname, stim_channel=-1, annot=None,
                  annotmap=None, tal_channel=None, montage=None,
-                 preload=False, verbose=None, **kwargs):
+                 eog=[], misc=[], preload=False, verbose=None, **kwargs):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-    n_eeg : int | None
-        Number of EEG electrodes.
-        If None, all channels are considered EEG.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel.
@@ -690,7 +698,7 @@ def read_raw_edf(input_fname, n_eeg=None, stim_channel=-1, annot=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    return RawEDF(input_fname=input_fname, n_eeg=n_eeg,
-                  stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  tal_channel=tal_channel, montage=montage, preload=preload,
+    return RawEDF(input_fname=input_fname, stim_channel=stim_channel, 
+                  annot=annot, annotmap=annotmap, tal_channel=tal_channel, 
+                  montage=montage, eog=eog, misc=misc, preload=preload,
                   verbose=verbose, **kwargs)
