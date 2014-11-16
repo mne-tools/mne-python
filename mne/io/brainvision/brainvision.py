@@ -27,7 +27,7 @@ class RawBrainVision(_BaseRaw):
 
     Parameters
     ----------
-    vdhr_fname : str
+    vhdr_fname : str
         Path to the EEG header file.
     montage : str | None
         Path to the montage file containing electrode positions.
@@ -55,7 +55,7 @@ class RawBrainVision(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vdhr_fname, montage=None, reference=None,
+    def __init__(self, vhdr_fname, montage=None, reference=None,
                  eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
                  preload=False, verbose=None, **kwargs):
 
@@ -89,9 +89,12 @@ class RawBrainVision(_BaseRaw):
             apply_montage(self.info, m)
 
             missing_positions = []
+            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH)
             for ch in self.info['chs']:
-                if not ch['kind'] == FIFF.FIFFV_EOG_CH:
-                    if ch['loc'] == np.zeros(12):
+                if ch['kind'] == FIFF.FIFFV_STIM_CH:
+                    continue
+                if not ch['kind'] in exclude:
+                    if np.unique(ch['loc']).size == 1:
                         missing_positions.append(ch['ch_name'])
 
             # raise error if positions are missing
@@ -659,7 +662,6 @@ def read_raw_brainvision(vhdr_fname, montage=None, reference=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname, montage, preload,
-                         reference, eog, scale, montage_file, verbose,
-                         **kwargs)
+    raw = RawBrainVision(vhdr_fname, montage, reference, eog, scale, 
+                         preload, verbose, **kwargs)
     return raw

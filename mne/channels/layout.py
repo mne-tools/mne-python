@@ -873,9 +873,9 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         from ..transforms import get_ras_to_neuromag_trans, apply_trans
         # MNE-C specified format for generic digitizer data
         with open(fname, 'rb') as fid:
-            ff = fid.read().decode().lower()
-        pos = re.findall('eeg\s(\w+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)',
-                         ff)
+            ff = fid.read().decode()
+        pos = re.findall('eeg\s+(\w+)\s+(-?[\d,.]+)'
+                         '\s+(-?[\d,.]+)\s+(-?[\d,.]+)', ff)
         fids_ = re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
                            '[\d,.]+)', ff)
         for i, loc in enumerate(pos):
