@@ -22,8 +22,8 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
-from ..transforms import (sphere_to_cartesian, polar_to_cartesian,
-                          cartesian_to_sphere)
+from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
+                          _cartesian_to_sphere)
 
 
 class Layout(object):
@@ -610,8 +610,8 @@ def _auto_topomap_coords(info, picks):
         raise ValueError('Electrode positions must be unique.')
 
     x, y, z = locs3d.T
-    az, el, r = cartesian_to_sphere(x, y, z)
-    locs2d = np.c_[polar_to_cartesian(az, np.pi / 2 - el)]
+    az, el, r = _cartesian_to_sphere(x, y, z)
+    locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -730,7 +730,13 @@ class Montage(object):
     selection : array of int
         The indices of the selected channels in the montage file.
     fids : dict | None
-        A dictionary specifying the fiducials as keys: lpa, rpa, nasion
+        A dictionary specifying the fiducials as keys: lpa, rpa, nasion.
+
+        Example
+        -------
+        {'nasion': [ 0,1,1],
+         'lpa':    [-1,0,1],
+         'rpa':    [ 1,0,1]}
     """
     def __init__(self, pos, ch_names, kind, selection, fids):
         self.pos = pos
@@ -844,7 +850,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         ch_names_ = table['label']
         theta = (2 * np.pi * table['theta']) / 360.
         phi = (2 * np.pi * table['phi']) / 360.
-        pos = sphere_to_cartesian(theta, phi, r=1.0)
+        pos = _sphere_to_cartesian(theta, phi, r=1.0)
         pos = np.asarray(pos).T
     elif ext == '.elp':
         # standard BESA spherical
@@ -865,7 +871,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         elevation = sph_phi / 180.0 * np.pi
         r = 85.
 
-        y, x, z = sphere_to_cartesian(azimuth, elevation, r)
+        y, x, z = _sphere_to_cartesian(azimuth, elevation, r)
 
         pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
@@ -958,14 +964,27 @@ def apply_fiducials(info, montage):
         The montage to apply.
     """
     fids = montage.fids
-    fids_dig = [{'r': fids['2'],
+    if 'nasion' in fids:
+        nasion = fids['nasion']
+    if '2' in fids:
+        nasion = fids['2']
+    if 'lpa' in fids:
+        lpa = fids['lpa']
+    if '1' in fids:
+        lpa = fids['1']
+    if 'rpa' in fids:
+        rpa = fids['rpa']
+    if '3' in fids:
+        rpa = fids['3']
+
+    fids_dig = [{'r': nasion,
                  'ident': FIFF.FIFFV_POINT_NASION,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                {'r': fids['1'], 'ident': FIFF.FIFFV_POINT_LPA,
+                {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                {'r': fids['3'], 'ident': FIFF.FIFFV_POINT_RPA,
+                {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame': FIFF.FIFFV_COORD_HEAD}]
     if info['dig']:
