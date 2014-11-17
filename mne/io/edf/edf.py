@@ -36,13 +36,12 @@ class RawEDF(_BaseRaw):
     montage : str | None
         Path to the montage file containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str
+    eog : list of str | None
         Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is empty list.
-    misc : list of str
+        correspond to the electrodes in the edf file. Default is None.
+    misc : list of str | None
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is an
-        empty list.
+        should correspond to the electrodes in the edf file. Default is None.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
@@ -65,10 +64,14 @@ class RawEDF(_BaseRaw):
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, montage, eog=[], misc=[], stim_channel=-1,
-                 annot=None, annotmap=None, tal_channel=None,
+    def __init__(self, input_fname, montage, eog=None, misc=None,
+                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
                  preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
@@ -76,7 +79,7 @@ class RawEDF(_BaseRaw):
                                                   annot, annotmap, tal_channel,
                                                   eog, misc, preload)
         logger.info('Creating Raw.info structure...')
-        if montage:
+        if montage is not None:
             montage_path = os.path.dirname(montage)
             m = read_montage(montage, path=montage_path, scale=False)
             apply_montage(self.info, m)
@@ -94,7 +97,7 @@ class RawEDF(_BaseRaw):
             if missing_positions:
                 err = ("The following positions are missing from the montage "
                        "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog  parameter"
+                       "because they are EOG channels use the eog parameter"
                        % str(missing_positions))
                 raise KeyError(err)
 
@@ -403,13 +406,12 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-    eog : list of str
+    eog : list of str | None
         Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is empty list.
-    misc : list of str
+        correspond to the electrodes in the edf file. Default is None.
+    misc : list of str | None
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is empty
-        list.
+        should correspond to the electrodes in the edf file. Default is None.
     preload : bool
         If True, all data are loaded at initialization.
         If False, data are not read until save.
@@ -422,6 +424,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         A dict containing all the EDF+,BDF  specific parameters.
     """
 
+    if eog is None:
+        eog = []
+    if misc is None:
+        misc = []
     info = Info()
     info['file_id'] = fname
     # Add info for fif object
@@ -571,7 +577,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         chan_info['loc'] = np.zeros(12)
         if ch_name in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['kind'] = FIFF.FIFFV_MISC_CH
+            chan_info['kind'] = FIFF.FIFFV_EOG_CH
         if ch_name in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
@@ -664,11 +670,10 @@ def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
         If None, sensor locations are (0,0,0).
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is empty list.
+        correspond to the electrodes in the edf file. Default is None.
     misc : list of str
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is an
-        empty list.
+        should correspond to the electrodes in the edf file. Default is None.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
@@ -691,10 +696,6 @@ def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-
-    There is an assumption that the data are arranged such that EEG channels
-    appear first then miscellaneous channels (EOGs, AUX, STIM).
-    The stimulus channel is saved as 'STI 014'
 
     See Also
     --------

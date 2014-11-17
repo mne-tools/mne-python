@@ -37,8 +37,7 @@ class RawBrainVision(_BaseRaw):
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     misc : list of str
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file. Default is an
-        empty list.
+        should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
@@ -53,10 +52,14 @@ class RawBrainVision(_BaseRaw):
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=[], reference=None,
+                 eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=None, reference=None,
                  scale=1., preload=False, verbose=None):
 
         # Preliminary Raw attributes
@@ -75,7 +78,7 @@ class RawBrainVision(_BaseRaw):
                                                           misc, scale)
         logger.info('Creating Raw.info structure...')
 
-        if montage:
+        if montage is not None:
             montage_path = os.path.dirname(montage)
             m = read_montage(montage, path=montage_path, scale=False)
             apply_montage(self.info, m)
@@ -428,6 +431,10 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
         Events from the corresponding vmrk file.
     """
 
+    if eog is None:
+        eog = []
+    if misc is None:
+        misc = []
     info = Info()
     # Some keys to be consistent with FIF measurement info
     info['meas_id'] = None
@@ -601,7 +608,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
     for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
         if ch_name in eog:
             kind = FIFF.FIFFV_EOG_CH
-            coil_type = FIFF.FIFFV_COIL_EEG
+            coil_type = FIFF.FIFFV_COIL_NONE
         elif ch_name in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
@@ -629,7 +636,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=[],
+                         eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=None,
                          reference=None, scale=1.,
                          preload=False, verbose=None, **kwargs):
     """Reader for Brain Vision EEG file
@@ -646,8 +653,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     misc : list of str
         Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file. Default is an
-        empty list.
+        should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
