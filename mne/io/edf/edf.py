@@ -13,6 +13,7 @@ import datetime
 import re
 import warnings
 from math import ceil, floor
+import warnings
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -702,10 +703,10 @@ def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
     mne.io.Raw : Documentation of attribute and methods.
     """
     if 'hpts' in kwargs:
-        logger.warning('This keyword argument is deprecated and will be '
-                       'removed in 0.10. Please use the argument '
-                       '`montage`.')
         montage = kwargs['hpts']
+        msg = ("The keyword argument 'hpts' is deprecated and will be removed "
+               "in 0.10. Please use the argument `montage`.")
+        warnings.warn(msg, DeprecationWarning)
 
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
