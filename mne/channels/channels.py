@@ -375,3 +375,41 @@ def _ch_neighbor_connectivity(ch_names, neighbors):
 
     ch_connectivity = sparse.csr_matrix(ch_connectivity)
     return ch_connectivity
+
+
+def _parse_channel_list(ch_names, channels, default=None):
+    """Convert various ways to specify channels into a valid NumPy index.
+
+    Parameters
+    ----------
+    ch_names : list of str
+        The names of the channels (as for example found in info['ch_names'])
+    channels : various
+        Can be:
+        - The string name of a single channel.
+        - A list of mixed string names and/or integer channel indices.
+        - Any valid NumPy index, which will be returned as is.
+        - None, in which case the value specified as default will be used.
+    default : various
+        The channel selection to use when `channels == None`. Can be specified
+        in the same way as the `channels` parameter.
+
+    Returns
+    -------
+    index : NumPy index
+        A valid NumPy index which can be used to index the data array to obtain
+        the desired channels.
+    """
+    if channels is None:
+        channels = default
+
+    if type(channels) == str:
+        channels = ch_names.index(channels)
+    elif isinstance(channels, list):
+        channels = [ch_names.index(c) if type(c) == str else c
+                    for c in channels]
+    elif isinstance(channels, np.ndarray):
+        channels = np.array([ch_names.index(c) if type(c) == str else c
+                            for c in channels])
+
+    return channels

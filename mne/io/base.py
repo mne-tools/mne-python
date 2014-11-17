@@ -21,7 +21,8 @@ from .pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from ..channels.channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.channels import ContainsMixin, PickDropChannelsMixin,
+                                _parse_channel_list
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -1326,18 +1327,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
-def set_eeg_reference(raw, ref_channels, copy=True):
-    """Rereference eeg channels to new reference channel(s).
-
-    If multiple reference channels are specified, they will be averaged.
+def apply_reference(raw, ref_from=None, ref_to=None, copy=True):
+    """
+    Calculate a reference signal from a set of channels and apply the reference
+    to another set of channels. This function can be used to apply a wide
+    variety of refering schemes.
 
     Parameters
     ----------
     raw : instance of Raw
         Instance of Raw with eeg channels and reference channel(s).
 
-    ref_channels : list of str
-        The name(s) of the reference channel(s).
+    ref_from : list of str | valid NumPy index
+        The channels to use to construct the reference. By default, all EEG
+        channels are used. Channels can be specified either as a list of
+        channel names or any valid NumPy indexing method.
+
+    ref_to : list of str | valid NumPy index
+        The channels to apply the reference to. By default, all EEG channels
+        are chosen. Channels can be specified either as a list of channel names
+        or any valid NumPy indexing method.
 
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
@@ -1354,32 +1363,27 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     if not raw.preload:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
-    # Make sure that reference channels are loaded as list of string
-    if not isinstance(ref_channels, list):
-        raise IOError('Reference channel(s) must be a list of string. '
-                      'If using a single reference channel, enter as '
-                      'a list with one element.')
-    # Find the indices to the reference electrodes
-    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
-    # Get the reference array
-    ref_data = raw._data[ref_idx].mean(0)
-
-    # Get the indices to the eeg channels using the pick_types function
     eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
                          ref_meg=False)
+    ref_from = _parse_channel_list(raw.ch_names, ref_from, eeg_idx)
+    ref_to = _parse_channel_list(raw.ch_names, ref_to, eeg_idx)
+    
+    # Compute reference
+    ref_data = raw._data[ref_from].mean(0)
 
     # Copy raw data or modify raw data in place
     if copy:  # copy data
         raw = raw.copy()
 
-    # Rereference the eeg channels
-    raw._data[eeg_idx] -= ref_data
+    # Apply the reference
+    raw._data[ref_to] -= ref_data
 
     # Return rereferenced data and reference array
     return raw, ref_data
 
 
+<<<<<<< HEAD
 def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
                            bipolar=None, calc_reog=False, drop=None,
                            drop_ref=False, copy=False):
@@ -1390,10 +1394,17 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
     be specified.
 
     Channels can be specified either as a string name, or an integer index.
+=======
+def set_eeg_reference(raw, ref_channels, copy=True):
+    """Rereference eeg channels to new reference channel(s).
+
+    If multiple reference channels are specified, they will be averaged.
+>>>>>>> reference
 
     Parameters
     ----------
     raw : instance of Raw
+<<<<<<< HEAD
         Instance of Raw with all channels.
 
     eeg : list of (str | int)
@@ -1450,10 +1461,22 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
         Defaults to in place.
+=======
+        Instance of Raw with eeg channels and reference channel(s).
+
+    ref_channels : list of str | valid NumPy index
+        The channels to use to construct the reference. By default, all EEG
+        channels are used. Channels can be specified either as a list of
+        channel names or any valid NumPy indexing method.
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+>>>>>>> reference
 
     Returns
     -------
     raw : instance of Raw
+<<<<<<< HEAD
         Updated instance of Raw
 
     ref_data : array
@@ -1621,6 +1644,14 @@ def specify_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
     _check_raw_compatibility([raw])
 
     return raw, ref
+=======
+        Instance of Raw with eeg channels rereferenced.
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    """
+    return apply_reference(raw, ref_channels, copy=copy)
+>>>>>>> reference
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
