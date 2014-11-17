@@ -36,7 +36,6 @@ def test_io_egi():
 
     include = ['TRSP', 'XXX1']
     raw = read_raw_egi(egi_fname, include=include)
-
     _ = repr(raw)
     _ = repr(raw.info)  # analysis:ignore, noqa
 
@@ -47,8 +46,7 @@ def test_io_egi():
     raw2 = Raw(out_fname, preload=True)
     data1, times1 = raw[:10, :]
     data2, times2 = raw2[:10, :]
-
-    assert_array_almost_equal(data1, data2)
+    assert_array_almost_equal(data1, data2, 9)
     assert_array_almost_equal(times1, times2)
 
     eeg_chan = [c for c in raw.ch_names if 'EEG' in c]
