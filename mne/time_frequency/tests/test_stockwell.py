@@ -3,6 +3,8 @@
 #
 # License : BSD 3-clause
 
+import math
+
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
@@ -38,48 +40,37 @@ def test_stockwell_core():
     """Test stockwell transform"""
     # taken from
 
-    def stockwell(data, sfreq, fmin=0, fmax=np.inf, n_fft=None):
-        n_fft, x_in, x_outer_shape = _check_input_st(data, n_fft)
-
+    def stockwell(data, sfreq, fmin=0, fmax=np.inf):
+        n_fft = data.shape[-1]
         freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
-        freq_mask = (freqs >= fmin) & (freqs <= fmax)
-        st = _st(x_in, n_fft, freqs)[freq_mask]
+        st = _st(data, n_fft, freqs, 1.0)
         return st
 
     # http://vcs.ynic.york.ac.uk/docs/naf/intro/concepts/timefreq.html
-    sfreq = 1e3  # make things easy to understand
+    sfreq = 1000.0  # make things easy to understand
     t = np.arange(sfreq)   # make an array for time
     t /= sfreq        # scale it so it goes to 1, i.e. 1 sec of time
-    pulse_freq = 10.
+    pulse_freq = 15.
     pulse = np.cos(2. * np.pi * pulse_freq * t)
     pulse[0:175] = 0.        # Zero before our desired pulse
     pulse[275:] = 0.         # and zero after our desired pulse
 
-    # test with ndim
     st_pulse = stockwell(pulse, sfreq=sfreq)
-    st_pulse_2d = stockwell(pulse[None, :], sfreq=sfreq)
-    st_pulse_3d = stockwell(pulse[None, None, :], sfreq=sfreq)
 
-    assert_array_almost_equal(st_pulse, st_pulse_2d[0])
-    assert_array_almost_equal(st_pulse, st_pulse_3d[0, 0])
-
-    for n_fft in [None, len(pulse)]:
-        st_pulse = stockwell(pulse, sfreq=sfreq, n_fft=n_fft)
-        st_pulse = stockwell(pulse, sfreq=sfreq)  # with next power of 2
-
-        assert_equals(st_pulse.shape[-1], len(pulse))  # max freq
-        assert_equals(st_pulse.max(axis=1).argmax(axis=0), pulse_freq)
-        assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
+    assert_equals(st_pulse.shape[-1], len(pulse))  # max freq
+    st_max_freq = st_pulse.max(axis=1).argmax(axis=0)
+    assert_equals(st_max_freq, pulse_freq - 1)  # we don't add mean row from FFT
+    assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
 
 
 def test_stockwell_api():
     """test stockwell functions"""
-    epochs = Epochs(raw, events,
-                    event_id, tmin, tmax, picks=picks, baseline=(None, 0))
+    epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
+                    event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
     power, itc = tfr_stockwell(epochs, return_itc=True)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equals(power.data.shape, itc.data.shape)
     assert_true(itc.data.min() >= 0.0)
     assert_true(itc.data.max() <= 1.0)
-    assert_true(itc.data.max() < 0.0)
+    assert_true(np.log(power.data.max()) * 20 <= 0.0)

@@ -134,7 +134,6 @@ def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
 
     n_frequencies = np.sum(freq_mask)
     parallel, my_st, _ = parallel_func(_st, n_jobs)
-
     tfrs = parallel(my_st(np.squeeze(data[:, c, :]),
                           n_fft_, freqs, width)
                     for c in range(n_channels))
@@ -157,7 +156,7 @@ def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
     return psd, itc, freqs
 
 
-def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
+def tfr_stockwell(epochs, fmin=0, fmax=np.inf, n_fft=None,
                   width=1.0, decim=1, n_jobs=1, return_itc=False):
     """Time-Frequency Representation (TFR) using Stockwell Transform
 
@@ -165,10 +164,10 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     ----------
     epochs : Epochs
         The epochs.
-    fmin : None, float
-        The minimum frequency to include. If None defaults to 0.
-    fmax : None, float
-        The maximum frequency to include. If None defaults to np.inf
+    fmin : float
+        The minimum frequency to include.
+    fmax : loat
+        The maximum frequency to include.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
     decim : int
