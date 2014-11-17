@@ -181,11 +181,11 @@ class _RawEGI(_BaseRaw):
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)
-            if egi_info['value_range'] and egi_info['bits']:
-                mv = egi_info['value_range'] / 2 ** egi_info['bits']
+            if egi_info['value_range'] != 0 and egi_info['bits'] != 0:
+                cal = egi_info['value_range'] / 2 ** egi_info['bits']
             else:
-                mv = 1e-6
-            data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * mv
+                cal = 1e-6
+            data[:egi_info['n_channels']] = data[:egi_info['n_channels']] * cal
 
         logger.info('    Assembling measurement info ...')
 
@@ -266,7 +266,7 @@ class _RawEGI(_BaseRaw):
         info['bads'] = []
         info['comps'] = []
         for ii, ch_name in enumerate(ch_names):
-            ch_info = {'cal': 1.0,
+            ch_info = {'cal': cal,
                        'logno': ii + 1,
                        'scanno': ii + 1,
                        'range': 1.0,
@@ -308,7 +308,7 @@ class _RawEGI(_BaseRaw):
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([egi_info['n_samples']])
         self.rawdirs = np.array([])
-        self.cals = np.ones(self.info['nchan'])
+        self.cals = np.array([c['cal'] for c in self.info['chs']])
         # use information from egi
         self.orig_format = {'>f4': 'single', '>f4': 'double',
                             '>i2': 'int'}[egi_info['dtype']]

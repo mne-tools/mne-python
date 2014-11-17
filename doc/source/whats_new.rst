@@ -43,7 +43,7 @@ BUG
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
 
    - Fix channel names in topomaps by `Alex Gramfort`_
-   
+
    - Fix mapping of 'l_trans_bandwidth' (to low frequency) and
     'h_trans_bandwidth' (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
 
@@ -63,12 +63,13 @@ API
 ~~~
 
    - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False
-   
+
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
 	``mne.layouts`` by `Denis Engemann`_
 
+   - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
 .. _changes_0_8:
 
