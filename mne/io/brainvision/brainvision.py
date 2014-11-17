@@ -674,10 +674,10 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     if 'elp_fname' in kwargs:
-        logger.warning('This keyword argument is deprecated and will be '
-                       'removed in 0.10. Please use the argument '
-                       '`montage`.')
         montage = kwargs['elp_fname']
+        msg = ('The keyword argument `elp_fname` is deprecated and will be '
+               'removed in 0.10. Please use the argument `montage`.')
+        warnings.warn(msg, DeprecationWarning)
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                          misc=misc, reference=reference, scale=scale,
                          preload=preload, verbose=verbose)
