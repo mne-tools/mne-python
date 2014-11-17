@@ -397,7 +397,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                self._data = band_pass_filter(self._data, fs, l_freq, h_freq,
+                self._data = band_pass_filter(
+                    self._data, fs, l_freq, h_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=l_trans_bandwidth,
                     h_trans_bandwidth=h_trans_bandwidth,
@@ -406,7 +407,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                self._data = band_stop_filter(self._data, fs, h_freq, l_freq,
+                self._data = band_stop_filter(
+                    self._data, fs, h_freq, l_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=h_trans_bandwidth,
                     h_trans_bandwidth=l_trans_bandwidth, method=method,
@@ -742,7 +744,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if not format in type_dict.keys():
+        if format not in type_dict.keys():
             raise ValueError('format must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
@@ -1349,19 +1351,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
-def set_eeg_reference(raw, ref_channels, copy=True):
-    """Rereference eeg channels to new reference channel(s).
-
-    If multiple reference channels are specified, they will be averaged.
+def apply_reference(raw, ref_from, ref_to=None, copy=True):
+    """
+    Calculate a reference signal by taking the mean of a set of channels and
+    apply the reference to another set of channels.
 
     Parameters
     ----------
     raw : instance of Raw
-        Instance of Raw with eeg channels and reference channel(s).
-
-    ref_channels : list of str
-        The name(s) of the reference channel(s).
-
+        Instance of Raw with EEG channels and reference channel(s).
+    ref_from : list of str
+        The names of the channels to use to construct the reference. 
+    ref_to : list of str | None
+        The names of the channels to apply the reference to. By default,
+        all EEG channels are chosen.
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
 
@@ -1369,38 +1372,228 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     -------
     raw : instance of Raw
         Instance of Raw with eeg channels rereferenced.
-
     ref_data : array
-        Array of reference data subtracted from eeg channels.
+        Array of reference data subtracted from EEG channels.
+
+    Notes
+    -----
+    1. Do not use this function to apply a common average. By default, an
+       average reference projection has already been added upon loading raw
+       data.
+
+    2. If the reference is applied to any EEG channels, this function removes
+       any pre-existing average reference projections.
+
+    3. During source localization, the EEG signal should have a common average
+       reference.
+
+    4. The data must be preloaded.
+
+    See also
+    --------
+    set_eeg_reference : Convenience function for creating an EEG reference.
+    set_bipolar_reference : Convenience function for creating a bipolar
+                            reference.
     """
     # Check to see that raw data is preloaded
     if not raw.preload:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
-    # Make sure that reference channels are loaded as list of string
-    if not isinstance(ref_channels, list):
-        raise IOError('Reference channel(s) must be a list of string. '
-                      'If using a single reference channel, enter as '
-                      'a list with one element.')
-    # Find the indices to the reference electrodes
-    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
-    # Get the reference array
-    ref_data = raw._data[ref_idx].mean(0)
+    eeg_idx = pick_types(raw.info, eeg=True, meg=False, ref_meg=False)
 
-    # Get the indices to the eeg channels using the pick_types function
-    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
-                         ref_meg=False)
+    ref_from = [raw.ch_names.index(ch) for ch in ref_from]
+    if ref_to is None:
+        ref_to = eeg_idx
+    else:
+        ref_to = [raw.ch_names.index(ch) for ch in ref_to]
 
-    # Copy raw data or modify raw data in place
-    if copy:  # copy data
+    # Compute reference
+    ref_data = raw._data[ref_from].mean(0)
+
+    if copy:
         raw = raw.copy()
 
-    # Rereference the eeg channels
-    raw._data[eeg_idx] -= ref_data
+    raw._data[ref_to] -= ref_data
 
-    # Return rereferenced data and reference array
+    # If the reference touches EEG electrodes, remove any pre-existing common
+    # reference and note in the info that a non-CAR has been applied.
+    if len(np.intersect1d(ref_from, eeg_idx)) > 0:
+        raw.info['custom_reference'] = True
+
+        # Remove any existing average reference projections
+        for i, proj in enumerate(raw.info['projs']):
+            if proj['desc'] == 'Average EEG reference' or \
+                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+                logger.info('Removing existing average EEG reference '
+                            'projection.')
+                del raw.info['projs'][i]
+
     return raw, ref_data
+
+
+def set_eeg_reference(raw, ref_channels=None, copy=True):
+    """Rereference EEG channels to new reference channel(s).
+
+    If multiple reference channels are specified, they will be averaged.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with EEG channels and reference channel(s).
+    ref_channels : list of str | None
+        The names of the channels to use to construct the reference. If None is
+        specified here, a common average reference will be applied in the form
+        of an SSP projector.
+    copy : bool
+        Specifies whether instance of Raw will be copied (True) or modified in
+        place (False). Defaults to True.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with eeg channels rereferenced.
+    ref_data : array
+        Array of reference data subtracted from EEG channels.
+
+    Notes
+    -----
+    1. If a reference is requested that is not the common average reference,
+       this function removes any pre-existing average reference projections.
+
+    2. During source localization, the EEG signal should have a common average
+       reference.
+
+    3. In order to apply a reference other than a common average reference, the
+       data must be preloaded.
+
+    See also
+    --------
+    apply_reference : Base function for rereferencing.
+    set_bipolar_reference : Convenience function for creating bipolar
+                            references.
+    """
+    if ref_channels is None:
+        # CAR requested
+        if _has_eeg_average_ref_proj(raw.info['projs']):
+            logger.warning('A common average reference projection was already '
+                           'added. The data has been left untouched.')
+            return raw, None
+        else:
+            raw.add_proj(make_eeg_average_ref_proj(raw.info), activate=False)
+            return raw, None
+    else:
+        logger.info('Applying a custom EEG reference.')
+        return apply_reference(raw, ref_channels, copy=copy)
+
+
+def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
+                          copy=True):
+    """Rereference selected channels using a bipolar referencing scheme.
+
+    A bipolar reference takes the difference between two channels (the anode
+    minus the cathode) and adds it as a new virtual channel. The original
+    channels will be dropped.
+
+    Multiple anodes and cathodes can be specified, in which case multiple
+    vitual channels will be created. The 1st anode will be substracted from the
+    1st cathode, the 2nd anode from the 2nd cathode, etc.
+
+    By default, the virtual channels will be annotated with channel info of
+    the anodes and its location set to (0, 0, 0)) and coil type set to
+    EEG_BIPOLAR.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw containing the unreferenced channels.
+    anode : str | list of str
+        The name(s) of the channel(s) to use as anode in the bipolar reference.
+    cathode : str | list of str
+        The name(s) of the channel(s) to use as cathode in the bipolar
+        reference.
+    ch_name : str | list of str
+        The channel name(s) for the virtual channel(s) containing the resulting
+        signal.
+    ch_info : dict | list of dict | None
+        This parameter can be used to supply a dictionary (or a dictionary for
+        each bipolar channel) containing channel information to merge in,
+        overwriting the default values.
+    copy : bool
+        Whether to operate on a copy of the raw data (True) or modify it
+        in-place (False). Defaults to True.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with the specified channels rereferenced.
+
+    See also
+    --------
+    apply_reference : Base function for rereferencing.
+    set_eeg_reference : Convenience function for creating an EEG reference.
+
+    Notes
+    -----
+    1. If the anodes contain any EEG channels, this function removes
+       any pre-existing average reference projections.
+
+    2. During source localization, the EEG signal should have a common average
+       reference.
+
+    3. The data must be preloaded.
+    """
+    if not isinstance(anode, list):
+        anode = [anode]
+
+    if not isinstance(cathode, list):
+        cathode = [cathode]
+
+    assert len(anode) == len(cathode), (
+        'Number of anodes must equal the number of cathodes.')
+
+    if not isinstance(ch_name, list):
+        ch_name = [ch_name]
+    assert len(ch_name) == len(anode), (
+        'Number of channel names must equal the number of anodes/cathodes.')
+
+    if ch_info is None:
+        ch_info = [{} for an in anode]
+    elif not isinstance(ch_info, list):
+        ch_info = [ch_info]
+    assert len(ch_info) == len(anode), (
+        'Number of channel info dictionaries must equal the number of '
+        'anodes/cathodes.')
+
+    # Merge specified and anode channel information dictionaries
+    new_ch_info = []
+    for an, ci in zip(anode, ch_info):
+        new_info = raw.info['chs'][raw.ch_names.index(an)].copy()
+
+        # Set channel location and coil type
+        if 'eeg_loc' in new_info:
+            new_info['eeg_loc'] = np.zeros((3, 2))
+        new_info['loc'] = np.zeros(12)
+        new_info['coil_type'] = FIFF.FIFFV_COIL_EEG_BIPOLAR
+
+        new_info.update(ci)
+        new_ch_info.append(new_info)
+
+    if copy:
+        raw = raw.copy()
+
+    # Perform bipolar referencing
+    for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
+        raw, _ = apply_reference(raw, [ca], [an], copy=False)
+        an_idx = raw.ch_names.index(an)
+        raw.info['chs'][an_idx] = info
+        raw.info['chs'][an_idx]['ch_name'] = name
+        raw.info['ch_names'][an_idx] = name
+
+    # Drop cathode channels
+    raw.drop_channels(cathode)
+
+    return raw
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):
@@ -1545,7 +1738,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
 
         # Split files if necessary, leave some space for next file info
         if pos >= split_size - this_buff_size_bytes - 2 ** 20:
-            next_fname, next_idx = _write_raw(fname, raw, info, picks, format,
+            next_fname, next_idx = _write_raw(
+                fname, raw, info, picks, format,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, inv_comp, drop_small_buffer, split_size,
                 part_idx + 1, use_fname)
@@ -1665,7 +1859,7 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if not format in ['short', 'int', 'single', 'double']:
+    if format not in ['short', 'int', 'single', 'double']:
         raise ValueError('format must be "short", "single", or "double"')
 
     if np.isrealobj(buf):
