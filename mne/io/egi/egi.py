@@ -267,6 +267,7 @@ class _RawEGI(_BaseRaw):
         info['comps'] = []
         for ii, ch_name in enumerate(ch_names):
             ch_info = {'cal': 1.0,
+                       'scale': 1. / mv if mv < 1 else mv,
                        'logno': ii + 1,
                        'scanno': ii + 1,
                        'range': 1.0,
