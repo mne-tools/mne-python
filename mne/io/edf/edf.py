@@ -204,7 +204,8 @@ class RawEDF(_BaseRaw):
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
-                max_samp = float(np.max(n_samps))
+                picks = mne.pick_types(self.info, meg=False, eeg=True)
+                max_samp = float(np.max(n_samps[picks]))
                 blocks = int(buffer_size / max_samp)
             else:
                 blocks = int(ceil(float(buffer_size) / block_samp))
