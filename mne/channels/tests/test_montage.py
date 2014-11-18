@@ -51,14 +51,6 @@ def test_montage():
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
     eeg AF3 -87 -41 28
-    # 3 cardinal landmarks
-    # --------------------
-    # Nasion
-    cardinal 2 -91 0 -42
-    # Left auricular
-    cardinal 1 0 -91 -42
-    # Right auricular
-    cardinal 3 0 91 -42
     """]
     kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp',
              'test.hpts']
@@ -78,8 +70,6 @@ def test_montage():
             table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
-        if kind.endswith('hpts'):
-            assert_true(montage.fids)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
@@ -90,5 +80,4 @@ def test_montage():
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
-    assert_true(info['dig'])
 
