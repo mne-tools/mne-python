@@ -730,7 +730,7 @@ class Montage(object):
     selection : array of int
         The indices of the selected channels in the montage file.
     """
-    def __init__(self, pos, ch_names, kind, selection, fids):
+    def __init__(self, pos, ch_names, kind, selection):
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind

@@ -1,6 +1,6 @@
-% Ascii stylus data file created by FastSCAN V4.0.7 on Thu Oct 17 12:30:44 2013
-% raw surface, 86 visible points, bounding box reference
-% x y z
+# Ascii stylus data file created by FastSCAN V4.0.7 on Thu Oct 17 12:30:44 2013
+# raw surface, 86 visible points, bounding box reference
+# x y z
 
 cardinal	nasion    -5.6729  -12.3873  -30.3671
 cardinal	lpa    -37.6782  -10.4957   91.5228
