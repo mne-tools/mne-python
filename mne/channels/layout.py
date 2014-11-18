@@ -729,21 +729,12 @@ class Montage(object):
         The type of montage (e.g. 'standard_1005').
     selection : array of int
         The indices of the selected channels in the montage file.
-    fids : dict | None
-        A dictionary specifying the fiducials as keys: lpa, rpa, nasion.
-
-        Example
-        -------
-        {'nasion': [ 0,1,1],
-         'lpa':    [-1,0,1],
-         'rpa':    [ 1,0,1]}
     """
     def __init__(self, pos, ch_names, kind, selection, fids):
         self.pos = pos
         self.ch_names = ch_names
         self.kind = kind
         self.selection = selection
-        self.fids = fids
 
     def __repr__(self):
         s = '<Montage | %s - %d Channels: %s ...>'
@@ -878,25 +869,12 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     elif ext == '.hpts':
         from ..transforms import get_ras_to_neuromag_trans, apply_trans
         # MNE-C specified format for generic digitizer data
-        with open(fname, 'rb') as fid:
-            ff = fid.read().decode()
-        pos = re.findall('eeg\s+(\w+)\s+(-?[\d,.]+)'
-                         '\s+(-?[\d,.]+)\s+(-?[\d,.]+)', ff)
-        fids_ = re.findall('cardinal\s([\d,.]+)\s(-?[\d,.]+)\s(-?[\d,.]+)\s(-?'
-                           '[\d,.]+)', ff)
-        for i, loc in enumerate(pos):
-            coord = np.array(loc[1:], dtype=float)
-            pos[i] = loc[0], coord
-        ch_names_, pos = zip(*pos)
-        if fids_:
-            fids = {}
-            for fid in fids_:
-                coord = np.array(fid[1:], dtype=float)
-                fids[fid[0].lower()] = coord
-            # transform points to neuromag space if fids are included
-            trans = get_ras_to_neuromag_trans(nasion=fids['2'], lpa=fids['1'],
-                                              rpa=fids['3'])
-            pos = apply_trans(trans, pos)
+        dtype = [('type', 'S8'), ('name', 'S8'),
+                 ('x', 'f8'), ('y','f8'), ('z', 'f8')]
+        data = np.loadtxt(fname, dtype=dtype)
+        pos_ = data[data['type'] == 'eeg']
+        pos = np.vstack((pos_['x'], pos_['y'], pos_['z'])).T
+        ch_names_ = pos_['name']
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -910,8 +888,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     else:
         ch_names_ = list(ch_names_)
     kind = op.split(kind)[-1]
-    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection,
-                   fids=fids)
+    return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
 
 def apply_montage(info, montage):
@@ -919,9 +896,6 @@ def apply_montage(info, montage):
 
     This function will replace the EEG channel names and locations with
     the values specified for the particular montage.
-
-    Note: You have to rename your object to correctly map
-    the montage names.
 
     Note: This function will change the info variable in place.
 
@@ -934,8 +908,7 @@ def apply_montage(info, montage):
     """
     if not _contains_ch_type(info, 'eeg'):
         raise ValueError('No EEG channels found.')
-    if montage.fids:
-        apply_fiducials(info, montage)
+
     sensors_found = False
     for pos, ch_name in zip(montage.pos, montage.ch_names):
         if ch_name not in info['ch_names']:
@@ -951,46 +924,3 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
-
-
-def apply_fiducials(info, montage):
-    """Apply fiducials to EEG data.
-
-    Parameters
-    ----------
-    info : instance of Info
-        The measurement info to update.
-    montage : instance of Montage
-        The montage to apply.
-    """
-    fids = montage.fids
-    nasion_labels = ['nasion', '2', 'FidNz']
-    lpa_labels = ['lpa', '1', 'FidT9']
-    rpa_labels = ['rpa', '3', 'FidT10']
-
-    for label in nasion_labels:
-        if label in fids:
-            nasion = fids[label]
-    for label in lpa_labels:
-        if label in fids:
-            lpa = fids[label]
-    for label in nasion_labels:
-        if label in fids:
-            rpa = fids[label]
-
-    fids_dig = [{'r': nasion,
-                 'ident': FIFF.FIFFV_POINT_NASION,
-                 'kind': FIFF.FIFFV_POINT_CARDINAL,
-                 'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                 'kind': FIFF.FIFFV_POINT_CARDINAL,
-                 'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                 'kind': FIFF.FIFFV_POINT_CARDINAL,
-                 'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-    if info['dig'] is not None:
-        info['dig'] = [point for point in info['dig'] if not
-                       point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
-        info['dig'].append(fids_dig)
-    else:
-        info['dig'] = fids_dig
