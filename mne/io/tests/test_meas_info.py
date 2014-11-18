@@ -11,15 +11,15 @@ from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, write_polhemus_hsp,
                               apply_dig_points)
 from mne.utils import _TempDir
-from mne.io.kit.tests import data_dir as kit_data_dir
+from mne.io.kit.tests import data_dir
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
-hsp_fname = op.join(kit_data_dir, 'test_hsp.txt')
-elp_fname = op.join(kit_data_dir, 'test_elp.txt')
+hsp_fname = op.join(data_dir, 'test_hsp.txt')
+elp_fname = op.join(data_dir, 'test_elp.txt')
 
 
 def test_fiducials_io():

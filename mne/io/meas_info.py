@@ -193,7 +193,7 @@ def write_polhemus_hsp(fname, dig):
         np.savetxt(fid, dig, '%8.2f', ' ')
 
 
-def apply_dig_points(info, dig, point_names=None):
+def apply_dig_points(info, dig, point_names=None, comments='#'):
     """Apply digitizer data to info.
 
     This function will add digitizer data to info['dig'].
@@ -204,18 +204,34 @@ def apply_dig_points(info, dig, point_names=None):
     ----------
     info : instance of Info
         The measurement info to update.
-    dig : numpy.array, shape = (n_points, 3)
+    dig : numpy.array or path of tab delimited file, shape (n_points, 3) 
         Headshape points in Polhemus head space.
-        File formats allowed: *.txt, *.pickled
     point_names : list of strings | None
         Name of the digitizer points.
         For cardinal points, use 'nasion', 'lpa', 'rpa'.
         If None (default), points are marked as extra.
+    comments : str
+        The character used to indicate the start of a comment;
+        default: '#'.
     """
+    if isinstance(dig, str):
+        dig = np.loadtxt(dig, comments=comments)
+    
     if point_names is None:
         pts = []
+        idents = [d['ident'] for d in info['dig']]
+        if {FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
+            FIFF.FIFFV_POINT_RPA}.issubset(set(idents)):
+            idx = point_names.index(FIFFV_POINT_NASION)
+            idy = point_names.index(FIFFV_POINT_LPA)
+            idz = point_names.index(FIFFV_POINT_RPA)
+            trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx], 
+                                              lpa=info['dig'][idy],
+                                              rpa=info['dig'][idz])
+        else:
+            trans = np.eye(4)
         for idx, point in enumerate(dig):
-            pts.append({'r': point, 'ident': idx,
+            pts.append({'r': apply_trans(trans, point), 'ident': idx,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
     elif isinstance(point_names, list):
@@ -227,7 +243,7 @@ def apply_dig_points(info, dig, point_names=None):
             idz = point_names.index('rpa')
             trans = get_ras_to_neuromag_trans(nasion=dig[idx], lpa=dig[idy],
                                               rpa=[idz])
-            dig = apply_trans(dig)
+            dig = apply_trans(trans, dig)
             pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
@@ -244,13 +260,13 @@ def apply_dig_points(info, dig, point_names=None):
             pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
     else:
-        err = ("'point_names' should be either a list or None. "
+        err = ("'point_names' should be either a list, or None. "
                "%s was provided." %type(point_names))
         raise TypeError(err)
     
     if info['dig'] is not None:
-        info['dig'] = [point for point in info['dig'] if not
-                       point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        info['dig'] = [apply_trans(trans, point) for point in info['dig'] 
+                       if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
         info['dig'].append(pts)
     else:
         info['dig'] = pts
