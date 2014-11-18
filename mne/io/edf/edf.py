@@ -21,6 +21,7 @@ from scipy.interpolate import interp1d
 from ...utils import verbose, logger
 from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import Info
+from ..pick import pick_types
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
@@ -204,7 +205,7 @@ class RawEDF(_BaseRaw):
 
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
-                picks = mne.pick_types(self.info, meg=False, eeg=True)
+                picks = pick_types(self.info, meg=False, eeg=True)
                 max_samp = float(np.max(n_samps[picks]))
                 blocks = int(buffer_size / max_samp)
             else:
