@@ -79,15 +79,13 @@ class RawBrainVision(_BaseRaw):
         logger.info('Creating Raw.info structure...')
 
         if montage is not None:
-            montage_path = os.path.dirname(montage)
-            m = read_montage(montage, path=montage_path, scale=False)
+            m = read_montage(montage, scale=False)
             apply_montage(self.info, m)
 
             missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH)
+            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
+                       FIFF.FIFFV_STIM_CH)
             for ch in self.info['chs']:
-                if ch['kind'] == FIFF.FIFFV_STIM_CH:
-                    continue
                 if not ch['kind'] in exclude:
                     if np.unique(ch['loc']).size == 1:
                         missing_positions.append(ch['ch_name'])

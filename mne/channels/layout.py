@@ -964,18 +964,19 @@ def apply_fiducials(info, montage):
         The montage to apply.
     """
     fids = montage.fids
-    if 'nasion' in fids:
-        nasion = fids['nasion']
-    if '2' in fids:
-        nasion = fids['2']
-    if 'lpa' in fids:
-        lpa = fids['lpa']
-    if '1' in fids:
-        lpa = fids['1']
-    if 'rpa' in fids:
-        rpa = fids['rpa']
-    if '3' in fids:
-        rpa = fids['3']
+    nasion_labels = ['nasion', '2', 'FidNz']
+    lpa_labels = ['lpa', '1', 'FidT9']
+    rpa_labels = ['rpa', '3', 'FidT10']
+
+    for label in nasion_labels:
+        if label in fids:
+            nasion = fids[label]
+    for label in lpa_labels:
+        if label in fids:
+            lpa = fids[label]
+    for label in nasion_labels:
+        if label in fids:
+            rpa = fids[label]
 
     fids_dig = [{'r': nasion,
                  'ident': FIFF.FIFFV_POINT_NASION,
@@ -987,10 +988,9 @@ def apply_fiducials(info, montage):
                 {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                  'kind': FIFF.FIFFV_POINT_CARDINAL,
                  'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-    if info['dig']:
-        for point in info['dig']:
-            info['dig'] = [point for point in info['dig'] if
-                           point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+    if info['dig'] is not None:
+        info['dig'] = [point for point in info['dig'] if not
+                       point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
         info['dig'].append(fids_dig)
     else:
         info['dig'] = fids_dig
