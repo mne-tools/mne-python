@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-from ..meas_info import (read_polhemus_elp,  # for backwards compatibility
-                         read_polhemus_hsp, write_polhemus_hsp)
 from .kit import read_raw_kit
 from .coreg import read_mrk, write_mrk
 from . import kit

@@ -27,6 +27,7 @@ from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b
+from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -168,56 +169,6 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
-def read_polhemus_elp(fname):
-    """Read point coordinates from a text file
-
-    Parameters
-    ----------
-    fname : str
-        Absolute path to laser point file (*.txt).
-
-    Returns
-    -------
-    elp_points : array, [n_points x 3]
-        Point coordinates.
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
-        elp_points = pattern.findall(fid.read())
-    elp_points = np.array(elp_points, dtype=float)
-    if elp_points.shape[1] != 3:
-        raise ValueError("File %r does not contain 3 columns as required; got "
-                         "shape %s." % (fname, elp_points.shape))
-
-    return elp_points
-
-
-def read_polhemus_hsp(fname):
-    """Read a Polhemus ascii head shape file
-
-    Parameters
-    ----------
-    fname : str
-        Path to head shape file acquired from Polhemus system and saved in
-        ascii format.
-
-    Returns
-    -------
-    hsp_points : numpy.array, shape = (n_points, 3)
-        Headshape points in Polhemus head space.
-        File formats allowed: *.txt, *.pickled
-    """
-    float_not = '\-?\d+\.?\d*'
-    exp_not = '[eE]?[-+]?\d*'
-    pattern = re.compile('(%s%s)\s+' % (float_not, exp_not) +
-                         '(%s%s)\s+' % (float_not, exp_not) +
-                         '(%s%s)\s*[\n\r]*' % (float_not, exp_not))
-    with open(fname) as fid:
-        hsp_points = pattern.findall(fid.read())
-    hsp_points = np.array(hsp_points, dtype=float)
-    return hsp_points
-
-
 def write_polhemus_hsp(fname, dig):
     """Write a headshape hsp file
 
@@ -242,7 +193,7 @@ def write_polhemus_hsp(fname, dig):
         np.savetxt(fid, dig, '%8.2f', ' ')
 
 
-def apply_polhemus_hsp(info, dig):
+def apply_dig_points(info, dig, point_names=None):
     """Apply digitizer data to info.
 
     This function will add digitizer data to info['dig'].
@@ -256,42 +207,53 @@ def apply_polhemus_hsp(info, dig):
     dig : numpy.array, shape = (n_points, 3)
         Headshape points in Polhemus head space.
         File formats allowed: *.txt, *.pickled
+    point_names : list of strings | None
+        Name of the digitizer points.
+        For cardinal points, use 'nasion', 'lpa', 'rpa'.
+        If None (default), points are marked as extra.
     """
-    pts = []
-    for idx, point in enumerate(dig):
-        pts.append({'r': point, 'ident': idx,
-                    'kind': FIFF.FIFFV_POINT_EXTRA,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    info['dig'] = pts
+    if point_names is None:
+        pts = []
+        for idx, point in enumerate(dig):
+            pts.append({'r': point, 'ident': idx,
+                        'kind': FIFF.FIFFV_POINT_EXTRA,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    elif isinstance(point_names, list):
+        pts = []
+        idxs = []
+        if {'nasion', 'lpa', 'rpa'}.issubset(point_names):
+            idx = point_names.index('nasion')
+            idy = point_names.index('lpa')
+            idz = point_names.index('rpa')
+            trans = get_ras_to_neuromag_trans(nasion=dig[idx], lpa=dig[idy],
+                                              rpa=[idz])
+            dig = apply_trans(dig)
+            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_LPA,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_RPA,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            raise ValueError('Digitizer Points are missing fiducials.')
 
-
-def apply_polhemus_elp(info, dig, point_names):
-    pts = []
-    idxs = []
-    if 'nasion' in point_names:
-        idx = point_names.index('nasion')
-        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        idxs.append(idx)
-    if 'lpa' in point_names:
-        idx = point_names.index('lpa')
-        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_LPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        idxs.append(idx)
-    if 'rpa' in point_names:
-        idx = point_names.index('rpa')
-        pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_RPA,
-                    'kind': FIFF.FIFFV_POINT_CARDINAL,
-                    'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-        idxs.append(idx)
-
-    dig = np.delete(dig, idxs)
-    for idx, point in enumerate(dig):
-        pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
-                    'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    info['dig'] = pts
+        for idx, point in enumerate(dig):
+            pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
+                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
+    else:
+        err = ("'point_names' should be either a list or None. "
+               "%s was provided." %type(point_names))
+        raise TypeError(err)
+    
+    if info['dig'] is not None:
+        info['dig'] = [point for point in info['dig'] if not
+                       point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        info['dig'].append(pts)
+    else:
+        info['dig'] = pts
 
 
 @verbose
