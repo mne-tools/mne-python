@@ -426,14 +426,39 @@ class RawKIT(_BaseRaw):
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)
         hsp = apply_trans(nmtrans, hsp)
-        
-        point_names = ['hpi'] * 8
-        point_names[:3] = ['nasion', 'lpa', 'rpa'] 
-        apply_dig_points(self.info, elp)
-        apply_dig_points(self.info, hsp)
 
         # device head transform
         trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+
+        self._set_dig_neuromag(elp[:3], elp[3:], hsp, trans)
+
+    def _set_dig_neuromag(self, fid, elp, hsp, trans):
+        """Fill in the digitizer data using points in neuromag space
+
+        Parameters
+        ----------
+        fid : array, shape = (3, 3)
+            Digitizer fiducials.
+        elp : array, shape = (5, 3)
+            Digitizer ELP points.
+        hsp : array, shape = (n_points, 3)
+            Head shape points.
+        trans : None | array, shape = (4, 4)
+            Device head transformation.
+        """
+        trans = np.asarray(trans)
+        if fid.shape != (3, 3):
+            raise ValueError("fid needs to be a 3 by 3 array")
+        if elp.shape != (5, 3):
+            raise ValueError("elp needs to be a 5 by 3 array")
+        if trans.shape != (4, 4):
+            raise ValueError("trans needs to be 4 by 4 array")
+
+        point_names = ['hpi'] * 8
+        point_names[:3] = ['nasion', 'lpa', 'rpa'] 
+        apply_dig_points(self.info, elp, point_names)
+        apply_dig_points(self.info, hsp)
+
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t
