@@ -23,7 +23,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, read_polhemus_elp, read_polhemus_hsp
+from ..meas_info import Info, apply_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -394,7 +394,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = read_polhemus_hsp(hsp)
+            hsp = np.loadtxt(hsp, comments='%')
 
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
@@ -408,7 +408,7 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = read_polhemus_elp(elp)[:8]
+            elp_points = np.loadtxt(elp, comments='%')[:8]
             if len(elp) < 8:
                 err = ("File %r contains fewer than 8 points; got shape "
                        "%s." % (elp, elp_points.shape))
@@ -426,59 +426,19 @@ class RawKIT(_BaseRaw):
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)
         hsp = apply_trans(nmtrans, hsp)
+        
+        point_names = ['hpi'] * 8
+        point_names[:3] = ['nasion', 'lpa', 'rpa'] 
+        apply_dig_points(self.info, elp)
+        apply_dig_points(self.info, hsp)
 
         # device head transform
         trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
-
-        self._set_dig_neuromag(elp[:3], elp[3:], hsp, trans)
-
-    def _set_dig_neuromag(self, fid, elp, hsp, trans):
-        """Fill in the digitizer data using points in neuromag space
-
-        Parameters
-        ----------
-        fid : array, shape = (3, 3)
-            Digitizer fiducials.
-        elp : array, shape = (5, 3)
-            Digitizer ELP points.
-        hsp : array, shape = (n_points, 3)
-            Head shape points.
-        trans : None | array, shape = (4, 4)
-            Device head transformation.
-        """
-        trans = np.asarray(trans)
-        if fid.shape != (3, 3):
-            raise ValueError("fid needs to be a 3 by 3 array")
-        if elp.shape != (5, 3):
-            raise ValueError("elp needs to be a 5 by 3 array")
-        if trans.shape != (4, 4):
-            raise ValueError("trans needs to be 4 by 4 array")
-
-        nasion, lpa, rpa = fid
-        dig = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-               {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD},
-               {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-
-        for idx, point in enumerate(elp):
-            dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-
-        for idx, point in enumerate(hsp):
-            dig.append({'r': point, 'ident': idx,
-                        'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
-
-        self.info['dig'] = dig
         self.info['dev_head_t'] = dev_head_t
+
+
 
     def _set_stimchannels(self, stim='<', slope='-'):
         """Specify how the trigger channel is synthesized form analog channels.

@@ -8,9 +8,8 @@ from numpy.testing import assert_array_equal
 from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
-from mne.io.meas_info import (Info, create_info, read_polhemus_elp,
-                              read_polhemus_hsp, write_polhemus_hsp,
-                              apply_polhemus_elp, apply_polhemus_hsp)
+from mne.io.meas_info import (Info, create_info, write_polhemus_hsp,
+                              apply_dig_points)
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir as kit_data_dir
 
@@ -89,44 +88,35 @@ def test_read_write_info():
     assert_array_equal(t1, t2)
 
 
-def test_io_polhemus_hsp():
-    """Test IO for hsp files"""
+def test_write_polhemus_hsp():
+    """Test Writing for hsp files"""
     tempdir = _TempDir()
-    points = read_polhemus_hsp(hsp_fname)
+    points = np.loadtxt(hsp_fname, comments='%')
 
     dest = op.join(tempdir, 'test.txt')
     write_polhemus_hsp(dest, points)
-    points1 = read_polhemus_hsp(dest)
+    points1 = np.loadtxt(dest, comments='%')
     err = "Hsp points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
 
-def test_read_polhemus_elp():
-    """Test reading an ELP file"""
-    points = read_polhemus_elp(elp_fname)
-    assert_equal(points.shape, (8, 3))
-    assert_array_equal(points[0], [1.3930, 13.1613, -4.6967])
 
-
-def test_apply_polhemus_hsp():
+def test_apply_dig_points():
     """Test application of Polhemus HSP to info"""
-    dig = read_polhemus_hsp(hsp_fname)
+    dig = np.loadtxt(hsp_fname, comments='%')
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    apply_polhemus_hsp(info, dig)
+    apply_dig_points(info, dig)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
-
-def test_apply_polhemus_elp():
-    """Test application of Polhemus ELP to info"""
-    dig = read_polhemus_elp(elp_fname)
+    dig = np.loadtxt(elp_fname, comments='%')
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    apply_polhemus_elp(info, dig, ['nasion', 'lpa', 'rpa',
-                                   '0', '1', '2', '3', '4'])
+    apply_dig_points(info, dig, ['nasion', 'lpa', 'rpa',
+                                 '0', '1', '2', '3', '4'])
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'], [1.3930, 13.1613, -4.6967])

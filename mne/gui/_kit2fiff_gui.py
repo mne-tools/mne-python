@@ -32,7 +32,6 @@ except:
         NoButtons = CheckListEditor = SceneEditor = trait_wraith
 
 from ..io.kit.kit import RawKIT, KIT
-from ..io.meas_info import read_polhemus_elp, read_polhemus_hsp
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                           get_ras_to_neuromag_trans)
 from ..coreg import _decimate_points, fit_matched_points
@@ -150,7 +149,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_polhemus_elp(self.fid_file)
+            pts = np.loadtxt(self.fid_file, comments='%')
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -201,7 +200,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_polhemus_hsp(fname)
+            pts = np.loadtxt(fname, comments='%')
 
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
