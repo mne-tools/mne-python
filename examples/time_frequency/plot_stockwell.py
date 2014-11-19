@@ -38,9 +38,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 ###############################################################################
 # Calculate power and intertrial coherence
 
-# epochs = epochs.pick_channels([epochs.ch_names[82]])
+epochs = epochs.pick_channels([epochs.ch_names[82]])  # reduce computation
 
-power, itc = tfr_stockwell(epochs[:60], fmin=6., fmax=30., decim=4, n_jobs=2,
+power, itc = tfr_stockwell(epochs, fmin=6., fmax=30., decim=4, n_jobs=2,
                            width=.6, return_itc=True)
 
 import matplotlib.pyplot as plt

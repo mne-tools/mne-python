@@ -3,8 +3,6 @@
 #
 # License : BSD 3-clause
 
-import math
-
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
@@ -60,7 +58,7 @@ def test_stockwell_core():
     assert_equals(st_pulse.shape[-1], len(pulse))
     st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
     assert_equals(st_max_freq, pulse_freq)
-    assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
+    assert_true(175 < st_pulse.max(axis=0).argmax(axis=0) < 275)  # max time
 
     # test inversion to FFT, by averaging local spectra, see. eq 5 in
     # Moukadem, A., Bouguila, Z., Ould Abdeslam, D. and Alain Dieterlen.
@@ -75,7 +73,7 @@ def test_stockwell_core():
 
     st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
     y = _st(pulse, *st_precomputed)
-    x_fft = np.sum(y, 1)
+    x_fft = np.sum(y, axis=1)
 
     y_ifft = fftpack.fft(pulse)[i_fmin:i_fmax + 1]
     assert_array_almost_equal(x_fft, y_ifft)
