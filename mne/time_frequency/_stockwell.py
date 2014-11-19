@@ -14,52 +14,18 @@ from ..parallel import parallel_func, check_n_jobs
 from .tfr import AverageTFR
 
 
-def _is_power_of_two(n):
-    """Returns True if n is a power of two"""
-    return not (n > 0 and ((n & (n - 1))))
-
-
-def _st(x, fmin, fmax, sfreq, width):
-    """Implementation based on Matlab cpde by Ali Moukadem"""
-    if x.ndim == 1:
-        x = x[None]
-    M = x.shape[-1]
-    tw = fftpack.fftfreq(M, 1. / sfreq) / M
-    tw = np.r_[tw[:1], tw[1:][::-1]]
-    Fx = fftpack.fft(x)
-    XF = np.c_[Fx, Fx]
-
-    start_f = int(np.round((fmin * M / sfreq)))
-    stop_f = int(fmax * M / sfreq)
-    k = width  # 1 for classical stowckwell transform
-
-    f_range = np.arange(start_f, stop_f + 1, 1)
-    ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
-    for i_f, f in enumerate(f_range):
-        window = ((f / (np.sqrt(2. * np.pi) * k)) *
-                  np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
-        window /= window.sum()  # normalisation
-        for i in range(len(x)):
-            ST[i, i_f, :] = fftpack.ifft(XF[i, f:f + M] * fftpack.fft(window))
-    if ST.shape[0] == 1:
-        ST = ST[0]
-    return ST
-
-
 @verbose
 def _check_input_st(x_in, n_fft, verbose=None):
     """Aux function"""
     # flatten to 2 D and memorize original shape
     n_times = x_in.shape[-1]
 
-    if n_fft is None or (not _is_power_of_two(n_fft) and
-                         n_times > n_fft):
+    if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2
         n_fft = 2 ** int(math.ceil(math.log(n_times, 2)))
     elif n_fft < n_times:
         raise ValueError("n_fft cannot be smaller than signal size. "
                          "Got %s < %s." % (n_fft, n_times))
-
     zero_pad = None
     if n_times < n_fft:
         msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
@@ -69,12 +35,69 @@ def _check_input_st(x_in, n_fft, verbose=None):
         pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(0, zero_pad)]
         x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
 
-    return x_in, n_fft, zero_pad
+        return x_in, n_fft, zero_pad
+
+
+def _is_power_of_two(n):
+    """Returns True if n is a power of two"""
+    return not (n > 0 and ((n & (n - 1))))
+
+
+def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
+    """Precompute stockwell gausian windows """
+
+    tw = fftpack.fftfreq(M, 1. / sfreq) / M
+    tw = np.r_[tw[:1], tw[1:][::-1]]
+
+    k = width  # 1 for classical stowckwell transform
+    f_range = np.arange(start_f, stop_f, 1)
+    windows = np.empty((len(f_range), len(tw)), dtype=np.complex)
+    for i_f, f in enumerate(f_range):
+        window = ((f / (np.sqrt(2. * np.pi) * k)) *
+                  np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
+        window /= window.sum()  # normalisation
+        windows[i_f] = fftpack.fft(window)
+    return M, f_range, windows
+
+
+def _st(x, M, f_range, windows):
+    """Implementation based on Matlab cpde by Ali Moukadem"""
+    if x.ndim == 1:
+        x = x[None]
+    Fx = fftpack.fft(x)
+    XF = np.c_[Fx, Fx]
+    ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
+    for i_f, (window, f) in enumerate(zip(windows, f_range)):
+        for i in range(len(x)):
+            ST[i, i_f, :] = fftpack.ifft(XF[i, f:f + M] * window)
+    if ST.shape[0] == 1:
+        ST = ST[0]
+    return ST
+
+
+def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
+                  final_times):
+    """Aux function"""
+
+    psd = np.zeros((len(f_range), final_times))
+    if compute_itc is True:
+        itc = np.zeros((len(f_range), final_times), dtype=np.complex)
+    else:
+        itc = None
+    for tfr in _st(x, M, f_range, windows):
+        tfr = tfr[..., :-zero_pad]
+        tfr = tfr[..., ::decim]
+        tfr_abs = np.abs(tfr)
+        psd += tfr_abs ** 2
+        if compute_itc:
+            itc += tfr / tfr_abs
+    return psd, itc
 
 
 @verbose
 def _induced_power_stockwell(data, sfreq, fmin, fmax,
                              n_fft=None, width=1.0, n_jobs=1, decim=1,
+                             return_itc=False,
                              verbose=None):
     """Computes multitaper power using Stockwell a.k.a. S transform
 
@@ -123,25 +146,27 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax,
         fmin = freqs[freqs > 0][0]
     if fmax is None:
         fmax = freqs.max()
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    n_jobs = check_n_jobs(n_jobs)
 
-    parallel, my_st, _ = parallel_func(_st, n_jobs)
-    tfrs = parallel(my_st(np.squeeze(data[:, c, :]),
-                          fmin, fmax, sfreq, width)
+    freq_mask = (freqs >= fmin) & (freqs <= fmax)
+    start_f = np.abs(freqs - fmin).argmin()
+    stop_f = np.abs(freqs - fmax).argmin()
+
+    M, f_range, windows = _precompute_st_windows(data.shape[-1], start_f,
+                                                 stop_f, sfreq, width)
+    n_frequencies = len(f_range)
+    psd = np.empty((n_channels, n_frequencies, n_times))
+    itc = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
+
+    n_jobs = check_n_jobs(n_jobs)
+    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
+    tfrs = parallel(my_st(np.squeeze(data[:, c, :]), M, f_range, windows,
+                          return_itc, zero_pad, decim, n_times)
                     for c in range(n_channels))
-    n_frequencies = np.sum(freq_mask)
-    psd = np.zeros((n_channels, n_frequencies, n_times))
-    itc = np.zeros((n_channels, n_frequencies, n_times),
-                   dtype=np.complex)
-    for i_chan, tfrs in enumerate(tfrs):
-        if zero_pad is not None:
-            tfrs = tfrs[..., :-zero_pad]
-        tfrs = tfrs[..., ::decim]
-        for tfr in tfrs:
-            tfr_abs = np.abs(tfr)
-            psd[i_chan, ...] += tfr_abs ** 2
-            itc[i_chan, ...] += tfr / tfr_abs
+    tfrs = iter(tfrs)
+    for i_chan, (this_psd, this_itc) in enumerate(tfrs):
+        psd[i_chan] = this_psd
+        if this_itc is not None:
+            itc[i_chan] = this_itc
 
     psd /= n_epochs
     itc = np.abs(itc) / n_epochs
@@ -192,6 +217,7 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
                                                  n_fft=n_fft,
                                                  width=width,
                                                  decim=decim,
+                                                 return_itc=return_itc,
                                                  n_jobs=n_jobs)
     times = epochs.times[::decim].copy()
     nave = len(data)
