@@ -549,27 +549,3 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         psd /= sfreq
 
     return psd, freqs
-
-
-def sine_tapers(n_tapers, n_times):
-    """compute simple sine tapers
-
-    Parameters
-    ----------
-    n_tapers : int
-        The number of tapers to compute.
-    n_times : int
-        The number of samples.
-
-    Returns
-    -------
-    tapers : ndarray (n_tpapers, n_times)
-        The sine tapers.
-    """
-
-    s = math.sqrt(2. / (n_times + 1))
-    dtype = np.float64
-    out_x = np.arange(1, n_times + 1, 1, dtype=dtype)[None]
-    out_x = out_x * (np.arange(1,  n_tapers + 1, 1, dtype=dtype)[:, None])
-
-    return s * np.sin(np.pi * out_x / (n_times + 1))

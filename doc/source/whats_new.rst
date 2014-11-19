@@ -59,6 +59,8 @@ BUG
 
    - Generating EEG layouts no longer requires digitization points by `Marijn van Vliet`_
 
+   - Add Stockwell (S) transform for time-frequency representations by `Denis Engemann`_ and `Alex Gramfort`_
+
 API
 ~~~
 
