@@ -90,9 +90,10 @@ power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
 ################################################################################
 # Stockwell (S) transform
 
-# S uses a Gaussian window to balance temporal and spectral resolition
-# Importantly, frequency bands are phase-normalized and the input signal
-# Can be recoverd from the transform.
+# S uses a Gaussian window to balance temporal and spectral resolution
+# Importantly, frequency bands are phase-normalized, hence strictly comparable
+# with regard to timing, and, the input signal can be recoverd from the
+# transform in a lossless way if we disregard numerical errors.
 
 fmin, fmax = freqs[[0, -1]]
 import matplotlib.pyplot as plt

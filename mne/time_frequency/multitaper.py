@@ -2,7 +2,6 @@
 # License : BSD 3-clause
 
 # Parts of this code were copied from NiTime http://nipy.sourceforge.net/nitime
-import math
 from warnings import warn
 
 import numpy as np
