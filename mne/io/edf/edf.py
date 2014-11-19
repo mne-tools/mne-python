@@ -455,8 +455,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         assert(fid.tell() == 0)
         fid.seek(8)
 
-        _ = fid.read(80).strip()  # subject id
-        _ = fid.read(80).strip()  # recording id
+        _ = fid.read(80).strip().decode()  # subject id
+        _ = fid.read(80).strip().decode()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)',
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
@@ -464,17 +464,17 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         date = datetime.datetime(year + 2000, month, day, hour, minute, sec)
         info['meas_date'] = calendar.timegm(date.utctimetuple())
 
-        edf_info['data_offset'] = header_nbytes = int(fid.read(8))
+        edf_info['data_offset'] = header_nbytes = int(fid.read(8).decode())
         subtype = fid.read(44).strip().decode()[:5]
         edf_info['subtype'] = subtype
 
-        edf_info['n_records'] = n_records = int(fid.read(8))
+        edf_info['n_records'] = n_records = int(fid.read(8).decode())
         # record length in seconds
-        edf_info['record_length'] = record_length = float(fid.read(8))
-        info['nchan'] = int(fid.read(4))
+        edf_info['record_length'] = record_length = float(fid.read(8).decode())
+        info['nchan'] = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for _ in channels]
-        _ = [fid.read(80).strip() for _ in channels]  # transducer type
+        _ = [fid.read(80).strip().decode() for _ in channels]  # transducer type
         units = [fid.read(8).strip().decode() for _ in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
@@ -483,10 +483,14 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 units[i] = 0
             else:
                 units[i] = 1
-        physical_min = np.array([float(fid.read(8)) for _ in channels])
-        physical_max = np.array([float(fid.read(8)) for _ in channels])
-        digital_min = np.array([float(fid.read(8)) for _ in channels])
-        digital_max = np.array([float(fid.read(8)) for _ in channels])
+        physical_min = np.array([float(fid.read(8).decode())
+                                 for _ in channels])
+        physical_max = np.array([float(fid.read(8).decode())
+                                 for _ in channels])
+        digital_min = np.array([float(fid.read(8).decode())
+                                for _ in channels])
+        digital_max = np.array([float(fid.read(8).decode())
+                                for _ in channels])
         prefiltering = [fid.read(80).strip().decode() for _ in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
@@ -520,7 +524,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             info['lowpass'] = float(np.min(lowpass))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
-        n_samples_per_record = [int(fid.read(8)) for _ in channels]
+        n_samples_per_record = [int(fid.read(8).decode()) for _ in channels]
         if np.unique(n_samples_per_record).size != 1:
             edf_info['n_samps'] = np.array(n_samples_per_record)
             if not preload:
@@ -531,7 +535,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         n_samples_per_record = max(n_samples_per_record)
         edf_info['block_samp'] = n_samples_per_record
 
-        fid.read(32 * info['nchan'])  # reserved
+        fid.read(32 * info['nchan']).decode()  # reserved
         assert fid.tell() == header_nbytes
 
     physical_ranges = physical_max - physical_min
