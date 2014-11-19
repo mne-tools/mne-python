@@ -29,19 +29,19 @@ baseline = (None, 0)
 events = mne.find_events(raw, stim_channel='STI 014')
 
 # picks MEG gradiometers
-picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=True, stim=False)
+picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=True, stim=False)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=baseline, reject=dict(mag=5e-12, eog=350e-6),
+                    baseline=baseline, reject=dict(grad=4000e-13, eog=350e-6),
                     preload=True)
 
 ###############################################################################
 # Calculate power and intertrial coherence
 
-epochs = epochs.pick_channels(epochs.ch_names[81:83])
+epochs = epochs.pick_channels([epochs.ch_names[82]])
 
-power, itc = tfr_stockwell(epochs[:60], fmin=6., fmax=30., decim=3, n_jobs=2,
-                           width=1.0, return_itc=True)
+power, itc = tfr_stockwell(epochs[:60], fmin=6., fmax=30., decim=1, n_jobs=2,
+                           width=.15, return_itc=True)
 
 power.plot([0], baseline=(-0.5, 0), mode=None)
 
