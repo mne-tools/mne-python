@@ -14,7 +14,7 @@ from scipy import fftpack
 
 from mne import io, read_events, Epochs, pick_types
 from mne.time_frequency._stockwell import (tfr_stockwell, _st,
-                                           _check_input_st)
+                                           _precompute_st_windows)
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import _TempDir
 
@@ -49,7 +49,13 @@ def test_stockwell_core():
     pulse[0:175] = 0.        # Zero before our desired pulse
     pulse[275:] = 0.         # and zero after our desired pulse
 
-    st_pulse = _st(pulse, fmin=1, fmax=100, sfreq=sfreq, width=0.5)
+    width = 0.5
+    freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
+    fmin, fmax = 1.0, 100.0
+    start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
+    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+
+    st_pulse = _st(pulse, *st_precomputed)
     st_pulse = np.abs(st_pulse) ** 2
     assert_equals(st_pulse.shape[-1], len(pulse))
     st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
@@ -61,12 +67,14 @@ def test_stockwell_core():
     # "Stockwell transform optimization applied on the detection of split in
     # heart sounds."
 
-    freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
+    width = 1.0
     i_fmin = freqs[freqs > 0].argmin() + 1
     i_fmax = freqs.argmax()
-    fmin = freqs[i_fmin]
-    fmax = freqs[i_fmax]
-    y = _st(pulse, fmin=fmin, fmax=fmax, sfreq=sfreq, width=1.0)
+    fmin, fmax = freqs[[i_fmin, i_fmax + 1]]
+    start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
+
+    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    y = _st(pulse, *st_precomputed)
     x_fft = np.sum(y, 1)
 
     y_ifft = fftpack.fft(pulse)[i_fmin:i_fmax + 1]
@@ -77,7 +85,7 @@ def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
-    power, itc = tfr_stockwell(epochs, return_itc=True)
+    power, itc = tfr_stockwell(epochs, fmin=1, fmax=30, return_itc=True)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equals(power.data.shape, itc.data.shape)

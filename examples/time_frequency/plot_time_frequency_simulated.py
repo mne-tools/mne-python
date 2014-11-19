@@ -10,12 +10,13 @@ and the problem of estimation variance.
 print(__doc__)
 
 # Authors: Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
+#          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
 from mne import create_info, EpochsArray
-from mne.time_frequency import tfr_multitaper, tfr_morlet
+from mne.time_frequency import tfr_multitaper, tfr_stockwell, tfr_morlet
 
 ###############################################################################
 # Simulate data
@@ -51,7 +52,7 @@ epochs = EpochsArray(data=data, info=info, events=events, event_id=event_id,
 
 
 ###############################################################################
-# Consider different parameter possibilities
+# Consider different parameter possibilities for multitaper convolution
 freqs = np.arange(5., 100., 3.)
 
 # You can trade time resolution or frequency resolution or both
@@ -86,7 +87,27 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
 
+################################################################################
+# Stockwell (S) transform
 
+# S uses a Gaussian window to balance temporal and spectral resolition
+# Importantly, frequency bands are phase-normalized and the input signal
+# Can be recoverd from the transform.
+
+fmin, fmax = freqs[[0, -1]]
+
+for width in (0.5, 1.5):
+    power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width,
+                               return_itc=True)
+
+    power.plot([0], baseline=None, mode=None,
+               title='Sim: Power Using S transform, width '
+                     '= {:0.1f}'.format(width))
+
+    itc.plot([0], baseline=None, mode=None,
+             title='Sim: ITC Using S transform, width = {:0.1f}'.format(width))
+
+################################################################################
 # Finally, compare to morlet wavelet
 n_cycles = freqs / 2.
 power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
