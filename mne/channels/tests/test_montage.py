@@ -73,11 +73,9 @@ def test_montage():
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
-    assert_false(info['dig'])
     apply_montage(info, montage)
     pos2 = np.array([c['loc'][:3] for c in info['chs']])
     pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
-
