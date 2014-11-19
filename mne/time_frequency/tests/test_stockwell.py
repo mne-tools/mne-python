@@ -60,7 +60,7 @@ def test_stockwell_core():
     assert_equals(st_max_freq, pulse_freq)
     assert_true(175 < st_pulse.max(axis=0).argmax(axis=0) < 275)  # max time
 
-    # test inversion to FFT, by averaging local spectra, see. eq 5 in
+    # test inversion to FFT, by averaging local spectra, see eq. 5 in
     # Moukadem, A., Bouguila, Z., Ould Abdeslam, D. and Alain Dieterlen.
     # "Stockwell transform optimization applied on the detection of split in
     # heart sounds."
@@ -72,14 +72,16 @@ def test_stockwell_core():
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
 
-    np.testing.assert_array_almost_equal(pulse, y_inv)
+    assert_array_almost_equal(pulse, y_inv)
 
 
 def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
-    power, itc = tfr_stockwell(epochs, fmin=1, fmax=30, return_itc=True)
+    for fmin, fmax in [(None, 100), (5, 100), (5, None)]:
+        power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
+                                   return_itc=True)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equals(power.data.shape, itc.data.shape)

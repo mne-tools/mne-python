@@ -95,17 +95,20 @@ power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
 # Can be recoverd from the transform.
 
 fmin, fmax = freqs[[0, -1]]
-
-for width in (0.5, 1.5):
+import matplotlib.pyplot as plt
+for width in (0.5, 2.0):
     power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width,
                                return_itc=True)
 
+    fig = plt.figure()
     power.plot([0], baseline=None, mode=None,
                title='Sim: Power Using S transform, width '
-                     '= {:0.1f}'.format(width))
+                     '= {:0.1f}'.format(width), show=True)
 
+    fig = plt.figure()
     itc.plot([0], baseline=None, mode=None,
-             title='Sim: ITC Using S transform, width = {:0.1f}'.format(width))
+             title='Sim: ITC Using S transform, width = {:0.1f}'.format(width),
+             show=True)
 
 ################################################################################
 # Finally, compare to morlet wavelet

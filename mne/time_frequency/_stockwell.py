@@ -159,7 +159,6 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     if fmax is None:
         fmax = freqs.max()
 
-    freq_mask = (freqs >= fmin) & (freqs <= fmax)
     start_f = np.abs(freqs - fmin).argmin()
     stop_f = np.abs(freqs - fmax).argmin()
 
@@ -180,7 +179,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         if this_itc is not None:
             itc[i_chan] = this_itc
 
-    freqs = freqs[freq_mask]
+    freqs = freqs[[np.abs(freqs - f).argmin() for f in f_range]]
     return psd, itc, freqs
 
 
