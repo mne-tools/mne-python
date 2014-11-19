@@ -797,7 +797,6 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     else:
         kind, ext = op.splitext(kind)
         fname = op.join(path, kind + ext)
-    fids = None
 
     if ext == '.sfp':
         # EGI geodesic
