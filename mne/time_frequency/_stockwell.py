@@ -3,10 +3,10 @@
 #
 # License : BSD 3-clause
 
+from copy import deepcopy
 import math
 import numpy as np
 from scipy import fftpack
-from scipy.linalg import toeplitz
 
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
@@ -45,7 +45,6 @@ def _is_power_of_two(n):
 
 def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
     """Precompute stockwell gausian windows """
-
     tw = fftpack.fftfreq(M, 1. / sfreq) / M
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -61,9 +60,9 @@ def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
 
 
 def _st(x, M, f_range, windows):
-    """Implementation based on Matlab cpde by Ali Moukadem"""
+    """Implementation based on Matlab code by Ali Moukadem"""
     if x.ndim == 1:
-        x = x[None]
+        x = x[None, :]
     Fx = fftpack.fft(x)
     XF = np.c_[Fx, Fx]
     ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
@@ -78,7 +77,6 @@ def _st(x, M, f_range, windows):
 def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
                   final_times):
     """Aux function"""
-
     psd = np.zeros((len(f_range), final_times))
     if compute_itc is True:
         itc = np.zeros((len(f_range), final_times), dtype=np.complex)
@@ -91,17 +89,19 @@ def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
         psd += tfr_abs ** 2
         if compute_itc:
             itc += tfr / tfr_abs
+
+    n_signals = x.shape[0]
+    psd /= n_signals
+    if compute_itc:
+        itc = np.abs(itc) / n_signals
     return psd, itc
 
 
 @verbose
-def _induced_power_stockwell(data, sfreq, fmin, fmax,
-                             n_fft=None, width=1.0, n_jobs=1, decim=1,
-                             return_itc=False,
+def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
+                             decim=1, return_itc=False, n_jobs=1,
                              verbose=None):
-    """Computes multitaper power using Stockwell a.k.a. S transform
-
-    Based on MATLAB code by Kalyan S. Das and Python code by the NIH
+    """Computes power using Stockwell a.k.a. S transform
 
     Parameters
     ----------
@@ -116,9 +116,16 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax,
     fmax : None, float
         The maximum frequency to include. If None defaults to the maximum fft.
     n_fft : int | None
-        The length of the windows used for FFT. If None,
-        it defaults to the next power of 2 larger than
-        the signal length.
+        The length of the windows used for FFT. If None, it defaults to the
+        next power of 2 larger than the signal length.
+    width : float
+        The width of the Gaussian window. If < 1, increased temporal
+        resolution, if > 1, increased frequency resolution. Defaults to 1.
+        (classical S-Transform).
+    decim : int
+        The decimation factor on the time axis. To reduce memory usage.
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         Number of parallel jobs to use (only used if adaptive=True).
     verbose : bool, str, int, or None
@@ -129,6 +136,8 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax,
     st_power : ndarray
         The multitaper power of the Stockwell transformed data.
         The last two dimensions are frequency and time.
+    itc : ndarray
+        The intertrial coherence. Only returned if return_itc is True.
     freqs : ndarray
         The frequencies.
 
@@ -155,11 +164,11 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax,
                                                  stop_f, sfreq, width)
     n_frequencies = len(f_range)
     psd = np.empty((n_channels, n_frequencies, n_times))
-    itc = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
+    itc = np.empty((n_channels, n_frequencies, n_times))
 
     n_jobs = check_n_jobs(n_jobs)
     parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-    tfrs = parallel(my_st(np.squeeze(data[:, c, :]), M, f_range, windows,
+    tfrs = parallel(my_st(data[:, c, :], M, f_range, windows,
                           return_itc, zero_pad, decim, n_times)
                     for c in range(n_channels))
     tfrs = iter(tfrs)
@@ -168,14 +177,12 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax,
         if this_itc is not None:
             itc[i_chan] = this_itc
 
-    psd /= n_epochs
-    itc = np.abs(itc) / n_epochs
     freqs = freqs[freq_mask]
     return psd, itc, freqs
 
 
 def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
-                  width=1.0, decim=1, n_jobs=1, return_itc=False):
+                  width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Time-Frequency Representation (TFR) using Stockwell Transform
 
     Parameters
@@ -188,17 +195,16 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     fmax : None, float
         The maximum frequency to include. If None defaults to the maximum fft.
     n_fft : int | None
-        The length of the windows used for FFT. If None,
-        it defaults to the next power of 2 larger than
-        the signal length.
+        The length of the windows used for FFT. If None, it defaults to the
+        next power of 2 larger than the signal length.
     width : float
-        The width of the Gaussian window. If < 1, increased temporal resolution,
-        if > 1, increased frequency resolution. Defaults to 1.
+        The width of the Gaussian window. If < 1, increased temporal
+        resolution, if > 1, increased frequency resolution. Defaults to 1.
         (classical S-Transform).
-    return_itc : bool
-        Return intertrial coherence (ITC) as well as averaged power.
     decim : int
         The decimation factor on the time axis. To reduce memory usage.
+    return_itc : bool
+        Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
 
@@ -206,6 +212,8 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     -------
     power : AverageTFR
         The averaged power.
+    itc : AverageTFR
+        The intertrial coherence. Only returned if return_itc is True.
     """
     data = epochs.get_data()
     picks = pick_types(epochs.info, meg=True, eeg=True)
@@ -223,5 +231,6 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave)
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave))
+        out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
+                               freqs.copy(), nave))
     return out
