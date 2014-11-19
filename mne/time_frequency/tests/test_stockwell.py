@@ -40,12 +40,6 @@ def test_stockwell_core():
     """Test stockwell transform"""
     # taken from
 
-    def stockwell(data, sfreq, fmin=0, fmax=np.inf):
-        n_fft = data.shape[-1]
-        freqs = fftpack.fftfreq(n_fft, 1. / sfreq)
-        st = _st(data, n_fft, freqs, 1.0)
-        return st
-
     # http://vcs.ynic.york.ac.uk/docs/naf/intro/concepts/timefreq.html
     sfreq = 1000.0  # make things easy to understand
     t = np.arange(sfreq)   # make an array for time
@@ -55,12 +49,28 @@ def test_stockwell_core():
     pulse[0:175] = 0.        # Zero before our desired pulse
     pulse[275:] = 0.         # and zero after our desired pulse
 
-    st_pulse = stockwell(pulse, sfreq=sfreq)
-
-    assert_equals(st_pulse.shape[-1], len(pulse))  # max freq
-    st_max_freq = st_pulse.max(axis=1).argmax(axis=0)
-    assert_equals(st_max_freq, pulse_freq - 1)  # we don't add mean row from FFT
+    st_pulse = _st(pulse, fmin=1, fmax=100, sfreq=sfreq, width=0.5)
+    st_pulse = np.abs(st_pulse) ** 2
+    assert_equals(st_pulse.shape[-1], len(pulse))
+    st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
+    assert_equals(st_max_freq, pulse_freq)
     assert_true(175 < st_pulse.max(0).argmax(0) < 275)  # max time
+
+    # test inversion to FFT, by averaging local spectra, see. eq 5 in
+    # Moukadem, A., Bouguila, Z., Ould Abdeslam, D. and Alain Dieterlen.
+    # "Stockwell transform optimization applied on the detection of split in
+    # heart sounds."
+
+    freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
+    i_fmin = freqs[freqs > 0].argmin() + 1
+    i_fmax = freqs.argmax()
+    fmin = freqs[i_fmin]
+    fmax = freqs[i_fmax]
+    y = _st(pulse, fmin=fmin, fmax=fmax, sfreq=sfreq, width=1.0)
+    x_fft = np.sum(y, 1)
+
+    y_ifft = fftpack.fft(pulse)[i_fmin:i_fmax + 1]
+    assert_array_almost_equal(x_fft, y_ifft)
 
 
 def test_stockwell_api():

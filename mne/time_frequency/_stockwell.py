@@ -19,40 +19,30 @@ def _is_power_of_two(n):
     return not (n > 0 and ((n & (n - 1))))
 
 
-def _finalize_st(x_in, n_fft, f_half, G):
-    """Aux function"""
-    Hft = fftpack.fft(x_in, n_fft)
-    #  Compute Toeplitz matrix with the shifted fft(h)
-    HW = toeplitz(Hft[:f_half + 1].conj(), Hft)
-    out = fftpack.ifft(HW[1:f_half + 1, :] * G, axis=1)
-    return out
+def _st(x, fmin, fmax, sfreq, width):
+    """Implementation based on Matlab cpde by Ali Moukadem"""
+    if x.ndim == 1:
+        x = x[None]
+    M = x.shape[-1]
+    tw = fftpack.fftfreq(M, 1. / sfreq) / M
+    tw = np.r_[tw[:1], tw[1:][::-1]]
+    Fx = fftpack.fft(x)
+    XF = np.c_[Fx, Fx]
 
+    start_f = int(np.round((fmin * M / sfreq)))
+    stop_f = int(fmax * M / sfreq)
+    k = width  # 1 for classical stowckwell transform
 
-def _st(x_in, n_fft, freqs, width):
-    """Compute Stockwell on one or multiple signals"""
-    ndim = x_in.ndim
-
-    if ndim == 1:
-        x_in = x_in[np.newaxis, :]
-
-    n_signals = len(x_in)
-    f_half = n_fft // 2
-
-    # Compute all frequency domain Gaussians as one matrix
-    W = (width * np.pi * (freqs[np.newaxis, :] /
-         freqs[1:f_half + 1, np.newaxis]))
-
-    W *= W  # faster than W = np.pow(W, 2)
-    G = np.exp(-W / width)  # Gaussian in freq domain
-
-    #  Exclude the first row, corresponding to zero frequency
-    #  and compute S Transform
-    ST = np.empty((n_signals, f_half, n_fft), dtype=np.complex64)
-    for k in range(n_signals):
-        ST[k] = _finalize_st(x_in[k], n_fft, f_half, G)
-    if ndim == 1:
+    f_range = np.arange(start_f, stop_f + 1, 1)
+    ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
+    for i_f, f in enumerate(f_range):
+        window = ((f / (np.sqrt(2. * np.pi) * k)) *
+                  np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
+        window /= window.sum()  # normalisation
+        for i in range(len(x)):
+            ST[i, i_f, :] = fftpack.ifft(XF[i, f:f + M] * fftpack.fft(window))
+    if ST.shape[0] == 1:
         ST = ST[0]
-
     return ST
 
 
@@ -83,7 +73,7 @@ def _check_input_st(x_in, n_fft, verbose=None):
 
 
 @verbose
-def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
+def _induced_power_stockwell(data, sfreq, fmin, fmax,
                              n_fft=None, width=1.0, n_jobs=1, decim=1,
                              verbose=None):
     """Computes multitaper power using Stockwell a.k.a. S transform
@@ -98,9 +88,10 @@ def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
     sfreq : float
         The sampling frequency.
     fmin : None, float
-        The minimum frequency to include. If None defaults to 0.
+        The minimum frequency to include. If None defaults to the minimum fft
+        frequency greater than zero.
     fmax : None, float
-        The maximum frequency to include. If None defaults to np.inf
+        The maximum frequency to include. If None defaults to the maximum fft.
     n_fft : int | None
         The length of the windows used for FFT. If None,
         it defaults to the next power of 2 larger than
@@ -128,23 +119,25 @@ def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
     data, n_fft_, zero_pad = _check_input_st(data, n_fft, verbose)
 
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
+    if fmin is None:
+        fmin = freqs[freqs > 0][0]
+    if fmax is None:
+        fmax = freqs.max()
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
-    n_frequencies = len(freqs)
     n_jobs = check_n_jobs(n_jobs)
 
-    n_frequencies = np.sum(freq_mask)
     parallel, my_st, _ = parallel_func(_st, n_jobs)
     tfrs = parallel(my_st(np.squeeze(data[:, c, :]),
-                          n_fft_, freqs, width)
+                          fmin, fmax, sfreq, width)
                     for c in range(n_channels))
-
+    n_frequencies = np.sum(freq_mask)
     psd = np.zeros((n_channels, n_frequencies, n_times))
     itc = np.zeros((n_channels, n_frequencies, n_times),
                    dtype=np.complex)
     for i_chan, tfrs in enumerate(tfrs):
         if zero_pad is not None:
             tfrs = tfrs[..., :-zero_pad]
-        tfrs = tfrs[:, freq_mask][..., ::decim]
+        tfrs = tfrs[..., ::decim]
         for tfr in tfrs:
             tfr_abs = np.abs(tfr)
             psd[i_chan, ...] += tfr_abs ** 2
@@ -156,7 +149,7 @@ def _induced_power_stockwell(data, sfreq, fmin=0, fmax=np.inf,
     return psd, itc, freqs
 
 
-def tfr_stockwell(epochs, fmin=0, fmax=np.inf, n_fft=None,
+def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, n_jobs=1, return_itc=False):
     """Time-Frequency Representation (TFR) using Stockwell Transform
 
@@ -164,10 +157,19 @@ def tfr_stockwell(epochs, fmin=0, fmax=np.inf, n_fft=None,
     ----------
     epochs : Epochs
         The epochs.
-    fmin : float
-        The minimum frequency to include.
-    fmax : loat
-        The maximum frequency to include.
+    fmin : None, float
+        The minimum frequency to include. If None defaults to the minimum fft
+        frequency greater than zero.
+    fmax : None, float
+        The maximum frequency to include. If None defaults to the maximum fft.
+    n_fft : int | None
+        The length of the windows used for FFT. If None,
+        it defaults to the next power of 2 larger than
+        the signal length.
+    width : float
+        The width of the Gaussian window. If < 1, increased temporal resolution,
+        if > 1, increased frequency resolution. Defaults to 1.
+        (classical S-Transform).
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
     decim : int
@@ -189,6 +191,7 @@ def tfr_stockwell(epochs, fmin=0, fmax=np.inf, n_fft=None,
                                                  fmin=fmin, fmax=fmax,
                                                  n_fft=n_fft,
                                                  width=width,
+                                                 decim=decim,
                                                  n_jobs=n_jobs)
     times = epochs.times[::decim].copy()
     nave = len(data)
