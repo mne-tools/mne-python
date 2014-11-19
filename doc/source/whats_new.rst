@@ -43,7 +43,7 @@ BUG
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
 
    - Fix channel names in topomaps by `Alex Gramfort`_
-   
+
    - Fix mapping of 'l_trans_bandwidth' (to low frequency) and
     'h_trans_bandwidth' (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
 
@@ -59,11 +59,13 @@ BUG
 
    - Generating EEG layouts no longer requires digitization points by `Marijn van Vliet`_
 
+   - Add Stockwell (S) transform for time-frequency representations by `Denis Engemann`_ and `Alex Gramfort`_
+
 API
 ~~~
 
    - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False
-   
+
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
