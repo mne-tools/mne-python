@@ -52,8 +52,11 @@ def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
     f_range = np.arange(start_f, stop_f, 1)
     windows = np.empty((len(f_range), len(tw)), dtype=np.complex)
     for i_f, f in enumerate(f_range):
-        window = ((f / (np.sqrt(2. * np.pi) * k)) *
-                  np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
+        if f == 0.:
+            window = np.ones(len(tw))
+        else:
+            window = ((f / (np.sqrt(2. * np.pi) * k)) *
+                      np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
         windows[i_f] = fftpack.fft(window)
     return M, f_range, windows

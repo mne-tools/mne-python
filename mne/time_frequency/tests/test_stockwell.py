@@ -66,17 +66,13 @@ def test_stockwell_core():
     # heart sounds."
 
     width = 1.0
-    i_fmin = freqs[freqs > 0].argmin() + 1
-    i_fmax = freqs.argmax()
-    fmin, fmax = freqs[[i_fmin, i_fmax + 1]]
-    start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
-
+    start_f, stop_f = 0, len(pulse)
     st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
     y = _st(pulse, *st_precomputed)
-    x_fft = np.sum(y, axis=1)
+    # invert stockwell
+    y_inv = fftpack.ifft(np.sum(y, axis=1)).real
 
-    y_ifft = fftpack.fft(pulse)[i_fmin:i_fmax + 1]
-    assert_array_almost_equal(x_fft, y_ifft)
+    np.testing.assert_array_almost_equal(pulse, y_inv)
 
 
 def test_stockwell_api():
