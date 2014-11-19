@@ -168,6 +168,8 @@ class FieldTripClient(object):
                     this_info['kind'] = FIFF.FIFFV_MCG_CH
                 elif ch.startswith('EOG'):
                     this_info['kind'] = FIFF.FIFFV_EOG_CH
+                elif ch.startswith('EMG'):
+                    this_info['kind'] = FIFF.FIFFV_EMG_CH
                 elif ch.startswith('STI'):
                     this_info['kind'] = FIFF.FIFFV_STIM_CH
                 elif ch.startswith('ECG'):
