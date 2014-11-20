@@ -7,6 +7,7 @@ from copy import deepcopy
 import math
 import numpy as np
 from scipy import fftpack
+# XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
@@ -20,6 +21,7 @@ def _check_input_st(x_in, n_fft, verbose=None):
     # flatten to 2 D and memorize original shape
     n_times = x_in.shape[-1]
 
+    _is_power_of_two = lambda n: not (n > 0 and ((n & (n - 1))))
     if n_fft is None or (not _is_power_of_two(n_fft) and n_times > n_fft):
         # Compute next power of 2
         n_fft = 2 ** int(math.ceil(math.log(n_times, 2)))
@@ -36,11 +38,6 @@ def _check_input_st(x_in, n_fft, verbose=None):
         x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
 
         return x_in, n_fft, zero_pad
-
-
-def _is_power_of_two(n):
-    """Returns True if n is a power of two"""
-    return not (n > 0 and ((n & (n - 1))))
 
 
 def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
@@ -65,7 +62,7 @@ def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
 def _st(x, M, f_range, windows):
     """Implementation based on Matlab code by Ali Moukadem"""
     if x.ndim == 1:
-        x = x[None, :]
+        x = x[np.newaxis, :]
     Fx = fftpack.fft(x)
     XF = np.c_[Fx, Fx]
     ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
@@ -149,6 +146,20 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     Stockwell, R. G. "Why use the S-transform." AMS Pseudo-differential
         operators: Partial differential equations and time-frequency
         analysis 52 (2007): 279-309.
+    Moukadem, A., Bouguila, Z., Abdeslam, D. O, and Dieterlen, A. Stockwell
+        transform optimization applied on the detection of split in heart
+        sounds (2014). Signal Processing Conference (EUSIPCO), 2013 Proceedings
+        of the 22nd European, pages 2015--2019.
+    Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen (2010).
+        During Visual Word Recognition, Phonology Is Accessed
+        within 100 ms and May Be Mediated by a Speech Production
+        Code: Evidence from Magnetoencephalography. The Journal of Neuroscience,
+        30 (15), 5229 –5233.
+    K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
+        Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
+        (2006). S-transform time-frequency analysis of P300 reveals deficits in
+        individuals diagnosed with alcoholism.
+        Clinical Neurophysiology  117  2128--2143
     """
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft, verbose)
