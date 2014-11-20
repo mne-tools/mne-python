@@ -9,11 +9,9 @@ import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
-from mne import find_events
-from mne.io import read_raw_egi
+from mne import find_events, pick_types, concatenate_raws
+from mne.io import read_raw_egi, Raw
 from mne.io.egi import _combine_triggers
-from mne import pick_types
-from mne.io import Raw
 from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -76,3 +74,7 @@ def test_io_egi():
     for ii, k in enumerate(include, 1):
         assert_true(k in raw.event_id)
         assert_true(raw.event_id[k] == ii)
+
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw.copy(), raw])
+    assert_equal(raw_concat.n_times, 2 * raw.n_times)

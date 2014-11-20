@@ -14,7 +14,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.utils import _TempDir
-from mne import pick_types
+from mne import pick_types, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.io import read_raw_brainvision
@@ -73,6 +73,10 @@ def test_brainvision_data():
             assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
+
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 
 def test_events():

@@ -871,9 +871,9 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y','f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        pos_ = data[data['type'] == 'eeg']
+        pos_ = data[data['type'].astype(np.str) == 'eeg']
         pos = np.vstack((pos_['x'], pos_['y'], pos_['z'])).T
-        ch_names_ = pos_['name']
+        ch_names_ = pos_['name'].astype(np.str)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
