@@ -79,12 +79,15 @@ def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
-    for fmin, fmax in [(None, 100), (5, 100), (5, None)]:
+    for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
         power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
                                    return_itc=True)
+        if fmax is not None:
+            assert_true(power.freqs.max() <= fmax)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equals(power.data.shape, itc.data.shape)
     assert_true(itc.data.min() >= 0.0)
     assert_true(itc.data.max() <= 1.0)
+    assert_true(np.log(power.data.max()) * 20 <= 0.0)
     assert_true(np.log(power.data.max()) * 20 <= 0.0)
