@@ -3,8 +3,8 @@
 Time frequency with Stockwell transform in sensor space
 =======================================================
 
-This script shows how to compute induced power using the
-Stockwell transform, a.k.a. S-Transform.
+This script shows how to compute induced power and intertrial coherence
+using the Stockwell transform, a.k.a. S-Transform.
 
 """
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>

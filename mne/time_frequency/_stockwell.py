@@ -101,7 +101,7 @@ def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
 def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
                              decim=1, return_itc=False, n_jobs=1,
                              verbose=None):
-    """Computes power using Stockwell a.k.a. S transform
+    """Computes power and intertrial coherence using Stockwell (S) transform
 
     Parameters
     ----------
@@ -127,7 +127,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
-        Number of parallel jobs to use (only used if adaptive=True).
+        Number of parallel jobs to use.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
