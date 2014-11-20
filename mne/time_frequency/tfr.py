@@ -662,8 +662,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                         picker=False, cmap=cmap, title=title)
 
         if show:
-            import matplotlib.pyplot as plt
             plt.show()
+        return
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
