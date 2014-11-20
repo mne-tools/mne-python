@@ -25,8 +25,8 @@ from numpy.fft import irfft
 from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
-from .externals import six
-from .externals.six.moves import copyreg
+from ..externals import six
+from ..externals.six.moves import copyreg
 from gzip import GzipFile
 
 
@@ -629,4 +629,3 @@ try:
     from scipy.sparse import block_diag as sparse_block_diag
 except Exception:
     sparse_block_diag = _sparse_block_diag
-
