@@ -154,12 +154,12 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         During Visual Word Recognition, Phonology Is Accessed
         within 100 ms and May Be Mediated by a Speech Production
         Code: Evidence from Magnetoencephalography. The Journal of Neuroscience,
-        30 (15), 5229 –5233.
+        30 (15), 5229-5233.
     K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
         Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
         (2006). S-transform time-frequency analysis of P300 reveals deficits in
         individuals diagnosed with alcoholism.
-        Clinical Neurophysiology  117  2128--2143
+        Clinical Neurophysiology 117 2128--2143
     """
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
     data, n_fft_, zero_pad = _check_input_st(data, n_fft, verbose)
