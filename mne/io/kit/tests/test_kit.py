@@ -9,11 +9,12 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
+from nose.tools import assert_equal
 import scipy.io
+
+from mne import pick_types, concatenate_raws
 from mne.utils import _TempDir
-from mne import pick_types
-from mne.io import Raw
-from mne.io import read_raw_kit
+from mne.io import Raw, read_raw_kit
 from mne.io.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -55,6 +56,9 @@ def test_data():
     data_py, _ = raw_py[py_picks]
     assert_array_almost_equal(data_py, data_bin)
 
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 def test_read_segment():
     """Test writing raw kit files when preload is False

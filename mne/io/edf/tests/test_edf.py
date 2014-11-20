@@ -15,11 +15,10 @@ from numpy.testing import assert_raises
 from scipy import io
 import numpy as np
 
+from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir
-from mne import pick_types
-from mne.io import Raw
-from mne.io import read_raw_edf
+from mne.io import Raw, read_raw_edf
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -58,6 +57,10 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
     assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
 
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
+
 
 def test_edf_data():
     """Test reading raw edf files
@@ -78,6 +81,9 @@ def test_edf_data():
 
     assert_array_almost_equal(data_py, data_eeglab)
 
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 def test_read_segment():
     """Test writing raw edf files when preload is False

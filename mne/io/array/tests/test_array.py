@@ -9,7 +9,7 @@ import warnings
 
 from numpy.testing import assert_array_almost_equal, assert_allclose
 from nose.tools import assert_equal, assert_raises, assert_true
-from mne import find_events, Epochs, pick_types
+from mne import find_events, Epochs, pick_types, concatenate_raws
 from mne.io import Raw
 from mne.io.array import RawArray
 from mne.io.meas_info import create_info, _kind_dict
@@ -52,6 +52,9 @@ def test_array_raw():
     data2, times2 = raw2[:, :]
     assert_allclose(data, data2)
     assert_allclose(times, times2)
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw2.copy(), raw2])
+    assert_equal(raw_concat.n_times, 2 * raw2.n_times)
 
     # saving
     temp_fname = op.join(tempdir, 'raw.fif')

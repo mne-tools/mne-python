@@ -47,7 +47,8 @@ class RawArray(_BaseRaw):
 
         self.verbose = verbose
         self.cals = cals
-        self.rawdir = None
+        self.orig_format = 'double'
+        self.rawdirs = list()
         self.proj = None
         self.comp = None
         self._filenames = list()
@@ -55,6 +56,9 @@ class RawArray(_BaseRaw):
         self.info = info
         self._data = data
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
+        self._first_samps = [self.first_samp]
+        self._last_samps = [self.last_samp]
+        self._raw_lengths = [self.last_samp - self.first_samp + 1]
         self._times = np.arange(self.first_samp,
                                 self.last_samp + 1) / info['sfreq']
         self._projectors = list()

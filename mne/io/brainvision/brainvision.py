@@ -103,6 +103,9 @@ class RawBrainVision(_BaseRaw):
         # Raw attributes
         self.verbose = verbose
         self._filenames = list()
+        self.rawdirs = list()
+        self.cals = np.ones(len(self.info['chs']))
+        self.orig_format = 'double'
         self._projector = None
         self.comp = None  # no compensation for EEG
         self.proj = False

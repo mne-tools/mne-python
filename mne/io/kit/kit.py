@@ -114,6 +114,9 @@ class RawKIT(_BaseRaw):
         self._filenames = []
         self.info['dig'] = None
         self.info['dev_head_t'] = None
+        self.cals = np.ones(self.info['nchan'])
+        self.orig_format = 'double'
+        self.rawdirs = list()
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
