@@ -12,8 +12,8 @@ from scipy import fftpack
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
 from ..parallel import parallel_func, check_n_jobs
+from ..fixes import pad
 from .tfr import AverageTFR
-
 
 @verbose
 def _check_input_st(x_in, n_fft, verbose=None):
@@ -35,7 +35,7 @@ def _check_input_st(x_in, n_fft, verbose=None):
         logger.warn(msg)
         zero_pad = n_fft - n_times
         pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(0, zero_pad)]
-        x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
+        x_in = pad(x_in, pad_width, mode='constant', constant_values=0)
 
         return x_in, n_fft, zero_pad
 
