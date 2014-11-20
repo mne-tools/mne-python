@@ -172,8 +172,7 @@ class RtEpochs(_BaseEpochs):
                                         min_duration=0, mask=0)
         # update default options if dictionary is provided
         if find_events is not None:
-            for key in find_events.iterkeys():
-                self._find_events_kwargs[key] = find_events[key]
+            self._find_events_kwargs.update(find_events)
         min_samples = (self._find_events_kwargs['min_duration']
                        * self.info['sfreq'])
         self._find_events_kwargs.pop('min_duration', None)
