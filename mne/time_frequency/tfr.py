@@ -655,13 +655,13 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         tmin, tmax = times[0], times[-1]
 
         for k, p in zip(range(len(data)), picks):
+            plt.figure()
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
                         picker=False, cmap=cmap, title=title)
 
         if show:
-            import matplotlib.pyplot as plt
             plt.show()
         return
 

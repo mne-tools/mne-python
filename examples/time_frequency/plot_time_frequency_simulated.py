@@ -15,7 +15,6 @@ print(__doc__)
 # License: BSD (3-clause)
 
 import numpy as np
-import matplotlib.pyplot as plt
 
 from mne import create_info, EpochsArray
 from mne.time_frequency import tfr_multitaper, tfr_stockwell, tfr_morlet
@@ -66,7 +65,6 @@ time_bandwidth = 2.0  # Least possible frequency-smoothing (1 taper)
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-fig = plt.figure()
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Least smoothing, most variance')
 
@@ -77,7 +75,6 @@ time_bandwidth = 4.0  # Same frequency-smoothing as (1) 3 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-fig = plt.figure()
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less frequency smoothing, more time smoothing')
 
@@ -88,7 +85,6 @@ time_bandwidth = 8.0  # Same time-smoothing as (1), 7 tapers.
 power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
                        time_bandwidth=time_bandwidth, return_itc=False)
 # Plot results. Baseline correct based on first 100 ms.
-fig = plt.figure()
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
 
@@ -103,17 +99,14 @@ power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
 fmin, fmax = freqs[[0, -1]]
 for width in (0.7, 3.0):
     power = tfr_stockwell(epochs, fmin=fmin, fmax=fmax, width=width)
-
-    fig = plt.figure()
     power.plot([0], baseline=(0., 0.1), mode='mean',
                title='Sim: Using S transform, width '
                      '= {:0.1f}'.format(width), show=True)
 
 ################################################################################
 # Finally, compare to morlet wavelet
+
 n_cycles = freqs / 2.
 power = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=False)
-
-fig = plt.figure()
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Using Morlet wavelet')

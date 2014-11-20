@@ -41,11 +41,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 epochs = epochs.pick_channels([epochs.ch_names[82]])  # reduce computation
 
 power, itc = tfr_stockwell(epochs, fmin=6., fmax=30., decim=4, n_jobs=2,
-                           width=.6, return_itc=True)
+                           width=.3, return_itc=True)
 
-import matplotlib.pyplot as plt
-plt.figure()
-power.plot([0], baseline=(-0.5, 0), mode=None)
+power.plot([0], baseline=(-0.5, 0), mode=None, title='S-transform (power)')
 
-plt.figure()
-itc.plot([0], baseline=None, mode=None)
+itc.plot([0], baseline=None, mode=None, title='S-transform (ITC)')
