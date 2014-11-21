@@ -41,7 +41,6 @@ FIFF.FIFFB_SMSH_ASPECT        = 120
 FIFF.FIFFB_HPI_SUBSYSTEM      = 121
 FIFF.FIFFB_EPOCHS             = 122
 FIFF.FIFFB_ICA                = 123
-FIFF.FIFFB_TFR                = 124
 
 
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
@@ -782,8 +781,3 @@ FIFF.FIFF_MNE_RT_CLIENT_ID         = 3701  # realtime client
 # MNE epochs bookkeeping
 FIFF.FIFFB_MNE_EPOCHS_SELECTION    = 3800  # the epochs selection
 FIFF.FIFFB_MNE_EPOCHS_DROP_LOG     = 3801  # the drop log
-
-# MNE TFR
-FIFF.FIFF_TFR_DATA                 = 125
-FIFF.FIFF_TFR_TIMES                = 126
-FIFF.FIFF_TFR_FREQS                = 127

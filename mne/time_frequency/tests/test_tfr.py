@@ -166,19 +166,19 @@ def test_tfr_multitaper():
 def test_io():
     """Test TFR IO capacities"""
     tempdir = _TempDir()
-    fname = op.join(tempdir, 'test-tfr.fif')
+    fname = op.join(tempdir, 'test-tfr.h5')
     raw = io.Raw(raw_fname)
     data = np.zeros((raw.info['nchan'], 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
     tfr = AverageTFR(raw.info, data=data, times=times, freqs=freqs,
-                     nave=20, kind='test')
+                     nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
     tfr2 = read_tfr(fname)
     assert_array_equal(tfr.data, tfr2.data)
     assert_array_equal(tfr.times, tfr2.times)
     assert_array_equal(tfr.freqs, tfr2.freqs)
-    assert_equal(tfr.kind, tfr2.kind)
+    assert_equal(tfr.comment, tfr2.comment)
     assert_equal(tfr.nave, tfr2.nave)
 
 test_io()
