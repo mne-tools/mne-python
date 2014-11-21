@@ -21,7 +21,9 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
+from ..utils import check_fname
 from .multitaper import dpss_windows
+from .._hdf5 import write_hdf5, read_hdf5
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -943,7 +945,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The file name
         """
         check_fname(fname, 'tfr', ('-tfr.h5',))
-        write_hdf5(fname, vars(self))
+
+        write_hdf5(fname, dict(times=self.times, freqs=self.freqs,
+                               data=self.data, info=self.info, nave=self.nave,
+                               comment=self.comment, method=self.method))
 
 
 def read_tfr(fname):
@@ -955,16 +960,12 @@ def read_tfr(fname):
     fname : string
         The file name, which should end with -tfr.fif or -tfr.fif.gz.
     """
-    check_fname(fname, 'evoked', ('-tfr.h5',))
+
+    check_fname(fname, 'tfr', ('-tfr.h5',))
 
     logger.info('Reading %s ...' % fname)
 
-    tfr_dict = read_hdf5(fname)
-
-    tfr = AverageTFR(**tfr_dict)
-
-    fid.close()
-
+    tfr = AverageTFR(**read_hdf5(fname))
     return tfr
 
 
@@ -1007,9 +1008,10 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                                 zero_mean=True)
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, 'morlet-itc')
+    out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave, 'morlet-itc'))
+        out = (out, AverageTFR(info, itc, times, freqs, nave,
+                               method='morlet-itc'))
     return out
 
 
@@ -1162,7 +1164,8 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                                     verbose='INFO')
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave)
+    out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave))
+        out = (out, AverageTFR(info, itc, times, freqs, nave,
+                               method='mutlitaper-itc'))
     return out

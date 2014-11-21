@@ -12,6 +12,7 @@ from .externals.six import string_types, text_type
 ##############################################################################
 # WRITE
 
+
 def _create_titled_group(root, key, title):
     """Helper to create a titled group in h5py"""
     out = root.create_group(key)

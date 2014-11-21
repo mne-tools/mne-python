@@ -241,8 +241,8 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
                                                  n_jobs=n_jobs)
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave)
+    out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
     if return_itc:
         out = (out, AverageTFR(deepcopy(info), itc, times.copy(),
-                               freqs.copy(), nave))
+                               freqs.copy(), nave, method='stockwell-itc'))
     return out
