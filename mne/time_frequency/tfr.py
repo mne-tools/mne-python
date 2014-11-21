@@ -21,7 +21,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
-from ..utils import check_fname
+from ..utils import check_fname, requires_pytables
 from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
 
@@ -936,6 +936,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 
+    @requires_pytables
     def save(self, fname):
         """Save TFR object to fiff file
 
@@ -950,7 +951,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                data=self.data, info=self.info, nave=self.nave,
                                comment=self.comment, method=self.method))
 
-
+@requires_pytables
 def read_tfr(fname):
     """
     Read TFR dataset
