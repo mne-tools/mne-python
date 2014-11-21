@@ -42,7 +42,6 @@ FIFF.FIFFB_HPI_SUBSYSTEM      = 121
 FIFF.FIFFB_EPOCHS             = 122
 FIFF.FIFFB_ICA                = 123
 
-
 FIFF.FIFFB_SPHERE             = 300   # Concentric sphere model related
 FIFF.FIFFB_BEM                = 310   # Boundary-element method
 FIFF.FIFFB_BEM_SURF           = 311   # Boundary-element method surfaces
