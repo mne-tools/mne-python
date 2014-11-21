@@ -10,12 +10,10 @@ import copy
 
 import numpy as np
 
-from .. import pick_channels, pick_types
+from .. import pick_channels
 from ..utils import logger, verbose
-from ..baseline import rescale
 from ..epochs import _BaseEpochs
 from ..event import _find_events
-from ..filter import detrend
 from ..io.proj import setup_proj
 
 
@@ -104,6 +102,14 @@ class RtEpochs(_BaseEpochs):
     isi_max : float
         The maximmum time in seconds between epochs. If no epoch
         arrives in the next isi_max seconds the RtEpochs stops.
+    find_events : dict
+        The arguments to the real-time `find_events` method as a dictionary.
+        If `find_events` is None, then default values are used.
+        Valid keys are 'output' | 'consecutive' | 'min_duration' | 'mask'.
+        Example (also default values):
+        find_events = dict(output='onset', consecutive='increasing',
+                           min_duration=0, mask=0)
+        See mne.find_events for detailed explanation of these options.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to client.verbose.
@@ -126,7 +132,7 @@ class RtEpochs(_BaseEpochs):
                  sleep_time=0.1, baseline=(None, 0), picks=None,
                  name='Unknown', reject=None, flat=None, proj=True,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, isi_max=2., verbose=None):
+                 add_eeg_ref=True, isi_max=2., find_events=None, verbose=None):
 
         info = client.get_measurement_info()
 
@@ -159,6 +165,18 @@ class RtEpochs(_BaseEpochs):
                              'triggers.')
 
         self._stim_picks = stim_picks
+
+        # find_events default options
+        self._find_events_kwargs = dict(output='onset',
+                                        consecutive='increasing',
+                                        min_duration=0, mask=0)
+        # update default options if dictionary is provided
+        if find_events is not None:
+            self._find_events_kwargs.update(find_events)
+        min_samples = (self._find_events_kwargs['min_duration']
+                       * self.info['sfreq'])
+        self._find_events_kwargs.pop('min_duration', None)
+        self._find_events_kwargs['min_samples'] = min_samples
 
         self._sleep_time = sleep_time
 
@@ -294,7 +312,8 @@ class RtEpochs(_BaseEpochs):
         # detect events
         data = np.abs(raw_buffer[self._stim_picks]).astype(np.int)
         data = np.atleast_2d(data)
-        buff_events = _find_events(data, self._first_samp, verbose=verbose)
+        buff_events = _find_events(data, self._first_samp, verbose=verbose,
+                                   **self._find_events_kwargs)
 
         events = self._event_backlog
         for event_id in self.event_id.values():
