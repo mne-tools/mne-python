@@ -12,8 +12,23 @@ from .externals.six import string_types, text_type
 ##############################################################################
 # WRITE
 
-def write_hdf5(fname, data, overwrite=False):
-    """Write python object to HDF5 format using Pytables
+def _create_titled_group(root, key, title):
+    """Helper to create a titled group in h5py"""
+    out = root.create_group(key)
+    out.attrs['TITLE'] = title
+    return out
+
+
+def _create_titled_dataset(root, key, title, data, comp_kw=None):
+    """Helper to create a titled dataset in h5py"""
+    comp_kw = {} if comp_kw is None else comp_kw
+    out = root.create_dataset(key, data=data, **comp_kw)
+    out.attrs['TITLE'] = title
+    return out
+
+
+def write_hdf5(fname, data, overwrite=False, compression=4):
+    """Write python object to HDF5 format using h5py
 
     Parameters
     ----------
@@ -25,73 +40,50 @@ def write_hdf5(fname, data, overwrite=False):
         Note that dict objects must only have ``str`` keys.
     overwrite : bool
         If True, overwrite file (if it exists).
+    compression : int
+        Compression level to use (0-9) to compress data using gzip.
     """
-    import tables as tb
+    import h5py
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
-    o_f = tb.open_file if hasattr(tb, 'open_file') else tb.openFile
-    with o_f(fname, mode='w') as fid:
-        if hasattr(fid, 'create_group'):
-            c_g = fid.create_group
-            c_t = fid.create_table
-            c_c_a = fid.create_carray
-        else:
-            c_g = fid.createGroup
-            c_t = fid.createTable
-            c_c_a = fid.createCArray
-        filters = tb.Filters(complib='zlib', complevel=5)
-        write_params = (c_g, c_t, c_c_a, filters)
-        _triage_write('mnepython', data, fid.root, *write_params)
+    comp_kw = dict()
+    if compression > 0:
+        comp_kw = dict(compression='gzip', compression_opts=compression)
+    with h5py.File(fname, mode='w') as fid:
+        _triage_write('mnepython', data, fid, comp_kw)
 
 
-def _triage_write(key, value, root, *write_params):
-    import tables as tb
-    create_group, create_table, create_c_array, filters = write_params
+def _triage_write(key, value, root, comp_kw):
     if isinstance(value, dict):
-        sub_root = create_group(root, key, 'dict')
+        sub_root = _create_titled_group(root, key, 'dict')
         for key, sub_value in value.items():
             if not isinstance(key, string_types):
                 raise TypeError('All dict keys must be strings')
-            _triage_write('key_{0}'.format(key), sub_value, sub_root,
-                          *write_params)
+            _triage_write('key_{0}'.format(key), sub_value, sub_root, comp_kw)
     elif isinstance(value, (list, tuple)):
         title = 'list' if isinstance(value, list) else 'tuple'
-        sub_root = create_group(root, key, title)
+        sub_root = _create_titled_group(root, key, title)
         for vi, sub_value in enumerate(value):
-            _triage_write('idx_{0}'.format(vi), sub_value, sub_root,
-                          *write_params)
+            _triage_write('idx_{0}'.format(vi), sub_value, sub_root, comp_kw)
     elif isinstance(value, type(None)):
-        atom = tb.BoolAtom()
-        s = create_c_array(root, key, atom, (1,), title='None',
-                           filters=filters)
-        s[:] = False
+        _create_titled_dataset(root, key, 'None', [False])
     elif isinstance(value, (int, float)):
         if isinstance(value, int):
             title = 'int'
         else:  # isinstance(value, float):
             title = 'float'
-        value = np.atleast_1d(value)
-        atom = tb.Atom.from_dtype(value.dtype)
-        s = create_c_array(root, key, atom, (1,),
-                           title=title, filters=filters)
-        s[:] = value
+        _create_titled_dataset(root, key, title, np.atleast_1d(value))
     elif isinstance(value, string_types):
-        atom = tb.UInt8Atom()
         if isinstance(value, text_type):  # unicode
             value = np.fromstring(value.encode('utf-8'), np.uint8)
             title = 'unicode'
         else:
             value = np.fromstring(value.encode('ASCII'), np.uint8)
             title = 'ascii'
-        s = create_c_array(root, key, atom, (len(value),), title=title,
-                           filters=filters)
-        s[:] = value
+        _create_titled_dataset(root, key, title, value, comp_kw)
     elif isinstance(value, np.ndarray):
-        atom = tb.Atom.from_dtype(value.dtype)
-        s = create_c_array(root, key, atom, value.shape,
-                           title='ndarray', filters=filters)
-        s[:] = value
+        _create_titled_dataset(root, key, 'ndarray', value)
     else:
         raise TypeError('unsupported type %s' % type(value))
 
@@ -100,7 +92,7 @@ def _triage_write(key, value, root, *write_params):
 # READ
 
 def read_hdf5(fname):
-    """Read python object from HDF5 format using Pytables
+    """Read python object from HDF5 format using h5py
 
     Parameters
     ----------
@@ -112,31 +104,31 @@ def read_hdf5(fname):
     data : object
         The loaded data. Can be of any type supported by ``write_hdf5``.
     """
-    import tables as tb
+    import h5py
     if not op.isfile(fname):
         raise IOError('file "%s" not found' % fname)
-    o_f = tb.open_file if hasattr(tb, 'open_file') else tb.openFile
-    with o_f(fname, mode='r') as fid:
-        if not hasattr(fid.root, 'mnepython'):
+    with h5py.File(fname, mode='r') as fid:
+        if 'mnepython' not in fid.keys():
             raise TypeError('no mne-python data found')
-        data = _triage_read(fid.root.mnepython)
+        data = _triage_read(fid['mnepython'])
     return data
 
 
 def _triage_read(node):
-    import tables as tb
-    type_str = node._v_title
-    if isinstance(node, tb.Group):
+    import h5py
+    type_str = node.attrs['TITLE']
+    if isinstance(type_str, bytes):
+        type_str = type_str.decode()
+    if isinstance(node, h5py.Group):
         if type_str == 'dict':
             data = dict()
-            for subnode in node:
-                key = subnode._v_name[4:]  # cut off "idx_" or "key_" prefix
-                data[key] = _triage_read(subnode)
+            for key, subnode in node.items():
+                data[key[4:]] = _triage_read(subnode)
         elif type_str in ['list', 'tuple']:
             data = list()
             ii = 0
             while True:
-                subnode = getattr(node, 'idx_{0}'.format(ii), None)
+                subnode = node.get('idx_{0}'.format(ii), None)
                 if subnode is None:
                     break
                 data.append(_triage_read(subnode))
@@ -155,7 +147,7 @@ def _triage_read(node):
         else:  # type_str == 'float':
             cast = float
         data = cast(np.array(node)[0])
-    elif type_str in ('unicode', 'ascii'):
+    elif type_str in ('unicode', 'ascii', 'str'):  # 'str' for backward compat
         decoder = 'utf-8' if type_str == 'unicode' else 'ASCII'
         cast = text_type if type_str == 'unicode' else str
         data = cast(np.array(node).tostring().decode(decoder))

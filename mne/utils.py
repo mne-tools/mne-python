@@ -631,8 +631,7 @@ requires_nitime = partial(requires_module, name='nitime',
                           call='import nitime')
 requires_traits = partial(requires_module, name='traits',
                           call='import traits')
-requires_pytables = partial(requires_module, name='pytables',
-                            call='import tables')
+requires_h5py = partial(requires_module, name='h5py', call='import h5py')
 
 
 def _check_mayavi_version(min_version='4.3.0'):
