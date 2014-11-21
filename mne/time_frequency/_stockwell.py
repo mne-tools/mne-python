@@ -34,9 +34,8 @@ def _check_input_st(x_in, n_fft, verbose=None):
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
         logger.warn(msg)
         zero_pad = n_fft - n_times
-        pad_width = ([(0, 0)] * (x_in.ndim - 1)) + [(0, zero_pad)]
-        x_in = np.pad(x_in, pad_width, mode='constant', constant_values=0)
-
+        pad_array = np.zeros(list(x_in.shape[:-1]) + [zero_pad], dtype=x_in.dtype)
+        x_in = np.concatenate((x_in, pad_array), axis=-1)
         return x_in, n_fft, zero_pad
 
 
