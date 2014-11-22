@@ -35,6 +35,10 @@ Changelog
 
    - Add support for multitaper time-frequency analysis by `Hari Bharadwaj`_
 
+   - Add Stockwell (S) transform for time-frequency representations by `Denis Engemann`_ and `Alex Gramfort`_
+
+   - Add reading and writing support for time frequency data (AverageTFR objects) by  `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -58,8 +62,6 @@ BUG
    - Fix file extensions of SSP projection files written by mne commands (from _proj.fif to -prof.fif) by `Alex Gramfort`_
 
    - Generating EEG layouts no longer requires digitization points by `Marijn van Vliet`_
-
-   - Add Stockwell (S) transform for time-frequency representations by `Denis Engemann`_ and `Alex Gramfort`_
 
 API
 ~~~
