@@ -1,7 +1,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_true, assert_false, assert_equal
+from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
@@ -9,7 +9,7 @@ from mne.utils import _TempDir
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
-from mne.time_frequency.tfr import AverageTFR, read_tfr
+from mne.time_frequency.tfr import AverageTFR, read_tfrs, write_tfrs
 
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
@@ -165,6 +165,14 @@ def test_tfr_multitaper():
 
 def test_io():
     """Test TFR IO capacities"""
+
+    def assert_equal_tfr(one, two):
+        assert_array_equal(one.data, two.data)
+        assert_array_equal(one.times, two.times)
+        assert_array_equal(one.freqs, two.freqs)
+        assert_equal(one.comment, two.comment)
+        assert_equal(one.nave, two.nave)
+
     tempdir = _TempDir()
     fname = op.join(tempdir, 'test-tfr.h5')
     raw = io.Raw(raw_fname)
@@ -174,11 +182,25 @@ def test_io():
     tfr = AverageTFR(raw.info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
-    tfr2 = read_tfr(fname)
-    assert_array_equal(tfr.data, tfr2.data)
-    assert_array_equal(tfr.times, tfr2.times)
-    assert_array_equal(tfr.freqs, tfr2.freqs)
-    assert_equal(tfr.comment, tfr2.comment)
-    assert_equal(tfr.nave, tfr2.nave)
+    tfr2 = read_tfrs(fname, condition='test')
+    assert_equal_tfr(tfr, tfr2)
 
-test_io()
+    assert_raises(IOError, tfr.save, fname)
+
+    tfr.comment = None
+    tfr.save(fname, overwrite=True)
+    assert_equal_tfr(read_tfrs(fname, condition=0), tfr)
+    tfr.comment = 'test-A'
+    tfr2.comment = 'test-B'
+
+    fname = op.join(tempdir, 'test2-tfr.h5')
+    write_tfrs(fname, [tfr, tfr2])
+    tfr3 = read_tfrs(fname, condition='test-A')
+    assert_equal_tfr(tfr, tfr3)
+
+    tfrs = read_tfrs(fname, condition=None)
+    assert_equal(len(tfrs), 2)
+    tfr4 = tfrs[1]
+    assert_equal_tfr(tfr2, tfr4)
+
+    assert_raises(ValueError, read_tfrs, fname, condition='nonono')

@@ -18,12 +18,12 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose, requires_h5py
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
-from .._hdf5 import write_hdf5, read_hdf5
+from .._hdf5 import write_hdf5, read_hdf5, _check_simplify_h5_info
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -936,41 +936,87 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 
-    def save(self, fname):
+    @requires_h5py
+    def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file
 
         Parameters
         ----------
         fname : str
             The file name, which should end with -tfr.h5 .
+        overwrite : bool
+            If True, overwrite file (if it exists). Defaults to false
         """
-        check_fname(fname, 'tfr', ('-tfr.h5',))
-        if 'orig_blocks' in self.info:
-            info = deepcopy(self.info)
-            del info['orig_blocks']
-        else:
-            info = self.info
-        write_hdf5(fname, dict(times=self.times, freqs=self.freqs,
-                               data=self.data, info=info, nave=self.nave,
-                               comment=self.comment, method=self.method))
+        write_tfrs(fname, self, overwrite=overwrite)
 
 
-def read_tfr(fname):
+def _prepare_write_tfr(tfr, condition):
+    """Aux function"""
+    info = _check_simplify_h5_info(tfr.info)
+    return (condition, dict(times=tfr.times, freqs=tfr.freqs,
+                            data=tfr.data, info=info, nave=tfr.nave,
+                            comment=tfr.comment, method=tfr.method))
+
+
+@requires_h5py
+def write_tfrs(fname, tfr, overwrite=False):
+    """Write a TFR dataset to hdf5.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.h5
+    tfr : AverageTFR instance, or list of AverageTFR instances
+        The TFR dataset, or list of TFR datasets, to save in one file.
+        Note. If .comment is not None, a name will be generated on the fly,
+        based on the order in which the TFR objects are passed
+    overwrite : bool
+        If True, overwrite file (if it exists). Defaults to False.
     """
-    Read TFR dataset from hdf5 file.
+    out = []
+    if not isinstance(tfr, (list, tuple)):
+        tfr = [tfr]
+    for ii, tfr_ in enumerate(tfr):
+        comment = ii if tfr_.comment is None else tfr_.comment
+        out.append(_prepare_write_tfr(tfr_, condition=comment))
+    write_hdf5(fname, out, overwrite=overwrite)
+
+
+@requires_h5py
+def read_tfrs(fname, condition=None):
+    """
+    Read TFR datasets from hdf5 file.
 
     Parameters
     ----------
     fname : string
         The file name, which should end with -tfr.h5 .
+    condition : int or str | list of int or str | None
+        The condition to load. If None, all conditions will be returned.
+        Defaults to None.
+
+    Returns
+    -------
+    tfrs : list of instances of AverageTFR | instance of AverageTFR
+        Depending on `condition` either the TFR object or a list of multiple
+        TFR objects.
     """
 
     check_fname(fname, 'tfr', ('-tfr.h5',))
 
     logger.info('Reading %s ...' % fname)
-
-    tfr = AverageTFR(**read_hdf5(fname))
-    return tfr
+    tfr_data = read_hdf5(fname)
+    if condition is not None:
+        tfr_dict = dict(tfr_data)
+        if condition not in tfr_dict:
+            keys = ['%s' % k for k in tfr_dict]
+            raise ValueError('Cannot find condition ("{0}") in this file. '
+                             'I can give you "{1}""'
+                             .format(condition, " or ".join(keys)))
+        out = AverageTFR(**tfr_dict[condition])
+    else:
+        out = [AverageTFR(**d) for d in zip(*sorted(tfr_data))[1]]
+    return out
 
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
