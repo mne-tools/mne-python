@@ -166,41 +166,41 @@ def test_tfr_multitaper():
 def test_io():
     """Test TFR IO capacities"""
 
-    def assert_equal_tfr(one, two):
-        assert_array_equal(one.data, two.data)
-        assert_array_equal(one.times, two.times)
-        assert_array_equal(one.freqs, two.freqs)
-        assert_equal(one.comment, two.comment)
-        assert_equal(one.nave, two.nave)
-
     tempdir = _TempDir()
     fname = op.join(tempdir, 'test-tfr.h5')
-    raw = io.Raw(raw_fname)
-    data = np.zeros((raw.info['nchan'], 2, 3))
+    data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
-    tfr = AverageTFR(raw.info, data=data, times=times, freqs=freqs,
+
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.save(fname)
     tfr2 = read_tfrs(fname, condition='test')
-    assert_equal_tfr(tfr, tfr2)
+
+    assert_array_equal(tfr.data, tfr2.data)
+    assert_array_equal(tfr.times, tfr2.times)
+    assert_array_equal(tfr.freqs, tfr2.freqs)
+    assert_equal(tfr.comment, tfr2.comment)
+    assert_equal(tfr.nave, tfr2.nave)
 
     assert_raises(IOError, tfr.save, fname)
 
     tfr.comment = None
     tfr.save(fname, overwrite=True)
-    assert_equal_tfr(read_tfrs(fname, condition=0), tfr)
+    assert_equal(read_tfrs(fname, condition=0).comment, tfr.comment)
     tfr.comment = 'test-A'
     tfr2.comment = 'test-B'
 
     fname = op.join(tempdir, 'test2-tfr.h5')
     write_tfrs(fname, [tfr, tfr2])
     tfr3 = read_tfrs(fname, condition='test-A')
-    assert_equal_tfr(tfr, tfr3)
+    assert_equal(tfr.comment, tfr3.comment)
 
     tfrs = read_tfrs(fname, condition=None)
     assert_equal(len(tfrs), 2)
     tfr4 = tfrs[1]
-    assert_equal_tfr(tfr2, tfr4)
+    assert_equal(tfr2.comment, tfr4.comment)
 
     assert_raises(ValueError, read_tfrs, fname, condition='nonono')
