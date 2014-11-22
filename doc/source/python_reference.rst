@@ -682,6 +682,8 @@ Time-Frequency
    istft
    stftfreq
    tfr_stockwell
+   write_tfrs
+   read_tfrs
 
 
 Connectivity Estimation

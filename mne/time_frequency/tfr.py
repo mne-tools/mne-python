@@ -18,10 +18,12 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose
+from ..utils import logger, verbose, requires_h5py
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
+from ..utils import check_fname
 from .multitaper import dpss_windows
+from .._hdf5 import write_hdf5, read_hdf5, _check_simplify_h5_info
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -551,14 +553,20 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         The frequencies in Hz.
     nave : int
         The number of averaged TFRs.
-
+    comment : str | None
+        Comment on the data, e.g., the experimental condition.
+        Defaults to None.
+    method : str | None
+        Comment on the method used to compute the data, e.g., morlet wavelet.
+        Defaults to None.
     Attributes
     ----------
     ch_names : list
         The names of the channels.
     """
     @verbose
-    def __init__(self, info, data, times, freqs, nave, verbose=None):
+    def __init__(self, info, data, times, freqs, nave, comment=None,
+                 method=None, verbose=None):
         self.info = info
         if data.ndim != 3:
             raise ValueError('data should be 3d. Got %d.' % data.ndim)
@@ -576,6 +584,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.times = times
         self.freqs = freqs
         self.nave = nave
+        self.comment = comment
+        self.method = method
 
     @property
     def ch_names(self):
@@ -926,6 +936,88 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 
+    @requires_h5py
+    def save(self, fname, overwrite=False):
+        """Save TFR object to hdf5 file
+
+        Parameters
+        ----------
+        fname : str
+            The file name, which should end with -tfr.h5 .
+        overwrite : bool
+            If True, overwrite file (if it exists). Defaults to false
+        """
+        write_tfrs(fname, self, overwrite=overwrite)
+
+
+def _prepare_write_tfr(tfr, condition):
+    """Aux function"""
+    info = _check_simplify_h5_info(tfr.info)
+    return (condition, dict(times=tfr.times, freqs=tfr.freqs,
+                            data=tfr.data, info=info, nave=tfr.nave,
+                            comment=tfr.comment, method=tfr.method))
+
+
+@requires_h5py
+def write_tfrs(fname, tfr, overwrite=False):
+    """Write a TFR dataset to hdf5.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.h5
+    tfr : AverageTFR instance, or list of AverageTFR instances
+        The TFR dataset, or list of TFR datasets, to save in one file.
+        Note. If .comment is not None, a name will be generated on the fly,
+        based on the order in which the TFR objects are passed
+    overwrite : bool
+        If True, overwrite file (if it exists). Defaults to False.
+    """
+    out = []
+    if not isinstance(tfr, (list, tuple)):
+        tfr = [tfr]
+    for ii, tfr_ in enumerate(tfr):
+        comment = ii if tfr_.comment is None else tfr_.comment
+        out.append(_prepare_write_tfr(tfr_, condition=comment))
+    write_hdf5(fname, out, overwrite=overwrite)
+
+
+@requires_h5py
+def read_tfrs(fname, condition=None):
+    """
+    Read TFR datasets from hdf5 file.
+
+    Parameters
+    ----------
+    fname : string
+        The file name, which should end with -tfr.h5 .
+    condition : int or str | list of int or str | None
+        The condition to load. If None, all conditions will be returned.
+        Defaults to None.
+
+    Returns
+    -------
+    tfrs : list of instances of AverageTFR | instance of AverageTFR
+        Depending on `condition` either the TFR object or a list of multiple
+        TFR objects.
+    """
+
+    check_fname(fname, 'tfr', ('-tfr.h5',))
+
+    logger.info('Reading %s ...' % fname)
+    tfr_data = read_hdf5(fname)
+    if condition is not None:
+        tfr_dict = dict(tfr_data)
+        if condition not in tfr_dict:
+            keys = ['%s' % k for k in tfr_dict]
+            raise ValueError('Cannot find condition ("{0}") in this file. '
+                             'I can give you "{1}""'
+                             .format(condition, " or ".join(keys)))
+        out = AverageTFR(**tfr_dict[condition])
+    else:
+        out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
+    return out
+
 
 def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                return_itc=True, decim=1, n_jobs=1):
@@ -966,9 +1058,10 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
                                 zero_mean=True)
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave)
+    out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave))
+        out = (out, AverageTFR(info, itc, times, freqs, nave,
+                               method='morlet-itc'))
     return out
 
 
@@ -1121,7 +1214,8 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                                     verbose='INFO')
     times = epochs.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave)
+    out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
     if return_itc:
-        out = (out, AverageTFR(info, itc, times, freqs, nave))
+        out = (out, AverageTFR(info, itc, times, freqs, nave,
+                               method='mutlitaper-itc'))
     return out
