@@ -1015,7 +1015,7 @@ def read_tfrs(fname, condition=None):
                              .format(condition, " or ".join(keys)))
         out = AverageTFR(**tfr_dict[condition])
     else:
-        out = [AverageTFR(**d) for d in zip(*sorted(tfr_data))[1]]
+        out = [AverageTFR(**d) for d in list(zip(*tfr_data))[1]]
     return out
 
 
