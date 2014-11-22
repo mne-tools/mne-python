@@ -29,7 +29,7 @@ What you will need
    pep8_, and pyflakes_
 
 #. Other useful packages: pysurfer_, nitime_, pandas_, PIL_, PyDICOM_,
-   joblib_, nibabel_, and scikit-learn_
+   joblib_, nibabel_, h5py_, and scikit-learn_
 
 #. `MNE command line utilities`_ and Freesurfer_ are optional but will allow you
    to make the best out of MNE. Yet they will require a Unix (Linux or Mac OS)
