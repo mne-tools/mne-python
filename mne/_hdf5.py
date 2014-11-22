@@ -5,6 +5,7 @@
 
 import numpy as np
 from os import path as op
+from copy import deepcopy
 
 from .externals.six import string_types, text_type
 
@@ -157,3 +158,11 @@ def _triage_read(node):
     else:
         raise TypeError('Unknown node type: {0}'.format(type_str))
     return data
+
+
+def _check_simplify_h5_info(info):
+    """Aux function"""
+    if 'orig_blocks' in info:
+        info = deepcopy(info)
+        del info['orig_blocks']
+    return info
