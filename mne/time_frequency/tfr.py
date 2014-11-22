@@ -21,7 +21,7 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
-from ..utils import check_fname, requires_pytables
+from ..utils import check_fname
 from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
 
@@ -936,30 +936,33 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 
-    @requires_pytables
     def save(self, fname):
-        """Save TFR object to fiff file
+        """Save TFR object to hdf5 file
 
         Parameters
         ----------
         fname : str
-            The file name
+            The file name, which should end with -tfr.h5 .
         """
         check_fname(fname, 'tfr', ('-tfr.h5',))
-
+        if 'orig_blocks' in self.info:
+            info = deepcopy(self.info)
+            del info['orig_blocks']
+        else:
+            info = self.info
         write_hdf5(fname, dict(times=self.times, freqs=self.freqs,
-                               data=self.data, info=self.info, nave=self.nave,
+                               data=self.data, info=info, nave=self.nave,
                                comment=self.comment, method=self.method))
 
-@requires_pytables
+
 def read_tfr(fname):
     """
-    Read TFR dataset
+    Read TFR dataset from hdf5 file.
 
     Parameters
     ----------
     fname : string
-        The file name, which should end with -tfr.fif or -tfr.fif.gz.
+        The file name, which should end with -tfr.h5 .
     """
 
     check_fname(fname, 'tfr', ('-tfr.h5',))
