@@ -21,7 +21,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_pytables, run_tests_if_main)
+                       requires_h5py, run_tests_if_main)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -152,7 +152,7 @@ def test_io_stc():
     assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
-@requires_pytables
+@requires_h5py
 def test_io_stc_h5():
     """Test IO for STC files using HDF5
     """

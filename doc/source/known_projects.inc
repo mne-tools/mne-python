@@ -36,6 +36,11 @@
 .. _`nibabel github`: http://github.com/nipy/nibabel
 .. _`nibabel mailing list`: http://mail.scipy.org/mailman/listinfo/nipy-devel
 
+.. h5py
+.. _h5py: http://h5py.org
+.. _`h5py github`: http://github.com/h5py/h5py
+.. _`h5py mailing list`: https://groups.google.com/forum/#!forum/h5py
+
 .. marsbar
 .. _marsbar: http://marsbar.sourceforge.net
 .. _`marsbar github`: http://github.com/matthew-brett/marsbar

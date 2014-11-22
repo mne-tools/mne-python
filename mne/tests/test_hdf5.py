@@ -5,10 +5,10 @@ from nose.tools import assert_raises, assert_true, assert_equal
 import numpy as np
 
 from mne._hdf5 import write_hdf5, read_hdf5
-from mne.utils import requires_pytables, _TempDir, object_diff
+from mne.utils import requires_h5py, _TempDir, object_diff
 
 
-@requires_pytables
+@requires_h5py
 def test_hdf5():
     """Test HDF5 IO
     """

@@ -115,6 +115,8 @@ To run all documentation examples the following additional packages are required
 
     * pandas >= 0.8 (for export to tabular data structures like excel files)
 
+    * h5py (for reading and writing HDF5-formatted files)
+
 Note. For optimal performance we recommend installing recent versions of
 NumPy (> 1.7), SciPy (> 0.10) and scikit-learn (>= 0.14).
 
