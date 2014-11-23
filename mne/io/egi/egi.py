@@ -1,4 +1,6 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
+#          Teon Brooks <teon@nyu.edu>
+#
 #          simplified BSD-3 license
 
 import datetime
@@ -8,10 +10,11 @@ import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _missing_positions_err
 from ..meas_info import Info
 from ..constants import FIFF
 from ...utils import verbose, logger
+from ...channels.layout import read_montage, apply_montage, Montage
 
 _other_fields = [
     'lowpass', 'buffer_size_sec', 'dev_ctf_t',
@@ -147,8 +150,8 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     ----------
     input_fname : str
         Path to the raw file.
-    montage : str | None
-        Path to the montage file containing electrode positions.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
@@ -309,9 +312,14 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
+        if not isinstance(montage, (str, None, Montage)):
+            err = ("Montage must be str, None, or instance of Montage. "
+                   "%s was provided" % type(montage))
+            raise TypeError(err)
         if montage is not None:
-            m = read_montage(montage, scale=False)
-            apply_montage(self.info, m)
+            if isinstance(montage, str): 
+                montage = read_montage(montage, scale=False)
+            apply_montage(self.info, montage)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
@@ -323,10 +331,8 @@ class _RawEGI(_BaseRaw):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the montage "
-                       "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog parameter"
-                       % str(missing_positions))
+                err = _missing_positions_err(missing_positions)
+                raise KeyError(err)
 
         self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1

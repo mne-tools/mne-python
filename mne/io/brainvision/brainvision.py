@@ -15,11 +15,11 @@ import numpy as np
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _missing_positions_err
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
-from ...channels.layout import read_montage, apply_montage
+from ...channels.layout import read_montage, apply_montage, Montage
 
 
 class RawBrainVision(_BaseRaw):
@@ -29,8 +29,8 @@ class RawBrainVision(_BaseRaw):
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None
-        Path to the montage file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
@@ -78,9 +78,14 @@ class RawBrainVision(_BaseRaw):
                                                           misc, scale)
         logger.info('Creating Raw.info structure...')
 
+        if not isinstance(montage, (str, None, Montage)):
+            err = ("Montage must be str, None, or instance of Montage. "
+                   "%s was provided" % type(montage))
+            raise TypeError(err)
         if montage is not None:
-            m = read_montage(montage, scale=False)
-            apply_montage(self.info, m)
+            if isinstance(montage, str): 
+                montage = read_montage(montage, scale=False)
+            apply_montage(self.info, montage)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
@@ -92,10 +97,7 @@ class RawBrainVision(_BaseRaw):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the ELP "
-                       "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog parameter"
-                       % str(missing_positions))
+                err = _missing_positions_err(missing_positions)
                 raise KeyError(err)
 
         self.set_brainvision_events(events)
@@ -639,15 +641,15 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=None,
                          reference=None, scale=1.,
-                         preload=False, verbose=None, **kwargs):
+                         preload=False, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    montage : str | None
-        Path to the montage file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
@@ -674,11 +676,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    if 'elp_fname' in kwargs:
-        montage = kwargs['elp_fname']
-        msg = ('The keyword argument `elp_fname` is deprecated and will be '
-               'removed in 0.10. Please use the argument `montage`.')
-        warnings.warn(msg, DeprecationWarning)
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
                          misc=misc, reference=reference, scale=scale,
                          preload=preload, verbose=verbose)

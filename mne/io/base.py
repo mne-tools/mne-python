@@ -1835,3 +1835,12 @@ def _quart_to_rot(q):
                          ))
     rotation = np.swapaxes(rotation, 0, 1).copy()
     return rotation
+
+
+def _missing_positions_err(missing_positions):
+    """Helper for generating error message between readers"""
+    err = ("The following positions are missing from the montage "
+            "definitions: %s. If those channels lack positions "
+            "because they are EOG channels use the eog parameter."
+            % str(missing_positions))
+    return err

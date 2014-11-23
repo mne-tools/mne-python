@@ -57,11 +57,15 @@ BUG
 
    - Fix highpass and lowpass units read from Brainvision vhdr files by `Alex Gramfort`_
 
-   - Add missing attributes for Brainvision and KIT systems needed for resample by `Teon Brooks`_
+   - Add missing attributes for BrainVision and KIT systems needed for resample by `Teon Brooks`_
 
    - Fix file extensions of SSP projection files written by mne commands (from _proj.fif to -prof.fif) by `Alex Gramfort`_
 
    - Generating EEG layouts no longer requires digitization points by `Marijn van Vliet`_
+
+   - Add missing attributes to BTI, KIT, and BrainVision by `Eric Larson`_
+
+   - The API change to the edf, brainvision, and egi break backwards compatibility for when importing eeg data by `Teon Brooks`_
 
 API
 ~~~
@@ -73,7 +77,7 @@ API
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
 	``mne.layouts`` by `Denis Engemann`_
     
-   - `read_raw_brainvision` and `read_raw_edf` both uses a standard `hpts` montage import with deprecation of old channel definition method by `Teon Brooks`_
+   - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
