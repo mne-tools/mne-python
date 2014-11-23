@@ -10,11 +10,10 @@ import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw, _missing_positions_err
+from ..base import _BaseRaw, _check_montage
 from ..meas_info import Info
 from ..constants import FIFF
 from ...utils import verbose, logger
-from ...channels.layout import read_montage, apply_montage, Montage
 
 _other_fields = [
     'lowpass', 'buffer_size_sec', 'dev_ctf_t',
@@ -312,28 +311,7 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        if not isinstance(montage, (str, None, Montage)):
-            err = ("Montage must be str, None, or instance of Montage. "
-                   "%s was provided" % type(montage))
-            raise TypeError(err)
-        if montage is not None:
-            if isinstance(montage, str): 
-                montage = read_montage(montage, scale=False)
-            apply_montage(self.info, montage)
-
-            missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
-                       FIFF.FIFFV_STIM_CH)
-            for ch in self.info['chs']:
-                if not ch['kind'] in exclude:
-                    if np.unique(ch['loc']).size == 1:
-                        missing_positions.append(ch['ch_name'])
-
-            # raise error if positions are missing
-            if missing_positions:
-                err = _missing_positions_err(missing_positions)
-                raise KeyError(err)
-
+        _check_montage(self.info, montage)
         self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1,
