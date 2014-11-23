@@ -15,11 +15,10 @@ import numpy as np
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info
-from ..base import _BaseRaw, _missing_positions_err
+from ..base import _BaseRaw, _check_montage
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
-from ...channels.layout import read_montage, apply_montage, Montage
 
 
 class RawBrainVision(_BaseRaw):
@@ -77,29 +76,7 @@ class RawBrainVision(_BaseRaw):
                                                           reference, eog,
                                                           misc, scale)
         logger.info('Creating Raw.info structure...')
-
-        if not isinstance(montage, (str, None, Montage)):
-            err = ("Montage must be str, None, or instance of Montage. "
-                   "%s was provided" % type(montage))
-            raise TypeError(err)
-        if montage is not None:
-            if isinstance(montage, str): 
-                montage = read_montage(montage, scale=False)
-            apply_montage(self.info, montage)
-
-            missing_positions = []
-            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
-                       FIFF.FIFFV_STIM_CH)
-            for ch in self.info['chs']:
-                if not ch['kind'] in exclude:
-                    if np.unique(ch['loc']).size == 1:
-                        missing_positions.append(ch['ch_name'])
-
-            # raise error if positions are missing
-            if missing_positions:
-                err = _missing_positions_err(missing_positions)
-                raise KeyError(err)
-
+        _check_montage(self.info, montage)
         self.set_brainvision_events(events)
 
         # Raw attributes
