@@ -19,12 +19,12 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _missing_positions_err
 from ..meas_info import Info
 from ..constants import FIFF
 from ...filter import resample
 from ...externals.six.moves import zip
-from ...channels.layout import read_montage, apply_montage
+from ...channels.layout import read_montage, apply_montage, Montage
 
 
 class RawEDF(_BaseRaw):
@@ -34,8 +34,8 @@ class RawEDF(_BaseRaw):
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-    montage : str | None
-        Path to the montage file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str | None
         Names of channels that should be designated EOG channels. Names should
@@ -80,9 +80,14 @@ class RawEDF(_BaseRaw):
                                                   annot, annotmap, tal_channel,
                                                   eog, misc, preload)
         logger.info('Creating Raw.info structure...')
+        if not isinstance(montage, (str, None, Montage)):
+            err = ("Montage must be str, None, or instance of Montage. "
+                   "%s was provided" % type(montage))
+            raise TypeError(err)
         if montage is not None:
-            m = read_montage(montage, scale=False)
-            apply_montage(self.info, m)
+            if isinstance(montage, str): 
+                montage = read_montage(montage, scale=False)
+            apply_montage(self.info, montage)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
@@ -94,10 +99,7 @@ class RawEDF(_BaseRaw):
 
             # raise error if positions are missing
             if missing_positions:
-                err = ("The following positions are missing from the montage "
-                       "definitions: %s. If those channels lack positions "
-                       "because they are EOG channels use the eog parameter"
-                       % str(missing_positions))
+                err = _missing_positions_err(missing_positions)
                 raise KeyError(err)
 
         if bool(annot) != bool(annotmap):
@@ -661,15 +663,15 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
                  stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
-                 preload=False, verbose=None, **kwargs):
+                 preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
         Path to the EDF+,BDF file.
-    montage : str | None
-        Path to the montage file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
@@ -704,12 +706,6 @@ def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    if 'hpts' in kwargs:
-        montage = kwargs['hpts']
-        msg = ("The keyword argument 'hpts' is deprecated and will be removed "
-               "in 0.10. Please use the argument `montage`.")
-        warnings.warn(msg, DeprecationWarning)
-
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   tal_channel=tal_channel, preload=preload, verbose=verbose)

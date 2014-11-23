@@ -473,11 +473,11 @@ def get_ras_to_neuromag_trans(nasion, lpa, rpa):
 
     Parameters
     ----------
-    nasion : array_like, shape = (3,)
+    nasion : array_like, shape (3,)
         Nasion point coordinate.
-    lpa : array_like, shape = (3,)
+    lpa : array_like, shape (3,)
         Left peri-auricular point coordinate.
-    rpa : array_like, shape = (3,)
+    rpa : array_like, shape (3,)
         Right peri-auricular point coordinate.
 
     Returns
