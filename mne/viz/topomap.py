@@ -486,13 +486,16 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
             for col in cont.collections:
                 col.set_clip_path(patch)
 
-    if sensors is not False and mask is None:
+    if sensors is True and mask is None:
         _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
     elif sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
         idx = np.where(~mask)[0]
         _plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
+    elif not sensors and mask is not None:
+        idx = np.where(mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
 
     if show_names:
         if show_names is True:
