@@ -890,3 +890,6 @@ of commits):
 .. _Marmaduke Woodman: https://github.com/maedoc
 
 .. _Jona Sassenhagen: https://github.com/jona-sassenhagen
+
+.. _Hari Bharadwaj: http://www.haribharadwaj.com
+
