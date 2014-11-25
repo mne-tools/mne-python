@@ -714,91 +714,6 @@ def _divide_by_count(a, b, out=None):
                 return np.divide(a, b, out=out, casting='unsafe')
 
 
-def nansum(a, axis=None, dtype=None, out=None, keepdims=0):
-    """
-    Return the sum of array elements over a given axis treating Not a
-    Numbers (NaNs) as zero.
-
-    In Numpy versions <= 1.8 Nan is returned for slices that are all-NaN or
-    empty. In later versions zero is returned.
-
-    Parameters
-    ----------
-    a : array_like
-        Array containing numbers whose sum is desired. If `a` is not an
-        array, a conversion is attempted.
-    axis : int, optional
-        Axis along which the sum is computed. The default is to compute the
-        sum of the flattened array.
-    dtype : data-type, optional
-        The type of the returned array and of the accumulator in which the
-        elements are summed.  By default, the dtype of `a` is used.  An
-        exception is when `a` has an integer type with less precision than
-        the platform (u)intp. In that case, the default will be either
-        (u)int32 or (u)int64 depending on whether the platform is 32 or 64
-        bits. For inexact inputs, dtype must be inexact.
-
-        .. versionadded:: 1.8.0
-    out : ndarray, optional
-        Alternate output array in which to place the result.  The default
-        is ``None``. If provided, it must have the same shape as the
-        expected output, but the type will be cast if necessary.  See
-        `doc.ufuncs` for details. The casting of NaN to integer can yield
-        unexpected results.
-
-        .. versionadded:: 1.8.0
-    keepdims : bool, optional
-        If True, the axes which are reduced are left in the result as
-        dimensions with size one. With this option, the result will
-        broadcast correctly against the original `arr`.
-
-        .. versionadded:: 1.8.0
-
-    Returns
-    -------
-    y : ndarray or numpy scalar
-
-    See Also
-    --------
-    numpy.sum : Sum across array propagating NaNs.
-    isnan : Show which elements are NaN.
-    isfinite: Show which elements are not NaN or +/-inf.
-
-    Notes
-    -----
-    If both positive and negative infinity are present, the sum will be Not
-    A Number (NaN).
-
-    Numpy integer arithmetic is modular. If the size of a sum exceeds the
-    size of an integer accumulator, its value will wrap around and the
-    result will be incorrect. Specifying ``dtype=double`` can alleviate
-    that problem.
-
-    Examples
-    --------
-    >>> np.nansum(1)
-    1
-    >>> np.nansum([1])
-    1
-    >>> np.nansum([1, np.nan])
-    1.0
-    >>> a = np.array([[1, 1], [1, np.nan]])
-    >>> np.nansum(a)
-    3.0
-    >>> np.nansum(a, axis=0)
-    array([ 2.,  1.])
-    >>> np.nansum([1, np.nan, np.inf])
-    inf
-    >>> np.nansum([1, np.nan, np.NINF])
-    -inf
-    >>> np.nansum([1, np.nan, np.inf, -np.inf]) # both +/- infinity present
-    nan
-
-    """
-    a, mask = _replace_nan(a, 0)
-    return np.sum(a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
-
-
 def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
     """
     Compute the arithmetic mean along the specified axis, ignoring NaNs.
@@ -856,17 +771,6 @@ def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
     the results to be inaccurate, especially for `float32`.  Specifying a
     higher-precision accumulator using the `dtype` keyword can alleviate
     this issue.
-
-    Examples
-    --------
-    >>> a = np.array([[1, np.nan], [3, 4]])
-    >>> np.nanmean(a)
-    2.6666666666666665
-    >>> np.nanmean(a, axis=0)
-    array([ 2.,  4.])
-    >>> np.nanmean(a, axis=1)
-    array([ 1.,  3.5])
-
     """
     arr, mask = _replace_nan(a, 0)
     if mask is None:
