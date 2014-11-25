@@ -390,7 +390,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         A list can be passed to run a subset of the different methods.
         If callable object is passed, it has to specify a fit method, which
         must set the attribute 'covariance_' to self when invoked
-        (see scikit-learn estimator objects).
+        (see scikit-learn estimator objects). Valid methods are:
+        'ec', the sklearn variant of the empirical covariance, 'reg',
+        a diagonal regularization as in mne.cov.regularize, 'lw', the
+        Ledoit-Wolf estimator, 'sc' like 'lw' with grids-search for optimal
+        alpha, 'pca', PCA with low rank,  'fa' Factor Analysis with low rank.
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
         method is not None.
@@ -647,8 +651,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             cov = _rescale_cov(info, fa.get_covariance(), scalings)
             estimator_cov_info.append((fa, cov, _info))
 
-        elif (callable(this_method) and hasattr(this_method, 'fit') and
-              hasattr(this_method, 'fit')):
+        elif callable(this_method) and hasattr(this_method, 'fit'):
             est = this_method()
             est.fit(data)
             cov = _rescale_cov(info, est.covariance_, scalings)
@@ -715,7 +718,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)
 
-    # make sure we don't empty the thing if it's an iterator
+    # make sure we don't empty the thing if it's a generator
     max_n = max(list(cp.deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warnings.warn('You are trying to estimate %i components on matrix '
