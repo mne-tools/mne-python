@@ -21,7 +21,8 @@ from .pick import pick_types, channel_type, pick_channels
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
-from ..channels.channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                 _parse_channel_list)
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -33,7 +34,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose)
+                     logger, verbose, in_place_drop_add_rows)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -1326,18 +1327,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
-def set_eeg_reference(raw, ref_channels, copy=True):
-    """Rereference eeg channels to new reference channel(s).
-
-    If multiple reference channels are specified, they will be averaged.
+def apply_reference(raw, ref_from=None, ref_to=None, copy=True):
+    """
+    Calculate a reference signal from a set of channels and apply the reference
+    to another set of channels. This function can be used to apply a wide
+    variety of refering schemes.
 
     Parameters
     ----------
     raw : instance of Raw
         Instance of Raw with eeg channels and reference channel(s).
 
-    ref_channels : list of str
-        The name(s) of the reference channel(s).
+    ref_from : list of str | valid NumPy index
+        The channels to use to construct the reference. By default, all EEG
+        channels are used. Channels can be specified either as a list of
+        channel names or any valid NumPy indexing method.
+
+    ref_to : list of str | valid NumPy index
+        The channels to apply the reference to. By default, all EEG channels
+        are chosen. Channels can be specified either as a list of channel names
+        or any valid NumPy indexing method.
 
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
@@ -1354,30 +1363,282 @@ def set_eeg_reference(raw, ref_channels, copy=True):
     if not raw.preload:
         raise RuntimeError('Raw data needs to be preloaded. Use '
                            'preload=True (or string) in the constructor.')
-    # Make sure that reference channels are loaded as list of string
-    if not isinstance(ref_channels, list):
-        raise IOError('Reference channel(s) must be a list of string. '
-                      'If using a single reference channel, enter as '
-                      'a list with one element.')
-    # Find the indices to the reference electrodes
-    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
 
-    # Get the reference array
-    ref_data = raw._data[ref_idx].mean(0)
-
-    # Get the indices to the eeg channels using the pick_types function
     eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
                          ref_meg=False)
+    ref_from = _parse_channel_list(raw.ch_names, ref_from, eeg_idx)
+    ref_to = _parse_channel_list(raw.ch_names, ref_to, eeg_idx)
+    
+    # Compute reference
+    ref_data = raw._data[ref_from].mean(0)
 
     # Copy raw data or modify raw data in place
     if copy:  # copy data
         raw = raw.copy()
 
-    # Rereference the eeg channels
-    raw._data[eeg_idx] -= ref_data
+    # Apply the reference
+    raw._data[ref_to] -= ref_data
 
     # Return rereferenced data and reference array
     return raw, ref_data
+
+
+def set_eeg_reference(raw, ref_channels, copy=True):
+    """Rereference eeg channels to new reference channel(s).
+
+    If multiple reference channels are specified, they will be averaged.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with eeg channels and reference channel(s).
+
+    ref_channels : list of str | valid NumPy index
+        The channels to use to construct the reference. By default, all EEG
+        channels are used. Channels can be specified either as a list of
+        channel names or any valid NumPy indexing method.
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Instance of Raw with eeg channels rereferenced.
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    """
+    return apply_reference(raw, ref_channels, copy=copy)
+
+
+def setup_eeg_electrodes(raw, eeg=None, eog=None, ref=[], bads=None,
+                         bipolar=None, calc_reog=False, drop=None,
+                         drop_ref=False, copy=False):
+    '''
+    This function can be used to specify the EEG electrode types, e.g. which
+    electrodes record EEG and EOG, which reference(s) to use and which channels
+    are considered bad and should not be used. Multiple reference types can
+    be specified.
+
+    Channels can be specified either as a string name, or an integer index.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        Instance of Raw with all channels.
+
+    eeg : list of (str | int)
+        Use this parameter to specify a subset of the channels to be regarded
+        as EEG.  Specify an empty list to indicate no EEG channels are present.
+        By default, `raw.info` is used to determine EEG channels.
+
+    eog : list of (str | int)
+        Use this parameter to specify a subset of the channels to be regarded
+        as EOG. When EOG channels are specified, the `calc_reog` parameter can
+        be used to caluclate the radial EOG channel. Specify an empty list to
+        indicate no EOG channels are present. By default, `raw.info` is used to
+        determine EOG channels.
+
+    ref : list of (str | int)
+        Set to a single channel to use a single electrode as reference. Set to
+        a list of channels to use the mean of multiple electordes as reference.
+        Set to an empty list to use CAR (common average reference, e.g. the
+        mean of all EEG channels). Specify `None` to indicate no referencing 
+        should be done (for example if the signal has already been referenced).
+        Defaults to CAR. Be aware that an average eeg reference SSP projector
+        might be added to the data when creating epochs (see the `add_eeg_ref`
+        parameter of the `Epochs` constructor).
+        
+    bads : list of (str | int)
+        Use this parameter to specify a subset of channels that are considered
+        'bad' and should not be used. These could for example be electrodes
+        with bad contact, or unusual artifacts. Bad channels are not used to
+        compute the reference. Specify an empty list to indicate no bad
+        channels are present. By default, `raw.info` is used to determine bad
+        channels.
+
+    bipolar : dict: str -> ((str | int), (str | int))
+        Compute the difference between the specified electrode pairs as signal.
+        Electrode pairs are specified in a dictionary, where each value is a
+        pair of two channels. The difference between them will be computed and
+        stored as a new channel. The channel name is specified as the
+        corresponding string key in the dictionary. 
+
+    calc_reog : bool
+        When set to `True`, the rEOG component is computed by taking the mean
+        of the EOG channels and substracting the EEG reference. This only works
+        if EOG channels have been specified and the reference is not set to
+        `None`. The name of the rEOG channel is 'rEOG'.
+
+    drop : list of (str | int)
+        Specifies channels to be dropped from the recording. For example, use
+        this to remove channels that are not connected to any electrode.
+   
+    drop_ref : bool
+        By default, the reference channels are kept. Set this parameter to
+        `True` to drop the reference channels. Defaults to False
+
+    copy : bool
+        Specifies whether instance of Raw will be copied or modified in place.
+        Defaults to in place.
+
+    Returns
+    -------
+    raw : instance of Raw
+        Updated instance of Raw
+
+    ref_data : array
+        Array of reference data subtracted from eeg channels.
+    '''
+    # Check to see that raw data is preloaded
+    if not raw.preload:
+        raise RuntimeError('Raw data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    # Sanity check on inputs
+    assert (eeg is None or hasattr(eeg, '__iter__')), \
+        'Parameter eeg should either be None or a list'
+    assert (eog is None or hasattr(eog, '__iter__')), \
+        'Parameter eog should either be None or a list'
+    assert (ref is None or hasattr(ref, '__iter__')), \
+        'Parameter ref should either be None or a list'
+    assert (bads is None or hasattr(bads, '__iter__')), \
+        'Parameter bads should either be None or a list'
+    assert (bipolar is None or type(bipolar) == dict), \
+        'Parameter bipolar should either be None or a dictionary'
+    if bipolar is not None:
+        for channels in bipolar.values():
+            assert len(channels) == 2, ('Bipolar channels should be a '
+                                        'dictionary containing tuples as '
+                                        'values')
+
+    to_set = lambda x: set(np.arange(raw.info['nchan'])[x])
+
+    if copy:
+        raw = raw.copy()
+
+    all_channels = set(range(raw.info['nchan']))
+    ch_names = raw.ch_names
+
+    # EEG channels
+    eeg_idx = pick_types(raw.info, meg=False, eeg=True)
+    eeg_ids = to_set(_parse_channel_list(ch_names, eeg, eeg_idx))
+
+    # EOG channels
+    eog_idx = pick_types(raw.info, meg=False, eog=True)
+    eog_ids = to_set(_parse_channel_list(ch_names, eog, eog_idx))
+                            
+    # Channels to drop
+    drop_idx = to_set(_parse_channel_list(ch_names, drop))
+    eeg_idx -= drop_idx
+
+    # Bad channels
+    bads_idx = [ch_names.index(ch) for ch in raw.info['bads']]
+    bads_idx = to_set(_parse_channel_list(ch_names, bads, bads_idx))
+
+    # Reference channels
+    ref_idx = to_set(_parse_channel_list(ch_names, ref, []))
+    eeg_idx -= ref_idx
+    eog_idx -= ref_idx
+
+    # Bipolar channels
+    if bipolar is not None:
+        bipolar_idx = {}
+        for name, channels in bipolar.items():
+            bipolar_idx[name] = to_set(_parse_channel_list(ch_names, channels))
+        bipolar_idx_set = reduce(lambda a, b: a.union(b), bipolar_idx.values())
+    else:
+        bipolar_idx = {}
+        bipolar_idx_set = set([])
+
+    # Collect all the channels used as reference at some point
+    drop_ref_idx = set.union(ref_idx, bipolar_idx_set)
+
+    # Start applying references
+    data = raw._data
+
+    # Calculate reference signal
+    if ref is None:
+        ref = None
+    elif ref == []:
+        # Common average reference
+        ref = np.mean(data[list(eeg_idx - bads_idx), :], axis=0)
+    else:
+        ref = np.mean(data[list(ref_idx), :], axis=0)
+
+    # Apply reference
+    if ref is not None:
+        data[list(eeg_idx.union(eog_idx)-bads_idx), :] -= ref
+
+    # Bipolar channels
+    if bipolar is None:
+        bipolar = None
+    else:
+        bipolar = {}
+        for name, channels in bipolar_idx.items():
+            channels = list(channels)
+            bipolar[name] = data[channels[1], :] - data[channels[0], :]
+
+    # Calculate the rEOG if possible (and desired)
+    if calc_reog:
+        assert len(eog_idx) > 0, \
+            'Must specify EOG channels in order to calculate rEOG'
+        reog = np.mean(data[list(eog_idx), :], axis=0)
+    else:
+        reog = None
+
+    # Drop ref channels from EEG and EOG list if requested
+    if drop_ref:
+        drop_idx = drop_idx.union(drop_ref_idx)
+    else:
+        drop_idx = drop_idx
+
+    # Collect new channels to add
+    new_ch_info = []
+    new_data = []
+
+    chan_template = raw.info['chs'][0].copy()
+    chan_template['eeg_loc'] = np.zeros((3, 1))
+    chan_template['loc'] = np.zeros(12)
+
+    if bipolar is not None:
+        for name, channel in bipolar.items():
+            new_data.append(channel[np.newaxis, :])
+            info = chan_template.copy()
+            info['kind'] = FIFF.FIFFV_EOG_CH
+            info['ch_name'] = name
+            new_ch_info.append(info)
+
+    if reog is not None:
+        new_data.append(reog[np.newaxis, :])
+        info = chan_template.copy()
+        info['kind'] = FIFF.FIFFV_EOG_CH
+        info['ch_name'] = u'rEOG'
+        new_ch_info.append(info)
+
+    new_data = np.array(new_data)
+
+    # Update the data
+    raw._data, new_idx, moved_idx = in_place_drop_add_rows(
+        raw._data, list(drop_idx), new_data)
+
+    # Update channel info structure
+    for ch in eeg_idx:
+        raw.info['chs'][ch]['kind'] = FIFF.FIFFV_EEG_CH
+    for ch in eog_idx:
+        raw.info['chs'][ch]['kind'] = FIFF.FIFFV_EOG_CH
+    for ch, info in zip(new_idx, new_ch_info):
+        raw.info['chs'][ch] = info
+    for from_idx, to_idx in moved_idx:
+        raw.info['chs'][to_idx] = raw.info['chs'][from_idx]
+    raw.info['chs'] = raw.info['chs'][:raw._data.shape[0]]
+    raw.info['ch_names'] = [ch['ch_name'] for ch in raw.info['chs']]
+    raw.info['nchan'] = len(raw.info['chs'])
+    raw.info['bads'] = bads
+
+    _check_raw_compatibility([raw])
+
+    return raw, ref
 
 
 def _allocate_data(data, data_buffer, data_shape, dtype):

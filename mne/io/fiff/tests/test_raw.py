@@ -21,7 +21,8 @@ from mne import pick_types, pick_channels
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
-                    get_chpi_positions, set_eeg_reference)
+                    get_chpi_positions, set_eeg_reference,
+                    setup_eeg_electrodes)
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
@@ -1014,6 +1015,74 @@ def test_set_eeg_reference():
                                         copy=False)
     assert_true(raw is reref)
 
+
+def test_setup_eeg_electrodes():
+    """ Test specifying various EEG electrode types"""
+    raw = Raw(fif_fname, preload=True)
+
+    # Separate different channel types
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    picks_eog = pick_types(raw.info, meg=False, eeg=False, eog=True)
+    picks_other = pick_types(raw.info, meg=True, eeg=False, eog=False,
+                             stim=True)
+
+    # Test simple referencing, first 2 EEG channels used as reference
+    reref, ref = setup_eeg_electrodes(raw, ref=['EEG 001', 'EEG 002'],
+                                      copy=True)
+    assert_array_equal(np.mean(raw[picks_eeg[:2]][0], axis=0), ref)
+    assert_array_equal(reref[picks_eeg[2:]][0] + ref, raw[picks_eeg[2:]][0])
+    assert_array_equal(reref[picks_eog][0] + ref, raw[picks_eog][0])
+    assert_array_equal(reref[picks_other][0], raw[picks_other][0])
+
+    # Test CAR referencing
+    reref, ref = setup_eeg_electrodes(raw, ref=[], copy=True)
+    assert_array_equal(np.mean(raw[picks_eeg][0], axis=0), ref)
+
+    # Test using the EOG channel as reference
+    reref, ref = setup_eeg_electrodes(raw, ref=['EOG 061'], copy=True)
+    assert_array_equal(reref[picks_eeg][0] + reref[picks_eog][0],
+                       raw[picks_eeg][0])
+
+    # Test constructing bipolar channels
+    bipolar1 = picks_eeg[:2]
+    bipolar2 = picks_eeg[2:4]
+    reref, ref = setup_eeg_electrodes(
+        raw, bipolar={'BIPOLAR1': bipolar1, 'BIPOLAR2': bipolar2}, copy=True)
+    assert_true('BIPOLAR1' in reref.ch_names)
+    assert_true('BIPOLAR2' in reref.ch_names)
+    assert_array_almost_equal(reref[reref.ch_names.index('BIPOLAR1')][0],
+                              np.diff(raw[bipolar1][0], axis=0))
+    assert_array_almost_equal(reref[reref.ch_names.index('BIPOLAR2')][0],
+                              np.diff(raw[bipolar2][0], axis=0))
+
+    # Test constructing rEOG channel
+    picks_eog = pick_channels(raw.ch_names,
+                              ['EEG 001', 'EEG 002', 'EEG 003', 'EEG 004'])
+    reref, ref = setup_eeg_electrodes(
+        raw, ref=['EEG 005', 'EEG 006'],
+        eog=picks_eog, calc_reog=True, copy=True)
+    assert_true('rEOG' in reref.ch_names)
+    assert_array_almost_equal(
+        reref[reref.ch_names.index('rEOG')][0][0, :],
+        np.mean(raw[picks_eog][0], axis=0) - ref)
+
+    # Test setting EOG channels (these should be added in addition to the EOG
+    # channel already specified in raw.info)
+    reref, ref = setup_eeg_electrodes(raw, eog=['EEG 001', 'EEG 002'],
+                                      copy=True)
+    assert_array_equal(
+        pick_types(reref.info, meg=False, eeg=False, eog=True),
+        pick_channels(reref.ch_names, ['EEG 001', 'EEG 002', 'EOG 061']))
+
+    # Test setting bad channels
+    reref, ref = setup_eeg_electrodes(raw, bads=['EEG 001', 'EEG 002'],
+                                      copy=True)
+    assert_equal(reref.info['bads'], ['EEG 001', 'EEG 002'])
+
+    # Test that data is modified in place when copy=False
+    reref, ref = setup_eeg_electrodes(raw, ref=['EEG 001', 'EEG 002'],
+                                      copy=False)
+    assert_true(raw is reref)
 
 @testing.requires_testing_data
 def test_drop_channels_mixin():
