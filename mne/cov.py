@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -26,8 +27,13 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms)
+                    _compute_row_norms requires_sklearn)
+
 from .externals.six.moves import zip
+from .fixes import nanmean
+from . import pick_info
+
+from .channels.channels import _contains_ch_type
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -39,6 +45,31 @@ def _check_covs_algebra(cov1, cov2):
     if projs1 != projs2:
         raise ValueError('Both Covariance do not have the same list of '
                          'SSP projections.')
+
+
+def _pick_data_ch(info, ch_type):
+    """conveniently pick a certain type"""
+    idx = None
+    if ch_type == 'mag':
+        idx = pick_types(info, meg='mag', eeg=False, ref_meg=False)
+    elif ch_type == 'grad':
+        idx = pick_types(info, meg='grad', eeg=False, ref_meg=False)
+    elif ch_type == 'eeg':
+        idx = pick_types(info, meg=False, eeg=True, ref_meg=False)
+    if idx is None:
+        raise ValueError('no channels for %s' % ch_type)
+    return idx
+
+
+def _get_tslice(epochs, tmin, tmax):
+    """get the slice"""
+    tstart, tend = None, None
+    if tmin is not None:
+        tstart = np.where(epochs.times >= tmin)[0][0]
+    if tmax is not None:
+        tend = np.where(epochs.times <= tmax)[0][-1] + 1
+    tslice = slice(tstart, tend, None)
+    return tslice
 
 
 class Covariance(dict):
@@ -310,7 +341,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
-                       projs=None, verbose=None):
+                       projs=None,  method=None, method_params=None, cv=3,
+                       scalings=None,
+                       n_jobs=1, keep_ref_meg=False,
+                       return_estimators=False, verbose=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -348,24 +382,89 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
+    method : str | list | callable | None
+        The method used for covariance estimation. If None (default),
+        the sample covariance will be computed. If 'auto', the best
+        estimator will be determined based on log-likelihood and
+        cross-validation on unseen data as described in ref. [1].
+        A list can be passed to run a subset of the different methods.
+        If callable object is passed, it has to specify a fit method, which
+        must set the attribute 'covariance_' to self when invoked
+        (see scikit-learn estimator objects).
+    method_params : dict
+        Additional parameters to the estimation procedure. Only considered if
+        method is not None.
+    cv : int | sklearn cross_validation object
+        The cross validation method. Defaults to 3, which will
+        internally trigger a default 3-fold shuffle split.
+    scalings : dict
+        Defaults to ``dict(grad=1e-13, mag=4e-15, eeg=1e-6)``.
+        These defaults will scale magnetometers and gradiometers
+        at the same unit.
+    n_jobs : int | str
+        Number of jobs to run in parallel.
+    keep_ref_meg : bool
+        Whether to keep the reference sensors or not. Only applies to systems
+        that implement such sensors, e.g. CTF, 4D. Defaults to False.
+    return_estimators : bool
+        Whether to return all estimators or the best. Only considered if
+        method equals 'auto' or is a list of str. Defaults to False
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    cov : instance of Covariance
-        The computed covariance.
-    """
+    cov : instance of Covariance | dict
+        The computed covariance. If if method equals 'auto' or is a list of str
+        and return_estimators equals True, a dict of covariance estimators is
+        returned.
 
+    References
+    ----------
+        [1] Engemann D. and Gramfort A. Automated model selection in covariance
+        estimation and spatial whitening of MEG and EEG signals. (in press.)
+        NeuroImage.
+    """
+    accepted_methods = 'auto', 'ec', 'reg', 'lw', 'sc', 'pca', 'fa',
+    msg = ('Invalid method ({method}). Accepted values (individually or '
+           'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
+
+    _scalings = dict(grad=1e-13, mag=4e-15, eeg=1e-6)
+    if isinstance(scalings, dict):
+        for k, v in scalings.items():
+            if k not in ('mag', 'grad', 'eeg'):
+                raise ValueError('scalings must be "mag" or'
+                                 ' "grad" or "eeg"')
+        _scalings.update(scalings)
+    scalings = _scalings
+
+    _method_params = {
+        'ec': {'store_precision': False, 'assume_centered': False},
+        'reg': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
+                'store_precision': False, 'assume_centered': False},
+        'lw': {'store_precision': False, 'assume_centered': False},
+        'sc': {'shrinkages': np.logspace(-4, 0, 30),
+               'store_precision': False, 'assume_centered': False},
+        'pca': {'iter_n_components': None},
+        'fa': {'iter_n_components': None}
+    }
+    if isinstance(method_params, dict):
+        for key, values in method_params.items():
+            if key not in _method_params:
+                raise ValueError('key (%s) must be "%s"' %
+                                 (key, '" or "'.join(_method_params)))
+
+        _method_params.update(method_params)
+    # for multi condition support epochs is required to refer to a list of
+    # epochs objects
     if not isinstance(epochs, list):
         epochs = _unpack_epochs(epochs)
     else:
-        epochs = [ep for li in [_unpack_epochs(epoch) for epoch in epochs]
-                  for ep in li]
+        epochs = sum([_unpack_epochs(epoch) for epoch in epochs], [])
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
+        if epochs_t.baseline is None:
             warnings.warn('Epochs are not baseline corrected, covariance '
                           'matrix may be inaccurate')
 
@@ -397,53 +496,314 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            ref_meg=False, exclude=[])
+                            ref_meg=keep_ref_meg, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
+    info = epochs[0].info  # we will overwrite 'epochs'
+    if method is not None and not isinstance(method, list):
+        method = [method]
 
-    for i, epochs_t in enumerate(epochs):
+    if method is None:
+        for i, epochs_t in enumerate(epochs):
 
-        tstart, tend = None, None
-        if tmin is not None:
-            tstart = np.where(epochs_t.times >= tmin)[0][0]
-        if tmax is not None:
-            tend = np.where(epochs_t.times <= tmax)[0][-1] + 1
-        tslice = slice(tstart, tend, None)
+            tslice = _get_tslice(epochs_t, tmin, tmax)
+            for e in epochs_t:
+                e = e[picks_meeg][:, tslice]
+                if not keep_sample_mean:
+                    data_mean[i] += e
+                data += np.dot(e, e.T)
+                n_samples[i] += e.shape[1]
+                n_epochs[i] += 1
 
-        for e in epochs_t:
-            e = e[picks_meeg][:, tslice]
-            if not keep_sample_mean:
-                data_mean[i] += e
-            data += np.dot(e, e.T)
-            n_samples[i] += e.shape[1]
-            n_epochs[i] += 1
+        n_samples_tot = int(np.sum(n_samples))
+        if keep_sample_mean:
+            data /= n_samples_tot
+        else:
+            n_samples_epoch = n_samples // n_epochs
+            norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
+            for i, mean in enumerate(data_mean):
+                data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)
+            data /= norm_const
 
-    n_samples_tot = int(np.sum(n_samples))
-
-    _check_n_samples(n_samples_tot, len(picks_meeg))
-
-    if keep_sample_mean:
-        data /= n_samples_tot
+        _check_n_samples(n_samples_tot, len(picks_meeg))
+        cov_data = {'ec': {'data': data}}
+    elif all([k in accepted_methods or callable(k) for k in method]):
+        info = pick_info(info, picks_meeg)
+        tslice = _get_tslice(epochs[0], tmin, tmax)
+        epochs = [e[picks_meeg, tslice] for e in
+                  [a for b in epochs for a in b.get_data()]]
+        epochs = np.concatenate(epochs, 1)
+        n_samples_tot = epochs.shape[-1]
+        _check_n_samples(n_samples_tot, len(picks_meeg))
+        epochs = epochs.T  # sklearn | C-order
+        cov_data = _compute_covariance_auto(epochs, method=method,
+                                            method_params=_method_params,
+                                            info=info,
+                                            verbose=verbose,
+                                            cv=cv,
+                                            n_jobs=n_jobs,
+                                            scalings=scalings)
+        msg = ['log-likelihood on unseen data (descending order):']
+        logliks = [(k, v['loglik']) for k, v in cov_data.items()]
+        logliks.sort(key=lambda x: x[1], reverse=True)
+        for k, v in logliks:
+            msg.append('%s: %0.3f' % (k, v))
+        logger.info('\n   '.join(msg))
     else:
-        n_samples_epoch = n_samples // n_epochs
-        norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
-        for i, mean in enumerate(data_mean):
-            data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)
-        data /= norm_const
+        raise ValueError(msg.format(method=method))
 
-    cov = Covariance(None)
+    for this_method, data in cov_data.items():
+        cov = Covariance(None)
 
-    # XXX : do not compute eig and eigvec now (think it's better...)
-    eig = None
-    eigvec = None
+        # XXX : do not compute eig and eigvec now (think it's better...)
+        eig = None
+        eigvec = None
+        cov.update(kind=1, diag=False, dim=len(data['data']), names=ch_names,
+                   data=data['data'], projs=projs, bads=info['bads'],
+                   nfree=n_samples_tot, eig=eig, eigvec=eigvec)
 
-    cov.update(kind=1, diag=False, dim=len(data), names=ch_names,
-               data=data, projs=projs, bads=epochs[0].info['bads'],
-               nfree=n_samples_tot, eig=eig, eigvec=eigvec)
+        logger.info("Number of samples used : %d" % n_samples_tot)
+        logger.info('[done]')
+        cov_data[this_method]['cov'] = cov
 
-    logger.info("Number of samples used : %d" % n_samples_tot)
-    logger.info('[done]')
+    if method is not None and not return_estimators:
+        keys, scores = zip(*[(k, v['loglik']) for k, v in cov_data.items()])
+        best_key = keys[np.argmax(scores)]
+        out = cov_data[best_key]['cov']
+        logger.info('selecting best estimator: {}'.format(best_key))
+    elif method is not None:
+        out = cov_data
+    else:
+        out = cov_data['ec']['cov']
 
-    return cov
+    return out
+
+
+@requires_sklearn
+def _compute_covariance_auto(data, method, info, method_params, cv,
+                             scalings, n_jobs, verbose):
+    """docstring for _compute_covariance_auto"""
+    from sklearn.grid_search import GridSearchCV
+    from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
+                                    EmpiricalCovariance)
+
+    if method[0] == 'auto':
+        cov_methods = ['sc', 'reg', 'ec', 'fa']
+    else:
+        cov_methods = method
+
+    _scale_data(data, info=info, scalings=scalings)
+    estimator_cov_info = list()
+    msg = 'Estimating covariance using %s'
+    for this_method in cov_methods:
+        name = this_method.__name__ if callable(this_method) else this_method
+        logger.info(msg % name.upper())
+
+        if this_method == 'ec':
+            est = EmpiricalCovariance(**method_params[this_method])
+            est.fit(data)
+            cov = _rescale_cov(info, est.covariance_, scalings)
+            _info = None
+            estimator_cov_info.append((est, cov, _info))
+
+        elif this_method == 'reg':
+            Est = cp.deepcopy(_get_estimator('reg'))
+            Est.info = info
+            est = Est(**method_params[this_method])
+            est.fit(data)
+            cov = _rescale_cov(info, est.covariance_, scalings)
+            _info = None
+            estimator_cov_info.append((est, cov, _info))
+
+        elif this_method == 'lw':
+            lw = LedoitWolf(**method_params[this_method])
+            cov = _rescale_cov(info, lw.fit(data).covariance_, scalings)
+            estimator_cov_info.append((lw, cov, None))
+
+        elif this_method == 'sc':
+            shrinkage = method_params[this_method].pop('shrinkages')
+            tuned_parameters = [{'shrinkage': shrinkage}]
+            cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
+                               tuned_parameters, cv=cv)
+            sc = cv_.fit(data).best_estimator_
+            _info = tuned_parameters[0]
+            cov = _rescale_cov(info, sc.covariance_, scalings)
+            estimator_cov_info.append((sc, cov, _info))
+
+        elif this_method == 'pca':
+            mp = cp.deepcopy(method_params[this_method])
+            pca, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
+                                              method_params=mp, cv=cv,
+                                              verbose=verbose)
+            pca.fit(data)
+            cov = _rescale_cov(info, pca.get_covariance(), scalings)
+            estimator_cov_info.append((pca, cov, _info))
+
+        elif this_method == 'fa':
+            mp = cp.deepcopy(method_params[this_method])
+            fa, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
+                                             method_params=mp, cv=cv,
+                                             verbose=verbose)
+            fa.fit(data)
+            cov = _rescale_cov(info, fa.get_covariance(), scalings)
+            estimator_cov_info.append((fa, cov, _info))
+
+        elif (callable(this_method) and hasattr(this_method, 'fit') and
+              hasattr(this_method, 'fit')):
+            est = this_method()
+            est.fit(data)
+            cov = _rescale_cov(info, est.covariance_, scalings)
+            _info = None
+            estimator_cov_info.append((est, cov, _info))
+        else:
+            raise ValueError('Oh no! Your estimator does not have'
+                             ' a .fit method')
+        logger.info('Done.')
+
+    logger.info('Using cross-validation to select the best estimator.')
+    logliks = _cross_validate_cov(estimator_cov_info, data, cv, n_jobs=n_jobs)
+
+    out = dict()
+    estimators, covs, runtime_infos = zip(*estimator_cov_info)
+    cov_methods = [c.__name__ if callable(c) else c for c in cov_methods]
+    runtime_infos, covs = list(runtime_infos), list(covs)
+    my_zip = zip(*[cov_methods, runtime_infos, logliks, covs, estimators])
+    for this_method, runtime_info, loglik, data, est in my_zip:
+        out[this_method] = {'loglik': loglik, 'data': data, 'estimator': est}
+        if runtime_info is not None:
+            out[this_method].update(runtime_info)
+
+    return out
+
+
+def _scale_data(data, info, scalings):
+    """scale data type-dependently for estimation"""
+
+    ch_types_used = [c for c in ['mag', 'grad', 'eeg'] if
+                     _contains_ch_type(info, c)]
+    scalings = [(_pick_data_ch(info, k), v) for k, v in scalings.items()
+                if k in ch_types_used]
+    for idx, scaling in scalings:
+        data[:, idx] /= scaling  # C - order
+
+
+def _cross_val(data, est, cv, n_jobs):
+    """Helper to compute cross validation"""
+    from sklearn.cross_validation import cross_val_score
+    return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
+
+
+@requires_sklearn
+def _cross_validate_cov(estimator_cov_info, data, cv, n_jobs):
+    """Determine best estimator"""
+    estimators, covs, _ = zip(*estimator_cov_info)
+    logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
+    return logliks
+
+
+@verbose
+@requires_sklearn
+def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
+    """compute latent variable models"""
+    iter_n_components = method_params.pop('iter_n_components')
+    if iter_n_components is None:
+        iter_n_components = np.arange(5, data.shape[1], 5)
+    from sklearn.decomposition import PCA, FactorAnalysis
+
+    est = (FactorAnalysis(**method_params) if mode == 'fa' else
+           PCA(**method_params))
+    est.n_components = 1
+    scores = np.empty_like(iter_n_components, dtype=np.float64)
+    scores.fill(np.nan)
+
+    # make sure we don't empty the thing if it's an iterator
+    max_n = max(list(cp.deepcopy(iter_n_components)))
+    if max_n > data.shape[1]:
+        warnings.warn('You are trying to estimate %i components on matrix '
+                      'with %i features' % (max_n, data.shape[1]))
+
+    for ii, n in enumerate(iter_n_components):
+        est.n_components = n
+        try:  # this may fail depending on rank and split
+            score = _cross_val(data=data, est=est, cv=cv, n_jobs=n_jobs)
+        except ValueError:
+            score = np.inf
+        if np.isinf(score) or score > 0:
+            logger.info('... infinite values encountered. stopping estimation')
+            break
+        logger.info('... rank: %i - loglik: %0.3f' % (n, score))
+        if score != -np.inf:
+            scores[ii] = score
+
+    # happens if rank is too low right form the beginning
+    if np.isnan(scores).all():
+        raise RuntimeError('Oh no! Could not estimate covariance because all '
+                           'scores were NaN. Please contact the MNE-Python '
+                           'developers.')
+
+    i_score = np.nanargmax(scores)
+    best = est.n_components = iter_n_components[i_score]
+    logger.info('... best model at rank = %i' % best)
+    runtime_info = {'ranks': np.array(iter_n_components),
+                    'scores': scores,
+                    'best': best,
+                    'cv': cv}
+    return est, runtime_info
+
+
+def _rescale_cov(info, cov, scalings):
+    """rescale resulting cov after estimation"""
+    out = cov.copy()
+    n_channels = len(cov)
+    ch_types = [c for c in ['mag', 'grad', 'eeg'] if
+                _contains_ch_type(info, c)]
+    covinds = [_pick_data_ch(info, t) for t in ch_types]
+    assert len(cov) == sum(len(k) for k in covinds)
+    assert sorted(np.concatenate(covinds)) == range(len(cov))
+    scales = np.zeros(n_channels)
+    for ch_t, idx in zip(ch_types, covinds):
+        scales[idx] = scalings[ch_t]
+
+    assert np.sum(scales == 0.) == 0
+    out = scales[:, None] * out * scales[None, :]
+    return out
+
+
+@requires_sklearn
+def _get_estimator(estimator):
+    """Prepare special cov estimators"""
+
+    from sklearn.covariance import EmpiricalCovariance
+
+    class _RegCovariance(EmpiricalCovariance):
+        """Aux class"""
+
+        def __init__(self, grad=0.01, mag=0.01, eeg=0.0,
+                     store_precision=False, assume_centered=False):
+            self.store_precision = store_precision
+            self.assume_centered = assume_centered
+            self.grad = grad
+            self.mag = mag
+            self.eeg = eeg
+
+        def fit(self, X):
+            EmpiricalCovariance.fit(self, X)
+            self.covariance_ = 0.5 * (self.covariance_ + self.covariance_.T)
+            cov_ = Covariance(None)
+            cov_['data'] = self.covariance_
+            cov_['names'] = self.info['ch_names']
+            cov_['nfree'] = len(self.covariance_)
+            cov_['bads'] = self.info['bads']
+            cov_['projs'] = self.info['projs']
+            cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
+                              eeg=self.eeg, proj=False,
+                              exclude='bads')  # ~proj == important!!
+            self.covariance_ = cov_.data
+            return self
+    if estimator == 'reg':
+        out = _RegCovariance
+    else:
+        raise NotImplementedError('Currently only "est" is available')
+    return out
 
 
 ###############################################################################

@@ -1,26 +1,40 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 import os.path as op
 
+<<<<<<< HEAD
 from nose.tools import assert_true, assert_almost_equal
 from numpy.testing import assert_array_almost_equal
+=======
+from nose.tools import assert_true, assert_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
+>>>>>>> Add auto-reg code and a first example
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 import warnings
 import itertools as itt
 
+<<<<<<< HEAD
 from mne.cov import regularize, whiten_evoked, _estimate_rank_meeg_cov
+=======
+from mne.cov import regularize, whiten_evoked, _auto_low_rank_model
+>>>>>>> Add auto-reg code and a first example
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info)
 from mne.io import Raw
+<<<<<<< HEAD
 from mne.io.pick import channel_type
 from mne.utils import _TempDir, slow_test
 from mne.io.proc_history import _get_sss_rank
+=======
+from mne.utils import _TempDir, requires_sklearn
+>>>>>>> Add auto-reg code and a first example
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -305,3 +319,89 @@ def test_rank():
                                                scalings=scalings)
 
             assert_almost_equal(expected_rank, est_rank)
+
+
+@requires_sklearn
+def test_auto_low_rank():
+    """Test probabilistic low rank estimators"""
+
+    n_samples, n_features, rank = 500, 30, 15
+    sigma = 0.1
+
+    def get_data(n_samples, n_features, rank, sigma):
+        rng = np.random.RandomState(42)
+        W = rng.randn(n_features, n_features)
+        X = rng.randn(n_samples, rank)
+        U, _, _ = linalg.svd(W.copy())
+        X = np.dot(X, U[:, :rank].T)
+
+        sigmas = sigma * rng.rand(n_features) + sigma / 2.
+        X += rng.randn(n_samples, n_features) * sigmas
+        return X
+
+    X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
+                 sigma=sigma)
+    mp = {'iter_n_components': [14, 15, 16]}
+    cv = 3
+    n_jobs = 1
+    mode = 'fa'
+    rescale = 1e8
+    X *= rescale
+    est, info = _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs,
+                                     method_params=mp,
+                                     cv=cv)
+    assert_equal(info['best'], rank)
+
+    X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
+                 sigma=sigma)
+    mp = {'iter_n_components': [n_features + 5]}
+    msg = 'You are trying to estimate %i components on matrix with %i features'
+    with warnings.catch_warnings(record=True) as w:
+        _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs, method_params=mp,
+                             cv=cv)
+        assert_equal(len(w), 1)
+        assert_equal(msg % (n_features + 5, n_features), '%s' % w[0].message)
+
+
+@requires_sklearn
+def test_compute_covariance_auto_reg():
+    """Test automated regularization"""
+    from sklearn.covariance import EmpiricalCovariance as ec
+
+    raw = Raw(raw_fname, preload=False)
+    events = find_events(raw, stim_channel='STI 014')
+    event_ids = [1, 2, 3, 4]
+    reject = dict(mag=4e-12)
+
+    # cov with merged events and keep_sample_mean=True
+    events_merged = merge_events(events, event_ids, 1234)
+    picks = pick_types(raw.info, meg='mag', eeg=False)
+    epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
+                    picks=picks, baseline=(-0.2, -0.1), proj=True,
+                    reject=reject, preload=True)
+    epochs.crop(None, 0)[:10]
+
+    mp = dict(fa=dict(iter_n_components=[30]),
+              pca=dict(iter_n_components=[30]))
+    cov = compute_covariance(epochs, method='auto',
+                             method_params=mp,
+                             return_estimators=False)
+
+    cov2 = compute_covariance(epochs, method='sc')
+
+    assert_array_equal(cov['data'], cov2['data'])  # We know it's sc.
+
+    cov3 = compute_covariance(epochs, method=[ec, 'fa'],
+                              method_params=mp,
+                              return_estimators=True)
+    assert_equal(set(cov3), set([ec.__name__, 'fa']))
+
+    # invalid prespecified method
+    assert_raises(ValueError, compute_covariance, epochs, method='pizza')
+
+    # invalid callable
+    assert_raises(ValueError, compute_covariance, epochs, method=lambda x: x)
+
+    # invalid scalings
+    assert_raises(ValueError, compute_covariance, epochs, method='sc',
+                  scalings=dict(misc=123))

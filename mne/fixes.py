@@ -11,7 +11,7 @@ at which the fixe is no longer needed.
 #          Fabian Pedregosa <fpedregosa@acm.org>
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
-
+# from __future__ import division
 import collections
 from operator import itemgetter
 import inspect
@@ -586,6 +586,7 @@ def _assert_is(expr1, expr2, msg=None):
     """Fake assert_is without message"""
     assert_true(expr2 is expr2, msg)
 
+
 def _assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
     assert_true(expr2 is not expr2, msg)
@@ -630,3 +631,270 @@ try:
 except Exception:
     sparse_block_diag = _sparse_block_diag
 
+
+"""Numpy nanmean"""
+
+
+def _replace_nan(a, val):
+    """
+    If `a` is of inexact type, make a copy of `a`, replace NaNs with
+    the `val` value, and return the copy together with a boolean mask
+    marking the locations where NaNs were present. If `a` is not of
+    inexact type, do nothing and return `a` together with a mask of None.
+
+    Parameters
+    ----------
+    a : array-like
+        Input array.
+    val : float
+        NaN values are set to val before doing the operation.
+
+    Returns
+    -------
+    y : ndarray
+        If `a` is of inexact type, return a copy of `a` with the NaNs
+        replaced by the fill value, otherwise return `a`.
+    mask: {bool, None}
+        If `a` is of inexact type, return a boolean mask marking locations of
+        NaNs, otherwise return None.
+
+    """
+    is_new = not isinstance(a, np.ndarray)
+    if is_new:
+        a = np.array(a)
+    if not issubclass(a.dtype.type, np.inexact):
+        return a, None
+    if not is_new:
+        # need copy
+        a = np.array(a, subok=True)
+
+    mask = np.isnan(a)
+    np.copyto(a, val, where=mask)
+    return a, mask
+
+
+def _divide_by_count(a, b, out=None):
+    """
+    Compute a/b ignoring invalid results. If `a` is an array the division
+    is done in place. If `a` is a scalar, then its type is preserved in the
+    output. If out is None, then then a is used instead so that the
+    division is in place. Note that this is only called with `a` an inexact
+    type.
+
+    Parameters
+    ----------
+    a : {ndarray, numpy scalar}
+        Numerator. Expected to be of inexact type but not checked.
+    b : {ndarray, numpy scalar}
+        Denominator.
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``; if provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.
+
+    Returns
+    -------
+    ret : {ndarray, numpy scalar}
+        The return value is a/b. If `a` was an ndarray the division is done
+        in place. If `a` is a numpy scalar, the division preserves its type.
+
+    """
+    with np.errstate(invalid='ignore'):
+        if isinstance(a, np.ndarray):
+            if out is None:
+                return np.divide(a, b, out=a, casting='unsafe')
+            else:
+                return np.divide(a, b, out=out, casting='unsafe')
+        else:
+            if out is None:
+                return a.dtype.type(a / float(b))
+            else:
+                # This is questionable, but currently a numpy scalar can
+                # be output to a zero dimensional array.
+                return np.divide(a, b, out=out, casting='unsafe')
+
+
+def nansum(a, axis=None, dtype=None, out=None, keepdims=0):
+    """
+    Return the sum of array elements over a given axis treating Not a
+    Numbers (NaNs) as zero.
+
+    In Numpy versions <= 1.8 Nan is returned for slices that are all-NaN or
+    empty. In later versions zero is returned.
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose sum is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : int, optional
+        Axis along which the sum is computed. The default is to compute the
+        sum of the flattened array.
+    dtype : data-type, optional
+        The type of the returned array and of the accumulator in which the
+        elements are summed.  By default, the dtype of `a` is used.  An
+        exception is when `a` has an integer type with less precision than
+        the platform (u)intp. In that case, the default will be either
+        (u)int32 or (u)int64 depending on whether the platform is 32 or 64
+        bits. For inexact inputs, dtype must be inexact.
+
+        .. versionadded:: 1.8.0
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``. If provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.  See
+        `doc.ufuncs` for details. The casting of NaN to integer can yield
+        unexpected results.
+
+        .. versionadded:: 1.8.0
+    keepdims : bool, optional
+        If True, the axes which are reduced are left in the result as
+        dimensions with size one. With this option, the result will
+        broadcast correctly against the original `arr`.
+
+        .. versionadded:: 1.8.0
+
+    Returns
+    -------
+    y : ndarray or numpy scalar
+
+    See Also
+    --------
+    numpy.sum : Sum across array propagating NaNs.
+    isnan : Show which elements are NaN.
+    isfinite: Show which elements are not NaN or +/-inf.
+
+    Notes
+    -----
+    If both positive and negative infinity are present, the sum will be Not
+    A Number (NaN).
+
+    Numpy integer arithmetic is modular. If the size of a sum exceeds the
+    size of an integer accumulator, its value will wrap around and the
+    result will be incorrect. Specifying ``dtype=double`` can alleviate
+    that problem.
+
+    Examples
+    --------
+    >>> np.nansum(1)
+    1
+    >>> np.nansum([1])
+    1
+    >>> np.nansum([1, np.nan])
+    1.0
+    >>> a = np.array([[1, 1], [1, np.nan]])
+    >>> np.nansum(a)
+    3.0
+    >>> np.nansum(a, axis=0)
+    array([ 2.,  1.])
+    >>> np.nansum([1, np.nan, np.inf])
+    inf
+    >>> np.nansum([1, np.nan, np.NINF])
+    -inf
+    >>> np.nansum([1, np.nan, np.inf, -np.inf]) # both +/- infinity present
+    nan
+
+    """
+    a, mask = _replace_nan(a, 0)
+    return np.sum(a, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+
+
+def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
+    """
+    Compute the arithmetic mean along the specified axis, ignoring NaNs.
+
+    Returns the average of the array elements.  The average is taken over
+    the flattened array by default, otherwise over the specified axis.
+    `float64` intermediate and return values are used for integer inputs.
+
+    For all-NaN slices, NaN is returned and a `RuntimeWarning` is raised.
+
+    .. versionadded:: 1.8.0
+
+    Parameters
+    ----------
+    a : array_like
+        Array containing numbers whose mean is desired. If `a` is not an
+        array, a conversion is attempted.
+    axis : int, optional
+        Axis along which the means are computed. The default is to compute
+        the mean of the flattened array.
+    dtype : data-type, optional
+        Type to use in computing the mean.  For integer inputs, the default
+        is `float64`; for inexact inputs, it is the same as the input
+        dtype.
+    out : ndarray, optional
+        Alternate output array in which to place the result.  The default
+        is ``None``; if provided, it must have the same shape as the
+        expected output, but the type will be cast if necessary.  See
+        `doc.ufuncs` for details.
+    keepdims : bool, optional
+        If this is set to True, the axes which are reduced are left in the
+        result as dimensions with size one. With this option, the result
+        will broadcast correctly against the original `arr`.
+
+    Returns
+    -------
+    m : ndarray, see dtype parameter above
+        If `out=None`, returns a new array containing the mean values,
+        otherwise a reference to the output array is returned. Nan is
+        returned for slices that contain only NaNs.
+
+    See Also
+    --------
+    average : Weighted average
+    mean : Arithmetic mean taken while not ignoring NaNs
+    var, nanvar
+
+    Notes
+    -----
+    The arithmetic mean is the sum of the non-NaN elements along the axis
+    divided by the number of non-NaN elements.
+
+    Note that for floating-point input, the mean is computed using the same
+    precision the input has.  Depending on the input data, this can cause
+    the results to be inaccurate, especially for `float32`.  Specifying a
+    higher-precision accumulator using the `dtype` keyword can alleviate
+    this issue.
+
+    Examples
+    --------
+    >>> a = np.array([[1, np.nan], [3, 4]])
+    >>> np.nanmean(a)
+    2.6666666666666665
+    >>> np.nanmean(a, axis=0)
+    array([ 2.,  4.])
+    >>> np.nanmean(a, axis=1)
+    array([ 1.,  3.5])
+
+    """
+    arr, mask = _replace_nan(a, 0)
+    if mask is None:
+        return np.mean(arr, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+
+    if dtype is not None:
+        dtype = np.dtype(dtype)
+    if dtype is not None and not issubclass(dtype.type, np.inexact):
+        raise TypeError("If a is inexact, then dtype must be inexact")
+    if out is not None and not issubclass(out.dtype.type, np.inexact):
+        raise TypeError("If a is inexact, then out must be inexact")
+
+    # The warning context speeds things up.
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        cnt = np.sum(~mask, axis=axis, dtype=np.intp, keepdims=keepdims)
+        tot = np.sum(arr, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+        avg = _divide_by_count(tot, cnt, out=out)
+
+    isbad = (cnt == 0)
+    if isbad.any():
+        warnings.warn("Mean of empty slice", RuntimeWarning)
+        # NaN is the only possible bad value, so no further
+        # action is needed to handle bad results.
+    return avg
+
+
+try:
+    from numpy import nanmean
+except ImportError:
+    nanmean = _nanmean
