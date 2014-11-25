@@ -18,7 +18,7 @@ import numpy as np
 from numpy import dot
 from scipy.optimize import leastsq
 from scipy.spatial.distance import cdist
-from scipy.linalg import norm
+from scipy.linalg import norm, inv
 
 from .io.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
@@ -1103,13 +1103,14 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                                                                 subject_from,
                                                                 scale,
                                                                 subjects_dir)
+    # if n_params==1 scale is a scalar; if n_params==3 scale is a (3,) array
 
     # find the source space file names
     if src_name.isdigit():
         spacing = src_name  # spacing in mm
         src_pattern = src_fname
     else:
-        match = re.match("(oct|ico)-?(\d+)$", src_name)
+        match = re.match("(oct|ico|vol)-?(\d+)$", src_name)
         if match:
             spacing = '-'.join(match.groups())
             src_pattern = src_fname
@@ -1147,6 +1148,10 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
                 ss['dist'] *= scale
                 ss['nearest_dist'] *= scale
                 ss['dist_limit'] *= scale
+            # additional tags for volume source spaces
+            if 'vox_mri_t' in ss:
+                ss['vox_mri_t']['trans'][:3] *= scale
+                ss['src_mri_t']['trans'][:3] *= scale
         else:
             nn = ss['nn']
             nn *= norm_scale
@@ -1154,6 +1159,13 @@ def scale_source_space(subject_to, src_name, subject_from=None, scale=None,
             nn /= norm[:, np.newaxis]
             if ss['dist'] is not None:
                 add_dist = True
+            # additional tags for volume source spaces
+            if 'vox_mri_t' in ss:
+                trans = scaling(*scale)
+                ss['vox_mri_t']['trans'] = np.dot(trans,
+                                                  ss['vox_mri_t']['trans'])
+                ss['src_mri_t']['trans'] = np.dot(trans,
+                                                  ss['src_mri_t']['trans'])
 
     if add_dist:
         logger.info("Recomputing distances, this might take a while")
