@@ -493,6 +493,9 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
         idx = np.where(~mask)[0]
         _plot_sensors(pos_x[idx], pos_y[idx], sensors=sensors, ax=ax)
+    elif not sensors and mask is not None:
+        idx = np.where(mask)[0]
+        ax.plot(pos_x[idx], pos_y[idx], **mask_params)
 
     if show_names:
         if show_names is True:
