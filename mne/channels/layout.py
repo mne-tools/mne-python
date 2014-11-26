@@ -393,7 +393,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         if not isinstance(info, dict):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
-        return make_eeg_layout(info, exclude='bads')
+        return make_eeg_layout(info, exclude=exclude)
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
