@@ -175,7 +175,7 @@ def read_layout(kind, path=None, scale=True):
     return Layout(box=box, pos=pos, names=names, kind=kind, ids=ids)
 
 
-def make_eeg_layout(info, radius=0.5, width=None, height=None):
+def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
     """Create .lout file from EEG electrode digitization
 
     Parameters
@@ -190,7 +190,9 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
     height : float | None
         Height of sensor axes as a fraction of main figure height. By default,
         this will be the maximum height possible withough axes overlapping.
-
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
     Returns
     -------
     layout : Layout
@@ -204,7 +206,7 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None):
         raise ValueError('The height parameter should be between 0 and 1.')
 
     picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                       exclude='bads')
+                       exclude=exclude)
     loc2d = _auto_topomap_coords(info, picks)
     names = [info['chs'][i]['ch_name'] for i in picks]
 
@@ -314,7 +316,7 @@ def make_grid_layout(info, picks=None, n_col=None):
     return layout
 
 
-def find_layout(info, ch_type=None):
+def find_layout(info, ch_type=None, exclude='bads'):
     """Choose a layout based on the channels in the info 'chs' field
 
     Parameters
@@ -326,6 +328,9 @@ def find_layout(info, ch_type=None):
         Defaults to None. Note, this argument will only be considered for
         VectorView type layout. Use `meg` to force using the full layout
         in situations where the info does only contain one sensor type.
+    exclude : list of string | str
+        List of channels to exclude. If empty do not exclude any (default).
+        If 'bads', exclude channels in info['bads'].
 
     Returns
     -------
@@ -388,7 +393,7 @@ def find_layout(info, ch_type=None):
         if not isinstance(info, dict):
             raise RuntimeError('Cannot make EEG layout, no measurement info '
                                'was passed to `find_layout`')
-        return make_eeg_layout(info)
+        return make_eeg_layout(info, exclude='bads')
     elif has_4D_mag:
         layout_name = 'magnesWH3600'
     elif has_CTF_grad:
