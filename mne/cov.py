@@ -761,7 +761,7 @@ def _rescale_cov(info, cov, scalings):
                 _contains_ch_type(info, c)]
     covinds = [_pick_data_ch(info, t) for t in ch_types]
     assert len(cov) == sum(len(k) for k in covinds)
-    assert sorted(np.concatenate(covinds)) == range(len(cov))
+    assert list(sorted(np.concatenate(covinds))) == list(range(len(cov)))
     scales = np.zeros(n_channels)
     for ch_t, idx in zip(ch_types, covinds):
         scales[idx] = scalings[ch_t]
