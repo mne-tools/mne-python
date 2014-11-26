@@ -573,7 +573,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         keys, scores = zip(*[(k, v['loglik']) for k, v in cov_data.items()])
         best_key = keys[np.argmax(scores)]
         out = cov_data[best_key]['cov']
-        logger.info('selecting best estimator: {}'.format(best_key))
+        logger.info('selecting best estimator: {0}'.format(best_key))
     elif method is not None:
         out = cov_data
     else:
