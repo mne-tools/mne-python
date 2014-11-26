@@ -125,7 +125,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
                                aspect='auto', cmap=cmap)
-                plt.colorbar(im, ax=ax)
+                cbar = plt.colorbar(im, ax=ax)
+                cbar.ax.set_title(ch_unit)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
@@ -141,7 +142,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 ax.set_ylabel('data (%s)' % ch_unit)
             elif plot_type == 'image':
-                ax.set_ylabel('channels (%s)' % ch_unit)
+                ax.set_ylabel('channels (%s)' % 'index')
             else:
                 raise ValueError("plot_type has to be 'butterfly' or 'image'."
                                  "Got %s." % plot_type)
