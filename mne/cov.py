@@ -365,6 +365,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
           merge_events(). However, the resulting covariance matrix
           will only be correct if keep_sample_mean is True.
 
+    Note: The covariance can be unstable if the number of samples is not
+          sufficient. In that case it is common to regularize a covaraince
+          estimate. The ``method`` parameter of this function allows to
+          regularize the covariance in an automated way. It also allows
+          to select between different alternative estimation algorithms which
+          themselves achieve regularization. Details are described in [1].
+
     Parameters
     ----------
     epochs : instance of Epochs, or a list of Epochs objects
@@ -392,9 +399,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         must set the attribute 'covariance_' to self when invoked
         (see scikit-learn estimator objects). Valid methods are:
         'ec', the sklearn variant of the empirical covariance, 'reg',
-        a diagonal regularization as in mne.cov.regularize, 'lw', the
-        Ledoit-Wolf estimator, 'sc' like 'lw' with grids-search for optimal
-        alpha, 'pca', PCA with low rank,  'fa' Factor Analysis with low rank.
+        a diagonal regularization as in mne.cov.regularize (see MNE manual),
+        'lw', the Ledoit-Wolf estimator (see [2]), 'sc' like 'lw' with
+        cross-validation for optimal alpha (see scikit-learn documentation on
+        covariance estimation), 'pca', probabilistic PCA with low rank
+        (see [3]), and, 'fa', Factor Analysis with low rank (see [4]).
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
         method is not None.
@@ -426,8 +435,16 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     References
     ----------
         [1] Engemann D. and Gramfort A. Automated model selection in covariance
-        estimation and spatial whitening of MEG and EEG signals. (in press.)
+        estimation and spatial whitening of MEG and EEG signals (in press).
         NeuroImage.
+        [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
+        large-dimensional covariance matrices. Journal of Multivariate
+        Analysis 88 (2), 365 – 411.
+        [3] Tipping, M. E., Bishop, C. M., 1999. Probabilistic principal
+        component analysis. Journal of the Royal Statistical Society: Series
+        B (Statistical Methodology) 61 (3), 611–622.
+        [4] Barber, D., 2012. Bayesian reasoning and machine learning.
+        Cambridge University Press., Algorithm 21.1
     """
     accepted_methods = 'auto', 'ec', 'reg', 'lw', 'sc', 'pca', 'fa',
     msg = ('Invalid method ({method}). Accepted values (individually or '
@@ -493,12 +510,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
 
-    n_epoch_types = len(epochs)
-    data = 0.0
-    data_mean = list(np.zeros(n_epoch_types))
-    n_samples = np.zeros(n_epoch_types, dtype=np.int)
-    n_epochs = np.zeros(n_epoch_types, dtype=np.int)
-
     picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
                             ref_meg=keep_ref_meg, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
@@ -507,6 +518,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         method = [method]
 
     if method is None:
+        n_epoch_types = len(epochs)
+        data = 0.0
+        data_mean = list(np.zeros(n_epoch_types))
+        n_samples = np.zeros(n_epoch_types, dtype=np.int)
+        n_epochs = np.zeros(n_epoch_types, dtype=np.int)
+
         for i, epochs_t in enumerate(epochs):
 
             tslice = _get_tslice(epochs_t, tmin, tmax)
