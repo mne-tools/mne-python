@@ -176,8 +176,10 @@ def test_make_eeg_layout():
     lout_name = 'test_raw'
     lout_orig = read_layout(kind=lout_name, path=lout_path)
     info = Raw(fif_fname).info
-    info['bads'].append(info['ch_names'][0])
+    info['bads'].append(info['ch_names'][360])
     layout = make_eeg_layout(info, exclude=[])
+    assert_array_equal(len(layout.names), len([ch for ch in info['ch_names']
+                                               if ch.startswith('EE')]))
     layout.save(op.join(tempdir, tmp_name + '.lout'))
     lout_new = read_layout(kind=tmp_name, path=tempdir, scale=False)
     assert_array_equal(lout_new.kind, tmp_name)
