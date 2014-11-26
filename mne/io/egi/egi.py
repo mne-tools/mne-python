@@ -281,6 +281,7 @@ class _RawEGI(_BaseRaw):
 
             if len(ch_name) == 4 or ch_name.startswith('STI'):
                 u = {'unit_mul': 0,
+                     'cal': 1,
                      'coil_type': FIFF.FIFFV_COIL_NONE,
                      'unit': FIFF.FIFF_UNIT_NONE,
                      'kind': FIFF.FIFFV_STIM_CH}
