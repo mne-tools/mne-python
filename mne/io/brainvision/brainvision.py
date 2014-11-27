@@ -15,7 +15,7 @@ import numpy as np
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info
-from ..base import _BaseRaw, _check_montage
+from ..base import _BaseRaw, _check_update_montage
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -31,10 +31,10 @@ class RawBrainVision(_BaseRaw):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str
+    eog : list or tuple of str
         Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
-    misc : list of str
+        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+    misc : list or tuple of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str
@@ -58,7 +58,7 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=None, reference=None,
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
                  scale=1., preload=False, verbose=None):
 
         # Preliminary Raw attributes
@@ -76,7 +76,7 @@ class RawBrainVision(_BaseRaw):
                                                           reference, eog,
                                                           misc, scale)
         logger.info('Creating Raw.info structure...')
-        _check_montage(self.info, montage)
+        _check_update_montage(self.info, montage)
         self.set_brainvision_events(events)
 
         # Raw attributes
@@ -616,7 +616,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
 
 
 def read_raw_brainvision(vhdr_fname, montage=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], misc=None,
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
                          reference=None, scale=1.,
                          preload=False, verbose=None):
     """Reader for Brain Vision EEG file
@@ -628,10 +628,10 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str
+    eog : list or tuple of str
         Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
-    misc : list of str
+        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+    misc : list or tuple of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str

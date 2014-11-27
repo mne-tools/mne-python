@@ -1839,7 +1839,7 @@ def _quart_to_rot(q):
     return rotation
 
 
-def _check_montage(info, montage):
+def _check_update_montage(info, montage):
     """ Helper function for eeg readers to add montage"""
     if montage is not None:
         if not isinstance(montage, (str, Montage)):

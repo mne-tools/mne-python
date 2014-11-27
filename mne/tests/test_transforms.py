@@ -92,6 +92,7 @@ def test_get_ras_to_neuromag_trans():
 
 
 def test_sphere_to_cartesian():
+    """Test helper transform function from sphere to cartesian"""
     phi, theta, r = (np.pi, np.pi, 1)
     # expected value is (1, 0, 0)
     z = r * np.sin(phi)
@@ -105,6 +106,7 @@ def test_sphere_to_cartesian():
 
 
 def test_polar_to_cartesian():
+    """Test helper transform function from polar to cartesian"""
     r = 1
     theta = np.pi
     # expected values are (-1, 0)
@@ -117,6 +119,7 @@ def test_polar_to_cartesian():
 
 
 def test_cartesian_to_sphere():
+    """Test helper transform function from cartesian to sphere"""
     x, y, z = (1, 0, 0)
     # expected values are (0, 0, 1)
     hypotxy = np.hypot(x, y)

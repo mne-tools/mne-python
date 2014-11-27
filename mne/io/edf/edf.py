@@ -19,7 +19,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 
 from ...utils import verbose, logger
-from ..base import _BaseRaw, _check_montage
+from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import Info
 from ..constants import FIFF
 from ...filter import resample
@@ -36,10 +36,10 @@ class RawEDF(_BaseRaw):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str | None
+    eog : list or tuple of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the electrodes in the edf file. Default is None.
-    misc : list of str | None
+    misc : list or tuple of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the edf file. Default is None.
     stim_channel : str | int | None
@@ -79,7 +79,7 @@ class RawEDF(_BaseRaw):
                                                   annot, annotmap, tal_channel,
                                                   eog, misc, preload)
         logger.info('Creating Raw.info structure...')
-        _check_montage(self.info, montage)
+        _check_update_montage(self.info, montage)
 
         if bool(annot) != bool(annotmap):
             warnings.warn(("Stimulus Channel will not be annotated. "
@@ -640,7 +640,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
     return stim_channel
 
 
-def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
+def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
@@ -652,10 +652,10 @@ def read_raw_edf(input_fname, montage=None, eog=[], misc=[],
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str
+    eog : list or tuple of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the electrodes in the edf file. Default is None.
-    misc : list of str
+    misc : list or tuple of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the edf file. Default is None.
     stim_channel : str | int | None

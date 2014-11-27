@@ -10,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw, _check_montage
+from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import Info
 from ..constants import FIFF
 from ...utils import verbose, logger
@@ -152,10 +152,10 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list of str
+    eog : list or tuple of str
         Names of channels that should be designated EOG channels.
         Default is None.
-    misc : list of str
+    misc : list or tuple of str
         Names of channels that should be designated MISC channels.
         Default is None.
     include : None | list
@@ -311,7 +311,7 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        _check_montage(self.info, montage)
+        _check_update_montage(self.info, montage)
         self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1,
