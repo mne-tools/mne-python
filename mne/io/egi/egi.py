@@ -153,11 +153,11 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file. Default is None.
+        Names of channels that should be designated EOG channels.
+        Default is None.
     misc : list of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the egi file. Default is None.
+        Names of channels that should be designated MISC channels.
+        Default is None.
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
