@@ -4,7 +4,7 @@ import numpy as np
 
 from nose.tools import assert_true, assert_raises
 from numpy.testing import (assert_array_equal, assert_equal, assert_allclose,
-                           assert_array_almost_equal)
+                           assert_almost_equal, assert_array_almost_equal)
 import warnings
 
 from mne.io.constants import FIFF
@@ -15,8 +15,8 @@ from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, transform_coordinates,
                             collect_transforms, apply_trans, translation,
-                            get_ras_to_neuromag_trans)
-
+                            get_ras_to_neuromag_trans, _sphere_to_cartesian,
+                            _polar_to_cartesian, _cartesian_to_sphere)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -89,6 +89,43 @@ def test_get_ras_to_neuromag_trans():
 
     err = "Neuromag transformation failed"
     assert_array_almost_equal(pts_restored, pts, 6, err)
+
+
+def test_sphere_to_cartesian():
+    phi, theta, r = (np.pi, np.pi, 1)
+    # expected value is (1, 0, 0)
+    z = r * np.sin(phi)
+    rcos_phi = r * np.cos(phi)
+    x = rcos_phi * np.cos(theta)
+    y = rcos_phi * np.sin(theta)
+    coord = _sphere_to_cartesian(phi, theta, r)
+    # np.pi is an approx since pi is irrational
+    assert_almost_equal(coord, (x, y, z), 10)
+    assert_almost_equal(coord, (1, 0, 0), 10)
+
+
+def test_polar_to_cartesian():
+    r = 1
+    theta = np.pi
+    # expected values are (-1, 0)
+    x = r * np.cos(theta)
+    y = r * np.sin(theta)
+    coord = _polar_to_cartesian(theta, r)
+    # np.pi is an approx since pi is irrational
+    assert_almost_equal(coord, (x, y), 10)
+    assert_almost_equal(coord, (-1, 0), 10)
+
+
+def test_cartesian_to_sphere():
+    x, y, z = (1, 0, 0)
+    # expected values are (0, 0, 1)
+    hypotxy = np.hypot(x, y)
+    r = np.hypot(hypotxy, z)
+    elev = np.arctan2(z, hypotxy)
+    az = np.arctan2(y, x)
+    coord = _cartesian_to_sphere(x, y, z)
+    assert_equal(coord, (az, elev, r))
+    assert_equal(coord, (0, 0, 1))
 
 
 def test_rotation():

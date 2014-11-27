@@ -546,7 +546,8 @@ def _polar_to_cartesian(theta, r):
     x = r * np.cos(theta)
     y = r * np.sin(theta)
     return x, y
-    
+
+
 def _cartesian_to_sphere(x, y, z):
     """Transform cartesian coordinates to spherical"""
     hypotxy = np.hypot(x, y)
