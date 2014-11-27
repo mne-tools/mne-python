@@ -398,12 +398,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         If callable object is passed, it has to specify a fit method, which
         must set the attribute 'covariance_' to self when invoked
         (see scikit-learn estimator objects). Valid methods are:
-        'ec', the sklearn variant of the empirical covariance, 'reg',
-        a diagonal regularization as in mne.cov.regularize (see MNE manual),
-        'lw', the Ledoit-Wolf estimator (see [2]), 'sc' like 'lw' with
-        cross-validation for optimal alpha (see scikit-learn documentation on
-        covariance estimation), 'pca', probabilistic PCA with low rank
-        (see [3]), and, 'fa', Factor Analysis with low rank (see [4]).
+        'empirical', the sklearn variant of the empirical covariance,
+        'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
+        (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
+        'shrunk' like 'ledoit_wolf' with cross-validation for optimal alpha
+        (see scikit-learn documentation on covariance estimation), 'pca',
+        probabilistic PCA with low rank
+        (see [3]), and, 'factor_analysis', Factor Analysis with low rank
+        (see [4]).
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
         method is not None.
@@ -428,25 +430,26 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     Returns
     -------
     cov : instance of Covariance | dict
-        The computed covariance. If if method equals 'auto' or is a list of str
+        The computed covariance. If method equals 'auto' or is a list of str
         and return_estimators equals True, a dict of covariance estimators is
         returned.
 
     References
     ----------
-        [1] Engemann D. and Gramfort A. Automated model selection in covariance
+    [1] Engemann D. and Gramfort A. Automated model selection in covariance
         estimation and spatial whitening of MEG and EEG signals (in press).
         NeuroImage.
-        [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
+    [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
         large-dimensional covariance matrices. Journal of Multivariate
-        Analysis 88 (2), 365 – 411.
-        [3] Tipping, M. E., Bishop, C. M., 1999. Probabilistic principal
+        Analysis 88 (2), 365 - 411.
+    [3] Tipping, M. E., Bishop, C. M., 1999. Probabilistic principal
         component analysis. Journal of the Royal Statistical Society: Series
-        B (Statistical Methodology) 61 (3), 611–622.
-        [4] Barber, D., 2012. Bayesian reasoning and machine learning.
+        B (Statistical Methodology) 61 (3), 611 - 622.
+    [4] Barber, D., 2012. Bayesian reasoning and machine learning.
         Cambridge University Press., Algorithm 21.1
     """
-    accepted_methods = 'auto', 'ec', 'reg', 'lw', 'sc', 'pca', 'fa',
+    accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
+                        'shrunk', 'pca', 'factor_analysis',)
     msg = ('Invalid method ({method}). Accepted values (individually or '
            'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
 
@@ -460,14 +463,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     scalings = _scalings
 
     _method_params = {
-        'ec': {'store_precision': False, 'assume_centered': False},
-        'reg': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
-                'store_precision': False, 'assume_centered': False},
-        'lw': {'store_precision': False, 'assume_centered': False},
-        'sc': {'shrinkages': np.logspace(-4, 0, 30),
-               'store_precision': False, 'assume_centered': False},
+        'empirical': {'store_precision': False, 'assume_centered': True},
+        'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
+                           'store_precision': False, 'assume_centered': True},
+        'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
+        'shrunk': {'shrinkages': np.logspace(-4, 0, 30),
+                   'store_precision': False, 'assume_centered': True},
         'pca': {'iter_n_components': None},
-        'fa': {'iter_n_components': None}
+        'factor_analysis': {'iter_n_components': None}
     }
     if isinstance(method_params, dict):
         for key, values in method_params.items():
@@ -514,7 +517,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                             ref_meg=keep_ref_meg, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
-    if method is not None and not isinstance(method, list):
+    if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
 
     if method is None:
@@ -546,7 +549,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             data /= norm_const
 
         _check_n_samples(n_samples_tot, len(picks_meeg))
-        cov_data = {'ec': {'data': data}}
+        cov_data = {'empirical': {'data': data}}
     elif all([k in accepted_methods or callable(k) for k in method]):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
@@ -594,7 +597,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     elif method is not None:
         out = cov_data
     else:
-        out = cov_data['ec']['cov']
+        out = cov_data['empirical']['cov']
 
     return out
 
@@ -608,7 +611,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                     EmpiricalCovariance)
 
     if method[0] == 'auto':
-        cov_methods = ['sc', 'reg', 'ec', 'fa']
+        cov_methods = ['shrunk', 'diagonal_fixed', 'empirical',
+                       'factor_analysis']
     else:
         cov_methods = method
 
@@ -619,15 +623,15 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         name = this_method.__name__ if callable(this_method) else this_method
         logger.info(msg % name.upper())
 
-        if this_method == 'ec':
+        if this_method == 'empirical':
             est = EmpiricalCovariance(**method_params[this_method])
             est.fit(data)
             cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
             estimator_cov_info.append((est, cov, _info))
 
-        elif this_method == 'reg':
-            Est = cp.deepcopy(_get_estimator('reg'))
+        elif this_method == 'diagonal_fixed':
+            Est = cp.deepcopy(_get_estimator('diagonal_fixed'))
             Est.info = info
             est = Est(**method_params[this_method])
             est.fit(data)
@@ -635,12 +639,12 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             _info = None
             estimator_cov_info.append((est, cov, _info))
 
-        elif this_method == 'lw':
+        elif this_method == 'ledoit_wolf':
             lw = LedoitWolf(**method_params[this_method])
             cov = _rescale_cov(info, lw.fit(data).covariance_, scalings)
             estimator_cov_info.append((lw, cov, None))
 
-        elif this_method == 'sc':
+        elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkages')
             tuned_parameters = [{'shrinkage': shrinkage}]
             cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
@@ -659,7 +663,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             cov = _rescale_cov(info, pca.get_covariance(), scalings)
             estimator_cov_info.append((pca, cov, _info))
 
-        elif this_method == 'fa':
+        elif this_method == 'factor_analysis':
             mp = cp.deepcopy(method_params[this_method])
             fa, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
@@ -728,9 +732,14 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
     if iter_n_components is None:
         iter_n_components = np.arange(5, data.shape[1], 5)
     from sklearn.decomposition import PCA, FactorAnalysis
-
-    est = (FactorAnalysis(**method_params) if mode == 'fa' else
-           PCA(**method_params))
+    if mode == 'factor_analysis':
+        est = FactorAnalysis
+    elif mode == 'pca':
+        est = PCA
+    else:
+        raise ValueError('Come on, this is not a low rank estimator: %s' %
+                         mode)
+    est = est(**method_params)
     est.n_components = 1
     scores = np.empty_like(iter_n_components, dtype=np.float64)
     scores.fill(np.nan)
@@ -819,7 +828,7 @@ def _get_estimator(estimator):
                               exclude='bads')  # ~proj == important!!
             self.covariance_ = cov_.data
             return self
-    if estimator == 'reg':
+    if estimator == 'diagonal_fixed':
         out = _RegCovariance
     else:
         raise NotImplementedError('Currently only "est" is available')

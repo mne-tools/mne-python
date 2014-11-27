@@ -344,7 +344,7 @@ def test_auto_low_rank():
     mp = {'iter_n_components': [14, 15, 16]}
     cv = 3
     n_jobs = 1
-    mode = 'fa'
+    mode = 'factor_analysis'
     rescale = 1e8
     X *= rescale
     est, info = _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs,
@@ -361,6 +361,10 @@ def test_auto_low_rank():
                              cv=cv)
         assert_equal(len(w), 1)
         assert_equal(msg % (n_features + 5, n_features), '%s' % w[0].message)
+
+    mp = {'iter_n_components': [n_features + 5]}
+    assert_raises(ValueError, _auto_low_rank_model, X, mode='foo',
+                  n_jobs=n_jobs, method_params=mp, cv=cv)
 
 
 @requires_sklearn
@@ -381,20 +385,20 @@ def test_compute_covariance_auto_reg():
                     reject=reject, preload=True)
     epochs.crop(None, 0)[:10]
 
-    mp = dict(fa=dict(iter_n_components=[30]),
+    mp = dict(factor_analysis=dict(iter_n_components=[30]),
               pca=dict(iter_n_components=[30]))
     cov = compute_covariance(epochs, method='auto',
                              method_params=mp,
                              return_estimators=False)
 
-    cov2 = compute_covariance(epochs, method='sc')
+    cov2 = compute_covariance(epochs, method='shrunk')
 
     assert_array_equal(cov['data'], cov2['data'])  # We know it's sc.
 
-    cov3 = compute_covariance(epochs, method=[ec, 'fa'],
+    cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
                               method_params=mp,
                               return_estimators=True)
-    assert_equal(set(cov3), set([ec.__name__, 'fa']))
+    assert_equal(set(cov3), set([ec.__name__, 'factor_analysis']))
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
@@ -403,5 +407,5 @@ def test_compute_covariance_auto_reg():
     assert_raises(ValueError, compute_covariance, epochs, method=lambda x: x)
 
     # invalid scalings
-    assert_raises(ValueError, compute_covariance, epochs, method='sc',
+    assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
