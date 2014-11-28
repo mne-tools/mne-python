@@ -71,10 +71,10 @@ class RawBrainVision(_BaseRaw):
         if not isinstance(scale, (int, float)):
             raise TypeError('Scale factor must be an int or float. '
                             '%s provided' % type(scale))
-        scale = float(scale)
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
                                                           reference, eog,
-                                                          misc, scale)
+                                                          misc)
+        self._eeg_info['scale'] = float(scale)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(self.info, montage)
         self.set_brainvision_events(events)
@@ -169,12 +169,15 @@ class RawBrainVision(_BaseRaw):
         eeg_info = self._eeg_info
         sfreq = self.info['sfreq']
         chs = self.info['chs']
+        units = eeg_info['units']
         if self._reference:
             chs = chs[:-1]
+            units = units[:-1]
         if len(self._events):
             chs = chs[:-1]
         n_eeg = len(chs)
         cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
+        cals *= eeg_info['scale'] * units
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(sfreq),
@@ -378,7 +381,7 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
+def _get_eeg_info(vhdr_fname, reference, eog, misc):
     """Extracts all the information from the header file.
 
     Parameters
@@ -396,10 +399,6 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
     misc : list of str
         Names of channels that should be designated MISC channels. Names
         should correspond to the electrodes in the vhdr file.
-    scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
 
     Returns
     -------
@@ -508,6 +507,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
         ch_names[-1] = reference
         cals[-1] = cals[-2]
         units[-1] = units[-2]
+    eeg_info['units'] = np.asarray(units, dtype=float)
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
@@ -585,7 +585,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
     info['sfreq'] = sfreq
 
     idxs = range(1, len(ch_names) + 1)
-    for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
+    for idx, ch_name, cal in zip(idxs, ch_names, cals):
         if ch_name in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
@@ -600,7 +600,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc, scale):
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal * unit * scale,
+                     'cal': cal,
                      'range': 1.,
                      'unit_mul': 0.,  # always zero- mne manual pg. 273
                      'unit': FIFF.FIFF_UNIT_V,
@@ -638,7 +638,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
+        correspond to a name in the montage.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is

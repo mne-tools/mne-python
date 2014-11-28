@@ -192,8 +192,7 @@ class RawEDF(_BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']], float)
-        unit_mul = np.array([10 ** ch['unit_mul'] for ch in self.info['chs']])
-        gains = np.atleast_2d(unit_mul * (physical_range / cal))
+        gains = np.atleast_2d(self._edf_info['units'] * (physical_range / cal))
 
         with open(self.info['file_id'], 'rb') as fid:
             # extract data
@@ -459,11 +458,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         units = [fid.read(8).strip().decode() for _ in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
-                units[i] = -6
-            elif unit == 'V':
-                units[i] = 0
+                units[i] = 1e-6
             else:
                 units[i] = 1
+        edf_info['units'] = units
         physical_min = np.array([float(fid.read(8).decode())
                                  for _ in channels])
         physical_max = np.array([float(fid.read(8).decode())
@@ -543,14 +541,13 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['ch_names'] = ch_names
     if stim_channel == -1:
         stim_channel = info['nchan']
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges,
-                                      cals, units), 1):
-        ch_name, physical_range, cal, unit_mul = ch_info
+    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals), 1):
+        ch_name, physical_range, cal = ch_info
         chan_info = {}
         chan_info['cal'] = cal
         chan_info['logno'] = idx
         chan_info['scanno'] = idx
-        chan_info['range'] = physical_range * (10 ** unit_mul)
+        chan_info['range'] = physical_range
         chan_info['unit_mul'] = 0.
         chan_info['ch_name'] = ch_name
         chan_info['unit'] = FIFF.FIFF_UNIT_V
@@ -572,7 +569,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         if stim_check:
             chan_info['range'] = 1
             chan_info['cal'] = 1
-            chan_info['unit_mul'] = 0
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
