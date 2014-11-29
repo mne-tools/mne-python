@@ -15,27 +15,30 @@ from numpy.testing import assert_raises
 from scipy import io
 import numpy as np
 
+from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir
-from mne import pick_types
-from mne.io import Raw
-from mne.io import read_raw_edf
+from mne.io import Raw, read_raw_edf
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
-hpts_path = op.join(data_dir, 'biosemi.hpts')
+montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 
+eog = ['REOG', 'LEOG', 'IEOG']
+misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
+
 
 def test_bdf_data():
     """Test reading raw bdf files
     """
-    raw_py = read_raw_edf(bdf_path, hpts=hpts_path, preload=True)
+    raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
+                          misc=misc, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -53,6 +56,10 @@ def test_bdf_data():
     assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
     assert_true((raw_py.info['chs'][25]['eeg_loc']).any())
     assert_true((raw_py.info['chs'][63]['eeg_loc']).any())
+
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 
 def test_edf_data():
@@ -74,6 +81,9 @@ def test_edf_data():
 
     assert_array_almost_equal(data_py, data_eeglab)
 
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 def test_read_segment():
     """Test writing raw edf files when preload is False
@@ -115,7 +125,7 @@ def test_append():
     """Test appending raw edf objects using Raw.append
     """
     # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
-    raw = read_raw_edf(bdf_path, hpts=hpts_path, preload=False)
+    raw = read_raw_edf(bdf_path, preload=False)
     raw0 = raw.copy()
     raw1 = raw.copy()
     raw0.append(raw1)
@@ -150,8 +160,7 @@ def test_edf_annotations():
     """
 
     # test an actual file
-    raw = read_raw_edf(edf_path, tal_channel=-1,
-                       hpts=hpts_path, preload=True)
+    raw = read_raw_edf(edf_path, tal_channel=-1, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 

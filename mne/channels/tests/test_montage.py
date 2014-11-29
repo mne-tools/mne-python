@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_true, assert_false
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -8,6 +8,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
+
 
 tempdir = _TempDir()
 
@@ -45,8 +46,14 @@ def test_montage():
      EEG	      F3	 -62.027	 -50.053	      85
      EEG	      Fz	  45.608	      90	      85
      EEG	      F4	   62.01	  50.103	      85
+    """,
+    """
+    eeg Fp1 -95.0 -31.0 -3.0
+    eeg AF7 -81 -59 -3
+    eeg AF3 -87 -41 28
     """]
-    kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp']
+    kinds = ['test.sfp', 'test.csd', 'test.elc', 'test.txt', 'test.elp',
+             'test.hpts']
     for kind, text in zip(kinds, input_str):
         fname = op.join(tempdir, kind)
         with open(fname, 'w') as fid:
@@ -55,7 +62,7 @@ def test_montage():
         assert_equal(len(montage.ch_names), 3)
         assert_equal(len(montage.ch_names), len(montage.pos))
         assert_equal(montage.pos.shape, (3, 3))
-        assert_equal(montage.kind, kind[:-4])
+        assert_equal(montage.kind, op.splitext(kind)[0])
         if kind.endswith('csd'):
             dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
                      ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),

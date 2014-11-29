@@ -1,4 +1,6 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
+#          Teon Brooks <teon@nyu.edu>
+#
 #          simplified BSD-3 license
 
 import datetime
@@ -8,7 +10,7 @@ import warnings
 
 import numpy as np
 
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _check_update_montage
 from ..meas_info import Info
 from ..constants import FIFF
 from ...utils import verbose, logger
@@ -126,7 +128,8 @@ def _combine_triggers(data, remapping=None):
 
 
 @verbose
-def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
+def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
+                 include=None, exclude=None, verbose=None):
     """Read EGI simple binary as raw object
 
     Note. The trigger channel names are based on the
@@ -146,6 +149,15 @@ def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
     ----------
     input_fname : str
         Path to the raw file.
+    montage : str | None | instance of montage
+        Path or instance of montage containing electrode positions.
+        If None, sensor locations are (0,0,0).
+    eog : list or tuple of str
+        Names of channels that should be designated EOG channels.
+        Default is None.
+    misc : list or tuple of str
+        Names of channels that should be designated MISC channels.
+        Default is None.
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
@@ -163,16 +175,20 @@ def read_raw_egi(input_fname, include=None, exclude=None, verbose=None):
     raw : instance of mne.io.Raw
         A raw object containing EGI data.
     """
-    return _RawEGI(input_fname, include, exclude, verbose)
+    return _RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
 
 
 class _RawEGI(_BaseRaw):
     """Raw object from EGI simple binary file
     """
     @verbose
-    def __init__(self, input_fname, include=None, exclude=None,
-                 verbose=None):
+    def __init__(self, input_fname, montage=None, eog=None, misc=None,
+                 include=None, exclude=None, verbose=None):
         """docstring for __init__"""
+        if eog is None:
+            eog = []
+        if misc is None:
+            misc = []
         with open(input_fname, 'rb') as fid:  # 'rb' important for py3k
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
@@ -256,7 +272,8 @@ class _RawEGI(_BaseRaw):
         my_timestamp = time.mktime(my_time.timetuple())
         info['meas_date'] = np.array([my_timestamp], dtype=np.float32)
         info['projs'] = []
-        ch_names = ['EEG %03d' % (i + 1) for i in range(egi_info['n_channels'])]
+        ch_names = ['EEG %03d' % (i + 1) for i in
+                    range(egi_info['n_channels'])]
         ch_names.extend(list(egi_info['event_codes']))
         if new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
@@ -278,6 +295,12 @@ class _RawEGI(_BaseRaw):
                        'kind': FIFF.FIFFV_EEG_CH,
                        'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
+            if ch_name in eog:
+                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch_info['kind'] = FIFF.FIFFV_EOG_CH
+            if ch_name in misc:
+                ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+                ch_info['kind'] = FIFF.FIFFV_MISC_CH
 
             if len(ch_name) == 4 or ch_name.startswith('STI'):
                 u = {'unit_mul': 0,
@@ -288,6 +311,7 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
+        _check_update_montage(self.info, montage)
         self.preload = True
         self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
         self._times = np.arange(self.first_samp, self.last_samp + 1,

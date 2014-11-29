@@ -14,7 +14,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 import mne
 from mne.utils import _TempDir
-from mne import pick_types
+from mne import pick_types, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import Raw
 from mne.io import read_raw_brainvision
@@ -23,23 +23,15 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
-elp_path = op.join(data_dir, 'test_elp.txt')
+montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
-elp_names = ['nasion', 'lpa', 'rpa', None, None, None, None, None,
-             'FP1', 'FP2', 'F7', 'GND', 'F8',
-             'FC5', 'F3', 'Fz', 'F4', 'FC6',
-             'FC1', 'FCz', 'FC2', 'CP5', 'C3',
-             'Cz', 'C4', 'CP6', 'CP1', 'CPz',
-             'CP2', 'P7', 'P3', 'Pz', 'P4',
-             'P8', 'O1', 'POz', 'O2', 'A1',
-             'ReRef', 'HL', 'HR', 'Vb']
-eog = ('HL', 'HR', 'Vb')
+eog = ['HL', 'HR', 'Vb']
 
 
 def test_brainvision_data_filters():
     """Test reading raw Brain Vision files
     """
-    raw = read_raw_brainvision(vhdr_highpass_path, elp_path, elp_names,
+    raw = read_raw_brainvision(vhdr_highpass_path, montage, eog=eog,
                                preload=False)
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
@@ -48,9 +40,9 @@ def test_brainvision_data_filters():
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
-    assert_raises(TypeError, read_raw_brainvision, vhdr_path, elp_path,
-                  elp_names, preload=True, scale="0")
-    raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, preload=True)
+    assert_raises(TypeError, read_raw_brainvision, vhdr_path, montage,
+                  preload=True, scale="0")
+    raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
 
     assert_equal(raw_py.info['highpass'], 0.)
     assert_equal(raw_py.info['lowpass'], 250.)
@@ -70,23 +62,27 @@ def test_brainvision_data():
     assert_array_almost_equal(times_py, times_bin)
 
     # Make sure EOG channels are marked correctly
-    raw_py = read_raw_brainvision(vhdr_path, elp_path, elp_names, eog=eog,
+    raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog,
                                   preload=True)
     for ch in raw_py.info['chs']:
         if ch['ch_name'] in eog:
             assert_equal(ch['kind'], FIFF.FIFFV_EOG_CH)
-        elif ch['ch_name'] in elp_names:
-            assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         elif ch['ch_name'] == 'STI 014':
             assert_equal(ch['kind'], FIFF.FIFFV_STIM_CH)
+        elif ch['ch_name'] in raw_py.info['ch_names']:
+            assert_equal(ch['kind'], FIFF.FIFFV_EEG_CH)
         else:
             raise RuntimeError("Unknown Channel: %s" % ch['ch_name'])
+
+    # Make sure concatenation works
+    raw_concat = concatenate_raws([raw_py.copy(), raw_py])
+    assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 
 def test_events():
     """Test reading and modifying events"""
     tempdir = _TempDir()
-    raw = read_raw_brainvision(vhdr_path, preload=True)
+    raw = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
 
     # check that events are read and stim channel is synthesized correcly
     events = raw.get_brainvision_events()
@@ -134,7 +130,7 @@ def test_read_segment():
     """Test writing raw eeg files when preload is False
     """
     tempdir = _TempDir()
-    raw1 = read_raw_brainvision(vhdr_path, preload=False)
+    raw1 = read_raw_brainvision(vhdr_path, eog=eog, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True)
     raw11 = Raw(raw1_file, preload=True)
@@ -144,7 +140,7 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_brainvision(vhdr_path, preload=True)
+    raw2 = read_raw_brainvision(vhdr_path, eog=eog, preload=True)
     raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:, :]
@@ -157,14 +153,14 @@ def test_read_segment():
 
     # save with buffer size smaller than file
     raw3_file = op.join(tempdir, 'test3-raw.fif')
-    raw3 = read_raw_brainvision(vhdr_path)
+    raw3 = read_raw_brainvision(vhdr_path, eog=eog)
     raw3.save(raw3_file, buffer_size_sec=2)
     raw3 = Raw(raw3_file, preload=True)
     assert_array_equal(raw3._data, raw1._data)
 
     # add reference channel
     raw4_file = op.join(tempdir, 'test4-raw.fif')
-    raw4 = read_raw_brainvision(vhdr_path, reference='A1')
+    raw4 = read_raw_brainvision(vhdr_path, eog=eog, reference='A1')
     raw4.save(raw4_file, buffer_size_sec=2)
     raw4 = Raw(raw4_file, preload=True)
     ref_idx = raw4.ch_names.index('A1')

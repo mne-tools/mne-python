@@ -4,12 +4,14 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Jona Sassenhagen
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: Simplified BSD
 
 import logging
 from collections import defaultdict
 from itertools import combinations
+import re
 import os
 import os.path as op
 import numpy as np
@@ -20,6 +22,8 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
+from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
+                          _cartesian_to_sphere)
 
 
 class Layout(object):
@@ -527,22 +531,6 @@ def _find_topomap_coords(info, picks, layout=None):
     return pos
 
 
-def _cart_to_sph(x, y, z):
-    """Aux function"""
-    hypotxy = np.hypot(x, y)
-    r = np.hypot(hypotxy, z)
-    elev = np.arctan2(z, hypotxy)
-    az = np.arctan2(y, x)
-    return az, elev, r
-
-
-def _pol_to_cart(th, r):
-    """Aux function"""
-    x = r * np.cos(th)
-    y = r * np.sin(th)
-    return x, y
-
-
 def _auto_topomap_coords(info, picks):
     """Make a 2 dimensional sensor map from sensor positions in an info dict.
     The default is to use the electrode locations. The fallback option is to
@@ -622,8 +610,8 @@ def _auto_topomap_coords(info, picks):
         raise ValueError('Electrode positions must be unique.')
 
     x, y, z = locs3d.T
-    az, el, r = _cart_to_sph(x, y, z)
-    locs2d = np.c_[_pol_to_cart(az, np.pi / 2 - el)]
+    az, el, r = _cartesian_to_sphere(x, y, z)
+    locs2d = np.c_[_polar_to_cartesian(az, np.pi / 2 - el)]
     return locs2d
 
 
@@ -780,7 +768,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     kind : str
         The name of the montage file (e.g. kind='easycap-M10' for
         'easycap-M10.txt'). Files with extensions '.elc', '.txt', '.csd',
-        '.elp' or '.sfp' are supported.
+        '.elp', '.hpts' or '.sfp' are supported.
     ch_names : list of str | None
         The names to read. If None, all names are returned.
     path : str | None
@@ -798,7 +786,7 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
-        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp')
+        supported = ('.elc', '.txt', '.csd', '.sfp', '.elp', '.hpts')
         montages = [op.splitext(f) for f in os.listdir(path)]
         montages = [m for m in montages if m[1] in supported and kind == m[0]]
         if len(montages) != 1:
@@ -877,6 +865,15 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
 
         pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
+    elif ext == '.hpts':
+        from ..transforms import get_ras_to_neuromag_trans, apply_trans
+        # MNE-C specified format for generic digitizer data
+        dtype = [('type', 'S8'), ('name', 'S8'),
+                 ('x', 'f8'), ('y','f8'), ('z', 'f8')]
+        data = np.loadtxt(fname, dtype=dtype)
+        pos_ = data[data['type'].astype(np.str) == 'eeg']
+        pos = np.vstack((pos_['x'], pos_['y'], pos_['z'])).T
+        ch_names_ = pos_['name'].astype(np.str)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
@@ -898,9 +895,6 @@ def apply_montage(info, montage):
 
     This function will replace the EEG channel names and locations with
     the values specified for the particular montage.
-
-    Note: You have to rename your object to correclty map
-    the montage names.
 
     Note: This function will change the info variable in place.
 
@@ -929,12 +923,3 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
-
-
-def _sphere_to_cartesian(theta, phi, r):
-    """Transform spherical coordinates to cartesian"""
-    z = r * np.sin(phi)
-    rcos_phi = r * np.cos(phi)
-    x = rcos_phi * np.cos(theta)
-    y = rcos_phi * np.sin(theta)
-    return x, y, z

@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import os
 import os.path as op
+from functools import reduce
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -14,7 +15,8 @@ from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _setup_head_shape,
                             _read_data, _read_bti_header)
 from mne.io import read_raw_bti
-from functools import reduce
+from mne import concatenate_raws
+
 
 base_dir = op.join(op.abspath(op.dirname(__file__)), 'data')
 
@@ -91,6 +93,10 @@ def test_raw():
 
                 assert_array_equal(ra._data[:NCH], ex._data[:NCH])
                 assert_array_equal(ra.cals[:NCH], ex.cals[:NCH])
+                # Make sure concatenation works
+                raw_concat = concatenate_raws([ra.copy(), ra])
+                assert_equal(raw_concat.n_times, 2 * ra.n_times)
+
                 ra.save(tmp_raw_fname)
             with Raw(tmp_raw_fname) as r:
                 print(r)

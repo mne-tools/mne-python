@@ -1156,7 +1156,8 @@ class RawBTi(_BaseRaw):
 
         self.verbose = verbose
         self.cals = cals
-        self.rawdir = None
+        self.rawdirs = list()
+        self.orig_format = 'double'
         self.proj = None
         self.comp = None
         self._filenames = list()

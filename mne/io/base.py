@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -22,6 +23,7 @@ from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
+from ..channels.layout import read_montage, apply_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -1835,3 +1837,32 @@ def _quart_to_rot(q):
                          ))
     rotation = np.swapaxes(rotation, 0, 1).copy()
     return rotation
+
+
+def _check_update_montage(info, montage):
+    """ Helper function for eeg readers to add montage"""
+    if montage is not None:
+        if not isinstance(montage, (str, Montage)):
+            err = ("Montage must be str, None, or instance of Montage. "
+                   "%s was provided" % type(montage))
+            raise TypeError(err)
+        if montage is not None:
+            if isinstance(montage, str): 
+                montage = read_montage(montage, scale=False)
+            apply_montage(info, montage)
+
+            missing_positions = []
+            exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
+                       FIFF.FIFFV_STIM_CH)
+            for ch in info['chs']:
+                if not ch['kind'] in exclude:
+                    if np.unique(ch['loc']).size == 1:
+                        missing_positions.append(ch['ch_name'])
+
+            # raise error if positions are missing
+            if missing_positions:
+                err = ("The following positions are missing from the montage "
+                        "definitions: %s. If those channels lack positions "
+                        "because they are EOG channels use the eog parameter."
+                        % str(missing_positions))
+                raise KeyError(err)

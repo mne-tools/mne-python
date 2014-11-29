@@ -12,12 +12,10 @@ import warnings
 
 import numpy as np
 
-from ...coreg import get_ras_to_neuromag_trans, read_elp
-from ...transforms import als_ras_trans, apply_trans
 from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import Info
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _check_update_montage
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -28,32 +26,29 @@ class RawBrainVision(_BaseRaw):
 
     Parameters
     ----------
-    vdhr_fname : str
+    vhdr_fname : str
         Path to the EEG header file.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    eog : list or tuple of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+    misc : list or tuple of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
         correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    preload : bool
+        If True, all data are loaded at initialization.
+        If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -62,9 +57,9 @@ class RawBrainVision(_BaseRaw):
     mne.io.Raw : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, vhdr_fname, elp_fname=None, elp_names=None,
-                 preload=False, reference=None,
-                 eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1., verbose=None):
+    def __init__(self, vhdr_fname, montage=None,
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
+                 scale=1., preload=False, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -76,17 +71,20 @@ class RawBrainVision(_BaseRaw):
         if not isinstance(scale, (int, float)):
             raise TypeError('Scale factor must be an int or float. '
                             '%s provided' % type(scale))
-        scale = float(scale)
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
-                                                          elp_fname, elp_names,
                                                           reference, eog,
-                                                          scale)
-        self.set_brainvision_events(events)
+                                                          misc)
+        self._eeg_info['scale'] = float(scale)
         logger.info('Creating Raw.info structure...')
+        _check_update_montage(self.info, montage)
+        self.set_brainvision_events(events)
 
         # Raw attributes
         self.verbose = verbose
         self._filenames = list()
+        self.rawdirs = list()
+        self.cals = np.ones(len(self.info['chs']))
+        self.orig_format = 'double'
         self._projector = None
         self.comp = None  # no compensation for EEG
         self.proj = False
@@ -171,12 +169,15 @@ class RawBrainVision(_BaseRaw):
         eeg_info = self._eeg_info
         sfreq = self.info['sfreq']
         chs = self.info['chs']
+        units = eeg_info['units']
         if self._reference:
             chs = chs[:-1]
+            units = units[:-1]
         if len(self._events):
             chs = chs[:-1]
         n_eeg = len(chs)
         cals = np.atleast_2d([chan_info['cal'] for chan_info in chs])
+        cals *= eeg_info['scale'] * units
 
         logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
                     (start, stop - 1, start / float(sfreq),
@@ -190,7 +191,8 @@ class RawBrainVision(_BaseRaw):
         with open(self.info['file_id'], 'rb') as f:
             f.seek(pointer)
             # extract data
-            data_buffer = np.fromfile(f, dtype=dtype, count=buffer_size * n_eeg)
+            data_buffer = np.fromfile(f, dtype=dtype,
+                                      count=buffer_size * n_eeg)
         if eeg_info['data_orientation'] == 'MULTIPLEXED':
             data_buffer = data_buffer.reshape((n_eeg, -1), order='F')
         elif eeg_info['data_orientation'] == 'VECTORIZED':
@@ -379,51 +381,13 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_elp_locs(elp_fname, elp_names):
-    """Read a Polhemus ascii file
-
-    Parameters
-    ----------
-    elp_fname : str
-        Path to head shape file acquired from Polhemus system and saved in
-        ascii format.
-    elp_names : list
-        A list in order of EEG electrodes found in the Polhemus digitizer file.
-
-    Returns
-    -------
-    ch_locs : dict
-        Dictionary whose keys are the names from elp_names and whose values
-        are the coordinates from the elp file transformed to Neuromag space.
-    """
-    coords_orig = read_elp(elp_fname)
-    coords_ras = apply_trans(als_ras_trans, coords_orig)
-    chs_ras = dict(zip(elp_names, coords_ras))
-    nasion = chs_ras['nasion']
-    lpa = chs_ras['lpa']
-    rpa = chs_ras['rpa']
-    trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
-    coords_neuromag = apply_trans(trans, coords_ras)
-    chs_neuromag = dict(zip(elp_names, coords_neuromag))
-    return chs_neuromag
-
-
-def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
+def _get_eeg_info(vhdr_fname, reference, eog, misc):
     """Extracts all the information from the header file.
 
     Parameters
     ----------
     vhdr_fname : str
         Raw EEG header to be read.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
-        If None, sensor locations are (0, 0, 0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
@@ -432,10 +396,9 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
-    scale : float
-        The scaling factor for EEG data. Units are in volts. Default scale
-        factor is 1. For microvolts, the scale factor would be 1e-6. This is
-        used when the header file does not specify the scale factor.
+    misc : list of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file.
 
     Returns
     -------
@@ -447,6 +410,10 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
         Events from the corresponding vmrk file.
     """
 
+    if eog is None:
+        eog = []
+    if misc is None:
+        misc = []
     info = Info()
     # Some keys to be consistent with FIF measurement info
     info['meas_id'] = None
@@ -540,6 +507,7 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
         ch_names[-1] = reference
         cals[-1] = cals[-2]
         units[-1] = units[-2]
+    eeg_info['units'] = np.asarray(units, dtype=float)
 
     # Attempts to extract filtering info from header. If not found, both are
     # set to zero.
@@ -615,61 +583,31 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
     info['nchan'] = n_eeg_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
-    if elp_fname and elp_names:
-        ch_locs = _get_elp_locs(elp_fname, elp_names)
-        info['dig'] = [{'r': ch_locs['nasion'],
-                        'ident': FIFF.FIFFV_POINT_NASION,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-                       {'r': ch_locs['lpa'], 'ident': FIFF.FIFFV_POINT_LPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD},
-                       {'r': ch_locs['rpa'], 'ident': FIFF.FIFFV_POINT_RPA,
-                        'kind': FIFF.FIFFV_POINT_CARDINAL,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-    else:
-        ch_locs = None
 
-    missing_positions = []
     idxs = range(1, len(ch_names) + 1)
-    for idx, ch_name, cal, unit in zip(idxs, ch_names, cals, units):
-        is_eog = ch_name in eog
-        if ch_locs is None:
-            loc = np.zeros(3)
-        elif ch_name in ch_locs:
-            loc = ch_locs[ch_name]
-        else:
-            loc = np.zeros(3)
-            if not is_eog:
-                missing_positions.append(ch_name)
-
-        if is_eog:
+    for idx, ch_name, cal in zip(idxs, ch_names, cals):
+        if ch_name in eog:
             kind = FIFF.FIFFV_EOG_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
+        elif ch_name in misc:
+            kind = FIFF.FIFFV_MISC_CH
+            coil_type = FIFF.FIFFV_COIL_NONE
         else:
             kind = FIFF.FIFFV_EEG_CH
-
+            coil_type = FIFF.FIFFV_COIL_EEG
         chan_info = {'ch_name': ch_name,
-                     'coil_type': FIFF.FIFFV_COIL_EEG,
+                     'coil_type': coil_type,
                      'kind': kind,
                      'logno': idx,
                      'scanno': idx,
-                     'cal': cal * unit * scale,
+                     'cal': cal,
                      'range': 1.,
                      'unit_mul': 0.,  # always zero- mne manual pg. 273
                      'unit': FIFF.FIFF_UNIT_V,
                      'coord_frame': FIFF.FIFFV_COORD_HEAD,
-                     'eeg_loc': loc,
-                     'loc': np.hstack((loc, np.zeros(9)))}
-
+                     'eeg_loc': np.zeros(3),
+                     'loc': np.zeros(12)}
         info['chs'].append(chan_info)
-
-    # raise error if positions are missing
-    if missing_positions:
-        err = ("The following positions are missing from the ELP "
-               "definitions: %s. If those channels lack positions because "
-               "they are EOG channels use the eog "
-               "parameter" % str(missing_positions))
-        raise KeyError(err)
 
     # for stim channel
     events = _read_vmrk_events(eeg_info['marker_id'])
@@ -677,40 +615,37 @@ def _get_eeg_info(vhdr_fname, elp_fname, elp_names, reference, eog, scale):
     return info, eeg_info, events
 
 
-def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
-                         preload=False, reference=None,
-                         eog=['HEOGL', 'HEOGR', 'VEOGb'], scale=1.,
-                         verbose=None):
+def read_raw_brainvision(vhdr_fname, montage=None,
+                         eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
+                         reference=None, scale=1.,
+                         preload=False, verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
     ----------
     vhdr_fname : str
         Path to the EEG header file.
-    elp_fname : str | None
-        Path to the elp file containing electrode positions.
+    montage : str | None | instance of Montage
+        Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    elp_names : list | None
-        A list of channel names in the same order as the points in the elp
-        file. Electrode positions should be specified with the same names as
-        in the vhdr file, and fiducials should be specified as "lpa" "nasion",
-        "rpa". ELP positions with other names are ignored. If elp_names is not
-        None and channels are missing, a KeyError is raised.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    eog : list or tuple of str
+        Names of channels that should be designated EOG channels. Names should
+        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+    misc : list or tuple of str
+        Names of channels that should be designated MISC channels. Names
+        should correspond to the electrodes in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
-    eog : list of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ['HEOGL', 'HEOGR', 'VEOGb']).
+        correspond to a name in the montage.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
         used when the header file does not specify the scale factor.
+    preload : bool
+        If True, all data are loaded at initialization.
+        If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -718,6 +653,7 @@ def read_raw_brainvision(vhdr_fname, elp_fname=None, elp_names=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    raw = RawBrainVision(vhdr_fname, elp_fname, elp_names, preload,
-                         reference, eog, scale, verbose)
+    raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
+                         misc=misc, reference=reference, scale=scale,
+                         preload=preload, verbose=verbose)
     return raw
