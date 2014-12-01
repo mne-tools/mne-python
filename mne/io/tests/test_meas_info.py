@@ -100,7 +100,6 @@ def test_write_polhemus_hsp():
     assert_array_equal(points, points1, err)
 
 
-
 def test_apply_dig_points():
     """Test application of Polhemus HSP to info"""
     dig = np.loadtxt(hsp_fname, comments='%')
