@@ -500,9 +500,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             info['lowpass'] = float(np.min(lowpass))
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
-        n_samples_per_record = [int(fid.read(8).decode()) for _ in channels]
-        if np.unique(n_samples_per_record).size != 1:
-            edf_info['n_samps'] = np.array(n_samples_per_record)
+        # number of samples per record
+        n_samps = np.array([int(fid.read(8).decode()) for _ in channels])
+        if np.unique(n_samps).size != 1:
+            edf_info['n_samps'] = n_samps
             if not preload:
                 raise RuntimeError('%s' % ('Channels contain different'
                                            'sampling rates. '
@@ -570,7 +571,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
     # samples where datablock. not necessarily the same as sampling rate
     picks = pick_types(info, meg=False, eeg=True)
-    info['sfreq'] = edf_info['n_samps'][picks].max() / float(record_length)
+    info['sfreq'] = n_samps[picks].max() / float(record_length)
     edf_info['nsamples'] = n_records * info['sfreq']
 
     if info['lowpass'] is None:
