@@ -393,33 +393,17 @@ class RawKIT(_BaseRaw):
             Decimate hsp points for head shape files with more than 10'000
             points.
         """
-        if isinstance(hsp, string_types):
-            hsp = np.loadtxt(hsp, comments='%')
-
-        n_pts = len(hsp)
-        if n_pts > KIT.DIG_POINTS:
-            hsp = _decimate_points(hsp, 5)
-            n_new = len(hsp)
-            msg = ("The selected head shape contained {n_in} points, which is "
-                   "more than recommended ({n_rec}), and was automatically "
-                   "downsampled to {n_new} points. The preferred way to "
-                   "downsample is using FastScan.")
-            msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
-            logger.warning(msg)
-
-        if isinstance(elp, string_types):
-            elp_points = np.loadtxt(elp, comments='%')[:8]
-            if len(elp) < 8:
-                err = ("File %r contains fewer than 8 points; got shape "
-                       "%s." % (elp, elp_points.shape))
-                raise ValueError(err)
-            elp = elp_points
+        hsp = set_dig_points(hsp, comments='%', trans=als_ras_trans_mm,
+                              decim=5)
+        elp = set_dig_points(elp, comments='%', trans=als_ras_trans_mm,
+                              decim=False)
+        if len(elp) < 8:
+            err = ("ELP contains fewer than 8 points; got shape "
+                   "%s." % (elp.shape))
+            raise ValueError(err)
 
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
-
-        hsp = apply_trans(als_ras_trans_mm, hsp)
-        elp = apply_trans(als_ras_trans_mm, elp)
         mrk = apply_trans(als_ras_trans, mrk)
 
         nasion, lpa, rpa = elp[:3]
@@ -454,9 +438,10 @@ class RawKIT(_BaseRaw):
         if trans.shape != (4, 4):
             raise ValueError("trans needs to be 4 by 4 array")
 
-        point_names = ['hpi'] * 8
-        point_names[:3] = ['nasion', 'lpa', 'rpa'] 
-        apply_dig_points(self.info, elp, point_names)
+        point_names = ['nasion', 'lpa', 'rpa']
+        point_names.extend(['hpi'] * 5)
+        fid.extend(elp)
+        apply_dig_points(self.info, fid, point_names)
         apply_dig_points(self.info, hsp)
 
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
