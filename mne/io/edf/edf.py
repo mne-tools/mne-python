@@ -169,7 +169,6 @@ class RawEDF(_BaseRaw):
         start = int(start)
         stop = int(stop)
 
-        block_samp = self._edf_info['block_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -180,8 +179,8 @@ class RawEDF(_BaseRaw):
         annotmap = self._edf_info['annotmap']
 
         # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / block_samp) * block_samp)
-        blockstop = int(ceil(float(stop) / block_samp) * block_samp)
+        blockstart = int(floor(float(start) / sfreq) * sfreq)
+        blockstop = int(ceil(float(stop) / sfreq) * sfreq)
         if blockstop > self.last_samp:
             blockstop = self.last_samp + 1
 
@@ -204,14 +203,7 @@ class RawEDF(_BaseRaw):
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
             datas = np.zeros((n_chan, buffer_size), dtype=float)
-
-            if 'n_samps' in self._edf_info:
-                n_samps = self._edf_info['n_samps']
-                picks = pick_types(self.info, meg=False, eeg=True)
-                max_samp = float(np.max(n_samps[picks]))
-                blocks = int(buffer_size / max_samp)
-            else:
-                blocks = int(ceil(float(buffer_size) / block_samp))
+            blocks = int(ceil(float(buffer_size) / sfreq))
 
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
@@ -253,25 +245,25 @@ class RawEDF(_BaseRaw):
                         if j == tal_channel:
                             # don't resample tal_channel,
                             # pad with zeros instead.
-                            n_missing = int(max_samp - samp) * blocks
+                            n_missing = int(sfreq - samp) * blocks
                             chan_data = np.hstack([chan_data, [0] * n_missing])
-                        elif j == stim_channel and samp < max_samp:
+                        elif j == stim_channel and samp < sfreq:
                             if annot and annotmap or tal_channel is not None:
                                 # don't bother with resampling the stim channel
                                 # because it gets overwritten later on.
-                                chan_data = np.zeros(max_samp)
+                                chan_data = np.zeros(sfreq)
                             else:
                                 warnings.warn('Interpolating stim channel. '
                                               'Events may jitter.')
                                 oldrange = np.linspace(0, 1, samp*blocks + 1,
                                                        True)
-                                newrange = np.linspace(0, 1, max_samp*blocks,
+                                newrange = np.linspace(0, 1, sfreq*blocks,
                                                        False)
                                 chan_data = interp1d(oldrange,
                                                      np.append(chan_data, 0),
                                                      kind='zero')(newrange)
-                        elif samp != max_samp:
-                            mult = max_samp / samp
+                        elif samp != sfreq:
+                            mult = sfreq / samp
                             chan_data = resample(x=chan_data, up=mult,
                                                  down=1, npad=0)
                         stop_pt = chan_data.shape[0]
@@ -280,7 +272,7 @@ class RawEDF(_BaseRaw):
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
-                    data = data.reshape((int(block_samp), n_chan, blocks),
+                    data = data.reshape((int(sfreq), n_chan, blocks),
                                         order='F')
                     for i in range(blocks):
                         start_pt = int(sfreq * i)
@@ -578,9 +570,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     # samples where datablock. not necessarily the same as sampling rate
     picks = pick_types(info, meg=False, eeg=True)
     info['sfreq'] = edf_info['n_samps'][picks].max() / float(record_length)
-
-    edf_info['block_samp'] = max(n_samples_per_record)
-    edf_info['nsamples'] = n_records * edf_info['block_samp']
+    edf_info['nsamples'] = n_records * info['sfreq']
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
