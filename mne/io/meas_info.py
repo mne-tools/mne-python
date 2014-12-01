@@ -216,6 +216,9 @@ def apply_dig_points(info, dig, point_names=None, comments='#'):
     """
     if isinstance(dig, str):
         dig = np.loadtxt(dig, comments=comments)
+        coords = dig.shape[-1]
+        err = 'Data must be (n, 3) instead of (n, %d)' % coords
+        assert dig.shape[-1] == 3, err
     
     if point_names is None:
         pts = []
@@ -265,9 +268,10 @@ def apply_dig_points(info, dig, point_names=None, comments='#'):
         raise TypeError(err)
     
     if info['dig'] is not None:
-        info['dig'] = [apply_trans(trans, point) for point in info['dig'] 
-                       if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
-        info['dig'].append(pts)
+        if isinstance(point_names, list):
+            info['dig'] = [apply_trans(trans, point) for point in info['dig'] 
+                           if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
+        info['dig'].append(pts)    
     else:
         info['dig'] = pts
 
