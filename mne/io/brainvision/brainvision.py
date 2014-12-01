@@ -31,12 +31,14 @@ class RawBrainVision(_BaseRaw):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list or tuple of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
-    misc : list or tuple of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file. Default is None.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated 
+        EOG channels. Values should correspond to the vhdr file
+        (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
@@ -584,12 +586,12 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
 
-    idxs = range(1, len(ch_names) + 1)
+    idxs = range(len(ch_names))
     for idx, ch_name, cal in zip(idxs, ch_names, cals):
-        if ch_name in eog:
+        if ch_name in eog or idx in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-        elif ch_name in misc:
+        elif ch_name in misc or idx in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
         else:
@@ -598,8 +600,8 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
         chan_info = {'ch_name': ch_name,
                      'coil_type': coil_type,
                      'kind': kind,
-                     'logno': idx,
-                     'scanno': idx,
+                     'logno': idx + 1,
+                     'scanno': idx + 1,
                      'cal': cal,
                      'range': 1.,
                      'unit_mul': 0.,  # always zero- mne manual pg. 273
@@ -629,11 +631,13 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the vhdr file (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+        Names of channels or list of indices that should be designated 
+        EOG channels. Values should correspond to the vhdr file
+        (default: ('HEOGL', 'HEOGR', 'VEOGb')).
     misc : list or tuple of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the vhdr file. Default is None.
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to the electrodes
+        in the vhdr file. Default is None.
     reference : None | str
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data

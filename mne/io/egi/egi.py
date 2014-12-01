@@ -152,12 +152,12 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     montage : str | None | instance of montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list or tuple of str
-        Names of channels that should be designated EOG channels.
-        Default is None.
-    misc : list or tuple of str
-        Names of channels that should be designated MISC channels.
-        Default is None.
+    eog : list or tuple
+        Names of channels or list of indices that should be designated
+        EOG channels. Default is None.
+    misc : list or tuple
+        Names of channels or list of indices that should be designated
+        MISC channels. Default is None.
     include : None | list
        The event channels to be ignored when creating the synthetic
        trigger. Defaults to None.
@@ -295,10 +295,10 @@ class _RawEGI(_BaseRaw):
                        'kind': FIFF.FIFFV_EEG_CH,
                        'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
-            if ch_name in eog:
+            if ch_name in eog or idx in eog:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 ch_info['kind'] = FIFF.FIFFV_EOG_CH
-            if ch_name in misc:
+            if ch_name in misc or idx in misc:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 ch_info['kind'] = FIFF.FIFFV_MISC_CH
 

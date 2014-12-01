@@ -37,11 +37,11 @@ class RawEDF(_BaseRaw):
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list or tuple of str
+    eog : list or tuple
         Names of channels or list of indices that should be designated 
         EOG channels. Values should correspond to the electrodes in the 
         edf file. Default is None.
-    misc : list or tuple of str
+    misc : list or tuple
         Names of channels or list of indices that should be designated 
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
@@ -203,6 +203,7 @@ class RawEDF(_BaseRaw):
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
             datas = np.zeros((n_chan, buffer_size), dtype=float)
+            n_samps = self._edf_info['n_samps']
             blocks = int(ceil(float(buffer_size) / sfreq))
 
             # bdf data: 24bit data
@@ -255,9 +256,9 @@ class RawEDF(_BaseRaw):
                             else:
                                 warnings.warn('Interpolating stim channel. '
                                               'Events may jitter.')
-                                oldrange = np.linspace(0, 1, samp*blocks + 1,
+                                oldrange = np.linspace(0, 1, samp * blocks + 1,
                                                        True)
-                                newrange = np.linspace(0, 1, sfreq*blocks,
+                                newrange = np.linspace(0, 1, sfreq * blocks,
                                                        False)
                                 chan_data = interp1d(oldrange,
                                                      np.append(chan_data, 0),
@@ -533,7 +534,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         ch_name, physical_range, cal = ch_info
         chan_info = {}
         chan_info['cal'] = cal
-        chan_info['logno'] = idx
+        chan_info['logno'] = idx + 1
         chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
         chan_info['unit_mul'] = 0.
@@ -547,7 +548,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         if ch_name in eog or idx in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        if ch_name in misc or or idx in misc:
+        if ch_name in misc or idx in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
         check1 = stim_channel == ch_name
@@ -641,11 +642,11 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
-    eog : list or tuple of str
+    eog : list or tuple
         Names of channels or list of indices that should be designated 
         EOG channels. Values should correspond to the electrodes in the 
         edf file. Default is None.
-    misc : list or tuple of str
+    misc : list or tuple
         Names of channels or list of indices that should be designated 
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
