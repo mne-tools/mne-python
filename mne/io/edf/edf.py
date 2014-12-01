@@ -38,11 +38,13 @@ class RawEDF(_BaseRaw):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is None.
+        Names of channels or list of indices that should be designated 
+        EOG channels. Values should correspond to the electrodes in the 
+        edf file. Default is None.
     misc : list or tuple of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is None.
+        Names of channels or list of indices that should be designated 
+        MISC channels. Values should correspond to the electrodes in the
+        edf file. Default is None.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
@@ -512,20 +514,12 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 raise RuntimeError('%s' % ('Channels contain different'
                                            'sampling rates. '
                                            'Must set preload=True'))
-        # samples where datablock. not necessarily the same as sampling rate
-        n_samples_per_record = max(n_samples_per_record)
-        edf_info['block_samp'] = n_samples_per_record
 
         fid.read(32 * info['nchan']).decode()  # reserved
         assert fid.tell() == header_nbytes
 
     physical_ranges = physical_max - physical_min
     cals = digital_max - digital_min
-    info['sfreq'] = n_samples_per_record / float(record_length)
-    edf_info['nsamples'] = n_records * n_samples_per_record
-
-    if info['lowpass'] is None:
-        info['lowpass'] = info['sfreq'] / 2.
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
@@ -542,13 +536,13 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['chs'] = []
     info['ch_names'] = ch_names
     if stim_channel == -1:
-        stim_channel = info['nchan']
-    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals), 1):
+        stim_channel = info['nchan'] - 1
+    for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
         ch_name, physical_range, cal = ch_info
         chan_info = {}
         chan_info['cal'] = cal
         chan_info['logno'] = idx
-        chan_info['scanno'] = idx
+        chan_info['scanno'] = idx + 1
         chan_info['range'] = physical_range
         chan_info['unit_mul'] = 0.
         chan_info['ch_name'] = ch_name
@@ -558,10 +552,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
         chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
-        if ch_name in eog:
+        if ch_name in eog or idx in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        if ch_name in misc:
+        if ch_name in misc or or idx in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
         check1 = stim_channel == ch_name
@@ -575,14 +569,21 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             chan_info['ch_name'] = 'STI 014'
-            info['ch_names'][idx - 1] = chan_info['ch_name']
+            info['ch_names'][idx] = chan_info['ch_name']
             if isinstance(stim_channel, str):
                 stim_channel = idx
         info['chs'].append(chan_info)
-    if stim_channel is None:
-        edf_info['stim_channel'] = stim_channel
-    else:
-        edf_info['stim_channel'] = stim_channel - 1
+    edf_info['stim_channel'] = stim_channel
+
+    # samples where datablock. not necessarily the same as sampling rate
+    picks = pick_types(info, meg=False, eeg=True)
+    info['sfreq'] = edf_info['n_samps'][picks].max() / float(record_length)
+
+    edf_info['block_samp'] = max(n_samples_per_record)
+    edf_info['nsamples'] = n_records * edf_info['block_samp']
+
+    if info['lowpass'] is None:
+        info['lowpass'] = info['sfreq'] / 2.
 
     # TODO: automatic detection of the tal_channel?
     if tal_channel == -1:
@@ -651,11 +652,13 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple of str
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is None.
+        Names of channels or list of indices that should be designated 
+        EOG channels. Values should correspond to the electrodes in the 
+        edf file. Default is None.
     misc : list or tuple of str
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is None.
+        Names of channels or list of indices that should be designated 
+        MISC channels. Values should correspond to the electrodes in the
+        edf file. Default is None.
     stim_channel : str | int | None
         The channel name or channel index (starting at 0).
         -1 corresponds to the last channel (default).
