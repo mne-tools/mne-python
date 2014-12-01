@@ -29,6 +29,7 @@ from .. import __version__
 from ..externals.six import b
 from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
+
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
     mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
@@ -193,7 +194,56 @@ def write_polhemus_hsp(fname, dig):
         np.savetxt(fid, dig, '%8.2f', ' ')
 
 
-def apply_dig_points(info, dig, point_names=None, comments='#'):
+def set_dig_points(dig, comments='#', trans=None, decim=False):
+    """Sets digitizer data.
+
+    This function takes dig points and applies trans or decimates them.
+
+    Parameters
+    ----------
+    dig : numpy.array or path of tab delimited file, shape (n_points, 3) 
+        Headshape points in Polhemus head space.
+    comments : str
+        The character used to indicate the start of a comment;
+        Default: '#'.
+    transform : None | array, shape (4, 4)
+        Coordinate transformation matrix.
+    decim : Boolean | int
+        Decimate the number of points using a voxel grid. True for default
+        decimation, False for no decimation, int for the resolution of the 
+        voxel space (side length of each voxel).
+        Default: False
+    """
+    from ..coreg import _decimate_points
+    if trans is None:
+        trans = np.eye(4)
+    elif isinstance(trans, np.ndarray):
+        shape = trans.shape
+        err = 'Trans must be (4, 4) instead of (%d, %d).' % shape
+        assert shape == (4, 4), err
+    else:
+        raise TypeError('Trans must be None or numpy.ndarray '
+                        'instead of %s.' % type(trans))
+
+    if isinstance(dig, str):
+        dig = np.loadtxt(dig, comments=comments)
+        coords = dig.shape[-1]
+        err = 'Data must be (n, 3) instead of (n, %d)' % coords
+        assert dig.shape[-1] == 3, err
+        if isinstance(decim, int):
+            dig = _decimate_points(dig, decim)
+        elif decim is True:
+            dig = _decimate_points(dig)
+        dig = apply_trans(trans, dig)
+    elif isinstance(dig, np.ndarray):
+        dig = apply_trans(trans, dig)
+    else:
+        raise TypeError('dig must be either filepath or numpy.ndarray '
+                        'instead of %s.' % type(dig))
+    return dig
+
+
+def apply_dig_points(info, dig, point_names=None):
     """Apply digitizer data to info.
 
     This function will add digitizer data to info['dig'].
@@ -210,16 +260,8 @@ def apply_dig_points(info, dig, point_names=None, comments='#'):
         Name of the digitizer points.
         For cardinal points, use 'nasion', 'lpa', 'rpa'.
         If None (default), points are marked as extra.
-    comments : str
-        The character used to indicate the start of a comment;
-        default: '#'.
     """
-    if isinstance(dig, str):
-        dig = np.loadtxt(dig, comments=comments)
-        coords = dig.shape[-1]
-        err = 'Data must be (n, 3) instead of (n, %d)' % coords
-        assert dig.shape[-1] == 3, err
-    
+
     if point_names is None:
         pts = []
         idents = [d['ident'] for d in info['dig']]
@@ -250,12 +292,13 @@ def apply_dig_points(info, dig, point_names=None, comments='#'):
             pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_LPA,
+            pts.append({'r': dig[idy], 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_RPA,
+            pts.append({'r': dig[idz], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+            dig = np.delete(dig, [idx, idy, idz])
         else:
             raise ValueError('Digitizer Points are missing fiducials.')
 
@@ -269,9 +312,10 @@ def apply_dig_points(info, dig, point_names=None, comments='#'):
     
     if info['dig'] is not None:
         if isinstance(point_names, list):
-            info['dig'] = [apply_trans(trans, point) for point in info['dig'] 
+            info['dig'] = [apply_trans(head_trans, point)
+                           for point in info['dig']
                            if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
-        info['dig'].append(pts)    
+        info['dig'].append(pts)
     else:
         info['dig'] = pts
 

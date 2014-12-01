@@ -180,7 +180,7 @@ def _decimate_points(pts, res=10):
 
     Parameters
     ----------
-    pts : array, shape = (n_points, 3)
+    pts : array, shape (n_points, 3)
         The points making up the head shape.
     res : scalar
         The resolution of the voxel space (side length of each voxel).
