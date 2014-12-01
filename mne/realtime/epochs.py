@@ -289,7 +289,7 @@ class RtEpochs(_BaseEpochs):
         """Process raw buffer (callback from RtClient)
 
         Note: Do not print log messages during regular use. It will be printed
-        asynchronously which is annyoing when working in an interactive shell.
+        asynchronously which is annoying when working in an interactive shell.
 
         Parameters
         ----------
@@ -342,10 +342,7 @@ class RtEpochs(_BaseEpochs):
                 epoch = np.c_[self._last_buffer[:, -n_last:],
                               raw_buffer[:, :n_this]]
             elif event_samp + tmax_samp > last_samp:
-                # we need samples from next buffer
-                if event_samp + tmin_samp < self._first_samp:
-                    raise RuntimeError('Epoch spans more than two raw '
-                                       'buffers, increase buffer size!')
+                # we need samples from the future
                 # we will process this epoch with the next buffer
                 event_backlog.append((event_samp, event_id))
             else:
@@ -356,8 +353,17 @@ class RtEpochs(_BaseEpochs):
 
         # set things up for processing of next buffer
         self._event_backlog = event_backlog
-        self._first_samp = last_samp + 1
-        self._last_buffer = raw_buffer
+        n_buffer = raw_buffer.shape[1]
+        if self._last_buffer is None:
+            self._last_buffer = raw_buffer
+            self._first_samp = last_samp + 1
+        elif self._last_buffer.shape[1] <= n_samp + n_buffer:
+            self._last_buffer = np.c_[self._last_buffer, raw_buffer]
+        else:
+            # do not increase size of _last_buffer any further
+            self._first_samp = self._first_samp + n_buffer
+            self._last_buffer[:, :-n_buffer] = self._last_buffer[:, n_buffer:]
+            self._last_buffer[:, -n_buffer:] = raw_buffer
 
     def _append_epoch_to_queue(self, epoch, event_samp, event_id):
         """Append a (raw) epoch to queue
