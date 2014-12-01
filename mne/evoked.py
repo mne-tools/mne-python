@@ -908,9 +908,9 @@ def grand_average(all_evokeds, keep_channels=True):
     all_evoked : list of Evoked data
         The evoked datasets
     keep_channels : if TRUE the original evokeds will be
-        untouch, if FALSE equalize_channels will be applies to the
+        untouched, if FALSE equalize_channels will be applied to the
         orignal evoked data
-        Defualt is True
+        Default is True
     Returns
     -------
     GA : the grand average
