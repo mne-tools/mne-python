@@ -203,9 +203,9 @@ class RawEDF(_BaseRaw):
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
             datas = np.zeros((n_chan, buffer_size), dtype=float)
-            n_samps = self._edf_info['n_samps']
             blocks = int(ceil(float(buffer_size) / sfreq))
-
+            if 'n_samps' in self._edf_info:
+                n_samps = self._edf_info['n_samps']
             # bdf data: 24bit data
             if self._edf_info['subtype'] == '24BIT':
                 # loop over 10s increment to not tax the memory

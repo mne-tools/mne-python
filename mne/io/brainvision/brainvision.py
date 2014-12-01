@@ -33,8 +33,8 @@ class RawBrainVision(_BaseRaw):
         If None, sensor locations are (0,0,0).
     eog : list or tuple
         Names of channels or list of indices that should be designated 
-        EOG channels. Values should correspond to the vhdr file
-        (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+        EOG channels. Values should correspond to the vhdr file.
+        Default is ('HEOGL', 'HEOGR', 'VEOGb').
     misc : list or tuple
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
@@ -633,7 +633,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     eog : list or tuple of str
         Names of channels or list of indices that should be designated 
         EOG channels. Values should correspond to the vhdr file
-        (default: ('HEOGL', 'HEOGR', 'VEOGb')).
+        Default is ('HEOGL', 'HEOGR', 'VEOGb').
     misc : list or tuple of str
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
