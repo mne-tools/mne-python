@@ -282,6 +282,7 @@ class _RawEGI(_BaseRaw):
         info['ch_names'] = ch_names
         info['bads'] = []
         info['comps'] = []
+        info['custom_ref_applied'] = False
         for ii, ch_name in enumerate(ch_names):
             ch_info = {'cal': cal,
                        'logno': ii + 1,

@@ -23,6 +23,7 @@ from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
                     get_chpi_positions, apply_reference, set_eeg_reference,
                     set_bipolar_reference)
+from mne.io.proj import _has_eeg_average_ref_proj
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
@@ -986,7 +987,7 @@ def test_compensation_raw_mne():
 @testing.requires_testing_data
 def test_apply_reference():
     """ Test base function for rereferencing"""
-    raw = Raw(fif_fname, preload=True)
+    raw = Raw(fif_fname, preload=True, add_eeg_ref=True)
 
     # Separate EEG channels from other channel types
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -996,6 +997,14 @@ def test_apply_reference():
     # Rereference raw data by creating a copy of original data
     reref, ref_data = apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
                                       copy=True)
+    assert_true(reref.info['custom_ref_applied'])
+
+    # The CAR reference projection should have been removed by the function
+    assert_true(not _has_eeg_average_ref_proj(reref.info['projs']))
+
+    # Check that the ref has been properly computed
+    ref_ch_idx = [raw.ch_names.index(ch) for ch in ['EEG 001', 'EEG 002']]
+    assert_array_equal(ref_data, raw[ref_ch_idx, :][0].mean(0))
 
     # Get the raw EEG data and other channel data
     raw_eeg_data = raw[picks_eeg][0]
@@ -1003,8 +1012,8 @@ def test_apply_reference():
 
     # Get the rereferenced EEG data and channel other
     reref_eeg_data = reref[picks_eeg][0]
-    unref_eeg_data = reref_eeg_data + ref_data
     # Undo rereferencing of EEG channels
+    unref_eeg_data = reref_eeg_data + ref_data
     reref_other_data = reref[picks_other][0]
 
     # Check that both EEG data and other data is the same
@@ -1024,6 +1033,7 @@ def test_set_eeg_reference():
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
+    assert_true(reref.info['custom_ref_applied'])
 
     # Separate EEG channels from other channel types
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
@@ -1036,8 +1046,8 @@ def test_set_eeg_reference():
 
     # Get the rereferenced EEG data and channel other
     reref_eeg_data = reref[picks_eeg][0]
-    unref_eeg_data = reref_eeg_data + ref_data
     # Undo rereferencing of EEG channels
+    unref_eeg_data = reref_eeg_data + ref_data
     reref_other_data = reref[picks_other][0]
 
     # Check that both EEG data and other data is the same
@@ -1057,6 +1067,7 @@ def test_set_bipolar_reference():
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
                                   {'kind': FIFF.FIFFV_EOG_CH,
                                    'extra': 'some extra value'})
+    assert_true(reref.info['custom_ref_applied'])
 
     # Compare result to a manual calculation
     a = raw.pick_channels(['EEG 001', 'EEG 002'], copy=True)
@@ -1082,6 +1093,12 @@ def test_set_bipolar_reference():
         else:
             assert_equal(bp_info[key], an_info[key])
     assert_equal(bp_info['extra'], 'some extra value')
+
+    # Test creating a bipolar reference that doesn't involve EEG channels:
+    # it should not set the custom_ref_applied flag
+    reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112', 'bipolar',
+                                  {'kind': FIFF.FIFFV_MEG_CH})
+    assert_true(not reref.info['custom_ref_applied'])
 
     # Test a battery of invalid inputs
     assert_raises(AssertionError, set_bipolar_reference, raw,
