@@ -267,12 +267,12 @@ def apply_dig_points(info, dig, point_names=None):
         idents = [d['ident'] for d in info['dig']]
         if {FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
             FIFF.FIFFV_POINT_RPA}.issubset(set(idents)):
-            idx = point_names.index(FIFFV_POINT_NASION)
-            idy = point_names.index(FIFFV_POINT_LPA)
-            idz = point_names.index(FIFFV_POINT_RPA)
-            trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx], 
-                                              lpa=info['dig'][idy],
-                                              rpa=info['dig'][idz])
+            idx = idents.index(FIFF.FIFFV_POINT_NASION)
+            idy = idents.index(FIFF.FIFFV_POINT_LPA)
+            idz = idents.index(FIFF.FIFFV_POINT_RPA)
+            trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'], 
+                                              lpa=info['dig'][idy]['r'],
+                                              rpa=info['dig'][idz]['r'])
         else:
             trans = np.eye(4)
         for idx, point in enumerate(dig):
@@ -281,13 +281,13 @@ def apply_dig_points(info, dig, point_names=None):
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
     elif isinstance(point_names, list):
         pts = []
-        idxs = []
         if {'nasion', 'lpa', 'rpa'}.issubset(point_names):
             idx = point_names.index('nasion')
             idy = point_names.index('lpa')
             idz = point_names.index('rpa')
-            trans = get_ras_to_neuromag_trans(nasion=dig[idx], lpa=dig[idy],
-                                              rpa=[idz])
+            trans = get_ras_to_neuromag_trans(nasion=dig[idx],
+                                              lpa=dig[idy],
+                                              rpa=dig[idz])
             dig = apply_trans(trans, dig)
             pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
@@ -298,13 +298,14 @@ def apply_dig_points(info, dig, point_names=None):
             pts.append({'r': dig[idz], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            dig = np.delete(dig, [idx, idy, idz])
+            dig = np.delete(dig, [idx, idy, idz], axis=0)
         else:
             raise ValueError('Digitizer Points are missing fiducials.')
 
         for idx, point in enumerate(dig):
             pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
+
     else:
         err = ("'point_names' should be either a list, or None. "
                "%s was provided." %type(point_names))
@@ -315,7 +316,7 @@ def apply_dig_points(info, dig, point_names=None):
             info['dig'] = [apply_trans(head_trans, point)
                            for point in info['dig']
                            if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
-        info['dig'].append(pts)
+        info['dig'].extend(pts)
     else:
         info['dig'] = pts
 

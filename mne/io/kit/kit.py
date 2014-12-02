@@ -23,7 +23,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, apply_dig_points
+from ..meas_info import Info, set_dig_points, apply_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -440,7 +440,7 @@ class RawKIT(_BaseRaw):
 
         point_names = ['nasion', 'lpa', 'rpa']
         point_names.extend(['hpi'] * 5)
-        fid.extend(elp)
+        fid = np.vstack((fid, elp))
         apply_dig_points(self.info, fid, point_names)
         apply_dig_points(self.info, hsp)
 
