@@ -276,6 +276,12 @@ def test_epochs_proj():
                     baseline=(None, 0), proj=True, add_eeg_ref=False)
     assert_true(not _has_eeg_average_ref_proj(epochs.info['projs']))
 
+    # make sure we don't add avg ref when a custom ref has been applied
+    raw.info['custom_ref_applied'] = True
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
+                    baseline=(None, 0), proj=True)
+    assert_true(not _has_eeg_average_ref_proj(epochs.info['projs']))
+
 
 def test_evoked_arithmetic():
     """Test arithmetic of evoked data

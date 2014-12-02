@@ -406,6 +406,7 @@ def read_meas_info(fid, tree, verbose=None):
     proj_id = None
     proj_name = None
     line_freq = None
+    custom_ref_applied = False
     p = 0
     for k in range(meas_info['nent']):
         kind = meas_info['directory'][k].kind
@@ -453,6 +454,9 @@ def read_meas_info(fid, tree, verbose=None):
         elif kind == FIFF.FIFF_LINE_FREQ:
             tag = read_tag(fid, pos)
             line_freq = float(tag.data)
+        elif kind == FIFF.FIFF_CUSTOM_REF:
+            tag = read_tag(fid, pos)
+            custom_ref_applied = bool(tag.data)
 
     # Check that we have everything we need
     if nchan is None:
@@ -631,6 +635,7 @@ def read_meas_info(fid, tree, verbose=None):
     info['comps'] = comps
     info['acq_pars'] = acq_pars
     info['acq_stim'] = acq_stim
+    info['custom_ref_applied'] = custom_ref_applied
 
     return info, meas
 
@@ -751,6 +756,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         write_float(fid, FIFF.FIFF_LINE_FREQ, info['line_freq'])
     if data_type is not None:
         write_int(fid, FIFF.FIFF_DATA_PACK, data_type)
+    if info.get('custom_ref_applied'):
+        write_int(fid, FIFF.FIFF_CUSTOM_REF, info['custom_ref_applied'])
 
     #  Channel information
     for k, c in enumerate(info['chs']):
@@ -933,10 +940,11 @@ def _merge_info(infos, verbose=None):
                    trans_name)
             raise ValueError(msg)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
-                    'comps', 'description', 'dig', 'experimenter', 'file_id',
-                    'filename', 'highpass', 'line_freq', 'lowpass',
-                    'meas_date', 'meas_id', 'orig_blocks', 'proj_id',
-                    'proj_name', 'projs', 'sfreq', 'subject_info', 'sfreq']
+                    'comps', 'custom_ref_applied', 'description', 'dig',
+                    'experimenter', 'file_id', 'filename', 'highpass',
+                    'line_freq', 'lowpass', 'meas_date', 'meas_id',
+                    'orig_blocks', 'proj_id', 'proj_name', 'projs', 'sfreq',
+                    'subject_info', 'sfreq']
 
     for k in other_fields:
         info[k] = _merge_dict_values(infos, k)
@@ -1003,4 +1011,5 @@ def create_info(ch_names, sfreq, ch_types=None):
     info['dev_head_t'] = None
     info['dev_ctf_t'] = None
     info['ctf_head_t'] = None
+    info['custom_ref_applied'] = False
     return info

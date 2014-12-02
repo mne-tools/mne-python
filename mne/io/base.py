@@ -77,15 +77,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise RuntimeError('Cannot hash raw unless preloaded')
         return object_hash(dict(info=self.info, data=self._data))
 
-    def _add_eeg_ref(self, add_eeg_ref):
-        """Helper to add an average EEG reference"""
-        if add_eeg_ref:
-            eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
-            projs = self.info['projs']
-            if len(eegs) > 0 and not _has_eeg_average_ref_proj(projs):
-                eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
-                projs.append(eeg_ref)
-
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
         if not isinstance(item, tuple):  # only channel selection passed
@@ -1352,16 +1343,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
 
 def apply_reference(raw, ref_from, ref_to=None, copy=True):
-    """
-    Calculate a reference signal by taking the mean of a set of channels and
-    apply the reference to another set of channels.
+    """Apply a custom EEG referencing scheme.
+
+    Calculates a reference signal by taking the mean of a set of channels and
+    applies the reference to another set of channels.
 
     Parameters
     ----------
     raw : instance of Raw
         Instance of Raw with EEG channels and reference channel(s).
     ref_from : list of str
-        The names of the channels to use to construct the reference. 
+        The names of the channels to use to construct the reference.
     ref_to : list of str | None
         The names of the channels to apply the reference to. By default,
         all EEG channels are chosen.
@@ -1371,20 +1363,20 @@ def apply_reference(raw, ref_from, ref_to=None, copy=True):
     Returns
     -------
     raw : instance of Raw
-        Instance of Raw with eeg channels rereferenced.
+        Instance of Raw with EEG channels rereferenced.
     ref_data : array
         Array of reference data subtracted from EEG channels.
 
     Notes
     -----
-    1. Do not use this function to apply a common average. By default, an
+    1. Do not use this function to apply an average reference. By default, an
        average reference projection has already been added upon loading raw
        data.
 
     2. If the reference is applied to any EEG channels, this function removes
        any pre-existing average reference projections.
 
-    3. During source localization, the EEG signal should have a common average
+    3. During source localization, the EEG signal should have an average
        reference.
 
     4. The data must be preloaded.
@@ -1418,8 +1410,8 @@ def apply_reference(raw, ref_from, ref_to=None, copy=True):
 
     # If the reference touches EEG electrodes, remove any pre-existing common
     # reference and note in the info that a non-CAR has been applied.
-    if len(np.intersect1d(ref_from, eeg_idx)) > 0:
-        raw.info['custom_reference'] = True
+    if len(np.intersect1d(ref_to, eeg_idx)) > 0:
+        raw.info['custom_ref_applied'] = True
 
         # Remove any existing average reference projections
         for i, proj in enumerate(raw.info['projs']):
@@ -1443,8 +1435,8 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
         Instance of Raw with EEG channels and reference channel(s).
     ref_channels : list of str | None
         The names of the channels to use to construct the reference. If None is
-        specified here, a common average reference will be applied in the form
-        of an SSP projector.
+        specified here, an average reference will be applied in the form of an
+        SSP projector.
     copy : bool
         Specifies whether instance of Raw will be copied (True) or modified in
         place (False). Defaults to True.
@@ -1458,14 +1450,14 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
 
     Notes
     -----
-    1. If a reference is requested that is not the common average reference,
-       this function removes any pre-existing average reference projections.
+    1. If a reference is requested that is not the average reference, this
+       function removes any pre-existing average reference projections.
 
-    2. During source localization, the EEG signal should have a common average
+    2. During source localization, the EEG signal should have an average
        reference.
 
-    3. In order to apply a reference other than a common average reference, the
-       data must be preloaded.
+    3. In order to apply a reference other than an average reference, the data
+       must be preloaded.
 
     See also
     --------
@@ -1476,7 +1468,7 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
     if ref_channels is None:
         # CAR requested
         if _has_eeg_average_ref_proj(raw.info['projs']):
-            logger.warning('A common average reference projection was already '
+            logger.warning('An average reference projection was already '
                            'added. The data has been left untouched.')
             return raw, None
         else:
@@ -1538,7 +1530,7 @@ def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
     1. If the anodes contain any EEG channels, this function removes
        any pre-existing average reference projections.
 
-    2. During source localization, the EEG signal should have a common average
+    2. During source localization, the EEG signal should have an average
        reference.
 
     3. The data must be preloaded.
@@ -1549,21 +1541,22 @@ def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
     if not isinstance(cathode, list):
         cathode = [cathode]
 
-    assert len(anode) == len(cathode), (
-        'Number of anodes must equal the number of cathodes.')
+    if len(anode) != len(cathode):
+        raise ValueError('Number of anodes must equal the number of cathodes.')
 
     if not isinstance(ch_name, list):
         ch_name = [ch_name]
-    assert len(ch_name) == len(anode), (
-        'Number of channel names must equal the number of anodes/cathodes.')
+    if len(ch_name) != len(anode):
+        raise ValueError('Number of channel names must equal the number of '
+                         'anodes/cathodes.')
 
     if ch_info is None:
         ch_info = [{} for an in anode]
     elif not isinstance(ch_info, list):
         ch_info = [ch_info]
-    assert len(ch_info) == len(anode), (
-        'Number of channel info dictionaries must equal the number of '
-        'anodes/cathodes.')
+    if len(ch_info) != len(anode):
+        raise ValueError('Number of channel info dictionaries must equal the '
+                         'number of anodes/cathodes.')
 
     # Merge specified and anode channel information dictionaries
     new_ch_info = []
@@ -2077,7 +2070,7 @@ def _check_update_montage(info, montage):
             # raise error if positions are missing
             if missing_positions:
                 err = ("The following positions are missing from the montage "
-                        "definitions: %s. If those channels lack positions "
-                        "because they are EOG channels use the eog parameter."
-                        % str(missing_positions))
+                       "definitions: %s. If those channels lack positions "
+                       "because they are EOG channels use the eog parameter."
+                       % str(missing_positions))
                 raise KeyError(err)

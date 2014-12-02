@@ -1,5 +1,5 @@
 import os.path as op
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 import warnings
 
 import numpy as np
@@ -215,6 +215,26 @@ def test_compute_proj_raw():
     proj, nproj, U = make_projector(projs, raw.ch_names,
                                     bads=raw.ch_names)
     assert_array_almost_equal(proj, np.eye(len(raw.ch_names)))
+
+
+def test_make_eeg_average_ref_proj():
+    ''' Test EEG average reference projection '''
+    raw = Raw(raw_fname, add_eeg_ref=False, preload=True)
+    eeg = mne.pick_types(raw.info, meg=False, eeg=True)
+
+    # No average EEG reference
+    assert_true(not np.all(raw._data[eeg].mean(axis=0) < 1e-19))
+
+    # Apply average EEG reference
+    car = make_eeg_average_ref_proj(raw.info)
+    reref = raw.copy()
+    reref.add_proj(car)
+    reref.apply_proj()
+    assert_array_almost_equal(reref._data[eeg].mean(axis=0), 0, decimal=19)
+
+    # Error when custom reference has already been applied
+    raw.info['custom_ref_applied'] = True
+    assert_raises(AssertionError, make_eeg_average_ref_proj, raw.info)
 
 
 run_tests_if_main()

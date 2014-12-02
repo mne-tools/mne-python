@@ -17,7 +17,8 @@ from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag
-from ..proj import proj_equal
+from ..proj import (proj_equal, make_eeg_average_ref_proj,
+                    _needs_eeg_average_ref_proj)
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw
 
@@ -127,7 +128,10 @@ class RawFIFF(_BaseRaw):
         self.verbose = verbose
         self.orig_format = raws[0].orig_format
         self.proj = False
-        self._add_eeg_ref(add_eeg_ref)
+
+        if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
+            eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
+            self.add_proj(eeg_ref)
 
         if preload:
             self._preload_data(preload)
@@ -309,8 +313,9 @@ class RawFIFF(_BaseRaw):
                         idx2 = base.rfind('-')
                         if idx2 < 0 and next_num == 1:
                             # this is the first file, which may not be numbered
-                            next_fname = op.join(path, '%s-%d.%s' % (base[:idx],
-                                next_num, base[idx + 1:]))
+                            next_fname = op.join(
+                                path, '%s-%d.%s' % (base[:idx], next_num,
+                                                    base[idx + 1:]))
                             continue
                         num_str = base[idx2 + 1:idx]
                         if not num_str.isdigit():

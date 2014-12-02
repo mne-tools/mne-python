@@ -436,6 +436,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
     info['orig_blocks'] = None
     info['line_freq'] = None
     info['subject_info'] = None
+    info['custom_ref_applied'] = False
 
     eeg_info = {}
 
