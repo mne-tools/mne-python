@@ -448,7 +448,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         edf_info['n_records'] = n_records = int(fid.read(8).decode())
         # record length in seconds
         edf_info['record_length'] = record_length = float(fid.read(8).decode())
-        info['nchan'] = int(fid.read(4).decode())
+        info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for _ in channels]
         _ = [fid.read(80).strip().decode() for _ in channels]  # transducer
@@ -546,10 +546,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         chan_info['kind'] = FIFF.FIFFV_EEG_CH
         chan_info['eeg_loc'] = np.zeros(3)
         chan_info['loc'] = np.zeros(12)
-        if ch_name in eog or idx in eog:
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_EOG_CH
-        if ch_name in misc or idx in misc:
+        if ch_name in misc or idx in misc or idx - nchan in misc:
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
         check1 = stim_channel == ch_name
@@ -569,10 +569,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         info['chs'].append(chan_info)
     edf_info['stim_channel'] = stim_channel
 
-    # samples where datablock. not necessarily the same as sampling rate
+    # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
     info['sfreq'] = n_samps[picks].max() / float(record_length)
-    edf_info['nsamples'] = n_records * info['sfreq']
+    edf_info['nsamples'] = int(n_records * info['sfreq'])
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
