@@ -277,7 +277,7 @@ class _RawEGI(_BaseRaw):
         ch_names.extend(list(egi_info['event_codes']))
         if new_trigger is not None:
             ch_names.append('STI 014')  # our new_trigger
-        info['nchan'] = len(data)
+        info['nchan'] = nchan = len(data)
         info['chs'] = []
         info['ch_names'] = ch_names
         info['bads'] = []
@@ -295,10 +295,10 @@ class _RawEGI(_BaseRaw):
                        'kind': FIFF.FIFFV_EEG_CH,
                        'eeg_loc': None,
                        'loc': np.array([0, 0, 0, 1] * 3, dtype='f4')}
-            if ch_name in eog or idx in eog:
+            if ch_name in eog or idx in eog or idx - nchan in eog:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 ch_info['kind'] = FIFF.FIFFV_EOG_CH
-            if ch_name in misc or idx in misc:
+            if ch_name in misc or idx in misc or idx - nchan in misc:
                 ch_info['coil_type'] = FIFF.FIFFV_COIL_NONE
                 ch_info['kind'] = FIFF.FIFFV_MISC_CH
 

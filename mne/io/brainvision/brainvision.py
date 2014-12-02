@@ -582,16 +582,16 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
     # Creates a list of dicts of eeg channels for raw.info
     logger.info('Setting channel info structure...')
     info['chs'] = []
-    info['nchan'] = n_eeg_chan
+    info['nchan'] = nchan = n_eeg_chan
     info['ch_names'] = ch_names
     info['sfreq'] = sfreq
 
     idxs = range(len(ch_names))
     for idx, ch_name, cal in zip(idxs, ch_names, cals):
-        if ch_name in eog or idx in eog:
+        if ch_name in eog or idx in eog or idx - nchan in eog:
             kind = FIFF.FIFFV_EOG_CH
             coil_type = FIFF.FIFFV_COIL_NONE
-        elif ch_name in misc or idx in misc:
+        elif ch_name in misc or idx in misc or idx - nchan in misc:
             kind = FIFF.FIFFV_MISC_CH
             coil_type = FIFF.FIFFV_COIL_NONE
         else:
