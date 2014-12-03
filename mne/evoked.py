@@ -11,7 +11,8 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
-from .channels.channels import ContainsMixin, PickDropChannelsMixin
+from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                equalize_channels)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -907,13 +908,15 @@ def grand_average(all_evokeds, keep_channels=True):
     ----------
     all_evoked : list of Evoked data
         The evoked datasets
-    keep_channels : if TRUE the original evokeds will be
-        untouched, if FALSE equalize_channels will be applied to the
-        orignal evoked data
-        Default is True
+    keep_channels : bool
+        If True the original evokeds will be untouched, if False
+        equalize_channels will be applied to the original evoked data.
+        Defaults to True.
+
     Returns
     -------
-    GA : the grand average
+    gave : Evoked
+        the grand average file
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(evk, Evoked) for evk in all_evokeds):
@@ -926,10 +929,10 @@ def grand_average(all_evokeds, keep_channels=True):
         tmpList = all_evokeds
 
     equalize_channels(tmpList)  # apply equalize_channels
-    GA = merge_evoked(tmpList)  # make GA object using merge_evoked
+    gave = merge_evoked(tmpList)  # make gave object using merge_evoked
     # change comment field
-    GA.comment = "Grand average of %d evoked files" % len(all_evokeds)
-    return GA
+    gave.comment = "Grand average of %d evoked files" % len(all_evokeds)
+    return gave
 
 
 def merge_evoked(all_evoked):
