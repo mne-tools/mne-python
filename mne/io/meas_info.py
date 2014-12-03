@@ -197,12 +197,15 @@ def write_polhemus_hsp(fname, dig):
 def set_dig_points(dig, comments='#', trans=None, decim=False):
     """Sets digitizer data.
 
-    This function takes dig points and applies trans or decimates them.
+    This function can read tab-delimited text files of digitizer data.
+    Dig points can be transformed to a new coordinate space or they can be
+    decimated using a voxel grid.
 
     Parameters
     ----------
-    dig : numpy.array or path of tab delimited file, shape (n_points, 3) 
-        Headshape points in Polhemus head space.
+    dig : str | numpy.ndarray, shape (n_points, 3) 
+        If str, it should be the path of tab delimited file. 
+        Otherwise, dig points should be a numpy.ndarray
     comments : str
         The character used to indicate the start of a comment;
         Default: '#'.
@@ -210,7 +213,7 @@ def set_dig_points(dig, comments='#', trans=None, decim=False):
         Coordinate transformation matrix.
     decim : Boolean | int
         Decimate the number of points using a voxel grid. True for default
-        decimation, False for no decimation, int for the resolution of the 
+        decimation, False for no decimation, Int for the resolution of the 
         voxel space (side length of each voxel).
         Default: False
     """
@@ -230,10 +233,15 @@ def set_dig_points(dig, comments='#', trans=None, decim=False):
         coords = dig.shape[-1]
         err = 'Data must be (n, 3) instead of (n, %d)' % coords
         assert dig.shape[-1] == 3, err
-        if isinstance(decim, int):
-            dig = _decimate_points(dig, decim)
+        if decim is False:
+            pass
         elif decim is True:
             dig = _decimate_points(dig)
+        elif isinstance(decim, int):
+            dig = _decimate_points(dig, decim)
+        else:
+            err = "'decim' must be boolean or int instead of %s." % type(decim)
+            raise TypeError(err)
         dig = apply_trans(trans, dig)
     elif isinstance(dig, np.ndarray):
         dig = apply_trans(trans, dig)
@@ -264,15 +272,16 @@ def apply_dig_points(info, dig, point_names=None):
 
     if point_names is None:
         pts = []
-        idents = [d['ident'] for d in info['dig']]
-        if {FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
-            FIFF.FIFFV_POINT_RPA}.issubset(set(idents)):
-            idx = idents.index(FIFF.FIFFV_POINT_NASION)
-            idy = idents.index(FIFF.FIFFV_POINT_LPA)
-            idz = idents.index(FIFF.FIFFV_POINT_RPA)
-            trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'], 
-                                              lpa=info['dig'][idy]['r'],
-                                              rpa=info['dig'][idz]['r'])
+        if info['dig'] is not None:
+            idents = [d['ident'] for d in info['dig']]
+            if {FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
+                FIFF.FIFFV_POINT_RPA}.issubset(set(idents)):
+                idx = idents.index(FIFF.FIFFV_POINT_NASION)
+                idy = idents.index(FIFF.FIFFV_POINT_LPA)
+                idz = idents.index(FIFF.FIFFV_POINT_RPA)
+                trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'], 
+                                                  lpa=info['dig'][idy]['r'],
+                                                  rpa=info['dig'][idz]['r'])
         else:
             trans = np.eye(4)
         for idx, point in enumerate(dig):
