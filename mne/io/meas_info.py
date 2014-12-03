@@ -194,8 +194,8 @@ def write_polhemus_hsp(fname, dig):
         np.savetxt(fid, dig, '%8.2f', ' ')
 
 
-def set_dig_points(dig, comments='#', trans=None, decim=False):
-    """Sets digitizer data.
+def read_dig_points(dig_points, comments='#', trans=None, decim=False):
+    """Read digitizer data from file.
 
     This function can read tab-delimited text files of digitizer data.
     Dig points can be transformed to a new coordinate space or they can be
@@ -203,7 +203,7 @@ def set_dig_points(dig, comments='#', trans=None, decim=False):
 
     Parameters
     ----------
-    dig : str | numpy.ndarray, shape (n_points, 3) 
+    dig_points : str | numpy.ndarray, shape (n_points, 3) 
         If str, it should be the path of tab delimited file. 
         Otherwise, dig points should be a numpy.ndarray
     comments : str
@@ -216,6 +216,11 @@ def set_dig_points(dig, comments='#', trans=None, decim=False):
         decimation, False for no decimation, Int for the resolution of the 
         voxel space (side length of each voxel).
         Default: False
+    
+    Returns
+    -------
+    dig_points : np.ndarray, shape (n_points, 3)
+        Array of dig points with requested transformation or decimation.
     """
     from ..coreg import _decimate_points
     if trans is None:
@@ -228,30 +233,30 @@ def set_dig_points(dig, comments='#', trans=None, decim=False):
         raise TypeError('Trans must be None or numpy.ndarray '
                         'instead of %s.' % type(trans))
 
-    if isinstance(dig, str):
-        dig = np.loadtxt(dig, comments=comments)
-        coords = dig.shape[-1]
+    if isinstance(dig_points, str):
+        dig_points = np.loadtxt(dig_points, comments=comments)
+        coords = dig_points.shape[-1]
         err = 'Data must be (n, 3) instead of (n, %d)' % coords
-        assert dig.shape[-1] == 3, err
+        assert dig_points.shape[-1] == 3, err
         if decim is False:
             pass
         elif decim is True:
-            dig = _decimate_points(dig)
+            dig_points = _decimate_points(dig_points)
         elif isinstance(decim, int):
-            dig = _decimate_points(dig, decim)
+            dig_points = _decimate_points(dig_points, decim)
         else:
             err = "'decim' must be boolean or int instead of %s." % type(decim)
             raise TypeError(err)
-        dig = apply_trans(trans, dig)
-    elif isinstance(dig, np.ndarray):
-        dig = apply_trans(trans, dig)
+        dig_points = apply_trans(trans, dig_points)
+    elif isinstance(dig_points, np.ndarray):
+        dig_points = apply_trans(trans, dig_points)
     else:
-        raise TypeError('dig must be either filepath or numpy.ndarray '
-                        'instead of %s.' % type(dig))
-    return dig
+        raise TypeError('dig_points must be either filepath or numpy.ndarray '
+                        'instead of %s.' % type(dig_points))
+    return dig_points
 
 
-def apply_dig_points(info, dig, point_names=None):
+def add_dig_points(info, dig_points, point_names=None):
     """Apply digitizer data to info.
 
     This function will add digitizer data to info['dig'].
@@ -262,7 +267,7 @@ def apply_dig_points(info, dig, point_names=None):
     ----------
     info : instance of Info
         The measurement info to update.
-    dig : numpy.array or path of tab delimited file, shape (n_points, 3) 
+    dig_points : numpy.array or path of tab delimited file, shape (n_points, 3) 
         Headshape points in Polhemus head space.
     point_names : list of strings | None
         Name of the digitizer points.
@@ -274,8 +279,8 @@ def apply_dig_points(info, dig, point_names=None):
         pts = []
         if info['dig'] is not None:
             idents = [d['ident'] for d in info['dig']]
-            if {FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
-                FIFF.FIFFV_POINT_RPA}.issubset(set(idents)):
+            if set([FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
+                    FIFF.FIFFV_POINT_RPA]).issubset(set(idents)):
                 idx = idents.index(FIFF.FIFFV_POINT_NASION)
                 idy = idents.index(FIFF.FIFFV_POINT_LPA)
                 idz = idents.index(FIFF.FIFFV_POINT_RPA)
@@ -284,7 +289,7 @@ def apply_dig_points(info, dig, point_names=None):
                                                   rpa=info['dig'][idz]['r'])
         else:
             trans = np.eye(4)
-        for idx, point in enumerate(dig):
+        for idx, point in enumerate(dig_points):
             pts.append({'r': apply_trans(trans, point), 'ident': idx,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
@@ -294,24 +299,24 @@ def apply_dig_points(info, dig, point_names=None):
             idx = point_names.index('nasion')
             idy = point_names.index('lpa')
             idz = point_names.index('rpa')
-            trans = get_ras_to_neuromag_trans(nasion=dig[idx],
-                                              lpa=dig[idy],
-                                              rpa=dig[idz])
-            dig = apply_trans(trans, dig)
-            pts.append({'r': dig[idx], 'ident': FIFF.FIFFV_POINT_NASION,
+            trans = get_ras_to_neuromag_trans(nasion=dig_points[idx],
+                                              lpa=dig_points[idy],
+                                              rpa=dig_points[idz])
+            dig_points = apply_trans(trans, dig_points)
+            pts.append({'r': dig_points[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig[idy], 'ident': FIFF.FIFFV_POINT_LPA,
+            pts.append({'r': dig_points[idy], 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig[idz], 'ident': FIFF.FIFFV_POINT_RPA,
+            pts.append({'r': dig_points[idz], 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            dig = np.delete(dig, [idx, idy, idz], axis=0)
+            dig_points = np.delete(dig_points, [idx, idy, idz], axis=0)
         else:
             raise ValueError('Digitizer Points are missing fiducials.')
 
-        for idx, point in enumerate(dig):
+        for idx, point in enumerate(dig_points):
             pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
 

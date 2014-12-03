@@ -23,7 +23,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, set_dig_points, apply_dig_points
+from ..meas_info import Info, read_dig_points, add_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -393,9 +393,9 @@ class RawKIT(_BaseRaw):
             Decimate hsp points for head shape files with more than 10'000
             points.
         """
-        hsp = set_dig_points(hsp, comments='%', trans=als_ras_trans_mm,
+        hsp = read_dig_points(hsp, comments='%', trans=als_ras_trans_mm,
                               decim=5)
-        elp = set_dig_points(elp, comments='%', trans=als_ras_trans_mm,
+        elp = read_dig_points(elp, comments='%', trans=als_ras_trans_mm,
                               decim=False)
         if len(elp) < 8:
             err = ("ELP contains fewer than 8 points; got shape "
@@ -441,8 +441,8 @@ class RawKIT(_BaseRaw):
         point_names = ['nasion', 'lpa', 'rpa']
         point_names.extend(['hpi'] * 5)
         fid = np.vstack((fid, elp))
-        apply_dig_points(self.info, fid, point_names)
-        apply_dig_points(self.info, hsp)
+        add_dig_points(self.info, fid, point_names)
+        add_dig_points(self.info, hsp)
 
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
