@@ -9,7 +9,7 @@ from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, write_polhemus_hsp,
-                              set_dig_points, apply_dig_points)
+                              read_dig_points, add_dig_points)
 from mne.transforms import get_ras_to_neuromag_trans, apply_trans
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir
@@ -101,25 +101,25 @@ def test_write_polhemus_hsp():
     assert_array_equal(points, points1, err)
 
 
-def test_set_apply_dig_points():
+def test_set_add_dig_points():
     """Test application of Polhemus HSP to info"""
-    dig = set_dig_points(hsp_fname, comments='%')
-    assert_array_equal(dig[0], [-106.93, 99.80, 68.81])
+    dig_points = read_dig_points(hsp_fname, comments='%')
+    assert_array_equal(dig_points[0], [-106.93, 99.80, 68.81])
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    apply_dig_points(info, dig)
+    add_dig_points(info, dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
-    dig = set_dig_points(elp_fname, comments='%')
-    assert_array_equal(dig[0], [1.3930, 13.1613, -4.6967])
-    fids = dig[:3]
+    dig_points = read_dig_points(elp_fname, comments='%')
+    assert_array_equal(dig_points[0], [1.3930, 13.1613, -4.6967])
+    fids = dig_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    apply_dig_points(info, dig, ['nasion', 'lpa', 'rpa',
-                                 '0', '1', '2', '3', '4'])
+    add_dig_points(info, dig_points, ['nasion', 'lpa', 'rpa',
+                                      '0', '1', '2', '3', '4'])
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     trans = get_ras_to_neuromag_trans(nasion=fids[0], lpa=fids[1], rpa=fids[2])
