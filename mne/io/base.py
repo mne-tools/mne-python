@@ -41,7 +41,8 @@ from ..externals.six import string_types
 from ..event import concatenate_events
 
 
-class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin):
+class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+               SetChannelsMixin):
     """Base class for Raw data"""
     @verbose
     def __init__(self, *args, **kwargs):

@@ -133,6 +133,34 @@ class ContainsMixin(object):
         return has_ch_type
 
 
+class SetChannelsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def get_sensor_positions(self, ch_names):
+        """Gets sensor locations from info"""
+        locs_ = [ch['loc'] for ch in self.info['chs']]
+        ch_dict = {}
+        for i, ch in enumerate(self.info['chs']):
+            ch_dict[ch['ch_name']] = i
+        locs = []
+        for ch_name in ch_names:
+            locs.append(locs_[ch_dict[ch_name]])
+        
+        return locs
+
+    def set_sensor_positions(self, ch_pos, ch_names):
+        """Set sensor locations from info"""
+        ch_dict = {}
+        chs_ = []
+        for pos, ch_name in zip(ch_pos, ch_names):
+            ch_dict['ch_name'] = pos
+        ch_names_ = [ch['ch_name'] for ch in self.info['chs']]
+        for i, ch in self.info['chs']:
+            ch['pos'] = ch_dict[ch['ch_name']]
+            chs_.append(ch)
+        self.info['chs'] = chs_
+
+
 class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """

@@ -43,7 +43,8 @@ from .externals.six.moves import zip
 from .utils import deprecated, _check_type_picks
 
 
-class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
+class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+                  SetChannelsMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated
