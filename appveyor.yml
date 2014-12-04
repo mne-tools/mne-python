@@ -25,7 +25,7 @@ install:
   - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn"
   - "python setup.py develop"
   - "SET MNE_SKIP_NETWORK_TESTS=1"
-  - "python -c \"import mne; mne.datasets.testing.data_path(verbose=True)\""
+  - "python -c \"import mne; mne.datasets.testing.data_path(verbose=False)\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
