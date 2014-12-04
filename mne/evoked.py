@@ -10,7 +10,8 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
-from .channels.channels import ContainsMixin, PickDropChannelsMixin
+from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                SetChannelsMixin)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,

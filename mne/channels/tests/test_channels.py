@@ -8,15 +8,17 @@ import os.path as op
 from copy import deepcopy
 
 import numpy as np
+from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
-from mne.io import read_info
+from mne.io import read_info, Raw
 from mne.io.constants import FIFF
 from mne.fixes import partial
 from mne.utils import _TempDir
+from mne import pick_types
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -116,3 +118,20 @@ def test_read_ch_connectivity():
     assert_equal(connectivity.shape, (102, 102))
     assert_equal(len(ch_names), 102)
     assert_raises(ValueError, read_ch_connectivity, 'bananas!')
+
+
+def test_get_set_sensor_positions():
+    """Test get/set functions for sensor positions
+    """
+    raw1 = Raw(raw_fname)
+    picks = pick_types(raw1.info)
+    pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
+    raw_pos = raw1.get_channel_positions(meg=True, eeg=False)
+    assert_array_equal(raw_pos, pos)
+
+    ch_name = raw1.info['ch_names'][13]
+    raw2 = Raw(raw_fname)
+    raw2.info['chs'][13]['loc'][:3] = np.array([1,2,3])
+    raw1.set_channel_positions(np.array([[1,2,3]]), [ch_name])
+    assert_array_equal(raw1.info['chs'][13]['loc'],
+                       raw2.info['chs'][13]['loc'])

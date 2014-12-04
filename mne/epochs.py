@@ -32,7 +32,8 @@ from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed, object_hash)
-from .channels.channels import ContainsMixin, PickDropChannelsMixin
+from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                SetChannelsMixin)
 from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
