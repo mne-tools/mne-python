@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
+#          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -897,6 +898,42 @@ def _get_evoked_node(fname):
         _, meas = read_meas_info(fid, tree)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
+
+
+def grand_average(all_evokeds, keep_channels=True):
+    """Make grand average of a list evoked data
+
+    The grand average will have the same amount of channels
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked data
+        The evoked datasets
+    keep_channels : bool
+        If True the original evokeds will be untouched, if False
+        equalize_channels will be applied to the original evoked data.
+        Defaults to True.
+
+    Returns
+    -------
+    gave : Evoked
+        the grand average file
+    """
+    # check if all elements in the given list are evoked data
+    if not all(isinstance(evk, Evoked) for evk in all_evokeds):
+        raise ValueError("Not all the elements in list are evoked data")
+
+    # keep_channels parameter
+    if keep_channels is True:
+        tmpList = deepcopy(all_evokeds)
+    else:
+        tmpList = all_evokeds
+
+    equalize_channels(tmpList)  # apply equalize_channels
+    gave = merge_evoked(tmpList)  # make gave object using merge_evoked
+    # change comment field
+    gave.comment = "Grand average of %d evoked files" % len(all_evokeds)
+    return gave
 
 
 def merge_evoked(all_evoked):
