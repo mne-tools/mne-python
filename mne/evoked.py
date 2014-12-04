@@ -764,7 +764,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
         if str(ch_type) not in supported:
-            raise ValueError('Channel type must be `{supported}`. You gave me '
+            raise ValueError('Channel type must be `{supported}`. You grand_average me '
                              '`{ch_type}` instead.'
                              .format(ch_type=ch_type,
                                      supported='` or `'.join(supported)))
@@ -903,13 +903,13 @@ def _get_evoked_node(fname):
 def grand_average(all_evokeds, keep_channels=True):
     """Make grand average of a list evoked data
 
-    The grand average will the channels that there marked good
+    The grand average will only contain the channels that there marked good
     in all of the evoked dataset.
 
     Parameters
     ----------
     all_evoked : list of Evoked data
-        The evoked datasets
+        The evoked datasets.
     keep_channels : bool
         If True the original evokeds will be untouched, if False
         equalize_channels will be applied to the original evoked data.
@@ -917,8 +917,8 @@ def grand_average(all_evokeds, keep_channels=True):
 
     Returns
     -------
-    gave : Evoked
-        the grand average file
+    grand_average : Evoked
+        the grand average file.
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(evk, Evoked) for evk in all_evokeds):
@@ -926,15 +926,16 @@ def grand_average(all_evokeds, keep_channels=True):
 
     # keep_channels parameter
     if keep_channels is True:
-        tmpList = deepcopy(all_evokeds)
+        tmp_list = deepcopy(all_evokeds)
     else:
-        tmpList = all_evokeds
+        tmp_list = all_evokeds
 
-    equalize_channels(tmpList)  # apply equalize_channels
-    gave = merge_evoked(tmpList)  # make gave object using merge_evoked
+    equalize_channels(tmp_list)  # apply equalize_channels
+    # make grand_average object using merge_evoked
+    grand_average = merge_evoked(tmp_list)
     # change comment field
-    gave.comment = "Grand average of %d evoked files" % len(all_evokeds)
-    return gave
+    grand_average.comment = "Grand average (n = %d)" % len(all_evokeds)
+    return grand_average
 
 
 def merge_evoked(all_evoked):
@@ -1114,7 +1115,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
-        raise ValueError('The `mode` parameter must be `{modes}`. You gave '
+        raise ValueError('The `mode` parameter must be `{modes}`. You grand_average '
                          'me `{mode}`'.format(modes='` or `'.join(modes),
                                               mode=mode))
 
