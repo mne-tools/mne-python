@@ -95,6 +95,7 @@ def test_write_polhemus_hsp():
     points = np.loadtxt(hsp_fname, comments='%')
 
     dest = op.join(tempdir, 'test.txt')
+    assert_raises(ValueError, write_polhemus_hsp, dest, points[:, :2])
     write_polhemus_hsp(dest, points)
     points1 = np.loadtxt(dest, comments='%')
     err = "Hsp points diverged after writing and reading."
@@ -108,6 +109,10 @@ def test_set_add_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
+    assert_raises(ValueError, read_dig_points, dig_points, np.eye(4)[:, :2])
+    assert_raises(TypeError, read_dig_points, dig_points, '#', None, 'blah')
+    assert_raises(TypeError, read_dig_points, 4)
+
     add_dig_points(info, dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
@@ -118,6 +123,8 @@ def test_set_add_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
+    assert_raises(ValueError, add_dig_points, info, dig_points[0], ['nasion'])
+    assert_raises(TypeError, add_dig_points, info, dig_points[0], 'nasion')
     add_dig_points(info, dig_points, ['nasion', 'lpa', 'rpa',
                                       '0', '1', '2', '3', '4'])
     assert_true(info['dig'])
