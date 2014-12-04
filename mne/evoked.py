@@ -903,7 +903,8 @@ def _get_evoked_node(fname):
 def grand_average(all_evokeds, keep_channels=True):
     """Make grand average of a list evoked data
 
-    The grand average will have the same amount of channels
+    The grand average will the channels that there marked good
+    in all of the evoked dataset.
 
     Parameters
     ----------
