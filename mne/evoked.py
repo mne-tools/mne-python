@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
+#          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -936,6 +937,46 @@ def _get_evoked_node(fname):
         _, meas = read_meas_info(fid, tree)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
+
+
+def grand_average(all_evokeds):
+    """Make grand average of a list evoked data
+
+    The grand average file will only contain the channels that are marked good
+    in all of the evoked datasets.
+    Note that the grand_average.nave will be equal the number of evoked
+    datasets that are used to calculate the grand average.
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked data
+        The evoked datasets.
+
+    Returns
+    -------
+    grand_average : Evoked
+        The grand average data.
+    """
+    # check if all elements in the given list are evoked data
+    if not all(isinstance(evk, Evoked) for evk in all_evokeds):
+        raise ValueError("Not all the elements in list are evoked data")
+
+    # Copy channels to leave the original evoked datasets intact.
+    tmp_list = deepcopy(all_evokeds)
+
+    # change the nave for all evoked datasets.
+    average_nave = int(np.mean([e.nave for e in all_evokeds]))
+    for evk in tmp_list:
+        evk.nave = average_nave
+
+    equalize_channels(tmp_list)  # apply equalize_channels
+    # make grand_average object using merge_evoked
+    grand_average = merge_evoked(tmp_list)
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_evokeds)
+    # change comment field
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    return grand_average
 
 
 def merge_evoked(all_evoked):
