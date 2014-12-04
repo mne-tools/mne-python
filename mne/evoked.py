@@ -764,7 +764,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         types_used = set([channel_type(self.info, idx) for idx in data_picks])
 
         if str(ch_type) not in supported:
-            raise ValueError('Channel type must be `{supported}`. You grand_average me '
+            raise ValueError('Channel type must be `{supported}`. You gave me '
                              '`{ch_type}` instead.'
                              .format(ch_type=ch_type,
                                      supported='` or `'.join(supported)))
@@ -1115,7 +1115,7 @@ def _get_peak(data, times, tmin=None, tmax=None, mode='abs'):
     """
     modes = ('abs', 'neg', 'pos')
     if mode not in modes:
-        raise ValueError('The `mode` parameter must be `{modes}`. You grand_average '
+        raise ValueError('The `mode` parameter must be `{modes}`. You gave '
                          'me `{mode}`'.format(modes='` or `'.join(modes),
                                               mode=mode))
 
