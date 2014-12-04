@@ -15,7 +15,7 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger
-from ..io.pick import channel_type, pick_info
+from ..io.pick import channel_type, pick_info, pick_types
 from ..io.constants import FIFF
 
 
@@ -136,29 +136,59 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_sensor_positions(self, ch_names):
-        """Gets sensor locations from info"""
-        locs_ = [ch['loc'] for ch in self.info['chs']]
-        ch_dict = {}
-        for i, ch in enumerate(self.info['chs']):
-            ch_dict[ch['ch_name']] = i
-        locs = []
-        for ch_name in ch_names:
-            locs.append(locs_[ch_dict[ch_name]])
+    def get_channel_positions(self, meg=False, eeg=True, exclude='bads'):
+        """Gets channel locations from info
         
-        return locs
+        Parameters
+        ----------
+        meg : bool or string
+            If True include all MEG channels. If False include None
+            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
+            only magnetometers, all gradiometers, or a specific type of
+            gradiometer.
+        eeg : bool
+            If True include EEG channels.
+        exclude : list of string | str
+            List of channels to exclude. If empty do not exclude any (default).
+            If 'bads', exclude channels in info['bads'].
+        """ 
+        picks = pick_types(self.info, meg=meg, eeg=eeg, exclude=exclude)
+        pos = np.array([ch['loc'][:3] for ch in self.info['chs']])[picks]
+        locs = []
+        n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
+        if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
+            raise ValueError('Could not extract channel positions for '
+                             '{} channels'.format(n_zero))
+        return pos
 
-    def set_sensor_positions(self, ch_pos, ch_names):
-        """Set sensor locations from info"""
+    def set_channel_positions(self, pos, names):
+        """Set sensor locations from info
+
+        Parameters
+        ----------
+        pos : np.ndarray
+            The channel positions to be set.
+        names : list of str
+            The names of the channels to be set.
+        """
+        if isinstance(pos, np.ndarray):
+            err = ('Channel positions must have the shape (n_points, 3) '
+                   'instead of (n_points, %d).' % pos.shape[-1])
+            assert pos.shape[-1] == 3, err
+        else:
+            raise TypeError('Channel positions must be np.ndarray instead '
+                            '%s.' % type(pos))
         ch_dict = {}
-        chs_ = []
-        for pos, ch_name in zip(ch_pos, ch_names):
-            ch_dict['ch_name'] = pos
-        ch_names_ = [ch['ch_name'] for ch in self.info['chs']]
-        for i, ch in self.info['chs']:
-            ch['pos'] = ch_dict[ch['ch_name']]
-            chs_.append(ch)
-        self.info['chs'] = chs_
+        for p, name in zip(pos, names):
+            ch_dict[name] = p
+        for name in names:
+            if name in self.ch_names:
+                idx = self.ch_names.index(name)
+                self.info['chs'][idx]['loc'][:3] = ch_dict[name]
+            else:
+                err = ('%s was not found in the info. Cannot be set.'
+                       % ch['ch_name'])
+                raise ValueError(err)
 
 
 class PickDropChannelsMixin(object):
