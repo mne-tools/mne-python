@@ -22,13 +22,15 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   # Install the dependencies of the project.
-  - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn"
+  - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose"
+  - "pip install nose-timer"
   - "python setup.py develop"
   - "SET MNE_SKIP_NETWORK_TESTS=1"
-  - "python -c \"import mne; mne.datasets.testing.data_path(verbose=False)\""
+  - "SET MNE_LOGGING_LEVEL=warning"
+  - "python -c \"import mne; mne.datasets.testing.data_path()\""
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests
-  - "nosetests --verbosity=2"
+  - "nosetests --with-timer --timer-top-n=30 --verbosity=2"
