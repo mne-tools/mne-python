@@ -102,14 +102,15 @@ def test_write_polhemus_hsp():
     assert_array_equal(points, points1, err)
 
 
-def test_set_add_dig_points():
+def test_read_add_dig_points():
     """Test application of Polhemus HSP to info"""
     dig_points = read_dig_points(hsp_fname, comments='%')
     assert_array_equal(dig_points[0], [-106.93, 99.80, 68.81])
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    assert_raises(ValueError, read_dig_points, dig_points, np.eye(4)[:, :2])
+    assert_raises(ValueError, read_dig_points, dig_points, '#',
+                  np.eye(4)[:, :2])
     assert_raises(TypeError, read_dig_points, dig_points, '#', None, 'blah')
     assert_raises(TypeError, read_dig_points, 4)
 

@@ -136,23 +136,42 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_channel_positions(self, meg=False, eeg=True, exclude='bads'):
+    def get_channel_positions(self, meg=None, eeg=None, exclude='bads'):
         """Gets channel locations from info
         
         Parameters
         ----------
-        meg : bool or string
+        meg : bool or string | None
             If True include all MEG channels. If False include None
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
             only magnetometers, all gradiometers, or a specific type of
             gradiometer.
-        eeg : bool
+            If None (Default), it will return channel positions if type is in
+            object.
+        eeg : bool | None
             If True include EEG channels.
+            If None (Default), it will return channel positions if type is in
+            object.
         exclude : list of string | str
             List of channels to exclude. If empty do not exclude any (default).
             If 'bads', exclude channels in info['bads'].
-        """ 
+        """
+
+        if 'eeg' in self:
+            if eeg is None:
+                eeg = True
+        else:
+            if eeg is True:
+                raise ValueError('There are no eeg channels in the object.')
+        if 'meg' in self:
+            if meg is None:
+                meg = True
+        else:
+            if meg is True:
+                raise ValueError('There are no meg channels in the object.')
+
         picks = pick_types(self.info, meg=meg, eeg=eeg, exclude=exclude)
+
         pos = np.array([ch['loc'][:3] for ch in self.info['chs']])[picks]
         locs = []
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
@@ -162,7 +181,7 @@ class SetChannelsMixin(object):
         return pos
 
     def set_channel_positions(self, pos, names):
-        """Set sensor locations from info
+        """Update channel locations in info
 
         Parameters
         ----------
@@ -171,22 +190,21 @@ class SetChannelsMixin(object):
         names : list of str
             The names of the channels to be set.
         """
-        if isinstance(pos, np.ndarray):
-            err = ('Channel positions must have the shape (n_points, 3) '
-                   'instead of (n_points, %d).' % pos.shape[-1])
-            assert pos.shape[-1] == 3, err
-        else:
+        if not isinstance(pos, np.ndarray):
             raise TypeError('Channel positions must be np.ndarray instead '
                             '%s.' % type(pos))
-        ch_dict = {}
-        for p, name in zip(pos, names):
-            ch_dict[name] = p
+        if pos.shape[1] != 3:
+            err = ('Channel positions must have the shape (n_points, 3) '
+                   'instead of (n_points, %d).' % pos.shape[1])
+            raise ValueError(err)
+        ch_dict = dict(zip(names, pos))
         for name in names:
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
                 self.info['chs'][idx]['loc'][:3] = ch_dict[name]
             else:
-                err = ('%s was not found in the info. Cannot be set.' % name)
+                err = ('%s was not found in the info. Cannot be updated.' 
+                       % name)
                 raise ValueError(err)
 
 
