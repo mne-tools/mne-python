@@ -225,13 +225,12 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
     from ..coreg import _decimate_points
     if trans is None:
         trans = np.eye(4)
-    elif isinstance(trans, np.ndarray):
-        shape = trans.shape
-        err = 'Trans must be (4, 4) instead of (%d, %d).' % shape
-        assert shape == (4, 4), err
-    else:
+    elif not isinstance(trans, np.ndarray):
         raise TypeError('Trans must be None or numpy.ndarray '
                         'instead of %s.' % type(trans))
+    if trans.shape != (4, 4):
+        err = 'Trans must be (4, 4) instead of (%d, %d).' % trans.shape
+        assert ValueError(err)
 
     if isinstance(dig_points, str):
         dig_points = np.loadtxt(dig_points, comments=comments)
@@ -239,21 +238,22 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
         if dig_points.shape[-1] != 3:
             err = 'Data must be (n, 3) instead of (n, %d)' % coords
             raise ValueError(err)
-        if decim is False:
-            pass
-        elif decim is True:
-            dig_points = _decimate_points(dig_points)
-        elif isinstance(decim, int):
-            dig_points = _decimate_points(dig_points, decim)
-        else:
-            err = "'decim' must be boolean or int instead of %s." % type(decim)
-            raise TypeError(err)
-        dig_points = apply_trans(trans, dig_points)
-    elif isinstance(dig_points, np.ndarray):
-        dig_points = apply_trans(trans, dig_points)
+    elif not isinstance(dig_points, np.ndarray):
+        err = ('dig_points must be either filepath or numpy.ndarray '
+               'instead of %s.' % type(dig_points))
+        raise TypeError(err)
+
+    if decim is False:
+        pass
+    elif decim is True:
+        dig_points = _decimate_points(dig_points)
+    elif isinstance(decim, int):
+        dig_points = _decimate_points(dig_points, decim)
     else:
-        raise TypeError('dig_points must be either filepath or numpy.ndarray '
-                        'instead of %s.' % type(dig_points))
+        err = "'decim' must be boolean or int instead of %s." % type(decim)
+        raise TypeError(err)
+    dig_points = apply_trans(trans, dig_points)
+
     return dig_points
 
 
