@@ -236,8 +236,9 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
     if isinstance(dig_points, str):
         dig_points = np.loadtxt(dig_points, comments=comments)
         coords = dig_points.shape[-1]
-        err = 'Data must be (n, 3) instead of (n, %d)' % coords
-        assert dig_points.shape[-1] == 3, err
+        if dig_points.shape[-1] != 3:
+            err = 'Data must be (n, 3) instead of (n, %d)' % coords
+            raise ValueError(err)
         if decim is False:
             pass
         elif decim is True:

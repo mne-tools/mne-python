@@ -186,8 +186,7 @@ class SetChannelsMixin(object):
                 idx = self.ch_names.index(name)
                 self.info['chs'][idx]['loc'][:3] = ch_dict[name]
             else:
-                err = ('%s was not found in the info. Cannot be set.'
-                       % ch['ch_name'])
+                err = ('%s was not found in the info. Cannot be set.' % name)
                 raise ValueError(err)
 
 
