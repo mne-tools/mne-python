@@ -295,7 +295,7 @@ def add_dig_points(info, dig_points, point_names=None):
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
     elif isinstance(point_names, list):
         pts = []
-        if {'nasion', 'lpa', 'rpa'}.issubset(point_names):
+        if set(['nasion', 'lpa', 'rpa']).issubset(point_names):
             idx = point_names.index('nasion')
             idy = point_names.index('lpa')
             idz = point_names.index('rpa')
