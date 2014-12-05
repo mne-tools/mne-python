@@ -122,10 +122,6 @@ class MarkerPoints(HasPrivateTraits):
             based on the extension: '.txt' for tab separated text file,
             '.pickled' for pickled file.
         """
-        if self.points.shape != (5, 3):
-            err = ("KIT marker points array needs to have shape (5, 3), got "
-                   "%s." % str(self.points.shape))
-            raise ValueError(err)
         write_dig_points(path, self.points)
 
 
