@@ -515,8 +515,19 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                             ref_meg=keep_ref_meg, exclude=[])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
+
+    if method == 'auto':
+        method = ['shrunk', 'diagonal_fixed', 'empirical']
+        if not projs:
+            method.append('factor_analysis')
+
     if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
+
+    if projs and method is not None and \
+            ('factor_analysis' in method or 'pca' in method):
+        raise ValueError('projs are not allowed when using PCA '
+                         'or Factor Analysis.')
 
     if method is None:
         n_epoch_types = len(epochs)
@@ -613,16 +624,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
-    if method[0] == 'auto':
-        cov_methods = ['shrunk', 'diagonal_fixed', 'empirical',
-                       'factor_analysis']
-    else:
-        cov_methods = method
-
     _scale_data(data, info=info, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
-    for this_method in cov_methods:
+    for this_method in method:
         name = this_method.__name__ if callable(this_method) else this_method
         logger.info(msg % name.upper())
 
@@ -691,7 +696,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
-    cov_methods = [c.__name__ if callable(c) else c for c in cov_methods]
+    cov_methods = [c.__name__ if callable(c) else c for c in method]
     runtime_infos, covs = list(runtime_infos), list(covs)
     my_zip = zip(*[cov_methods, runtime_infos, logliks, covs, estimators])
     for this_method, runtime_info, loglik, data, est in my_zip:

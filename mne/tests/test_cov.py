@@ -392,7 +392,7 @@ def test_compute_covariance_auto_reg():
 
     with warnings.catch_warnings(record=True) as w:
         covs = compute_covariance(epochs, method='auto',
-                                  method_params=mp,
+                                  method_params=mp, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
@@ -407,13 +407,17 @@ def test_compute_covariance_auto_reg():
 
     with warnings.catch_warnings(record=True) as w:
         cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
-                                  method_params=mp,
+                                  method_params=mp, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
 
     assert_equal(set([c['method'] for c in cov3]),
                  set([ec.__name__, 'factor_analysis']))
+
+    # projs not allowed with FA or PCA
+    assert_raises(ValueError, compute_covariance, epochs, method='pca',
+                  projs=True)
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')

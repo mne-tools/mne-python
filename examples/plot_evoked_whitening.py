@@ -57,7 +57,7 @@ epochs = epochs[:20]  # fewer samples to study regulrization
 # the best estimator in this list will be selected
 method = ('empirical', 'shrunk', 'pca', 'factor_analysis')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
-                                return_estimators=True, projs=True,
+                                return_estimators=True, projs=False,
                                 verbose=True)
 
 # the "return_estimator" flag returns all covariance estimators sorted by
