@@ -371,7 +371,7 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     bin_num : int
         Number of phase bins. Default is 18. (20 degrees * 18 = 360)
     method : str
-        Filter method used. Default is 'iir'.
+        Filter method used. Default is 'fft'.
     n_jobs : int
         Number of jobs used for parallelization. Default 1.
     surrogates : bool
