@@ -766,6 +766,11 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
         if score != -np.inf:
             scores[ii] = score
 
+        if ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.):
+            # early stop search when loglik has been going down 3 times
+            logger.info('early stopping parameter search.')
+            break
+
     # happens if rank is too low right form the beginning
     if np.isnan(scores).all():
         raise RuntimeError('Oh no! Could not estimate covariance because all '
