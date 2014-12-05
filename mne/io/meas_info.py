@@ -224,13 +224,14 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
     """
     from ..coreg import _decimate_points
     if trans is None:
-        trans = np.eye(4)
-    elif not isinstance(trans, np.ndarray):
+        pass
+    elif isinstance(trans, np.ndarray):
+        if trans.shape != (4, 4):
+            err = 'Trans must be (4, 4) instead of (%d, %d).' % trans.shape
+            assert ValueError(err)
+    else:
         raise TypeError('Trans must be None or numpy.ndarray '
                         'instead of %s.' % type(trans))
-    if trans.shape != (4, 4):
-        err = 'Trans must be (4, 4) instead of (%d, %d).' % trans.shape
-        assert ValueError(err)
 
     if isinstance(dig_points, str):
         dig_points = np.loadtxt(dig_points, comments=comments)
@@ -252,7 +253,8 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
     else:
         err = "'decim' must be boolean or int instead of %s." % type(decim)
         raise TypeError(err)
-    dig_points = apply_trans(trans, dig_points)
+    if trans is not None:
+        dig_points = apply_trans(trans, dig_points)
 
     return dig_points
 
