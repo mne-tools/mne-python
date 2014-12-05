@@ -124,9 +124,9 @@ def test_get_set_sensor_positions():
     """Test get/set functions for sensor positions
     """
     raw1 = Raw(raw_fname)
-    picks = pick_types(raw1.info)
+    picks = pick_types(raw1.info, meg=False, eeg=True)
     pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
-    raw_pos = raw1.get_channel_positions(picks=None)
+    raw_pos = raw1.get_channel_positions(picks=picks)
     assert_array_equal(raw_pos, pos)
 
     ch_name = raw1.info['ch_names'][13]

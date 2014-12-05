@@ -100,7 +100,7 @@ def test_io_dig_points():
     points1 = read_dig_points(dest, comments='%')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
-    
+
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
     assert_raises(ValueError, read_dig_points, dest)
@@ -112,21 +112,24 @@ def test_add_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    add_dig_points(info, dig_points)
+    add_dig_points(info, dig_points=dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
     dig_points = read_dig_points(elp_fname, comments='%')
-    fids = dig_points[:3]
+    nasion, lpa, rpa = dig_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    assert_raises(ValueError, add_dig_points, info, dig_points[0], ['nasion'])
-    assert_raises(TypeError, add_dig_points, info, dig_points[0], 'nasion')
-    add_dig_points(info, dig_points, ['nasion', 'lpa', 'rpa',
-                                      '0', '1', '2', '3', '4'])
+    add_dig_points(info, nasion, lpa, rpa, dig_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
-    trans = get_ras_to_neuromag_trans(nasion=fids[0], lpa=fids[1], rpa=fids[2])
     assert_array_equal(info['dig'][idx]['r'],
-                       apply_trans(trans, [1.3930, 13.1613, -4.6967]))
+                       np.array([1.3930, 13.1613, -4.6967]))
+    assert_raises(ValueError, add_dig_points, info, nasion[:2])
+    assert_raises(ValueError, add_dig_points, info, None, lpa[:2])
+    assert_raises(ValueError, add_dig_points, info, None, None, rpa[:2])
+    assert_raises(ValueError, add_dig_points, info, None, None, None,
+                  dig_points[:, :2])
+    assert_raises(ValueError, add_dig_points, info, None, None, None, None,
+                  dig_points[:, :2])
