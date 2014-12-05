@@ -233,7 +233,8 @@ def write_dig_points(fname, dig):
         raise ValueError(err)
 
 
-def add_dig_points(info, dig_points, point_names=None):
+def add_dig_points(info, nasion=None, lpa=None, rpa=None, hpi=None,
+                   dig_points=None):
     """Apply digitizer data to info.
 
     This function will add digitizer data to info['dig'].
@@ -244,45 +245,66 @@ def add_dig_points(info, dig_points, point_names=None):
     ----------
     info : instance of Info
         The measurement info to update.
+    nasion : numpy.array, shape (1, 3) | None
+        Point designated as the nasion point.
+    lpa : numpy.array, shape (1, 3) | None
+        Point designated as the left auricular point.
+    rpa : numpy.array, shape (1, 3) | None
+        Point designated as the right auricular point.
+    hpi : numpy.array, shape (n_points, 3) | None
+        Points designated as head position indicator points.
     dig_points : numpy.array or path of tab delimited file, shape (n_points, 3)
-        Headshape points in Polhemus head space.
-    point_names : list of strings | None
-        Name of the digitizer points.
-        For cardinal points, use 'nasion', 'lpa', 'rpa'.
-        If None (default), points are marked as extra.
+        Points designed as the headshape points.
     """
 
-    if point_names is None:
-        pts = []
-        for idx, point in enumerate(dig_points):
-            pts.append({'r': apply_trans(trans, point), 'ident': idx,
-                        'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    elif isinstance(point_names, list):
-        pts = []
-        if set(['nasion', 'lpa', 'rpa']).issubset(point_names):
-            idx = point_names.index('nasion')
-            idy = point_names.index('lpa')
-            idz = point_names.index('rpa')
-            pts.append({'r': dig_points[idx], 'ident': FIFF.FIFFV_POINT_NASION,
+    pts = []
+    if dig_points is not None:
+        if dig_points.shape[1] == 3:
+            for idx, point in enumerate(dig_points):
+                pts.append({'r': point, 'ident': idx,
+                            'kind': FIFF.FIFFV_POINT_EXTRA,
+                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        else:
+            err = ('Points should have the shape (n_points, 3) instead of '
+                   '(%d, %d)' % dig_points.shape)
+            raise ValueError(err)
+    if nasion is not None:
+        if nasion.shape[-1] == 3:
+            pts.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig_points[idy], 'ident': FIFF.FIFFV_POINT_LPA,
+        else:
+            err = ('Nasion should have the shape (1, 3) instead of %s'
+                   % nasion.shape)
+            raise ValueError(err)
+    if lpa is not None:
+        if lpa.shape[-1] == 3:
+            pts.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            pts.append({'r': dig_points[idz], 'ident': FIFF.FIFFV_POINT_RPA,
+        else:
+            err = ('LPA should have the shape (1, 3) instead of %s'
+                   % lpa.shape)
+            raise ValueError(err)
+    if rpa is not None:
+        if rpa.shape[-1] == 3:
+            pts.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
-            dig_points = np.delete(dig_points, [idx, idy, idz], axis=0)
-
-        for idx, point in enumerate(dig_points):
-            pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-    else:
-        err = ("'point_names' should be either a list, or None. "
-               "%s was provided." % type(point_names))
-        raise TypeError(err)
-
+        else:
+            err = ('RPA should have the shape (1, 3) instead of %s'
+                   % rpa.shape)
+            raise ValueError(err)
+    if hpi is not None:
+        if hpi.shape[1] == 3:
+            for idx, point in enumerate(hpi):
+                pts.append({'r': point, 'ident': idx,
+                            'kind': FIFF.FIFFV_POINT_HPI,
+                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        else:
+            err = ('HPI should have the shape (n_points, 3) instead of '
+                   '(%d, %d)' % hpi.shape)
+            raise ValueError(err)
     if info['dig'] is not None:
         info['dig'].extend(pts)
     else:

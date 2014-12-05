@@ -454,12 +454,8 @@ class RawKIT(_BaseRaw):
         if trans.shape != (4, 4):
             raise ValueError("trans needs to be 4 by 4 array")
 
-        fid_names = ['nasion', 'lpa', 'rpa']
-        elp_names = ['hpi', 'hpi', 'hpi', 'hpi', 'hpi']
-        add_dig_points(self.info, fid, fid_names)
-        add_dig_points(self.info, elp, elp_names)
-        add_dig_points(self.info, hsp)
-
+        nasion, lpa, rpa = fid
+        add_dig_points(self.info, nasion, lpa, rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t
