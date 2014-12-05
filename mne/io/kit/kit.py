@@ -23,7 +23,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, read_dig_points, add_dig_points
+from ..meas_info import Info, add_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -393,10 +393,12 @@ class RawKIT(_BaseRaw):
             Decimate hsp points for head shape files with more than 10'000
             points.
         """
-        hsp = read_dig_points(hsp, comments='%', trans=als_ras_trans_mm)
+        if isinstance(hsp, string_types):
+            hsp = np.loadtxt(hsp, comments='%')
+        hsp = apply_trans(als_ras_trans_mm, hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
-            hsp = read_dig_points(hsp, decim=5)
+            hsp = _decimate_points(hsp, decim=5)
             n_new = len(hsp)
             msg = ("The selected head shape contained {n_in} points, which is "
                    "more than recommended ({n_rec}), and was automatically "
@@ -404,12 +406,14 @@ class RawKIT(_BaseRaw):
                    "downsample is using FastScan.")
             msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
             logger.warning(msg)
-        elp = read_dig_points(elp, comments='%', trans=als_ras_trans_mm,
-                              decim=False)
+        
+        if isinstance(elp, string_types):
+        elp = np.loadtxt(elp, comments='%')
         if len(elp) < 8:
             err = ("ELP contains fewer than 8 points; got shape "
                    "%s." % (elp.shape))
             raise ValueError(err)
+        elp = apply_trans(als_ras_trans_mm, elp)
 
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
