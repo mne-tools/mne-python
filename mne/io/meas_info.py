@@ -274,8 +274,6 @@ def add_dig_points(info, dig_points, point_names=None):
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
             dig_points = np.delete(dig_points, [idx, idy, idz], axis=0)
-        else:
-            raise ValueError('Digitizer Points are missing fiducials.')
 
         for idx, point in enumerate(dig_points):
             pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
