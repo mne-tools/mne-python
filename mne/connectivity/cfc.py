@@ -393,13 +393,25 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     """
 
     # obtained number of trials
-    n_trials = len(data)
+    n_epochs = len(data)
+    # time points in each epochs (assuming epochs of equal length)
+    n_times = data.size / n_epochs
+    # reshape epochs into single time series for filtering
+    filter_data = data.reshape((1, n_times * n_epochs))[0]
 
     # Filter data into phase modulating freq and amplitude modulated freq.
-    x_fp = band_pass_filter(data, sfreq, l_phase_freq, h_phase_freq,
-                            method=method, n_jobs=n_jobs)
-    x_fa = band_pass_filter(data, sfreq, l_amp_freq, h_amp_freq,
-                            method=method, n_jobs=n_jobs)
+    filter_x_fp = band_pass_filter(filter_data, sfreq, l_phase_freq,
+                                   h_phase_freq, method=method, n_jobs=n_jobs)
+    filter_x_fa = band_pass_filter(filter_data, sfreq, l_amp_freq, h_amp_freq,
+                                   method=method, n_jobs=n_jobs)
+
+    # epoch data back again after filtering
+    time_slices = np.arange(0, data.size + n_times, n_times)
+    x_fa = np.zeros(data.shape)
+    x_fp = np.zeros(data.shape)
+    for ind in range(1, n_epochs + 1):
+        x_fa[ind - 1] = filter_x_fa[time_slices[ind - 1]: time_slices[ind]]
+        x_fp[ind - 1] = filter_x_fp[time_slices[ind - 1]: time_slices[ind]]
 
     if len(x_fp) != len(x_fa) or x_fp.ndim != x_fa.ndim:
         raise RuntimeError('Phase and amplitude filtered data does'
@@ -425,10 +437,10 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
 
     # Initialize the arrays
     digitized = np.zeros(phase_series_fp.shape)
-    amplitude_bin_means = normalized_amplitude = np.zeros((n_trials, bin_num))
+    amplitude_bin_means = normalized_amplitude = np.zeros((n_epochs, bin_num))
 
     # Calculate the amplitude distribution for every trial
-    for trial in range(n_trials):
+    for trial in range(n_epochs):
         digitized[trial] = np.digitize(phase_series_fp[trial], phase_bins,
                                        right=False)
 
