@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Authors: Teon Brooks  <teon@nyu.edu>
+# Authors: Teon Brooks  <teon.brooks@gmail.com>
 
 """ Import KIT / NYU data to fif file.
 

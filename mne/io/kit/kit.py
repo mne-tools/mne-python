@@ -4,7 +4,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 """
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 

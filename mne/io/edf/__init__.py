@@ -1,6 +1,6 @@
 """EDF+,BDF module for conversion to FIF"""
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
