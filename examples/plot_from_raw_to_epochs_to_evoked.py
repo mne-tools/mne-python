@@ -31,7 +31,7 @@ raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Plot raw data
-fig = raw.plot(events=events)
+fig = raw.plot(events=events, event_color={event_id: 'cyan', -1: 'lightgray'})
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']

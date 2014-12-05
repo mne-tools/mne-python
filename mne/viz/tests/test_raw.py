@@ -84,6 +84,10 @@ def test_plot_raw():
         fig.canvas.key_press_event('left')
         fig.canvas.key_press_event('o')
         fig.canvas.key_press_event('escape')
+        # Color setting
+        assert_raises(KeyError, raw.plot, event_color={0: 'r'})
+        assert_raises(TypeError, raw.plot, event_color={'foo': 'r'})
+        fig = raw.plot(events=events, event_color={-1: 'r', 998: 'b'})
         plt.close('all')
 
 
