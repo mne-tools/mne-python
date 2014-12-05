@@ -181,7 +181,7 @@ class ProjMixin(object):
         """
         from mne.viz.topomap import plot_projs_topomap
         from mne.channels.layout import find_layout
-        if self.info['projs'] is not None:
+        if self.info['projs'] is not None or len(self.info['projs']) == 0:
             layout = find_layout(self.info, ch_type)
             fig = plot_projs_topomap(self.info['projs'], layout)
         else:

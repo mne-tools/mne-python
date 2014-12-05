@@ -373,7 +373,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
     n_kit_grads = len([ch for ch in chs
                        if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
-    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad])
+    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
+                       n_kit_grads])
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
