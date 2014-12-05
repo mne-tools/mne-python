@@ -454,10 +454,10 @@ class RawKIT(_BaseRaw):
         if trans.shape != (4, 4):
             raise ValueError("trans needs to be 4 by 4 array")
 
-        point_names = ['nasion', 'lpa', 'rpa']
-        point_names.extend(['hpi', 'hpi', 'hpi', 'hpi', 'hpi'])
-        fid = np.vstack((fid, elp))
-        add_dig_points(self.info, fid, point_names)
+        fid_names = ['nasion', 'lpa', 'rpa']
+        elp_names = ['hpi', 'hpi', 'hpi', 'hpi', 'hpi']
+        add_dig_points(self.info, fid, fid_names)
+        add_dig_points(self.info, elp, elp_names)
         add_dig_points(self.info, hsp)
 
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,

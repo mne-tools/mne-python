@@ -39,6 +39,14 @@ Changelog
 
    - Add reading and writing support for time frequency data (AverageTFR objects) by  `Denis Engemann`_
 
+   - Add reading and writing support for digitizer data, and function for add dig points to info by `Teon Brooks`_
+
+   - Remove `read_hsp`, `read_elp`, `write_hsp`, `write_mrk` by `Teon Brooks`_
+
+   - Add Mixin for `get_channel_positions`, set/set channel positions functioning by `Teon Brooks`_
+
+   - Add `plot_projs_topomap` to `ProjMixin` by `Teon Brooks`_
+
 BUG
 ~~~
 
@@ -48,8 +56,8 @@ BUG
 
    - Fix channel names in topomaps by `Alex Gramfort`_
 
-   - Fix mapping of 'l_trans_bandwidth' (to low frequency) and
-    'h_trans_bandwidth' (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
+   - Fix mapping of `l_trans_bandwidth` (to low frequency) and
+    `h_trans_bandwidth` (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -125,7 +133,7 @@ Changelog
 
    - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
 
-   - Add 'max' mode for extract_label_time_course by `Mads Jensen`_
+   - Add `max` mode for extract_label_time_course by `Mads Jensen`_
 
    - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
@@ -167,9 +175,9 @@ Changelog
 
    - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
 
-   - Add 'pick_channels' and 'drop_channels' mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by `Andrew Dykstra`_ and `Denis Engemann`_
+   - Add `pick_channels` and `drop_channels` mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by `Andrew Dykstra`_ and `Denis Engemann`_
 
-   - Add 'EvokedArray' class to create an Evoked object from an array by 'Andrew Dykstra'_
+   - Add `EvokedArray` class to create an Evoked object from an array by `Andrew Dykstra`_
 
    - Add `plot_bem` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
 
@@ -231,7 +239,7 @@ API
 
    - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`. read_evokeds will return all Evoked instances in a file by default.
 
-   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This affects 'mne.fiff.Evoked' and 'read_evokeds', but not 'read_evoked'.
+   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This affects `mne.fiff.Evoked` and `read_evokeds`, but not `read_evoked`.
 
    - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
 
@@ -534,11 +542,11 @@ Changelog
 API
 ~~~
 
-   - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), 'bads' (bad channels), or a list of string (channel names).
+   - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), `bads` (bad channels), or a list of string (channel names).
 
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
-   - Fixed-orientation inverse solutions need to be made using 'fixed=True' option (using non-surface-oriented forward solutions if no depth weighting is used) to maintain compatibility with MNE C code.
+   - Fixed-orientation inverse solutions need to be made using `fixed=True` option (using non-surface-oriented forward solutions if no depth weighting is used) to maintain compatibility with MNE C code.
 
    - Raw.save() will only overwrite the destination file, if it exists, if option overwrite=True is set.
 

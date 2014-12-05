@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -15,8 +16,6 @@ from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
 from ..utils import logger, verbose
-from ..channels.channels import find_layout
-from ..viz.topomap import plot_projs_topomap
 
 
 class Projection(dict):
@@ -168,7 +167,20 @@ class ProjMixin(object):
     
     def plot_projs_topomap(self, ch_type):
         """Plot SSP vector
+        
+        Parameters
+        ----------
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. For 'grad', the gradiometers are collec-
+            ted in pairs and the RMS for each pair is plotted.
+        
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
         """
+        from mne.viz.topomap import plot_projs_topomap
+        from mne.channels.layout import find_layout
         if self.info['projs'] is not None:
             layout = find_layout(self.info, ch_type)
             fig = plot_projs_topomap(self.info['projs'], layout)
