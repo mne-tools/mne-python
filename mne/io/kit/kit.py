@@ -17,7 +17,7 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import fit_matched_points, _decimate_points
+from ...coreg import fit_matched_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
@@ -393,8 +393,17 @@ class RawKIT(_BaseRaw):
             Decimate hsp points for head shape files with more than 10'000
             points.
         """
-        hsp = read_dig_points(hsp, comments='%', trans=als_ras_trans_mm,
-                              decim=5)
+        hsp = read_dig_points(hsp, comments='%', trans=als_ras_trans_mm)
+        n_pts = len(hsp)
+        if n_pts > KIT.DIG_POINTS:
+            hsp = read_dig_points(hsp, decim=5)
+            n_new = len(hsp)
+            msg = ("The selected head shape contained {n_in} points, which is "
+                   "more than recommended ({n_rec}), and was automatically "
+                   "downsampled to {n_new} points. The preferred way to "
+                   "downsample is using FastScan.")
+            msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+            logger.warning(msg)
         elp = read_dig_points(elp, comments='%', trans=als_ras_trans_mm,
                               decim=False)
         if len(elp) < 8:
