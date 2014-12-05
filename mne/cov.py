@@ -462,12 +462,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     scalings = _scalings
 
     _method_params = {
-        'empirical': {'store_precision': False, 'assume_centered': True},
+        'empirical': {'store_precision': False, 'assume_centered': False},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
-                           'store_precision': False, 'assume_centered': True},
-        'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
+                           'store_precision': False, 'assume_centered': False},
+        'ledoit_wolf': {'store_precision': False, 'assume_centered': False},
         'shrunk': {'shrinkages': np.logspace(-4, 0, 30),
-                   'store_precision': False, 'assume_centered': True},
+                   'store_precision': False, 'assume_centered': False},
         'pca': {'iter_n_components': None},
         'factor_analysis': {'iter_n_components': None}
     }
@@ -477,7 +477,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                 raise ValueError('key (%s) must be "%s"' %
                                  (key, '" or "'.join(_method_params)))
 
-        _method_params.update(method_params)
+            _method_params[key].update(method_params[key])
     # for multi condition support epochs is required to refer to a list of
     # epochs objects
     if not isinstance(epochs, list):
@@ -552,9 +552,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     elif all(k in accepted_methods or callable(k) for k in method):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
-        epochs = [e[picks_meeg, tslice] for e in
-                  [a for b in epochs for a in b.get_data()]]
-        epochs = np.concatenate(epochs, 1)
+        epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+        if len(epochs) > 1:
+            epochs = np.concatenate(epochs, 0)
+        else:
+            epochs = epochs[0]
+        epochs = np.hstack(epochs)
         n_samples_tot = epochs.shape[-1]
         _check_n_samples(n_samples_tot, len(picks_meeg))
         epochs = epochs.T  # sklearn | C-order

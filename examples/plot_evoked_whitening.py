@@ -37,25 +37,27 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-raw = io.Raw(raw_fname)
-
+raw = io.Raw(raw_fname, preload=True)
+raw.filter(1, 30, method='fft', n_jobs=4)
 raw.info['bads'] += ['MEG 2443']  # bads + 1 more
 events = mne.read_events(event_fname)
+
+# let's look at rare events, button presses
 event_id, tmin, tmax = 1, -0.2, 0.5
 picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
 reject = dict(grad=4000e-13)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=reject, preload=True, proj=False)
+                    baseline=None, reject=reject, preload=True, proj=False)
 
-# we only take a few events to demonstrate the problem of regularization
-epochs = epochs[:15]
+epochs = epochs[:20]  # fewer samples to study regulrization
 
 ################################################################################
 # Compute covariance using automated regularization
-methods = 'diagonal_fixed', 'shrunk',  # the best will be selected
-noise_covs = compute_covariance(epochs, method=methods, tmin=None,
-                                tmax=0, n_jobs=1, return_estimators=True)
+
+method = 'empirical', 'shrunk',  # the best estimator will be selected
+noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
+                                return_estimators=True)
 
 # the "return_estimator" flag returns all covariance estimators sorted by
 # log-likelihood. Moreover the noise cov objects now contain extra info.
@@ -69,30 +71,40 @@ print([c['loglik'] for c in noise_covs])
 
 evoked = epochs.average()
 evoked.plot()
+
 picks = mne.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
+
+noise_cov_best, noise_cov_worst = noise_covs
+
+evoked_white_best = whiten_evoked(evoked, noise_cov_best, picks)
+evoked_white_worst = whiten_evoked(evoked, noise_cov_worst, picks)
 
 # plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian whiten noise from which we expect values around
 # and less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-evoked_white = whiten_evoked(evoked, noise_covs[0], picks)
-evoked_white.plot(unit=False, hline=[-2, 2])
+evoked_white_best.plot(unit=False, hline=[-2, 2])
+evoked_white_worst.plot(unit=False, hline=[-2, 2])
+
+# it's spatial whitening!
+evoked_white_best.plot_topomap(ch_type='grad', scale=1, unit='Arb. U.',
+                               contours=0, sensors=False)
+evoked_white_worst.plot_topomap(ch_type='grad', scale=1, unit='Arb. U.',
+                                contours=0, sensors=False)
+
+to_plot_gfp = [(evoked_white_best, evoked_white_worst),
+               [n['method'] for n in noise_covs], ('best', 'worst'),
+               ('steelblue', 'orange')]
 
 fig_gfp, ax_gfp = plt.subplots(1)
-
 times = evoked.times * 1e3
+for evoked_white, method, kind, color in zip(*to_plot_gfp):
 
-for noise_cov, kind, color in zip(noise_covs, ('best', 'worst'),
-                                  ('steelblue', 'orange')):
-
-    evoked_white = whiten_evoked(evoked, noise_cov, picks)
-    this_method = noise_cov['method']  # extra info in cov
     gfp = (evoked_white.data[picks] ** 2).sum(axis=0) / len(picks)
-
-    ax_gfp.plot(times, gfp, color=color, label=this_method)
+    ax_gfp.plot(times, gfp, color=color, label=method)
     ax_gfp.set_xlabel('times [ms]')
-    ax_gfp.set_ylabel('Global field power')
+    ax_gfp.set_ylabel('Global field power [chi^2]')
     ax_gfp.set_xlim(times[0], times[-1])
     ax_gfp.set_ylim(0, 20)
 
