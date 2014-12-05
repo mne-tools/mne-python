@@ -15,6 +15,8 @@ from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
 from ..utils import logger, verbose
+from ..channels.channels import find_layout
+from ..viz.topomap import plot_projs_topomap
 
 
 class Projection(dict):
@@ -163,6 +165,17 @@ class ProjMixin(object):
         self.info['projs'].pop(idx)
 
         return self
+    
+    def plot_projs_topomap(self, ch_type):
+        """Plot SSP vector
+        """
+        if self.info['projs'] is not None:
+            layout = find_layout(self.info, ch_type)
+            fig = plot_projs_topomap(self.info['projs'], layout)
+        else:
+            raise ValueError("Info is missing projs. Nothing to plot.")
+        
+        return fig
 
 
 def proj_equal(a, b):
