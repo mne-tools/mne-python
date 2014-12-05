@@ -4,16 +4,13 @@
 #
 # License: BSD (3-clause)
 
-from ...externals.six.moves import cPickle as pickle
-import os
-from os import SEEK_CUR
+from os import SEEK_CUR, path as op
 import re
 from struct import unpack
-
 import numpy as np
-
 from .constants import KIT
-
+from ..meas_info import read_dig_points
+from ...externals.six.moves import cPickle as pickle
 
 def read_mrk(fname):
     """Marker Point Extraction in MEG space directly from sqd
@@ -29,7 +26,7 @@ def read_mrk(fname):
     mrk_points : numpy.array, shape = (n_points, 3)
         Marker points in MEG space [m].
     """
-    ext = os.path.splitext(fname)[-1]
+    ext = op.splitext(fname)[-1]
     if ext in ('.sqd', '.mrk'):
         with open(fname, 'rb', buffering=0) as fid:
             fid.seek(KIT.MRK_INFO)
@@ -45,7 +42,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = np.loadtxt(fname, comments='%')
+        mrk_points = read_dig_points(fname, comments='%')
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)

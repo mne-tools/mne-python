@@ -8,8 +8,7 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 #
 # License: BSD (3-clause)
 
-import os
-from os import SEEK_CUR
+from os import SEEK_CUR, path as op
 from struct import unpack
 import time
 
@@ -23,7 +22,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, add_dig_points
+from ..meas_info import Info, read_dig_points, add_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -76,7 +75,7 @@ class RawKIT(_BaseRaw):
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
-        input_fname = os.path.abspath(input_fname)
+        input_fname = op.abspath(input_fname)
         self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
@@ -247,7 +246,7 @@ class RawKIT(_BaseRaw):
         logger.info('Ready.')
 
     def __repr__(self):
-        s = ('%r' % os.path.basename(self._sqd_params['fname']),
+        s = ('%r' % op.basename(self._sqd_params['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                  self.last_samp -
                                                  self.first_samp + 1))
@@ -394,7 +393,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = np.loadtxt(hsp, comments='%')
+            hsp = read_dig_points(hsp, comments='%')
         hsp = apply_trans(als_ras_trans_mm, hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
@@ -408,13 +407,17 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = np.loadtxt(elp, comments='%')
-        if len(elp) < 8:
-            err = ("File %r contains fewer than 8 points; got shape "
-                   "%s." % (elp, elp_points.shape))
-            raise ValueError(err)
-        elp = apply_trans(als_ras_trans_mm, elp_points)
-
+            elp_points = read_dig_points(elp, comments='%')
+            if len(elp) < 8:
+                err = ("File %r contains fewer than 8 points; got shape "
+                       "%s." % (elp, elp_points.shape))
+                raise ValueError(err)
+            elp = elp_points
+        else:
+            if len(elp) < 8:
+                err = ("ELP contains fewer than 8 points; got shape "
+                       "%s." % elp)
+        elp = apply_trans(als_ras_trans_mm)
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
         mrk = apply_trans(als_ras_trans, mrk)
@@ -452,7 +455,7 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         point_names = ['nasion', 'lpa', 'rpa']
-        point_names.extend(['hpi'] * 5)
+        point_names.extend(['hpi', 'hpi', 'hpi', 'hpi', 'hpi'])
         fid = np.vstack((fid, elp))
         add_dig_points(self.info, fid, point_names)
         add_dig_points(self.info, hsp)

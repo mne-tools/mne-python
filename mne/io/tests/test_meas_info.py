@@ -9,7 +9,7 @@ from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, write_dig_points,
-                              add_dig_points)
+                              read_dig_points, add_dig_points)
 from mne.transforms import get_ras_to_neuromag_trans, apply_trans
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir
@@ -89,22 +89,26 @@ def test_read_write_info():
     assert_array_equal(t1, t2)
 
 
-def test_write_dig_points():
+def test_io_dig_points():
     """Test Writing for dig files"""
     tempdir = _TempDir()
-    points = np.loadtxt(hsp_fname, comments='%')
+    points = read_dig_points(hsp_fname, comments='%')
 
     dest = op.join(tempdir, 'test.txt')
     assert_raises(ValueError, write_dig_points, dest, points[:, :2])
     write_dig_points(dest, points)
-    points1 = np.loadtxt(dest, comments='%')
+    points1 = read_dig_points(dest, comments='%')
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
+    
+    points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
+    np.savetxt(dest, points2, delimiter='\t', newline='\n')
+    assert_raises(ValueError, read_dig_points, dest)
 
 
 def test_add_dig_points():
     """Test application of Polhemus HSP to info"""
-    dig_points = np.loadtxt(hsp_fname, comments='%')
+    dig_points = read_dig_points(hsp_fname, comments='%')
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
@@ -112,7 +116,7 @@ def test_add_dig_points():
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
-    dig_points = np.loadtxt(elp_fname, comments='%')
+    dig_points = read_dig_points(elp_fname, comments='%')
     fids = dig_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])

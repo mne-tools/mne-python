@@ -171,6 +171,32 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
+def read_dig_points(dig_points, comments='#'):
+    """Read digitizer data from file.
+
+    This function can read space-delimited text files of digitizer data.
+
+    Parameters
+    ----------
+    dig_points : str
+        The path of tab delimited file.
+    comments : str
+        The character used to indicate the start of a comment;
+        Default: '#'.
+
+    Returns
+    -------
+    dig_points : np.ndarray, shape (n_points, 3)
+        Array of dig points with requested transformation or decimation.
+    """
+    dig_points = np.loadtxt(dig_points, comments=comments)
+    if dig_points.shape[1] != 3:
+        err = 'Data must be (n, 3) instead of (n, %d)' % dig_points.shape[1]
+        raise ValueError(err)
+
+    return dig_points
+
+
 def write_dig_points(fname, dig):
     """Write points to file
 
@@ -186,7 +212,7 @@ def write_dig_points(fname, dig):
     _, ext = op.splitext(fname)
     dig = np.asarray(dig)
     if (dig.ndim != 2) or (dig.shape[1] != 3):
-        err = "Points must be of shape (n_points, 3), not %r" % str(dig.shape)
+        err = "Points must be of shape (n_points, 3), not %s" % str(dig.shape)
         raise ValueError(err)
 
     if ext == '.pickled':
