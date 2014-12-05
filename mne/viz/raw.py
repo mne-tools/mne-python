@@ -218,7 +218,8 @@ def _plot_raw_onkey(event, params):
         plot_fun()
 
 
-def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
+def _plot_traces(params, inds, color, bad_color, lines, event_lines,
+                 event_color, offsets):
     """Helper for plotting raw"""
 
     info = params['info']
@@ -255,21 +256,33 @@ def _plot_traces(params, inds, color, bad_color, lines, event_line, offsets):
             lines[ii].set_xdata([])
             lines[ii].set_ydata([])
     # deal with event lines
-    if params['events'] is not None:
-        t = params['events']
-        t = t[np.where(np.logical_and(t >= params['times'][0],
-                       t <= params['times'][-1]))[0]]
-        if len(t) > 0:
-            xs = list()
-            ys = list()
-            for tt in t:
-                xs += [tt, tt, np.nan]
-                ys += [0, 2 * n_channels + 1, np.nan]
-            event_line.set_xdata(xs)
-            event_line.set_ydata(ys)
-        else:
-            event_line.set_xdata([])
-            event_line.set_ydata([])
+    if params['event_times'] is not None:
+        # find events in the time window
+        event_times = params['event_times']
+        mask = np.logical_and(event_times >= params['times'][0],
+                              event_times <= params['times'][-1])
+        event_times = event_times[mask]
+        event_nums = params['event_nums'][mask]
+        # plot them with appropriate colors
+        # go through the list backward so we end with -1, the catchall
+        used = np.zeros(len(event_times), bool)
+        for ev_num, line in zip(sorted(event_color.keys())[::-1],
+                                event_lines[::-1]):
+            mask = (event_nums == ev_num) if ev_num >= 0 else ~used
+            assert not np.any(used[mask])
+            used[mask] = True
+            t = event_times[mask]
+            if len(t) > 0:
+                xs = list()
+                ys = list()
+                for tt in t:
+                    xs += [tt, tt, np.nan]
+                    ys += [0, 2 * n_channels + 1, np.nan]
+                line.set_xdata(xs)
+                line.set_ydata(ys)
+            else:
+                line.set_xdata([])
+                line.set_ydata([])
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
@@ -305,8 +318,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
     bad_color : color object
         Color to make bad channels.
-    event_color : color object
-        Color to use for events.
+    event_color : color object | dict
+        Color to use for events. Can also be a dict with
+        ``{event_number: color}`` pairings. Use ``event_number==-1`` for
+        any event numbers in the events list that are not in the dictionary.
     scalings : dict | None
         Scale factors for the traces. If None, defaults to:
         `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
@@ -410,8 +425,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     elif not isinstance(title, string_types):
         raise TypeError('title must be None or a string')
     if events is not None:
-        events = events[:, 0].astype(float) - raw.first_samp
-        events /= info['sfreq']
+        event_times = events[:, 0].astype(float) - raw.first_samp
+        event_times /= info['sfreq']
+        event_nums = events[:, 2]
+    else:
+        event_times = event_nums = None
 
     # reorganize the data in plotting order
     inds = list()
@@ -447,11 +465,24 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         # put back to original order first, then use new order
         inds = inds[reord][order]
 
+    if not isinstance(event_color, dict):
+        event_color = {-1: event_color}
+    else:
+        event_color = copy.deepcopy(event_color)  # we might modify it
+    for key in event_color:
+        if not isinstance(key, int):
+            raise TypeError('event_color key "%s" was a %s not an int'
+                            % (key, type(key)))
+        if key <= 0 and key != -1:
+            raise KeyError('only key <= 0 allowed is -1 (cannot use %s)'
+                           % key)
+
     # set up projection and data parameters
     params = dict(raw=raw, ch_start=0, t_start=start, duration=duration,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
-                  n_times=n_times, events=events, clipping=clipping)
+                  n_times=n_times, event_times=event_times,
+                  event_nums=event_nums, clipping=clipping)
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -503,13 +534,15 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax.set_yticks(offsets)
     ax.set_ylim([n_channels * 2 + 1, 0])
     # plot event_line first so it's in the back
-    event_line = ax.plot([np.nan], color=event_color)[0]
+    event_lines = [ax.plot([np.nan], color=event_color[ev_num])[0]
+                   for ev_num in sorted(event_color.keys())]
     lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
 
     params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color, lines=lines,
-                                 event_line=event_line, offsets=offsets)
+                                 event_lines=event_lines,
+                                 event_color=event_color, offsets=offsets)
 
     # set up callbacks
     opt_button = mpl.widgets.Button(ax_button, 'Opt')
