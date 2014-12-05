@@ -3,12 +3,11 @@
 Whitening evoked data with a noise covariance
 =============================================
 
-Evoked data are loaded and then whitened using a given
-noise covariance matrix. It's an excellent
-quality check to see if baseline signals match the assumption
-of Gaussian whiten noise from which we expect values around
-and less than 2 standard deviations. Covariance estimation and diagnostic plots
-are based on [1].
+Evoked data are loaded and then whitened using a given noise covariance
+matrix. It's an excellent quality check to see if baseline signals match
+the assumption of Gaussian white noise from which we expect values around
+and less than 2 standard deviations. Covariance estimation and diagnostic
+plots are based on [1].
 
 References
 ----------
@@ -24,11 +23,11 @@ References
 
 print(__doc__)
 
+import matplotlib.pyplot as plt
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.cov import compute_covariance, whiten_evoked
-import matplotlib.pyplot as plt
 
 ###############################################################################
 # Set parameters
@@ -38,7 +37,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = io.Raw(raw_fname, preload=True)
-raw.filter(1, 30, method='fft', n_jobs=4)
+raw.filter(1, 30, method='iir', n_jobs=4)
 raw.info['bads'] += ['MEG 2443']  # bads + 1 more
 events = mne.read_events(event_fname)
 
@@ -52,19 +51,23 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 epochs = epochs[:20]  # fewer samples to study regulrization
 
-################################################################################
+###############################################################################
 # Compute covariance using automated regularization
 
-method = 'empirical', 'shrunk',  # the best estimator will be selected
+# the best estimator in this list will be selected
+method = ('empirical', 'shrunk', 'pca', 'factor_analysis')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
-                                return_estimators=True)
+                                return_estimators=True, projs=True,
+                                verbose=True)
 
 # the "return_estimator" flag returns all covariance estimators sorted by
 # log-likelihood. Moreover the noise cov objects now contain extra info.
 
-print([c['loglik'] for c in noise_covs])
+print('Covariance estimates sorted from best to worst')
+for c in noise_covs:
+    print("%s : %s" % (c['method'], c['loglik']))
 
-################################################################################
+###############################################################################
 # Show whitening
 
 # unwhitened evoked response
@@ -74,13 +77,13 @@ evoked.plot()
 
 picks = mne.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
 
-noise_cov_best, noise_cov_worst = noise_covs
+noise_cov_best, noise_cov_worst = noise_covs[0], noise_covs[-1]
 
 evoked_white_best = whiten_evoked(evoked, noise_cov_best, picks)
 evoked_white_worst = whiten_evoked(evoked, noise_cov_worst, picks)
 
 # plot the whitened evoked data for to see if baseline signals match the
-# assumption of Gaussian whiten noise from which we expect values around
+# assumption of Gaussian white noise from which we expect values around
 # and less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
@@ -94,13 +97,14 @@ evoked_white_worst.plot_topomap(ch_type='grad', scale=1, unit='Arb. U.',
                                 contours=0, sensors=False)
 
 to_plot_gfp = [(evoked_white_best, evoked_white_worst),
-               [n['method'] for n in noise_covs], ('best', 'worst'),
+               [noise_covs[0]['method'], noise_covs[-1]['method']],
+               ('best', 'worst'),
                ('steelblue', 'orange')]
 
 fig_gfp, ax_gfp = plt.subplots(1)
 times = evoked.times * 1e3
-for evoked_white, method, kind, color in zip(*to_plot_gfp):
 
+for evoked_white, method, kind, color in zip(*to_plot_gfp):
     gfp = (evoked_white.data[picks] ** 2).sum(axis=0) / len(picks)
     ax_gfp.plot(times, gfp, color=color, label=method)
     ax_gfp.set_xlabel('times [ms]')
@@ -109,6 +113,6 @@ for evoked_white, method, kind, color in zip(*to_plot_gfp):
     ax_gfp.set_ylim(0, 20)
 
 ax_gfp.axhline(1, color='red', linestyle='--',
-               label='expected basline (Gaussian)')
+               label='expected baseline (Gaussian)')
 ax_gfp.legend(loc='upper right')
 fig_gfp.show()

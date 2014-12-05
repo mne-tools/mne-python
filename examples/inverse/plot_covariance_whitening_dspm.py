@@ -33,7 +33,7 @@ from mne.datasets import spm_face
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.cov import compute_covariance
 
-###############################################################################
+##############################################################################
 # Get data
 
 data_path = spm_face.data_path()
@@ -69,7 +69,7 @@ lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
 fmin, fmid, fmax, transp = 0, 2.5, 5, True
 
-################################################################################
+###############################################################################
 # Estimate covariance and show resulting source estimates
 
 method = 'empirical', 'shrunk'
@@ -87,7 +87,7 @@ def brain_to_mpl(brain):
     return im
 
 for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
-                                                             (axes1, axes2,)):
+                                                             (axes1, axes2)):
     # estimate covs based on a subset of samples
     # make sure we have the same number of conditions.
     events_ = np.concatenate([events[events[:, 2] == id_][:n_train]
@@ -98,7 +98,7 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
 
     noise_covs = compute_covariance(epochs_train, method=method,
                                     tmin=None, tmax=0,  # baseline only
-                                    return_estimators=True)  # returns list here
+                                    return_estimators=True)  # returns list
 
     # prepare contrast
     evokeds = [epochs_train[k].average() for k in conditions]
