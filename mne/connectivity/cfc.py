@@ -6,7 +6,7 @@
 import numpy as np
 from numpy.random import shuffle
 from scipy import stats
-from scipy.signal import hilbert, gaussian
+from scipy.signal import hilbert, gaussian, hanning
 
 from ..stats import fdr_correction
 from ..time_frequency import morlet
@@ -38,6 +38,83 @@ def make_surrogate_data(data):
     shuffled_data = data.copy()
     map(shuffle, shuffled_data)
     return shuffled_data
+
+
+def simulate_cfc_data(sfreq, n_epochs, phase_freq, l_amp_freq,
+                      h_amp_freq, method='fft', n_jobs=1, random_state=None,
+                      surrogates=False):
+    """
+    Simulate data with true cross frequency coupling.
+
+    Generates a phase triggered cross frequency coupled signal.
+
+    References
+    ----------
+    [1] Kramer et al. "Sharp edge artifacts and spurious coupling in EEG
+    frequency comodulation measures", Journal of Neuroscience Methods,
+    Volume 170, Issue 2, 30 May 2008, Pages 352-357.
+
+    Parameters
+    ----------
+    sfreq : float
+        Sampling frequency.
+    n_epochs : int
+        Number of epochs of data.
+    phase_freq : float
+        Frequency of the low frequency phase modulating signal.
+    l_amp_freq : float
+        Lower edge of the high frequency amplitude modulatd signal.
+    h_amp_freq : float
+        Upper edge of the high frequency amplitude modulated signal.
+    method : str
+        Filter method used. Default is 'fft'.
+    n_jobs : int
+        Number of jobs to run in parallel. Default 1.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the noise estimation.
+        Default value is None.
+    surrogates : bool
+        Return shuffled data.
+        Default value is False.
+
+    Returns
+    -------
+    cfc_signal : array, shape (n_times,)
+        Cross frequency coupled signal.
+    """
+
+    rng = check_random_state(random_state)
+    dt = 1. / sfreq
+    cfc_signal = []
+    for i in range(n_epochs):
+        # choose low phase frequency around phase_freq
+        l_freq = rng.rand() * 2.0 + phase_freq
+        # make low frequency signal
+        phase_sig = np.sin(2.0 * np.pi *
+                           np.arange(0, 1 - dt * l_freq, dt * l_freq))
+        # add some noise
+        phase_sig = phase_sig + rng.random_sample(phase_sig.size)
+        # make high frequency signal
+        temp_sig = rng.rand(3000)
+        temp_sig = band_pass_filter(temp_sig, sfreq, l_amp_freq, h_amp_freq,
+                                    method=method, n_jobs=n_jobs)
+        # perform hanning tapering
+        temp_sig = 5.0 * np.multiply(hanning(50), temp_sig[2000:2050])
+        # embed high freq signal in low freq signal
+        hf_index = int(np.ceil(rng.rand() * 10)) + phase_sig.argmax()
+        amp_sig = np.zeros(phase_sig.shape)
+        amp_sig[hf_index: hf_index + 50] = temp_sig
+        # construct cross frequency coupled signal
+        cfc_signal = np.concatenate((cfc_signal, phase_sig + 0.5 * amp_sig))
+
+    # add some more noise
+    cfc_signal = cfc_signal + rng.random_sample(cfc_signal.size)
+
+    # if surrogates is True, then return shuffled data
+    if surrogates is True:
+        rng.shuffle(cfc_signal)
+
+    return cfc_signal
 
 
 def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,

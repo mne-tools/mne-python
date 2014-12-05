@@ -19,26 +19,23 @@ Berger MS, Barbaro NM, Knight RT.
 #
 # License: BSD (3-clause)
 
-import os.path as op
-import numpy as np
-import mne
-from mne.connectivity.cfc import cross_frequency_coupling
+print(__doc__)
+
+from mne.connectivity.cfc import simulate_cfc_data, cross_frequency_coupling
 from mne.viz.misc import plot_cross_frequency_coupling
 
-
-# Data signal obtained from math.bu.edu/people/mak/MA666/data_1.mat
-# Converted to .npy and reshaped.
-data_dir = op.join(op.dirname(mne.__file__), 'data')
-data_fname = op.join(data_dir, 'cfc_data.npy')
-
-# read the data
-data = np.load(data_fname)
-
 # set the parameters
-sfreq, phase_freq, l_amp_freq, h_amp_freq, n_freqs = 1000., 8., 60., 100., 100
+sfreq, phase_freq = 1000., 6.
+n_epochs = 400
+
+# simulate the data with 6. Hz signal coupled with 80.-120. Hz activity
+data = simulate_cfc_data(sfreq, n_epochs, phase_freq,
+                         l_amp_freq=80., h_amp_freq=120., n_jobs=1,
+                         random_state=42, surrogates=False)
+
+l_amp_freq, h_amp_freq, n_freqs = 50., 150., 100
 n_cycles, alpha = 10, 0.001
 n_samples = data.size
-
 # computing the amplitude traces and the erp signal
 times, freqs, traces, ztraces, z_threshold, erp = cross_frequency_coupling(
     data, sfreq, phase_freq, n_cycles, l_amp_freq, h_amp_freq, n_freqs,
