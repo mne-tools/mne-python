@@ -355,8 +355,10 @@ def test_auto_low_rank():
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
                  sigma=sigma)
     mp = {'iter_n_components': [n_features + 5]}
-    msg = 'You are trying to estimate %i components on matrix with %i features'
+    msg = ('You are trying to estimate %i components on matrix '
+           'with %i features.')
     with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
         _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs, method_params=mp,
                              cv=cv)
         assert_equal(len(w), 1)
@@ -388,9 +390,13 @@ def test_compute_covariance_auto_reg():
     mp = dict(factor_analysis=dict(iter_n_components=[30]),
               pca=dict(iter_n_components=[30]))
 
-    covs = compute_covariance(epochs, method='auto',
-                              method_params=mp,
-                              return_estimators=True)
+    with warnings.catch_warnings(record=True) as w:
+        covs = compute_covariance(epochs, method='auto',
+                                  method_params=mp,
+                                  return_estimators=True)
+        warnings.simplefilter('always')
+        assert_equal(len(w), 1)
+
     cov = covs[0]
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
@@ -399,9 +405,13 @@ def test_compute_covariance_auto_reg():
 
     assert_array_equal(cov['data'], cov2['data'])  # We know it's sc.
 
-    cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
-                              method_params=mp,
-                              return_estimators=True)
+    with warnings.catch_warnings(record=True) as w:
+        cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
+                                  method_params=mp,
+                                  return_estimators=True)
+        warnings.simplefilter('always')
+        assert_equal(len(w), 1)
+
     assert_equal(set([c['method'] for c in cov3]),
                  set([ec.__name__, 'factor_analysis']))
 

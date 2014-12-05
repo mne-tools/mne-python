@@ -342,8 +342,7 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None,  method=None, method_params=None, cv=3,
-                       scalings=None,
-                       n_jobs=1, keep_ref_meg=False,
+                       scalings=None, n_jobs=1, keep_ref_meg=False,
                        return_estimators=False, verbose=None):
     """Estimate noise covariance matrix from epochs
 
@@ -752,7 +751,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
     max_n = max(list(cp.deepcopy(iter_n_components)))
     if max_n > data.shape[1]:
         warnings.warn('You are trying to estimate %i components on matrix '
-                      'with %i features' % (max_n, data.shape[1]))
+                      'with %i features.' % (max_n, data.shape[1]))
 
     for ii, n in enumerate(iter_n_components):
         est.n_components = n
