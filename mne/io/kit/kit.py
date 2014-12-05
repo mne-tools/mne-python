@@ -17,7 +17,7 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import fit_matched_points
+from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
@@ -406,14 +406,14 @@ class RawKIT(_BaseRaw):
                    "downsample is using FastScan.")
             msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
             logger.warning(msg)
-        
+
         if isinstance(elp, string_types):
-        elp = np.loadtxt(elp, comments='%')
+            elp_points = np.loadtxt(elp, comments='%')
         if len(elp) < 8:
-            err = ("ELP contains fewer than 8 points; got shape "
-                   "%s." % (elp.shape))
+            err = ("File %r contains fewer than 8 points; got shape "
+                   "%s." % (elp, elp_points.shape))
             raise ValueError(err)
-        elp = apply_trans(als_ras_trans_mm, elp)
+        elp = apply_trans(als_ras_trans_mm, elp_points)
 
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)

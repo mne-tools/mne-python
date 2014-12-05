@@ -170,7 +170,7 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
-def write_polhemus_hsp(fname, dig):
+def write_dig_points(fname, dig):
     """Write a headshape hsp file
 
     Parameters

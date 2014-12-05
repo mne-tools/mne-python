@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal
 from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
-from mne.io.meas_info import (Info, create_info, write_polhemus_hsp,
+from mne.io.meas_info import (Info, create_info, write_dig_points,
                               add_dig_points)
 from mne.transforms import get_ras_to_neuromag_trans, apply_trans
 from mne.utils import _TempDir
@@ -89,14 +89,14 @@ def test_read_write_info():
     assert_array_equal(t1, t2)
 
 
-def test_write_polhemus_hsp():
-    """Test Writing for hsp files"""
+def test_write_dig_points():
+    """Test Writing for dig files"""
     tempdir = _TempDir()
     points = np.loadtxt(hsp_fname, comments='%')
 
     dest = op.join(tempdir, 'test.txt')
-    assert_raises(ValueError, write_polhemus_hsp, dest, points[:, :2])
-    write_polhemus_hsp(dest, points)
+    assert_raises(ValueError, write_dig_points, dest, points[:, :2])
+    write_dig_points(dest, points)
     points1 = np.loadtxt(dest, comments='%')
     err = "Hsp points diverged after writing and reading."
     assert_array_equal(points, points1, err)
