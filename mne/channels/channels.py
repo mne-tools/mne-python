@@ -136,42 +136,17 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_channel_positions(self, meg=None, eeg=None, exclude='bads'):
+    def get_channel_positions(self, picks=None):
         """Gets channel locations from info
 
         Parameters
         ----------
-        meg : bool or string | None
-            If True include all MEG channels. If False include None
-            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
-            only magnetometers, all gradiometers, or a specific type of
-            gradiometer.
-            If None (Default), it will return channel positions if type is in
-            object.
-        eeg : bool | None
-            If True include EEG channels.
-            If None (Default), it will return channel positions if type is in
-            object.
-        exclude : list of string | str
-            List of channels to exclude. If empty do not exclude any (default).
-            If 'bads', exclude channels in info['bads'].
+        picks : array-like of int | None
+            Indices of channels to include. If None (default), all channels
+            except bad channels are used.
         """
-
-        if 'eeg' in self:
-            if eeg is None:
-                eeg = True
-        else:
-            if eeg is True:
-                raise ValueError('There are no eeg channels in the object.')
-        if 'meg' in self:
-            if meg is None:
-                meg = True
-        else:
-            if meg is True:
-                raise ValueError('There are no meg channels in the object.')
-
-        picks = pick_types(self.info, meg=meg, eeg=eeg, exclude=exclude)
-
+        if picks is None:
+            picks = range(self.info['nchan'])
         pos = np.array([ch['loc'][:3] for ch in self.info['chs']])[picks]
         locs = []
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)

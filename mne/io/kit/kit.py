@@ -417,7 +417,7 @@ class RawKIT(_BaseRaw):
             if len(elp) < 8:
                 err = ("ELP contains fewer than 8 points; got shape "
                        "%s." % elp)
-        elp = apply_trans(als_ras_trans_mm)
+        elp = apply_trans(als_ras_trans_mm, elp)
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
         mrk = apply_trans(als_ras_trans, mrk)
