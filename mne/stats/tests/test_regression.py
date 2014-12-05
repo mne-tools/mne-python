@@ -1,4 +1,4 @@
-# Authors: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

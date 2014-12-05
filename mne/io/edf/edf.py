@@ -2,7 +2,7 @@
 
 """
 
-# Authors: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #
 # License: BSD (3-clause)

@@ -1,6 +1,6 @@
 """Coordinate Point Extractor for KIT system"""
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 

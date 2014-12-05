@@ -1,5 +1,5 @@
 # Authors: Tal Linzen <linzen@nyu.edu>
-#          Teon Brooks <teon@nyu.edu>
+#          Teon Brooks <teon.brooks@gmail.com>
 #          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)

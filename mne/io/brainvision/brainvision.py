@@ -1,6 +1,6 @@
 """Conversion tool from Brain Vision EEG to FIF"""
 
-# Authors: Teon Brooks <teon@nyu.edu>
+# Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
