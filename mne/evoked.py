@@ -900,7 +900,7 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evokeds, keep_channels=True):
+def grand_average(all_evokeds):
     """Make grand average of a list evoked data
 
     The grand average file will only contain the channels that are marked good
@@ -924,11 +924,8 @@ def grand_average(all_evokeds, keep_channels=True):
     if not all(isinstance(evk, Evoked) for evk in all_evokeds):
         raise ValueError("Not all the elements in list are evoked data")
 
-    # keep_channels parameter
-    if keep_channels is True:
-        tmp_list = deepcopy(all_evokeds)
-    else:
-        tmp_list = all_evokeds
+    # Copy channels to leave the orignal evoked datasets intact.
+    tmp_list = all_evokeds
 
     equalize_channels(tmp_list)  # apply equalize_channels
     # make grand_average object using merge_evoked
