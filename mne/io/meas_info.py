@@ -254,18 +254,6 @@ def add_dig_points(info, dig_points, point_names=None):
 
     if point_names is None:
         pts = []
-        if info['dig'] is not None:
-            idents = [d['ident'] for d in info['dig']]
-            if set([FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA,
-                    FIFF.FIFFV_POINT_RPA]).issubset(set(idents)):
-                idx = idents.index(FIFF.FIFFV_POINT_NASION)
-                idy = idents.index(FIFF.FIFFV_POINT_LPA)
-                idz = idents.index(FIFF.FIFFV_POINT_RPA)
-                trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'],
-                                                  lpa=info['dig'][idy]['r'],
-                                                  rpa=info['dig'][idz]['r'])
-        else:
-            trans = np.eye(4)
         for idx, point in enumerate(dig_points):
             pts.append({'r': apply_trans(trans, point), 'ident': idx,
                         'kind': FIFF.FIFFV_POINT_EXTRA,
@@ -276,10 +264,6 @@ def add_dig_points(info, dig_points, point_names=None):
             idx = point_names.index('nasion')
             idy = point_names.index('lpa')
             idz = point_names.index('rpa')
-            trans = get_ras_to_neuromag_trans(nasion=dig_points[idx],
-                                              lpa=dig_points[idy],
-                                              rpa=dig_points[idz])
-            dig_points = apply_trans(trans, dig_points)
             pts.append({'r': dig_points[idx], 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
@@ -296,17 +280,12 @@ def add_dig_points(info, dig_points, point_names=None):
         for idx, point in enumerate(dig_points):
             pts.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
                         'coord_frame': FIFF.FIFFV_COORD_HEAD})
-
     else:
         err = ("'point_names' should be either a list, or None. "
                "%s was provided." % type(point_names))
         raise TypeError(err)
 
     if info['dig'] is not None:
-        if isinstance(point_names, list):
-            info['dig'] = [apply_trans(head_trans, point)
-                           for point in info['dig']
-                           if not point['kind'] == FIFF.FIFFV_POINT_CARDINAL]
         info['dig'].extend(pts)
     else:
         info['dig'] = pts
