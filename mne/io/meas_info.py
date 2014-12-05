@@ -203,8 +203,8 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
 
     Parameters
     ----------
-    dig_points : str | numpy.ndarray, shape (n_points, 3) 
-        If str, it should be the path of tab delimited file. 
+    dig_points : str | numpy.ndarray, shape (n_points, 3)
+        If str, it should be the path of tab delimited file.
         Otherwise, dig points should be a numpy.ndarray
     comments : str
         The character used to indicate the start of a comment;
@@ -213,10 +213,10 @@ def read_dig_points(dig_points, comments='#', trans=None, decim=False):
         Coordinate transformation matrix.
     decim : Boolean | int
         Decimate the number of points using a voxel grid. True for default
-        decimation, False for no decimation, Int for the resolution of the 
+        decimation, False for no decimation, Int for the resolution of the
         voxel space (side length of each voxel).
         Default: False
-    
+
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
@@ -268,7 +268,7 @@ def add_dig_points(info, dig_points, point_names=None):
     ----------
     info : instance of Info
         The measurement info to update.
-    dig_points : numpy.array or path of tab delimited file, shape (n_points, 3) 
+    dig_points : numpy.array or path of tab delimited file, shape (n_points, 3)
         Headshape points in Polhemus head space.
     point_names : list of strings | None
         Name of the digitizer points.
@@ -280,12 +280,12 @@ def add_dig_points(info, dig_points, point_names=None):
         pts = []
         if info['dig'] is not None:
             idents = [d['ident'] for d in info['dig']]
-            if set([FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA, 
+            if set([FIFF.FIFFV_POINT_NASION, FIFF.FIFFV_POINT_LPA,
                     FIFF.FIFFV_POINT_RPA]).issubset(set(idents)):
                 idx = idents.index(FIFF.FIFFV_POINT_NASION)
                 idy = idents.index(FIFF.FIFFV_POINT_LPA)
                 idz = idents.index(FIFF.FIFFV_POINT_RPA)
-                trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'], 
+                trans = get_ras_to_neuromag_trans(nasion=info['dig'][idx]['r'],
                                                   lpa=info['dig'][idy]['r'],
                                                   rpa=info['dig'][idz]['r'])
         else:
@@ -323,9 +323,9 @@ def add_dig_points(info, dig_points, point_names=None):
 
     else:
         err = ("'point_names' should be either a list, or None. "
-               "%s was provided." %type(point_names))
+               "%s was provided." % type(point_names))
         raise TypeError(err)
-    
+
     if info['dig'] is not None:
         if isinstance(point_names, list):
             info['dig'] = [apply_trans(head_trans, point)

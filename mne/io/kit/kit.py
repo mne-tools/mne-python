@@ -448,8 +448,6 @@ class RawKIT(_BaseRaw):
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t
 
-
-
     def _set_stimchannels(self, stim='<', slope='-'):
         """Specify how the trigger channel is synthesized form analog channels.
 

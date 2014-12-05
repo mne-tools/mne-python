@@ -131,5 +131,5 @@ def test_read_add_dig_points():
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     trans = get_ras_to_neuromag_trans(nasion=fids[0], lpa=fids[1], rpa=fids[2])
-    assert_array_equal(info['dig'][idx]['r'], 
+    assert_array_equal(info['dig'][idx]['r'],
                        apply_trans(trans, [1.3930, 13.1613, -4.6967]))

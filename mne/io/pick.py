@@ -175,7 +175,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
-        List of channels to exclude. If 'bads' (default), exclude channels 
+        List of channels to exclude. If 'bads' (default), exclude channels
         in info['bads'].
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
