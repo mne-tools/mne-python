@@ -138,7 +138,7 @@ class SetChannelsMixin(object):
     """
     def get_channel_positions(self, meg=None, eeg=None, exclude='bads'):
         """Gets channel locations from info
-        
+
         Parameters
         ----------
         meg : bool or string | None
@@ -197,13 +197,12 @@ class SetChannelsMixin(object):
             err = ('Channel positions must have the shape (n_points, 3) '
                    'instead of (n_points, %d).' % pos.shape[1])
             raise ValueError(err)
-        ch_dict = dict(zip(names, pos))
-        for name in names:
+        for name, pos in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
-                self.info['chs'][idx]['loc'][:3] = ch_dict[name]
+                self.info['chs'][idx]['loc'][:3] = pos
             else:
-                err = ('%s was not found in the info. Cannot be updated.' 
+                err = ('%s was not found in the info. Cannot be updated.'
                        % name)
                 raise ValueError(err)
 
