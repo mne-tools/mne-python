@@ -126,7 +126,7 @@ def test_get_set_sensor_positions():
     raw1 = Raw(raw_fname)
     picks = pick_types(raw1.info)
     pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
-    raw_pos = raw1.get_channel_positions(meg=True, eeg=False)
+    raw_pos = raw1.get_channel_positions(picks=None)
     assert_array_equal(raw_pos, pos)
 
     ch_name = raw1.info['ch_names'][13]
