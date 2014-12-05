@@ -29,7 +29,8 @@ except:
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..io.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk
+from ..io.meas_info import write_dig_points
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 
@@ -121,7 +122,11 @@ class MarkerPoints(HasPrivateTraits):
             based on the extension: '.txt' for tab separated text file,
             '.pickled' for pickled file.
         """
-        write_mrk(path, self.points)
+        if self.points.shape != (5, 3):
+            err = ("KIT marker points array needs to have shape (5, 3), got "
+                   "%s." % str(self.points.shape))
+            raise ValueError(err)
+        write_dig_points(path, self.points)
 
 
 class MarkerPointSource(MarkerPoints):

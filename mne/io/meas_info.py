@@ -9,6 +9,7 @@ import os.path as op
 import numpy as np
 from scipy import linalg
 from ..externals.six import BytesIO, string_types
+from ..externals.six.moves import cPickle as pickle
 from datetime import datetime as dt
 import re
 
@@ -171,27 +172,39 @@ def write_fiducials(fname, pts, coord_frame=0):
 
 
 def write_dig_points(fname, dig):
-    """Write a headshape hsp file
+    """Write points to file
 
     Parameters
     ----------
     fname : str
-        Target file.
+        Path to the file to write. The kind of file to write is determined
+        based on the extension: '.txt' for tab separated text file, '.pickled'
+        for pickled file.
     dig : numpy.array, shape = (n_points, 3)
-        Points comprising the headshape.
+        Points.
     """
+    _, ext = op.splitext(fname)
     dig = np.asarray(dig)
     if (dig.ndim != 2) or (dig.shape[1] != 3):
         err = "Points must be of shape (n_points, 3), not %r" % str(dig.shape)
         raise ValueError(err)
 
-    with open(fname, 'wb') as fid:
-        version = __version__
-        now = dt.now().strftime("%I:%M%p on %B %d, %Y")
-        fid.write(b("% Ascii 3D points file created by mne-python version "
-                    "{version} at {now}\n".format(version=version, now=now)))
-        fid.write(b("% {N} 3D points, x y z per line\n".format(N=len(dig))))
-        np.savetxt(fid, dig, '%8.2f', ' ')
+    if ext == '.pickled':
+        with open(fname, 'wb') as fid:
+            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
+    elif ext == '.txt':
+        with open(fname, 'wb') as fid:
+            version = __version__
+            now = dt.now().strftime("%I:%M%p on %B %d, %Y")
+            fid.write(b("% Ascii 3D points file created by mne-python version "
+                        "{version} at {now}\n".format(version=version,
+                                                      now=now)))
+            fid.write(b("% {N} 3D points, "
+                        "x y z per line\n".format(N=len(dig))))
+            np.savetxt(fid, dig, delimiter='\t', newline='\n')
+    else:
+        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
+        raise ValueError(err)
 
 
 def add_dig_points(info, dig_points, point_names=None):
