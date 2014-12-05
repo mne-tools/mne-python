@@ -325,7 +325,7 @@ def test_rank():
 def test_auto_low_rank():
     """Test probabilistic low rank estimators"""
 
-    n_samples, n_features, rank = 500, 30, 15
+    n_samples, n_features, rank = 400, 20, 10
     sigma = 0.1
 
     def get_data(n_samples, n_features, rank, sigma):
@@ -341,7 +341,7 @@ def test_auto_low_rank():
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
                  sigma=sigma)
-    mp = {'iter_n_components': [14, 15, 16]}
+    mp = {'iter_n_components': [9, 10, 11]}
     cv = 3
     n_jobs = 1
     mode = 'factor_analysis'
@@ -381,15 +381,19 @@ def test_compute_covariance_auto_reg():
     events_merged = merge_events(events, event_ids, 1234)
     picks = pick_types(raw.info, meg='mag', eeg=False)
     epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
-                    picks=picks, baseline=(-0.2, -0.1), proj=True,
+                    picks=picks[:5], baseline=(-0.2, -0.1), proj=True,
                     reject=reject, preload=True)
     epochs.crop(None, 0)[:10]
 
     mp = dict(factor_analysis=dict(iter_n_components=[30]),
               pca=dict(iter_n_components=[30]))
-    cov = compute_covariance(epochs, method='auto',
-                             method_params=mp,
-                             return_estimators=False)
+
+    covs = compute_covariance(epochs, method='auto',
+                              method_params=mp,
+                              return_estimators=True)
+    cov = covs[0]
+    logliks = [c['loglik'] for c in covs]
+    assert_true(np.diff(logliks).max() <= 0)  # descending order
 
     cov2 = compute_covariance(epochs, method='shrunk')
 
@@ -398,7 +402,8 @@ def test_compute_covariance_auto_reg():
     cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
                               method_params=mp,
                               return_estimators=True)
-    assert_equal(set(cov3), set([ec.__name__, 'factor_analysis']))
+    assert_equal(set([c['method'] for c in cov3]),
+                 set([ec.__name__, 'factor_analysis']))
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')

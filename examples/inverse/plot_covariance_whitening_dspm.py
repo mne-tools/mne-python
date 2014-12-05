@@ -73,7 +73,7 @@ fmin, fmid, fmax, transp = 0, 2.5, 5, True
 # Estimate covariance and show resulting source estimates
 
 method = 'empirical', 'shrunk'
-best_colors = 'red', 'steelblue',
+best_colors = 'steelblue', 'red'
 samples_epochs = 5, 15,
 fig, (axes1, axes2) = plt.subplots(2, 3, figsize=(9.5, 6))
 
@@ -98,20 +98,16 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
 
     noise_covs = compute_covariance(epochs_train, method=method,
                                     tmin=None, tmax=0,  # baseline only
-                                    return_estimators=True)  # returns dict here
-    # determine worst and best
-    ests_keys, scores = zip(*[(k, v['loglik']) for k, v in noise_covs.items()])
-    best, worst = [ests_keys[f(scores)] for f in [np.argmax, np.argmin]]
+                                    return_estimators=True)  # returns list here
 
     # prepare contrast
     evokeds = [epochs_train[k].average() for k in conditions]
 
     # compute stc based on worst and best
-    for est, ax, kind, color in zip([worst, best], (ax_stc_worst, ax_stc_best),
-                                    ['worst', 'best'], best_colors):
+    for est, ax, kind, color in zip(noise_covs, (ax_stc_worst, ax_stc_best),
+                                    ['best', 'worst'], best_colors):
         inverse_operator = make_inverse_operator(epochs_train.info, forward,
-                                                 noise_covs[est]['cov'],
-                                                 loose=0.2, depth=0.8)
+                                                 est, loose=0.2, depth=0.8)
         stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
@@ -130,7 +126,7 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
         # plot spatial mean
         stc_mean = stc.data.mean(0)
         ax_dynamics.plot(stc.times * 1e3, stc_mean,
-                         label='{0} ({1})'.format(est, kind),
+                         label='{0} ({1})'.format(est['method'], kind),
                          color=color)
         # plot spatial std
         stc_var = stc.data.std(0)

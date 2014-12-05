@@ -457,8 +457,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('scalings must be "mag" or'
-                                 ' "grad" or "eeg"')
+                raise ValueError('scalings must be "mag" or "grad" or "eeg"')
         _scalings.update(scalings)
     scalings = _scalings
 
@@ -550,7 +549,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
         _check_n_samples(n_samples_tot, len(picks_meeg))
         cov_data = {'empirical': {'data': data}}
-    elif all([k in accepted_methods or callable(k) for k in method]):
+    elif all(k in accepted_methods or callable(k) for k in method):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
         epochs = [e[picks_meeg, tslice] for e in
@@ -566,38 +565,40 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                             cv=cv,
                                             n_jobs=n_jobs,
                                             scalings=scalings)
-        msg = ['log-likelihood on unseen data (descending order):']
-        logliks = [(k, v['loglik']) for k, v in cov_data.items()]
-        logliks.sort(key=lambda x: x[1], reverse=True)
-        for k, v in logliks:
-            msg.append('%s: %0.3f' % (k, v))
-        logger.info('\n   '.join(msg))
     else:
         raise ValueError(msg.format(method=method))
 
+    covs = list()
     for this_method, data in cov_data.items():
         cov = Covariance(None)
-
-        # XXX : do not compute eig and eigvec now (think it's better...)
-        eig = None
-        eigvec = None
         cov.update(kind=1, diag=False, dim=len(data['data']), names=ch_names,
-                   data=data['data'], projs=projs, bads=info['bads'],
-                   nfree=n_samples_tot, eig=eig, eigvec=eigvec)
+                   data=data.pop('data'), projs=projs, bads=info['bads'],
+                   nfree=n_samples_tot, eig=None, eigvec=None)
 
-        logger.info("Number of samples used : %d" % n_samples_tot)
+        logger.info('Number of samples used : %d' % n_samples_tot)
         logger.info('[done]')
-        cov_data[this_method]['cov'] = cov
+
+        # add extra info
+        cov.update(method=this_method, **data)
+        covs.append(cov)
+
+    if method is not None:
+        msg = ['log-likelihood on unseen data (descending order):']
+        logliks = [(c['method'], c['loglik']) for c in covs]
+        logliks.sort(reverse=True, key=lambda c: c[1])
+        for k, v in logliks:
+            msg.append('%s: %0.3f' % (k, v))
+        logger.info('\n   '.join(msg))
 
     if method is not None and not return_estimators:
-        keys, scores = zip(*[(k, v['loglik']) for k, v in cov_data.items()])
-        best_key = keys[np.argmax(scores)]
-        out = cov_data[best_key]['cov']
-        logger.info('selecting best estimator: {0}'.format(best_key))
+        keys, scores = zip(*[(c['method'], c['loglik']) for c in covs])
+        out = covs[np.argmax(scores)]
+        logger.info('selecting best estimator: {0}'.format(out['method']))
     elif method is not None:
-        out = cov_data
+        out = covs
+        out.sort(key=lambda c: c['loglik'], reverse=True)
     else:
-        out = cov_data['empirical']['cov']
+        out = covs[0]
 
     return out
 

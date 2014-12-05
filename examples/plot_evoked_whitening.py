@@ -7,40 +7,99 @@ Evoked data are loaded and then whitened using a given
 noise covariance matrix. It's an excellent
 quality check to see if baseline signals match the assumption
 of Gaussian whiten noise from which we expect values around
-and less than 2 standard deviations.
+and less than 2 standard deviations. Covariance estimation and diagnostic plots
+are based on [1].
+
+References
+----------
+[1] Engemann D. and Gramfort A. Automated model selection in covariance
+    estimation and spatial whitening of MEG and EEG signals. (in press.)
+    NeuroImage.
 
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis A. Engemann <denis.engemann@gmail.com>
+#
+# License: BSD (3-clause)
 
 print(__doc__)
 
-from mne import read_cov, whiten_evoked, pick_types, read_evokeds
-from mne.cov import regularize
+import mne
+from mne import io
 from mne.datasets import sample
-
-data_path = sample.data_path()
-
-fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
-
-# Reading
-evoked = read_evokeds(fname, condition=0, baseline=(None, 0), proj=True)
-noise_cov = read_cov(cov_fname)
+from mne.cov import compute_covariance, whiten_evoked
+import matplotlib.pyplot as plt
 
 ###############################################################################
-# Show result
+# Set parameters
 
-  # Pick channels to view
-picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-evoked.plot(picks=picks)
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-noise_cov = regularize(noise_cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
+raw = io.Raw(raw_fname)
 
-evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
+raw.info['bads'] += ['MEG 2443']  # bads + 1 more
+events = mne.read_events(event_fname)
+event_id, tmin, tmax = 1, -0.2, 0.5
+picks = mne.pick_types(raw.info, meg='grad', exclude='bads')
+reject = dict(grad=4000e-13)
 
-# plot the whitened evoked data to see if baseline signals match the
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=(None, 0), reject=reject, preload=True, proj=False)
+
+# we only take a few events to demonstrate the problem of regularization
+epochs = epochs[:15]
+
+################################################################################
+# Compute covariance using automated regularization
+methods = 'diagonal_fixed', 'shrunk',  # the best will be selected
+noise_covs = compute_covariance(epochs, method=methods, tmin=None,
+                                tmax=0, n_jobs=1, return_estimators=True)
+
+# the "return_estimator" flag returns all covariance estimators sorted by
+# log-likelihood. Moreover the noise cov objects now contain extra info.
+
+print([c['loglik'] for c in noise_covs])
+
+################################################################################
+# Show whitening
+
+# unwhitened evoked response
+
+evoked = epochs.average()
+evoked.plot()
+picks = mne.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
+
+# plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian whiten noise from which we expect values around
-# and less than 2 standard deviations.
-evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])
+# and less than 2 standard deviations. For the Global field power we expect
+# a value of 1.
+
+evoked_white = whiten_evoked(evoked, noise_covs[0], picks)
+evoked_white.plot(unit=False, hline=[-2, 2])
+
+fig_gfp, ax_gfp = plt.subplots(1)
+
+times = evoked.times * 1e3
+
+for noise_cov, kind, color in zip(noise_covs, ('best', 'worst'),
+                                  ('steelblue', 'orange')):
+
+    evoked_white = whiten_evoked(evoked, noise_cov, picks)
+    this_method = noise_cov['method']  # extra info in cov
+    gfp = (evoked_white.data[picks] ** 2).sum(axis=0) / len(picks)
+
+    ax_gfp.plot(times, gfp, color=color, label=this_method)
+    ax_gfp.set_xlabel('times [ms]')
+    ax_gfp.set_ylabel('Global field power')
+    ax_gfp.set_xlim(times[0], times[-1])
+    ax_gfp.set_ylim(0, 20)
+
+ax_gfp.axhline(1, color='red', linestyle='--',
+               label='expected basline (Gaussian)')
+ax_gfp.legend(loc='upper right')
+fig_gfp.show()
