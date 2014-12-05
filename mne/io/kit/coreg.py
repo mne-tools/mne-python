@@ -45,7 +45,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = np.loadtxt(fname)
+        mrk_points = np.loadtxt(fname, comments='%')
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)
@@ -66,35 +66,6 @@ def read_mrk(fname):
                "%s" % (fname, mrk_points.shape))
         raise ValueError(err)
     return mrk_points
-
-
-def write_mrk(fname, points):
-    """Save KIT marker coordinates
-
-    Parameters
-    ----------
-    fname : str
-        Path to the file to write. The kind of file to write is determined
-        based on the extension: '.txt' for tab separated text file, '.pickled'
-        for pickled file.
-    points : array_like, shape = (5, 3)
-        The marker point coordinates.
-    """
-    mrk = np.asarray(points)
-    _, ext = os.path.splitext(fname)
-    if mrk.shape != (5, 3):
-        err = ("KIT marker points array needs to have shape (5, 3), got "
-               "%s." % str(mrk.shape))
-        raise ValueError(err)
-
-    if ext == '.pickled':
-        with open(fname, 'wb') as fid:
-            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
-    elif ext == '.txt':
-        np.savetxt(fname, mrk, fmt='%.18e', delimiter='\t', newline='\n')
-    else:
-        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
-        raise ValueError(err)
 
 
 def read_sns(fname):

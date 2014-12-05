@@ -98,7 +98,7 @@ def test_write_dig_points():
     assert_raises(ValueError, write_dig_points, dest, points[:, :2])
     write_dig_points(dest, points)
     points1 = np.loadtxt(dest, comments='%')
-    err = "Hsp points diverged after writing and reading."
+    err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
 
