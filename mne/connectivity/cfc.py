@@ -18,12 +18,12 @@ from ..utils import logger, check_random_state
 
 
 def _abs_cwt(x, W):
-    return np.abs(cwt(x, [W], use_fft=False).ravel()).astype(np.float32)
+    """ Aux function """
+    return np.abs(cwt(x, [W], use_fft=False).ravel()).astype(np.float)
 
 
 def make_surrogate_data(data):
-    """
-    Returns a copy of the shuffled surrogate data.
+    """ Returns a copy of the shuffled surrogate data.
 
     Parameters
     ----------
@@ -43,8 +43,7 @@ def make_surrogate_data(data):
 def simulate_cfc_data(sfreq, n_epochs, phase_freq, l_amp_freq,
                       h_amp_freq, method='fft', n_jobs=1, random_state=None,
                       surrogates=False):
-    """
-    Simulate data with true cross frequency coupling.
+    """ Simulate data with true cross frequency coupling.
 
     Generates a phase triggered cross frequency coupled signal.
 
@@ -100,7 +99,7 @@ def simulate_cfc_data(sfreq, n_epochs, phase_freq, l_amp_freq,
                                     method=method, n_jobs=n_jobs)
         # perform hanning tapering
         temp_sig = 5.0 * np.multiply(hanning(50), temp_sig[2000:2050])
-        # embed high freq signal in low freq signal
+        # embed high frequency signal in low freq signal
         hf_index = int(np.ceil(rng.rand() * 10)) + phase_sig.argmax()
         amp_sig = np.zeros(phase_sig.shape)
         amp_sig[hf_index: hf_index + 50] = temp_sig
@@ -120,8 +119,7 @@ def simulate_cfc_data(sfreq, n_epochs, phase_freq, l_amp_freq,
 def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
                         sigma=5, max_amp=1, random_state=None,
                         mean=0, std=0.2):
-    """
-    Generate a phase amplitude coupled signal based on the given parameters.
+    """ Generate phase amplitude coupled signal.
 
     A phase amplitude coupled signal of given duration and n_epochs with
     varying amounts of phase amplitude coupling based on a gaussian window
@@ -136,22 +134,22 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
     n_epochs : int
         Number of epochs to be generated.
     f_phase : float
-        Phase modulating frequency in Hz (eg. 8.).
+        Phase modulating frequency in Hz (eg. 8).
     f_amplitude : float
-        Amplitude modulated frequency eg. gamma
+        Amplitude modulated frequency eg. gamma.
     sigma : float
         Standard deviation of gaussian window used. The gaussian window
         determines various levels of modulation in the trials.
-        Default value is 5.
+        Default value is 5.0.
     max_amp : float
         Constant that determines maximum amplitude of both signals.
-        Default value is 1.
+        Default value is 1.0.
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the noise estimation.
         Default value is None.
     mean : float
         Mean of the Gaussian distribution (np.random.normal)
-        used to generate white noise. Default value is 0.
+        used to generate white noise. Default value is 0.0.
     std : float
         Standard deviation of the Gaussian distribution
         (np.random.normal) used to generate white noise.
@@ -167,8 +165,7 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
     n_times = len(times)
 
     if n_epochs <= 1:
-        raise RuntimeError(
-            'Number of trials too low, please provide atleast two.')
+        raise RuntimeError('No. of trials too low, please provide atleast 2.')
 
     rng = check_random_state(random_state)
     # generate white noise
@@ -176,15 +173,13 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
     white_noise = np.reshape(white_noise, (n_epochs, n_times))
 
     if sigma == 0:
-        raise ValueError(
-            'Sigma value cannot be 0. Please choose a higher value.')
+        raise ValueError('Sigma cannot be 0. Please choose a higher value.')
 
     # make a gaussian window
     win = gaussian(n_epochs, sigma, sym=False)
 
     if np.max(win) == np.min(win):
-        raise RuntimeError(
-            'win values lead to divide by 0.')
+        raise RuntimeError('win values lead to divide by 0.')
 
     # normalize the gaussian window
     win = (win - np.min(win)) / (np.max(win) - np.min(win))
@@ -214,10 +209,9 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
 
 def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
                              l_amp_freq, h_amp_freq, n_freqs, alpha=0.001,
-                             n_surrogates=10 ** 4, random_state=None,
+                             n_surrogates=10000, random_state=None,
                              n_jobs=1):
-    """
-    Compute the cross frequency coupling.
+    """ Compute the cross frequency coupling.
 
     Parameters
     ----------
@@ -309,7 +303,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     # phase-triggered ERP of raw signal:
     # and phase-triggered time-frequency amplitude values (normalized):
     erp = np.zeros(2 * n_times)
-    traces = np.zeros((n_freqs, 2 * n_times), dtype=np.float32)
+    traces = np.zeros((n_freqs, 2 * n_times), dtype=np.float)
     for ind in trigger_inds:
         erp += data[0, ind - n_times: ind + n_times]
         traces += ampmat[:, ind - n_times: ind + n_times]
@@ -326,9 +320,9 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     shifts = shifts[shifts > sfreq]
     shifts = shifts[shifts < n_samples - sfreq]
 
-    sur_distributions = np.zeros((n_freqs, n_surrogates), dtype=np.float32)
+    sur_distributions = np.zeros((n_freqs, n_surrogates), dtype=np.float)
     for sur in range(n_surrogates):
-        if (n_surrogates - sur + 1 % 100) == 0:
+        if n_surrogates - sur + 1 % 100 == 0:
             logger.info(n_surrogates - sur + 1)
         # circular shift
         sur_triggers = np.mod(trigger_inds + shifts[sur], n_samples)
@@ -343,6 +337,10 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     # Compute FDR threshold
     p_values = stats.norm.pdf(ztraces)
     accept, _ = fdr_correction(p_values, alpha=alpha)
+    # check if any acceptable values are found
+    if not accept.any():
+        raise RuntimeError('No significant cross frequency coupling found'
+                           ' try changing the frequency range.')
     z_threshold = np.abs(ztraces[accept]).min()
 
     # time points used to plot the ERP signal
@@ -352,10 +350,9 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
 
 
 def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
-                             l_amp_freq, h_amp_freq, bin_num=18, method='iir',
+                             l_amp_freq, h_amp_freq, bin_num=18, method='fft',
                              surrogates=False, n_jobs=1):
-    """
-    Compute modulation index for the given data.
+    """ Compute modulation index for the given data.
 
     Parameters
     ----------
@@ -405,8 +402,8 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
                             method=method, n_jobs=n_jobs)
 
     if len(x_fp) != len(x_fa) or x_fp.ndim != x_fa.ndim:
-        raise RuntimeError(
-            'Phase and amplitude filtered data does not have same dimensions')
+        raise RuntimeError('Phase and amplitude filtered data does'
+                           ' not have same dimensions')
 
     # Calculate phase series of phase modulating signal
     phase_series_fp = np.angle(hilbert(x_fp)) + np.pi
@@ -414,7 +411,7 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     # Calculate amplitude envelope of amplitude modulated signal
     amp_envelope_fa = np.abs(hilbert(x_fa))
 
-    if surrogates:
+    if surrogates is True:
         phase_series_fp = make_surrogate_data(phase_series_fp)
         amp_envelope_fa = make_surrogate_data(amp_envelope_fa)
 
@@ -423,8 +420,8 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     phase_bins = np.arange(phase_series_fp.min(), phase_series_fp.max() +
                            bin_size, bin_size)
     if len(phase_bins) - 1 != bin_num:
-        raise RuntimeError(
-            'Phase bins are incorrect, please check the number of bins used.')
+        raise RuntimeError('Phase bins are incorrect,'
+                           ' please check the nnumber of bins used.')
 
     # Initialize the arrays
     digitized = np.zeros(phase_series_fp.shape)
@@ -439,21 +436,23 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
         amplitude_bin_means[trial] = [amp_envelope_fa[trial][digitized[trial] == i].mean()
                                       for i in range(1, len(phase_bins))]
         if np.isnan(np.sum(amplitude_bin_means[trial])):
-            raise ValueError('Encountered nan when calculating mean\
-                               amplitude for bins.')
+            raise ValueError('Encountered nan when calculating mean'
+                             ' amplitude for bins.')
 
         # Calculate normalized mean amplitude.
         normalized_amplitude[trial] = (amplitude_bin_means[trial] /
                                        np.sum(amplitude_bin_means[trial]))
-        assert np.round(normalized_amplitude[trial].sum()) == 1, ('Normalized\
-                        amplitudes are incorrect')
+        assert np.round(normalized_amplitude[trial].sum()) == 1, ('Normalized'
+                        ' amplitudes are incorrect')
 
     return normalized_amplitude, phase_bins
 
 
 def modulation_index(amplitude_distribution):
-    """
-    Calculates the normalized modulation index from the amplitude distribution.
+    """ Calculates the normalized modulation index.
+
+    Function to compute the normalized modulation index from
+    the amplitdue distribution.
 
     Parameters
     ----------
@@ -480,7 +479,7 @@ def modulation_index(amplitude_distribution):
         mi[trial] = 1. - (stats.entropy(amplitude_distribution[trial]) /
                           np.log(len(amplitude_distribution[trial])))
         if mi[trial] > 1 or mi[trial] < 0:
-            raise ValueError(
-                'MI is normalized and should lie between 0 and 1.')
+            raise ValueError('MI is normalized and should lie'
+                             ' between 0 and 1.')
 
     return mi

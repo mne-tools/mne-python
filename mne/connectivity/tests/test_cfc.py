@@ -14,13 +14,14 @@ from mne.connectivity.cfc import (modulation_index, make_surrogate_data,
 
 
 def test_generate_pac_data():
-
+    """ Test generation of phase amplitude coupled data. """
     assert_raises(RuntimeError, generate_pac_signal, 1000., 1, 1, 8., 60.)
     assert_raises(ValueError, generate_pac_signal, 1000., 1, 10, 8., 60.,
                   sigma=0)
 
 
 def test_phase_amplitude_coupling():
+    """ Test phase amplitdue coupling. """
 
     fs, times, trials = 100., 1, 10
     times = np.linspace(0, times, fs * times)
@@ -41,6 +42,7 @@ def test_phase_amplitude_coupling():
 
 
 def test_modulation_index():
+    """ Test computation of normalized modulation index. """
 
     rng = check_random_state(42)
     trials = 10
@@ -56,6 +58,7 @@ def test_modulation_index():
 
 
 def test_make_surrogate_data():
+    """ Test generation of surrogate data. """
 
     times = np.linspace(0, 1, 100. * 1 * 10)
     data = np.reshape(times, (10, 100))
@@ -64,6 +67,7 @@ def test_make_surrogate_data():
 
 
 def test_cross_frequency_coupling():
+    """ Test cross frequency coupling. """
 
     data = np.ones((1, 100))
     assert_raises(ValueError, cross_frequency_coupling,

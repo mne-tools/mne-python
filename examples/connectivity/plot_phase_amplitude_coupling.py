@@ -13,6 +13,8 @@ index is also computed and shown.
 #
 # License: BSD (3-clause)
 
+print(__doc__)
+
 import numpy as np
 from mne.connectivity.cfc import (generate_pac_signal,
                                   phase_amplitude_coupling,
