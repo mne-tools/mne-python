@@ -577,7 +577,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                             verbose=verbose,
                                             cv=cv,
                                             n_jobs=n_jobs,
-                                            scalings=scalings)
+                                            stop_early=True,  # XXX expose later
+                                            scalings=scalings)  # if needed.
     else:
         raise ValueError(msg.format(method=method))
 
@@ -618,7 +619,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
 @requires_sklearn
 def _compute_covariance_auto(data, method, info, method_params, cv,
-                             scalings, n_jobs, verbose):
+                             scalings, n_jobs, stop_early, verbose):
     """docstring for _compute_covariance_auto"""
     from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
@@ -666,6 +667,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             mp = cp.deepcopy(method_params[this_method])
             pca, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
+                                              stop_early=stop_early,
                                               verbose=verbose)
             pca.fit(data)
             cov = _rescale_cov(info, pca.get_covariance(), scalings)
@@ -675,6 +677,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             mp = cp.deepcopy(method_params[this_method])
             fa, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
+                                             stop_early=stop_early,
                                              verbose=verbose)
             fa.fit(data)
             cov = _rescale_cov(info, fa.get_covariance(), scalings)
@@ -734,7 +737,8 @@ def _cross_validate_cov(estimator_cov_info, data, cv, n_jobs):
 
 @verbose
 @requires_sklearn
-def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
+def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
+                         verbose=None):
     """compute latent variable models"""
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
@@ -771,7 +775,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, verbose=None):
         if score != -np.inf:
             scores[ii] = score
 
-        if ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.):
+        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.)
+           and stop_early is True):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
             break
