@@ -894,9 +894,10 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
-        pattern : str
-            Filename pattern to include in the report. e.g., -ave.fif will
-            include all evoked files.
+        pattern : list of str
+            Filename pattern to include in the report.
+            Example: [*raw.fif, *ave.fif] will include Raw as well as Evoked
+            files.
         n_jobs : int
           Number of jobs to run in parallel.
         mri_decim : int
@@ -911,7 +912,13 @@ class Report(object):
         if self.title is None:
             self.title = 'MNE Report for ...%s' % self.data_path[-20:]
 
-        fnames = _recursive_search(self.data_path, pattern)
+        if not isinstance(pattern, (list, tuple)):
+            pattern = [pattern]
+
+        # iterate through the possible patterns
+        fnames = list()
+        for p in pattern:
+            fnames.extend(_recursive_search(self.data_path, p))
 
         if self.info_fname is not None:
             info = read_info(self.info_fname)
