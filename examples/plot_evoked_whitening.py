@@ -23,7 +23,10 @@ References
 
 print(__doc__)
 
+import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib as mpl
+
 import mne
 from mne import io
 from mne.datasets import sample
@@ -77,10 +80,10 @@ evoked.plot()
 
 picks = mne.pick_types(evoked.info, meg='grad', eeg=False, exclude='bads')
 
-noise_cov_best, noise_cov_worst = noise_covs[0], noise_covs[-1]
+evokeds_white = [whiten_evoked(evoked, n, picks) for n in noise_covs]
 
-evoked_white_best = whiten_evoked(evoked, noise_cov_best, picks)
-evoked_white_worst = whiten_evoked(evoked, noise_cov_worst, picks)
+evoked_white_best = evokeds_white[0]
+evoked_white_worst = evokeds_white[-1]
 
 # plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian white noise from which we expect values around
@@ -96,17 +99,14 @@ evoked_white_best.plot_topomap(ch_type='grad', scale=1, unit='Arb. U.',
 evoked_white_worst.plot_topomap(ch_type='grad', scale=1, unit='Arb. U.',
                                 contours=0, sensors=False)
 
-to_plot_gfp = [(evoked_white_best, evoked_white_worst),
-               [noise_covs[0]['method'], noise_covs[-1]['method']],
-               ('best', 'worst'),
-               ('steelblue', 'orange')]
-
 fig_gfp, ax_gfp = plt.subplots(1)
 times = evoked.times * 1e3
 
-for evoked_white, method, kind, color in zip(*to_plot_gfp):
+colors = [plt.cm.RdBu(i) for i in np.linspace(0.1, 0.8, 4)]
+
+for evoked_white, noise_cov, color in zip(evokeds_white, noise_covs, colors):
     gfp = (evoked_white.data[picks] ** 2).sum(axis=0) / len(picks)
-    ax_gfp.plot(times, gfp, color=color, label=method)
+    ax_gfp.plot(times, gfp, label=noise_cov['method'], color=color)
     ax_gfp.set_xlabel('times [ms]')
     ax_gfp.set_ylabel('Global field power [chi^2]')
     ax_gfp.set_xlim(times[0], times[-1])
