@@ -109,8 +109,9 @@ class RawKIT(_BaseRaw):
             mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
-            fid, elp, hsp, trans = _set_dig_kit(self, mrk, elp, hsp)
-            self.info = _set_dig_neuromag(self.info, fid, elp, hsp, trans)
+            dig_points, dev_head_t = _set_dig_kit(self, mrk, elp, hsp)
+            self.info['dig'] = dig_points
+            self.info['dev_head_t'] = dev_head_t
         elif (mrk is not None or elp is not None or hsp is not None):
             err = ("mrk, elp and hsp need to be provided as a group (all or "
                    "none)")
@@ -350,7 +351,9 @@ class EpochsKIT(EpochsArray):
             mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
-            self._set_dig_kit(mrk, elp, hsp)
+            dig_points, dev_head_t = _set_dig_kit(self, mrk, elp, hsp)
+            self.info['dig'] = dig_points
+            self.info['dev_head_t'] = dev_head_t
         elif (mrk is not None or elp is not None or hsp is not None):
             err = ("mrk, elp and hsp need to be provided as a group (all or "
                    "none)")
@@ -494,7 +497,7 @@ class EpochsKIT(EpochsArray):
         return "<EpochsKIT  |  %s>" % ', '.join(s)
 
 
-def _set_dig_kit(kit, mrk, elp, hsp, auto_decimate=True):
+def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     """Add landmark points and head shape data to the RawKIT instance
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
@@ -502,7 +505,6 @@ def _set_dig_kit(kit, mrk, elp, hsp, auto_decimate=True):
 
     Parameters
     ----------
-    kit : instance of KIT object.
     mrk : None | str | array_like, shape = (5, 3)
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
@@ -517,6 +519,13 @@ def _set_dig_kit(kit, mrk, elp, hsp, auto_decimate=True):
     auto_decimate : bool
         Decimate hsp points for head shape files with more than 10'000
         points.
+    
+    Returns
+    -------
+    dig_points : list
+        List of digitizer points for info['dig'].
+    dev_head_t : dict
+        A dictionary describe the device-head transformation.
     """
     if isinstance(hsp, string_types):
         hsp = read_dig_points(hsp, comments='%')
@@ -540,9 +549,8 @@ def _set_dig_kit(kit, mrk, elp, hsp, auto_decimate=True):
             raise ValueError(err)
         elp = elp_points
     else:
-        if len(elp) < 8:
-            err = ("ELP contains fewer than 8 points; got shape "
-                   "%s." % elp)
+        if len(elp) != 8:
+            err = ("ELP contains 8 points; got shape %s." % len(elp))
     elp = apply_trans(als_ras_trans_mm, elp)
     if isinstance(mrk, string_types):
         mrk = read_mrk(mrk)
@@ -552,44 +560,17 @@ def _set_dig_kit(kit, mrk, elp, hsp, auto_decimate=True):
     nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
     elp = apply_trans(nmtrans, elp)
     hsp = apply_trans(nmtrans, hsp)
-    fid = elp[:3]
 
+    nasion, lpa, rpa = elp[:3]
+    elp = elp[3:]
     # device head transform
     trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
-    elp = elp[3:]
 
-    return fid, elp, hsp, trans
+    dig_points = construct_dig_points(info, nasion, lpa, rpa, elp, hsp)
+    dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE, 'to': FIFF.FIFFV_COORD_HEAD,
+                  'trans': trans}
 
-
-def _set_dig_neuromag(info, fid, elp, hsp, trans):
-    """Fill in the digitizer data using points in neuromag space
-
-    Parameters
-    ----------
-    info : Info dict.
-    fid : array, shape = (3, 3)
-        Digitizer fiducials.
-    elp : array, shape = (5, 3)
-        Digitizer ELP points.
-    hsp : array, shape = (n_points, 3)
-        Head shape points.
-    trans : None | array, shape = (4, 4)
-        Device head transformation.
-    """
-    trans = np.asarray(trans)
-    if fid.shape != (3, 3):
-        raise ValueError("fid needs to be a 3 by 3 array")
-    if elp.shape != (5, 3):
-        raise ValueError("elp needs to be a 5 by 3 array")
-    if trans.shape != (4, 4):
-        raise ValueError("trans needs to be 4 by 4 array")
-
-    nasion, lpa, rpa = fid
-    add_dig_points(info, nasion, lpa, rpa, elp, hsp)
-    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
-
-    return info
+    return dig_points, dev_head_t
 
 
 def get_kit_info(rawfile, stim):
