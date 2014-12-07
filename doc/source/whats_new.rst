@@ -81,6 +81,8 @@ API
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
+   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
+
 .. _changes_0_8:
 
 Version 0.8
