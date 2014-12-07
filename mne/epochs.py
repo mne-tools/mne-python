@@ -1385,7 +1385,7 @@ class Epochs(_BaseEpochs):
             index = default_index
 
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = list(range(self.info['nchan']))
         else:
             if not in1d(picks, np.arange(len(self.events))).all():
                 raise ValueError('At least one picked channel is not present '

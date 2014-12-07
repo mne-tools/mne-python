@@ -8,6 +8,7 @@ The projections used are the ones correcting for ECG artifacts.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis A. Engemann <denis.engemann@gmail.com>
+#         Teon Brooks <teon.brooks@gmail.com>
 
 # License: BSD (3-clause)
 
@@ -23,7 +24,6 @@ ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 evoked = read_evokeds(ave_fname, condition='Left Auditory')
 projs = read_proj(ecg_fname)
+evoked.add_proj(projs)
 
-layouts = [find_layout(evoked.info, k) for k in 'meg', 'eeg']
-
-viz.plot_projs_topomap(projs, layout=layouts)
+evoked.plot_projs_topomap(ch_type=['meg', 'eeg'])
