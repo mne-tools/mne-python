@@ -364,8 +364,6 @@ class EpochsKIT(EpochsArray):
         self.info, self._kit_info = get_kit_info(input_fname, stim)
         if len(events) != self._kit_info['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
-        self.first_samp = 0
-        self.last_samp = self._kit_info['n_samples'] - 1
 
         self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] == 2:
@@ -390,7 +388,7 @@ class EpochsKIT(EpochsArray):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        data, _ = self._read_segment()
+        data = self._read_data()
         assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
                               self._kit_info['frame_length'])
 
@@ -400,24 +398,8 @@ class EpochsKIT(EpochsArray):
 
         logger.info('Ready.')   
 
-    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
+    def _read_data(self):
         """Read epochs data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
@@ -426,30 +408,10 @@ class EpochsKIT(EpochsArray):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
-        if sel is None:
-            sel = list(range(self.info['nchan']))
-        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
-        if projector is not None:
-            raise NotImplementedError('Currently does not handle projections.')
-        if stop is None:
-            stop = self.last_samp + 1
-        elif stop > self.last_samp + 1:
-            stop = self.last_samp + 1
-
         #  Initial checks
-        start = int(start)
-        stop = int(stop)
         epoch_length = self._kit_info['frame_length']
         n_epochs = self._kit_info['n_epochs']
         n_samples = self._kit_info['n_samples']
-
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
 
         with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
             # extract data
@@ -460,14 +422,11 @@ class EpochsKIT(EpochsArray):
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             nchan = self._kit_info['nchan']
-            buffer_size = stop - start
-            if buffer_size != n_samples:
-                raise ValueError('Must read the entire file.')
-            count = buffer_size * nchan
+            count = n_samples * nchan
             pointer = start * nchan * data_length
             fid.seek(data_offset + pointer)
             data = np.fromfile(fid, dtype=dtype, count=count)
-            data = data.reshape((buffer_size, nchan))
+            data = data.reshape((n_samples, nchan))
         # amplifier applies only to the sensor channels
         n_sens = self._kit_info['n_sens']
         sensor_gain = np.copy(self._kit_info['sensor_gain'])
@@ -477,17 +436,12 @@ class EpochsKIT(EpochsArray):
                                 self._kit_info['DYNAMIC_RANGE'])
                                * sensor_gain, ndmin=2)
         data = conv_factor * data
-        data = data.T
         # reshape 
+        data = data.T
         data = data.reshape((nchan, n_epochs, epoch_length))
-        data = data[:, sel, :]
         data = data.transpose((1,0,2))
 
-
-        logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
-
-        return data, times
+        return data
 
     def __repr__(self):
         s = ('%r' % op.basename(self._kit_info['fname']),
