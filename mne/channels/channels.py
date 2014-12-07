@@ -144,11 +144,12 @@ class SetChannelsMixin(object):
         ----------
         picks : array-like of int | None
             Indices of channels to include. If None (default), all channels
-            except bad channels are used.
+            are used.
         """
         if picks is None:
             picks = range(self.info['nchan'])
-        pos = np.array([ch['loc'][:3] for ch in self.info['chs']])[picks]
+        chs = self.info['chs']
+        pos = np.array([chs[k]['loc'][:3] for k in picks])
         locs = []
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
@@ -161,17 +162,15 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        pos : np.ndarray
+        pos : array-like | np.ndarray, shape (n_points, 3)
             The channel positions to be set.
         names : list of str
             The names of the channels to be set.
         """
-        if not isinstance(pos, np.ndarray):
-            raise TypeError('Channel positions must be np.ndarray instead '
-                            '%s.' % type(pos))
-        if pos.shape[1] != 3:
+        pos = np.asarray(pos, dtype=np.float)
+        if len(pos) != 3:
             err = ('Channel positions must have the shape (n_points, 3) '
-                   'instead of (n_points, %d).' % pos.shape[1])
+                   'not (n_points, %d).' % len(pos))
             raise ValueError(err)
         for name, pos in zip(names, pos):
             if name in self.ch_names:

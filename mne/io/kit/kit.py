@@ -22,7 +22,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, read_dig_points, add_dig_points
+from ..meas_info import Info, read_dig_points, construct_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -394,7 +394,6 @@ class RawKIT(_BaseRaw):
         """
         if isinstance(hsp, string_types):
             hsp = read_dig_points(hsp, comments='%')
-        hsp = apply_trans(als_ras_trans_mm, hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
             hsp = _decimate_points(hsp, decim=5)
@@ -405,6 +404,7 @@ class RawKIT(_BaseRaw):
                    "downsample is using FastScan.")
             msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
             logger.warning(msg)
+        hsp = apply_trans(als_ras_trans_mm, hsp)
 
         if isinstance(elp, string_types):
             elp_points = read_dig_points(elp, comments='%')
@@ -413,10 +413,9 @@ class RawKIT(_BaseRaw):
                        "%s." % (elp, elp_points.shape))
                 raise ValueError(err)
             elp = elp_points
-        else:
-            if len(elp) < 8:
-                err = ("ELP contains fewer than 8 points; got shape "
-                       "%s." % elp)
+        elif len(elp) < 8:
+            err = ("ELP contains fewer than 8 points; got shape "
+                   "%s." % elp)
         elp = apply_trans(als_ras_trans_mm, elp)
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
@@ -455,7 +454,8 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
-        add_dig_points(self.info, nasion, lpa, rpa, elp, hsp)
+        self.info['dig'] = construct_dig_points(self.info, nasion, lpa,
+                                                rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t

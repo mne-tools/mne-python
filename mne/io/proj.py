@@ -165,24 +165,37 @@ class ProjMixin(object):
 
         return self
     
-    def plot_projs_topomap(self, ch_type):
+    def plot_projs_topomap(self, ch_type=None, layout=None):
         """Plot SSP vector
         
         Parameters
         ----------
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
             The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted.
-        
+            ted in pairs and the RMS for each pair is plotted. If None
+            (default), it will return all channel types present. If a list of
+            ch_types is provided, it will return multiple figures.
+        layout : None | Layout | List of Layouts
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct
+            layout file is inferred from the data; if no appropriate layout
+            file was found, the layout is automatically generated from the
+            sensor locations. Or a list of Layout if projections
+            are from different sensor types.
+
         Returns
         -------
         fig : instance of matplotlib figure
             Figure distributing one image per channel across sensor topography.
         """
-        from mne.viz.topomap import plot_projs_topomap
-        from mne.channels.layout import find_layout
-        if self.info['projs'] is not None or len(self.info['projs']) == 0:
-            layout = find_layout(self.info, ch_type)
+        if self.info['projs'] is not None or len(self.info['projs']) != 0:
+            from mne.viz.topomap import plot_projs_topomap
+            from mne.channels.layout import find_layout
+            if layout is None:
+                if isinstance(ch_type, list):
+                    layout = [find_layout(self.info, ch) for ch in ch_type]
+                else:
+                    layout = find_layout(self.info, ch_type)
             fig = plot_projs_topomap(self.info['projs'], layout)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
