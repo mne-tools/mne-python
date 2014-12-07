@@ -43,8 +43,8 @@ events = mne.read_events(event_fname)
 
 # let's look at rare events, button presses
 event_id, tmin, tmax = 1, -0.2, 0.5
-picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
-reject = dict(grad=4000e-13, mag=4e-12, eeg=80e-6)
+picks = mne.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True, proj=False)

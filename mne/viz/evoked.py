@@ -323,13 +323,22 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         n_columns = 1
         n_extra_row = 1
 
-    fig, axes = plt.subplots(n_ch_used + n_extra_row,
+    n_rows = n_ch_used + n_extra_row
+    fig, axes = plt.subplots(n_rows,
                              n_columns, sharex=True, sharey=False,
-                             figsize=(8.8, 6.6))
-
+                             figsize=(8.8, 2.2 * n_rows))
     picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
     evokeds_white = [whiten_evoked(evoked, n, picks) for n in noise_cov]
-    axes_evoked = axes[:n_ch_used, 0] if n_columns > 1 else axes[:n_ch_used]
+
+    axes_evoked = None
+    if any(((n_columns == 1 and n_ch_used == 1),
+            (n_columns == 1 and n_ch_used > 1),
+            (n_columns == 2 and n_ch_used == 1))):
+        axes_evoked = axes[:n_ch_used]
+    elif n_columns == 2 and n_ch_used > 1:
+        axes_evoked = axes[:n_ch_used, 0]
+    else:
+        raise RuntimeError('Wrong axes inputs')
     evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
 
     pick_list = []
@@ -356,7 +365,16 @@ def plot_evoked_white(evoked, noise_cov, show=True):
                     ' (right, comparison of estimators)' %
                     noise_cov[0]['method'])
         fig.suptitle(suptitle)
-    ax_gfp = axes[n_ch_used:1 + n_ch_used] if n_columns < 2 else axes[:, 1]
+
+    ax_gfp = None
+    if any(((n_columns == 1 and n_ch_used == 1),
+            (n_columns == 1 and n_ch_used > 1),
+            (n_columns == 2 and n_ch_used == 1))):
+        ax_gfp = axes[-1:]
+    elif n_columns == 2 and n_ch_used > 1:
+        ax_gfp = axes[:, 1]
+    else:
+        raise RuntimeError('Wrong axes inputs')
     times = evoked.times * 1e3
     titles_, colors_ = _mutable_defaults(('titles', None), ('color', None))
 
@@ -387,13 +405,14 @@ def plot_evoked_white(evoked, noise_cov, show=True):
             if n_columns > 1:
                 i += 1
     ax = ax_gfp[0]
-    if n_columns < 2:
+    if n_columns == 1:
         box = ax.get_position()
         ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12)
+        ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.05), fontsize=12)
     else:
         ax.legend(loc='upper right', fontsize=10)
-        fig.subplots_adjust(top=0.87)
+        fig.subplots_adjust(top=[0.69, 0.82, 0.87][n_rows - 1],
+                            bottom=[0.22, 0.13, 0.09][n_rows - 1])
     fig.canvas.draw()
 
     if show is True:
