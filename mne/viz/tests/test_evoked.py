@@ -19,7 +19,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
-from mne import pick_types
+from mne import pick_types, read_cov
 from mne.channels import read_layout
 
 
@@ -99,3 +99,7 @@ def test_plot_evoked():
         evoked.plot_image(exclude='bads')
         evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
+
+        cov = read_cov(cov_fname)
+        cov['method'] = 'empirical'
+        evoked.plot_white(cov)
