@@ -23,13 +23,11 @@ References
 
 print(__doc__)
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 import mne
+
 from mne import io
 from mne.datasets import sample
-from mne.cov import compute_covariance, whiten_evoked
+from mne.cov import compute_covariance
 
 ###############################################################################
 # Set parameters
@@ -73,64 +71,15 @@ for c in noise_covs:
 ###############################################################################
 # Show whitening
 
-# unwhitened evoked response
-
 evoked = epochs.average()
-evoked.plot()
-
-picks = mne.pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-
-evokeds_white = [whiten_evoked(evoked, n, picks) for n in noise_covs]
 
 # plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian white noise from which we expect values around
 # and less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-for evoked_white, quality in zip(evokeds_white[::3], ('best', 'worst')):
-    fig = evoked_white.plot(unit=False, hline=[-2, 2])
-    fig.suptitle('whitened evoked data (%s)' % quality)
-    fig.subplots_adjust(top=0.9)
-    fig.canvas.draw()
+# unwhitened evoked response
+evoked.plot()
 
-# it's spatial whitening! Can you see the sparkles for the worst?
-for evoked_white, quality in zip(evokeds_white[::3], ('best', 'worst')):
-    fig = evoked_white.plot_topomap(scale=1, unit='Arb. U.', contours=0,
-                                    sensors=False)
-    fig.suptitle('whitened topography (Magnetometers, %s)' % quality)
-    fig.subplots_adjust(top=0.65, right=.95, bottom=0.12)
-    fig.canvas.draw()
-
-times = evoked.times * 1e3
-
-fig_gfp, ax_gfp = plt.subplots(3, 1, sharex=True, sharey=True)
-
-colors = [plt.cm.RdBu(i) for i in np.linspace(0.2, 0.8, 4)]
-
-
-def whitened_gfp(x):
-    """Whitened Global Field Power
-
-    The MNE inverse solver assumes zero mean whitend data as input.
-    Therefore, a chi^2 statistic will be best to detect model violations.
-    """
-    return np.sum(x ** 2, axis=0) / len(x)
-
-fig_gfp.suptitle('Whitened global field power (GFP)')
-for evoked_white, noise_cov, color in zip(evokeds_white, noise_covs, colors):
-    i = 0
-    for sub_picks in (mne.pick_types(evoked.info, meg='mag', eeg=False),
-                      mne.pick_types(evoked.info, meg='grad', eeg=False),
-                      mne.pick_types(evoked.info, meg=False, eeg=True)):
-
-        gfp = whitened_gfp(evoked_white.data[sub_picks])
-        ax_gfp[i].plot(times, gfp, label=noise_cov['method'], color=color)
-        ax_gfp[i].set_xlabel('times [ms]')
-        ax_gfp[i].set_ylabel('GFP [chi^2]')
-        ax_gfp[i].set_xlim(times[0], times[-1])
-        ax_gfp[i].set_ylim(0, 10)
-        ax_gfp[i].axhline(1, color='red', linestyle='--')
-        i += 1
-
-ax_gfp[-1].legend(loc='upper right')
-fig_gfp.show()
+# unwhitened evoked response and global field power (GFP)
+evoked.plot_white(noise_covs)

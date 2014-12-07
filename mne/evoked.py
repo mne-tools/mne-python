@@ -18,7 +18,7 @@ from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     object_hash)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
-from .viz import plot_evoked_image
+from .viz import plot_evoked_image, plot_evoked_white
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -560,6 +560,18 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
+
+    def plot_white(self, noise_cov, show=True):
+        """Plot whitend evoked response
+
+        Parameters
+        ----------
+        noise_cov : list or tuple or single instance of mne.cov.Covariance
+            The noise covs.
+        show : bool
+            Whether to show the figure or not. Defaults to True.
+        """
+        return plot_evoked_white(self, noise_cov=noise_cov, show=show)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime

@@ -15,11 +15,10 @@ from itertools import cycle
 
 import numpy as np
 
-from ..io.pick import channel_type
+from ..io.pick import channel_type, pick_types
 from ..externals.six import string_types
 from .utils import _mutable_defaults, _check_delayed_ssp
 from .utils import _draw_proj_checkbox, tight_layout
-
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
@@ -295,3 +294,109 @@ def _plot_update_evoked(params, bools):
         else:
             ax.images[0].set_data(D)
     params['fig'].canvas.draw()
+
+
+def plot_evoked_white(evoked, noise_cov, show=True):
+    """Plot whitend evoked response
+
+    Parameters
+    ----------
+    evoked : instance of mne.Evoked
+        The evoked response.
+    noise_cov : list or tuple or single instance of mne.cov.Covariance
+        The noise covs.
+    show : bool
+        Whether to show the figure or not. Defaults to True.
+    """
+    from ..cov import whiten_evoked  # recursive import
+    import matplotlib.pyplot as plt
+    ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
+    n_ch_used = len(ch_used)
+
+    if not isinstance(noise_cov, (list, tuple)):
+        noise_cov = [noise_cov]
+
+    if len(noise_cov) > 1:
+        n_columns = 2
+        n_extra_row = 0
+    else:
+        n_columns = 1
+        n_extra_row = 1
+
+    fig, axes = plt.subplots(n_ch_used + n_extra_row,
+                             n_columns, sharex=True, sharey=False)
+
+    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+    evokeds_white = [whiten_evoked(evoked, n, picks) for n in noise_cov]
+    axes_evoked = axes[:n_ch_used, 0] if n_columns > 1 else axes[:n_ch_used]
+    evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
+
+    pick_list = []
+    for ch in ch_used:
+        if ch == 'eeg':
+            picks = pick_types(evoked.info, meg=False, eeg=True)
+        elif ch == 'grad':
+            picks = pick_types(evoked.info, meg='grad', eeg=False)
+        elif ch == 'mag':
+            picks = pick_types(evoked.info, meg='mag', eeg=False)
+        pick_list.append((ch, picks))
+
+    def whitened_gfp(x):
+        """Whitened Global Field Power
+
+        The MNE inverse solver assumes zero mean whitend data as input.
+        Therefore, a chi^2 statistic will be best to detect model violations.
+        """
+        return np.sum(x ** 2, axis=0) / len(x)
+
+    if n_columns > 1:
+        suptitle = ('Whitened evoked response (left) and global field power'
+                    ' (right)' +
+                    ' (best estimator = "%s")' % noise_cov[0]['method'])
+        fig.suptitle(suptitle)
+    ax_gfp = axes[n_ch_used:1 + n_ch_used] if n_columns < 2 else axes[:, 1]
+    times = evoked.times * 1e3
+    titles_, colors_ = _mutable_defaults(('titles', None), ('color', None))
+
+    colors = [plt.cm.RdBu(i) for i in np.linspace(0.2, 0.8, len(noise_cov))]
+    ch_colors = [colors_[ch] for ch in ch_used]
+    iter_gfp = zip(evokeds_white, noise_cov, colors)
+
+    for evoked_white, noise_cov, color in iter_gfp:
+        i = 0
+        for (ch, sub_picks), ch_color in zip(pick_list, ch_colors):
+            title = '{0} ({1}{2})'.format(
+                    titles_[ch] if n_columns > 1 else ch,
+                    len(sub_picks), ' channels' if n_columns > 1 else '')
+            label = noise_cov['method']
+
+            ax_gfp[i].set_title(title if n_columns > 1 else
+                                'whitened global field power (GFP),'
+                                ' best = "%s"' % label)
+            gfp = whitened_gfp(evoked_white.data[sub_picks])
+            ax_gfp[i].plot(times, gfp,
+                           label=(label if n_columns > 1 else title),
+                           color=color if n_columns > 1 else ch_color)
+            ax_gfp[i].set_xlabel('times [ms]')
+            ax_gfp[i].set_ylabel('GFP [chi^2]')
+            ax_gfp[i].set_xlim(times[0], times[-1])
+            ax_gfp[i].set_ylim(0, 10)
+            ax_gfp[i].axhline(1, color='red', linestyle='--')
+            if n_columns > 1:
+                i += 1
+    ax = ax_gfp[-1]
+    if n_columns < 2:
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.1), fontsize=12)
+    else:
+        # for ax in ax_gfp:
+            # box = ax.get_position()
+            # ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+        ax.legend(loc='upper right', fontsize=10)
+    fig.subplots_adjust(top=0.9)
+    fig.canvas.draw()
+
+    if show is True:
+        fig.show()
+    return fig
