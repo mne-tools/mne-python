@@ -894,7 +894,7 @@ class Report(object):
         data_path : str
             Path to the folder containing data whose HTML report will be
             created.
-        pattern : list of str
+        pattern : str | list of str
             Filename pattern(s) to include in the report.
             Example: [*raw.fif, *ave.fif] will include Raw as well as Evoked
             files.
