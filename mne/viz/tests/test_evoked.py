@@ -103,3 +103,4 @@ def test_plot_evoked():
         cov = read_cov(cov_fname)
         cov['method'] = 'empirical'
         evoked.plot_white(cov)
+        evoked.plot_white([cov, cov])
