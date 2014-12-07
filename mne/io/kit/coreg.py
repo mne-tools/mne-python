@@ -42,7 +42,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = read_dig_points(fname, comments='%')
+        mrk_points = read_dig_points(fname)
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)

@@ -393,7 +393,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = read_dig_points(hsp, comments='%')
+            hsp = read_dig_points(hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
             hsp = _decimate_points(hsp, decim=5)
@@ -407,9 +407,9 @@ class RawKIT(_BaseRaw):
         hsp = apply_trans(als_ras_trans_mm, hsp)
 
         if isinstance(elp, string_types):
-            elp_points = read_dig_points(elp, comments='%')
-            if len(elp) < 8:
-                err = ("File %r contains fewer than 8 points; got shape "
+            elp_points = read_dig_points(elp)
+            if len(elp_points) != 8:
+                err = ("File %r should contain 8 points; got shape "
                        "%s." % (elp, elp_points.shape))
                 raise ValueError(err)
             elp = elp_points
@@ -454,8 +454,7 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
-        self.info['dig'] = construct_dig_points(self.info, nasion, lpa,
-                                                rpa, elp, hsp)
+        self.info['dig'] = construct_dig_points(nasion, lpa, rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t
