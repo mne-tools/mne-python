@@ -100,7 +100,7 @@ def test_ch_loc():
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
     raw_bin = Raw(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._sqd_params['sensor_locs'][:, :5]
+    ch_py = raw_py._kit_info['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
