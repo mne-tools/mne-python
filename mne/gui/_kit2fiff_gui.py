@@ -277,8 +277,9 @@ class Kit2FiffModel(HasPrivateTraits):
                      slope=self.stim_slope)
 
         if np.any(self.fid):
-            raw.info = raw._set_dig_neuromag(self.info, self.fid, self.elp,
-                                             self.hsp, self.dev_head_trans)
+            from mne.io.kit import _set_dig_neuromag
+            raw.info = _set_dig_neuromag(self.info, self.fid, self.elp,
+                                         self.hsp, self.dev_head_trans)
         return raw
 
 
