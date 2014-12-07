@@ -168,14 +168,14 @@ class SetChannelsMixin(object):
             The names of the channels to be set.
         """
         pos = np.asarray(pos, dtype=np.float)
-        if len(pos) != 3:
+        if pos.shape[-1] != 3 or pos.ndim != 2:
             err = ('Channel positions must have the shape (n_points, 3) '
-                   'not (n_points, %d).' % len(pos))
+                   'not %s.' % (pos.shape,))
             raise ValueError(err)
-        for name, pos in zip(names, pos):
+        for name, p in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
-                self.info['chs'][idx]['loc'][:3] = pos
+                self.info['chs'][idx]['loc'][:3] = p
             else:
                 err = ('%s was not found in the info. Cannot be updated.'
                        % name)

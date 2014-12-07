@@ -92,12 +92,12 @@ def test_read_write_info():
 def test_io_dig_points():
     """Test Writing for dig files"""
     tempdir = _TempDir()
-    points = read_dig_points(hsp_fname, comments='%')
+    points = read_dig_points(hsp_fname)
 
     dest = op.join(tempdir, 'test.txt')
     assert_raises(ValueError, write_dig_points, dest, points[:, :2])
     write_dig_points(dest, points)
-    points1 = read_dig_points(dest, comments='%')
+    points1 = read_dig_points(dest)
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
@@ -108,30 +108,28 @@ def test_io_dig_points():
 
 def test_construct_dig_points():
     """Test application of Polhemus HSP to info"""
-    dig_points = read_dig_points(hsp_fname, comments='%')
+    dig_points = read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = construct_dig_points(info, dig_points=dig_points)
+    info['dig'] = construct_dig_points(dig_points=dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
-    dig_points = read_dig_points(elp_fname, comments='%')
+    dig_points = read_dig_points(elp_fname)
     nasion, lpa, rpa = dig_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = construct_dig_points(info, nasion, lpa, rpa, dig_points[3:],
-                                       None)
+    info['dig'] = construct_dig_points(nasion, lpa, rpa, dig_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
                        np.array([1.3930, 13.1613, -4.6967]))
-    assert_raises(ValueError, construct_dig_points, info, nasion[:2])
-    assert_raises(ValueError, construct_dig_points, info, None, lpa[:2])
-    assert_raises(ValueError, construct_dig_points, info, None, None,
-                  rpa[:2])
-    assert_raises(ValueError, construct_dig_points, info, None, None, None,
+    assert_raises(ValueError, construct_dig_points, nasion[:2])
+    assert_raises(ValueError, construct_dig_points, None, lpa[:2])
+    assert_raises(ValueError, construct_dig_points, None, None, rpa[:2])
+    assert_raises(ValueError, construct_dig_points, None, None, None,
                   dig_points[:, :2])
-    assert_raises(ValueError, construct_dig_points, info, None, None, None,
-                  None, dig_points[:, :2])
+    assert_raises(ValueError, construct_dig_points, None, None, None, None,
+                  dig_points[:, :2])

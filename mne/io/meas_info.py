@@ -172,7 +172,7 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
-def read_dig_points(fname, comments='#'):
+def read_dig_points(fname, comments='%'):
     """Read digitizer data from file.
 
     This function can read space-delimited text files of digitizer data.
@@ -183,7 +183,7 @@ def read_dig_points(fname, comments='#'):
         The filepath of space delimited file with points.
     comments : str
         The character used to indicate the start of a comment;
-        Default: '#'.
+        Default: '%'.
 
     Returns
     -------
@@ -191,8 +191,8 @@ def read_dig_points(fname, comments='#'):
         Array of dig points with requested transformation or decimation.
     """
     dig_points = np.loadtxt(fname, comments=comments)
-    if len(dig_points) != 3:
-        err = 'Data must be (n, 3) instead of (n, %d)' % dig_points.shape[1]
+    if dig_points.shape[-1] != 3:
+        err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
 
     return dig_points
@@ -214,7 +214,7 @@ def write_dig_points(fname, dig_points):
     dig_points = np.asarray(dig_points)
     if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
         err = ("Points must be of shape (n_points, 3), "
-               "not %s" % dig_points.shape)
+               "not %s" % (dig_points.shape,))
         raise ValueError(err)
 
     if ext == '.pickled':
@@ -235,23 +235,21 @@ def write_dig_points(fname, dig_points):
         raise ValueError(err)
 
 
-def construct_dig_points(info, nasion=None, lpa=None, rpa=None, hpi=None,
+def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                          dig_points=None):
     """Constructs digitizer info for the info.
 
     Parameters
     ----------
-    info : instance of Info
-        The measurement info to update.
-    nasion : array-like | numpy.array, shape (3,) | None
+    nasion : array-like | numpy.ndarray, shape (3,) | None
         Point designated as the nasion point.
-    lpa : array-like |  numpy.array, shape (3,) | None
+    lpa : array-like |  numpy.ndarray, shape (3,) | None
         Point designated as the left auricular point.
-    rpa : array-like |  numpy.array, shape (3,) | None
+    rpa : array-like |  numpy.ndarray, shape (3,) | None
         Point designated as the right auricular point.
-    hpi : array-like | numpy.array, shape (n_points, 3) | None
+    hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
         Points designated as head position indicator points.
-    dig_points : numpy.array or path of tab delimited file, shape (n_points, 3)
+    dig_points : array-like | numpy.ndarray, shape (n_points, 3)
         Points designed as the headshape points.
 
     Returns
@@ -259,54 +257,54 @@ def construct_dig_points(info, nasion=None, lpa=None, rpa=None, hpi=None,
     pts : list
         List of digitizer points to be added to the info['dig'].
     """
-
     pts = []
     if nasion is not None:
         if nasion.shape == (3,):
-            pts.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+            pts.append({'r': np.asarray(nasion),
+                        'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('Nasion should have the shape (1, 3) instead of %s'
-                   % nasion.shape)
+            err = ('Nasion should have the shape (3,) instead of %s'
+                   % (nasion.shape,))
             raise ValueError(err)
     if lpa is not None:
         if lpa.shape == (3,):
-            pts.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+            pts.append({'r': np.asarray(lpa), 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('LPA should have the shape (1, 3) instead of %s'
-                   % lpa.shape)
+            err = ('LPA should have the shape (3,) instead of %s'
+                   % (lpa.shape,))
             raise ValueError(err)
     if rpa is not None:
         if rpa.shape == (3,):
-            pts.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+            pts.append({'r': np.asarray(rpa), 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('RPA should have the shape (1, 3) instead of %s'
-                   % rpa.shape)
+            err = ('RPA should have the shape (3,) instead of %s'
+                   % (rpa.shape,))
             raise ValueError(err)
     if hpi is not None:
-        if len(hpi) == 3:
+        if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                pts.append({'r': point, 'ident': idx,
+                pts.append({'r': np.asarray(point), 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
             err = ('HPI should have the shape (n_points, 3) instead of '
-                   '(%d, %d)' % hpi.shape)
+                   '%s' % (hpi.shape,))
             raise ValueError(err)
     if dig_points is not None:
-        if len(dig_points) == 3:
+        if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                pts.append({'r': point, 'ident': idx,
+                pts.append({'r': np.asarray(point), 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
             err = ('Points should have the shape (n_points, 3) instead of '
-                   '(%d, %d)' % dig_points.shape)
+                   '%s' % (dig_points.shape,))
             raise ValueError(err)
 
     return pts
