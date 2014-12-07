@@ -477,8 +477,9 @@ class EpochsKIT(EpochsArray):
         data = data.T
         # reshape 
         data = data.reshape((nchan, n_epochs, epoch_length))
-        data = data.transpose((1,0,2))
         data = data[:, sel, :]
+        data = data.transpose((1,0,2))
+
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
