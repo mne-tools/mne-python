@@ -69,14 +69,25 @@ Generate the report:
     Embedding : jquery-ui.min.css
     Embedding : bootstrap.min.css
 
-Only include \*-eve.fif files in the report:
+Only include \*audvis_raw.fif and \*-eve.fif files in the report:
 
-    >>> report.parse_folder(data_path=path, pattern='*-eve.fif') # doctest: +SKIP
-    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif
-    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_eog-eve.fif
-    Rendering : .../MNE-sample-data/MEG/sample/ernoise_raw-eve.fif
-    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_raw-eve.fif
-    Rendering : .../MNE-sample-data/MEG/sample/sample_audvis_ecg-eve.fif
+    >>> report.parse_folder(data_path=path, pattern=['*audvis_raw.fif', *-eve.fif']) # doctest: +SKIP
+    Iterating over 6 potential files (this may take some time)
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
+    Opening raw data file /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif...
+        Read a total of 3 projection items:
+            PCA-v1 (1 x 102)  idle
+            PCA-v2 (1 x 102)  idle
+            PCA-v3 (1 x 102)  idle
+    Current compensation grade : 0
+        Range : 25800 ... 192599 =     42.956 ...   320.670 secs
+    Ready.
+    Adding average EEG reference projection.
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_eog-eve.fif
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/ernoise_raw-eve.fif
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw-eve.fif
+    Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_ecg-eve.fif
 
 Save the report as an html, but do not open the html in a browser:
 

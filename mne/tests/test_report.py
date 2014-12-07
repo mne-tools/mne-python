@@ -98,6 +98,20 @@ def test_render_report():
                 overwrite=True)
     assert_true(op.isfile(op.join(tempdir, 'report.html')))
 
+    # Check pattern matching with multiple patterns
+    pattern = ['*raw.fif', '*eve.fif']
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        report.parse_folder(data_path=tempdir, pattern=pattern)
+    assert_true(len(w) >= 1)
+
+    fnames = glob.glob(op.join(tempdir, '*.raw')) + \
+        glob.glob(op.join(tempdir, '*.raw'))
+    for fname in fnames:
+        assert_true(op.basename(fname) in
+                    [op.basename(x) for x in report.fnames])
+        assert_true(''.join(report.html).find(op.basename(fname)) != -1)
+
 
 @requires_mayavi
 @requires_PIL
