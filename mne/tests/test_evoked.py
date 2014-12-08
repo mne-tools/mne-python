@@ -344,8 +344,8 @@ def test_grand_average():
     evoked2.nave = 4
     my_comparison = [evoked1, evoked2]
     avg_nave = (evoked1.nave + evoked2.nave) / len(my_comparison)
-    grand_average(my_comparison)
-    assert_equal(ch_names, grand_average.ch_names)
+    gave = grand_average(my_comparison)
+    assert_equal(ch_names, gave.ch_names)
     assert_equal(avg_nave, 2)
 
 
