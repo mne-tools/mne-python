@@ -79,9 +79,9 @@ class RawKIT(_BaseRaw):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
-        self.info, self._kit_info = get_kit_info(input_fname, stim)
-        if stim:
-            self._kit_info['stim'] = self._set_stimchannels(stim, slope)
+        self.info, self._kit_info = get_kit_info(input_fname)
+        self._kit_info['slope'] = slope
+        self._kit_info['stim'] = _set_stimchannels(stim)
         self._kit_info['stimthresh'] = stimthresh
         self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] != 1:
@@ -163,7 +163,7 @@ class RawKIT(_BaseRaw):
 
         return stim_ch
 
-    def _set_stimchannels(self, stim='<', slope='-'):
+    def _set_stimchannels(self, stim='<'):
         """Specify how the trigger channel is synthesized from analog channels.
 
         Has to be done before loading data. For a RawKIT instance that has been
@@ -180,32 +180,40 @@ class RawKIT(_BaseRaw):
             in sequence.
             '>' means the largest trigger assigned to the last channel
             in sequence.
-        slope : '+' | '-'
-            '+' means a positive slope (low-to-high) on the event channel(s)
-            is used to trigger an event.
-            '-' means a negative slope (high-to-low) on the event channel(s)
-            is used to trigger an event.
         """
+        if stim is not None:
+            if isinstance(stim, str):
+                picks = pick_types(self.info, meg=False, ref_meg=False,
+                                   misc=True, exclude=[])[:8]
+                if stim == '<':
+                    stim = picks[::-1]
+                elif stim == '>':
+                    stim = picks
+                else:
+                    raise ValueError("stim needs to be list of int, '>' or "
+                                     "'<', not %r" % str(stim))
+            elif np.max(stim) >= self._kit_info['nchan']:
+                msg = ("Tried to set stim channel %i, but squid file only has %i"
+                       " channels" % (np.max(stim), self._kit_info['nchan']))
+                raise ValueError(msg)
+            # label STIM channel if one is present
+            ch_name = 'STIM 014'
+            chan_info = {}
+            chan_info['cal'] = KIT.CALIB_FACTOR
+            chan_info['logno'] = self.info['nchan']
+            chan_info['scanno'] = self.info['nchan']
+            chan_info['range'] = 1.0
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['unit_mul'] = 0
+            chan_info['ch_name'] = ch_name
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['loc'] = np.zeros(12)
+            chan_info['kind'] = FIFF.FIFFV_STIM_CH
+            self.info['chs'].append(chan_info)
+            self.info['ch_names'].append(ch_name)
         if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
-
-        self._kit_info['slope'] = slope
-
-        if isinstance(stim, str):
-            picks = pick_types(self.info, meg=False, ref_meg=False,
-                               misc=True, exclude=[])[:8]
-            if stim == '<':
-                stim = picks[::-1]
-            elif stim == '>':
-                stim = picks
-            else:
-                raise ValueError("stim needs to be list of int, '>' or "
-                                 "'<', not %r" % str(stim))
-        elif np.max(stim) >= self._kit_info['nchan']:
-            msg = ("Tried to set stim channel %i, but squid file only has %i"
-                   " channels" % (np.max(stim), self._kit_info['nchan']))
-            raise ValueError(msg)
 
         return stim
 
@@ -366,7 +374,11 @@ class EpochsKIT(EpochsArray):
             raise ValueError('Event list does not match number of epochs.')
 
         self._kit_info['fname'] = input_fname
-        if self._kit_info['acq_type'] == 3:
+        if self._kit_info['acq_type'] == 2:
+            self._kit_info['data_offset'] = KIT.AVE_OFFSET
+            self._kit_info['data_length'] = KIT.DOUBLE
+            self._kit_info['dtype'] = np.float64
+        elif self._kit_info['acq_type'] == 3:
             self._kit_info['data_offset'] = KIT.RAW_OFFSET
             self._kit_info['data_length'] = KIT.INT
             self._kit_info['dtype'] = 'h'
@@ -419,8 +431,7 @@ class EpochsKIT(EpochsArray):
             data_offset = unpack('i', fid.read(KIT.INT))[0]
             nchan = self._kit_info['nchan']
             count = n_samples * nchan
-            pointer = start * nchan * data_length
-            fid.seek(data_offset + pointer)
+            fid.seek(data_offset)
             data = np.fromfile(fid, dtype=dtype, count=count)
             data = data.reshape((n_samples, nchan))
         # amplifier applies only to the sensor channels
@@ -478,7 +489,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         A dictionary describe the device-head transformation.
     """
     if isinstance(hsp, string_types):
-        hsp = read_dig_points(hsp, comments='%')
+        hsp = read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
         hsp = _decimate_points(hsp, decim=5)
@@ -492,9 +503,9 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     hsp = apply_trans(als_ras_trans_mm, hsp)
 
     if isinstance(elp, string_types):
-        elp_points = read_dig_points(elp, comments='%')
-        if len(elp) < 8:
-            err = ("File %r contains fewer than 8 points; got shape "
+        elp_points = read_dig_points(elp)
+        if len(elp_ponts) != 8:
+            err = ("File %r should contain 8 points; got shape "
                    "%s." % (elp, elp_points.shape))
             raise ValueError(err)
         elp = elp_points
@@ -679,8 +690,6 @@ def get_kit_info(rawfile, stim):
                            in range(1, sqd['n_sens'] + 1)]
         ch_names['MISC'] = ['MISC %03d' % ch for ch
                             in range(1, sqd['nmiscchan'] + 1)]
-        if stim:
-            ch_names['STIM'] = ['STI 014']
         locs = sqd['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
@@ -750,26 +759,8 @@ def get_kit_info(rawfile, stim):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             info['chs'].append(chan_info)
-        
-        # label STIM channel if one is present
-        if stim:
-            chan_info = {}
-            chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = info['nchan']
-            chan_info['scanno'] = info['nchan']
-            chan_info['range'] = 1.0
-            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
-            chan_info['unit_mul'] = 0
-            chan_info['ch_name'] = ch_names['STIM'][0]
-            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
-            chan_info['loc'] = np.zeros(12)
-            chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            info['chs'].append(chan_info)
-        
-            info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
-                                     ch_names['STIM'])
-        else:
-            info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
+                
+        info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
         
     return info, sqd
 
