@@ -366,11 +366,7 @@ class EpochsKIT(EpochsArray):
             raise ValueError('Event list does not match number of epochs.')
 
         self._kit_info['fname'] = input_fname
-        if self._kit_info['acq_type'] == 2:
-            self._kit_info['data_offset'] = KIT.AVE_OFFSET
-            self._kit_info['data_length'] = KIT.DOUBLE
-            self._kit_info['dtype'] = np.float64
-        elif self._kit_info['acq_type'] == 3:
+        if self._kit_info['acq_type'] == 3:
             self._kit_info['data_offset'] = KIT.RAW_OFFSET
             self._kit_info['data_length'] = KIT.INT
             self._kit_info['dtype'] = 'h'

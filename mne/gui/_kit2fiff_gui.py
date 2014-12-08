@@ -10,7 +10,7 @@ from scipy.linalg import inv
 from threading import Thread
 
 from ..externals.six.moves import queue
-from ..io.meas_info import _read_dig_points
+from ..io.meas_info import _read_dig_points, _make_dig_points
 
 
 # allow import without traits
