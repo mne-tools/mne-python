@@ -9,7 +9,7 @@ from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
 from mne.io.meas_info import (Info, create_info, write_dig_points,
-                              read_dig_points, construct_dig_points)
+                              read_dig_points, make_dig_points)
 from mne.transforms import get_ras_to_neuromag_trans, apply_trans
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir
@@ -106,13 +106,13 @@ def test_io_dig_points():
     assert_raises(ValueError, read_dig_points, dest)
 
 
-def test_construct_dig_points():
+def test_make_dig_points():
     """Test application of Polhemus HSP to info"""
     dig_points = read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = construct_dig_points(dig_points=dig_points)
+    info['dig'] = make_dig_points(dig_points=dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
@@ -121,15 +121,15 @@ def test_construct_dig_points():
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = construct_dig_points(nasion, lpa, rpa, dig_points[3:], None)
+    info['dig'] = make_dig_points(nasion, lpa, rpa, dig_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
                        np.array([1.3930, 13.1613, -4.6967]))
-    assert_raises(ValueError, construct_dig_points, nasion[:2])
-    assert_raises(ValueError, construct_dig_points, None, lpa[:2])
-    assert_raises(ValueError, construct_dig_points, None, None, rpa[:2])
-    assert_raises(ValueError, construct_dig_points, None, None, None,
+    assert_raises(ValueError, make_dig_points, nasion[:2])
+    assert_raises(ValueError, make_dig_points, None, lpa[:2])
+    assert_raises(ValueError, make_dig_points, None, None, rpa[:2])
+    assert_raises(ValueError, make_dig_points, None, None, None,
                   dig_points[:, :2])
-    assert_raises(ValueError, construct_dig_points, None, None, None, None,
+    assert_raises(ValueError, make_dig_points, None, None, None, None,
                   dig_points[:, :2])

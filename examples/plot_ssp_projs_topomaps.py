@@ -22,7 +22,7 @@ data_path = sample.data_path()
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-evoked = read_evokeds(ave_fname, condition='Left Auditory')
+evoked = read_evokeds(ave_fname, condition='Left Auditory', proj=False)
 projs = read_proj(ecg_fname)
 evoked.add_proj(projs)
 

@@ -167,6 +167,9 @@ class SetChannelsMixin(object):
         names : list of str
             The names of the channels to be set.
         """
+        if len(pos) != len(names):
+            raise ValueError('Number of channel positions not equal to '
+                             'the number of names given.')
         pos = np.asarray(pos, dtype=np.float)
         if pos.shape[-1] != 3 or pos.ndim != 2:
             err = ('Channel positions must have the shape (n_points, 3) '
