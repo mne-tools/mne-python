@@ -41,7 +41,8 @@ Changelog
 
    - Add reading and writing support for digitizer data, and function for adding dig points to info by `Teon Brooks`_
 
-   - Add functions `get_channel_positions` for getting the sensor locations, and `set_channel_positions` for setting channel positions, and `plot_projs_topomap` for plotting the projections to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_
+   - Add methods `get_channel_positions`, `set_channel_positions` for setting channel positions,
+     and `plot_projs_topomap` to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_
 
 
 BUG
@@ -86,7 +87,9 @@ API
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
-   - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and replaced with `read_dig_points` and `write_dig_points` respectively by `Teon Brooks`_
+   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
+
+   - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and made private by `Teon Brooks`_
 
 .. _changes_0_8:
 
