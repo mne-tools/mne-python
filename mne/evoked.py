@@ -910,28 +910,32 @@ def grand_average(all_evokeds):
     ----------
     all_evoked : list of Evoked data
         The evoked datasets.
-    keep_channels : bool
-        If True the original evokeds will be untouched, if False
-        equalize_channels will be applied to the original evoked data.
-        Defaults to True.
 
     Returns
     -------
     grand_average : Evoked
-        the grand average file.
+        the grand average data.
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(evk, Evoked) for evk in all_evokeds):
         raise ValueError("Not all the elements in list are evoked data")
 
     # Copy channels to leave the orignal evoked datasets intact.
-    tmp_list = all_evokeds
+    tmp_list = deepcopy(all_evokeds)
+
+    # change the nave for all evoked datasets.
+    average_nave = int(sum(e.nave for e in all_evokeds) /
+                       float(len(all_evokeds)))
+    for evk in tmp_list:
+        evk.nave = average_nave
 
     equalize_channels(tmp_list)  # apply equalize_channels
     # make grand_average object using merge_evoked
     grand_average = merge_evoked(tmp_list)
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_evokeds)
     # change comment field
-    grand_average.comment = "Grand average (n = %d)" % len(all_evokeds)
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
 
 
