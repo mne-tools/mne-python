@@ -190,7 +190,7 @@ def read_dig_points(fname, comments='%'):
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points with requested transformation or decimation.
     """
-    dig_points = np.loadtxt(fname, comments=comments, ndim=2)
+    dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
@@ -258,9 +258,9 @@ def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     """
     dig = []
     if nasion is not None:
+        nasion = np.asarray(nasion)
         if nasion.shape == (3,):
-            dig.append({'r': np.asarray(nasion),
-                        'ident': FIFF.FIFFV_POINT_NASION,
+            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
@@ -268,8 +268,9 @@ def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                    % (nasion.shape,))
             raise ValueError(err)
     if lpa is not None:
+        lpa = np.asarray(lpa)
         if lpa.shape == (3,):
-            dig.append({'r': np.asarray(lpa), 'ident': FIFF.FIFFV_POINT_LPA,
+            dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
@@ -277,8 +278,9 @@ def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                    % (lpa.shape,))
             raise ValueError(err)
     if rpa is not None:
+        rpa = np.asarray(rpa)
         if rpa.shape == (3,):
-            dig.append({'r': np.asarray(rpa), 'ident': FIFF.FIFFV_POINT_RPA,
+            dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
@@ -286,9 +288,10 @@ def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                    % (rpa.shape,))
             raise ValueError(err)
     if hpi is not None:
+        hpi = np.asarray(hpi)
         if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                dig.append({'r': np.asarray(point), 'ident': idx,
+                dig.append({'r': point, 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -296,9 +299,10 @@ def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                    '%s' % (hpi.shape,))
             raise ValueError(err)
     if dig_points is not None:
+        dig_points = np.asarray(dig_points)
         if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                dig.append({'r': np.asarray(point), 'ident': idx,
+                dig.append({'r': point, 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
