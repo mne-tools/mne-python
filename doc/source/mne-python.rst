@@ -12,6 +12,7 @@ MNE with Python
    mne_report_tutorial.rst
    auto_examples/index.rst
    python_reference.rst
+   faq.rst
    whats_new.rst
    contributing.rst
 
