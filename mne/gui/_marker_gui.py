@@ -41,12 +41,11 @@ if backend_is_wx:
                     'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
                     'Text marker file (*.txt)|*.txt',
                     'Pickled markers (*.pickled)|*.pickled']
-    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt",
-                        "Pickled KIT parameters (*.pickled)|*.pickled"]
+    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
-    mrk_out_wildcard = ["*.txt;*.pickled"]
-out_ext = ['.txt', '.pickled']
+    mrk_out_wildcard = ["*.txt"]
+out_ext = ['.txt']
 
 
 use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])

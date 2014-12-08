@@ -216,10 +216,7 @@ def write_dig_points(fname, dig_points):
                "not %s" % (dig_points.shape,))
         raise ValueError(err)
 
-    if ext == '.pickled':
-        with open(fname, 'wb') as fid:
-            pickle.dump({'mrk': mrk}, fid, pickle.HIGHEST_PROTOCOL)
-    elif ext == '.txt':
+    if ext == '.txt':
         with open(fname, 'wb') as fid:
             version = __version__
             now = dt.now().strftime("%I:%M%p on %B %d, %Y")
@@ -230,7 +227,7 @@ def write_dig_points(fname, dig_points):
                         "x y z per line\n".format(N=len(dig_points))))
             np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
     else:
-        err = "Unrecognized extension: %r. Need '.txt' or '.pickled'." % ext
+        err = "Unrecognized extension: %r. Need '.txt'." % ext
         raise ValueError(err)
 
 

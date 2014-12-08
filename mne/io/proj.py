@@ -193,16 +193,17 @@ class ProjMixin(object):
             from mne.viz.topomap import plot_projs_topomap
             from mne.channels.layout import find_layout
             if layout is None:
-                if isinstance(ch_type, list):
-                    layout = []
-                    for ch in ch_type:
-                        if ch in self:
-                            layout.append(find_layout(self.info, ch))
-                        else:
-                            err = 'Channel type %s is not found in info.' % ch
-                            warnings.warn(err)
-                else:
-                    layout = find_layout(self.info, ch_type)
+                layout = []
+                if ch_type is None:
+                    ch_type = ['meg', 'eeg']
+                elif isinstance(ch_type, str):
+                    ch_type = [ch_type]                    
+                for ch in ch_type:
+                    if ch in self:
+                        layout.append(find_layout(self.info, ch))
+                    else:
+                        err = 'Channel type %s is not found in info.' % ch
+                        warnings.warn(err)
             fig = plot_projs_topomap(self.info['projs'], layout)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
