@@ -22,7 +22,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, read_dig_points, make_dig_points
+from ..meas_info import Info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -393,7 +393,7 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = read_dig_points(hsp)
+            hsp = _read_dig_points(hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
             hsp = _decimate_points(hsp, decim=5)
@@ -406,7 +406,7 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = read_dig_points(elp)
+            elp_points = _read_dig_points(elp)
             if len(elp_points) != 8:
                 err = ("File %r should contain 8 points; got shape "
                        "%s." % (elp, elp_points.shape))
@@ -455,7 +455,7 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
-        self.info['dig'] = make_dig_points(nasion, lpa, rpa, elp, hsp)
+        self.info['dig'] = _make_dig_points(nasion, lpa, rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t

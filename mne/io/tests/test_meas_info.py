@@ -8,8 +8,8 @@ from numpy.testing import assert_array_equal
 from mne import io, Epochs, read_events
 from mne.io import read_fiducials, write_fiducials
 from mne.io.constants import FIFF
-from mne.io.meas_info import (Info, create_info, write_dig_points,
-                              read_dig_points, make_dig_points)
+from mne.io.meas_info import (Info, create_info, _write_dig_points,
+                              _read_dig_points, _make_dig_points)
 from mne.transforms import get_ras_to_neuromag_trans, apply_trans
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir
@@ -92,44 +92,44 @@ def test_read_write_info():
 def test_io_dig_points():
     """Test Writing for dig files"""
     tempdir = _TempDir()
-    points = read_dig_points(hsp_fname)
+    points = _read_dig_points(hsp_fname)
 
     dest = op.join(tempdir, 'test.txt')
-    assert_raises(ValueError, write_dig_points, dest, points[:, :2])
-    write_dig_points(dest, points)
-    points1 = read_dig_points(dest)
+    assert_raises(ValueError, _write_dig_points, dest, points[:, :2])
+    _write_dig_points(dest, points)
+    points1 = _read_dig_points(dest)
     err = "Dig points diverged after writing and reading."
     assert_array_equal(points, points1, err)
 
     points2 = np.array([[-106.93, 99.80], [99.80, 68.81]])
     np.savetxt(dest, points2, delimiter='\t', newline='\n')
-    assert_raises(ValueError, read_dig_points, dest)
+    assert_raises(ValueError, _read_dig_points, dest)
 
 
 def test_make_dig_points():
     """Test application of Polhemus HSP to info"""
-    dig_points = read_dig_points(hsp_fname)
+    dig_points = _read_dig_points(hsp_fname)
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = make_dig_points(dig_points=dig_points)
+    info['dig'] = _make_dig_points(dig_points=dig_points)
     assert_true(info['dig'])
     assert_array_equal(info['dig'][0]['r'], [-106.93, 99.80, 68.81])
 
-    dig_points = read_dig_points(elp_fname)
+    dig_points = _read_dig_points(elp_fname)
     nasion, lpa, rpa = dig_points[:3]
     info = create_info(ch_names=['Test Ch'], sfreq=1000., ch_types=None)
     assert_false(info['dig'])
 
-    info['dig'] = make_dig_points(nasion, lpa, rpa, dig_points[3:], None)
+    info['dig'] = _make_dig_points(nasion, lpa, rpa, dig_points[3:], None)
     assert_true(info['dig'])
     idx = [d['ident'] for d in info['dig']].index(FIFF.FIFFV_POINT_NASION)
     assert_array_equal(info['dig'][idx]['r'],
                        np.array([1.3930, 13.1613, -4.6967]))
-    assert_raises(ValueError, make_dig_points, nasion[:2])
-    assert_raises(ValueError, make_dig_points, None, lpa[:2])
-    assert_raises(ValueError, make_dig_points, None, None, rpa[:2])
-    assert_raises(ValueError, make_dig_points, None, None, None,
+    assert_raises(ValueError, _make_dig_points, nasion[:2])
+    assert_raises(ValueError, _make_dig_points, None, lpa[:2])
+    assert_raises(ValueError, _make_dig_points, None, None, rpa[:2])
+    assert_raises(ValueError, _make_dig_points, None, None, None,
                   dig_points[:, :2])
-    assert_raises(ValueError, make_dig_points, None, None, None, None,
+    assert_raises(ValueError, _make_dig_points, None, None, None, None,
                   dig_points[:, :2])
