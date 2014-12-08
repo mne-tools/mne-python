@@ -190,7 +190,7 @@ def read_dig_points(fname, comments='%'):
     dig_points : np.ndarray, shape (n_points, 3)
         Array of dig points with requested transformation or decimation.
     """
-    dig_points = np.loadtxt(fname, comments=comments)
+    dig_points = np.loadtxt(fname, comments=comments, ndim=2)
     if dig_points.shape[-1] != 3:
         err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
         raise ValueError(err)
@@ -205,9 +205,8 @@ def write_dig_points(fname, dig_points):
     ----------
     fname : str
         Path to the file to write. The kind of file to write is determined
-        based on the extension: '.txt' for tab separated text file, '.pickled'
-        for pickled file.
-    dig_points : numpy.array, shape (n_points, 3)
+        based on the extension: '.txt' for tab separated text file.
+    dig_points : numpy.ndarray, shape (n_points, 3)
         Points.
     """
     _, ext = op.splitext(fname)
@@ -236,7 +235,7 @@ def write_dig_points(fname, dig_points):
 
 
 def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                         dig_points=None):
+                    dig_points=None):
     """Constructs digitizer info for the info.
 
     Parameters

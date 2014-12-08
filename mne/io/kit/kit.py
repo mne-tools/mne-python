@@ -404,7 +404,6 @@ class RawKIT(_BaseRaw):
                    "downsample is using FastScan.")
             msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
             logger.warning(msg)
-        hsp = apply_trans(als_ras_trans_mm, hsp)
 
         if isinstance(elp, string_types):
             elp_points = read_dig_points(elp)
@@ -416,11 +415,13 @@ class RawKIT(_BaseRaw):
         elif len(elp) < 8:
             err = ("ELP contains fewer than 8 points; got shape "
                    "%s." % elp)
-        elp = apply_trans(als_ras_trans_mm, elp)
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
-        mrk = apply_trans(als_ras_trans, mrk)
 
+        mrk = apply_trans(als_ras_trans, mrk)
+        elp = apply_trans(als_ras_trans_mm, elp)
+        hsp = apply_trans(als_ras_trans_mm, hsp)
+        
         nasion, lpa, rpa = elp[:3]
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)
