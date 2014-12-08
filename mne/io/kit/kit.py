@@ -412,16 +412,17 @@ class RawKIT(_BaseRaw):
                        "%s." % (elp, elp_points.shape))
                 raise ValueError(err)
             elp = elp_points
-        elif len(elp) < 8:
-            err = ("ELP contains fewer than 8 points; got shape "
-                   "%s." % elp)
+
+        elif len(elp) != 8:
+            err = ("ELP should contain 8 points; got shape "
+                   "%s." % (elp.shape,))
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
 
-        mrk = apply_trans(als_ras_trans, mrk)
-        elp = apply_trans(als_ras_trans_mm, elp)
         hsp = apply_trans(als_ras_trans_mm, hsp)
-        
+        elp = apply_trans(als_ras_trans_mm, elp)
+        mrk = apply_trans(als_ras_trans, mrk)
+
         nasion, lpa, rpa = elp[:3]
         nmtrans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         elp = apply_trans(nmtrans, elp)

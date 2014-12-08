@@ -195,7 +195,7 @@ class ProjMixin(object):
             if layout is None:
                 layout = []
                 if ch_type is None:
-                    ch_type = ['meg', 'eeg']
+                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
                 elif isinstance(ch_type, str):
                     ch_type = [ch_type]                    
                 for ch in ch_type:

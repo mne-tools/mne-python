@@ -27,4 +27,4 @@ evoked.info['bads'] = []
 projs = read_proj(ecg_fname)
 evoked.add_proj(projs)
 
-evoked.plot_projs_topomap(ch_type=['meg', 'eeg'])
+evoked.plot_projs_topomap()
