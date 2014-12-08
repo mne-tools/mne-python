@@ -10,7 +10,7 @@ from scipy.linalg import inv
 from threading import Thread
 
 from ..externals.six.moves import queue
-from ..io.meas_info import read_dig_points
+from ..io.meas_info import _read_dig_points
 
 
 # allow import without traits
@@ -151,7 +151,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_dig_points(self.fid_file)
+            pts = _read_dig_points(self.fid_file)
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -202,7 +202,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_dig_points(fname)
+            pts = _read_dig_points(fname)
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
                 msg = ("The selected head shape contains {n_in} points, "

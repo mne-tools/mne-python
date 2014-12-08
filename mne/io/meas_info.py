@@ -172,7 +172,7 @@ def write_fiducials(fname, pts, coord_frame=0):
     end_file(fid)
 
 
-def read_dig_points(fname, comments='%'):
+def _read_dig_points(fname, comments='%'):
     """Read digitizer data from file.
 
     This function can read space-delimited text files of digitizer data.
@@ -188,7 +188,7 @@ def read_dig_points(fname, comments='%'):
     Returns
     -------
     dig_points : np.ndarray, shape (n_points, 3)
-        Array of dig points with requested transformation or decimation.
+        Array of dig points.
     """
     dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
     if dig_points.shape[-1] != 3:
@@ -198,7 +198,7 @@ def read_dig_points(fname, comments='%'):
     return dig_points
 
 
-def write_dig_points(fname, dig_points):
+def _write_dig_points(fname, dig_points):
     """Write points to file
 
     Parameters
@@ -231,8 +231,8 @@ def write_dig_points(fname, dig_points):
         raise ValueError(err)
 
 
-def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
-                    dig_points=None):
+def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
+                     dig_points=None):
     """Constructs digitizer info for the info.
 
     Parameters

@@ -9,7 +9,7 @@ import re
 from struct import unpack
 import numpy as np
 from .constants import KIT
-from ..meas_info import read_dig_points
+from ..meas_info import _read_dig_points
 from ...externals.six.moves import cPickle as pickle
 
 def read_mrk(fname):
@@ -42,7 +42,7 @@ def read_mrk(fname):
                 pts.append(np.fromfile(fid, dtype='d', count=3))
                 mrk_points = np.array(pts)
     elif ext == '.txt':
-        mrk_points = read_dig_points(fname)
+        mrk_points = _read_dig_points(fname)
     elif ext == '.pickled':
         with open(fname, 'rb') as fid:
             food = pickle.load(fid)
