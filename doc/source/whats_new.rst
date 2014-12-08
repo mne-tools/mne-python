@@ -41,8 +41,6 @@ Changelog
 
    - Add reading and writing support for digitizer data, and function for adding dig points to info by `Teon Brooks`_
 
-   - Remove `read_hsp`, `read_elp`, `write_hsp`, `write_mrk` by `Teon Brooks`_
-
    - Add functions `get_channel_positions` for getting the sensor locations, and `set_channel_positions` for setting channel positions, and `plot_projs_topomap` for plotting the projections to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_
 
 
