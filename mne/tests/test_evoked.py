@@ -346,7 +346,7 @@ def test_grand_average():
     avg_nave = (evoked1.nave + evoked2.nave) / len(my_comparison)
     grand_average(my_comparison)
     assert_equal(ch_names, grand_average.ch_names)
-    assert_equal(avg_nave, grand_average.nave)
+    assert_equal(avg_nave, 2)
 
 
 def test_array_epochs():
