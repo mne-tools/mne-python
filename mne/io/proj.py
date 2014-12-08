@@ -10,6 +10,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from itertools import count
+import warnings
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -193,11 +194,13 @@ class ProjMixin(object):
             from mne.channels.layout import find_layout
             if layout is None:
                 if isinstance(ch_type, list):
+                    layout = []
                     for ch in ch_type:
-                        if ch not in ch_type:
-                            err = 'Channel type %s is not found in info.'
-                            raise ValueError(err)
-                        layout = [find_layout(self.info, ch) for ch in ch_type]
+                        if ch in self:
+                            layout.append(find_layout(self.info, ch))
+                        else:
+                            err = 'Channel type %s is not found in info.' % ch
+                            warnings.warn(err)
                 else:
                     layout = find_layout(self.info, ch_type)
             fig = plot_projs_topomap(self.info['projs'], layout)
