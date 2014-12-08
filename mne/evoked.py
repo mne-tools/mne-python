@@ -905,6 +905,8 @@ def grand_average(all_evokeds):
 
     The grand average file will only contain the channels that are marked good
     in all of the evoked datasets.
+    Note that the grand_average.nave will be equal the number of evoked
+    datasets that are used to calculate the grand average.
 
     Parameters
     ----------
@@ -914,18 +916,17 @@ def grand_average(all_evokeds):
     Returns
     -------
     grand_average : Evoked
-        the grand average data.
+        The grand average data.
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(evk, Evoked) for evk in all_evokeds):
         raise ValueError("Not all the elements in list are evoked data")
 
-    # Copy channels to leave the orignal evoked datasets intact.
+    # Copy channels to leave the original evoked datasets intact.
     tmp_list = deepcopy(all_evokeds)
 
     # change the nave for all evoked datasets.
-    average_nave = int(sum(e.nave for e in all_evokeds) /
-                       float(len(all_evokeds)))
+    average_nave = int(np.mean([e.nave for e in all_evokeds]))
     for evk in tmp_list:
         evk.nave = average_nave
 
