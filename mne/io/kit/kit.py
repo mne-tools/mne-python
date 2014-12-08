@@ -81,7 +81,7 @@ class RawKIT(_BaseRaw):
         self.preload = False
         self.info, self._kit_info = get_kit_info(input_fname)
         self._kit_info['slope'] = slope
-        self._kit_info['stim'] = _set_stimchannels(stim)
+        self._set_stimchannels(stim)
         self._kit_info['stimthresh'] = stimthresh
         self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] != 1:
@@ -109,7 +109,7 @@ class RawKIT(_BaseRaw):
             mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
-            dig_points, dev_head_t = _set_dig_kit(self, mrk, elp, hsp)
+            dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
             self.info['dig'] = dig_points
             self.info['dev_head_t'] = dev_head_t
         elif (mrk is not None or elp is not None or hsp is not None):
@@ -196,8 +196,9 @@ class RawKIT(_BaseRaw):
                 msg = ("Tried to set stim channel %i, but squid file only has %i"
                        " channels" % (np.max(stim), self._kit_info['nchan']))
                 raise ValueError(msg)
-            # label STIM channel if one is present
-            ch_name = 'STIM 014'
+            # modify info
+            self.info['nchan'] = self._kit_info['nchan'] + 1
+            ch_name = 'STI 014'
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = self.info['nchan']
@@ -215,7 +216,7 @@ class RawKIT(_BaseRaw):
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
 
-        return stim
+        self._kit_info['stim'] = stim
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
                       projector=None):
@@ -290,7 +291,7 @@ class RawKIT(_BaseRaw):
         data = data.T
         
         # Create a synthetic channel
-        if 'stim' in self._kit_info:
+        if self._kit_info['stim'] is not None:
             trig_chs = data[self._kit_info['stim'], :]
             if self._kit_info['slope'] == '+':
                 trig_chs = trig_chs > self._kit_info['stimthresh']
@@ -352,14 +353,13 @@ class EpochsKIT(EpochsArray):
     def __init__(self, input_fname, events, event_id=None,
                  mrk=None, elp=None, hsp=None, verbose=None):
 
-        stim = None
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
 
         if (mrk is not None and elp is not None and hsp is not None):
-            dig_points, dev_head_t = _set_dig_kit(self, mrk, elp, hsp)
+            dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
             self.info['dig'] = dig_points
             self.info['dev_head_t'] = dev_head_t
         elif (mrk is not None or elp is not None or hsp is not None):
@@ -369,16 +369,12 @@ class EpochsKIT(EpochsArray):
 
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        self.info, self._kit_info = get_kit_info(input_fname, stim)
+        self.info, self._kit_info = get_kit_info(input_fname)
         if len(events) != self._kit_info['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
         self._kit_info['fname'] = input_fname
-        if self._kit_info['acq_type'] == 2:
-            self._kit_info['data_offset'] = KIT.AVE_OFFSET
-            self._kit_info['data_length'] = KIT.DOUBLE
-            self._kit_info['dtype'] = np.float64
-        elif self._kit_info['acq_type'] == 3:
+        if self._kit_info['acq_type'] == 3:
             self._kit_info['data_offset'] = KIT.RAW_OFFSET
             self._kit_info['data_length'] = KIT.INT
             self._kit_info['dtype'] = 'h'
@@ -504,7 +500,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
 
     if isinstance(elp, string_types):
         elp_points = read_dig_points(elp)
-        if len(elp_ponts) != 8:
+        if len(elp_points) != 8:
             err = ("File %r should contain 8 points; got shape "
                    "%s." % (elp, elp_points.shape))
             raise ValueError(err)
@@ -525,24 +521,22 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     nasion, lpa, rpa = elp[:3]
     elp = elp[3:]
     # device head transform
-    trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+    trans = fit_matched_points(tgt_pts=elp, src_pts=mrk, out='trans')
 
-    dig_points = construct_dig_points(info, nasion, lpa, rpa, elp, hsp)
+    dig_points = make_dig_points(nasion, lpa, rpa, elp, hsp)
     dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE, 'to': FIFF.FIFFV_COORD_HEAD,
                   'trans': trans}
 
     return dig_points, dev_head_t
 
 
-def get_kit_info(rawfile, stim):
+def get_kit_info(rawfile):
     """Extracts all the information from the sqd file.
 
     Parameters
     ----------
     rawfile : str
         KIT file to be read.
-    stim : list of int | '<' | '>' | None
-        Stim channel value.
 
     Returns
     -------
@@ -669,17 +663,12 @@ def get_kit_info(rawfile, stim):
         info['lowpass'] = sqd['lowpass']
         info['highpass'] = sqd['highpass']
         info['sfreq'] = float(sqd['sfreq'])
-        # meg channels plus synthetic channel
-        if stim:
-            info['nchan'] = sqd['nchan'] + 1
-        else:
-            info['nchan'] = sqd['nchan']
         info['bads'] = []
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
         info['ctf_head_t'] = None
         info['dev_ctf_t'] = []
-        
+        info['nchan'] = sqd['nchan']
         info['dig'] = None
         info['dev_head_t'] = None
         

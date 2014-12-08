@@ -65,7 +65,7 @@ def test_data():
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 def test_epochs():
-    raw = read_raw_kit(sqd_path, stim=None)
+    raw = read_raw_kit(sqd_path, stim=None, preload=True)
     events = read_events(events_path)
     raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
     data1 = raw_epochs.get_data()
