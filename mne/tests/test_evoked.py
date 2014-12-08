@@ -14,7 +14,7 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import equalize_channels, pick_types, read_evokeds, write_evokeds
-from mne.evoked import _get_peak, EvokedArray
+from mne.evoked import _get_peak, EvokedArray, grand_average
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, requires_nitime
@@ -329,6 +329,23 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_grand_average():
+    """Test grand average
+    """
+    evoked1 = read_evokeds(fname, condition=0, proj=True)
+    evoked2 = evoked1.copy()
+    ch_names = evoked1.ch_names[2:]
+    evoked1.drop_channels(evoked1.ch_names[:1])
+    evoked2.drop_channels(evoked2.ch_names[1:2])
+    evoked1.nave = 2
+    evoked2.nave = 4
+    my_comparison = [evoked1, evoked2]
+    avg_nave = (evoked1.nave + evoked2.nave) / len(my_comparison)
+    grand_average(my_comparison)
+    assert_equal(ch_names, grand_average.ch_names)
+    assert_equal(avg_nave, grand_average.nave)
 
 
 def test_array_epochs():
