@@ -235,7 +235,7 @@ def write_dig_points(fname, dig_points):
         raise ValueError(err)
 
 
-def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
+def make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                          dig_points=None):
     """Constructs digitizer info for the info.
 
@@ -254,13 +254,13 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
 
     Returns
     -------
-    pts : list
+    dig : list
         List of digitizer points to be added to the info['dig'].
     """
-    pts = []
+    dig = []
     if nasion is not None:
         if nasion.shape == (3,):
-            pts.append({'r': np.asarray(nasion),
+            dig.append({'r': np.asarray(nasion),
                         'ident': FIFF.FIFFV_POINT_NASION,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
@@ -270,7 +270,7 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             raise ValueError(err)
     if lpa is not None:
         if lpa.shape == (3,):
-            pts.append({'r': np.asarray(lpa), 'ident': FIFF.FIFFV_POINT_LPA,
+            dig.append({'r': np.asarray(lpa), 'ident': FIFF.FIFFV_POINT_LPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
@@ -279,7 +279,7 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
             raise ValueError(err)
     if rpa is not None:
         if rpa.shape == (3,):
-            pts.append({'r': np.asarray(rpa), 'ident': FIFF.FIFFV_POINT_RPA,
+            dig.append({'r': np.asarray(rpa), 'ident': FIFF.FIFFV_POINT_RPA,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
@@ -289,7 +289,7 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     if hpi is not None:
         if hpi.shape[1] == 3:
             for idx, point in enumerate(hpi):
-                pts.append({'r': np.asarray(point), 'ident': idx,
+                dig.append({'r': np.asarray(point), 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -299,7 +299,7 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
     if dig_points is not None:
         if dig_points.shape[1] == 3:
             for idx, point in enumerate(dig_points):
-                pts.append({'r': np.asarray(point), 'ident': idx,
+                dig.append({'r': np.asarray(point), 'ident': idx,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
@@ -307,7 +307,7 @@ def construct_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                    '%s' % (dig_points.shape,))
             raise ValueError(err)
 
-    return pts
+    return dig
 
 
 @verbose

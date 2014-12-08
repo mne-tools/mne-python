@@ -22,7 +22,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, read_dig_points, construct_dig_points
+from ..meas_info import Info, read_dig_points, make_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -454,7 +454,7 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
-        self.info['dig'] = construct_dig_points(nasion, lpa, rpa, elp, hsp)
+        self.info['dig'] = make_dig_points(nasion, lpa, rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
         self.info['dev_head_t'] = dev_head_t
