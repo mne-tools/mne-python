@@ -882,7 +882,7 @@ of commits):
 
 .. _Roan LaPlante: https://github.com/aestrivex
 
-.. _Mads Jensen: http://cnru.dk/people/mads-jensen
+.. _Mads Jensen: https://github.com/MadsJensen
 
 .. _Dan Wakeman: https://github.com/dgwakeman
 
