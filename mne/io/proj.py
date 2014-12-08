@@ -200,7 +200,7 @@ class ProjMixin(object):
                     ch_type = [ch_type]                    
                 for ch in ch_type:
                     if ch in self:
-                        layout.append(find_layout(self.info, ch))
+                        layout.append(find_layout(self.info, ch, exclude=[]))
                     else:
                         err = 'Channel type %s is not found in info.' % ch
                         warnings.warn(err)
