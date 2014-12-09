@@ -224,8 +224,8 @@ def _write_dig_points(fname, dig_points):
                         "x y z per line\n".format(N=len(dig_points))))
             np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
     else:
-        err = "Unrecognized extension: %r. Need '.txt'." % ext
-        raise ValueError(err)
+        msg = "Unrecognized extension: %r. Need '.txt'." % ext
+        raise ValueError(msg)
 
 
 def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
@@ -258,9 +258,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('Nasion should have the shape (3,) instead of %s'
+            msg = ('Nasion should have the shape (3,) instead of %s'
                    % (nasion.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
     if lpa is not None:
         lpa = np.asarray(lpa)
         if lpa.shape == (3,):
@@ -268,9 +268,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('LPA should have the shape (3,) instead of %s'
+            msg = ('LPA should have the shape (3,) instead of %s'
                    % (lpa.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
     if rpa is not None:
         rpa = np.asarray(rpa)
         if rpa.shape == (3,):
@@ -278,9 +278,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                         'kind': FIFF.FIFFV_POINT_CARDINAL,
                         'coord_frame':  FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('RPA should have the shape (3,) instead of %s'
+            msg = ('RPA should have the shape (3,) instead of %s'
                    % (rpa.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
     if hpi is not None:
         hpi = np.asarray(hpi)
         if hpi.shape[1] == 3:
@@ -289,9 +289,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                             'kind': FIFF.FIFFV_POINT_HPI,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('HPI should have the shape (n_points, 3) instead of '
+            msg = ('HPI should have the shape (n_points, 3) instead of '
                    '%s' % (hpi.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
     if dig_points is not None:
         dig_points = np.asarray(dig_points)
         if dig_points.shape[1] == 3:
@@ -300,9 +300,9 @@ def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
                             'kind': FIFF.FIFFV_POINT_EXTRA,
                             'coord_frame': FIFF.FIFFV_COORD_HEAD})
         else:
-            err = ('Points should have the shape (n_points, 3) instead of '
+            msg = ('Points should have the shape (n_points, 3) instead of '
                    '%s' % (dig_points.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
 
     return dig
 
@@ -901,9 +901,9 @@ def _merge_info(infos, verbose=None):
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
     if len(duplicates) > 0:
-        err = ("The following channels are present in more than one input "
+        msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))
-        raise ValueError(err)
+        raise ValueError(msg)
     info['nchan'] = len(ch_names)
     info['ch_names'] = ch_names
     info['chs'] = []
@@ -923,9 +923,9 @@ def _merge_info(infos, verbose=None):
                   for x in trans[1:]]):
             info[trans_name] = trans[0]
         else:
-            err = ("Measurement infos provide mutually inconsistent %s" %
+            msg = ("Measurement infos provide mutually inconsistent %s" %
                    trans_name)
-            raise ValueError(err)
+            raise ValueError(msg)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
                     'filename', 'highpass', 'line_freq', 'lowpass',

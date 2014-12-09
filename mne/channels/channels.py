@@ -143,11 +143,11 @@ class SetChannelsMixin(object):
         Parameters
         ----------
         picks : array-like of int | None
-            Indices of channels to include. If None (default), all channels
-            are used.
+            Indices of channels to include. If None (default), all meg and eeg
+            channels that are available are returned.
         """
         if picks is None:
-            picks = range(self.info['nchan'])
+            picks = pick_types(self.info, meg=True, eeg=True)
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
         locs = []
@@ -172,17 +172,17 @@ class SetChannelsMixin(object):
                              'the number of names given.')
         pos = np.asarray(pos, dtype=np.float)
         if pos.shape[-1] != 3 or pos.ndim != 2:
-            err = ('Channel positions must have the shape (n_points, 3) '
+            msg = ('Channel positions must have the shape (n_points, 3) '
                    'not %s.' % (pos.shape,))
-            raise ValueError(err)
+            raise ValueError(msg)
         for name, p in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
                 self.info['chs'][idx]['loc'][:3] = p
             else:
-                err = ('%s was not found in the info. Cannot be updated.'
+                msg = ('%s was not found in the info. Cannot be updated.'
                        % name)
-                raise ValueError(err)
+                raise ValueError(msg)
 
 
 class PickDropChannelsMixin(object):
