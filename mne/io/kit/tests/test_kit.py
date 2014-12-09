@@ -65,13 +65,13 @@ def test_data():
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
 def test_epochs():
-    raw = read_raw_kit(sqd_path, stim=None, preload=True)
+    raw = read_raw_kit(sqd_path, stim=None)
     events = read_events(events_path)
     raw_epochs = Epochs(raw, events, None, tmin=0, tmax=.099, baseline=None)
     data1 = raw_epochs.get_data()
-    epochs = read_epochs_kit(epochs_path, events)
+    epochs = read_epochs_kit(epochs_path, events_path)
     data11 = epochs.get_data()
-    assert_array_almost_equal(data1, data11)
+    assert_array_equal(data1, data11)
     
 
 def test_read_segment():

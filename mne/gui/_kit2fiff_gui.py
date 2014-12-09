@@ -278,9 +278,9 @@ class Kit2FiffModel(HasPrivateTraits):
                      slope=self.stim_slope)
 
         if np.any(self.fid):
-            raw.info['dig'] = make_dig_points(self.fid[0], self.fid[1],
-                                              self.fid[2], self.elp,
-                                              self.hsp)
+            raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
+                                               self.fid[2], self.elp,
+                                               self.hsp)
             raw.info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
                                       'to': FIFF.FIFFV_COORD_HEAD,
                                       'trans': self.dev_head_trans}
