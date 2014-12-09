@@ -10,9 +10,7 @@ import os.path as op
 import numpy as np
 from scipy import linalg
 from ..externals.six import BytesIO, string_types
-from ..externals.six.moves import cPickle as pickle
 from datetime import datetime as dt
-import re
 
 from .pick import channel_type
 from .constants import FIFF
@@ -29,7 +27,6 @@ from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b
-from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
 
 _kind_dict = dict(
