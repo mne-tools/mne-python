@@ -190,8 +190,8 @@ class ProjMixin(object):
             Figure distributing one image per channel across sensor topography.
         """
         if self.info['projs'] is not None or len(self.info['projs']) != 0:
-            from mne.viz.topomap import plot_projs_topomap
-            from mne.channels.layout import find_layout
+            from ..viz.topomap import plot_projs_topomap
+            from ..channels.layout import find_layout
             if layout is None:
                 layout = []
                 if ch_type is None:
