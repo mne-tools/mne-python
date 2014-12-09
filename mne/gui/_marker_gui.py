@@ -44,8 +44,8 @@ if backend_is_wx:
     mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
-    mrk_out_wildcard = ["*.txt"]
-out_ext = ['.txt']
+    mrk_out_wildcard = "*.txt"
+out_ext = '.txt'
 
 
 use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
@@ -100,15 +100,16 @@ class MarkerPoints(HasPrivateTraits):
         if dlg.return_code != OK:
             return
 
-        ext = out_ext[dlg.wildcard_index]
-        path = dlg.path
-        if not path.endswith(ext):
-            path = path + ext
-            if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it "
-                                 "be replaced?", "Overwrite File?")
-                if answer != YES:
-                    return
+        path, ext = os.path.splitext(dlg.path)
+        if not path.endswith(out_ext) and len(ext) != 0:
+            ValueError("The extension '%s' is not supported." % ext)
+        path = path + out_ext
+
+        if os.path.exists(path):
+            answer = confirm(None, "The file %r already exists. Should it "
+                             "be replaced?", "Overwrite File?")
+            if answer != YES:
+                return
         self.save(path)
 
     def save(self, path):
