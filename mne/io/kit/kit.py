@@ -80,6 +80,7 @@ class RawKIT(_BaseRaw):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
         self.preload = False
+        logger.info('Creating Raw.info structure...')
         self.info, self._kit_info = get_kit_info(input_fname)
         self._kit_info['slope'] = slope
         self._set_stimchannels(stim)
@@ -118,23 +119,26 @@ class RawKIT(_BaseRaw):
                    "none)")
             raise ValueError(err)
 
+        # Add time info
+        self._times = np.arange(self.first_samp, self.last_samp + 1,
+                                dtype=np.float64)
+        self._times /= self.info['sfreq']
+
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
-            self._data, self._times = self._read_segment()
+            self._data, _ = self._read_segment()
             assert self._data.shape == (self.info['nchan'], self.last_samp + 1)
 
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
-                           float(self.first_samp) / self.info['sfreq'],
-                           float(self.last_samp) / self.info['sfreq']))
+                           self._times[0], self._times[-1]))
         logger.info('Ready.')
 
     def __repr__(self):
         s = ('%r' % op.basename(self._kit_info['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                                 self.last_samp -
-                                                 self.first_samp + 1))
+                                                 self._kit_info['n_samples']))
         return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -459,7 +463,7 @@ class EpochsKIT(EpochsArray):
 
 
 def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
-    """Add landmark points and head shape data to the RawKIT instance
+    """Add landmark points and head shape data to the KIT instance
 
     Digitizer data (elp and hsp) are represented in [mm] in the Polhemus
     ALS coordinate system.

@@ -9,7 +9,7 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal
+from nose.tools import assert_equal, assert_raises
 import scipy.io
 
 from mne import pick_types, concatenate_raws
@@ -35,6 +35,16 @@ hsp_path = op.join(data_dir, 'test_hsp.txt')
 def test_data():
     """Test reading raw kit files
     """
+    assert_raises(TypeError, read_raw_kit, epochs_path)
+    assert_raises(TypeError, read_epochs_kit, sqd_path)
+    assert_raises(ValueError, read_raw_kit, sqd_path, mrk_path, elp_path)
+    assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
+                  list(range(200, 190, -1)))
+    assert_raises(ValueError, read_raw_kit, sqd_path, None, None, None,
+                  list(range(167, 159, -1)), '*', 1, True)
+    # check functionality
+    _ = read_raw_kit(sqd_path, [mrk2_path, mrk3_path], elp_path,
+                     hsp_path)
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
                           stim=list(range(167, 159, -1)), slope='+',
                           stimthresh=1, preload=True)
