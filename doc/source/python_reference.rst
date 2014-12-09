@@ -114,12 +114,7 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
-   read_elp
-   read_hsp
    read_mrk
-   write_hsp
-   write_mrk
-
 
 File I/O
 ========
@@ -283,11 +278,13 @@ Visualization
    plot_ica_scores
    plot_ica_overlay
    plot_image_epochs
+   plot_projs_topomap
    plot_raw
    plot_raw_psds
    plot_events
    plot_source_estimates
    plot_sparse_source_estimates
+   plot_tfr_topomap
    plot_topo
    plot_topo_image_epochs
    plot_topomap
