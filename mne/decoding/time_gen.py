@@ -35,7 +35,6 @@ class GeneralizationAcrossTime(object):
         Defaults to 5.
     train_times : dict | None
         A dictionary to configure the training times.
-
         'slices' : np.ndarray, shape(n_clfs,)
             Array of time slices (in indices) used for each classifier.
             If not given, computed from 'start', 'stop', 'length', 'step'.
@@ -51,14 +50,22 @@ class GeneralizationAcrossTime(object):
         'length' : float
             Duration of each classifier (in seconds). By default, equals one
             time sample.
-
         If None, empty dict. Defaults to None.
-
-    predict_type : {'predict', 'proba'}
-        Indicates the type of prediction. Defaults to 'predict'.
-    predict_mode : {'cross-validation', 'mean-prediction'}
+    predict_type : str, optional, {'predict', 'predict_proba'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+            'predict_proba' : generates a probabilistic estimate of each trial.
+        Default: 'predict'
+    predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
-        validation procedure. Defaults to 'cross-validation'.
+        validation procedure:
+            'cross-validation' : estimates a single prediction per sample based
+                on the unique independent classifier fitted in the cross-
+                validation.
+            'mean-prediction' : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+        Default: 'cross-validation'
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -475,11 +482,21 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_mode : {'cross-validation', 'mean-prediction'}
+    predict_type : str, optional, {'predict', 'predict_proba'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+            'predict_proba' : generates a probabilistic estimate of each trial.
+        Default: 'predict'
+    predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
-        validation procedure.
-    predict_type : {'predict', 'proba'}
-        Indicates the type of prediction .
+        validation procedure:
+            'cross-validation' : estimates a single prediction per sample based
+                on the unique independent classifier fitted in the cross-
+                validation.
+            'mean-prediction' : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+        Default: 'cross-validation'
     """
     n_trial = len(X)
     # Loop across testing slices
@@ -707,10 +724,11 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : {'predict', 'proba'}
-        If 'predict', a simple prediction of y (e.g. SVC, SVR).
-        Else if 'proba', a probabilistic prediction (e.g. SVC(probability=True)).
-
+    predict_type : str, optional, {'predict', 'predict_proba'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+            'predict_proba' : generates a probabilistic estimate of each trial.
+        Default: 'predict'
     Returns
     -------
     y_pred : np.ndarray, shape(n_epochs, m_prediction_dimensions)
@@ -724,7 +742,7 @@ def _predict(X, estimators, predict_type):
     n_clf = len(estimators)
     if predict_type == 'predict':
         n_class = 1
-    elif predict_type == 'proba':
+    elif predict_type == 'predict_proba':
         n_class = estimators[0].predict_proba(X[0, :]).shape[1]
     y_pred = np.ones((n_trial, n_class, n_clf))
 
@@ -734,7 +752,7 @@ def _predict(X, estimators, predict_type):
         if predict_type == 'predict':
             # Discrete categorical prediction
             y_pred[:, 0, fold] = clf.predict(X)
-        elif predict_type == 'proba':
+        elif predict_type == 'predict_proba':
             # Probabilistic prediction
             y_pred[:, :, fold] = clf.predict_proba(X)
 
