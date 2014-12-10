@@ -83,7 +83,7 @@ gat.predict_mode = 'mean-prediction'
 viz_vs_auditory_l = (events[np.in1d(events, (1, 3))] == 3).astype(int)
 # To make scikit-learn happy, we converted the bool array to integers
 # in the same line. This results in an array of zeros and ones:
-print np.unique(viz_vs_auditory_l)
+print("The unique classes' labels are " + str(np.unique(viz_vs_auditory_l)))
 
 gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
 
