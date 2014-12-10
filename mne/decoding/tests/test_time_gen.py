@@ -66,9 +66,13 @@ def test_generalization_across_time():
 
     # Test default running
     gat = GeneralizationAcrossTime()
+    print(gat)
     gat.fit(epochs)
+    print(gat)
     gat.predict(epochs)
+    print(gat)
     gat.score(epochs)
+    print(gat)
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
     epochs2 = epochs.copy()

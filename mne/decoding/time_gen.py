@@ -110,6 +110,39 @@ class GeneralizationAcrossTime(object):
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
 
+
+    def __repr__(self):
+        s = ''
+        if hasattr(self, "estimators_"):
+            s = "fitted from %f s. to %f s. (%f s. every %f s.), " \
+                % (self.train_times['start'],
+                  self.train_times['stop'],
+                  self.train_times['length'],
+                  self.train_times['step'])
+        else:
+            s = 'fit: False, '
+        if hasattr(self, 'y_pred_'):
+            s += "predicted %s trials (%s)" % (len(self.y_pred_), \
+                self.predict_type)
+            # check whether homogeneous testing time per training time
+            n = []
+            for T in range(len(self.y_pred_)):
+                n += [len(self.y_pred_[T])]
+            if len(np.unique(n)) == 1:
+                s += " on %s time slice(s) each, " % (len(self.y_pred_[0]))
+            else:
+                s += " on %s - %s time slice(s) each, " % (min(n), max(n))
+        else:
+            s += "predict: False, "
+        if hasattr(self, 'scores_'):
+            s += "scored across trials"
+            if hasattr(self.scorer_, "func_name") :
+                s +=" with %s" % (self.scorer_.func_name)
+        else:
+            s += "scored: False"
+
+        return "<GAT | %s>" % s
+
     def fit(self, epochs, y=None, picks=None):
         """ Train a classifier on each specified time slice.
 
