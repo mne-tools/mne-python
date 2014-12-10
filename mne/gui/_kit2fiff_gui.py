@@ -5,11 +5,13 @@
 # License: BSD (3-clause)
 
 import os
-from ..externals.six.moves import queue
-from threading import Thread
-
 import numpy as np
 from scipy.linalg import inv
+from threading import Thread
+
+from ..externals.six.moves import queue
+from ..io.meas_info import _read_dig_points
+
 
 # allow import without traits
 try:
@@ -31,11 +33,10 @@ except:
         Str = Array = spring = View = Item = HGroup = VGroup = EnumEditor = \
         NoButtons = CheckListEditor = SceneEditor = trait_wraith
 
-from ..io.kit.coreg import read_hsp
 from ..io.kit.kit import RawKIT, KIT
 from ..transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                           get_ras_to_neuromag_trans)
-from ..coreg import read_elp, _decimate_points, fit_matched_points
+from ..coreg import _decimate_points, fit_matched_points
 from ._marker_gui import CombineMarkersPanel, CombineMarkersModel
 from ._viewer import (HeadViewController, headview_item, PointObject,
                       _testing_mode)
@@ -150,7 +151,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_elp(self.fid_file)
+            pts = _read_dig_points(self.fid_file)
             if len(pts) < 8:
                 raise ValueError("File contains %i points, need 8" % len(pts))
         except Exception as err:
@@ -201,8 +202,7 @@ class Kit2FiffModel(HasPrivateTraits):
             return
 
         try:
-            pts = read_hsp(fname)
-
+            pts = _read_dig_points(fname)
             n_pts = len(pts)
             if n_pts > KIT.DIG_POINTS:
                 msg = ("The selected head shape contains {n_in} points, "
@@ -490,7 +490,7 @@ class Kit2FiffFrame(HasTraits):
                        VGroup(Item('kit2fiff_panel', style='custom'),
                               show_labels=False),
                        show_labels=False,
-                      ),
+                       ),
                 handler=Kit2FiffFrameHandler(),
                 height=700, resizable=True, buttons=NoButtons)
 

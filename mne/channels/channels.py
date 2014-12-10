@@ -1,7 +1,8 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Denis Engmeann <denis.engemann@gmail.com>
+#          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -15,7 +16,7 @@ from scipy import sparse
 from ..externals.six import string_types
 
 from ..utils import verbose, logger
-from ..io.pick import channel_type, pick_info
+from ..io.pick import channel_type, pick_info, pick_types
 from ..io.constants import FIFF
 
 
@@ -131,6 +132,57 @@ class ContainsMixin(object):
         else:
             has_ch_type = _contains_ch_type(self.info, ch_type)
         return has_ch_type
+
+
+class SetChannelsMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def get_channel_positions(self, picks=None):
+        """Gets channel locations from info
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            Indices of channels to include. If None (default), all meg and eeg
+            channels that are available are returned.
+        """
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True)
+        chs = self.info['chs']
+        pos = np.array([chs[k]['loc'][:3] for k in picks])
+        locs = []
+        n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
+        if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
+            raise ValueError('Could not extract channel positions for '
+                             '{} channels'.format(n_zero))
+        return pos
+
+    def set_channel_positions(self, pos, names):
+        """Update channel locations in info
+
+        Parameters
+        ----------
+        pos : array-like | np.ndarray, shape (n_points, 3)
+            The channel positions to be set.
+        names : list of str
+            The names of the channels to be set.
+        """
+        if len(pos) != len(names):
+            raise ValueError('Number of channel positions not equal to '
+                             'the number of names given.')
+        pos = np.asarray(pos, dtype=np.float)
+        if pos.shape[-1] != 3 or pos.ndim != 2:
+            msg = ('Channel positions must have the shape (n_points, 3) '
+                   'not %s.' % (pos.shape,))
+            raise ValueError(msg)
+        for name, p in zip(names, pos):
+            if name in self.ch_names:
+                idx = self.ch_names.index(name)
+                self.info['chs'][idx]['loc'][:3] = p
+            else:
+                msg = ('%s was not found in the info. Cannot be updated.'
+                       % name)
+                raise ValueError(msg)
 
 
 class PickDropChannelsMixin(object):

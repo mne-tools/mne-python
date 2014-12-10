@@ -27,7 +27,8 @@ def channel_type(info, idx):
     Returns
     -------
     type : 'grad' | 'mag' | 'eeg' | 'stim' | 'eog' | 'emg' | 'ecg'
-           'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst'
+           'ref_meg' | 'resp' | 'exci' | 'ias' | 'syst' | 'misc'
+           'seeg' | 'chpi'
         Type of channel
     """
     kind = info['chs'][idx]['kind']
@@ -175,8 +176,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     include : list of string
         List of additional channels to include. If empty do not include any.
     exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        List of channels to exclude. If 'bads' (default), exclude channels
+        in info['bads'].
     selection : list of string
         Restrict sensor channels (MEG, EEG) to this list of channel names.
 

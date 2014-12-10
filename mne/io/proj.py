@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -9,6 +10,7 @@ from math import sqrt
 import numpy as np
 from scipy import linalg
 from itertools import count
+import warnings
 
 from .tree import dir_tree_find
 from .tag import find_tag
@@ -163,6 +165,50 @@ class ProjMixin(object):
         self.info['projs'].pop(idx)
 
         return self
+    
+    def plot_projs_topomap(self, ch_type=None, layout=None):
+        """Plot SSP vector
+        
+        Parameters
+        ----------
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
+            The channel type to plot. For 'grad', the gradiometers are collec-
+            ted in pairs and the RMS for each pair is plotted. If None
+            (default), it will return all channel types present. If a list of
+            ch_types is provided, it will return multiple figures.
+        layout : None | Layout | List of Layouts
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct
+            layout file is inferred from the data; if no appropriate layout
+            file was found, the layout is automatically generated from the
+            sensor locations. Or a list of Layout if projections
+            are from different sensor types.
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        if self.info['projs'] is not None or len(self.info['projs']) != 0:
+            from ..viz.topomap import plot_projs_topomap
+            from ..channels.layout import find_layout
+            if layout is None:
+                layout = []
+                if ch_type is None:
+                    ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
+                elif isinstance(ch_type, str):
+                    ch_type = [ch_type]                    
+                for ch in ch_type:
+                    if ch in self:
+                        layout.append(find_layout(self.info, ch, exclude=[]))
+                    else:
+                        err = 'Channel type %s is not found in info.' % ch
+                        warnings.warn(err)
+            fig = plot_projs_topomap(self.info['projs'], layout)
+        else:
+            raise ValueError("Info is missing projs. Nothing to plot.")
+        
+        return fig
 
 
 def proj_equal(a, b):

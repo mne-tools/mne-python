@@ -29,7 +29,8 @@ except:
 
 from ..transforms import apply_trans, rotation, translation
 from ..coreg import fit_matched_points
-from ..io.kit import read_mrk, write_mrk
+from ..io.kit import read_mrk
+from ..io.meas_info import _write_dig_points
 from ._viewer import HeadViewController, headview_borders, PointObject
 
 
@@ -40,12 +41,11 @@ if backend_is_wx:
                     'Sqd marker file (*.sqd;*.mrk)|*.sqd;*.mrk',
                     'Text marker file (*.txt)|*.txt',
                     'Pickled markers (*.pickled)|*.pickled']
-    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt",
-                        "Pickled KIT parameters (*.pickled)|*.pickled"]
+    mrk_out_wildcard = ["Tab separated values file (*.txt)|*.txt"]
 else:
     mrk_wildcard = ["*.sqd;*.mrk;*.txt;*.pickled"]
-    mrk_out_wildcard = ["*.txt;*.pickled"]
-out_ext = ['.txt', '.pickled']
+    mrk_out_wildcard = "*.txt"
+out_ext = '.txt'
 
 
 use_editor_v = CheckListEditor(cols=1, values=[(i, str(i)) for i in range(5)])
@@ -100,15 +100,16 @@ class MarkerPoints(HasPrivateTraits):
         if dlg.return_code != OK:
             return
 
-        ext = out_ext[dlg.wildcard_index]
-        path = dlg.path
-        if not path.endswith(ext):
-            path = path + ext
-            if os.path.exists(path):
-                answer = confirm(None, "The file %r already exists. Should it "
-                                 "be replaced?", "Overwrite File?")
-                if answer != YES:
-                    return
+        path, ext = os.path.splitext(dlg.path)
+        if not path.endswith(out_ext) and len(ext) != 0:
+            ValueError("The extension '%s' is not supported." % ext)
+        path = path + out_ext
+
+        if os.path.exists(path):
+            answer = confirm(None, "The file %r already exists. Should it "
+                             "be replaced?", "Overwrite File?")
+            if answer != YES:
+                return
         self.save(path)
 
     def save(self, path):
@@ -121,7 +122,7 @@ class MarkerPoints(HasPrivateTraits):
             based on the extension: '.txt' for tab separated text file,
             '.pickled' for pickled file.
         """
-        write_mrk(path, self.points)
+        _write_dig_points(path, self.points)
 
 
 class MarkerPointSource(MarkerPoints):

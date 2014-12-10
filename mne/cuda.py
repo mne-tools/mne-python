@@ -26,7 +26,7 @@ def init_cuda():
     """Initialize CUDA functionality
 
     This function attempts to load the necessary interfaces
-    (hardware connectivity) to run CUDA-based filering. This
+    (hardware connectivity) to run CUDA-based filtering. This
     function should only need to be run once per session.
 
     If the config var (set via mne.set_config or in ENV)

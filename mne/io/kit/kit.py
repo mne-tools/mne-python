@@ -4,12 +4,11 @@ RawKIT class is adapted from Denis Engemann et al.'s mne_bti2fiff.py
 
 """
 
-# Author: Teon Brooks <teon@nyu.edu>
+# Author: Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
-import os
-from os import SEEK_CUR
+from os import SEEK_CUR, path as op
 from struct import unpack
 import time
 
@@ -17,16 +16,16 @@ import numpy as np
 from scipy import linalg
 
 from ..pick import pick_types
-from ...coreg import (read_elp, fit_matched_points, _decimate_points)
+from ...coreg import fit_matched_points, _decimate_points
 from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info
+from ..meas_info import Info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
-from .coreg import read_hsp, read_mrk
+from .coreg import read_mrk
 from ...externals.six import string_types
 
 
@@ -76,7 +75,7 @@ class RawKIT(_BaseRaw):
     def __init__(self, input_fname, mrk=None, elp=None, hsp=None, stim='>',
                  slope='-', stimthresh=1, preload=False, verbose=None):
         logger.info('Extracting SQD Parameters from %s...' % input_fname)
-        input_fname = os.path.abspath(input_fname)
+        input_fname = op.abspath(input_fname)
         self._sqd_params = get_sqd_params(input_fname)
         self._sqd_params['stimthresh'] = stimthresh
         self._sqd_params['fname'] = input_fname
@@ -247,7 +246,7 @@ class RawKIT(_BaseRaw):
         logger.info('Ready.')
 
     def __repr__(self):
-        s = ('%r' % os.path.basename(self._sqd_params['fname']),
+        s = ('%r' % op.basename(self._sqd_params['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                  self.last_samp -
                                                  self.first_samp + 1))
@@ -394,11 +393,10 @@ class RawKIT(_BaseRaw):
             points.
         """
         if isinstance(hsp, string_types):
-            hsp = read_hsp(hsp)
-
+            hsp = _read_dig_points(hsp)
         n_pts = len(hsp)
         if n_pts > KIT.DIG_POINTS:
-            hsp = _decimate_points(hsp, 5)
+            hsp = _decimate_points(hsp, decim=5)
             n_new = len(hsp)
             msg = ("The selected head shape contained {n_in} points, which is "
                    "more than recommended ({n_rec}), and was automatically "
@@ -408,13 +406,16 @@ class RawKIT(_BaseRaw):
             logger.warning(msg)
 
         if isinstance(elp, string_types):
-            elp_points = read_elp(elp)[:8]
-            if len(elp) < 8:
-                err = ("File %r contains fewer than 8 points; got shape "
+            elp_points = _read_dig_points(elp)
+            if len(elp_points) != 8:
+                err = ("File %r should contain 8 points; got shape "
                        "%s." % (elp, elp_points.shape))
                 raise ValueError(err)
             elp = elp_points
 
+        elif len(elp) != 8:
+            err = ("ELP should contain 8 points; got shape "
+                   "%s." % (elp.shape,))
         if isinstance(mrk, string_types):
             mrk = read_mrk(mrk)
 
@@ -455,29 +456,9 @@ class RawKIT(_BaseRaw):
             raise ValueError("trans needs to be 4 by 4 array")
 
         nasion, lpa, rpa = fid
-        dig = [{'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame':  FIFF.FIFFV_COORD_HEAD},
-               {'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD},
-               {'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
-                'kind': FIFF.FIFFV_POINT_CARDINAL,
-                'coord_frame': FIFF.FIFFV_COORD_HEAD}]
-
-        for idx, point in enumerate(elp):
-            dig.append({'r': point, 'ident': idx, 'kind': FIFF.FIFFV_POINT_HPI,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-
-        for idx, point in enumerate(hsp):
-            dig.append({'r': point, 'ident': idx,
-                        'kind': FIFF.FIFFV_POINT_EXTRA,
-                        'coord_frame': FIFF.FIFFV_COORD_HEAD})
-
+        self.info['dig'] = _make_dig_points(nasion, lpa, rpa, elp, hsp)
         dev_head_t = {'from': FIFF.FIFFV_COORD_DEVICE,
                       'to': FIFF.FIFFV_COORD_HEAD, 'trans': trans}
-
-        self.info['dig'] = dig
         self.info['dev_head_t'] = dev_head_t
 
     def _set_stimchannels(self, stim='<', slope='-'):

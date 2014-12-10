@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -24,6 +25,9 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_julian)
 from ..utils import logger, verbose
 from ..fixes import Counter
+from .. import __version__
+from ..externals.six import b
+
 
 _kind_dict = dict(
     eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
@@ -163,6 +167,144 @@ def write_fiducials(fname, pts, coord_frame=0):
 
     end_block(fid, FIFF.FIFFB_ISOTRAK)
     end_file(fid)
+
+
+def _read_dig_points(fname, comments='%'):
+    """Read digitizer data from file.
+
+    This function can read space-delimited text files of digitizer data.
+
+    Parameters
+    ----------
+    fname : str
+        The filepath of space delimited file with points.
+    comments : str
+        The character used to indicate the start of a comment;
+        Default: '%'.
+
+    Returns
+    -------
+    dig_points : np.ndarray, shape (n_points, 3)
+        Array of dig points.
+    """
+    dig_points = np.loadtxt(fname, comments=comments, ndmin=2)
+    if dig_points.shape[-1] != 3:
+        err = 'Data must be (n, 3) instead of %s' % (dig_points.shape,)
+        raise ValueError(err)
+
+    return dig_points
+
+
+def _write_dig_points(fname, dig_points):
+    """Write points to file
+
+    Parameters
+    ----------
+    fname : str
+        Path to the file to write. The kind of file to write is determined
+        based on the extension: '.txt' for tab separated text file.
+    dig_points : numpy.ndarray, shape (n_points, 3)
+        Points.
+    """
+    _, ext = op.splitext(fname)
+    dig_points = np.asarray(dig_points)
+    if (dig_points.ndim != 2) or (dig_points.shape[1] != 3):
+        err = ("Points must be of shape (n_points, 3), "
+               "not %s" % (dig_points.shape,))
+        raise ValueError(err)
+
+    if ext == '.txt':
+        with open(fname, 'wb') as fid:
+            version = __version__
+            now = dt.now().strftime("%I:%M%p on %B %d, %Y")
+            fid.write(b("% Ascii 3D points file created by mne-python version "
+                        "{version} at {now}\n".format(version=version,
+                                                      now=now)))
+            fid.write(b("% {N} 3D points, "
+                        "x y z per line\n".format(N=len(dig_points))))
+            np.savetxt(fid, dig_points, delimiter='\t', newline='\n')
+    else:
+        msg = "Unrecognized extension: %r. Need '.txt'." % ext
+        raise ValueError(msg)
+
+
+def _make_dig_points(nasion=None, lpa=None, rpa=None, hpi=None,
+                     dig_points=None):
+    """Constructs digitizer info for the info.
+
+    Parameters
+    ----------
+    nasion : array-like | numpy.ndarray, shape (3,) | None
+        Point designated as the nasion point.
+    lpa : array-like |  numpy.ndarray, shape (3,) | None
+        Point designated as the left auricular point.
+    rpa : array-like |  numpy.ndarray, shape (3,) | None
+        Point designated as the right auricular point.
+    hpi : array-like | numpy.ndarray, shape (n_points, 3) | None
+        Points designated as head position indicator points.
+    dig_points : array-like | numpy.ndarray, shape (n_points, 3)
+        Points designed as the headshape points.
+
+    Returns
+    -------
+    dig : list
+        List of digitizer points to be added to the info['dig'].
+    """
+    dig = []
+    if nasion is not None:
+        nasion = np.asarray(nasion)
+        if nasion.shape == (3,):
+            dig.append({'r': nasion, 'ident': FIFF.FIFFV_POINT_NASION,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('Nasion should have the shape (3,) instead of %s'
+                   % (nasion.shape,))
+            raise ValueError(msg)
+    if lpa is not None:
+        lpa = np.asarray(lpa)
+        if lpa.shape == (3,):
+            dig.append({'r': lpa, 'ident': FIFF.FIFFV_POINT_LPA,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('LPA should have the shape (3,) instead of %s'
+                   % (lpa.shape,))
+            raise ValueError(msg)
+    if rpa is not None:
+        rpa = np.asarray(rpa)
+        if rpa.shape == (3,):
+            dig.append({'r': rpa, 'ident': FIFF.FIFFV_POINT_RPA,
+                        'kind': FIFF.FIFFV_POINT_CARDINAL,
+                        'coord_frame':  FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('RPA should have the shape (3,) instead of %s'
+                   % (rpa.shape,))
+            raise ValueError(msg)
+    if hpi is not None:
+        hpi = np.asarray(hpi)
+        if hpi.shape[1] == 3:
+            for idx, point in enumerate(hpi):
+                dig.append({'r': point, 'ident': idx,
+                            'kind': FIFF.FIFFV_POINT_HPI,
+                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('HPI should have the shape (n_points, 3) instead of '
+                   '%s' % (hpi.shape,))
+            raise ValueError(msg)
+    if dig_points is not None:
+        dig_points = np.asarray(dig_points)
+        if dig_points.shape[1] == 3:
+            for idx, point in enumerate(dig_points):
+                dig.append({'r': point, 'ident': idx,
+                            'kind': FIFF.FIFFV_POINT_EXTRA,
+                            'coord_frame': FIFF.FIFFV_COORD_HEAD})
+        else:
+            msg = ('Points should have the shape (n_points, 3) instead of '
+                   '%s' % (dig_points.shape,))
+            raise ValueError(msg)
+
+    return dig
 
 
 @verbose
@@ -759,9 +901,9 @@ def _merge_info(infos, verbose=None):
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
     if len(duplicates) > 0:
-        err = ("The following channels are present in more than one input "
+        msg = ("The following channels are present in more than one input "
                "measurement info objects: %s" % list(duplicates))
-        raise ValueError(err)
+        raise ValueError(msg)
     info['nchan'] = len(ch_names)
     info['ch_names'] = ch_names
     info['chs'] = []
@@ -781,9 +923,9 @@ def _merge_info(infos, verbose=None):
                   for x in trans[1:]]):
             info[trans_name] = trans[0]
         else:
-            err = ("Measurement infos provide mutually inconsistent %s" %
+            msg = ("Measurement infos provide mutually inconsistent %s" %
                    trans_name)
-            raise ValueError(err)
+            raise ValueError(msg)
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'description', 'dig', 'experimenter', 'file_id',
                     'filename', 'highpass', 'line_freq', 'lowpass',

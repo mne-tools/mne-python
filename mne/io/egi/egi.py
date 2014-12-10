@@ -1,5 +1,5 @@
 # Authors: Denis A. Engemann  <denis.engemann@gmail.com>
-#          Teon Brooks <teon@nyu.edu>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 #          simplified BSD-3 license
 

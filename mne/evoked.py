@@ -10,7 +10,8 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
-from .channels.channels import ContainsMixin, PickDropChannelsMixin
+from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                SetChannelsMixin)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -37,7 +38,8 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin):
+class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+             SetChannelsMixin):
     """Evoked data
 
     Parameters

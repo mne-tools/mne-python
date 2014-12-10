@@ -32,7 +32,8 @@ from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed, object_hash)
-from .channels.channels import ContainsMixin, PickDropChannelsMixin
+from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+                                SetChannelsMixin)
 from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
@@ -43,7 +44,8 @@ from .externals.six.moves import zip
 from .utils import deprecated, _check_type_picks
 
 
-class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin):
+class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+                  SetChannelsMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated
@@ -1387,7 +1389,7 @@ class Epochs(_BaseEpochs):
         else:
             if not in1d(picks, np.arange(len(self.events))).all():
                 raise ValueError('At least one picked channel is not present '
-                                 'in this eppochs instance.')
+                                 'in this epochs instance.')
 
         data = self.get_data()[:, picks, :]
         shape = data.shape

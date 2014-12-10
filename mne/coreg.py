@@ -180,7 +180,7 @@ def _decimate_points(pts, res=10):
 
     Parameters
     ----------
-    pts : array, shape = (n_points, 3)
+    pts : array, shape (n_points, 3)
         The points making up the head shape.
     res : scalar
         The resolution of the voxel space (side length of each voxel).
@@ -712,30 +712,6 @@ def _mri_subject_has_bem(subject, subjects_dir=None):
                                name='*-bem')
     fnames = glob(pattern)
     return bool(len(fnames))
-
-
-def read_elp(fname):
-    """Read point coordinates from a text file
-
-    Parameters
-    ----------
-    fname : str
-        Absolute path to laser point file (*.txt).
-
-    Returns
-    -------
-    elp_points : array, [n_points x 3]
-        Point coordinates.
-    """
-    pattern = re.compile(r'(\-?\d+\.\d+)\s+(\-?\d+\.\d+)\s+(\-?\d+\.\d+)')
-    with open(fname) as fid:
-        elp_points = pattern.findall(fid.read())
-    elp_points = np.array(elp_points, dtype=float)
-    if elp_points.shape[1] != 3:
-        raise ValueError("File %r does not contain 3 columns as required; got "
-                         "shape %s." % (fname, elp_points.shape))
-
-    return elp_points
 
 
 def read_mri_cfg(subject, subjects_dir=None):
