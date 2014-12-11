@@ -819,11 +819,6 @@ def _predict(X, estimators, predict_type):
         else:
             y_pred = np.mean(y_pred, axis=2)
 
-    # Remove unnecessary symmetrical prediction (i.e. for probas & distances)
-    if predict_type != 'predict' and y_pred.shape[1] == 2:
-        y_pred = y_pred[:, 1, :]
-        n_class = 1
-
     # Format shape
     y_pred = y_pred.reshape((n_trial, n_class))
     return y_pred
