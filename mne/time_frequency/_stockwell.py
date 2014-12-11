@@ -41,7 +41,7 @@ def _check_input_st(x_in, n_fft, verbose=None):
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows """
+    """Precompute stockwell gausian windows (in the time domain)"""
     tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -55,7 +55,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
             window = ((f / (np.sqrt(2. * np.pi) * k)) *
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
-        windows[i_f] = fftpack.fft(window)
+        windows[i_f] = window
     return windows
 
 
@@ -186,11 +186,10 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     n_jobs = check_n_jobs(n_jobs)
     parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
     # XXX maybe this should use np.array_split to avoid many serializations
-    tfrs = parallel(my_st(data[:, c, :], start_f, windows,
-                          return_itc, zero_pad, decim, n_times)
-                    for c in range(n_channels))
-    tfrs = iter(tfrs)
-    for i_chan, (this_psd, this_itc) in enumerate(tfrs):
+    W = fftpack.fft(windows, axis=-1)
+    tfrs = parallel(my_st(data[:, c, :], start_f, W, return_itc, zero_pad,
+                          decim, n_times) for c in range(n_channels))
+    for i_chan, (this_psd, this_itc) in enumerate(iter(tfrs)):
         psd[i_chan] = this_psd
         if this_itc is not None:
             itc[i_chan] = this_itc

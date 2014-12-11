@@ -49,8 +49,9 @@ def test_stockwell_core():
     fmin, fmax = 1.0, 100.0
     start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
     windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    W = fftpack.fft(windows, axis=-1)
 
-    st_pulse = _st(pulse, start_f, windows)
+    st_pulse = _st(pulse, start_f, W)
     st_pulse = np.abs(st_pulse) ** 2
     assert_equal(st_pulse.shape[-1], len(pulse))
     st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
@@ -65,7 +66,8 @@ def test_stockwell_core():
     width = 1.0
     start_f, stop_f = 0, len(pulse)
     windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
-    y = _st(pulse, start_f, windows)
+    W = fftpack.fft(windows, axis=-1)
+    y = _st(pulse, start_f, W)
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
 
@@ -75,10 +77,10 @@ def test_stockwell_core():
 def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
-                    event_id, tmin, tmax, picks=np.arange(3, 60), baseline=(None, 0))
+                    event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
         power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                   return_itc=True, n_jobs=2)
+                                   return_itc=True)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
     assert_true(isinstance(power, AverageTFR))
