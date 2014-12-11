@@ -12,6 +12,7 @@ except (ImportError, OSError):
     # need OSError because scikits.cuda throws it if cufft not found
     pass
 
+from .parallel import check_n_jobs
 from .utils import sizeof_fmt, logger
 
 
@@ -139,6 +140,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                      x_fft=None, x=None)
     n_fft = len(h_fft)
     cuda_fft_len = int((n_fft - (n_fft % 2)) / 2 + 1)
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     if n_jobs == 'cuda':
         n_jobs = 1
         if cuda_capable:
@@ -250,6 +252,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     n_fft_x, n_fft_y = len(W), new_len
     cuda_fft_len_x = int((n_fft_x - (n_fft_x % 2)) // 2 + 1)
     cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) // 2 + 1)
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     if n_jobs == 'cuda':
         n_jobs = 1
         if cuda_capable:

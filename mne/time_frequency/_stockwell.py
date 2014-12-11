@@ -11,7 +11,7 @@ from scipy import fftpack
 
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
 from .tfr import AverageTFR
 
 
