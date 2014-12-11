@@ -59,30 +59,26 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     return windows
 
 
-def _st(x, start_f, windows):
+def _st(x, start_f, windows, cuda_dict):
     """Implementation based on Matlab code by Ali Moukadem"""
-    if x.ndim == 1:
-        x = x[np.newaxis, :]
-    Fx = fftpack.fft(x)
-    XF = np.concatenate([Fx, Fx], axis=-1)
     n_samp = x.shape[-1]
     ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
+    # do the work
+    Fx = fftpack.fft(x)
+    XF = np.concatenate([Fx, Fx], axis=-1)
     for i_f, window in enumerate(windows):
         f = start_f + i_f
         ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
-    if ST.shape[0] == 1:
-        ST = ST[0]
     return ST
 
 
 def _st_power_itc(x, start_f, windows, compute_itc, zero_pad, decim,
-                  final_times):
+                  final_times, cuda_dict):
     """Aux function"""
     psd = None
     itc = None
-    for tfr in _st(x, start_f, windows):
-        tfr = tfr[..., :-zero_pad]
-        tfr = tfr[..., ::decim]
+    for tfr in _st(x, start_f, windows, cuda_dict):
+        tfr = tfr[..., :-zero_pad:decim]
         tfr_abs = np.abs(tfr)
         if psd is None:
             psd = tfr_abs ** 2
@@ -183,12 +179,14 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     psd = np.empty((n_channels, n_frequencies, n_times))
     itc = np.empty((n_channels, n_frequencies, n_times))
 
-    n_jobs = check_n_jobs(n_jobs)
-    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-    # XXX maybe this should use np.array_split to avoid many serializations
-    W = fftpack.fft(windows, axis=-1)
-    tfrs = parallel(my_st(data[:, c, :], start_f, W, return_itc, zero_pad,
-                          decim, n_times) for c in range(n_channels))
+    if n_jobs == 'cuda':
+        raise NotImplementedError
+    else:
+        W = fftpack.fft(windows, axis=-1)
+        parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
+        tfrs = parallel(my_st(data[:, c, :], start_f, W, return_itc, zero_pad,
+                              decim, n_times, {})
+                              for c in range(n_channels))
     for i_chan, (this_psd, this_itc) in enumerate(iter(tfrs)):
         psd[i_chan] = this_psd
         if this_itc is not None:

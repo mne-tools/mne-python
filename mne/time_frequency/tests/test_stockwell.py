@@ -51,7 +51,7 @@ def test_stockwell_core():
     windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
     W = fftpack.fft(windows, axis=-1)
 
-    st_pulse = _st(pulse, start_f, W)
+    st_pulse = _st(pulse, start_f, W, {})
     st_pulse = np.abs(st_pulse) ** 2
     assert_equal(st_pulse.shape[-1], len(pulse))
     st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
@@ -67,7 +67,7 @@ def test_stockwell_core():
     start_f, stop_f = 0, len(pulse)
     windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
     W = fftpack.fft(windows, axis=-1)
-    y = _st(pulse, start_f, W)
+    y = _st(pulse, start_f, W, {})
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
 
@@ -80,7 +80,7 @@ def test_stockwell_api():
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
         power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                   return_itc=True)
+                                   return_itc=True, n_jobs='cuda')
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
     assert_true(isinstance(power, AverageTFR))
