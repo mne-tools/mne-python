@@ -175,20 +175,18 @@ class GeneralizationAcrossTime(object):
         if hasattr(self, "estimators_"):
             # XXX JRK: Shall we print the repr from the DecodingTime() obj
             # instead?
-            s = "fitted from %f s. to %f s. (%f s. every %f s.), " \
+            s += "fitted from %f s. to %f s. (%f s. every %f s.), " \
                 % (self.train_times['start'],
                   self.train_times['stop'],
                   self.train_times['length'],
                   self.train_times['step'])
         else:
-            s = 'fit: False, '
+            s += 'fit: False, '
         if hasattr(self, 'y_pred_'):
             s += "predicted %s trials (%s)" % (len(self.y_pred_), \
                 self.predict_type)
             # check whether homogeneous testing time per training time
-            n = []
-            for T in range(len(self.y_pred_)):
-                n += [len(self.y_pred_[T])]
+            n = [len(self.y_pred_[T]) for T in range(len(self.y_pred_))]
             if len(np.unique(n)) == 1:
                 s += " on %s time slice(s) each, " % (len(self.y_pred_[0]))
             else:
