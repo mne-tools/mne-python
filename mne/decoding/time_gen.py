@@ -101,10 +101,12 @@ class GeneralizationAcrossTime(object):
             Duration of each classifier (in seconds). By default, equals one
             time sample.
         If None, empty dict. Defaults to None.
-    predict_type : str, optional, {'predict', 'predict_proba'}
+    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
         Default: 'predict'
     predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
@@ -431,9 +433,9 @@ class GeneralizationAcrossTime(object):
 
         # Setup scorer
         if scorer is None:
-            if self.predict_type == 'predict':
+            if self.predict_type == 'predict':  # categorical output
                 scorer = accuracy_score
-            else:
+            else:  # continuous output
                 scorer = roc_auc_score
         self.scorer_ = scorer
 
@@ -536,10 +538,12 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_type : str, optional, {'predict', 'predict_proba'}
+    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
         Default: 'predict'
     predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
@@ -778,10 +782,12 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : str, optional, {'predict', 'predict_proba'}
+    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
         Default: 'predict'
     Returns
     -------
@@ -799,8 +805,10 @@ def _predict(X, estimators, predict_type):
         n_class = 1
     elif predict_type == 'predict_proba':
         n_class = estimators[0].predict_proba(X[0, :]).shape[1]
+    elif predict_type == 'decision_function':
+        n_class = estimators[0].decision_function(X[0, :]).shape[1]
     else:
-        raise RuntimeError('predict_type must be "predict" or "predict_proba"')
+        raise RuntimeError('predict_type must be "predict" or "predict_proba" or "decision_function"')
     y_pred = np.ones((n_trial, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
@@ -812,6 +820,9 @@ def _predict(X, estimators, predict_type):
         elif predict_type == 'predict_proba':
             # Probabilistic prediction
             y_pred[:, :, fold] = clf.predict_proba(X)
+        elif predict_type == 'decision_function':
+            # continuous non-probabilistic prediction
+            y_pred[:, :, fold] = clf.decision_function(X)
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:

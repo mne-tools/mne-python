@@ -66,15 +66,16 @@ def test_generalization_across_time():
 
     # Test default running
     gat = GeneralizationAcrossTime()
-    print(gat)
+    print(gat)  # check __repr__
     gat.fit(epochs)
-    print(gat)
+    print(gat)  # check __repr__
     gat.predict(epochs)
-    print(gat)
+    print(gat)  # check __repr__
     gat.score(epochs)
-    print(gat)
+    print(gat)  # check __repr__
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
+    assert_true(gat.scorer_.func_name == "accuracy_score")
     epochs2 = epochs.copy()
 
     # check DecodingTime class
@@ -159,3 +160,22 @@ def test_generalization_across_time():
     scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
+
+    # test various predict_type
+    gat = GeneralizationAcrossTime(predict_type="predict_proba")
+    gat.fit(epochs)
+    gat.predict(epochs)
+    # check that 2 class probabilistic estimates are [p, 1-p]
+    assert_true(gat.y_pred_.shape[3] == 2)
+    gat.score(epochs)
+    # check that continuous prediction leads to AUC rather than accuracy
+    assert_true(gat.scorer_.func_name == "roc_auc_score")
+
+    gat = GeneralizationAcrossTime(predict_type="decision_function")
+    gat.fit(epochs)
+    gat.predict(epochs)
+    # check that 2 class non-probabilistic continuous estimates are [distance]
+    assert_true(gat.y_pred_.shape[3] == 1)
+    gat.score(epochs)
+    # check that continuous prediction leads to AUC rather than accuracy
+    assert_true(gat.scorer_.func_name == "roc_auc_score")
