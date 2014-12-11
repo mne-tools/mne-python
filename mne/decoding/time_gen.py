@@ -14,6 +14,56 @@ from ..parallel import parallel_func
 from ..utils import logger, verbose, deprecated
 from ..io.pick import channel_type, pick_types
 
+class DecodingTime(dict):
+    # XXX JRK: is this class defined in the right place?
+    # XXX JRK: Are the following comments adequate?
+    """A dictionary to configure the training times.
+        'slices' : np.ndarray, shape (n_clfs,)
+            Array of time slices (in indices) used for each classifier.
+            If not given, computed from 'start', 'stop', 'length', 'step'.
+        'start' : float
+            Time at which to start decoding (in seconds). By default,
+            min(epochs.times).
+        'stop' : float
+            Maximal time at which to stop decoding (in seconds). By default,
+            max(times).
+        'step' : float
+            Duration separating the start of subsequent classifiers (in
+            seconds). By default, equals one time sample.
+        'length' : float
+            Duration of each classifier (in seconds). By default, equals one
+            time sample.
+        If None, empty dict. Defaults to None."""
+    def __init__(self):
+        # XXX JRK: Is there something to be done here?
+        pass
+
+    def __repr__(self):
+        s = ""
+        if "start" in self:
+            s += "start: %s s, " % (self["start"])
+        if "stop" in self:
+            s += "stop: %s s, " % (self["stop"])
+        if "step" in self:
+            s += "step: %s s, " % (self["step"])
+        if "length" in self:
+            s += "length: %s s, " % (self["length"])
+        if "slices" in self:
+            # identify depth: training times only contains n_time but
+            # testing_times can contain n_times or n_times * m_times
+            depth = [len(ii) for ii in self["slices"]]
+            if len(np.unique(depth)) == 1:  # if all slices have same depth
+                if depth[0] == 1:  # if depth is one
+                    s += "n_time_windows: %s," % (len(depth))
+                else:
+                    s += "n_time_windows: %s * %s," % (len(depth), depth[0])
+            else:
+                s += "n_time_windows: %s * [%s, %s]" % \
+                (len(depth),
+                 min([len(ii) for ii in depth]),
+                 max(([len(ii) for ii in depth])))
+        return "<DecodingTime | %s>" % s
+
 
 class GeneralizationAcrossTime(object):
     """Generalize across time and conditions
@@ -35,7 +85,7 @@ class GeneralizationAcrossTime(object):
         Defaults to 5.
     train_times : dict | None
         A dictionary to configure the training times.
-        'slices' : np.ndarray, shape(n_clfs,)
+        'slices' : np.ndarray, shape (n_clfs,)
             Array of time slices (in indices) used for each classifier.
             If not given, computed from 'start', 'stop', 'length', 'step'.
         'start' : float
@@ -71,11 +121,11 @@ class GeneralizationAcrossTime(object):
 
     Attributes
     ----------
-    y_train_ : np.ndarray, shape(n_samples,)
+    y_train_ : np.ndarray, shape (n_samples,)
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape(n_train_times, n_test_times, n_epochs,
+    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs,
                            n_prediction_dims)
         Class labels for samples in X.
     scores_ : list of lists of float
@@ -105,7 +155,7 @@ class GeneralizationAcrossTime(object):
         # Store parameters in object
         self.cv = cv
         # Define training sliding window
-        self.train_times = {} if train_times is None else train_times
+        self.train_times = DecodingTime() if train_times is None else train_times
 
         # Default classification pipeline
         if clf is None:
@@ -121,6 +171,8 @@ class GeneralizationAcrossTime(object):
     def __repr__(self):
         s = ''
         if hasattr(self, "estimators_"):
+            # XXX JRK: Shall we print the repr from the DecodingTime() obj
+            # instead?
             s = "fitted from %f s. to %f s. (%f s. every %f s.), " \
                 % (self.train_times['start'],
                   self.train_times['stop'],
@@ -157,10 +209,10 @@ class GeneralizationAcrossTime(object):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : np.ndarray of int, shape(n_samples,) | None
+        y : np.ndarray of int, shape (n_samples,) | None
             To-be-fitted model values. If None, y = epochs.events[:, 2].
             Defaults to None
-        picks : np.ndarray of int, shape(n_channels,) | None
+        picks : np.ndarray of int, shape (n_channels,) | None
             The channels to be used. If None, defaults to meg and eeg channels.
             Defaults to None.
         """
@@ -229,7 +281,7 @@ class GeneralizationAcrossTime(object):
             If test_times = 'diagonal', test_times = train_times: decode at
             each time point but does not generalize.
 
-            'slices' : np.ndarray, shape(n_clfs,)
+            'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
@@ -249,7 +301,7 @@ class GeneralizationAcrossTime(object):
 
         Returns
         -------
-        y_pred_ : np.ndarray, shape(n_train_time, n_test_time, n_epochs,
+        y_pred_ : np.ndarray, shape (n_train_time, n_test_time, n_epochs,
                                n_prediction_dim)
             Class labels for samples in X.
         """
@@ -267,11 +319,13 @@ class GeneralizationAcrossTime(object):
 
         # Define testing sliding window
         if test_times == 'diagonal':
-            test_times_ = {}
+            test_times_ = DecodingTime()
             test_times_['slices'] = [[s] for s in self.train_times['slices']]
         elif test_times is None:
-            test_times_ = {}
+            test_times_ = DecodingTime()
         elif isinstance(test_times, dict):
+            # XXX JRK: Should this test whether test_times if a DecodingTime
+            # object or is this sufficient?
             test_times_ = test_times
         else:
             raise ValueError('`test_times` must be a dict, "diagonal" or None')
@@ -332,7 +386,7 @@ class GeneralizationAcrossTime(object):
             each time point but does not generalize. If dict, the following
             structure is expected.
 
-            'slices' : np.ndarray, shape(n_clfs,)
+            'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
@@ -477,7 +531,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     ----------
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-fitted data.
-    estimators : arraylike, shape(n_times, n_folds)
+    estimators : arraylike, shape (n_times, n_folds)
         Array of Sklearn classifiers fitted in cross-validation.
     slices : list
         List of slices selecting data from X from which is prediction is
@@ -550,7 +604,7 @@ def _score(y, y_pred, scorer):
     -------
     score : float
         Score estimated across all trials for each train/tested time sample.
-    y_pred : np.ndarray, shape(n_slices, n_epochs)
+    y_pred : np.ndarray, shape (n_slices, n_epochs)
         Single trial prediction for each train/tested time sample.
     """
     classes = np.unique(y)
@@ -578,18 +632,18 @@ def _check_epochs_input(epochs, y, picks):
     ----------
     epochs : instance of Epochs
             The epochs.
-    y : np.ndarray shape(n_epochs) | list shape(n_epochs) | None
+    y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
         To-be-fitted model. If y is None, y == epochs.events
     picks : np.ndarray (n_selected_chans,) | None
         Channels to be included in scikit-learn model fitting.
 
     Returns
     -------
-    X : np.ndarray, shape(n_epochs, n_selected_chans, n_times)
+    X : np.ndarray, shape (n_epochs, n_selected_chans, n_times)
         To-be-fitted data.
-    y : np.ndarray, shape(n_epochs,)
+    y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
-    picks : np.ndarray, shape(n_channels,)
+    picks : np.ndarray, shape (n_channels,)
         The channels to be used.
     """
     if y is None:
@@ -615,7 +669,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         To-be-fitted data.
     y : list | array, shape (n_epochs,)
         To-be-fitted model.
-    slices : list | array, shape(n_training_slice,)
+    slices : list | array, shape (n_training_slice,)
         List of training slices, indicating time sample relative to X
     cv : scikit-learn cross-validation generator
         A cross-validation generator to use.
@@ -720,7 +774,7 @@ def _predict(X, estimators, predict_type):
 
     Parameters
     ----------
-    estimators : np.ndarray, shape(n_folds,) | shape(1,)
+    estimators : np.ndarray, shape (n_folds,) | shape (1,)
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
@@ -731,7 +785,7 @@ def _predict(X, estimators, predict_type):
         Default: 'predict'
     Returns
     -------
-    y_pred : np.ndarray, shape(n_epochs, m_prediction_dimensions)
+    y_pred : np.ndarray, shape (n_epochs, m_prediction_dimensions)
         Classifier's prediction for each trial.
     """
     # Initialize results:

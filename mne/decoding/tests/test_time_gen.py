@@ -77,6 +77,10 @@ def test_generalization_across_time():
     gat.score(epochs, y=epochs.events[:, 2])
     epochs2 = epochs.copy()
 
+    # check DecodingTime class
+    print(gat.train_times)
+    print(gat.test_times_)
+
     # the y-check
     gat.predict_mode = 'mean-prediction'
     epochs2.events[:, 2] += 10
