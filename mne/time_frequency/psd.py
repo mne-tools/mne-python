@@ -20,6 +20,10 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     ----------
     raw : instance of Raw
         The raw data.
+    tmin : float
+        Min time instant to consider
+    tmax : float
+        Max time instant to consider
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
@@ -107,10 +111,6 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     ----------
     epochs : instance of Epochs
         The epochs.
-    tmin : float
-        Min time instant to consider
-    tmax : float
-        Max time instant to consider
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
