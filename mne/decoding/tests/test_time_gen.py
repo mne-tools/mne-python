@@ -147,22 +147,21 @@ def test_generalization_across_time():
     gat.score(epochs[7:])
 
     svc = SVC(C=1, kernel='linear', probability=True)
-    gat = GeneralizationAcrossTime(clf=svc, predict_type='predict_proba')
+    gat = GeneralizationAcrossTime(clf=svc, predict_type='predict_proba', \
+                                   predict_mode='mean-prediction')
     gat.fit(epochs)
 
     # sklearn needs it: c.f.
     # https://github.com/scikit-learn/scikit-learn/issues/2723
     # and http://bit.ly/1u7t8UT
-    assert_raises(ValueError, gat.score, epochs)
-    epochs.events[:, 2][epochs.events[:, 2] == 1] = 0
-    epochs.events[:, 2][epochs.events[:, 2] == 3] = 1
+    assert_raises(ValueError, gat.score, epochs2)
     gat.score(epochs)
     scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
 
     # test various predict_type
-    gat = GeneralizationAcrossTime(predict_type="predict_proba")
+    gat = GeneralizationAcrossTime(clf=svc, predict_type="predict_proba")
     gat.fit(epochs)
     gat.predict(epochs)
     # check that 2 class probabilistic estimates are [p, 1-p]
@@ -172,6 +171,9 @@ def test_generalization_across_time():
     assert_true(gat.scorer_.func_name == "roc_auc_score")
 
     gat = GeneralizationAcrossTime(predict_type="decision_function")
+    # XXX Sklearn doesn't like non-binary inputs. We could binarize the data,
+    # or change Sklearn default behavior
+    epochs.events[:, 2][epochs.events[:, 2] == 3] = 0
     gat.fit(epochs)
     gat.predict(epochs)
     # check that 2 class non-probabilistic continuous estimates are [distance]
