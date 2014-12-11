@@ -794,6 +794,7 @@ def _predict(X, estimators, predict_type):
     # the y_pred values.
     n_trial = X.shape[0]
     n_clf = len(estimators)
+    n_class = 0  # initialize
     if predict_type == 'predict':
         n_class = 1
     elif predict_type == 'predict_proba':
