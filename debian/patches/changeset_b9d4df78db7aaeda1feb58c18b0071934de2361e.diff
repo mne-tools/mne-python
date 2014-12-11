@@ -6,15 +6,16 @@ Date:   Wed Nov 12 10:22:45 2014 -0800
 
 --- a/mne/utils.py
 +++ b/mne/utils.py
-@@ -24,6 +24,7 @@ from math import log, ceil
+@@ -24,6 +24,8 @@ from math import log, ceil
  import json
  import ftplib
  import hashlib
++from functools import partial
 +import atexit
  
  import numpy as np
  import scipy
-@@ -983,8 +984,12 @@ def get_subjects_dir(subjects_dir=None,
+@@ -983,8 +985,12 @@ def get_subjects_dir(subjects_dir=None,
      return subjects_dir
  
  
@@ -27,7 +28,7 @@ Date:   Wed Nov 12 10:22:45 2014 -0800
      if home_dir is None:
          # this has been checked on OSX64, Linux64, and Win32
          if 'nt' == os.name.lower():
-@@ -996,7 +1001,14 @@ def _get_extra_data_path(home_dir=None):
+@@ -996,7 +1002,14 @@ def _get_extra_data_path(home_dir=None):
              # of script that isn't launched via the command line (e.g. a script
              # launched via Upstart) then the HOME environment variable will
              # not be set.
