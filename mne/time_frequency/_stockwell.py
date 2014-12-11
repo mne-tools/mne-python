@@ -32,16 +32,17 @@ def _check_input_st(x_in, n_fft, verbose=None):
     if n_times < n_fft:
         msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
-        logger.warn(msg)
+        logger.warning(msg)
         zero_pad = n_fft - n_times
-        pad_array = np.zeros(list(x_in.shape[:-1]) + [zero_pad], dtype=x_in.dtype)
+        pad_array = np.zeros(list(x_in.shape[:-1]) + [zero_pad],
+                             dtype=x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
         return x_in, n_fft, zero_pad
 
 
-def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
+def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
     """Precompute stockwell gausian windows """
-    tw = fftpack.fftfreq(M, 1. / sfreq) / M
+    tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
     k = width  # 1 for classical stowckwell transform
@@ -55,39 +56,43 @@ def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
         windows[i_f] = fftpack.fft(window)
-    return M, f_range, windows
+    return windows
 
 
-def _st(x, M, f_range, windows):
+def _st(x, start_f, windows):
     """Implementation based on Matlab code by Ali Moukadem"""
     if x.ndim == 1:
         x = x[np.newaxis, :]
     Fx = fftpack.fft(x)
-    XF = np.c_[Fx, Fx]
-    ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
-    for i_f, (window, f) in enumerate(zip(windows, f_range)):
-        for i in range(len(x)):
-            ST[i, i_f, :] = fftpack.ifft(XF[i, f:f + M] * window)
+    XF = np.concatenate([Fx, Fx], axis=-1)
+    n_samp = x.shape[-1]
+    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
+    for i_f, window in enumerate(windows):
+        f = start_f + i_f
+        ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
     if ST.shape[0] == 1:
         ST = ST[0]
     return ST
 
 
-def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
+def _st_power_itc(x, start_f, windows, compute_itc, zero_pad, decim,
                   final_times):
     """Aux function"""
-    psd = np.zeros((len(f_range), final_times))
-    if compute_itc is True:
-        itc = np.zeros((len(f_range), final_times), dtype=np.complex)
-    else:
-        itc = None
-    for tfr in _st(x, M, f_range, windows):
+    psd = None
+    itc = None
+    for tfr in _st(x, start_f, windows):
         tfr = tfr[..., :-zero_pad]
         tfr = tfr[..., ::decim]
         tfr_abs = np.abs(tfr)
-        psd += tfr_abs ** 2
+        if psd is None:
+            psd = tfr_abs ** 2
+        else:
+            psd += tfr_abs ** 2
         if compute_itc:
-            itc += tfr / tfr_abs
+            if itc is None:
+                itc = tfr / tfr_abs
+            else:
+                itc += tfr / tfr_abs
 
     n_signals = x.shape[0]
     psd /= n_signals
@@ -172,15 +177,16 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     start_f = np.abs(freqs - fmin).argmin()
     stop_f = np.abs(freqs - fmax).argmin()
 
-    M, f_range, windows = _precompute_st_windows(data.shape[-1], start_f,
-                                                 stop_f, sfreq, width)
-    n_frequencies = len(f_range)
+    windows = _precompute_st_windows(data.shape[-1], start_f, stop_f,
+                                     sfreq, width)
+    n_frequencies = stop_f - start_f
     psd = np.empty((n_channels, n_frequencies, n_times))
     itc = np.empty((n_channels, n_frequencies, n_times))
 
     n_jobs = check_n_jobs(n_jobs)
     parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-    tfrs = parallel(my_st(data[:, c, :], M, f_range, windows,
+    # XXX maybe this should use np.array_split to avoid many serializations
+    tfrs = parallel(my_st(data[:, c, :], start_f, windows,
                           return_itc, zero_pad, decim, n_times)
                     for c in range(n_channels))
     tfrs = iter(tfrs)

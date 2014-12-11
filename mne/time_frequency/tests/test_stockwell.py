@@ -6,7 +6,7 @@
 import numpy as np
 import os.path as op
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true, assert_equals
+from nose.tools import assert_true, assert_equal
 
 from scipy import fftpack
 
@@ -36,9 +36,6 @@ tempdir = _TempDir()
 
 def test_stockwell_core():
     """Test stockwell transform"""
-    # taken from
-
-    # http://vcs.ynic.york.ac.uk/docs/naf/intro/concepts/timefreq.html
     sfreq = 1000.0  # make things easy to understand
     t = np.arange(sfreq)   # make an array for time
     t /= sfreq        # scale it so it goes to 1, i.e. 1 sec of time
@@ -51,13 +48,13 @@ def test_stockwell_core():
     freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
     fmin, fmax = 1.0, 100.0
     start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
-    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
 
-    st_pulse = _st(pulse, *st_precomputed)
+    st_pulse = _st(pulse, start_f, windows)
     st_pulse = np.abs(st_pulse) ** 2
-    assert_equals(st_pulse.shape[-1], len(pulse))
+    assert_equal(st_pulse.shape[-1], len(pulse))
     st_max_freq = st_pulse.max(axis=1).argmax(axis=0)  # max freq
-    assert_equals(st_max_freq, pulse_freq)
+    assert_equal(st_max_freq, pulse_freq)
     assert_true(175 < st_pulse.max(axis=0).argmax(axis=0) < 275)  # max time
 
     # test inversion to FFT, by averaging local spectra, see eq. 5 in
@@ -67,8 +64,8 @@ def test_stockwell_core():
 
     width = 1.0
     start_f, stop_f = 0, len(pulse)
-    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
-    y = _st(pulse, *st_precomputed)
+    windows = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    y = _st(pulse, start_f, windows)
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
 
@@ -78,15 +75,15 @@ def test_stockwell_core():
 def test_stockwell_api():
     """test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
-                    event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
+                    event_id, tmin, tmax, picks=np.arange(3, 60), baseline=(None, 0))
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
         power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                   return_itc=True)
+                                   return_itc=True, n_jobs=2)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
-    assert_equals(power.data.shape, itc.data.shape)
+    assert_equal(power.data.shape, itc.data.shape)
     assert_true(itc.data.min() >= 0.0)
     assert_true(itc.data.max() <= 1.0)
     assert_true(np.log(power.data.max()) * 20 <= 0.0)

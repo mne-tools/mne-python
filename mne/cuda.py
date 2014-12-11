@@ -47,22 +47,23 @@ def init_cuda():
     try:
         import pycuda.gpuarray
         import pycuda.driver
-    except ImportError:
-        logger.warning('module pycuda not found, CUDA not enabled')
+    except ImportError as exp:
+        logger.warning('module pycuda not found, CUDA not enabled (%s)'
+                       % exp)
         return
     try:
         # Initialize CUDA; happens with importing autoinit
         import pycuda.autoinit  # noqa, analysis:ignore
-    except ImportError:
+    except ImportError as exp:
         logger.warning('pycuda.autoinit could not be imported, likely '
-                       'a hardware error, CUDA not enabled')
+                       'a hardware error, CUDA not enabled (%s)' % exp)
         return
     # Make sure scikits.cuda is installed
     try:
         from scikits.cuda import fft as cudafft
-    except ImportError:
+    except ImportError as exp:
         logger.warning('module scikits.cuda not found, CUDA not '
-                       'enabled')
+                       'enabled (%s)' % exp)
         return
 
     # Make our multiply inplace kernel
