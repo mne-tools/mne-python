@@ -798,6 +798,8 @@ def _predict(X, estimators, predict_type):
         n_class = 1
     elif predict_type == 'predict_proba':
         n_class = estimators[0].predict_proba(X[0, :]).shape[1]
+    else:
+        raise RuntimeError('predict_type must be "predict" or "predict_proba"')
     y_pred = np.ones((n_trial, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
