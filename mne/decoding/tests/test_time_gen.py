@@ -147,7 +147,7 @@ def test_generalization_across_time():
     gat.score(epochs[7:])
 
     svc = SVC(C=1, kernel='linear', probability=True)
-    gat = GeneralizationAcrossTime(clf=svc, predict_type='proba')
+    gat = GeneralizationAcrossTime(clf=svc, predict_type='predict_proba')
     gat.fit(epochs)
 
     # sklearn needs it: c.f.
