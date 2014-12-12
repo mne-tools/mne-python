@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_raises, assert_equal
 
 from mne import io, pick_types, read_events, Epochs
-from mne.channels.interpolation import make_interpolation_matrix
+from mne.channels.interpolation import _make_interpolation_matrix
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -40,7 +40,7 @@ def test_interplation():
     pos = epochs.get_channel_positions()
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
-    interpolation = make_interpolation_matrix(pos_good, pos_bad)
+    interpolation = _make_interpolation_matrix(pos_good, pos_bad)
     assert_equal(interpolation.shape, (1, len(epochs.ch_names) - 1))
 
     ave_after = np.dot(interpolation, evoked.data[goods_idx])

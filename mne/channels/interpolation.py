@@ -56,7 +56,7 @@ def _calc_h(cosang, stiffness=4, num_lterms=50):
     return legval(cosang, [0] + factors)
 
 
-def make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
+def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     """Compute interpolation matrix based on spherical splines
 
     Implementation based on [1]
@@ -143,7 +143,7 @@ def _interpolate_bads_eeg(inst):
     logger.info('Computing interpolation matrix from {0} sensor '
                 'positions'.format(len(pos_good)))
 
-    interpolation = make_interpolation_matrix(pos_good, pos_bad)
+    interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
     if getattr(inst, 'preload', None) is False:
