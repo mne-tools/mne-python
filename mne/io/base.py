@@ -23,7 +23,7 @@ from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                 SetChannelsMixin)
+                                 SetChannelsMixin, InterpolationMixin)
 from ..channels.layout import read_montage, apply_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
@@ -43,7 +43,7 @@ from ..event import concatenate_events
 
 
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-               SetChannelsMixin):
+               SetChannelsMixin, InterpolationMixin):
     """Base class for Raw data"""
     @verbose
     def __init__(self, *args, **kwargs):
@@ -1849,7 +1849,7 @@ def _check_update_montage(info, montage):
                    "%s was provided" % type(montage))
             raise TypeError(err)
         if montage is not None:
-            if isinstance(montage, str): 
+            if isinstance(montage, str):
                 montage = read_montage(montage, scale=False)
             apply_montage(info, montage)
 

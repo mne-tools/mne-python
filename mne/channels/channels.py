@@ -260,6 +260,19 @@ class PickDropChannelsMixin(object):
             self.data = self.data.take(idx, axis=0)
 
 
+class InterpolationMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def interpolate_bads_eeg(self):
+        """Interpolate bad channels
+
+        Operates in place.
+        """
+        from .interpolation import _interpolate_bads_eeg
+        _interpolate_bads_eeg(self)
+        return self
+
+
 def rename_channels(info, mapping):
     """Rename channels and optionally change the sensor type.
 

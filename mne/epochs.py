@@ -33,7 +33,7 @@ from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed, object_hash)
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                SetChannelsMixin)
+                                SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend
 from .event import _read_events_fif
 from .fixes import in1d
@@ -45,7 +45,7 @@ from .utils import deprecated, _check_type_picks
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-                  SetChannelsMixin):
+                  SetChannelsMixin, InterpolationMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated

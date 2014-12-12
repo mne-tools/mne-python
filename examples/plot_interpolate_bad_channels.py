@@ -20,7 +20,6 @@ print(__doc__)
 
 import mne
 from mne import io
-from mne.channels import interpolate_bads_eeg
 from mne.datasets import sample
 data_path = sample.data_path()
 
@@ -34,7 +33,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-raw.info['bads'] = ['EEG 053']  # mark bad channels
+raw.info['bads'] = ['EEG 053', 'EEG 012']  # mark bad channels
 
 # pick EEG channels and keep bads for interpolation
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True,
@@ -50,9 +49,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 evoked_before = epochs.average()
 evoked_before.plot(exclude=[])
 
-# compute interpolation
-evoked_after = evoked_before.copy()
-interpolate_bads_eeg(evoked_after)  # also works with Raw and Epochs objects
+# compute interpolation (also works with Raw and Epochs objects)
+evoked_after = evoked_before.copy().interpolate_bads_eeg()
 
 # plot interpolated (prevsious bads)
 evoked_after.plot(exclude=[])
