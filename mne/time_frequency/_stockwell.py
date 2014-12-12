@@ -11,6 +11,7 @@ from scipy import fftpack
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
 from ..parallel import parallel_func
+from ..cuda import st_power_itc, setup_cuda_st_power_itc
 from .tfr import AverageTFR
 
 
@@ -39,7 +40,7 @@ def _check_input_st(x_in, n_fft):
 
 
 def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows (in the time domain)"""
+    """Precompute stockwell gausian windows (in the freq domain)"""
     tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
@@ -54,6 +55,7 @@ def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
         windows[i_f] = window
+    windows = fftpack.fft(windows, axis=1)
     return windows
 
 
@@ -68,30 +70,6 @@ def _st(x, start_f, windows, cuda_dict):
         f = start_f + i_f
         ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
     return ST
-
-
-def _st_power_itc(x, start_f, windows, compute_itc, zero_pad, decim,
-                  final_times, cuda_dict):
-    """Aux function"""
-    n_samp = x.shape[-1]
-    n_out = (n_samp - zero_pad) // decim
-    psd = np.empty((len(windows), n_out))
-    itc = np.empty(psd.shape, np.complex) if compute_itc else None
-    # do the work
-    X = fftpack.fft(x)
-    XX = np.concatenate([X, X], axis=-1)
-    for i_f, window in enumerate(windows):
-        f = start_f + i_f
-        ST = fftpack.ifft(XX[:, f:f + n_samp] * window)
-        TFR = ST[:, :-zero_pad:decim]
-        TFR_abs = np.abs(TFR)
-        psd[i_f] = np.mean(TFR_abs ** 2, axis=0)
-        if compute_itc:
-            itc[i_f] = np.mean(TFR / TFR_abs, axis=0)
-
-    if compute_itc:
-        itc = np.abs(itc)
-    return psd, itc
 
 
 def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
@@ -154,7 +132,8 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         individuals diagnosed with alcoholism.
         Clinical Neurophysiology 117 2128--2143
     """
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
+    n_epochs, n_channels = data.shape[:2]
+    n_out = data.shape[2] // decim
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
@@ -165,27 +144,28 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
 
     start_f = np.abs(freqs - fmin).argmin()
     stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
 
-    windows = _precompute_st_windows(data.shape[-1], start_f, stop_f,
-                                     sfreq, width)
-    n_frequencies = stop_f - start_f
-    psd = np.empty((n_channels, n_frequencies, n_times))
-    itc = np.empty((n_channels, n_frequencies, n_times))
+    W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
+    n_freq = stop_f - start_f
+    psd = np.empty((n_channels, n_freq, n_out))
+    itc = np.empty((n_channels, n_freq, n_out))
 
-    if n_jobs == 'cuda':
-        raise NotImplementedError
+    n_jobs, cuda_dict = setup_cuda_st_power_itc(n_jobs, W, n_epochs)
+    if n_jobs == 1:
+        tfrs = [st_power_itc(data[:, c, :], start_f, return_itc, zero_pad,
+                             decim, cuda_dict)
+                for c in range(n_channels)]
     else:
-        W = fftpack.fft(windows, axis=-1)
-        parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-        tfrs = parallel(my_st(data[:, c, :], start_f, W, return_itc, zero_pad,
-                              decim, n_times, {})
+        parallel, my_st, _ = parallel_func(st_power_itc, n_jobs)
+        tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
+                              decim, cuda_dict)
                         for c in range(n_channels))
     for i_chan, (this_psd, this_itc) in enumerate(iter(tfrs)):
         psd[i_chan] = this_psd
         if this_itc is not None:
             itc[i_chan] = this_itc
 
-    freqs = freqs[start_f:stop_f]
     return psd, itc, freqs
 
 

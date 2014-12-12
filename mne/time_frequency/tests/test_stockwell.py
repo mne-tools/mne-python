@@ -49,8 +49,7 @@ def test_stockwell_core():
     freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
     fmin, fmax = 1.0, 100.0
     start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
-    windows = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
-    W = fftpack.fft(windows, axis=-1)
+    W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
 
     st_pulse = _st(pulse, start_f, W, {})
     st_pulse = np.abs(st_pulse) ** 2
@@ -66,8 +65,7 @@ def test_stockwell_core():
 
     width = 1.0
     start_f, stop_f = 0, len(pulse)
-    windows = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
-    W = fftpack.fft(windows, axis=-1)
+    W = _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width)
     y = _st(pulse, start_f, W, {})
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
@@ -84,6 +82,10 @@ def test_stockwell_api():
                                    return_itc=True)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
+        #power_c, itc_c = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
+        #                           return_itc=True, n_jobs='cuda')
+        #assert_allclose(power, power_c)
+        #assert_allclose(itc, itc_c)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equal(power.data.shape, itc.data.shape)
@@ -91,3 +93,4 @@ def test_stockwell_api():
     assert_true(itc.data.max() <= 1.0)
     assert_true(np.log(power.data.max()) * 20 <= 0.0)
     assert_true(np.log(power.data.max()) * 20 <= 0.0)
+
