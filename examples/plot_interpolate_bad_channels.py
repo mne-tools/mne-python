@@ -33,7 +33,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-raw.info['bads'] = ['EEG 053', 'EEG 012']  # mark bad channels
+raw.info['bads'] = ['EEG 053']  # mark bad channels
 
 # pick EEG channels and keep bads for interpolation
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True,
