@@ -11,7 +11,7 @@ from ..utils import logger, verbose
 
 
 @verbose
-def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
+def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, n_fft=2048, pad_to=None, n_overlap=0,
                     n_jobs=1, plot=False, proj=False, verbose=None):
     """Compute power spectral density with average periodograms.
@@ -21,9 +21,9 @@ def compute_raw_psd(raw, tmin=0, tmax=np.inf, picks=None,
     raw : instance of Raw
         The raw data.
     tmin : float
-        Min time instant to consider
+        Minimum time instant to consider (in seconds).
     tmax : float
-        Max time instant to consider
+        Maximum time instant to consider (in seconds).
     picks : array-like of int | None
         The selection of channels to include in the computation.
         If None, take all channels.
