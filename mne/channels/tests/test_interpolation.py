@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_raises, assert_equal
 
 from mne import io, pick_types, read_events, Epochs
-from mne.channels.interpolation import (interpolate_bads,
+from mne.channels.interpolation import (interpolate_bads_eeg,
                                         make_interpolation_matrix)
 
 
@@ -23,6 +23,9 @@ picks = pick_types(raw.info, meg=False, eeg=True, exclude=[])
 reject = dict(eeg=80e-6)
 epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                 preload=True)
+picks2 = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+epochs2 = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                 preload=True)[:1]
 
 
 def test_interplation():
@@ -46,36 +49,32 @@ def test_interplation():
     assert_array_almost_equal(ave_before, ave_after, decimal=5)
 
     epochs.info['bads'] = []
-    assert_raises(ValueError, interpolate_bads, epochs)
+    assert_raises(ValueError, interpolate_bads_eeg, epochs)
 
     epochs.info['bads'] = ['EEG 012']
     epochs.preload = False
-    assert_raises(ValueError, interpolate_bads, epochs)
+    assert_raises(ValueError, interpolate_bads_eeg, epochs)
 
     epochs.preload = True
     epochs2 = epochs.copy()
 
-    interpolate_bads(epochs2)
+    interpolate_bads_eeg(epochs2)
     ave_after2 = epochs2.average().data[bads_idx]
 
     assert_array_almost_equal(ave_after, ave_after2, decimal=16)
 
     raw = io.RawArray(data=epochs._data[0], info=epochs.info)
     raw_before = raw._data[bads_idx]
-    interpolate_bads(raw)
+    interpolate_bads_eeg(raw)
     raw_after = raw._data[bads_idx]
     assert_equal(np.all(raw_before == raw_after), False)
 
     evoked = epochs.average()
-    interpolate_bads(evoked)
+    interpolate_bads_eeg(evoked)
     assert_array_equal(ave_after, evoked.data[bads_idx])
 
     for inst in [raw, epochs]:
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        assert_raises(ValueError, interpolate_bads, inst)
-
-if __name__ == "__main__":
-    import nose
-    nose.run(defaultTest=__name__)
+        assert_raises(ValueError, interpolate_bads_eeg, inst)

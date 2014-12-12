@@ -144,10 +144,10 @@ class SetChannelsMixin(object):
         ----------
         picks : array-like of int | None
             Indices of channels to include. If None (default), all meg and eeg
-            channels that are available are returned (bad channels included).
+            channels that are available are returned (bad channels excluded).
         """
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
+            picks = pick_types(self.info, meg=True, eeg=True)
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)

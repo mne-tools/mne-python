@@ -2,7 +2,8 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from mne.utils import logger
+from .. utils import logger
+from ..io.pick import pick_types
 
 
 def _calc_g(cosang, stiffnes=4, num_lterms=50):
@@ -10,13 +11,18 @@ def _calc_g(cosang, stiffnes=4, num_lterms=50):
 
     Parameters
     ----------
-    cosang : array-like | float
+    cosang : array-like of float, shape(n_channels, n_channels)
         cosine of angles between pairs of points on a spherical surface. This
         is equivalent to the dot product of unit vectors.
     stiffnes : float
         stiffnes of the spline.
     num_lterms : int
         number of Legendre terms to evaluate.
+
+    Returns
+    -------
+    G : np.ndrarray of float, shape(n_channels, n_channels)
+        The G matrix.
     """
     factors = [(2 * n + 1) / (n ** stiffnes * (n + 1) ** stiffnes * 4 * np.pi)
                for n in range(1, num_lterms + 1)]
@@ -28,13 +34,15 @@ def _calc_h(cosang, stiffnes=4, num_lterms=50):
 
     Parameters
     ----------
-    cosang : array-like | float
+    cosang : array-like of float, shape(n_channels, n_channels)
         cosine of angles between pairs of points on a spherical surface. This
         is equivalent to the dot product of unit vectors.
     stiffnes : float
         stiffnes of the spline. Also referred to as `m`.
     num_lterms : int
         number of Legendre terms to evaluate.
+    H : np.ndrarray of float, shape(n_channels, n_channels)
+        The H matrix.
     """
     factors = [(2 * n + 1) /
                (n ** (stiffnes - 1) * (n + 1) ** (stiffnes - 1) * 4 * np.pi)
@@ -64,9 +72,9 @@ def make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 
     Referneces
     ----------
-    Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989) Spherical
-        splines for scalp potential and current density mapping.
-        Electroencephalogr Clin Neurophysiol. 1989 Feb; 72(2):184-7.
+    [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
+        Spherical splines for scalp potential and current density mapping.
+        Electroencephalography Clinical Neurophysiology, Feb; 72(2):184-7.
     """
 
     pos_from = pos_from.copy()
@@ -90,7 +98,7 @@ def make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     return interpolation
 
 
-def interpolate_bads(inst):
+def interpolate_bads_eeg(inst):
     """Interpolate bad channels
 
     Operates in place.
@@ -104,7 +112,8 @@ def interpolate_bads(inst):
     from mne.epochs import _BaseEpochs
     from mne.evoked import Evoked
     from mne.preprocessing.maxfilter import _fit_sphere
-
+    if 'eeg' not in inst:
+        raise ValueError('This interpolation function requires EEG channels')
     if len(inst.info['bads']) == 0:
         raise ValueError('No bad channels to interpolate')
     if getattr(inst, 'preload', None) is False:
@@ -112,7 +121,9 @@ def interpolate_bads(inst):
 
     bads_idx = np.array([ch in inst.info['bads'] for ch in inst.ch_names])
     goods_idx = np.invert(bads_idx)
-    pos = inst.get_channel_positions()
+
+    picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
+    pos = inst.get_channel_positions(picks)
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
 
@@ -148,3 +159,4 @@ def interpolate_bads(inst):
     else:
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))
+    return inst
