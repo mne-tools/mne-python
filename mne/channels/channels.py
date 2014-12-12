@@ -144,13 +144,12 @@ class SetChannelsMixin(object):
         ----------
         picks : array-like of int | None
             Indices of channels to include. If None (default), all meg and eeg
-            channels that are available are returned.
+            channels that are available are returned (bad channels included).
         """
         if picks is None:
-            picks = pick_types(self.info, meg=True, eeg=True)
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
-        locs = []
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError('Could not extract channel positions for '
