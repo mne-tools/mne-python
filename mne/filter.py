@@ -365,7 +365,7 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
         for p in picks:
             x[p] = filtfilt(b, a, x[p], padlen=padlen)
     else:
-        check_n_jobs(n_jobs, can_be_negative=False)
+        check_n_jobs(n_jobs, allow_negative=False)
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
         data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
                             for p in picks)
@@ -1066,7 +1066,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                                                p_value)
                 freq_list.append(f)
     else:
-        check_n_jobs(n_jobs, can_be_negative=False)
+        check_n_jobs(n_jobs, allow_negative=False)
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   mt_bandwidth, p_value)
