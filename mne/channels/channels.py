@@ -144,13 +144,12 @@ class SetChannelsMixin(object):
         ----------
         picks : array-like of int | None
             Indices of channels to include. If None (default), all meg and eeg
-            channels that are available are returned.
+            channels that are available are returned (bad channels excluded).
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
         chs = self.info['chs']
         pos = np.array([chs[k]['loc'][:3] for k in picks])
-        locs = []
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError('Could not extract channel positions for '
@@ -259,6 +258,19 @@ class PickDropChannelsMixin(object):
             self.data = self.data.take(idx, axis=0)
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
+
+
+class InterpolationMixin(object):
+    """Mixin class for Raw, Evoked, Epochs
+    """
+    def interpolate_bads_eeg(self):
+        """Interpolate bad channels
+
+        Operates in place.
+        """
+        from .interpolation import _interpolate_bads_eeg
+        _interpolate_bads_eeg(self)
+        return self
 
 
 def rename_channels(info, mapping):

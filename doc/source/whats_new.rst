@@ -25,7 +25,7 @@ Changelog
 
    - Add option to Report class to save images as vector graphics (SVG) by `Denis Engemann`_
 
-   - Add events count to `mne.viz.plot_events` (SVG) by `Denis Engemann`_
+   - Add events count to `mne.viz.plot_events` by `Denis Engemann`_
 
    - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
 
@@ -43,6 +43,9 @@ Changelog
 
    - Add methods `get_channel_positions`, `set_channel_positions` for setting channel positions,
      and `plot_projs_topomap` to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_
+
+   - Add EEG bad channel interpolation method (based on spherical splines) to `Raw`, `Epochs` and `Evoked` objects
+     by `Denis Engemann`_
 
 
 BUG
@@ -82,7 +85,7 @@ API
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
 	``mne.layouts`` by `Denis Engemann`_
-    
+
    - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
@@ -908,4 +911,3 @@ of commits):
 .. _Jona Sassenhagen: https://github.com/jona-sassenhagen
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
-

@@ -11,7 +11,7 @@ import warnings
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                SetChannelsMixin)
+                                SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -39,7 +39,7 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-             SetChannelsMixin):
+             SetChannelsMixin, InterpolationMixin):
     """Evoked data
 
     Parameters
