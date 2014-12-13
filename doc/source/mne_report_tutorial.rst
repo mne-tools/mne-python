@@ -71,7 +71,7 @@ Generate the report:
 
 Only include \*audvis_raw.fif and \*-eve.fif files in the report:
 
-    >>> report.parse_folder(data_path=path, pattern=['*audvis_raw.fif', *-eve.fif']) # doctest: +SKIP
+    >>> report.parse_folder(data_path=path, pattern=['*audvis_raw.fif', '*-eve.fif']) # doctest: +SKIP
     Iterating over 6 potential files (this may take some time)
     Rendering : /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif
     Opening raw data file /home/mainak/Desktop/projects/mne-python/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif...
