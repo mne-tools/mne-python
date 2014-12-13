@@ -1,6 +1,7 @@
 import os.path as op
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_allclose,
+                           assert_array_equal)
 from nose.tools import assert_raises, assert_equal
 
 from mne import io, pick_types, read_events, Epochs
@@ -45,7 +46,7 @@ def test_interplation():
 
     ave_after = np.dot(interpolation, evoked.data[goods_idx])
 
-    assert_array_almost_equal(ave_before, ave_after, decimal=5)
+    assert_allclose(ave_before, ave_after, atol=2e-6)
 
     epochs.info['bads'] = []
     assert_raises(ValueError, epochs.interpolate_bads_eeg)
