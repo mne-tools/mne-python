@@ -377,14 +377,14 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     surf_fnames = []
     for surf_name in ['*inner_skull', '*outer_skull', '*outer_skin']:
         surf_fname = glob(op.join(bem_path, surf_name + '.surf'))
-        if len(surf_name) > 0:
+        if len(surf_fname) > 0:
             surf_fname = surf_fname[0]
             logger.info("Using surface: %s" % surf_fname)
-        else:
-            raise IOError('No surface found for %s.' % surf_name)
-        if not op.isfile(surf_fname):
-            raise IOError('Surface file "%s" does not exist' % surf_fname)
-        surf_fnames.append(surf_fname)
+            surf_fnames.append(surf_fname)
+
+    if len(surf_fnames) == 0:
+        raise IOError('No surface files found. Surface files must end with '
+                      'inner_skull.surf, outer_skull.surf or outer_skin.surf')
 
     # Plot the contours
     return _plot_mri_contours(mri_fname, surf_fnames, orientation=orientation,
