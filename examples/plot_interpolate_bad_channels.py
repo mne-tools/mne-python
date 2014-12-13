@@ -6,7 +6,7 @@ Interpolate bad channels using spherical splines
 This example shows how to interpolate bad EEG channels using spherical
 splines as described in [1].
 
-Referneces
+References
 ----------
 [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989) Spherical
     splines for scalp potential and current density mapping.

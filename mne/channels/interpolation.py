@@ -68,7 +68,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     pos_to : np.ndarray of float, shape(n_bad_sensors, 3)
         The positions to interpoloate.
     alpha : float
-        Regulrization parameter. Defaults to 1e-5.
+        Regularization parameter. Defaults to 1e-5.
 
     Returns
     -------
@@ -76,7 +76,7 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
         The interpolation matrix that maps good signals to the location
         of bad signals.
 
-    Referneces
+    References
     ----------
     [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989).
         Spherical splines for scalp potential and current density mapping.

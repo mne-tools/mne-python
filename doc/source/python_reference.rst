@@ -124,7 +124,7 @@ File I/O
 Functions:
 
 .. autosummary::
-   :toctree: generated/
+   :toctree: generated
    :template: function.rst
 
    decimate_surface
