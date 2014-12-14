@@ -187,18 +187,16 @@ class GeneralizationAcrossTime(object):
             # check whether homogeneous testing time per training time
             n = [len(self.y_pred_[T]) for T in range(len(self.y_pred_))]
             if len(np.unique(n)) == 1:
-                s += " on %s time slice(s) each, " % (len(self.y_pred_[0]))
+                s += " on %s time slice(s) each" % (len(self.y_pred_[0]))
             else:
-                s += " on %s - %s time slice(s) each, " % (min(n), max(n))
+                s += " on %s - %s time slice(s) each" % (min(n), max(n))
         else:
-            s += ", predicted: False, "
+            s += ", predicted: False"
         if hasattr(self, 'scores_'):
-            s += ", scored: "
+            s += ", scored: True"
             # XXX potential Python incompatibility: no func_name attribute.
             if hasattr(self.scorer_, "func_name") :
-                s +=" with %s" % (self.scorer_.func_name)
-            else:
-                s +=" True"
+                s +=" (%s)" % (self.scorer_.func_name)
         else:
             s += ", scored: False"
 
