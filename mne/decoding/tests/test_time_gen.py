@@ -124,7 +124,6 @@ def test_generalization_across_time():
     # Test start stop training
     gat = GeneralizationAcrossTime(train_times={'start': 0.090,
                                                 'stop': 0.250})
-    0/0
     # predict without fit
     assert_raises(RuntimeError, gat.predict, epochs)
     gat.fit(epochs)

@@ -38,24 +38,24 @@ class DecodingTime(dict):
     def __repr__(self):
         s = ""
         if "start" in self:
-            s += "start: %s s, " % (self["start"])
+            s += "start: %s s" % (self["start"])
         if "stop" in self:
-            s += "stop: %s s, " % (self["stop"])
+            s += ", stop: %s s" % (self["stop"])
         if "step" in self:
-            s += "step: %s s, " % (self["step"])
+            s += ", step: %s s" % (self["step"])
         if "length" in self:
-            s += "length: %s s, " % (self["length"])
+            s += ", length: %s s" % (self["length"])
         if "slices" in self:
             # identify depth: training times only contains n_time but
             # testing_times can contain n_times or n_times * m_times
             depth = [len(ii) for ii in self["slices"]]
             if len(np.unique(depth)) == 1:  # if all slices have same depth
                 if depth[0] == 1:  # if depth is one
-                    s += "n_time_windows: %s" % (len(depth))
+                    s += ", n_time_windows: %s" % (len(depth))
                 else:
-                    s += "n_time_windows: %s * %s" % (len(depth), depth[0])
+                    s += ", n_time_windows: %s * %s" % (len(depth), depth[0])
             else:
-                s += "n_time_windows: %s * [%s, %s]" % \
+                s += ", n_time_windows: %s * [%s, %s]" % \
                 (len(depth),
                  min([len(ii) for ii in depth]),
                  max(([len(ii) for ii in depth])))
@@ -174,15 +174,15 @@ class GeneralizationAcrossTime(object):
         if hasattr(self, "estimators_"):
             # XXX JRK: Shall we print the repr from the DecodingTime() obj
             # instead?
-            s += "fitted from %f s. to %f s. (%f s. every %f s.), " \
+            s += "fitted: from %f s. to %f s. (%f s. every %f s.)" \
                 % (self.train_times['start'],
                   self.train_times['stop'],
                   self.train_times['length'],
                   self.train_times['step'])
         else:
-            s += 'fit: False, '
+            s += 'fitted: False'
         if hasattr(self, 'y_pred_'):
-            s += "predicted %s trials (%s)" % (len(self.y_pred_), \
+            s += ", predicted: %s trials (%s)" % (len(self.y_pred_), \
                 self.predict_type)
             # check whether homogeneous testing time per training time
             n = [len(self.y_pred_[T]) for T in range(len(self.y_pred_))]
@@ -191,13 +191,16 @@ class GeneralizationAcrossTime(object):
             else:
                 s += " on %s - %s time slice(s) each, " % (min(n), max(n))
         else:
-            s += "predict: False, "
+            s += ", predicted: False, "
         if hasattr(self, 'scores_'):
-            s += "scored across trials"
+            s += ", scored: "
+            # XXX potential Python incompatibility: no func_name attribute.
             if hasattr(self.scorer_, "func_name") :
                 s +=" with %s" % (self.scorer_.func_name)
+            else:
+                s +=" True"
         else:
-            s += "scored: False"
+            s += ", scored: False"
 
         return "<GAT | %s>" % s
 
