@@ -51,9 +51,9 @@ class DecodingTime(dict):
             depth = [len(ii) for ii in self["slices"]]
             if len(np.unique(depth)) == 1:  # if all slices have same depth
                 if depth[0] == 1:  # if depth is one
-                    s += "n_time_windows: %s," % (len(depth))
+                    s += "n_time_windows: %s" % (len(depth))
                 else:
-                    s += "n_time_windows: %s * %s," % (len(depth), depth[0])
+                    s += "n_time_windows: %s * %s" % (len(depth), depth[0])
             else:
                 s += "n_time_windows: %s * [%s, %s]" % \
                 (len(depth),
@@ -98,7 +98,8 @@ class GeneralizationAcrossTime(object):
             Duration of each classifier (in seconds). By default, equals one
             time sample.
         If None, empty dict. Defaults to None.
-    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
+    predict_type : str, optional, {'predict', 'predict_proba',
+        'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
@@ -154,7 +155,8 @@ class GeneralizationAcrossTime(object):
         # Store parameters in object
         self.cv = cv
         # Define training sliding window
-        self.train_times = DecodingTime() if train_times is None else train_times
+        self.train_times = DecodingTime() if train_times is None \
+                                          else DecodingTime(train_times)
 
         # Default classification pipeline
         if clf is None:
@@ -421,9 +423,9 @@ class GeneralizationAcrossTime(object):
             else:
                 y = epochs.events[:, 2]
             if not np.all(np.unique(y) == np.unique(self.y_train_)):
-                raise ValueError('Classes (y) passed differ from classes used for'
-                                 ' training. Please explicitly pass your y for '
-                                 'scoring.')
+                raise ValueError('Classes (y) passed differ from classes used '
+                                 'for training. Please explicitly pass your y '
+                                 'for scoring.')
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Setup scorer
@@ -533,7 +535,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
+    predict_type : str, optional, {'predict', 'predict_proba',
+                  'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
@@ -581,7 +584,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
         elif predict_mode == 'mean-prediction':
             y_pred[t] = _predict(Xtrain, estimators, predict_type)
         else:
-            raise ValueError('`predict_mode` must be a str, "mean-prediction" or "cross-validation"')
+            raise ValueError('`predict_mode` must be a str, "mean-prediction"'
+                             ' or "cross-validation"')
     return y_pred
 
 
@@ -777,7 +781,8 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : str, optional, {'predict', 'predict_proba', 'decision_function'}
+    predict_type : str, optional, {'predict', 'predict_proba',
+                  'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
@@ -803,7 +808,8 @@ def _predict(X, estimators, predict_type):
     elif predict_type == 'decision_function':
         n_class = estimators[0].decision_function(X[0, :]).shape[1]
     else:
-        raise RuntimeError('predict_type must be "predict" or "predict_proba" or "decision_function"')
+        raise RuntimeError('predict_type must be "predict" or "predict_proba" '
+                           'or "decision_function"')
     y_pred = np.ones((n_trial, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
