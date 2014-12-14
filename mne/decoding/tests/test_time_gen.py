@@ -66,21 +66,36 @@ def test_generalization_across_time():
 
     # Test default running
     gat = GeneralizationAcrossTime()
-    print(gat)  # check __repr__
+    assert_true("<GAT | fitted: False, predicted: False, scored: False>" == \
+                "%s" % gat)
     gat.fit(epochs)
-    print(gat)  # check __repr__
+    assert_true("<GAT | fitted: from -0.199795 s. to 0.499488 s. (0.046619 " \
+                "s. every 0.046619 s.), predicted: False, scored: False>" == \
+                "%s" % gat)
     gat.predict(epochs)
-    print(gat)  # check __repr__
+    assert_true("<GAT | fitted: from -0.199795 s. to 0.499488 s. (0.046619 " \
+                "s. every 0.046619 s.), predicted: 15 trials (predict) on 15" \
+                " time slice(s) each, scored: False>" == \
+                "%s" % gat)
     gat.score(epochs)
-    print(gat)  # check __repr__
+    assert_true("<GAT | fitted: from -0.199795 s. to 0.499488 s. (0.046619 " \
+                "s. every 0.046619 s.), predicted: 15 trials (predict) on 15" \
+                " time slice(s) each, scored: True (accuracy_score)>" == \
+                "%s" % gat)
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true("accuracy_score" in gat.scorer_.__repr__())
+    assert_true("accuracy_score" in '%s' % gat.scorer_)
     epochs2 = epochs.copy()
 
     # check DecodingTime class
-    print(gat.train_times)
-    print(gat.test_times_)
+    assert_true("<DecodingTime | start: -0.199795213158 s, stop: " \
+                "0.499488032896 s, step: 0.0466188830703 s, length: " \
+                "0.0466188830703 s, n_time_windows: 15>" == "%s" \
+                % gat.train_times)
+    assert_true("<DecodingTime | start: -0.199795213158 s, stop: " \
+                "0.499488032896 s, step: 0.0466188830703 s, length: " \
+                "0.0466188830703 s, n_time_windows: 15 * 15>" == "%s" \
+                % gat.test_times_)
 
     # the y-check
     gat.predict_mode = 'mean-prediction'
@@ -168,7 +183,7 @@ def test_generalization_across_time():
     assert_true(gat.y_pred_.shape[3] == 2)
     gat.score(epochs)
     # check that continuous prediction leads to AUC rather than accuracy
-    assert_true("roc_auc_score" in gat.scorer_.__repr__())
+    assert_true("roc_auc_score" in '%s' % gat.scorer_)
 
     gat = GeneralizationAcrossTime(predict_type="decision_function")
     # XXX Sklearn doesn't like non-binary inputs. We could binarize the data,
@@ -180,4 +195,4 @@ def test_generalization_across_time():
     assert_true(gat.y_pred_.shape[3] == 1)
     gat.score(epochs)
     # check that continuous prediction leads to AUC rather than accuracy
-    assert_true("roc_auc_score" in gat.scorer_.__repr__())
+    assert_true("roc_auc_score" in '%s' % gat.scorer_)
