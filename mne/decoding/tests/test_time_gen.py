@@ -75,7 +75,7 @@ def test_generalization_across_time():
     print(gat)  # check __repr__
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true(gat.scorer_.func_name == "accuracy_score")
+    assert_true("accuracy_score" in gat.scorer_.__repr__())
     epochs2 = epochs.copy()
 
     # check DecodingTime class
@@ -168,7 +168,7 @@ def test_generalization_across_time():
     assert_true(gat.y_pred_.shape[3] == 2)
     gat.score(epochs)
     # check that continuous prediction leads to AUC rather than accuracy
-    assert_true(gat.scorer_.func_name == "roc_auc_score")
+    assert_true("roc_auc_score" in gat.scorer_.__repr__())
 
     gat = GeneralizationAcrossTime(predict_type="decision_function")
     # XXX Sklearn doesn't like non-binary inputs. We could binarize the data,
@@ -180,4 +180,4 @@ def test_generalization_across_time():
     assert_true(gat.y_pred_.shape[3] == 1)
     gat.score(epochs)
     # check that continuous prediction leads to AUC rather than accuracy
-    assert_true(gat.scorer_.func_name == "roc_auc_score")
+    assert_true("roc_auc_score" in gat.scorer_.__repr__())
