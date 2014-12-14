@@ -34,9 +34,6 @@ class DecodingTime(dict):
             Duration of each classifier (in seconds). By default, equals one
             time sample.
         If None, empty dict. Defaults to None."""
-    def __init__(self):
-        # XXX JRK: Is there something to be done here?
-        pass
 
     def __repr__(self):
         s = ""
