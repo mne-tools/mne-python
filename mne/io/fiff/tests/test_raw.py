@@ -1051,6 +1051,9 @@ def test_apply_reference():
     assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
     assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
 
+    # Test that disabling the reference does not break anything
+    reref, ref_data = apply_reference(raw, [])
+
     # Test that data is modified in place when copy=False
     reref, ref_data = apply_reference(raw, ['EEG 001', 'EEG 002'],
                                       copy=False)

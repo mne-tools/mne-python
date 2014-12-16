@@ -1353,7 +1353,9 @@ def apply_reference(raw, ref_from, ref_to=None, copy=True):
     raw : instance of Raw
         Instance of Raw with EEG channels and reference channel(s).
     ref_from : list of str
-        The names of the channels to use to construct the reference.
+        The names of the channels to use to construct the reference. If an
+        empty list is specified, the data is assumed to already have a proper
+        reference and MNE will not attempt any re-referencing of the data. 
     ref_to : list of str | None
         The names of the channels to apply the reference to. By default,
         all EEG channels are chosen.
@@ -1400,13 +1402,15 @@ def apply_reference(raw, ref_from, ref_to=None, copy=True):
     else:
         ref_to = [raw.ch_names.index(ch) for ch in ref_to]
 
-    # Compute reference
-    ref_data = raw._data[ref_from].mean(0)
-
     if copy:
         raw = raw.copy()
 
-    raw._data[ref_to] -= ref_data
+    # Compute reference
+    if len(ref_from) > 0:
+        ref_data = raw._data[ref_from].mean(0)
+        raw._data[ref_to] -= ref_data
+    else:
+        ref_data = None
 
     # If the reference touches EEG electrodes, remove any pre-existing common
     # reference and note in the info that a non-CAR has been applied.
@@ -1427,7 +1431,8 @@ def apply_reference(raw, ref_from, ref_to=None, copy=True):
 def set_eeg_reference(raw, ref_channels=None, copy=True):
     """Rereference EEG channels to new reference channel(s).
 
-    If multiple reference channels are specified, they will be averaged.
+    If multiple reference channels are specified, they will be averaged. If
+    no reference channels are specified, an average reference will be applied.
 
     Parameters
     ----------
@@ -1436,7 +1441,9 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
     ref_channels : list of str | None
         The names of the channels to use to construct the reference. If None is
         specified here, an average reference will be applied in the form of an
-        SSP projector.
+        SSP projector. If an empty list is specified, the data is assumed to
+        already have a proper reference and MNE will not attempt any
+        re-referencing of the data.
     copy : bool
         Specifies whether instance of Raw will be copied (True) or modified in
         place (False). Defaults to True.
@@ -1492,7 +1499,7 @@ def set_bipolar_reference(raw, anode, cathode, ch_name=None, ch_info=None,
     1st cathode, the 2nd anode from the 2nd cathode, etc.
 
     By default, the virtual channels will be annotated with channel info of
-    the anodes and its location set to (0, 0, 0)) and coil type set to
+    the anodes, their locations set to (0, 0, 0) and coil types set to
     EEG_BIPOLAR.
 
     Parameters
