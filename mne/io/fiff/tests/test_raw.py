@@ -1096,20 +1096,23 @@ def test_set_bipolar_reference():
 
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
-    reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112', 'bipolar',
-                                  {'kind': FIFF.FIFFV_MEG_CH})
+    reref = set_bipolar_reference(raw, 'MEG 0111', 'MEG 0112',
+                                  ch_info={'kind': FIFF.FIFFV_MEG_CH})
     assert_true(not reref.info['custom_ref_applied'])
+    assert_true('MEG 0111-MEG 0112' in reref.ch_names)
 
     # Test a battery of invalid inputs
-    assert_raises(AssertionError, set_bipolar_reference, raw,
+    assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', ['EEG 002', 'EEG 003'], 'bipolar')
-    assert_raises(AssertionError, set_bipolar_reference, raw,
+    assert_raises(ValueError, set_bipolar_reference, raw,
                   ['EEG 001', 'EEG 002'], 'EEG 003', 'bipolar')
-    assert_raises(AssertionError, set_bipolar_reference, raw,
+    assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ['bipolar1', 'bipolar2'])
-    assert_raises(AssertionError, set_bipolar_reference, raw,
+    assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', 'bipolar',
-                  [{'foo': 'bar'}, {'foo': 'bar'}])
+                  ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
+    assert_raises(ValueError, set_bipolar_reference, raw,
+                  'EEG 001', 'EEG 002', ch_name='EEG 003')
 
 
 @testing.requires_testing_data

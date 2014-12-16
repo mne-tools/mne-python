@@ -1460,7 +1460,7 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
         return apply_reference(raw, ref_channels, copy=copy)
 
 
-def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
+def set_bipolar_reference(raw, anode, cathode, ch_name=None, ch_info=None,
                           copy=True):
     """Rereference selected channels using a bipolar referencing scheme.
 
@@ -1485,9 +1485,10 @@ def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
     cathode : str | list of str
         The name(s) of the channel(s) to use as cathode in the bipolar
         reference.
-    ch_name : str | list of str
+    ch_name : str | list of str | None
         The channel name(s) for the virtual channel(s) containing the resulting
-        signal.
+        signal. By default, bipolar channels are named after the anode and
+        cathode, but it is recommended to supply a more meaningful name.
     ch_info : dict | list of dict | None
         This parameter can be used to supply a dictionary (or a dictionary for
         each bipolar channel) containing channel information to merge in,
@@ -1525,11 +1526,21 @@ def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
     if len(anode) != len(cathode):
         raise ValueError('Number of anodes must equal the number of cathodes.')
 
-    if not isinstance(ch_name, list):
+    if ch_name is None:
+        ch_name = ['%s-%s' % ac for ac in zip(anode, cathode)]
+    elif not isinstance(ch_name, list):
         ch_name = [ch_name]
     if len(ch_name) != len(anode):
         raise ValueError('Number of channel names must equal the number of '
                          'anodes/cathodes.')
+
+    # Check for duplicate channel names (it is allowed to give the name of the
+    # anode or cathode channel, as they will be replaced).
+    for ch, a, c in zip(ch_name, anode, cathode):
+        if ch not in [a, c] and ch in raw.ch_names:
+            raise ValueError('There is already a channel named "%s", please '
+                             'specify a different name for the bipolar '
+                             'channel using the ch_name parameter.' % ch)
 
     if ch_info is None:
         ch_info = [{} for an in anode]
@@ -1563,6 +1574,7 @@ def set_bipolar_reference(raw, anode, cathode, ch_name, ch_info=None,
         raw.info['chs'][an_idx] = info
         raw.info['chs'][an_idx]['ch_name'] = name
         raw.info['ch_names'][an_idx] = name
+        logger.info('Bipolar channel added as "%s".' % name)
 
     # Drop cathode channels
     raw.drop_channels(cathode)
