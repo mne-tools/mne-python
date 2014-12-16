@@ -232,7 +232,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
 
 def _check_vlim(vlim):
     """AUX function"""
-    return not np.isscalar(vlim) and not vlim is None
+    return not np.isscalar(vlim) and vlim is not None
 
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
@@ -358,7 +358,11 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     elif isinstance(ylim, dict):
         ylim_ = _mutable_defaults(('ylim', ylim))[0]
         ylim_ = [ylim_[kk] for kk in types_used]
-        ylim_ = zip(*[np.array(yl) for yl in ylim_])
+        # extra unpack to avoid bug #1700
+        if len(ylim_) == 1:
+            ylim_ = ylim_[0]
+        else:
+            ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
         raise ValueError('ylim must be None ore a dict')
 
