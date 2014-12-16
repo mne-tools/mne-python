@@ -358,6 +358,18 @@ Manipulate channels and set sensors locations for processing and plotting:
    run_ica
    infomax
 
+EEG referencing:
+
+.. currentmodule:: mne.io
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   apply_reference
+   set_bipolar_reference
+   set_eeg_reference
+
 :py:mod:`mne.filter`:
 
 .. automodule:: mne.filter

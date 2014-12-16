@@ -48,7 +48,7 @@ Changelog
      by `Denis Engemann`_
 
    - Add parameter to `whiten_evoked`, `compute_whitener` and `prepare_noise_cov` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
-
+   - Add support for bipolar referencing by `Marijn van Vliet`_
 
 BUG
 ~~~
@@ -79,6 +79,8 @@ BUG
    - The API change to the edf, brainvision, and egi break backwards compatibility for when importing eeg data by `Teon Brooks`_
 
    - Fix bug in `mne.viz.plot_topo` if ylim was passed for single sensor layouts by `Denis Engemann`_
+
+   - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
 
 API
 ~~~
