@@ -1342,7 +1342,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
-def apply_reference(raw, ref_from, ref_to=None, copy=True):
+def _apply_reference(raw, ref_from, ref_to=None, copy=True):
     """Apply a custom EEG referencing scheme.
 
     Calculates a reference signal by taking the mean of a set of channels and
@@ -1468,7 +1468,6 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
 
     See also
     --------
-    apply_reference : Base function for rereferencing.
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
     """
@@ -1483,7 +1482,7 @@ def set_eeg_reference(raw, ref_channels=None, copy=True):
             return raw, None
     else:
         logger.info('Applying a custom EEG reference.')
-        return apply_reference(raw, ref_channels, copy=copy)
+        return _apply_reference(raw, ref_channels, copy=copy)
 
 
 def set_bipolar_reference(raw, anode, cathode, ch_name=None, ch_info=None,
@@ -1530,7 +1529,6 @@ def set_bipolar_reference(raw, anode, cathode, ch_name=None, ch_info=None,
 
     See also
     --------
-    apply_reference : Base function for rereferencing.
     set_eeg_reference : Convenience function for creating an EEG reference.
 
     Notes
@@ -1595,7 +1593,7 @@ def set_bipolar_reference(raw, anode, cathode, ch_name=None, ch_info=None,
 
     # Perform bipolar referencing
     for an, ca, name, info in zip(anode, cathode, ch_name, new_ch_info):
-        raw, _ = apply_reference(raw, [ca], [an], copy=False)
+        raw, _ = _apply_reference(raw, [ca], [an], copy=False)
         an_idx = raw.ch_names.index(an)
         raw.info['chs'][an_idx] = info
         raw.info['chs'][an_idx]['ch_name'] = name
