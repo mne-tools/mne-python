@@ -76,6 +76,8 @@ BUG
 
    - The API change to the edf, brainvision, and egi break backwards compatibility for when importing eeg data by `Teon Brooks`_
 
+   - Fix bug in `mne.viz.plot_topo` if ylim was passed for single sensor layouts by `Denis Engemann`_
+
 API
 ~~~
 
