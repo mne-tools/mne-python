@@ -20,10 +20,10 @@ from nose.tools import (assert_true, assert_raises, assert_equal,
 from mne import pick_types, pick_channels
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import (Raw, concatenate_raws,
-                    get_chpi_positions, apply_reference, set_eeg_reference,
-                    set_bipolar_reference)
+from mne.io import (Raw, concatenate_raws, get_chpi_positions,
+                    set_eeg_reference, set_bipolar_reference)
 from mne.io.proj import _has_eeg_average_ref_proj
+from mne.io.base import _apply_reference
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
@@ -995,7 +995,7 @@ def test_apply_reference():
                              stim=True, exclude='bads')
 
     # Rereference raw data by creating a copy of original data
-    reref, ref_data = apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
+    reref, ref_data = _apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
                                       copy=True)
     assert_true(reref.info['custom_ref_applied'])
 
@@ -1021,11 +1021,11 @@ def test_apply_reference():
     assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
 
     # Test that disabling the reference does not break anything
-    reref, ref_data = apply_reference(raw, [])
+    reref, ref_data = _apply_reference(raw, [])
 
     # Test that data is modified in place when copy=False
-    reref, ref_data = apply_reference(raw, ['EEG 001', 'EEG 002'],
-                                      copy=False)
+    reref, ref_data = _apply_reference(raw, ['EEG 001', 'EEG 002'],
+                                       copy=False)
     assert_true(raw is reref)
 
 

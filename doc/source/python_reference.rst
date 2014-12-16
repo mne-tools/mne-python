@@ -366,7 +366,6 @@ EEG referencing:
    :toctree: generated/
    :template: function.rst
 
-   apply_reference
    set_bipolar_reference
    set_eeg_reference
 
