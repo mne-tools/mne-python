@@ -15,6 +15,7 @@ import os
 import os.path as op
 import numpy as np
 from scipy.spatial.distance import pdist
+from ..io.meas_info import _read_dig_points
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names
@@ -22,7 +23,8 @@ from ..externals.six.moves import map
 from .channels import _contains_ch_type
 from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
-                          _cartesian_to_sphere)
+                          _cartesian_to_sphere, apply_trans, als_ras_trans_mm,
+                          get_ras_to_neuromag_trans)
 
 
 class Layout(object):
@@ -934,3 +936,59 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
+
+
+def read_polhemus_montage(fname, point_names, kind='Polhemus digitized montage',
+                          transform=True):
+    """Read a Montage from points exported by Polhemus FastScan
+
+    Parameters
+    ----------
+    fname : str
+        Filename of the Polhemus Points file. The file should be exported as
+        text file.
+    point_names : list of str
+        The names of the points, in the same order as points in the file. Needs
+        to have the same lenght as the Points file. Points named with the empty
+        string ('') are ignored.
+    kind : str
+        Name for the Montage.
+    transform : bool
+        Transform the points to MNE's coordinate system. This requires the
+        'Nasion', 'LPA' and 'RPA' points to be specified. When False, the
+        points are still transformed to the RAS coordinate system but are not
+        aligned using Nasion, LPA and RPA.
+
+    Returns
+    -------
+    montage : Montage
+        Montage created from the points.
+    """
+    points = _read_dig_points(fname)
+    if len(points) != len(point_names):
+        raise ValueError("The file %s contains %i points, but %i names were "
+                         "specified." % (fname, len(points), len(point_names)))
+    points = apply_trans(als_ras_trans_mm, points)
+
+    if transform:
+        names_lower = [name.lower() for name in point_names]
+
+        # check that all needed points are present
+        missing = tuple(name for name in ('nasion', 'lpa', 'rpa')
+                        if name not in names_lower)
+        if missing:
+            raise ValueError("The points %s are missing, but are needed "
+                             "to transform the points to the MNE coordinate "
+                             "system. Either add the points, or read the "
+                             "montage with transform=False." % str(missing))
+
+        nasion = points[names_lower.index('nasion')]
+        lpa = points[names_lower.index('lpa')]
+        rpa = points[names_lower.index('rpa')]
+        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        points = apply_trans(neuromag_trans, points)
+
+    # drop points
+    index = np.array([bool(name) for name in point_names])
+    point_names = filter(bool, point_names)
+    return Montage(points[index], point_names, kind, np.arange(len(points)))
