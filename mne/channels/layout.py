@@ -22,6 +22,7 @@ from ..io.meas_info import _read_dig_points
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names
+from ..externals.six import string_types
 from ..externals.six.moves import map
 from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
@@ -938,10 +939,10 @@ def read_polhemus_montage(fname, point_names, kind='Polhemus digitized montage',
     fname : str
         Filename of the Polhemus Points file. The file should be exported as
         text file.
-    point_names : list of str
-        The names of the points, in the same order as points in the file. Needs
-        to have the same lenght as the Points file. Points named with the empty
-        string ('') are ignored.
+    point_names : list of str | str
+        A list with the names of all points, in the same order as the points in
+        the file. Alternatively path to a plain text file with one point name
+        per line. Points named with the empty string ('') are ignored.
     kind : str
         Name for the Montage.
     transform : bool
@@ -956,7 +957,17 @@ def read_polhemus_montage(fname, point_names, kind='Polhemus digitized montage',
         Montage created from the points.
     """
     points = _read_dig_points(fname)
-    if len(points) != len(point_names):
+    if isinstance(point_names, string_types):
+        with open(point_names) as fid:
+            point_names_read = [name.strip() for name in fid.readlines()]
+
+        if len(points) != len(point_names_read):
+            raise ValueError("The file %s contains %i points, but %i names "
+                             "are specified in %s."
+                             % (fname, len(points), len(point_names_read),
+                                point_names))
+        point_names = point_names_read
+    elif len(points) != len(point_names):
         raise ValueError("The file %s contains %i points, but %i names were "
                          "specified." % (fname, len(points), len(point_names)))
     points = apply_trans(als_ras_trans_mm, points)
