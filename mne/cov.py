@@ -341,8 +341,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
-                       projs=None,  method=None, method_params=None, cv=3,
-                       scalings=None, n_jobs=1, keep_ref_meg=False,
+                       projs=None, method='empirical', method_params=None,
+                       cv=3, scalings=None, n_jobs=1, keep_ref_meg=False,
                        return_estimators=False, verbose=None):
     """Estimate noise covariance matrix from epochs
 
@@ -462,7 +462,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     scalings = _scalings
 
     _method_params = {
-        'empirical': {'store_precision': False, 'assume_centered': False},
+        'empirical': {'store_precision': False, 'assume_centered': True},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
                            'store_precision': False, 'assume_centered': False},
         'ledoit_wolf': {'store_precision': False, 'assume_centered': False},
@@ -525,45 +525,16 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
 
-    if projs and method is not None and \
-            ('factor_analysis' in method or 'pca' in method):
+    if projs and ('factor_analysis' in method or 'pca' in method):
         raise ValueError('projs are not allowed when using PCA '
                          'or Factor Analysis.')
 
-    if method is None:
-        n_epoch_types = len(epochs)
-        data = 0.0
-        data_mean = list(np.zeros(n_epoch_types))
-        n_samples = np.zeros(n_epoch_types, dtype=np.int)
-        n_epochs = np.zeros(n_epoch_types, dtype=np.int)
-
-        for i, epochs_t in enumerate(epochs):
-
-            tslice = _get_tslice(epochs_t, tmin, tmax)
-            for e in epochs_t:
-                e = e[picks_meeg][:, tslice]
-                if not keep_sample_mean:
-                    data_mean[i] += e
-                data += np.dot(e, e.T)
-                n_samples[i] += e.shape[1]
-                n_epochs[i] += 1
-
-        n_samples_tot = int(np.sum(n_samples))
-        if keep_sample_mean:
-            data /= n_samples_tot
-        else:
-            n_samples_epoch = n_samples // n_epochs
-            norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
-            for i, mean in enumerate(data_mean):
-                data -= 1.0 / n_epochs[i] * np.dot(mean, mean.T)
-            data /= norm_const
-
-        _check_n_samples(n_samples_tot, len(picks_meeg))
-        cov_data = {'empirical': {'data': data}}
-    elif all(k in accepted_methods or callable(k) for k in method):
+    if all(k in accepted_methods or callable(k) for k in method):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
         epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+        if keep_sample_mean is not True:
+            epochs = [e - e.mean() for e in epochs]
         if len(epochs) > 1:
             epochs = np.concatenate(epochs, 0)
         else:

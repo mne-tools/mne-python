@@ -43,7 +43,7 @@ events = mne.read_events(event_fname)
 
 # let's look at rare events, button presses
 event_id, tmin, tmax = 1, -0.2, 0.5
-picks = mne.pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
 reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -59,7 +59,7 @@ epochs = epochs[:20]  # fewer samples to study regularization
 method = ('empirical', 'shrunk', 'pca', 'factor_analysis')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=False,
-                                verbose=True)
+                                verbose=True, keep_sample_mean=True)
 
 # the "return_estimator" flag returns all covariance estimators sorted by
 # log-likelihood. Moreover the noise cov objects now contain extra info.

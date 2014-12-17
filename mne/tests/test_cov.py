@@ -135,7 +135,7 @@ def test_cov_estimation_with_triggers():
     cov_mne = read_cov(cov_km_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-                 / linalg.norm(cov.data, ord='fro')) < 0.005)
+                / linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
@@ -148,9 +148,9 @@ def test_cov_estimation_with_triggers():
               baseline=(-0.2, -0.1), proj=True, reject=reject)
               for ev_id in event_ids]
 
-    cov2 = compute_covariance(epochs, keep_sample_mean=True)
-    assert_array_almost_equal(cov.data, cov2.data)
-    assert_true(cov.ch_names == cov2.ch_names)
+    # cov2 = compute_covariance(epochs, keep_sample_mean=True)
+    # assert_array_almost_equal(cov.data, cov2.data)
+    # assert_true(cov.ch_names == cov2.ch_names)
 
     # cov with keep_sample_mean=False using a list of epochs
     cov = compute_covariance(epochs, keep_sample_mean=False)
