@@ -4,7 +4,7 @@ Demonstrate impact of whitening on source estimates
 ===================================================
 
 This example computes dSPM source estimates for the SPM faces data and compares
-proper regularization with insuficcient regularization based on the methods
+proper regularization with insufficient regularization based on the methods
 described in [1]. The example demonstrates that insufficient regularization can
 lead to overestimation of source amplitudes.
 

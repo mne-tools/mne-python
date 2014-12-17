@@ -562,7 +562,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  time_label=time_label, n_jobs=n_jobs)
 
     def plot_white(self, noise_cov, show=True):
-        """Plot whitend evoked response
+        """Plot whitened evoked response
 
         Parameters
         ----------

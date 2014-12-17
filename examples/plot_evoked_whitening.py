@@ -6,7 +6,7 @@ Whitening evoked data with a noise covariance
 Evoked data are loaded and then whitened using a given noise covariance
 matrix. It's an excellent quality check to see if baseline signals match
 the assumption of Gaussian white noise from which we expect values around
-and less than 2 standard deviations. Covariance estimation and diagnostic
+0 with less than 2 standard deviations. Covariance estimation and diagnostic
 plots are based on [1].
 
 References
@@ -49,7 +49,7 @@ reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True, proj=False)
 
-epochs = epochs[:20]  # fewer samples to study regulrization
+epochs = epochs[:20]  # fewer samples to study regularization
 # For your data, use as many samples as you can!
 
 ###############################################################################
@@ -75,11 +75,11 @@ evoked = epochs.average()
 
 # plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian white noise from which we expect values around
-# and less than 2 standard deviations. For the Global field power we expect
+# 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-# unwhitened evoked response
+# evoked response
 evoked.plot()
 
-# unwhitened evoked response and global field power (GFP)
+# whitened evoked response and global field power (GFP)
 evoked.plot_white(noise_covs)

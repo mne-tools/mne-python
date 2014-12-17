@@ -428,23 +428,23 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     Returns
     -------
-    cov : instance of Covariance | dict
+    cov : instance of Covariance | list
         The computed covariance. If method equals 'auto' or is a list of str
-        and return_estimators equals True, a dict of covariance estimators is
-        returned.
+        and return_estimators equals True, a list of covariance estimators is
+        returned (sorted by log-likelihood, ascending order).
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. Automated model selection in covariance
-        estimation and spatial whitening of MEG and EEG signals (in press).
+    [1] Engemann D. and Gramfort A (in press). Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals.
         NeuroImage.
     [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
         large-dimensional covariance matrices. Journal of Multivariate
         Analysis 88 (2), 365 - 411.
-    [3] Tipping, M. E., Bishop, C. M., 1999. Probabilistic principal
+    [3] Tipping, M. E., Bishop, C. M., (1999). Probabilistic principal
         component analysis. Journal of the Royal Statistical Society: Series
         B (Statistical Methodology) 61 (3), 611 - 622.
-    [4] Barber, D., 2012. Bayesian reasoning and machine learning.
+    [4] Barber, D., (2012). Bayesian reasoning and machine learning.
         Cambridge University Press., Algorithm 21.1
     """
     accepted_methods = ('auto', 'empirical', 'diagonal_fixed', 'ledoit_wolf',
@@ -456,7 +456,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
-                raise ValueError('scalings must be "mag" or "grad" or "eeg"')
+                raise ValueError('The keys in `scalings` must be "mag" or'
+                                 '"grad" or "eeg". You gave me: %s' % k)
         _scalings.update(scalings)
     scalings = _scalings
 

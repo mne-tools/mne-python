@@ -297,7 +297,7 @@ def _plot_update_evoked(params, bools):
 
 
 def plot_evoked_white(evoked, noise_cov, show=True):
-    """Plot whitend evoked response
+    """Plot whitened evoked response
 
     Parameters
     ----------
@@ -354,7 +354,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     def whitened_gfp(x):
         """Whitened Global Field Power
 
-        The MNE inverse solver assumes zero mean whitend data as input.
+        The MNE inverse solver assumes zero mean whitened data as input.
         Therefore, a chi^2 statistic will be best to detect model violations.
         """
         return np.sum(x ** 2, axis=0) / len(x)
