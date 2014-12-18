@@ -59,7 +59,7 @@ epochs = epochs[:20]  # fewer samples to study regularization
 method = ('empirical', 'shrunk', 'pca', 'factor_analysis')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=False,
-                                verbose=True, keep_sample_mean=True)
+                                verbose=True)
 
 # the "return_estimator" flag returns all covariance estimators sorted by
 # log-likelihood. Moreover the noise cov objects now contain extra info.

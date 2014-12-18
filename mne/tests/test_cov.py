@@ -148,16 +148,22 @@ def test_cov_estimation_with_triggers():
               baseline=(-0.2, -0.1), proj=True, reject=reject)
               for ev_id in event_ids]
 
-    # cov2 = compute_covariance(epochs, keep_sample_mean=True)
-    # assert_array_almost_equal(cov.data, cov2.data)
-    # assert_true(cov.ch_names == cov2.ch_names)
+    cov2 = compute_covariance(epochs, keep_sample_mean=True)
+    assert_array_almost_equal(cov.data, cov2.data)
+    assert_true(cov.ch_names == cov2.ch_names)
 
     # cov with keep_sample_mean=False using a list of epochs
-    cov = compute_covariance(epochs, keep_sample_mean=False)
+    mp = {'empirical': {'assume_centered': True}}
+    cov = compute_covariance(epochs, keep_sample_mean=False,
+                             method_params=mp)
     cov_mne = read_cov(cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
                  / linalg.norm(cov.data, ord='fro')) < 0.005)
+
+    mp = {'empirical': {'assume_centered': False}}
+    assert_raises(ValueError, compute_covariance, epochs,
+                  keep_sample_mean=False, method_params=mp)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving

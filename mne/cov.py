@@ -464,10 +464,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
-                           'store_precision': False, 'assume_centered': False},
-        'ledoit_wolf': {'store_precision': False, 'assume_centered': False},
+                           'store_precision': False, 'assume_centered': True},
+        'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
         'shrunk': {'shrinkages': np.logspace(-4, 0, 30),
-                   'store_precision': False, 'assume_centered': False},
+                   'store_precision': False, 'assume_centered': True},
         'pca': {'iter_n_components': None},
         'factor_analysis': {'iter_n_components': None}
     }
@@ -478,8 +478,17 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                  (key, '" or "'.join(_method_params)))
 
             _method_params[key].update(method_params[key])
+
     # for multi condition support epochs is required to refer to a list of
     # epochs objects
+
+    def _unpack_epochs(epochs):
+        if len(epochs.event_id) > 1:
+            epochs = [epochs[k] for k in epochs.event_id]
+        else:
+            epochs = [epochs]
+        return epochs
+
     if not isinstance(epochs, list):
         epochs = _unpack_epochs(epochs)
     else:
@@ -529,16 +538,42 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         raise ValueError('projs are not allowed when using PCA '
                          'or Factor Analysis.')
 
+    if not keep_sample_mean:
+        for p, v in _method_params.items():
+            if v.get('assume_centered', None) is False:
+                raise ValueError('`assume_centered` must be True'
+                                 ' if `keep_sample_mean` is False')
+        # prepare mean covs
+        n_epoch_types = len(epochs)
+        data_mean = list(np.zeros(n_epoch_types))
+        n_samples = np.zeros(n_epoch_types, dtype=np.int)
+        n_epochs = np.zeros(n_epoch_types, dtype=np.int)
+
+        for i, epochs_t in enumerate(epochs):
+
+            tslice = _get_tslice(epochs_t, tmin, tmax)
+            for e in epochs_t:
+                e = e[picks_meeg][:, tslice]
+                if not keep_sample_mean:
+                    data_mean[i] += e
+                n_samples[i] += e.shape[1]
+                n_epochs[i] += 1
+
+        n_samples_epoch = n_samples // n_epochs
+        norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
+        data_mean = [1.0 / n_epoch * np.dot(mean, mean.T) for n_epoch, mean
+                     in zip(n_epochs, data_mean)]
+
     if all(k in accepted_methods or callable(k) for k in method):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
         epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
-        if keep_sample_mean is not True:
-            epochs = [e - e.mean() for e in epochs]
+
         if len(epochs) > 1:
             epochs = np.concatenate(epochs, 0)
         else:
             epochs = epochs[0]
+
         epochs = np.hstack(epochs)
         n_samples_tot = epochs.shape[-1]
         _check_n_samples(n_samples_tot, len(picks_meeg))
@@ -551,6 +586,16 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                             n_jobs=n_jobs,
                                             stop_early=True,  # XXX expose later
                                             scalings=scalings)  # if needed.
+        if not keep_sample_mean:
+            for key, cov in cov_data.items():
+                data = cov['data']
+
+                # small hack, unscale, remean ...
+                data *= n_samples_tot
+                # and apply pre-compured normalization
+                for i, mean_cov in enumerate(data_mean):
+                    data -= mean_cov
+                data /= norm_const
     else:
         raise ValueError(msg.format(method=method))
 
@@ -601,12 +646,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
     for this_method in method:
+        data_ = data.copy()
         name = this_method.__name__ if callable(this_method) else this_method
         logger.info(msg % name.upper())
 
         if this_method == 'empirical':
             est = EmpiricalCovariance(**method_params[this_method])
-            est.fit(data)
+            est.fit(data_)
             cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
             estimator_cov_info.append((est, cov, _info))
@@ -615,14 +661,14 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             Est = cp.deepcopy(_get_estimator('diagonal_fixed'))
             Est.info = info
             est = Est(**method_params[this_method])
-            est.fit(data)
+            est.fit(data_)
             cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
             estimator_cov_info.append((est, cov, _info))
 
         elif this_method == 'ledoit_wolf':
             lw = LedoitWolf(**method_params[this_method])
-            cov = _rescale_cov(info, lw.fit(data).covariance_, scalings)
+            cov = _rescale_cov(info, lw.fit(data_).covariance_, scalings)
             estimator_cov_info.append((lw, cov, None))
 
         elif this_method == 'shrunk':
@@ -630,34 +676,34 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             tuned_parameters = [{'shrinkage': shrinkage}]
             cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                                tuned_parameters, cv=cv)
-            sc = cv_.fit(data).best_estimator_
+            sc = cv_.fit(data_).best_estimator_
             _info = tuned_parameters[0]
             cov = _rescale_cov(info, sc.covariance_, scalings)
             estimator_cov_info.append((sc, cov, _info))
 
         elif this_method == 'pca':
             mp = cp.deepcopy(method_params[this_method])
-            pca, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
+            pca, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early,
                                               verbose=verbose)
-            pca.fit(data)
+            pca.fit(data_)
             cov = _rescale_cov(info, pca.get_covariance(), scalings)
             estimator_cov_info.append((pca, cov, _info))
 
         elif this_method == 'factor_analysis':
             mp = cp.deepcopy(method_params[this_method])
-            fa, _info = _auto_low_rank_model(data, this_method, n_jobs=n_jobs,
+            fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
                                              stop_early=stop_early,
                                              verbose=verbose)
-            fa.fit(data)
+            fa.fit(data_)
             cov = _rescale_cov(info, fa.get_covariance(), scalings)
             estimator_cov_info.append((fa, cov, _info))
 
         elif callable(this_method) and hasattr(this_method, 'fit'):
             est = this_method()
-            est.fit(data)
+            est.fit(data_)
             cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
             estimator_cov_info.append((est, cov, _info))
