@@ -153,17 +153,15 @@ def test_cov_estimation_with_triggers():
     assert_true(cov.ch_names == cov2.ch_names)
 
     # cov with keep_sample_mean=False using a list of epochs
-    mp = {'empirical': {'assume_centered': True}}
-    cov = compute_covariance(epochs, keep_sample_mean=False,
-                             method_params=mp)
+    cov = compute_covariance(epochs, keep_sample_mean=False)
     cov_mne = read_cov(cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
     assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
                  / linalg.norm(cov.data, ord='fro')) < 0.005)
 
-    mp = {'empirical': {'assume_centered': False}}
+    method_params = {'empirical': {'assume_centered': False}}
     assert_raises(ValueError, compute_covariance, epochs,
-                  keep_sample_mean=False, method_params=mp)
+                  keep_sample_mean=False, method_params=method_params)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
@@ -347,32 +345,32 @@ def test_auto_low_rank():
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
                  sigma=sigma)
-    mp = {'iter_n_components': [9, 10, 11]}
+    method_params = {'iter_n_components': [9, 10, 11]}
     cv = 3
     n_jobs = 1
     mode = 'factor_analysis'
     rescale = 1e8
     X *= rescale
     est, info = _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs,
-                                     method_params=mp,
+                                     method_params=method_params,
                                      cv=cv)
     assert_equal(info['best'], rank)
 
     X = get_data(n_samples=n_samples, n_features=n_features, rank=rank,
                  sigma=sigma)
-    mp = {'iter_n_components': [n_features + 5]}
+    method_params = {'iter_n_components': [n_features + 5]}
     msg = ('You are trying to estimate %i components on matrix '
            'with %i features.')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs, method_params=mp,
-                             cv=cv)
+        _auto_low_rank_model(X, mode=mode, n_jobs=n_jobs,
+                             method_params=method_params, cv=cv)
         assert_equal(len(w), 1)
         assert_equal(msg % (n_features + 5, n_features), '%s' % w[0].message)
 
-    mp = {'iter_n_components': [n_features + 5]}
+    method_params = {'iter_n_components': [n_features + 5]}
     assert_raises(ValueError, _auto_low_rank_model, X, mode='foo',
-                  n_jobs=n_jobs, method_params=mp, cv=cv)
+                  n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
 @requires_sklearn
@@ -393,12 +391,12 @@ def test_compute_covariance_auto_reg():
                     reject=reject, preload=True)
     epochs.crop(None, 0)[:10]
 
-    mp = dict(factor_analysis=dict(iter_n_components=[30]),
-              pca=dict(iter_n_components=[30]))
+    method_params = dict(factor_analysis=dict(iter_n_components=[30]),
+                         pca=dict(iter_n_components=[30]))
 
     with warnings.catch_warnings(record=True) as w:
         covs = compute_covariance(epochs, method='auto',
-                                  method_params=mp, projs=False,
+                                  method_params=method_params, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
@@ -413,7 +411,7 @@ def test_compute_covariance_auto_reg():
 
     with warnings.catch_warnings(record=True) as w:
         cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
-                                  method_params=mp, projs=False,
+                                  method_params=method_params, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)

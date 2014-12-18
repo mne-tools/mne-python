@@ -307,6 +307,11 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         The noise covs.
     show : bool
         Whether to show the figure or not. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure object containing the plot.
     """
     from ..cov import whiten_evoked  # recursive import
     import matplotlib.pyplot as plt
@@ -360,9 +365,9 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         return np.sum(x ** 2, axis=0) / len(x)
 
     if n_columns > 1:
-        suptitle = ('Whitened evoked (left, best estimator = "%s") '
-                    '\nand global field power'
-                    ' (right, comparison of estimators)' %
+        suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
+                    'and global field power '
+                    '(right, comparison of estimators)' %
                     noise_cov[0]['method'])
         fig.suptitle(suptitle)
 

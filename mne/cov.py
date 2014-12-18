@@ -365,7 +365,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
           will only be correct if keep_sample_mean is True.
 
     Note: The covariance can be unstable if the number of samples is not
-          sufficient. In that case it is common to regularize a covaraince
+          sufficient. In that case it is common to regularize a covariance
           estimate. The ``method`` parameter of this function allows to
           regularize the covariance in an automated way. It also allows
           to select between different alternative estimation algorithms which
@@ -431,7 +431,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     cov : instance of Covariance | list
         The computed covariance. If method equals 'auto' or is a list of str
         and return_estimators equals True, a list of covariance estimators is
-        returned (sorted by log-likelihood, ascending order).
+        returned (sorted by log-likelihood, from high to low, i.e. from best
+        to worst).
 
     References
     ----------
@@ -466,7 +467,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
                            'store_precision': False, 'assume_centered': True},
         'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
-        'shrunk': {'shrinkages': np.logspace(-4, 0, 30),
+        'shrunk': {'shrinkage': np.logspace(-4, 0, 30),
                    'store_precision': False, 'assume_centered': True},
         'pca': {'iter_n_components': None},
         'factor_analysis': {'iter_n_components': None}
@@ -592,7 +593,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
                 # small hack, unscale, remean ...
                 data *= n_samples_tot
-                # and apply pre-compured normalization
+                # and apply pre-computed normalization
                 for i, mean_cov in enumerate(data_mean):
                     data -= mean_cov
                 data /= norm_const
@@ -672,7 +673,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((lw, cov, None))
 
         elif this_method == 'shrunk':
-            shrinkage = method_params[this_method].pop('shrinkages')
+            shrinkage = method_params[this_method].pop('shrinkage')
             tuned_parameters = [{'shrinkage': shrinkage}]
             cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                                tuned_parameters, cv=cv)

@@ -49,8 +49,8 @@ reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True, proj=False)
 
-epochs = epochs[:20]  # fewer samples to study regularization
-# For your data, use as many samples as you can!
+# Uncomment next line to use fewer samples and study regularization effects
+# epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
@@ -61,8 +61,8 @@ noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=False,
                                 verbose=True)
 
-# the "return_estimator" flag returns all covariance estimators sorted by
-# log-likelihood. Moreover the noise cov objects now contain extra info.
+# With "return_estimator=True" all estimated covariances sorted
+# by log-likelihood are returned.
 
 print('Covariance estimates sorted from best to worst')
 for c in noise_covs:
@@ -73,13 +73,11 @@ for c in noise_covs:
 
 evoked = epochs.average()
 
+evoked.plot()  # plot evoked response
+
 # plot the whitened evoked data for to see if baseline signals match the
 # assumption of Gaussian white noise from which we expect values around
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-# evoked response
-evoked.plot()
-
-# whitened evoked response and global field power (GFP)
 evoked.plot_white(noise_covs)

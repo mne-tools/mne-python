@@ -570,6 +570,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The noise covs.
         show : bool
             Whether to show the figure or not. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure object containing the plot.
         """
         return plot_evoked_white(self, noise_cov=noise_cov, show=show)
 
