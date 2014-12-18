@@ -301,7 +301,7 @@ def test_tf_lcmv():
         raw_band.filter(l_freq, h_freq, method='iir', n_jobs=1, picks=picks)
         epochs_band = mne.Epochs(raw_band, epochs.events, epochs.event_id,
                                  tmin=tmin, tmax=tmax, baseline=None,
-                                 proj=True)
+                                 proj=True, picks=picks)
         with warnings.catch_warnings(record=True):  # not enough samples
             noise_cov = compute_covariance(epochs_band, tmin=tmin, tmax=tmin +
                                            win_length)
@@ -323,8 +323,9 @@ def test_tf_lcmv():
                                                       reg=reg, label=label)
                 source_power.append(stc_source_power.data)
 
-    stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
-                   freq_bins, reg=reg, label=label)
+    with warnings.catch_warnings(record=True):
+        stcs = tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep,
+                       win_lengths, freq_bins, reg=reg, label=label)
 
     assert_true(len(stcs) == len(freq_bins))
     assert_true(stcs[0].shape[1] == 4)
