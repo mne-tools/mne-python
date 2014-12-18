@@ -1487,7 +1487,7 @@ def _reshape_clusters(clusters, sample_shape):
 
 
 def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
-                           subject='fsaverage', vertno=None):
+                           subject='fsaverage', vertices=None, vertno=None):
     """ Assemble summary SourceEstimate from spatiotemporal cluster results
 
     This helps visualizing results from spatio-temporal-clustering
@@ -1513,8 +1513,14 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     -------
     out : instance of SourceEstimate
     """
-    if vertno is None:
-        vertno = [np.arange(10242), np.arange(10242)]
+    if vertno is not None:
+        warnings.warn("The vertno parameter is deprecated and will be removed "
+                      "in version 0.11. Use vertices instead.",
+                      DeprecationWarning)
+        vertices = vertno
+
+    if vertices is None:
+        vertices = [np.arange(10242), np.arange(10242)]
 
     T_obs, clusters, clu_pvals, _ = clu
     n_times, n_vertices = T_obs.shape
@@ -1537,7 +1543,7 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
             # visualization
         data_summary[:, 0] = np.sum(data_summary, axis=1)
 
-        return SourceEstimate(data_summary, vertno, tmin=tmin, tstep=tstep,
+        return SourceEstimate(data_summary, vertices, tmin=tmin, tstep=tstep,
                               subject=subject)
     else:
         raise RuntimeError('No significant clusters available. Please adjust '

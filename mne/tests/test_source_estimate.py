@@ -62,7 +62,7 @@ def test_volume_stc():
             stc_new.save(fname_temp)
             stc_new = read_source_estimate(fname_temp)
             assert_true(isinstance(stc_new, VolSourceEstimate))
-            assert_array_equal(vertno_read, stc_new.vertno)
+            assert_array_equal(vertno_read, stc_new.vertices)
             assert_array_almost_equal(stc.data, stc_new.data)
 
     # now let's actually read a MNE-C processed file
@@ -77,7 +77,7 @@ def test_volume_stc():
         stc_new.save(fname_temp, ftype='w')
         stc_new = read_source_estimate(fname_temp)
         assert_true(isinstance(stc_new, VolSourceEstimate))
-        assert_array_equal(stc.vertno, stc_new.vertno)
+        assert_array_equal(stc.vertices, stc_new.vertices)
         assert_array_almost_equal(stc.data, stc_new.data)
 
     # save the stc as a nifti file and export
@@ -126,7 +126,7 @@ def test_expand():
     stc_new = stc_limited.copy()
     stc_new.data.fill(0)
     for label in labels_lh[:2]:
-        stc_new += stc.in_label(label).expand(stc_limited.vertno)
+        stc_new += stc.in_label(label).expand(stc_limited.vertices)
     # make sure we can't add unless vertno agree
     assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
@@ -146,8 +146,8 @@ def test_io_stc():
 
     assert_array_almost_equal(stc.data, stc2.data)
     assert_array_almost_equal(stc.tmin, stc2.tmin)
-    assert_equal(len(stc.vertno), len(stc2.vertno))
-    for v1, v2 in zip(stc.vertno, stc2.vertno):
+    assert_equal(len(stc.vertices), len(stc2.vertices))
+    for v1, v2 in zip(stc.vertices, stc2.vertices):
         assert_array_almost_equal(v1, v2)
     assert_array_almost_equal(stc.tstep, stc2.tstep)
 
@@ -169,8 +169,8 @@ def test_io_stc_h5():
         assert_array_equal(stc_new.data, stc.data)
         assert_array_equal(stc_new.tmin, stc.tmin)
         assert_array_equal(stc_new.tstep, stc.tstep)
-        assert_equal(len(stc_new.vertno), len(stc.vertno))
-        for v1, v2 in zip(stc_new.vertno, stc.vertno):
+        assert_equal(len(stc_new.vertices), len(stc.vertices))
+        for v1, v2 in zip(stc_new.vertices, stc.vertices):
             assert_array_equal(v1, v2)
 
 
@@ -249,7 +249,7 @@ def test_stc_methods():
                                    subjects_dir=subjects_dir)[0]
     assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
     stc_label = stc.in_label(label)
-    n_vertices_used = len(label.get_vertices_used(stc_label.vertno[0]))
+    n_vertices_used = len(label.get_vertices_used(stc_label.vertices[0]))
     assert_equal(len(stc_label.data), n_vertices_used)
 
     stc_new = deepcopy(stc)
@@ -388,7 +388,7 @@ def test_morph_data():
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
     # make sure precomputed morph matrices work
     morph_mat = compute_morph_matrix(subject_from, subject_to,
-                                     stc_from.vertno, vertices_to,
+                                     stc_from.vertices, vertices_to,
                                      smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
@@ -404,8 +404,8 @@ def test_morph_data():
 
     # Morph sparse data
     # Make a sparse stc
-    stc_from.vertno[0] = stc_from.vertno[0][[100, 500]]
-    stc_from.vertno[1] = stc_from.vertno[1][[200]]
+    stc_from.vertices[0] = stc_from.vertices[0][[100, 500]]
+    stc_from.vertices[1] = stc_from.vertices[1][[200]]
     stc_from._data = stc_from._data[:3]
 
     assert_raises(RuntimeError, stc_from.morph, subject_to, sparse=True,
@@ -421,7 +421,7 @@ def test_morph_data():
     assert_equal(stc_from.tmin, stc_from.tmin)
     assert_equal(stc_from.tstep, stc_from.tstep)
 
-    stc_from.vertno[0] = np.array([], dtype=np.int64)
+    stc_from.vertices[0] = np.array([], dtype=np.int64)
     stc_from._data = stc_from._data[:1]
 
     stc_to_sparse = stc_from.morph(subject_to, grade=None, sparse=True,
@@ -484,7 +484,7 @@ def test_transform():
     stcs_t = stc.transform(_my_trans, copy=True)
     assert_true(isinstance(stcs_t, list))
     assert_array_equal(stc.times, stcs_t[0].times)
-    assert_equal(stc.vertno, stcs_t[0].vertno)
+    assert_equal(stc.vertices, stcs_t[0].vertices)
 
     data = np.concatenate((stcs_t[0].data[:, :, None],
                            stcs_t[1].data[:, :, None]), axis=2)
@@ -511,8 +511,8 @@ def test_transform():
     stc.transform(np.abs, idx=verts, tmin=-50, tmax=500, copy=False)
     assert_true(isinstance(stc, SourceEstimate))
     assert_true((stc.tmin == 0.) & (stc.times[-1] == 0.5))
-    assert_true(len(stc.vertno[0]) == 0)
-    assert_equal(stc.vertno[1], verts_rh)
+    assert_true(len(stc.vertices[0]) == 0)
+    assert_equal(stc.vertices[1], verts_rh)
     assert_array_equal(stc.data, data_t)
 
     times = np.round(1000 * stc.times)
@@ -611,7 +611,7 @@ def test_get_peak():
         assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
 
         vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertno) if ii == 0 else stc.vertno
+        vertno = np.concatenate(stc.vertices) if ii == 0 else stc.vertices
         assert_true(vert_idx in vertno)
         assert_true(time_idx in stc.times)
 

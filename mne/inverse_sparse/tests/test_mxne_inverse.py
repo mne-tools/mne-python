@@ -71,8 +71,8 @@ def test_mxne_inverse():
     assert_array_almost_equal(stc_prox.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_cd.times, evoked_l21.times, 5)
     assert_array_almost_equal(stc_prox.data, stc_cd.data, 5)
-    assert_true(stc_prox.vertno[1][0] in label.vertices)
-    assert_true(stc_cd.vertno[1][0] in label.vertices)
+    assert_true(stc_prox.vertices[1][0] in label.vertices)
+    assert_true(stc_cd.vertices[1][0] in label.vertices)
 
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=None,
                         depth=depth, maxit=500, tol=1e-4, active_set_size=10,
@@ -80,7 +80,7 @@ def test_mxne_inverse():
                         return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    assert_true(stc.vertno[1][0] in label.vertices)
+    assert_true(stc.vertices[1][0] in label.vertices)
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
@@ -92,7 +92,7 @@ def test_mxne_inverse():
                            weights_min=weights_min, return_residual=True)
 
     assert_array_almost_equal(stc.times, evoked.times, 5)
-    assert_true(stc.vertno[1][0] in label.vertices)
+    assert_true(stc.vertices[1][0] in label.vertices)
 
 
 run_tests_if_main()

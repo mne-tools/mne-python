@@ -553,9 +553,9 @@ class Label(object):
         label.values = stc.data[inds, :].ravel()
         label.pos = np.zeros((len(inds), 3))
         if label.hemi == 'lh':
-            label.vertices = stc.vertno[0][inds]
+            label.vertices = stc.vertices[0][inds]
         else:
-            label.vertices = stc.vertno[1][inds]
+            label.vertices = stc.vertices[1][inds]
         label.subject = subject_to
         return label
 
@@ -1133,7 +1133,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
     cnt = 0
     cnt_full = 0
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
-            zip(['lh', 'rh'], stc.vertno, tris, rr)):
+            zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1

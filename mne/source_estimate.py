@@ -371,8 +371,8 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
-    if len(a.vertno) == len(b.vertno):
-        if all([np.array_equal(av, vv) for av, vv in zip(a.vertno, b.vertno)]):
+    if len(a.vertices) == len(b.vertices):
+        if all([np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)]):
             compat = True
     if not compat:
         raise ValueError('Cannot combine SourceEstimates that do not have the '
@@ -457,7 +457,7 @@ class _BaseSourceEstimate(object):
         self._data = data
         self.tmin = tmin
         self.tstep = tstep
-        self.vertno = vertices
+        self.vertices = vertices
         self.verbose = verbose
         self._kernel = kernel
         self._sens_data = sens_data
@@ -465,6 +465,13 @@ class _BaseSourceEstimate(object):
         self.times = None
         self._update_times()
         self.subject = _check_subject(None, subject, False)
+
+    @property
+    def vertno(self):
+        warnings.warn("The .vertno attribute is deprecated and will be remove "
+                      "in version 0.11. Use .vertices instead",
+                      category=DeprecationWarning)
+        return self.vertices
 
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data and compute self._data
@@ -584,7 +591,7 @@ class _BaseSourceEstimate(object):
         tmin = (self.tmin + tmax) / 2.
         tstep = tmax - self.tmin
         mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
-                                  vertices=self.vertno, tmin=tmin,
+                                  vertices=self.vertices, tmin=tmin,
                                   tstep=tstep, subject=self.subject)
         return mean_stc
 
@@ -716,7 +723,7 @@ class _BaseSourceEstimate(object):
             data[:, i] = func(self.data[:, idx], axis=1)
 
         tmin = times[0] + width / 2.
-        stc = _make_stc(data, vertices=self.vertno,
+        stc = _make_stc(data, vertices=self.vertices,
                         tmin=tmin, tstep=width, subject=self.subject)
         return stc
 
@@ -893,7 +900,7 @@ class _BaseSourceEstimate(object):
         else:
             # return new or overwritten stc
             stcs = self if not copy else self.copy()
-            stcs._data, stcs.vertno = data_t, verts
+            stcs._data, stcs.vertices = data_t, verts
             stcs.tmin, stcs.times = tmin, times
 
         return stcs
@@ -943,14 +950,14 @@ class _BaseSourceEstimate(object):
             data = data.copy()
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
-        if isinstance(self.vertno, list):
+        if isinstance(self.vertices, list):
             # surface source estimates
             v_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
                        for vert in vertno]
-                       for ii, vertno in enumerate(self.vertno)] for i in e]
+                       for ii, vertno in enumerate(self.vertices)] for i in e]
         else:
             # volume source estimates
-            v_names = ['VOL %d' % vert for vert in self.vertno]
+            v_names = ['VOL %d' % vert for vert in self.vertices]
 
         df = pd.DataFrame(data, columns=v_names)
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
@@ -992,7 +999,7 @@ class SourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : list of two arrays of shape (n_dipoles,)
+    vertices : list of two arrays of shape (n_dipoles,)
         The indices of the dipoles in the left and right source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1053,16 +1060,16 @@ class SourceEstimate(_BaseSourceEstimate):
                      data=rh_data[:, 0])
         elif ftype == 'h5':
             write_hdf5(fname + '-stc.h5',
-                       dict(vertices=self.vertno, data=self.data,
+                       dict(vertices=self.vertices, data=self.data,
                             tmin=self.tmin, tstep=self.tstep,
                             subject=self.subject))
         logger.info('[done]')
 
     def __repr__(self):
-        if isinstance(self.vertno, list):
-            nv = sum([len(v) for v in self.vertno])
+        if isinstance(self.vertices, list):
+            nv = sum([len(v) for v in self.vertices])
         else:
-            nv = self.vertno.size
+            nv = self.vertices.size
         s = "%d vertices" % nv
         if self.subject is not None:
             s += ", subject : %s" % self.subject
@@ -1082,18 +1089,18 @@ class SourceEstimate(_BaseSourceEstimate):
 
     @property
     def lh_vertno(self):
-        return self.vertno[0]
+        return self.vertices[0]
 
     @property
     def rh_vertno(self):
-        return self.vertno[1]
+        return self.vertices[1]
 
     def _hemilabel_stc(self, label):
 
         if label.hemi == 'lh':
-            stc_vertices = self.vertno[0]
+            stc_vertices = self.vertices[0]
         else:
-            stc_vertices = self.vertno[1]
+            stc_vertices = self.vertices[1]
 
         # find index of the Label's vertices
         idx = np.nonzero(in1d(stc_vertices, label.vertices))[0]
@@ -1103,7 +1110,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
         # find data
         if label.hemi == 'rh':
-            values = self.data[idx + len(self.vertno[0])]
+            values = self.data[idx + len(self.vertices[0])]
         else:
             values = self.data[idx]
 
@@ -1151,15 +1158,15 @@ class SourceEstimate(_BaseSourceEstimate):
                                    subject=self.subject)
         return label_stc
 
-    def expand(self, vertno):
+    def expand(self, vertices):
         """Expand SourceEstimate to include more vertices
 
-        This will add rows to stc.data (zero-filled) and modify stc.vertno
-        to include all vertices in stc.vertno and the input vertno.
+        This will add rows to stc.data (zero-filled) and modify stc.vertices
+        to include all vertices in stc.vertices and the input vertices.
 
         Parameters
         ----------
-        vertno : list of array
+        vertices : list of array
             New vertices to add. Can also contain old values.
 
         Returns
@@ -1167,23 +1174,23 @@ class SourceEstimate(_BaseSourceEstimate):
         stc : instance of SourceEstimate
             The modified stc (note: method operates inplace).
         """
-        if not isinstance(vertno, list):
-            raise TypeError('vertno must be a list')
-        if not len(self.vertno) == len(vertno):
-            raise ValueError('vertno must have the same length as stc.vertno')
+        if not isinstance(vertices, list):
+            raise TypeError('vertices must be a list')
+        if not len(self.vertices) == len(vertices):
+            raise ValueError('vertices must have the same length as stc.vertices')
 
         # can no longer use kernel and sensor data
         self._remove_kernel_sens_data_()
 
         inserters = list()
         offsets = [0]
-        for vi, (v_old, v_new) in enumerate(zip(self.vertno, vertno)):
+        for vi, (v_old, v_new) in enumerate(zip(self.vertices, vertices)):
             v_new = np.setdiff1d(v_new, v_old)
             inds = np.searchsorted(v_old, v_new)
             # newer numpy might overwrite inds after np.insert, copy here
             inserters += [inds.copy()]
             offsets += [len(v_old)]
-            self.vertno[vi] = np.insert(v_old, inds, v_new)
+            self.vertices[vi] = np.insert(v_old, inds, v_new)
         inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
         inds = np.concatenate(inds)
         new_data = np.zeros((len(inds), self._data.shape[1]))
@@ -1290,8 +1297,8 @@ class SourceEstimate(_BaseSourceEstimate):
         subject = _check_subject(self.subject, subject)
 
         values = np.sum(self.data, axis=1)  # sum across time
-        vert_inds = [np.arange(len(self.vertno[0])),
-                     np.arange(len(self.vertno[1])) + len(self.vertno[0])]
+        vert_inds = [np.arange(len(self.vertices[0])),
+                     np.arange(len(self.vertices[1])) + len(self.vertices[0])]
         if hemi is None:
             hemi = np.where(np.array([np.sum(values[vi])
                             for vi in vert_inds]))[0]
@@ -1315,12 +1322,12 @@ class SourceEstimate(_BaseSourceEstimate):
         if restrict_vertices is False:
             restrict_vertices = np.arange(surf[0].shape[0])
         elif restrict_vertices is True:
-            restrict_vertices = self.vertno[hemi]
+            restrict_vertices = self.vertices[hemi]
 
         if np.any(self.data < 0):
             raise ValueError('Cannot compute COM with negative values')
 
-        pos = surf[0][self.vertno[hemi], :].T
+        pos = surf[0][self.vertices[hemi], :].T
         c_o_m = np.sum(pos * values, axis=1) / np.sum(values)
 
         # Find the vertex closest to the COM
@@ -1528,7 +1535,7 @@ class SourceEstimate(_BaseSourceEstimate):
         """
         data = {'lh': self.lh_data, 'rh': self.rh_data, None: self.data}[hemi]
         vertno = {'lh': self.lh_vertno, 'rh': self.rh_vertno,
-                  None: np.concatenate(self.vertno)}[hemi]
+                  None: np.concatenate(self.vertices)}[hemi]
 
         vert_idx, time_idx = _get_peak(data, self.times, tmin, tmax, mode)
 
@@ -1564,7 +1571,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : array of shape (n_dipoles,)
+    vertices : array of shape (n_dipoles,)
         The indices of the dipoles in the source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -1609,13 +1616,13 @@ class VolSourceEstimate(_BaseSourceEstimate):
                     or fname.endswith('-vol.stc')):
                 fname += '-vl.stc'
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.vertno, data=self.data)
+                       vertices=self.vertices, data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
             if not (fname.endswith('-vl.w')
                     or fname.endswith('-vol.w')):
                 fname += '-vl.w'
-            _write_w(fname, vertices=self.vertno, data=self.data)
+            _write_w(fname, vertices=self.vertices, data=self.data)
 
         logger.info('[done]')
 
@@ -1670,10 +1677,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
                                   mri_resolution=mri_resolution)
 
     def __repr__(self):
-        if isinstance(self.vertno, list):
-            nv = sum([len(v) for v in self.vertno])
+        if isinstance(self.vertices, list):
+            nv = sum([len(v) for v in self.vertices])
         else:
-            nv = self.vertno.size
+            nv = self.vertices.size
         s = "%d vertices" % nv
         if self.subject is not None:
             s += ", subject : %s" % self.subject
@@ -1714,7 +1721,7 @@ class VolSourceEstimate(_BaseSourceEstimate):
         vert_idx, time_idx = _get_peak(self.data, self.times, tmin, tmax,
                                        mode)
 
-        return (vert_idx if vert_as_index else self.vertno[vert_idx],
+        return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
 
 
@@ -1746,7 +1753,7 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The subject name.
     times : array of shape (n_times,)
         The time vector.
-    vertno : list of arrays of shape (n_dipoles,)
+    vertices : list of arrays of shape (n_dipoles,)
         The indices of the dipoles in each source space.
     data : array of shape (n_dipoles, n_times)
         The data in source space.
@@ -2080,17 +2087,17 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     cnt = 0
     for k, hemi in enumerate(['lh', 'rh']):
-        if stc.vertno[k].size > 0:
+        if stc.vertices[k].size > 0:
             map_hemi = maps[k]
-            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertno[k]])
+            vertno_k = _sparse_argmax_nnz_row(map_hemi[stc.vertices[k]])
             order = np.argsort(vertno_k)
             n_active_hemi = len(vertno_k)
             data_hemi = stc_morph._data[cnt:cnt + n_active_hemi]
             stc_morph._data[cnt:cnt + n_active_hemi] = data_hemi[order]
-            stc_morph.vertno[k] = vertno_k[order]
+            stc_morph.vertices[k] = vertno_k[order]
             cnt += n_active_hemi
         else:
-            stc_morph.vertno[k] = np.array([], dtype=np.int64)
+            stc_morph.vertices[k] = np.array([], dtype=np.int64)
 
     return stc_morph
 
@@ -2160,7 +2167,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         e.data[e.data == 2] = 1
         n_vertices = e.shape[0]
         e = e + sparse.eye(n_vertices, n_vertices)
-        idx_use = stc_from.vertno[hemi]
+        idx_use = stc_from.vertices[hemi]
         if len(idx_use) == 0:
             continue
         data_morphed[hemi] = np.concatenate(
@@ -2722,7 +2729,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
     n_labels = len(labels)
 
-    # get vertno from source space, they have to be the same as in the stcs
+    # get vertices from source space, they have to be the same as in the stcs
     vertno = [s['vertno'] for s in src]
     nvert = [len(vn) for vn in vertno]
 
@@ -2778,9 +2785,9 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
     for stc in stcs:
 
         # make sure the stc is compatible with the source space
-        if len(stc.vertno[0]) != nvert[0] or len(stc.vertno[1]) != nvert[1]:
+        if len(stc.vertices[0]) != nvert[0] or len(stc.vertices[1]) != nvert[1]:
             raise ValueError('stc not compatible with source space')
-        if any([np.any(svn != vn) for svn, vn in zip(stc.vertno, vertno)]):
+        if any([np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)]):
             raise ValueError('stc not compatible with source space')
 
         logger.info('Extracting time courses for %d labels (mode: %s)'

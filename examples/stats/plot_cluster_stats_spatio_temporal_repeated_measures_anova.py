@@ -212,7 +212,7 @@ print('Visualizing clusters.')
 #    Now let's build a convenient representation of each cluster, where each
 #    cluster becomes a "time point" in the SourceEstimate
 stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
-                                             vertno=fsave_vertices,
+                                             vertices=fsave_vertices,
                                              subject='fsaverage')
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
