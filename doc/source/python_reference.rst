@@ -332,6 +332,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    :template: function.rst
 
    read_montage
+   read_montage_polhemus
    apply_montage
    read_layout
    find_layout
