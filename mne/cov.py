@@ -480,9 +480,12 @@ def _unpack_epochs(epochs):
 
 
 @verbose
-def _get_whitener(A, pca, ch_type, verbose=None):
+def _get_whitener(A, pca, ch_type, ncov_rank=None, verbose=None):
     # whitening operator
-    rnk = rank(A)
+    if ncov_rank is None:
+        rnk = rank(A)
+    else:
+        rnk = ncov_rank
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
     eig[:-rnk] = 0.0
@@ -498,7 +501,8 @@ def _get_whitener(A, pca, ch_type, verbose=None):
 
 
 @verbose
-def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
+def prepare_noise_cov(noise_cov, info, ch_names, ncov_rank=None,
+                      verbose=None):
     """Prepare noise covariance matrix
 
     Parameters
@@ -509,6 +513,11 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
         The measurement info (used to get channel types and bad channels).
     ch_names : list
         The channel names to be considered.
+    ncov_rank : None | int | dict
+        Specified rank of the noise covariance matrix. If None, the rank is
+        detected automatically. If int, the rank is specified for the MEG
+        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        to specify the rank for each modality.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
@@ -537,13 +546,26 @@ def prepare_noise_cov(noise_cov, info, ch_names, verbose=None):
     has_meg = len(C_meg_idx) > 0
     has_eeg = len(C_eeg_idx) > 0
 
+    # Get the specified noise covariance rank
+    if ncov_rank is not None:
+        if isinstance(ncov_rank, dict):
+            ncov_rank_meg = ncov_rank.get('meg', None)
+            ncov_rank_eeg = ncov_rank.get('eeg', None)
+        else:
+            ncov_rank_meg = int(ncov_rank)
+            ncov_rank_eeg = None
+    else:
+        ncov_rank_meg, ncov_rank_eeg = None, None
+
     if has_meg:
         C_meg = C[C_meg_idx][:, C_meg_idx]
-        C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG')
+        C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
+                                                ncov_rank_meg)
 
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
-        C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG')
+        C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
+                                                ncov_rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
             warnings.warn('No average EEG reference present in info["projs"], '
                           'covariance may be adversely affected. Consider '
@@ -679,7 +701,8 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     return cov
 
 
-def compute_whitener(noise_cov, info, picks=None, verbose=None):
+def compute_whitener(noise_cov, info, picks=None, ncov_rank=None,
+                     verbose=None):
     """Compute whitening matrix
 
     Parameters
@@ -691,6 +714,11 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     picks : array-like of int | None
         The channels indices to include. If None the data
         channels in info, except bad channels, are used.
+    ncov_rank : None | int | dict
+        Specified rank of the noise covariance matrix. If None, the rank is
+        detected automatically. If int, the rank is specified for the MEG
+        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        to specify the rank for each modality.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -708,7 +736,8 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
     noise_cov = cp.deepcopy(noise_cov)
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names)
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
+                                  ncov_rank=ncov_rank)
     n_chan = len(ch_names)
 
     W = np.zeros((n_chan, n_chan), dtype=np.float)
@@ -726,7 +755,7 @@ def compute_whitener(noise_cov, info, picks=None, verbose=None):
     return W, ch_names
 
 
-def whiten_evoked(evoked, noise_cov, picks, diag=False):
+def whiten_evoked(evoked, noise_cov, picks, diag=False, ncov_rank=None):
     """Whiten evoked data using given noise covariance
 
     Parameters
@@ -738,35 +767,24 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False):
     picks : array-like of int
         The channel indices to whiten
     diag : bool
-        If True, whiten using only the diagonal of the covariance
+        If True, whiten using only the diagonal of the covariancei
+    ncov_rank : None | int | dict
+        Specified rank of the noise covariance matrix. If None, the rank is
+        detected automatically. If int, the rank is specified for the MEG
+        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        to specify the rank for each modality.
 
     Returns
     -------
     evoked_white : instance of Evoked
         The whitened evoked data.
     """
-    ch_names = [evoked.ch_names[k] for k in picks]
-    n_chan = len(ch_names)
+
     evoked = cp.deepcopy(evoked)
+    ch_names = [evoked.ch_names[k] for k in picks]
 
-    if diag:
-        noise_cov = cp.deepcopy(noise_cov)
-        noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
-
-    noise_cov = prepare_noise_cov(noise_cov, evoked.info, ch_names)
-
-    W = np.zeros((n_chan, n_chan), dtype=np.float)
-    #
-    #   Omit the zeroes due to projection
-    #
-    eig = noise_cov['eig']
-    nzero = (eig > 0)
-    W[nzero, nzero] = 1.0 / np.sqrt(eig[nzero])
-    #
-    #   Rows of eigvec are the eigenvectors
-    #
-    W = np.dot(W, noise_cov['eigvec'])
-    W = np.dot(noise_cov['eigvec'].T, W)
+    noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
+    W, _ = compute_whitener(noise_cov, evoked.info, ncov_rank=ncov_rank)
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
