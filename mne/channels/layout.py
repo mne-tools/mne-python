@@ -987,13 +987,13 @@ def read_montage_polhemus(fname, point_names, kind='Polhemus digitized montage',
         names_lower = [name.lower() for name in point_names]
 
         # check that all needed points are present
-        missing = tuple(name for name in ('nasion', 'lpa', 'rpa')
-                        if name not in names_lower)
+        missing = [name for name in ('nasion', 'lpa', 'rpa')
+                   if name not in names_lower]
         if missing:
             raise ValueError("The points %s are missing, but are needed "
                              "to transform the points to the MNE coordinate "
                              "system. Either add the points, or read the "
-                             "montage with transform=False." % str(missing))
+                             "montage with transform=False." % missing)
 
         nasion = points[names_lower.index('nasion')]
         lpa = points[names_lower.index('lpa')]
