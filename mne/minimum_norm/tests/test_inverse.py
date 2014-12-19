@@ -57,6 +57,12 @@ def read_forward_solution_meg(*args, **kwargs):
     return fwd
 
 
+def read_forward_solution_eeg(*args, **kwargs):
+    fwd = read_forward_solution(*args, **kwargs)
+    fwd = pick_types_forward(fwd, meg=False, eeg=True)
+    return fwd
+
+
 def _get_evoked():
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(0, 0.2)
@@ -300,6 +306,22 @@ def test_make_inverse_operator_diag():
     _compare_inverses_approx(inverse_operator_diag, inv_op, evoked, 0, 1e0)
     # Inverse has 366 channels - 6 proj = 360
     assert_true(compute_rank_inverse(inverse_operator_diag) == 360)
+
+
+@testing.requires_testing_data
+def test_inverse_operator_ncov_rank():
+    """Test MNE inverse operator with a specified noise cov rank
+    """
+    fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    evoked = _get_evoked()
+    noise_cov = read_cov(fname_cov)
+    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, ncov_rank=64)
+    assert_true(compute_rank_inverse(inv) == 64)
+
+    fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
+    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
+                                ncov_rank=dict(eeg=20))
+    assert_true(compute_rank_inverse(inv) == 20)
 
 
 @testing.requires_testing_data
