@@ -941,7 +941,7 @@ def apply_montage(info, montage):
                          'names.')
 
 
-def read_polhemus_montage(fname, point_names, kind='Polhemus digitized montage',
+def read_montage_polhemus(fname, point_names, kind='Polhemus digitized montage',
                           transform=True):
     """Read a Montage from points exported by Polhemus FastScan
 
