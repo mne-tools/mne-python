@@ -18,6 +18,7 @@ from .io.proj import (make_projector, proj_equal, activate_proj,
 from .io import fiff_open
 from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
                       pick_channels, pick_info, _picks_by_type)
+
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels
 from .io.proj import _read_proj, _write_proj
@@ -522,13 +523,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
 
-    picks_meeg = pick_types(epochs[0].info, meg=True, eeg=True, eog=False,
-                            ref_meg=keep_ref_meg, exclude=[])
+    picks_list = picks_by_type(epochs[0].info)
+    picks_meeg = np.concatenate([b for _, b in picks_list])
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
     if method == 'auto':
-        method = ['shrunk', 'diagonal_fixed', 'empirical']
+        method = ['empirical', 'shrunk', 'pca', 'factor_analysis']
         if not projs:
             method.append('factor_analysis')
 
@@ -586,14 +587,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                                             cv=cv,
                                             n_jobs=n_jobs,
                                             stop_early=True,  # XXX expose later
+                                            picks_list=picks_list,
                                             scalings=scalings)  # if needed.
         if not keep_sample_mean:
             for key, cov in cov_data.items():
                 data = cov['data']
-
-                # small hack, unscale, remean ...
+                # small hack undo scaling ...
                 data *= n_samples_tot
-                # and apply pre-computed normalization
+                # ... and apply pre-computed class-wise normalization
                 for i, mean_cov in enumerate(data_mean):
                     data -= mean_cov
                 data /= norm_const
@@ -637,7 +638,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
 @requires_sklearn
 def _compute_covariance_auto(data, method, info, method_params, cv,
-                             scalings, n_jobs, stop_early, verbose):
+                             scalings, n_jobs, stop_early, picks_list,
+                             verbose):
     """docstring for _compute_covariance_auto"""
     from sklearn.grid_search import GridSearchCV
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
@@ -677,7 +679,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             tuned_parameters = [{'shrinkage': shrinkage}]
             cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                                tuned_parameters, cv=cv)
-            sc = cv_.fit(data_).best_estimator_
+            SC = cp.deepcopy(_get_estimator('shrunk'))
+            sc = SC(cv=cv_, picks_list=picks_list,
+                    **method_params[this_method])
+            sc.fit(data_)
             _info = tuned_parameters[0]
             cov = _rescale_cov(info, sc.covariance_, scalings)
             estimator_cov_info.append((sc, cov, _info))
@@ -838,7 +843,7 @@ def _rescale_cov(info, cov, scalings):
 def _get_estimator(estimator):
     """Prepare special cov estimators"""
 
-    from sklearn.covariance import EmpiricalCovariance
+    from sklearn.covariance import EmpiricalCovariance, shrunk_covariance
 
     class _RegCovariance(EmpiricalCovariance):
         """Aux class"""
@@ -865,10 +870,36 @@ def _get_estimator(estimator):
                               exclude='bads')  # ~proj == important!!
             self.covariance_ = cov_.data
             return self
+
+    class _ShrunkCovariance(EmpiricalCovariance):
+        """Aux class"""
+
+        def __init__(self, store_precision, assume_centered, picks_list,
+                     cv):
+            self.store_precision = store_precision
+            self.assume_centered = assume_centered
+            self.picks_list = picks_list
+            self.cv = cv
+            self.shrinkages = {}
+
+        def fit(self, X):
+            EmpiricalCovariance.fit(self, X)
+            cov = self.covariance_
+
+            for ch_type, picks in self.picks_list:
+                c = self.cv.fit(X[:, picks]).best_estimator_.shrinkage
+                sub_cov = cov[np.ix_(picks, picks)]
+                cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
+                                                              shrinkage=c)
+                self.shrinkages[ch_type] = c
+            self.covariance_ = cov
+
     if estimator == 'diagonal_fixed':
         out = _RegCovariance
+    if estimator == 'shrunk':
+        out = _ShrunkCovariance
     else:
-        raise NotImplementedError('Currently only "est" is available')
+        raise NotImplementedError('{} is not available'.format(estimator))
     return out
 
 

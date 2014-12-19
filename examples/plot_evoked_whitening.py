@@ -50,15 +50,15 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True, proj=False)
 
 # Uncomment next line to use fewer samples and study regularization effects
-# epochs = epochs[:20]  # For your data, use as many samples as you can!
+epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
 
 # the best estimator in this list will be selected
-method = ('empirical', 'shrunk', 'pca', 'factor_analysis')
+method = ('empirical', 'shrunk')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
-                                return_estimators=True, projs=False,
+                                return_estimators=True, projs=True,
                                 verbose=True)
 
 # With "return_estimator=True" all estimated covariances sorted

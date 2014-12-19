@@ -1,12 +1,14 @@
 from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
+import numpy as np
 from numpy import zeros, array
-from mne import (pick_channels_regexp, pick_types, Epochs, 
+from mne import (pick_channels_regexp, pick_types, Epochs,
         read_forward_solution, rename_channels)
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
-        pick_types_evoked, pick_types_forward)
+                         pick_types_evoked, pick_types_forward,
+                         picks_by_type)
 from mne.datasets import testing
 from mne.forward.tests import test_forward
 
@@ -59,7 +61,7 @@ def test_pick_forward_seeg():
     fwd_ = pick_types_forward(fwd, meg=False, eeg=True, seeg=False)
     _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
     # should raise exception related to emptiness
-    assert_raises(ValueError, pick_types_forward, fwd, meg=False, eeg=False, 
+    assert_raises(ValueError, pick_types_forward, fwd, meg=False, eeg=False,
                   seeg=True)
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
@@ -78,3 +80,41 @@ def test_pick_forward_seeg():
     _check_fwd_n_chan_consistent(fwd_, counts['eeg'])
     fwd_ = pick_types_forward(fwd, meg=False, eeg=False, seeg=True)
     _check_fwd_n_chan_consistent(fwd_, counts['seeg'])
+
+
+def test_picks_by_channels():
+    """Test creating pick_lists"""
+
+    rng = np.random.RandomState(909)
+
+    test_data = rng.random_sample((4, 2000))
+    ch_names = ['MEG %03d' % i for i in [1, 2, 3, 4]]
+    ch_types = ['grad', 'mag', 'mag', 'eeg']
+    sfreq = 250.0
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    raw = RawArray(test_data, info)
+
+    pick_list = picks_by_type(raw)
+    assert_equal(len(pick_list), 3)
+    assert_equal(pick_list[0][1], 'mag')
+    pick_list2 = picks_by_type(raw, meg_combined=False)
+    assert_equal(len(pick_list), len(pick_list2))
+    assert_equal(pick_list2[0][1], 'mag')
+
+    pick_list2 = picks_by_type(raw, meg_combined=True)
+    assert_equal(len(pick_list), len(pick_list2) + 1)
+    assert_equal(pick_list2[0][1], 'meg')
+
+    test_data = rng.random_sample((4, 2000))
+    ch_names = ['MEG %03d' % i for i in [1, 2, 3, 4]]
+    ch_types = ['mag', 'mag', 'mag', 'mag']
+    sfreq = 250.0
+    info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+    raw = RawArray(test_data, info)
+
+    pick_list = picks_by_type(raw)
+    assert_equal(len(pick_list), 1)
+    assert_equal(pick_list[0][1], 'mag')
+    pick_list2 = picks_by_type(raw, meg_combined=True)
+    assert_equal(len(pick_list), len(pick_list2))
+    assert_equal(pick_list2[0][1], 'mag')
