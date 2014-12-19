@@ -1,13 +1,21 @@
+import inspect
 import os.path as op
 
-from nose.tools import assert_equal
+from nose.tools import (assert_equal, assert_true, assert_false,
+                        assert_almost_equal)
 
 import numpy as np
-from numpy.testing import assert_array_equal, assert_array_almost_equal
+from numpy.testing import (assert_array_equal, assert_array_almost_equal,
+                           assert_allclose)
 
-from mne.channels import read_montage, apply_montage
+from mne.channels import read_montage, apply_montage, read_montage_polhemus
 from mne.utils import _TempDir
 from mne import create_info
+
+
+dir_path = op.dirname(inspect.getfile(inspect.currentframe()))
+points_fname = op.abspath(op.join(dir_path, '..', '..', 'io', 'kit', 'tests',
+                                  'data', 'test_elp.txt'))
 
 
 def test_montage():
@@ -80,3 +88,21 @@ def test_montage():
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
+
+
+def test_read_montage_polhemus():
+    """Test read_montage_polhemus"""
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    kind = 'test montage'
+    m = read_montage_polhemus(points_fname, names, kind)
+    assert_equal(m.ch_names, names)
+    assert_equal(m.kind, kind)
+    # check coordinate transformation
+    assert_almost_equal(m.pos[0, 0], 0)
+    assert_almost_equal(m.pos[0, 2], 0)
+    assert_allclose(m.pos[1:3, 1:], 0, atol=1e-16)
+
+    # dropping points
+    names = ['nasion', 'lpa', 'rpa', '', '', '3', '4', '5']
+    m = read_montage_polhemus(points_fname, names)
+    assert_equal(m.ch_names, ['nasion', 'lpa', 'rpa', '3', '4', '5'])
