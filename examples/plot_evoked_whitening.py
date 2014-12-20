@@ -50,16 +50,19 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True, proj=False)
 
 # Uncomment next line to use fewer samples and study regularization effects
-# epochs = epochs[:20]  # For your data, use as many samples as you can!
+epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
 
+import numpy as np
 # the best estimator in this list will be selected
-method = ('empirical', 'shrunk', 'ledoit_wolf')
+method = ('empirical', 'shrunk', 'ledoit_wolf', 'diagonal_fixed')
+mp = {'shrunk': {'shrinkage': np.logspace(-4, 0, 15)}}
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=True,
-                                verbose=True)
+                                verbose=True, n_jobs=1,
+                                method_params=mp)
 
 # With "return_estimator=True" all estimated covariances sorted
 # by log-likelihood are returned.

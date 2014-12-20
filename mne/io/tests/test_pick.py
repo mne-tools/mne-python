@@ -94,16 +94,16 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
-    pick_list = picks_by_type(raw)
+    pick_list = picks_by_type(raw.info)
     assert_equal(len(pick_list), 3)
-    assert_equal(pick_list[0][1], 'mag')
-    pick_list2 = picks_by_type(raw, meg_combined=False)
+    assert_equal(pick_list[0][0], 'mag')
+    pick_list2 = picks_by_type(raw.info, meg_combined=False)
     assert_equal(len(pick_list), len(pick_list2))
-    assert_equal(pick_list2[0][1], 'mag')
+    assert_equal(pick_list2[0][0], 'mag')
 
-    pick_list2 = picks_by_type(raw, meg_combined=True)
+    pick_list2 = picks_by_type(raw.info, meg_combined=True)
     assert_equal(len(pick_list), len(pick_list2) + 1)
-    assert_equal(pick_list2[0][1], 'meg')
+    assert_equal(pick_list2[0][0], 'meg')
 
     test_data = rng.random_sample((4, 2000))
     ch_names = ['MEG %03d' % i for i in [1, 2, 3, 4]]
@@ -112,9 +112,9 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
-    pick_list = picks_by_type(raw)
+    pick_list = picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)
-    assert_equal(pick_list[0][1], 'mag')
-    pick_list2 = picks_by_type(raw, meg_combined=True)
+    assert_equal(pick_list[0][0], 'mag')
+    pick_list2 = picks_by_type(raw.info, meg_combined=True)
     assert_equal(len(pick_list), len(pick_list2))
-    assert_equal(pick_list2[0][1], 'mag')
+    assert_equal(pick_list2[0][0], 'mag')

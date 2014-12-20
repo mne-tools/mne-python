@@ -686,7 +686,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
             tuned_parameters = [{'shrinkage': shrinkages}]
             SC = cp.deepcopy(_get_estimator('shrunk'))
-            sc = GridSearchCV(SC(**method_params[this_method]), tuned_parameters, cv=cv)
+            sc = GridSearchCV(SC(**method_params[this_method]),
+                              tuned_parameters, cv=cv,
+                              n_jobs=n_jobs)
             sc = sc.fit(data_).best_estimator_
 
             _info = tuned_parameters[0]
@@ -909,7 +911,7 @@ def _get_estimator(estimator):
 
     if estimator == 'diagonal_fixed':
         out = _RegCovariance
-    if estimator == 'shrunk':
+    elif estimator == 'shrunk':
         out = _ShrunkCovariance
     else:
         raise NotImplementedError('{} is not available'.format(estimator))
