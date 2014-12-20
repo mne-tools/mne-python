@@ -675,23 +675,26 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((lw, cov, None))
 
         elif this_method == 'shrunk':
-            from itertools import combinations as combi
             shrinkage = method_params[this_method].pop('shrinkage')
-            shrinkages = list(combi(shrinkage, len(picks_list)))
-            _picks_list = [[i for i in zip(*picks_list)]] * len(shrinkages)
-            for i, s in enumerate(shrinkages):
-                c = _picks_list[i][0]
-                p = _picks_list[i][1]
-                shrinkages[i] = (c, s, p)
-
-            tuned_parameters = [{'shrinkage': shrinkages}]
-            SC = cp.deepcopy(_get_estimator('shrunk'))
-            sc = GridSearchCV(SC(**method_params[this_method]),
+            tuned_parameters = [{'shrinkage': shrinkage}]
+            gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
                               tuned_parameters, cv=cv,
                               n_jobs=n_jobs)
-            sc = sc.fit(data_).best_estimator_
+            shrinkages = []
+            for ch_type, picks in picks_list:
+                gs.fit(data_[:, picks])
+                shrinkages.append((
+                    ch_type,
+                    gs.best_estimator_.shrinkage,
+                    picks
+                ))
+            shrinkages = [c[0] for c in zip(shrinkages)]
 
-            _info = tuned_parameters[0]
+            _ShrunkCovariance = cp.deepcopy(_get_estimator('shrunk'))
+            sc = _ShrunkCovariance(shrinkage=shrinkages,
+                                   **method_params[this_method])
+            sc.fit(data_)
+            _info = None
             cov = _rescale_cov(info, sc.covariance_, scalings)
             estimator_cov_info.append((sc, cov, _info))
 
@@ -851,7 +854,8 @@ def _rescale_cov(info, cov, scalings):
 def _get_estimator(estimator):
     """Prepare special cov estimators"""
 
-    from sklearn.covariance import EmpiricalCovariance, shrunk_covariance
+    from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
+                                    ShrunkCovariance)
 
     class _RegCovariance(EmpiricalCovariance):
         """Aux class"""
@@ -879,7 +883,7 @@ def _get_estimator(estimator):
             self.covariance_ = cov_.data
             return self
 
-    class _ShrunkCovariance(EmpiricalCovariance):
+    class _ShrunkCovariance(ShrunkCovariance):
         """Aux class"""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1,
@@ -898,16 +902,51 @@ def _get_estimator(estimator):
             if not isinstance(self.shrinkage, (list, tuple)):
                 shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
             else:
-                shrinkage = zip(*self.shrinkage)
+                shrinkage = self.shrinkage
+            if self.keep_cross_diag is False:
+                for ch_type, c, picks in shrinkage:
+                    cross_diag[np.ix_(picks, picks)] = False
+            if self.keep_cross_diag is False:
+                # cov[cross_diag] = 0.0
+                cov = np.ma.masked_array(cov, mask=cross_diag)
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
                                                               shrinkage=c)
-                if self.keep_cross_diag is False:
-                    cross_diag[np.ix_(picks, picks)] = False
-            if self.keep_cross_diag is False:
-                cov[cross_diag] = 0.0
+            self.cross_diag_ = cross_diag
             self.covariance_ = cov
+            return self
+
+        def score(self, X_test, y=None):
+            """Computes the log-likelihood of a Gaussian data set with
+            `self.covariance_` as an estimator of its covariance matrix.
+
+            Parameters
+            ----------
+            X_test : array-like, shape = [n_samples, n_features]
+                Test data of which we compute the likelihood, where n_samples is
+                the number of samples and n_features is the number of features.
+                X_test is assumed to be drawn from the same distribution than
+                the data used in fit (including centering).
+
+            y : not used, present for API consistence purpose.
+
+            Returns
+            -------
+            res : float
+                The likelihood of the data set with `self.covariance_` as an
+                estimator of its covariance matrix.
+
+            """
+            from sklearn.covariance import empirical_covariance, log_likelihood
+            # compute empirical covariance of the test set
+            test_cov = empirical_covariance(
+                X_test - self.location_, assume_centered=True)
+            test_cov = np.ma.masked_array(test_cov, self.cross_diag_)
+            # compute log likelihood
+            precision = np.ma.masked_array(self.get_precision(), self.cross_diag_)
+            res = log_likelihood(test_cov, precision)
+            return res
 
     if estimator == 'diagonal_fixed':
         out = _RegCovariance
