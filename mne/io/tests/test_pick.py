@@ -3,12 +3,12 @@ from numpy.testing import assert_array_equal
 import numpy as np
 from numpy import zeros, array
 from mne import (pick_channels_regexp, pick_types, Epochs,
-        read_forward_solution, rename_channels)
+                 read_forward_solution, rename_channels)
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_evoked, pick_types_forward,
-                         picks_by_type)
+                         _picks_by_type)
 from mne.datasets import testing
 from mne.forward.tests import test_forward
 
@@ -94,14 +94,14 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
-    pick_list = picks_by_type(raw.info)
+    pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 3)
     assert_equal(pick_list[0][0], 'mag')
-    pick_list2 = picks_by_type(raw.info, meg_combined=False)
+    pick_list2 = _picks_by_type(raw.info, meg_combined=False)
     assert_equal(len(pick_list), len(pick_list2))
     assert_equal(pick_list2[0][0], 'mag')
 
-    pick_list2 = picks_by_type(raw.info, meg_combined=True)
+    pick_list2 = _picks_by_type(raw.info, meg_combined=True)
     assert_equal(len(pick_list), len(pick_list2) + 1)
     assert_equal(pick_list2[0][0], 'meg')
 
@@ -112,9 +112,9 @@ def test_picks_by_channels():
     info = create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
     raw = RawArray(test_data, info)
 
-    pick_list = picks_by_type(raw.info)
+    pick_list = _picks_by_type(raw.info)
     assert_equal(len(pick_list), 1)
     assert_equal(pick_list[0][0], 'mag')
-    pick_list2 = picks_by_type(raw.info, meg_combined=True)
+    pick_list2 = _picks_by_type(raw.info, meg_combined=True)
     assert_equal(len(pick_list), len(pick_list2))
     assert_equal(pick_list2[0][0], 'mag')

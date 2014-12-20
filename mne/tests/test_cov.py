@@ -396,7 +396,8 @@ def test_compute_covariance_auto_reg():
 
     with warnings.catch_warnings(record=True) as w:
         covs = compute_covariance(epochs, method='auto',
-                                  method_params=method_params, projs=False,
+                                  method_params=method_params,
+                                  projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)

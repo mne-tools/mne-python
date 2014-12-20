@@ -498,7 +498,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     # check for baseline correction
     for epochs_t in epochs:
-        if epochs_t.baseline is None:
+        if epochs_t.baseline is None and epochs_t.info['highpass'] < 0.5:
             warnings.warn('Epochs are not baseline corrected, covariance '
                           'matrix may be inaccurate')
 
@@ -523,14 +523,14 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
 
-    picks_list = picks_by_type(epochs[0].info)
+    picks_list = _picks_by_type(epochs[0].info)
     picks_meeg = np.concatenate([b for _, b in picks_list])
     picks_meeg = picks_meeg[np.argsort(picks_meeg)]
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
     if method == 'auto':
-        method = ['empirical', 'shrunk', 'pca', 'factor_analysis']
+        method = ['shrunk', 'diagonal_fixed', 'empirical']
         if not projs:
             method.append('factor_analysis')
 
@@ -680,10 +680,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             shrinkage = method_params[this_method].pop('shrinkage')
             tuned_parameters = [{'shrinkage': shrinkage}]
             shrinkages = []
+            gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
+                              tuned_parameters, cv=cv,
+                              n_jobs=n_jobs)
             for ch_type, picks in picks_list:
-                gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
-                                  tuned_parameters, cv=cv,
-                                  n_jobs=n_jobs)
                 gs.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -947,7 +947,6 @@ def _get_estimator(estimator):
             if self.keep_cross_cov is False:
                 test_cov[self.is_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
-            print self.shrinkage
             return res
 
     if estimator == 'diagonal_fixed':
