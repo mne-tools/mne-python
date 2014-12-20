@@ -525,6 +525,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     picks_list = picks_by_type(epochs[0].info)
     picks_meeg = np.concatenate([b for _, b in picks_list])
+    picks_meeg = picks_meeg[np.argsort(picks_meeg)]
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
@@ -580,6 +581,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         n_samples_tot = epochs.shape[-1]
         _check_n_samples(n_samples_tot, len(picks_meeg))
         epochs = epochs.T  # sklearn | C-order
+
         cov_data = _compute_covariance_auto(epochs, method=method,
                                             method_params=_method_params,
                                             info=info,
@@ -677,11 +679,11 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkage')
             tuned_parameters = [{'shrinkage': shrinkage}]
-            gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
-                              tuned_parameters, cv=cv,
-                              n_jobs=n_jobs)
             shrinkages = []
             for ch_type, picks in picks_list:
+                gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
+                                  tuned_parameters, cv=cv,
+                                  n_jobs=n_jobs)
                 gs.fit(data_[:, picks])
                 shrinkages.append((
                     ch_type,
@@ -887,33 +889,33 @@ def _get_estimator(estimator):
         """Aux class"""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1,
-                     keep_cross_diag=False):
+                     keep_cross_cov=False):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
-            self.keep_cross_diag = keep_cross_diag
+            self.keep_cross_cov = keep_cross_cov
 
         def fit(self, X):
             EmpiricalCovariance.fit(self, X)
             cov = self.covariance_
 
-            if self.keep_cross_diag is False:
-                cross_diag = np.ones_like(cov, dtype=bool)
+            if self.keep_cross_cov is False:
+                is_cross_cov = np.ones_like(cov, dtype=bool)
             if not isinstance(self.shrinkage, (list, tuple)):
                 shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
             else:
                 shrinkage = self.shrinkage
-            if self.keep_cross_diag is False:
+            if self.keep_cross_cov is False:
                 for ch_type, c, picks in shrinkage:
-                    cross_diag[np.ix_(picks, picks)] = False
-            if self.keep_cross_diag is False:
-                cov[cross_diag] = 0.0
-                # cov = np.ma.masked_array(cov, mask=cross_diag)
+                    is_cross_cov[np.ix_(picks, picks)] = False
+            if self.keep_cross_cov is False:
+                cov[is_cross_cov] = 0.0
+                cov = np.ma.masked_array(cov, mask=is_cross_cov)
+                self.is_cross_cov_ = is_cross_cov
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
                                                               shrinkage=c)
-            self.cross_diag_ = cross_diag
             self.covariance_ = cov
             return self
 
@@ -942,7 +944,8 @@ def _get_estimator(estimator):
             # compute empirical covariance of the test set
             test_cov = empirical_covariance(
                 X_test - self.location_, assume_centered=True)
-            test_cov[self.cross_diag_] = 0.
+            if self.keep_cross_cov is False:
+                test_cov[self.is_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
             print self.shrinkage
             return res
