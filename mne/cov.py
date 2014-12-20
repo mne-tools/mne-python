@@ -907,8 +907,8 @@ def _get_estimator(estimator):
                 for ch_type, c, picks in shrinkage:
                     cross_diag[np.ix_(picks, picks)] = False
             if self.keep_cross_diag is False:
-                # cov[cross_diag] = 0.0
-                cov = np.ma.masked_array(cov, mask=cross_diag)
+                cov[cross_diag] = 0.0
+                # cov = np.ma.masked_array(cov, mask=cross_diag)
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
@@ -942,10 +942,9 @@ def _get_estimator(estimator):
             # compute empirical covariance of the test set
             test_cov = empirical_covariance(
                 X_test - self.location_, assume_centered=True)
-            test_cov = np.ma.masked_array(test_cov, self.cross_diag_)
-            # compute log likelihood
-            precision = np.ma.masked_array(self.get_precision(), self.cross_diag_)
-            res = log_likelihood(test_cov, precision)
+            test_cov[self.cross_diag_] = 0.
+            res = log_likelihood(test_cov, self.get_precision())
+            print self.shrinkage
             return res
 
     if estimator == 'diagonal_fixed':
