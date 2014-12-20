@@ -675,14 +675,20 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((lw, cov, None))
 
         elif this_method == 'shrunk':
+            from itertools import combinations as combi
             shrinkage = method_params[this_method].pop('shrinkage')
-            tuned_parameters = [{'shrinkage': shrinkage}]
-            cv_ = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
-                               tuned_parameters, cv=cv)
+            shrinkages = list(combi(shrinkage, len(picks_list)))
+            _picks_list = [[i for i in zip(*picks_list)]] * len(shrinkages)
+            for i, s in enumerate(shrinkages):
+                c = _picks_list[i][0]
+                p = _picks_list[i][1]
+                shrinkages[i] = (c, s, p)
+
+            tuned_parameters = [{'shrinkage': shrinkages}]
             SC = cp.deepcopy(_get_estimator('shrunk'))
-            sc = SC(cv=cv_, picks_list=picks_list,
-                    **method_params[this_method])
-            sc.fit(data_)
+            sc = GridSearchCV(SC(**method_params[this_method]), tuned_parameters, cv=cv)
+            sc = sc.fit(data_).best_estimator_
+
             _info = tuned_parameters[0]
             cov = _rescale_cov(info, sc.covariance_, scalings)
             estimator_cov_info.append((sc, cov, _info))
@@ -874,24 +880,31 @@ def _get_estimator(estimator):
     class _ShrunkCovariance(EmpiricalCovariance):
         """Aux class"""
 
-        def __init__(self, store_precision, assume_centered, picks_list,
-                     cv):
+        def __init__(self, store_precision, assume_centered, shrinkage=0.1,
+                     keep_cross_diag=False):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
-            self.picks_list = picks_list
-            self.cv = cv
-            self.shrinkages = {}
+            self.shrinkage = shrinkage
+            self.keep_cross_diag = keep_cross_diag
 
         def fit(self, X):
             EmpiricalCovariance.fit(self, X)
             cov = self.covariance_
 
-            for ch_type, picks in self.picks_list:
-                c = self.cv.fit(X[:, picks]).best_estimator_.shrinkage
+            if self.keep_cross_diag is False:
+                cross_diag = np.ones_like(cov, dtype=bool)
+            if not isinstance(self.shrinkage, (list, tuple)):
+                shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
+            else:
+                shrinkage = zip(*self.shrinkage)
+            for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
                                                               shrinkage=c)
-                self.shrinkages[ch_type] = c
+                if self.keep_cross_diag is False:
+                    cross_diag[np.ix_(picks, picks)] = False
+            if self.keep_cross_diag is False:
+                cov[cross_diag] = 0.0
             self.covariance_ = cov
 
     if estimator == 'diagonal_fixed':
