@@ -111,7 +111,7 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     labels = []
     cnt = 0
     for hemi_idx, (hemi, this_vertno, this_tris, this_rr) in enumerate(
-            zip(['lh', 'rh'], stc.vertno, tris, rr)):
+            zip(['lh', 'rh'], stc.vertices, tris, rr)):
         this_data = stc.data[cnt:cnt + len(this_vertno)]
         e = mesh_edges(this_tris)
         e.data[e.data == 2] = 1
@@ -564,11 +564,11 @@ def test_stc_to_label():
     assert_equal(len(labels_rh), 1)
 
     # test getting tris
-    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertno[0])
+    tris = labels_lh[0].get_tris(src[0]['use_tris'], vertices=stc.vertices[0])
     assert_raises(ValueError, spatial_tris_connectivity, tris,
                   remap_vertices=False)
     connectivity = spatial_tris_connectivity(tris, remap_vertices=True)
-    assert_true(connectivity.shape[0] == len(stc.vertno[0]))
+    assert_true(connectivity.shape[0] == len(stc.vertices[0]))
 
     # "src" as a subject name
     assert_raises(TypeError, stc_to_label, stc, src=1, smooth=False,
@@ -675,7 +675,7 @@ def test_label_time_course():
     stc_lh = stc.in_label(label_lh)
     assert_array_almost_equal(stc_lh.data, values)
     assert_array_almost_equal(stc_lh.times, times)
-    assert_array_almost_equal(stc_lh.vertno[0], vertices)
+    assert_array_almost_equal(stc_lh.vertices[0], vertices)
 
     label_rh = read_label(real_label_rh_fname)
     stc_rh = stc.in_label(label_rh)

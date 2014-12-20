@@ -1009,10 +1009,10 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 def _stc_src_sel(src, stc):
     """ Select the vertex indices of a source space using a source estimate
     """
-    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertno[0])
+    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertices[0])
     src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
 
-    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertno[1])
+    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertices[1])
     src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh)
                   + len(src[0]['vertno']))
 
@@ -1067,7 +1067,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
                       'currents are used.' % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
-    n_src = sum([len(v) for v in stc.vertno])
+    n_src = sum([len(v) for v in stc.vertices])
     if len(src_sel) != n_src:
         raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
                            'fwd' % (len(src_sel), n_src))
@@ -1249,11 +1249,11 @@ def restrict_forward_to_stc(fwd, stc):
     fwd_out['sol']['ncol'] = len(idx)
 
     for i in range(2):
-        fwd_out['src'][i]['vertno'] = stc.vertno[i]
-        fwd_out['src'][i]['nuse'] = len(stc.vertno[i])
+        fwd_out['src'][i]['vertno'] = stc.vertices[i]
+        fwd_out['src'][i]['nuse'] = len(stc.vertices[i])
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
         fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['inuse'][stc.vertno[i]] = 1
+        fwd_out['src'][i]['inuse'][stc.vertices[i]] = 1
         fwd_out['src'][i]['use_tris'] = np.array([])
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 

@@ -714,7 +714,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
     for i_freq, _ in enumerate(freq_bins):
-        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertno,
+        stc = SourceEstimate(sol_final[i_freq, :, :].T, vertices=stc.vertices,
                              tmin=tmin, tstep=tstep, subject=stc.subject)
         stcs.append(stc)
 

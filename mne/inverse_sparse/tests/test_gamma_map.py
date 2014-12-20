@@ -39,19 +39,19 @@ def test_gamma_map():
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=True, update_mode=1, verbose=False)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
-    assert_true(np.concatenate(stc.vertno)[idx] == 96397)
+    assert_true(np.concatenate(stc.vertices)[idx] == 96397)
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=False, update_mode=1, verbose=False)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
-    assert_true(np.concatenate(stc.vertno)[idx] == 82010)
+    assert_true(np.concatenate(stc.vertices)[idx] == 82010)
 
     # force fixed orientation
     stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                          xyz_same_gamma=False, update_mode=2,
                          loose=None, return_residual=True, verbose=False)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
-    # assert_true(np.concatenate(stc.vertno)[idx] == 83398)  # XXX FIX
+    # assert_true(np.concatenate(stc.vertices)[idx] == 83398)  # XXX FIX
     assert_array_almost_equal(evoked.times, res.times)
 
 

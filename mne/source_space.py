@@ -829,9 +829,9 @@ def label_src_vertno_sel(label, src):
 
     Returns
     -------
-    vertno : list of length 2
+    vertices : list of length 2
         Vertex numbers for lh and rh
-    src_sel : array of int (len(idx) = len(vertno[0]) + len(vertno[1]))
+    src_sel : array of int (len(idx) = len(vertices[0]) + len(vertices[1]))
         Indices of the selected vertices in sourse space
     """
     if src[0]['type'] != 'surf':

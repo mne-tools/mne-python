@@ -492,10 +492,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     for hemi in hemis:
         hemi_idx = 0 if hemi == 'lh' else 1
         if hemi_idx == 0:
-            data = stc.data[:len(stc.vertno[0])]
+            data = stc.data[:len(stc.vertices[0])]
         else:
-            data = stc.data[len(stc.vertno[0]):]
-        vertices = stc.vertno[hemi_idx]
+            data = stc.data[len(stc.vertices[0]):]
+        vertices = stc.vertices[hemi_idx]
         time = 1e3 * stc.times
         with warnings.catch_warnings(record=True):  # traits warnings
             brain.add_data(data, colormap=colormap, vertices=vertices,
