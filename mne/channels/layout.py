@@ -1003,5 +1003,5 @@ def read_montage_polhemus(fname, point_names, kind='Polhemus digitized montage',
 
     # drop points
     index = np.array([bool(name) for name in point_names])
-    point_names = filter(bool, point_names)
+    point_names = [name for name in point_names if name]
     return Montage(points[index], point_names, kind, np.arange(len(points)))
