@@ -531,8 +531,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     if method == 'auto':
         method = ['shrunk', 'diagonal_fixed', 'empirical']
-        if not projs:
-            method.append('factor_analysis')
+        # if not projs:
+        method.append('factor_analysis')
 
     if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
@@ -885,7 +885,7 @@ def _get_estimator(estimator):
         """Aux class"""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1,
-                     keep_cross_cov=False):
+                     keep_cross_cov=True):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
@@ -895,19 +895,20 @@ def _get_estimator(estimator):
             EmpiricalCovariance.fit(self, X)
             cov = self.covariance_
 
-            if self.keep_cross_cov is False:
-                is_cross_cov = np.ones_like(cov, dtype=bool)
+            is_cross_cov = np.ones_like(cov, dtype=bool)
             if not isinstance(self.shrinkage, (list, tuple)):
                 shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
             else:
                 shrinkage = self.shrinkage
-            if self.keep_cross_cov is False:
-                for ch_type, c, picks in shrinkage:
-                    is_cross_cov[np.ix_(picks, picks)] = False
+            for ch_type, c, picks in shrinkage:
+                is_cross_cov[np.ix_(picks, picks)] = False
+                self.is_cross_cov_ = is_cross_cov
+
             if self.keep_cross_cov is False:
                 cov[is_cross_cov] = 0.0
-                cov = np.ma.masked_array(cov, mask=is_cross_cov)
-                self.is_cross_cov_ = is_cross_cov
+            elif self.keep_cross_cov is True:
+                cov[is_cross_cov] *= np.prod([np.sqrt(1 - c) for _, c, _ in
+                                             shrinkage])
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
@@ -952,7 +953,6 @@ def _get_estimator(estimator):
     else:
         raise NotImplementedError('{} is not available'.format(estimator))
     return out
-
 
 try:
     _RegCovariance = _get_estimator('diagonal_fixed')
