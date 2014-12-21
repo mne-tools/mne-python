@@ -663,7 +663,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((est, cov, _info))
 
         elif this_method == 'diagonal_fixed':
-            Est = cp.deepcopy(_get_estimator('diagonal_fixed'))
+            Est = cp.deepcopy(_RegCovariance)
             Est.info = info
             est = Est(**method_params[this_method])
             est.fit(data_)
@@ -681,8 +681,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             tuned_parameters = [{'shrinkage': shrinkage}]
             shrinkages = []
             gs = GridSearchCV(ShrunkCovariance(**method_params[this_method]),
-                              tuned_parameters, cv=cv,
-                              n_jobs=n_jobs)
+                              tuned_parameters, cv=cv)
             for ch_type, picks in picks_list:
                 gs.fit(data_[:, picks])
                 shrinkages.append((
@@ -691,8 +690,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                     picks
                 ))
             shrinkages = [c[0] for c in zip(shrinkages)]
-
-            _ShrunkCovariance = cp.deepcopy(_get_estimator('shrunk'))
             sc = _ShrunkCovariance(shrinkage=shrinkages,
                                    **method_params[this_method])
             sc.fit(data_)
@@ -852,7 +849,6 @@ def _rescale_cov(info, cov, scalings):
     return out
 
 
-@requires_sklearn
 def _get_estimator(estimator):
     """Prepare special cov estimators"""
 
@@ -957,6 +953,13 @@ def _get_estimator(estimator):
         raise NotImplementedError('{} is not available'.format(estimator))
     return out
 
+
+try:
+    _RegCovariance = _get_estimator('diagonal_fixed')
+    _ShrunkCovariance = _get_estimator('shrunk')
+except ImportError:
+    _RegCovariance = None
+    _ShrunkCovariance = None
 
 ###############################################################################
 # Writing
