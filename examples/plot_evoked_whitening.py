@@ -62,6 +62,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 # import numpy as np
 # the best estimator in this list will be selected
 method = ('empirical', 'shrunk', 'ledoit_wolf', 'factor_analysis')
+method = ('empirical', 'shrunk', 'ledoit_wolf')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=False,
                                 verbose=True, n_jobs=1)
@@ -85,4 +86,4 @@ evoked.plot()  # plot evoked response
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-evoked.plot_white(noise_covs)
+evoked.plot_white(noise_covs[0])

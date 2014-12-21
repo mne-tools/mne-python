@@ -7,6 +7,7 @@
 import copy as cp
 import os
 from math import floor, ceil
+import itertools as itt
 import warnings
 
 import numpy as np
@@ -907,8 +908,13 @@ def _get_estimator(estimator):
             if self.keep_cross_cov is False:
                 cov[is_cross_cov] = 0.0
             elif self.keep_cross_cov is True:
-                cov[is_cross_cov] *= np.prod([np.sqrt(1 - c) for _, c, _ in
-                                             shrinkage])
+                for a, b in itt.combinations(shrinkage, 2):
+                    shrinkage_i, shrinkage_j = a[1], b[1]
+                    picks_i, picks_j = a[2], b[2]
+                    c_ij = np.sqrt(1 - shrinkage_i) * np.sqrt(1 - shrinkage_j)
+                    cov[np.ix_(picks_i, picks_j)] *= c_ij
+                    cov[np.ix_(picks_j, picks_i)] *= c_ij
+
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
