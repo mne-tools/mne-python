@@ -909,9 +909,14 @@ def _get_estimator(estimator):
                 cov[is_cross_cov] = 0.0
             elif self.keep_cross_cov is True:
                 for a, b in itt.combinations(shrinkage, 2):
+                    ch_ = a[0], b[0]
                     shrinkage_i, shrinkage_j = a[1], b[1]
                     picks_i, picks_j = a[2], b[2]
-                    c_ij = np.sqrt(1 - shrinkage_i) * np.sqrt(1 - shrinkage_j)
+                    if 'eeg' not in ch_:
+                        c_ij = np.sqrt(1 - shrinkage_i)
+                        c_ij *= np.sqrt(1 - shrinkage_j)
+                    else:
+                        c_ij = 0.0
                     cov[np.ix_(picks_i, picks_j)] *= c_ij
                     cov[np.ix_(picks_j, picks_i)] *= c_ij
 

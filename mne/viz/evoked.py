@@ -296,13 +296,16 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, show=True):
+def plot_evoked_white(evoked, noise_cov, ranks=None, show=True):
     """Plot whitened evoked response
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
+    ranks : dict of int | None
+        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
+        rank is assumed len(picks_ch). Defaults to None.
     noise_cov : list or tuple or single instance of mne.cov.Covariance
         The noise covs.
     show : bool
@@ -347,15 +350,16 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
 
     pick_list = _picks_by_type(evoked.info)
+    pick_list = [x for x, y in sorted(zip(pick_list, ch_used))]
 
-    def whitened_gfp(x):
+    def whitened_gfp(x, rank=None):
         """Whitened Global Field Power
 
         The MNE inverse solver assumes zero mean whitened data as input.
         Therefore, a chi^2 statistic will be best to detect model violations.
         """
         # XXX : fix this for rank defficient data
-        return np.sum(x ** 2, axis=0) / len(x)
+        return np.sum(x ** 2, axis=0) / len(x) if rank is None else rank
 
     if n_columns > 1:
         suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
@@ -378,7 +382,6 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
     ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan'}
-
     iter_gfp = zip(evokeds_white, noise_cov, colors)
     for evoked_white, noise_cov, color in iter_gfp:
         i = 0
@@ -391,7 +394,8 @@ def plot_evoked_white(evoked, noise_cov, show=True):
             ax_gfp[i].set_title(title if n_columns > 1 else
                                 'whitened global field power (GFP),'
                                 ' best = "%s"' % label)
-            gfp = whitened_gfp(evoked_white.data[sub_picks])
+            gfp = whitened_gfp(evoked_white.data[sub_picks],
+                               ranks[ch] if ranks is not None else None)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])
