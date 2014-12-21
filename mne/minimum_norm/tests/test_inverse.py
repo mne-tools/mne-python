@@ -309,18 +309,18 @@ def test_make_inverse_operator_diag():
 
 
 @testing.requires_testing_data
-def test_inverse_operator_ncov_rank():
+def test_inverse_operator_noise_cov_rank():
     """Test MNE inverse operator with a specified noise cov rank
     """
     fwd_op = read_forward_solution_meg(fname_fwd, surf_ori=True)
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
-    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, ncov_rank=64)
+    inv = make_inverse_operator(evoked.info, fwd_op, noise_cov, rank=64)
     assert_true(compute_rank_inverse(inv) == 64)
 
     fwd_op = read_forward_solution_eeg(fname_fwd, surf_ori=True)
     inv = make_inverse_operator(evoked.info, fwd_op, noise_cov,
-                                ncov_rank=dict(eeg=20))
+                                rank=dict(eeg=20))
     assert_true(compute_rank_inverse(inv) == 20)
 
 

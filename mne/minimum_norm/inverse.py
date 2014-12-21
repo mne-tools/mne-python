@@ -1080,7 +1080,7 @@ def _xyz2lf(Lf_xyz, normals):
 # Assemble the inverse operator
 
 @verbose
-def _prepare_forward(forward, info, noise_cov, pca=False, ncov_rank=None,
+def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
     """Util function to prepare forward solution for inverse solvers
     """
@@ -1102,7 +1102,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, ncov_rank=None,
     #
     #   Handle noise cov
     #
-    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, ncov_rank)
+    noise_cov = prepare_noise_cov(noise_cov, info, ch_names, rank)
 
     #   Omit the zeroes due to projection
     eig = noise_cov['eig']
@@ -1133,7 +1133,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, ncov_rank=None,
 
 @verbose
 def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
-                          fixed=False, limit_depth_chs=True, ncov_rank=None,
+                          fixed=False, limit_depth_chs=True, rank=None,
                           verbose=None):
     """Assemble inverse operator
 
@@ -1159,7 +1159,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         If True, use only grad channels in depth weighting (equivalent to MNE
         C code). If grad chanels aren't present, only mag channels will be
         used (if no mag, then eeg). If False, use all channels.
-    ncov_rank : None | int | dict
+    rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
@@ -1257,7 +1257,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     #
 
     gain_info, gain, noise_cov, whitener, n_nzero = \
-        _prepare_forward(forward, info, noise_cov, ncov_rank=ncov_rank)
+        _prepare_forward(forward, info, noise_cov, rank=rank)
 
     #
     # 5. Compose the depth-weighting matrix
