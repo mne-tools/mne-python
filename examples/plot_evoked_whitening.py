@@ -49,6 +49,10 @@ reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True)
 
+# XXX : here epochs.proj is true so it means the projs=True or False below
+# need to check this. If any proj is active on epochs then FA is not
+# allowed.
+
 # Uncomment next line to use fewer samples and study regularization effects
 # epochs = epochs[:20]  # For your data, use as many samples as you can!
 
@@ -57,7 +61,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 
 # import numpy as np
 # the best estimator in this list will be selected
-method = ('empirical', 'shrunk', 'ledoit_wolf')
+method = ('empirical', 'shrunk', 'ledoit_wolf', 'factor_analysis')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
                                 return_estimators=True, projs=False,
                                 verbose=True, n_jobs=1)

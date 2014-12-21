@@ -362,6 +362,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         The MNE inverse solver assumes zero mean whitened data as input.
         Therefore, a chi^2 statistic will be best to detect model violations.
         """
+        # XXX : fix this for rank defficient data
         return np.sum(x ** 2, axis=0) / len(x)
 
     if n_columns > 1:
@@ -383,6 +384,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     times = evoked.times * 1e3
     titles_, colors_ = _mutable_defaults(('titles', None), ('color', None))
 
+    # XXX : colors are not all visible on white background
     colors = [plt.cm.RdBu(i) for i in np.linspace(0.2, 0.8, len(noise_cov))]
     ch_colors = [colors_[ch] for ch in ch_used]
     iter_gfp = zip(evokeds_white, noise_cov, colors)

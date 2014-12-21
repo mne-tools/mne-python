@@ -525,7 +525,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     picks_list = _picks_by_type(epochs[0].info)
     picks_meeg = np.concatenate([b for _, b in picks_list])
-    picks_meeg = picks_meeg[np.argsort(picks_meeg)]
+    picks_meeg = np.sort(picks_meeg)
     ch_names = [epochs[0].ch_names[k] for k in picks_meeg]
     info = epochs[0].info  # we will overwrite 'epochs'
 
