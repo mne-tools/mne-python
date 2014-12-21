@@ -15,7 +15,7 @@ from itertools import cycle
 
 import numpy as np
 
-from ..io.pick import channel_type, pick_types
+from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from .utils import _mutable_defaults, _check_delayed_ssp
 from .utils import _draw_proj_checkbox, tight_layout
@@ -346,15 +346,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
         raise RuntimeError('Wrong axes inputs')
     evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
 
-    pick_list = []
-    for ch in ch_used:
-        if ch == 'eeg':
-            picks = pick_types(evoked.info, meg=False, eeg=True)
-        elif ch == 'grad':
-            picks = pick_types(evoked.info, meg='grad', eeg=False)
-        elif ch == 'mag':
-            picks = pick_types(evoked.info, meg='mag', eeg=False)
-        pick_list.append((ch, picks))
+    pick_list = _picks_by_type(evoked.info)
 
     def whitened_gfp(x):
         """Whitened Global Field Power
@@ -382,16 +374,15 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     else:
         raise RuntimeError('Wrong axes inputs')
     times = evoked.times * 1e3
-    titles_, colors_ = _mutable_defaults(('titles', None), ('color', None))
+    titles_ = _mutable_defaults(('titles', None))[0]
 
-    # XXX : colors are not all visible on white background
-    colors = [plt.cm.RdBu(i) for i in np.linspace(0.2, 0.8, len(noise_cov))]
-    ch_colors = [colors_[ch] for ch in ch_used]
+    colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
+    ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan'}
+
     iter_gfp = zip(evokeds_white, noise_cov, colors)
-
     for evoked_white, noise_cov, color in iter_gfp:
         i = 0
-        for (ch, sub_picks), ch_color in zip(pick_list, ch_colors):
+        for ch, sub_picks in pick_list:
             title = '{0} ({1}{2})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     len(sub_picks), ' channels' if n_columns > 1 else '')
@@ -403,7 +394,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
             gfp = whitened_gfp(evoked_white.data[sub_picks])
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
-                           color=color if n_columns > 1 else ch_color)
+                           color=color if n_columns > 1 else ch_colors[ch])
             ax_gfp[i].set_xlabel('times [ms]')
             ax_gfp[i].set_ylabel('GFP [chi^2]')
             ax_gfp[i].set_xlim(times[0], times[-1])
