@@ -519,10 +519,18 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if method == 'auto':
         method = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
-    if method is not None and not isinstance(method, (list, tuple)):
+    if not isinstance(method, (list, tuple)):
         method = [method]
 
-    if not keep_sample_mean:
+    ok_sklearn = check_sklearn_version('0.15') is True
+    if not ok_sklearn and len(method) != 1 and method[0] != 'empirical':
+        raise ValueError('scikit-learn is not installed, `method` must be '
+                         '`empirical`')
+
+    if keep_sample_mean is False:
+        if len(method) != 1 or 'empirical' not in method:
+            raise ValueError('`keep_sample_mean=False` is only supported'
+                             'with `method="empirical"`')
         for p, v in _method_params.items():
             if v.get('assume_centered', None) is False:
                 raise ValueError('`assume_centered` must be True'
@@ -561,26 +569,33 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         epochs = np.hstack(epochs)
         n_samples_tot = epochs.shape[-1]
         _check_n_samples(n_samples_tot, len(picks_meeg))
-        epochs = epochs.T  # sklearn | C-order
 
-        cov_data = _compute_covariance_auto(epochs, method=method,
-                                            method_params=_method_params,
-                                            info=info,
-                                            verbose=verbose,
-                                            cv=cv,
-                                            n_jobs=n_jobs,
-                                            stop_early=True,  # XXX expose later
-                                            picks_list=picks_list,
-                                            scalings=scalings)  # if needed.
-        if not keep_sample_mean:
-            for key, cov in cov_data.items():
-                data = cov['data']
-                # small hack undo scaling ...
-                data *= n_samples_tot
-                # ... and apply pre-computed class-wise normalization
-                for i, mean_cov in enumerate(data_mean):
-                    data -= mean_cov
-                data /= norm_const
+        epochs = epochs.T  # sklearn | C-order
+        if ok_sklearn:
+            cov_data = _compute_covariance_auto(epochs, method=method,
+                                                method_params=_method_params,
+                                                info=info,
+                                                verbose=verbose,
+                                                cv=cv,
+                                                n_jobs=n_jobs,
+                                                # XXX expose later
+                                                stop_early=True,  # if needed.
+                                                picks_list=picks_list,
+                                                scalings=scalings)
+        else:
+            if _method_params['empirical']['assume_centered'] is True:
+                cov = epochs.T.dot(epochs) / n_samples_tot
+            else:
+                cov = np.cov(epochs.T, bias=1)
+            cov_data = {'empirical': {'data': cov}}
+        if keep_sample_mean is False:
+            cov = cov_data['empirical']['data']
+            # undo scaling
+            cov *= n_samples_tot
+            # ... apply pre-computed class-wise normalization
+            for i, mean_cov in enumerate(data_mean):
+                cov -= mean_cov
+            cov /= norm_const
     else:
         raise ValueError(msg.format(method=method))
 
@@ -598,7 +613,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         cov.update(method=this_method, **data)
         covs.append(cov)
 
-    if method is not None:
+    if ok_sklearn:
         msg = ['log-likelihood on unseen data (descending order):']
         logliks = [(c['method'], c['loglik']) for c in covs]
         logliks.sort(reverse=True, key=lambda c: c[1])
@@ -606,11 +621,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             msg.append('%s: %0.3f' % (k, v))
         logger.info('\n   '.join(msg))
 
-    if method is not None and not return_estimators:
+    if ok_sklearn and not return_estimators:
         keys, scores = zip(*[(c['method'], c['loglik']) for c in covs])
         out = covs[np.argmax(scores)]
         logger.info('selecting best estimator: {0}'.format(out['method']))
-    elif method is not None:
+    elif ok_sklearn:
         out = covs
         out.sort(key=lambda c: c['loglik'], reverse=True)
     else:
@@ -828,9 +843,8 @@ def _rescale_cov(info, cov, scalings):
     return out
 
 
-def _get_estimator(estimator):
+if check_sklearn_version('0.15') is True:
     """Prepare special cov estimators"""
-
     from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
                                     ShrunkCovariance)
 
@@ -933,19 +947,7 @@ def _get_estimator(estimator):
                 test_cov[self.is_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
             return res
-
-    if estimator == 'diagonal_fixed':
-        out = _RegCovariance
-    elif estimator == 'shrunk':
-        out = _ShrunkCovariance
-    else:
-        raise NotImplementedError('{} is not available'.format(estimator))
-    return out
-
-try:
-    _RegCovariance = _get_estimator('diagonal_fixed')
-    _ShrunkCovariance = _get_estimator('shrunk')
-except ImportError:
+else:
     _RegCovariance = None
     _ShrunkCovariance = None
 

@@ -163,6 +163,9 @@ def test_cov_estimation_with_triggers():
     assert_raises(ValueError, compute_covariance, epochs,
                   keep_sample_mean=False, method_params=method_params)
 
+    assert_raises(ValueError, compute_covariance, epochs,
+                  keep_sample_mean=False, method='factor_analysis')
+
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
     cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
