@@ -51,6 +51,7 @@ Changelog
 
    - Add fiff I/O for processing history and MaxFilter info by `Denis Engemann`_ and `Eric Larson`_
 
+   - Add automated regularization with support for multiple sensor types to mne.cov.compute_covariance by `Denis Engemann`_ and `Alex Gramfort`_
 
 BUG
 ~~~
