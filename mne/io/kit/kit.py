@@ -116,6 +116,7 @@ class RawKIT(_BaseRaw):
         self.cals = np.ones(self.info['nchan'])
         self.orig_format = 'double'
         self.rawdirs = list()
+        self.info['custom_ref_applied'] = False
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
