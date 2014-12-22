@@ -464,7 +464,7 @@ def write_cov(fname, cov):
 ###############################################################################
 # Prepare for inverse modeling
 
-def _compute_rank(A, tol=1e-8):
+def _compute_rank(A, tol=1e-4):
     s = linalg.svd(A, compute_uv=0)
     return np.sum(np.where(s > s[0] * tol, 1, 0))
 
@@ -484,6 +484,7 @@ def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
     # whitening operator
     if rank is None:
         rnk = _compute_rank(A)
+        logger.info('Estimated rank for %s: %d' % ch_type, rnk)
     else:
         rnk = rank
     eig, eigvec = linalg.eigh(A, overwrite_a=True)

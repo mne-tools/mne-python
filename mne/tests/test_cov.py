@@ -4,20 +4,20 @@
 
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 import warnings
 
-from mne.cov import regularize, whiten_evoked
+from mne.cov import regularize, whiten_evoked, _compute_rank
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance, read_evokeds)
 from mne import pick_channels_cov, pick_channels, pick_types
 from mne.io import Raw
-from mne.utils import _TempDir
+from mne.utils import _TempDir, requires_sklearn
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -219,3 +219,18 @@ def test_evoked_whiten():
     mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
     assert_true(np.all(mean_baseline < 1.))
     assert_true(np.all(mean_baseline > 0.2))
+
+
+@requires_sklearn
+def test_rank():
+    """Test cov rank estimation"""
+    from sklearn.decomposition import PCA
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
+    picks = pick_types(evoked.info, meg='mag')
+    cov = read_cov(cov_fname)
+    pca = PCA(n_components=64)
+    s = pca.fit_transform(cov['data'][picks][:, picks])
+    cov2 = pca.inverse_transform(s)
+    rank = _compute_rank(cov2)
+    assert_equal(rank, 64)
