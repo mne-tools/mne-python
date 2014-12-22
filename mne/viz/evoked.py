@@ -20,6 +20,7 @@ from ..externals.six import string_types
 from .utils import _mutable_defaults, _check_delayed_ssp
 from .utils import _draw_proj_checkbox, tight_layout
 
+
 def _plot_evoked(evoked, picks, exclude, unit, show,
                  ylim, proj, xlim, hline, units,
                  scalings, titles, axes, plot_type,
@@ -305,7 +306,7 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
         The evoked response.
     rank : dict of int | None
         Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-        rank is assumed len(picks_ch). Defaults to None.
+        the rank is detected automatically. Defaults to None.
     noise_cov : list or tuple or single instance of mne.cov.Covariance
         The noise covs.
     show : bool
@@ -317,6 +318,7 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
         The figure object containing the plot.
     """
     from ..cov import whiten_evoked  # recursive import
+    from ..cov import _compute_rank
     import matplotlib.pyplot as plt
     ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
     n_ch_used = len(ch_used)
@@ -394,8 +396,11 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
             ax_gfp[i].set_title(title if n_columns > 1 else
                                 'whitened global field power (GFP),'
                                 ' method = "%s"' % label)
-            gfp = whitened_gfp(evoked_white.data[sub_picks],
-                               rank[ch] if rank is not None else None)
+
+            idx = np.ix_(sub_picks, sub_picks)
+            this_rank = (_compute_rank(noise_cov['data'][idx])
+                         if rank is None else rank[ch])
+            gfp = whitened_gfp(evoked_white.data[sub_picks], rank=this_rank)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])
