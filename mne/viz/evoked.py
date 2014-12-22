@@ -393,7 +393,7 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
 
             ax_gfp[i].set_title(title if n_columns > 1 else
                                 'whitened global field power (GFP),'
-                                ' best = "%s"' % label)
+                                ' method = "%s"' % label)
             gfp = whitened_gfp(evoked_white.data[sub_picks],
                                rank[ch] if rank is not None else None)
             ax_gfp[i].plot(times, gfp,
