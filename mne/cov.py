@@ -542,7 +542,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         method = [method]
 
     ok_sklearn = check_sklearn_version('0.15') is True
-    if not ok_sklearn and len(method) != 1 and method[0] != 'empirical':
+    if not ok_sklearn and len(method) != 1 or method[0] != 'empirical':
         raise ValueError('scikit-learn is not installed, `method` must be '
                          '`empirical`')
 
@@ -687,7 +687,22 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((est, cov, _info))
 
         elif this_method == 'ledoit_wolf':
+            shrinkages = []
             lw = LedoitWolf(**method_params[this_method])
+
+            for ch_type, picks in picks_list:
+                lw.fit(data_[:, picks])
+                shrinkages.append((
+                    ch_type,
+                    lw.shrinkage_,
+                    picks
+                ))
+            sc = _ShrunkCovariance(shrinkage=shrinkages,
+                                   **method_params[this_method])
+            sc.fit(data_)
+            _info = None
+            cov = _rescale_cov(info, sc.covariance_, scalings)
+            estimator_cov_info.append((sc, cov, _info))
             cov = _rescale_cov(info, lw.fit(data_).covariance_, scalings)
             estimator_cov_info.append((lw, cov, None))
 
