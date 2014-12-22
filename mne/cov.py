@@ -886,7 +886,7 @@ def _get_estimator(estimator):
         """Aux class"""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1,
-                     keep_cross_cov=True):
+                     keep_cross_cov=False):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
@@ -913,10 +913,11 @@ def _get_estimator(estimator):
                     shrinkage_i, shrinkage_j = a[1], b[1]
                     picks_i, picks_j = a[2], b[2]
                     if 'eeg' not in ch_:
-                        c_ij = np.sqrt(1 - shrinkage_i)
-                        c_ij *= np.sqrt(1 - shrinkage_j)
+                        c_ij = np.sqrt((1 - shrinkage_i) * (1 - shrinkage_j))
                     else:
                         c_ij = 0.0
+                    # c_ij = 0.0
+                    # import pbd;pdb.set_trace()
                     cov[np.ix_(picks_i, picks_j)] *= c_ij
                     cov[np.ix_(picks_j, picks_i)] *= c_ij
 
@@ -974,6 +975,7 @@ except ImportError:
 
 ###############################################################################
 # Writing
+
 
 def write_cov(fname, cov):
     """Write a noise covariance matrix
@@ -1357,6 +1359,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
                             scalings=scalings)
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
+
 
 @verbose
 def _read_cov(fid, node, cov_kind, verbose=None):

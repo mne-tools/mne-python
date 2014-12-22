@@ -296,14 +296,14 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, ranks=None, show=True):
+def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     """Plot whitened evoked response
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
-    ranks : dict of int | None
+    rank : dict of int | None
         Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
         rank is assumed len(picks_ch). Defaults to None.
     noise_cov : list or tuple or single instance of mne.cov.Covariance
@@ -336,7 +336,8 @@ def plot_evoked_white(evoked, noise_cov, ranks=None, show=True):
                              n_columns, sharex=True, sharey=False,
                              figsize=(8.8, 2.2 * n_rows))
     picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-    evokeds_white = [whiten_evoked(evoked, n, picks) for n in noise_cov]
+    evokeds_white = [whiten_evoked(evoked, n, picks, rank=rank)
+                     for n in noise_cov]
 
     axes_evoked = None
     if any(((n_columns == 1 and n_ch_used == 1),
@@ -358,8 +359,7 @@ def plot_evoked_white(evoked, noise_cov, ranks=None, show=True):
         The MNE inverse solver assumes zero mean whitened data as input.
         Therefore, a chi^2 statistic will be best to detect model violations.
         """
-        # XXX : fix this for rank defficient data
-        return np.sum(x ** 2, axis=0) / len(x) if rank is None else rank
+        return np.sum(x ** 2, axis=0) / (len(x) if rank is None else rank)
 
     if n_columns > 1:
         suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
@@ -395,7 +395,7 @@ def plot_evoked_white(evoked, noise_cov, ranks=None, show=True):
                                 'whitened global field power (GFP),'
                                 ' best = "%s"' % label)
             gfp = whitened_gfp(evoked_white.data[sub_picks],
-                               ranks[ch] if ranks is not None else None)
+                               rank[ch] if rank is not None else None)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])

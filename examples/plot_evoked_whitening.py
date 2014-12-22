@@ -49,23 +49,16 @@ reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True)
 
-# XXX : here epochs.proj is true so it means the projs=True or False below
-# need to check this. If any proj is active on epochs then FA is not
-# allowed.
-
 # Uncomment next line to use fewer samples and study regularization effects
 # epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
 
-# import numpy as np
 # the best estimator in this list will be selected
 method = ('empirical', 'shrunk', 'ledoit_wolf', 'factor_analysis')
-method = ('empirical', 'shrunk', 'ledoit_wolf')
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
-                                return_estimators=True, projs=False,
-                                verbose=True, n_jobs=1)
+                                return_estimators=True, verbose=True, n_jobs=1)
 
 # With "return_estimator=True" all estimated covariances sorted
 # by log-likelihood are returned.
@@ -86,4 +79,4 @@ evoked.plot()  # plot evoked response
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-evoked.plot_white(noise_covs[0])
+evoked.plot_white(noise_covs)
