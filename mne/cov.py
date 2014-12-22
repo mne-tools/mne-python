@@ -643,7 +643,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
-    _scale_data(data, info=info, scalings=scalings)
+    _scale_cov(data, info=info, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
     for this_method in method:
@@ -725,7 +725,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         logger.info('Done.')
 
     logger.info('Using cross-validation to select the best estimator.')
-    logliks = _cross_validate_cov(estimator_cov_info, data, cv, n_jobs=n_jobs)
+    estimators, _, _ = zip(*estimator_cov_info)
+    logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -740,28 +741,10 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     return out
 
 
-def _scale_data(data, info, scalings):
-    """scale data type-dependently for estimation"""
-
-    pick_dict = dict(_picks_by_type(info))
-    scalings = [(pick_dict[k], v) for k, v in scalings.items()
-                if k in pick_dict]
-    for idx, scaling in scalings:
-        data[:, idx] /= scaling  # C - order
-
-
 def _cross_val(data, est, cv, n_jobs):
     """Helper to compute cross validation"""
     from sklearn.cross_validation import cross_val_score
     return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
-
-
-@requires_sklearn
-def _cross_validate_cov(estimator_cov_info, data, cv, n_jobs):
-    """Determine best estimator"""
-    estimators, covs, _ = zip(*estimator_cov_info)
-    logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
-    return logliks
 
 
 @verbose
@@ -824,6 +807,16 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
                     'best': best,
                     'cv': cv}
     return est, runtime_info
+
+
+def _scale_cov(data, info, scalings):
+    """scale data type-dependently for estimation"""
+
+    pick_dict = dict(_picks_by_type(info))
+    scalings = [(pick_dict[k], v) for k, v in scalings.items()
+                if k in pick_dict]
+    for idx, scaling in scalings:
+        data[:, idx] /= scaling  # C - order
 
 
 def _rescale_cov(info, cov, scalings):
