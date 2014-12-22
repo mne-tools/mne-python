@@ -79,4 +79,7 @@ evoked.plot()  # plot evoked response
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-evoked.plot_white(noise_covs)
+# Use rank parameter for correct scaling (for each sensor: n_picks - n_ssp)
+evoked.plot_white(noise_covs, rank={'mag': 99, 'grad': 203, 'eeg': 58})
+
+# For SSSed data look up actual rank from SSS log or use raw.estimate_rank

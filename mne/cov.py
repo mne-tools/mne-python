@@ -531,16 +531,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     info = epochs[0].info  # we will overwrite 'epochs'
 
     if method == 'auto':
-        method = ['shrunk', 'diagonal_fixed', 'empirical']
-        # if not projs:
-        method.append('factor_analysis')
+        method = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
     if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
 
-    if projs and ('factor_analysis' in method or 'pca' in method):
-        raise ValueError('projs are not allowed when using PCA '
-                         'or Factor Analysis.')
 
     if not keep_sample_mean:
         for p, v in _method_params.items():
