@@ -570,7 +570,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The noise covs.
         rank : dict of int | None
             Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-            rank is assumed len(picks_ch). Defaults to None.
+            the rank is detected automatically. Defaults to None.
         show : bool
             Whether to show the figure or not. Defaults to True.
 

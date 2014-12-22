@@ -330,8 +330,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
 @verbose
 def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        projs=None, method='empirical', method_params=None,
-                       cv=3, scalings=None, n_jobs=1, keep_ref_meg=False,
-                       return_estimators=False, verbose=None):
+                       cv=3, scalings=None, n_jobs=1, return_estimators=False,
+                       verbose=None):
     """Estimate noise covariance matrix from epochs
 
     The noise covariance is typically estimated on pre-stim periods
@@ -424,9 +424,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         at the same unit.
     n_jobs : int | str
         Number of jobs to run in parallel.
-    keep_ref_meg : bool
-        Whether to keep the reference sensors or not. Only applies to systems
-        that implement such sensors, e.g. CTF, 4D. Defaults to False.
     return_estimators : bool
         Whether to return all estimators or the best. Only considered if
         method equals 'auto' or is a list of str. Defaults to False
@@ -528,7 +525,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             raise ValueError('Epochs must have same bad channels')
         if epochs_t.ch_names != ch_names:
             raise ValueError('Epochs must have same channel names')
-
     picks_list = _picks_by_type(epochs[0].info)
     picks_meeg = np.concatenate([b for _, b in picks_list])
     picks_meeg = np.sort(picks_meeg)
@@ -579,6 +575,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
         epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+        picks_meeg = np.arange(len(picks_meeg))
+        picks_list = _picks_by_type(info)
 
         if len(epochs) > 1:
             epochs = np.concatenate(epochs, 0)

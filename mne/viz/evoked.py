@@ -337,7 +337,14 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     fig, axes = plt.subplots(n_rows,
                              n_columns, sharex=True, sharey=False,
                              figsize=(8.8, 2.2 * n_rows))
-    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+
+    evoked = evoked.copy()  # handle ref meg
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
+    evoked.pick_channels([evoked.ch_names[k] for k in picks], copy=False)
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
+
     evokeds_white = [whiten_evoked(evoked, n, picks, rank=rank)
                      for n in noise_cov]
 
