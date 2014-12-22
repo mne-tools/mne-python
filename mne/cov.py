@@ -703,8 +703,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             _info = None
             cov = _rescale_cov(info, sc.covariance_, scalings)
             estimator_cov_info.append((sc, cov, _info))
-            cov = _rescale_cov(info, lw.fit(data_).covariance_, scalings)
-            estimator_cov_info.append((lw, cov, None))
 
         elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkage')
