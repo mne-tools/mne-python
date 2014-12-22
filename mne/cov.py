@@ -542,7 +542,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         method = [method]
 
     ok_sklearn = check_sklearn_version('0.15') is True
-    if not ok_sklearn and len(method) != 1 or method[0] != 'empirical':
+    if not ok_sklearn and (len(method) != 1 or method[0] != 'empirical'):
         raise ValueError('scikit-learn is not installed, `method` must be '
                          '`empirical`')
 
