@@ -17,7 +17,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds)
 from mne import pick_channels_cov, pick_channels, pick_types
 from mne.io import Raw
-from mne.utils import _TempDir, requires_sklearn
+from mne.utils import _TempDir
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -221,16 +221,17 @@ def test_evoked_whiten():
     assert_true(np.all(mean_baseline > 0.2))
 
 
-@requires_sklearn
 def test_rank():
     """Test cov rank estimation"""
-    from sklearn.decomposition import PCA
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
     picks = pick_types(evoked.info, meg='mag')
     cov = read_cov(cov_fname)
-    pca = PCA(n_components=64)
-    s = pca.fit_transform(cov['data'][picks][:, picks])
-    cov2 = pca.inverse_transform(s)
-    rank = _compute_rank(cov2)
+    X = cov['data'][picks][:, picks].T
+    mean = X.mean(0)
+    _, _, V = linalg.svd(X - mean, full_matrices=False)
+    V = V[:64]
+    s = X.dot(V.T)
+    cov2 = np.dot(s, V) + mean
+    rank = _compute_rank(cov2, tol=1e-4)
     assert_equal(rank, 64)
