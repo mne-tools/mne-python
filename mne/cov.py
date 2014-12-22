@@ -49,20 +49,6 @@ def _check_covs_algebra(cov1, cov2):
                          'SSP projections.')
 
 
-def _pick_data_ch(info, ch_type):
-    """conveniently pick a certain type"""
-    idx = None
-    if ch_type == 'mag':
-        idx = pick_types(info, meg='mag', eeg=False, ref_meg=False)
-    elif ch_type == 'grad':
-        idx = pick_types(info, meg='grad', eeg=False, ref_meg=False)
-    elif ch_type == 'eeg':
-        idx = pick_types(info, meg=False, eeg=True, ref_meg=False)
-    if idx is None:
-        raise ValueError('no channels for %s' % ch_type)
-    return idx
-
-
 def _get_tslice(epochs, tmin, tmax):
     """get the slice"""
     tstart, tend = None, None
@@ -536,7 +522,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     if method is not None and not isinstance(method, (list, tuple)):
         method = [method]
 
-
     if not keep_sample_mean:
         for p, v in _method_params.items():
             if v.get('assume_centered', None) is False:
@@ -743,10 +728,9 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 def _scale_data(data, info, scalings):
     """scale data type-dependently for estimation"""
 
-    ch_types_used = [c for c in ['mag', 'grad', 'eeg'] if
-                     _contains_ch_type(info, c)]
-    scalings = [(_pick_data_ch(info, k), v) for k, v in scalings.items()
-                if k in ch_types_used]
+    pick_dict = dict(_picks_by_type(info))
+    scalings = [(pick_dict[k], v) for k, v in scalings.items()
+                if k in pick_dict]
     for idx, scaling in scalings:
         data[:, idx] /= scaling  # C - order
 
@@ -831,13 +815,12 @@ def _rescale_cov(info, cov, scalings):
     """rescale resulting cov after estimation"""
     out = cov.copy()
     n_channels = len(cov)
-    ch_types = [c for c in ['mag', 'grad', 'eeg'] if
-                _contains_ch_type(info, c)]
-    covinds = [_pick_data_ch(info, t) for t in ch_types]
+    pick_list = _picks_by_type(info)
+    covinds = list(zip(*pick_list))[1]
     assert len(cov) == sum(len(k) for k in covinds)
     assert list(sorted(np.concatenate(covinds))) == list(range(len(cov)))
     scales = np.zeros(n_channels)
-    for ch_t, idx in zip(ch_types, covinds):
+    for ch_t, idx in pick_list:
         scales[idx] = scalings[ch_t]
 
     assert np.sum(scales == 0.) == 0
@@ -911,8 +894,6 @@ def _get_estimator(estimator):
                         c_ij = np.sqrt((1 - shrinkage_i) * (1 - shrinkage_j))
                     else:
                         c_ij = 0.0
-                    # c_ij = 0.0
-                    # import pbd;pdb.set_trace()
                     cov[np.ix_(picks_i, picks_j)] *= c_ij
                     cov[np.ix_(picks_j, picks_i)] *= c_ij
 
