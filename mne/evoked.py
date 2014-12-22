@@ -561,7 +561,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, rank=None, show=True):
+    def plot_white(self, noise_cov, scalings=None, rank=None, show=True):
         """Plot whitened evoked response
 
         Parameters
@@ -580,7 +580,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The figure object containing the plot.
         """
         return plot_evoked_white(self, noise_cov=noise_cov, rank=rank,
-                                 show=show)
+                                 scalings=scalings, show=show)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime

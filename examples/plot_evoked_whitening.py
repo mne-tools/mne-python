@@ -50,14 +50,13 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=None, reject=reject, preload=True)
 
 # Uncomment next line to use fewer samples and study regularization effects
-# epochs = epochs[:20]  # For your data, use as many samples as you can!
+epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
 
-# the best estimator in this list will be selected
-method = ('empirical', 'shrunk', 'ledoit_wolf', 'factor_analysis')
-noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method=method,
+# the best solution out of a list of relevant estimators will be selected
+noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method='auto',
                                 return_estimators=True, verbose=True, n_jobs=1)
 
 # With "return_estimator=True" all estimated covariances sorted
@@ -79,7 +78,4 @@ evoked.plot()  # plot evoked response
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-# Use rank parameter for correct scaling (for each sensor: n_picks - n_ssp)
-evoked.plot_white(noise_covs, rank={'mag': 99, 'grad': 203, 'eeg': 58})
-
-# For SSSed data look up actual rank from SSS log or use raw.estimate_rank
+evoked.plot_white(noise_covs, scalings='norm')

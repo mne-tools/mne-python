@@ -29,13 +29,10 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms requires_sklearn)
+                    _compute_row_norms, requires_sklearn, check_sklearn_version )
 
 from .externals.six.moves import zip
 from .fixes import nanmean
-from . import pick_info
-
-from .channels.channels import _contains_ch_type
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -457,7 +454,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     msg = ('Invalid method ({method}). Accepted values (individually or '
            'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
 
-    _scalings = dict(grad=1e-13, mag=4e-15, eeg=1e-6)
+    _scalings = dict(grad=1e13, mag=4e15, eeg=1e6)
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
@@ -605,6 +602,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             else:
                 cov = np.cov(epochs.T, bias=1)
             cov_data = {'empirical': {'data': cov}}
+
         if keep_sample_mean is False:
             cov = cov_data['empirical']['data']
             # undo scaling
@@ -660,7 +658,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
-    _scale_cov(data, info=info, scalings=scalings)
+    _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
     for this_method in method:
@@ -671,18 +669,16 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
         if this_method == 'empirical':
             est = EmpiricalCovariance(**method_params[this_method])
             est.fit(data_)
-            cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
-            estimator_cov_info.append((est, cov, _info))
+            estimator_cov_info.append((est, est.covariance_, _info))
 
         elif this_method == 'diagonal_fixed':
             Est = cp.deepcopy(_RegCovariance)
             Est.info = info
             est = Est(**method_params[this_method])
             est.fit(data_)
-            cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
-            estimator_cov_info.append((est, cov, _info))
+            estimator_cov_info.append((est, est.covariance_, _info))
 
         elif this_method == 'ledoit_wolf':
             shrinkages = []
@@ -699,8 +695,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            cov = _rescale_cov(info, sc.covariance_, scalings)
-            estimator_cov_info.append((sc, cov, _info))
+            estimator_cov_info.append((sc, sc.covariance_, _info))
 
         elif this_method == 'shrunk':
             shrinkage = method_params[this_method].pop('shrinkage')
@@ -720,8 +715,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                    **method_params[this_method])
             sc.fit(data_)
             _info = None
-            cov = _rescale_cov(info, sc.covariance_, scalings)
-            estimator_cov_info.append((sc, cov, _info))
+            estimator_cov_info.append((sc, sc.covariance_, _info))
 
         elif this_method == 'pca':
             mp = cp.deepcopy(method_params[this_method])
@@ -730,8 +724,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                               stop_early=stop_early,
                                               verbose=verbose)
             pca.fit(data_)
-            cov = _rescale_cov(info, pca.get_covariance(), scalings)
-            estimator_cov_info.append((pca, cov, _info))
+            estimator_cov_info.append((pca, pca.get_covariance(), _info))
 
         elif this_method == 'factor_analysis':
             mp = cp.deepcopy(method_params[this_method])
@@ -740,19 +733,21 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                              stop_early=stop_early,
                                              verbose=verbose)
             fa.fit(data_)
-            cov = _rescale_cov(info, fa.get_covariance(), scalings)
-            estimator_cov_info.append((fa, cov, _info))
+            estimator_cov_info.append((fa, fa.get_covariance(), _info))
 
         elif callable(this_method) and hasattr(this_method, 'fit'):
             est = this_method()
             est.fit(data_)
-            cov = _rescale_cov(info, est.covariance_, scalings)
             _info = None
-            estimator_cov_info.append((est, cov, _info))
+            estimator_cov_info.append((est, est.covariance_, _info))
         else:
             raise ValueError('Oh no! Your estimator does not have'
                              ' a .fit method')
         logger.info('Done.')
+
+    # undo scaling
+    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _
+     in estimator_cov_info]
 
     logger.info('Using cross-validation to select the best estimator.')
     estimators, _, _ = zip(*estimator_cov_info)
@@ -839,33 +834,6 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
     return est, runtime_info
 
 
-def _scale_cov(data, info, scalings):
-    """scale data type-dependently for estimation"""
-
-    pick_dict = dict(_picks_by_type(info))
-    scalings = [(pick_dict[k], v) for k, v in scalings.items()
-                if k in pick_dict]
-    for idx, scaling in scalings:
-        data[:, idx] /= scaling  # C - order
-
-
-def _rescale_cov(info, cov, scalings):
-    """rescale resulting cov after estimation"""
-    out = cov.copy()
-    n_channels = len(cov)
-    pick_list = _picks_by_type(info)
-    covinds = list(zip(*pick_list))[1]
-    assert len(cov) == sum(len(k) for k in covinds)
-    assert list(sorted(np.concatenate(covinds))) == list(range(len(cov)))
-    scales = np.zeros(n_channels)
-    for ch_t, idx in pick_list:
-        scales[idx] = scalings[ch_t]
-
-    assert np.sum(scales == 0.) == 0
-    out = scales[:, None] * out * scales[None, :]
-    return out
-
-
 if check_sklearn_version('0.15') is True:
     """Prepare special cov estimators"""
     from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
@@ -901,7 +869,7 @@ if check_sklearn_version('0.15') is True:
         """Aux class"""
 
         def __init__(self, store_precision, assume_centered, shrinkage=0.1,
-                     keep_cross_cov=False):
+                     keep_cross_cov=True):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
@@ -1329,7 +1297,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     picks : array-like of int
         The channel indices to whiten
     diag : bool
-        If True, whiten using only the diagonal of the covariancei
+        If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
         detected automatically. If int, the rank is specified for the MEG
@@ -1350,6 +1318,8 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     """
     ch_names = [evoked.ch_names[k] for k in picks]
     evoked = cp.deepcopy(evoked)
+
+    scalings_ = None
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if diag:
         noise_cov = cp.deepcopy(noise_cov)

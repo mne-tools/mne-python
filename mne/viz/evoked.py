@@ -19,6 +19,7 @@ from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from .utils import _mutable_defaults, _check_delayed_ssp
 from .utils import _draw_proj_checkbox, tight_layout
+from ..io.pick import pick_info
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -297,7 +298,7 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
+def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     """Plot whitened evoked response
 
     Parameters
@@ -318,8 +319,11 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
         The figure object containing the plot.
     """
     from ..cov import whiten_evoked  # recursive import
-    from ..cov import _compute_rank
+    from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
+    if scalings is None:
+        scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
+
     ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
     n_ch_used = len(ch_used)
 
@@ -332,7 +336,6 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     else:
         n_columns = 1
         n_extra_row = 1
-
     n_rows = n_ch_used + n_extra_row
     fig, axes = plt.subplots(n_rows,
                              n_columns, sharex=True, sharey=False,
@@ -345,8 +348,27 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
 
-    evokeds_white = [whiten_evoked(evoked, n, picks, rank=rank)
-                     for n in noise_cov]
+    picks_list = _picks_by_type(evoked.info)
+    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
+
+    # make sure we use the same rank estimates for GFP and whitening
+    rank_list = []
+    for cov in noise_cov:
+        rank_ = {}
+        picks_list2 = sum([_picks_by_type(evoked.info, meg_combined=b) for b
+                          in [True, False]], [])
+        C = cov['data'].copy()
+        for ch_type, this_picks in picks_list2:
+            this_info = pick_info(evoked.info, this_picks)
+            idx = np.ix_(this_picks, this_picks)
+            this_rank = _estimate_rank_meeg_cov(C[idx], this_info, scalings)
+            rank_[ch_type] = this_rank
+        if rank is not None:
+            rank_.update(rank)
+        rank_list.append(rank_)
+
+    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r, scalings=scalings)
+                     for n, r in zip(noise_cov, rank_list)]
 
     axes_evoked = None
     if any(((n_columns == 1 and n_ch_used == 1),
@@ -358,9 +380,6 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
     else:
         raise RuntimeError('Wrong axes inputs')
     evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
-
-    pick_list = _picks_by_type(evoked.info)
-    pick_list = [x for x, y in sorted(zip(pick_list, ch_used))]
 
     def whitened_gfp(x, rank=None):
         """Whitened Global Field Power
@@ -391,10 +410,10 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
     ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan'}
-    iter_gfp = zip(evokeds_white, noise_cov, colors)
-    for evoked_white, noise_cov, color in iter_gfp:
+    iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
+    for evoked_white, noise_cov, rank_, color in iter_gfp:
         i = 0
-        for ch, sub_picks in pick_list:
+        for ch, sub_picks in picks_list:
             title = '{0} ({1}{2})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     len(sub_picks), ' channels' if n_columns > 1 else '')
@@ -404,9 +423,7 @@ def plot_evoked_white(evoked, noise_cov, rank=None, show=True):
                                 'whitened global field power (GFP),'
                                 ' method = "%s"' % label)
 
-            idx = np.ix_(sub_picks, sub_picks)
-            this_rank = (_compute_rank(noise_cov['data'][idx])
-                         if rank is None else rank[ch])
+            this_rank = rank_[ch]
             gfp = whitened_gfp(evoked_white.data[sub_picks], rank=this_rank)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),

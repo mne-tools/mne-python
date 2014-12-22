@@ -5,36 +5,26 @@
 
 import os.path as op
 
-<<<<<<< HEAD
-from nose.tools import assert_true, assert_almost_equal
-from numpy.testing import assert_array_almost_equal
-=======
 from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_array_almost_equal, assert_array_equal
->>>>>>> Add auto-reg code and a first example
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 import warnings
 import itertools as itt
 
-<<<<<<< HEAD
-from mne.cov import regularize, whiten_evoked, _estimate_rank_meeg_cov
-=======
-from mne.cov import regularize, whiten_evoked, _auto_low_rank_model
->>>>>>> Add auto-reg code and a first example
+from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
+                     _auto_low_rank_model, _apply_scaling_cov,
+                     _undo_scaling_cov)
+
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info)
 from mne.io import Raw
-<<<<<<< HEAD
-from mne.io.pick import channel_type
-from mne.utils import _TempDir, slow_test
+from mne.utils import _TempDir, slow_test, requires_sklearn
 from mne.io.proc_history import _get_sss_rank
-=======
-from mne.utils import _TempDir, requires_sklearn
->>>>>>> Add auto-reg code and a first example
+from mne.io.pick import channel_type, _picks_by_type
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -325,7 +315,32 @@ def test_rank():
             est_rank = _estimate_rank_meeg_cov(C, this_very_info,
                                                scalings=scalings)
 
-            assert_almost_equal(expected_rank, est_rank)
+            assert_equal(expected_rank, est_rank)
+
+
+def test_cov_scaling():
+    """Test rescaling covs"""
+    evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
+                          proj=True)
+    cov = read_cov(cov_fname)['data']
+    cov2 = read_cov(cov_fname)['data']
+
+    assert_array_equal(cov, cov2)
+    evoked.pick_channels([evoked.ch_names[k] for k in pick_types(
+        evoked.info, meg=True, eeg=True
+    )])
+    picks_list = _picks_by_type(evoked.info)
+    scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
+
+    _apply_scaling_cov(cov2, picks_list, scalings=scalings)
+    _apply_scaling_cov(cov, picks_list, scalings=scalings)
+    assert_array_equal(cov, cov2)
+    assert_true(cov.max() > 1)
+
+    _undo_scaling_cov(cov2, picks_list, scalings=scalings)
+    _undo_scaling_cov(cov, picks_list, scalings=scalings)
+    assert_array_equal(cov, cov2)
+    assert_true(cov.max() < 1)
 
 
 @requires_sklearn
@@ -400,18 +415,13 @@ def test_compute_covariance_auto_reg():
     with warnings.catch_warnings(record=True) as w:
         covs = compute_covariance(epochs, method='auto',
                                   method_params=method_params,
-                                  projs=False,
+                                  projs=True,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
 
-    cov = covs[0]
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
-
-    cov2 = compute_covariance(epochs, method='shrunk')
-
-    assert_array_equal(cov['data'], cov2['data'])  # We know it's sc.
 
     with warnings.catch_warnings(record=True) as w:
         cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
