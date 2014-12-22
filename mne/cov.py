@@ -368,6 +368,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         each event type and subtracted during the covariance
         computation. This is useful if the evoked response from a
         previous stimulus extends into the baseline period of the next.
+        Note. This option is only implemented for method='empirical'.
     tmin : float | None
         Start time for baseline. If None start at first sample.
     tmax : float | None
@@ -377,25 +378,43 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
     method : str | list | callable | None
-        The method used for covariance estimation. If None (default),
-        the sample covariance will be computed. If 'auto', the best
-        estimator will be determined based on log-likelihood and
-        cross-validation on unseen data as described in ref. [1].
-        A list can be passed to run a subset of the different methods.
+        The method used for covariance estimation. If 'empirical' (default),
+        the sample covariance will be computed. A list can be passed to run a
+        set of the different methods.
         If callable object is passed, it has to specify a fit method, which
         must set the attribute 'covariance_' to self when invoked
-        (see scikit-learn estimator objects). Valid methods are:
-        'empirical', the sklearn variant of the empirical covariance,
+        (see scikit-learn estimator objects).
+        If 'auto' or a list of methods, the best estimator will be determined
+        based on log-likelihood and cross-validation on unseen data as described
+        in ref. [1]. Valid methods are:
+        'empirical', the empirical or sample covariance,
         'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
         (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
         'shrunk' like 'ledoit_wolf' with cross-validation for optimal alpha
         (see scikit-learn documentation on covariance estimation), 'pca',
         probabilistic PCA with low rank
         (see [3]), and, 'factor_analysis', Factor Analysis with low rank
-        (see [4]).
+        (see [4]). If 'auto', expands to:
+
+             ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
+
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
-        method is not None.
+        method is not None. Keys must correspond to the value(s) of `method`.
+        If None (default), expands to:
+
+        {
+            'empirical': {'store_precision': False, 'assume_centered': True},
+            'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
+                               'store_precision': False,
+                               'assume_centered': True},
+            'ledoit_wolf': {'store_precision': False, 'assume_centered': True},
+            'shrunk': {'shrinkage': np.logspace(-4, 0, 30),
+                       'store_precision': False, 'assume_centered': True},
+            'pca': {'iter_n_components': None},
+            'factor_analysis': {'iter_n_components': None}
+        }
+
     cv : int | sklearn cross_validation object
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
@@ -1122,6 +1141,11 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     This method works by adding a constant to the diagonal for each
     channel type separately. Special care is taken to keep the
     rank of the data constant.
+
+    Note. This function is kept for reasons of backwards-compatibility.
+    Please consider explicitly using the `method` parameter in
+    compute_covariance to directly combine estimation with regularization
+    in a data-driven fashion.
 
     Parameters
     ----------
