@@ -3,7 +3,7 @@
 Re-referencing the EEG signal
 =============================
 
-Load raw data and apply some EEG referencing schemes
+Load raw data and apply some EEG referencing schemes.
 """
 # Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
@@ -23,7 +23,7 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = mne.io.Raw(raw_fname, preload=True)
 events = mne.read_events(event_fname)
 
-# The EEG channels will be plotted to visulualize the difference in referencing
+# The EEG channels will be plotted to visualize the difference in referencing
 # schemes.
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
