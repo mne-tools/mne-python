@@ -8,6 +8,7 @@ from scipy import linalg, signal
 
 from ..source_estimate import SourceEstimate
 from ..minimum_norm.inverse import combine_xyz, _prepare_forward
+from ..minimum_norm.inverse import _check_reference
 from ..forward import compute_orient_prior, is_fixed_orient, _to_fixed_ori
 from ..io.pick import pick_channels_evoked
 from .mxne_optim import mixed_norm_solver, norm_l2inf, tf_mixed_norm_solver
@@ -158,6 +159,8 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     """
     if not isinstance(evoked, list):
         evoked = [evoked]
+
+    _check_reference(evoked[0])
 
     all_ch_names = evoked[0].ch_names
     if not all(all_ch_names == evoked[i].ch_names
@@ -361,6 +364,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
     """
+    _check_reference(evoked)
+
     all_ch_names = evoked.ch_names
     info = evoked.info
 
