@@ -15,7 +15,7 @@ from ..io.constants import FIFF
 from ..io.proj import make_projector
 from ..io.pick import pick_types, pick_channels_forward, pick_channels_cov
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import _get_vertno, combine_xyz
+from ..minimum_norm.inverse import _get_vertno, combine_xyz, _check_reference
 from ..cov import compute_whitener, compute_covariance
 from ..source_estimate import _make_stc, SourceEstimate
 from ..source_space import label_src_vertno_sel
@@ -285,6 +285,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
+    _check_reference(evoked)
 
     info = evoked.info
     data = evoked.data
@@ -348,6 +349,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
+    _check_reference(epochs)
 
     info = epochs.info
     tmin = epochs.times[0]
@@ -422,6 +424,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
     beamformers for neuromagnetic source reconstruction.
     Biomedical Engineering (2004) vol. 51 (10) pp. 1726--34
     """
+    _check_reference(raw)
 
     info = raw.info
 
@@ -610,6 +613,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     time-frequency dynamics of cortical activity.
     NeuroImage (2008) vol. 40 (4) pp. 1686-1700
     """
+    _check_reference(epochs)
 
     if pick_ori not in [None, 'normal']:
         raise ValueError('Unrecognized orientation option in pick_ori, '
