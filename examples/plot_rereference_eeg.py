@@ -25,40 +25,37 @@ events = mne.read_events(event_fname)
 
 # The EEG channels will be plotted to visulualize the difference in referencing
 # schemes.
-picks = mne.pick_types(raw.info, meg=False, eeg=True, exclude='bads')
-plt.figure(figsize=(6, 6))
+picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
+###############################################################################
 # Apply different EEG referencing schemes and plot the resulting evokeds
-########################################################################
+
+reject = dict(eeg=180e-6, eog=150e-6)
+epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+                     picks=picks)
 
 # No reference. This assumes that the EEG has already been referenced properly.
 # This explicitly prevents MNE from adding a default EEG reference.
-raw_none = mne.io.set_eeg_reference(raw, [])[0]
-ev_none = mne.Epochs(raw_none, events, event_id, tmin, tmax).average(picks)
-del raw_none  # Free memory
+raw_no_ref, _ = mne.io.set_eeg_reference(raw, [])
+evoved_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
+del raw_no_ref  # Free memory
 
-ax = plt.subplot(3, 1, 1)
-ev_none.plot(axes=ax)
-plt.title('Original reference')
+fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
+evoved_no_ref.plot(axes=ax1, titles=dict(eeg='EEG Original reference'))
 
 # Average reference. This is normally added by default, but can also be added
 # explicitly.
-raw_car = mne.io.set_eeg_reference(raw)[0]
-ev_car = mne.Epochs(raw_car, events, event_id, tmin, tmax).average(picks)
+raw_car, _ = mne.io.set_eeg_reference(raw)
+evoked_car = mne.Epochs(raw_car, **epochs_params).average()
 del raw_car
 
-ax = plt.subplot(3, 1, 2)
-ev_car.plot(axes=ax)
-plt.title('Average reference')
+evoked_car.plot(axes=ax2, titles=dict(eeg='EEG Average reference'))
 
 # Use the mean of channels EEG 001 and EEG 002 as a reference
-raw_custom = mne.io.set_eeg_reference(raw, ['EEG 001', 'EEG 002'])[0]
-ev_custom = mne.Epochs(raw_custom, events, event_id, tmin, tmax).average(picks)
+raw_custom, _ = mne.io.set_eeg_reference(raw, ['EEG 001', 'EEG 002'])
+evoked_custom = mne.Epochs(raw_custom, **epochs_params).average()
 del raw_custom
 
-ax = plt.subplot(3, 1, 3)
-ev_custom.plot(axes=ax)
-plt.title('Custom reference')
+evoked_custom.plot(axes=ax3, titles=dict(eeg='EEG Custom reference'))
 
-plt.tight_layout()
-plt.show()
+mne.viz.tight_layout()
