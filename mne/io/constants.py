@@ -56,6 +56,8 @@ FIFF.FIFFB_MRI_SCENE          = 204     # Which are actually 3D scenes...
 FIFF.FIFFB_MRI_SEG            = 205     # MRI segmentation data
 FIFF.FIFFB_MRI_SEG_REGION     = 206     # One MRI segmentation region
 FIFF.FIFFB_PROCESSING_HISTORY = 900
+
+FIFF.FIFFB_SSS_CTC            = 501
 FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL_ADJUST     = 503
 FIFF.FIFFB_SSS_ST_INFO        = 504
@@ -495,6 +497,23 @@ FIFF.FIFF_MNE_ICA_PCA_MEAN          = 3606     # PCA mean
 FIFF.FIFF_MNE_ICA_MATRIX            = 3607     # ICA unmixing matrix
 FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
+#
+# Maxfilter tags
+
+FIFF.FIFF_SSS_INFO_TASK             = 264
+FIFF.FIFF_SSS_INFO_COORD_FRAME      = 263
+FIFF.FIFF_SSS_INFO_ORIGIN           = 265
+FIFF.FIFF_SSS_INFO_IN_ORDER         = 266
+FIFF.FIFF_SSS_INFO_OUT_ORDER        = 267
+FIFF.FIFF_SSS_INFO_NCHAN            = 268
+FIFF.FIFF_SSS_INFO_COMPONENTS       = 269
+FIFF.FIFF_SSS_CAL_CHNLS             = 270
+FIFF.FIFF_SSS_CAL_COEFF             = 271
+FIFF.FIFF_SSS_CTC_BLOCK_ID          = 103
+FIFF.FIFF_SSS_CTC_DATE              = 204
+FIFF.FIFF_SSS_CTC_CREATOR_PROGRAM   = 113
+FIFF.FIFF_SSS_CTC_CTC_MAT           = 800
+FIFF.FIFF_SSS_CTC_PROJ_ITEM_CHS     = 3417
 #
 # Fiff values associated with MNE computations
 #

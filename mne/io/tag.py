@@ -302,7 +302,6 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 shape = (dims[1], dims[2])
                 if matrix_coding == matrix_coding_CCS:
                     #    CCS
-                    sparse.csc_matrix()
                     sparse_indices = np.fromstring(fid.read(4 * nnz),
                                                    dtype='>i4')
                     sparse_ptrs = np.fromstring(fid.read(4 * (ncol + 1)),
