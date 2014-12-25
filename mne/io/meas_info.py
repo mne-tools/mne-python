@@ -6,11 +6,11 @@
 
 from warnings import warn
 from copy import deepcopy
+from datetime import datetime as dt
 import os.path as op
+
 import numpy as np
 from scipy import linalg
-from ..externals.six import BytesIO, string_types
-from datetime import datetime as dt
 
 from .pick import channel_type
 from .constants import FIFF
@@ -26,7 +26,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
-from ..externals.six import b
+from ..externals.six import b, BytesIO, string_types
 
 
 _kind_dict = dict(
