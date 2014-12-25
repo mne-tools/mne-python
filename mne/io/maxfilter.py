@@ -154,3 +154,11 @@ def _read_maxfilter_info(fname):
 
     # return ordered of relevance
     return sss_info, sss_ctc, sss_cal, max_st
+
+
+def _get_sss_rank(sss):
+    """Get SSS rank"""
+    inside = sss['info']['in_order']
+    nfree = (inside + 1) ** 2 - 1
+    nfree -= (len(sss['info']['components']) - sss['info']['components'].sum())
+    return nfree

@@ -2,6 +2,7 @@ import numpy as np
 import os.path as op
 from mne import io
 from mne.io.constants import FIFF
+from mne.io.maxfilter import _get_sss_rank
 from nose.tools import assert_true, assert_equal
 
 base_dir = op.join(op.dirname(__file__), 'data')
@@ -30,3 +31,12 @@ def test_maxfilter_io():
     assert_equal(sss['cal']['cal_chans'].shape, (306, 2))
     vv_coils = [v for k, v in FIFF.items() if 'FIFFV_COIL_VV' in k]
     assert_true(all(k in vv_coils for k in set(sss['cal']['cal_chans'][:, 1])))
+
+
+def test_maxfilter_get_rank():
+    """test maxfilter rank lookup"""
+    raw = io.Raw(raw_fname)
+    sss = raw.info['sss']
+    rank1 = sss['info']['nfree']
+    rank2 = _get_sss_rank(sss)
+    assert_equal(rank1, rank2)

@@ -17,7 +17,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds)
 from mne import pick_channels_cov, pick_channels, pick_types, pick_info
 from mne.io import Raw
-from mne.utils import _TempDir, _computer_norm_scaling
+from mne.utils import _TempDir, _compute_row_norms
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -248,7 +248,7 @@ def test_rank():
             assert_almost_equal(rank, est_rank_dict, delta=1)
             # print('rank ({0}): {1}, estimated ({2}): {3}'.format(
             #     rank, ch_type, 'dict', est_rank_dict))
-            rescale_array = 1. / _computer_norm_scaling(evoked.data)[picks]
+            rescale_array = 1. / _compute_row_norms(evoked.data)[picks]
             est_rank_norms = _estimate_rank_meeg(cov2, this_info,
                                                  rescale=rescale_array)
             assert_almost_equal(rank, est_rank_norms, delta=1)

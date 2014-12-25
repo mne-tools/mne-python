@@ -27,6 +27,7 @@ from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
+from mne.io.maxfilter import _get_sss_rank
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -128,15 +129,6 @@ def test_rank_estimation():
         [fif_fname, hp_fif_fname],  # sss
         ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
     )
-
-    def _get_sss_rank(sss):
-        """Get SSS rank"""
-        nfree = sss['info'].get('nfree', None)
-        if nfree is None:
-            inside = sss['info']['in_order']
-            outside = sss['info']['out_order']
-            nfree = (inside + 1) ** 2 - (outside + 1) ** 2 - 2
-        return nfree
 
     for fname, rescale in iter_tests:
         raw = Raw(fname)
