@@ -316,7 +316,7 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     if copy is True:
         data = data.copy()
     if norm is True:
-        norms = _computer_norm_scaling(data)
+        norms = _compute_row_norms(data)
         data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
     rank = np.sum(s >= tol)
@@ -326,7 +326,7 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
         return rank
 
 
-def _computer_norm_scaling(data):
+def _compute_row_norms(data):
     """Compute scaling based on estimated norm"""
     norms = np.sqrt(np.sum(data ** 2, axis=1))
     norms[norms == 0] = 1.0

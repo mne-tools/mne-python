@@ -1076,4 +1076,4 @@ def test_equalize_channels():
         assert_equal(ch_names, e.ch_names)
 
 
-run_tests_if_main()
+# run_tests_if_main()

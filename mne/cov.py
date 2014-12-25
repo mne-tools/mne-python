@@ -26,7 +26,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _computer_norm_scaling)
+                    _compute_row_norms)
 from .externals.six.moves import zip
 
 
@@ -938,7 +938,7 @@ def _rescale_data(data, picks_list, rescale):
         for idx, scaling in rescale:
             data[idx, :] *= scaling  # F - order
     else:
-        out *= rescale[:, np.newaxis]  # F - order
+        data *= rescale[:, np.newaxis]  # F - order
 
 
 def _rescale_cov(data, picks_list, rescale):
@@ -956,34 +956,42 @@ def _rescale_cov(data, picks_list, rescale):
             raise ValueError('Scaling factors and data are of incompatible '
                              'shape')
         scales = rescale
-    else:
-        raise NotImplementedError('No way!')
     assert np.sum(scales == 0.) == 0
     data *= (scales[None, :] * scales[:, None])
 
 
-def _rescale_meeg(data, picks_list, rescale):
-    rescale_dict_ = dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+def _rescale_meeg(data, picks_list, rescale, inverse=False):
+    rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
 
+    rescale_ = None
     if rescale == 'norm':
-        rescale_ = _computer_norm_scaling(data)
+        rescale_ = 1. / _compute_row_norms(data)
     elif isinstance(rescale, dict):
         rescale_dict_.update(rescale)
         rescale_ = rescale_dict_
     elif isinstance(rescale, np.ndarray):
         rescale_ = rescale
     elif rescale is None:
-        rescale_ = None
+        pass
+    else:
+        raise NotImplementedError("No way! That's not not a rescaling "
+                                  'option: %s' % rescale)
+    if inverse is True:
+        if isinstance(rescale_, dict):
+            rescale_ = dict((k, 1. / v) for k, v in rescale_.itmes())
+        elif isinstance(rescale_, np.ndarray):
+            rescale_ = 1. / rescale_
 
     if rescale_ is None:
         pass
     elif data.shape[0] == data.shape[1]:
         _rescale_cov(data, picks_list, rescale_)
-    elif data.shape[1] < data.shape[0]:
+    elif data.shape[0] < data.shape[1]:
         _rescale_data(data, picks_list, rescale_)
 
 
-def _estimate_rank_meeg(data, info, rescale, tol=1e-4, copy=True):
+def _estimate_rank_meeg(data, info, rescale, tol=1e-4, return_singular=False,
+                        copy=True):
     """Estimate rank for M/EEG data.
 
     Parameters
@@ -996,7 +1004,7 @@ def _estimate_rank_meeg(data, info, rescale, tol=1e-4, copy=True):
         The rescaling method to be applied. If dict, it will update the
         following default dict:
 
-            dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+            dict(mag=1e15, grad=1e13, eeg=1e6)
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
@@ -1008,5 +1016,8 @@ def _estimate_rank_meeg(data, info, rescale, tol=1e-4, copy=True):
     if data.shape[1] < data.shape[0]:
         logger.warning("You've got fewer samples than channels, your "
                        "rank estimate might be inaccurate.")
-    rank = estimate_rank(data, tol=tol, norm=False)
-    return rank
+    out = estimate_rank(data, tol=tol, norm=False,
+                        return_singular=return_singular)
+    if copy is False:
+        _rescale_meeg(data, picks_list, rescale, inverse=True)
+    return out

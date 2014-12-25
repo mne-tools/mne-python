@@ -34,7 +34,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
-from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+from ..utils import (_check_fname, _check_pandas_installed,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
@@ -960,6 +960,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                               use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
+                      rescale='norm',
                       return_singular=False, picks=None):
         """Estimate rank of the raw data
 
@@ -985,6 +986,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
             If None (default) meg and eeg channels are included.
+        rescale : dict | 'norm' | np.ndarray | None
+            The rescaling method to be applied. If dict, it will update the
+            following default dict:
+
+                dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+
+            If 'norm' data will be scaled by channel-wise norms. If array,
+            pre-specified norms will be used. If None, no scaling will be applied.
 
         Returns
         -------
@@ -1005,6 +1014,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Bad channels will be excluded from calculations.
         """
+        from ..cov import _estimate_rank_meeg
+
         start = max(0, self.time_as_index(tstart)[0])
         if tstop is None:
             stop = self.n_times - 1
@@ -1020,7 +1031,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        return estimate_rank(data, tol, return_singular, copy=False)
+        out = _estimate_rank_meeg(
+            data, self.info, rescale=rescale, tol=tol,
+            return_singular=return_singular, copy=False)
+
+        return out
 
     @property
     def ch_names(self):
