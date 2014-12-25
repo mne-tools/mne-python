@@ -978,7 +978,7 @@ def _rescale_meeg(data, picks_list, rescale, inverse=False):
                                   'option: %s' % rescale)
     if inverse is True:
         if isinstance(rescale_, dict):
-            rescale_ = dict((k, 1. / v) for k, v in rescale_.itmes())
+            rescale_ = dict((k, 1. / v) for k, v in rescale_.items())
         elif isinstance(rescale_, np.ndarray):
             rescale_ = 1. / rescale_
 

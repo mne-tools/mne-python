@@ -1,5 +1,3 @@
-from mne.io.maxfilter import read_maxfilter_info
-
 import numpy as np
 import os.path as op
 from mne import io
@@ -13,20 +11,22 @@ raw_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 def test_maxfilter_io():
     """test maxfilter io"""
     raw = io.Raw(raw_fname)
-    sss_info, sss_ctc, sss_cal = read_maxfilter_info(raw_fname)
+    sss = raw.info['sss']
 
-    assert_true(sss_info['frame'], FIFF.FIFFV_COORD_HEAD)
+    assert_true(sss['info']['frame'], FIFF.FIFFV_COORD_HEAD)
     # based on manual 2.0, rev. 5.0 page 23
-    assert_true(5 <= sss_info['in_order'] <= 11)
-    assert_true(sss_info['out_order'] <= 5)
-    assert_true(sss_info['nchan'] > len(sss_info['components']))
+    assert_true(5 <= sss['info']['in_order'] <= 11)
+    assert_true(sss['info']['out_order'] <= 5)
+    assert_true(sss['info']['nchan'] > len(sss['info']['components']))
 
-    assert_equal(raw.ch_names[:sss_info['nchan']], sss_ctc['proj_items_chs'])
-    assert_equal(sss_ctc['ctc'].shape, (sss_info['nchan'], sss_info['nchan']))
-    assert_equal(np.unique(np.diag(sss_ctc['ctc'].toarray())),
+    assert_equal(raw.ch_names[:sss['info']['nchan']],
+                 sss['ctc']['proj_items_chs'])
+    assert_equal(sss['ctc']['ctc'].shape,
+                 (sss['info']['nchan'], sss['info']['nchan']))
+    assert_equal(np.unique(np.diag(sss['ctc']['ctc'].toarray())),
                  np.array([1.], dtype=np.float32))
 
-    assert_equal(sss_cal['cal_coef'].shape, (306, 14))
-    assert_equal(sss_cal['cal_chans'].shape, (306, 14))
+    assert_equal(sss['cal']['cal_coef'].shape, (306, 14))
+    assert_equal(sss['cal']['cal_chans'].shape, (306, 2))
     vv_coils = [v for k, v in FIFF.items() if 'FIFFV_COIL_VV' in k]
-    assert_true(all(k in vv_coils for k in set(sss_cal['cal_chans'][:, 1])))
+    assert_true(all(k in vv_coils for k in set(sss['cal']['cal_chans'][:, 1])))

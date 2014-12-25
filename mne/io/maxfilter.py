@@ -6,7 +6,7 @@ from .constants import FIFF
 import numpy as np
 
 
-def read_maxfilter_info(fname):
+def _read_maxfilter_info(fname):
     """Read maxfilter processing information from fiff file
 
     This function reads the SSS info, the CTC correction and the
@@ -44,7 +44,7 @@ def read_maxfilter_info(fname):
 
     Paramters
     ---------
-    fname : str
+    fname : str | fid
         The Neuromag recordings. Filenames should end
         with raw.fif, raw.fif.gz , raw_sss.fif, raw_sss.fif.gz,
         raw_tsss.fif or raw_tsss.fif.gz.

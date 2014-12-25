@@ -23,6 +23,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
+from .maxfilter import _read_maxfilter_info
 from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
@@ -569,6 +570,18 @@ def read_meas_info(fid, tree, verbose=None):
 
     #   Load extra information blocks
     read_extra_meas_info(fid, tree, info)
+    if FIFF.FIFFB_PROCESSING_HISTORY in info['orig_blocks']['blocks']:
+        fid = BytesIO(info['orig_blocks']['bytes'])
+        sss = dict()
+        sss_info, sss_ctc, sss_cal = _read_maxfilter_info(fid)
+        if len(sss_info) > 1:
+            sss['info'] = sss_info
+        if len(sss_ctc) > 1:
+            sss['ctc'] = sss_ctc
+        if len(sss_cal) > 1:
+            sss['cal'] = sss_cal
+        if len(sss) > 1:
+            info['sss'] = sss
 
     #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:

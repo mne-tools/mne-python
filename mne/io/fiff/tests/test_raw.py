@@ -123,19 +123,29 @@ def test_copy_append():
 def test_rank_estimation():
     """Test raw rank estimation
     """
-    raw = Raw(fif_fname)
-    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
-    n_meg = len(picks_meg)
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
-    n_eeg = len(picks_eeg)
-    raw = Raw(fif_fname, preload=True)
-    assert_array_equal(raw.estimate_rank(), n_meg + n_eeg)
-    assert_array_equal(raw.estimate_rank(picks=picks_eeg), n_eeg)
-    raw = Raw(fif_fname, preload=False)
-    raw.apply_proj()
-    n_proj = len(raw.info['projs'])
-    assert_array_equal(raw.estimate_rank(tstart=10, tstop=20),
-                       n_meg + n_eeg - n_proj)
+    import itertools as itt
+    iter_tests = itt.product(
+        [fif_fname, hp_fif_fname],  # sss
+        ['norm', dict(mag=1e15, grad=1e13, eeg=1e6)]
+    )
+    for fname, rescale in iter_tests:
+        raw = Raw(fname)
+        picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+        n_meg = len(picks_meg)
+        picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+        n_eeg = len(picks_eeg)
+
+        raw = Raw(fname, preload=True)
+        assert_array_equal(raw.estimate_rank(rescale=rescale), n_meg + n_eeg)
+        assert_array_equal(raw.estimate_rank(picks=picks_eeg, rescale=rescale),
+                           n_eeg)
+
+        raw = Raw(fname, preload=False)
+        raw.apply_proj()
+        n_proj = len(raw.info['projs'])
+        assert_array_equal(raw.estimate_rank(tstart=10, tstop=20,
+                                             rescale=rescale),
+                           n_meg + n_eeg - n_proj)
 
 
 @testing.requires_testing_data

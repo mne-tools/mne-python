@@ -18,7 +18,7 @@ from scipy.signal import hilbert
 from scipy import linalg
 
 from .constants import FIFF
-from .pick import pick_types, channel_type, pick_channels
+from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
@@ -1032,8 +1032,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
         out = _estimate_rank_meeg(
-            data, self.info, rescale=rescale, tol=tol,
-            return_singular=return_singular, copy=False)
+            data, pick_info(self.info, picks),
+            rescale=rescale, tol=tol, return_singular=return_singular,
+            copy=False)
 
         return out
 
