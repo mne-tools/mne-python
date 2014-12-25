@@ -16,7 +16,8 @@ def test_maxfilter_io():
     sss_info, sss_ctc, sss_cal = read_maxfilter_info(raw_fname)
 
     assert_true(sss_info['frame'], FIFF.FIFFV_COORD_HEAD)
-    assert_true(sss_info['in_order'] >= 5 and sss_info['in_order'] <= 11)
+    # based on manual 2.0, rev. 5.0 page 23
+    assert_true(5 <= sss_info['in_order'] <= 11)
     assert_true(sss_info['out_order'] <= 5)
     assert_true(sss_info['nchan'] > len(sss_info['components']))
 

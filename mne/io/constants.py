@@ -499,7 +499,7 @@ FIFF.FIFF_MNE_ICA_BADS              = 3608     # ICA bad sources
 FIFF.FIFF_MNE_ICA_MISC_PARAMS       = 3609     # ICA misc params
 #
 # Maxfilter tags
-
+#
 FIFF.FIFF_SSS_INFO_TASK             = 264
 FIFF.FIFF_SSS_INFO_COORD_FRAME      = 263
 FIFF.FIFF_SSS_INFO_ORIGIN           = 265

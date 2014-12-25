@@ -553,3 +553,45 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res['eig'] = None
     res['eigvec'] = None
     return res
+
+
+def _picks_by_type(info, meg_combined=False, ref_meg=False):
+    """Get data channel indices as separate list of tuples
+    Parameters
+    ----------
+    inst : instance of mne.measuerment_info.Info
+        The info
+    meg_combined : bool
+        Whether to return combined picks for grad and mag.
+    ref_meg : bool
+        If True include CTF / 4D reference channels
+    Returns
+    -------
+    picks_list : list of tuples
+        The list of tuples of picks and the type string.
+    """
+    from ..channels.channels import _contains_ch_type
+    picks_list = []
+    has_mag, has_grad, has_eeg = [_contains_ch_type(info, k)
+                                  for k in ('mag', 'grad', 'eeg')]
+    if has_mag and (meg_combined is not True or not has_grad):
+        picks_list.append(
+            ('mag', pick_types(info, meg='mag', eeg=False, stim=False,
+             ref_meg=ref_meg))
+        )
+    if has_grad and (meg_combined is not True or not has_mag):
+        picks_list.append(
+            ('grad', pick_types(info, meg='grad', eeg=False, stim=False,
+             ref_meg=ref_meg))
+        )
+    if has_mag and has_grad and meg_combined is True:
+        picks_list.append(
+            ('meg', pick_types(info, meg=True, eeg=False, stim=False,
+             ref_meg=ref_meg))
+        )
+    if has_eeg:
+        picks_list.append(
+            ('eeg', pick_types(info, meg=False, eeg=True, stim=False,
+             ref_meg=ref_meg))
+        )
+    return picks_list

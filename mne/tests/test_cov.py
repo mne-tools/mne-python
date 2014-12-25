@@ -4,21 +4,20 @@
 
 import os.path as op
 
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_almost_equal
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 import warnings
 
-from mne.cov import regularize, whiten_evoked, _compute_rank
+from mne.cov import regularize, whiten_evoked, _estimate_rank_meeg
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance, read_evokeds)
-from mne import pick_channels_cov, pick_channels, pick_types
+from mne import pick_channels_cov, pick_channels, pick_types, pick_info
 from mne.io import Raw
-from mne.utils import _TempDir
-
+from mne.utils import _TempDir, _computer_norm_scaling
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -225,13 +224,33 @@ def test_rank():
     """Test cov rank estimation"""
     evoked = read_evokeds(ave_fname, condition=0, baseline=(None, 0),
                           proj=True)
-    picks = pick_types(evoked.info, meg='mag')
+    evoked.drop_channels([c for c in evoked.ch_names if 'STI' in c
+                          or 'EOG' in c])
     cov = read_cov(cov_fname)
-    X = cov['data'][picks][:, picks].T
-    mean = X.mean(0)
-    _, _, V = linalg.svd(X - mean, full_matrices=False)
-    V = V[:64]
-    s = X.dot(V.T)
-    cov2 = np.dot(s, V) + mean
-    rank = _compute_rank(cov2, tol=1e-4)
-    assert_equal(rank, 64)
+
+    # rescale_dict = dict(mag=1e12, grad=1e10, eeg=1e5)
+    rescale_dict = dict(mag=1e15, grad=1e13, eeg=1e6)
+
+    from mne.io.pick import _picks_by_type
+    picks_stack = _picks_by_type(evoked.info)
+    picks_stack += [('meg', pick_types(evoked.info, meg=True))]
+    for ch_type, picks in picks_stack:
+        this_info = pick_info(evoked.info, picks)
+        for rank in [30, 50]:
+            X = cov['data'][picks][:, picks].T
+            mean = X.mean(0)
+            _, _, V = linalg.svd(X - mean, full_matrices=False)
+            V = V[:rank]
+            s = X.dot(V.T)
+            cov2 = np.dot(s, V) + mean
+            est_rank_dict = _estimate_rank_meeg(cov2, this_info,
+                                                rescale=rescale_dict)
+            assert_almost_equal(rank, est_rank_dict, delta=1)
+            # print('rank ({0}): {1}, estimated ({2}): {3}'.format(
+            #     rank, ch_type, 'dict', est_rank_dict))
+            rescale_array = 1. / _computer_norm_scaling(evoked.data)[picks]
+            est_rank_norms = _estimate_rank_meeg(cov2, this_info,
+                                                 rescale=rescale_array)
+            assert_almost_equal(rank, est_rank_norms, delta=1)
+            # print('rank ({0}): {1}, estimated ({2}): {3}'.format(
+            #     rank, ch_type, 'norms', est_rank_norms))

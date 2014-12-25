@@ -16,7 +16,7 @@ from .io.proj import (make_projector, proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
-                      pick_channels)
+                      pick_channels, pick_info, _picks_by_type)
 from .io.constants import FIFF
 from .io.meas_info import read_bad_channels
 from .io.proj import _read_proj, _write_proj
@@ -25,7 +25,8 @@ from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix)
 from .epochs import _is_good
-from .utils import check_fname, logger, verbose
+from .utils import (check_fname, logger, verbose, estimate_rank,
+                    _computer_norm_scaling)
 from .externals.six.moves import zip
 
 
@@ -464,11 +465,6 @@ def write_cov(fname, cov):
 ###############################################################################
 # Prepare for inverse modeling
 
-def _compute_rank(A, tol=1e-4):
-    s = linalg.svd(A, compute_uv=0)
-    return np.sum(np.where(s > s[0] * tol, 1, 0))
-
-
 def _unpack_epochs(epochs):
     """ Aux Function """
     if len(epochs.event_id) > 1:
@@ -483,7 +479,7 @@ def _unpack_epochs(epochs):
 def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
     # whitening operator
     if rank is None:
-        rnk = _compute_rank(A)
+        rnk = estimate_rank(A)
         logger.info('Estimated rank for %s: %d' % (ch_type, rnk))
     else:
         rnk = rank
@@ -503,7 +499,7 @@ def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
 
 @verbose
 def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
-                      verbose=None):
+                      rescale=None, verbose=None):
     """Prepare noise covariance matrix
 
     Parameters
@@ -560,11 +556,15 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
 
     if has_meg:
         C_meg = C[C_meg_idx][:, C_meg_idx]
+        picks_list_meg = _picks_by_type(pick_info(info, pick_meg))
+        _rescale_meeg(data=C_meg, picks_list=picks_list_meg, rescale=rescale)
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
 
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
+        picks_list_eeg = _picks_by_type(pick_info(info, pick_eeg))
+        _rescale_meeg(data=C_meg, picks_list=picks_list_eeg, rescale=rescale)
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
                                                 rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -703,7 +703,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
 
 def compute_whitener(noise_cov, info, picks=None, rank=None,
-                     verbose=None):
+                     rescale=None, verbose=None):
     """Compute whitening matrix
 
     Parameters
@@ -738,7 +738,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
 
     noise_cov = cp.deepcopy(noise_cov)
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
-                                  rank=rank)
+                                  rank=rank, rescale=rescale)
     n_chan = len(ch_names)
 
     W = np.zeros((n_chan, n_chan), dtype=np.float)
@@ -756,7 +756,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     return W, ch_names
 
 
-def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None):
+def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
+                  rescale=None):
     """Whiten evoked data using given noise covariance
 
     Parameters
@@ -787,7 +788,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None):
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
-    W, _ = compute_whitener(noise_cov, evoked.info, rank=rank)
+    W, _ = compute_whitener(noise_cov, evoked.info, rank=rank, rescale=rescale)
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
@@ -926,3 +927,86 @@ def _write_cov(fid, cov):
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
+
+
+def _rescale_data(data, picks_list, rescale):
+    """scale data type-dependently for estimation"""
+    if isinstance(rescale, dict):
+        picks_dict = dict(picks_list)
+        rescale = [(picks_dict[k], v) for k, v in rescale.items()
+                   if k in picks_dict]
+        for idx, scaling in rescale:
+            data[idx, :] *= scaling  # F - order
+    else:
+        out *= rescale[:, np.newaxis]  # F - order
+
+
+def _rescale_cov(data, picks_list, rescale):
+    """rescale resulting data after estimation"""
+    if isinstance(rescale, dict):
+        n_channels = len(data)
+        covinds = list(zip(*picks_list))[1]
+        assert len(data) == sum(len(k) for k in covinds)
+        assert list(sorted(np.concatenate(covinds))) == list(range(len(data)))
+        scales = np.zeros(n_channels)
+        for ch_t, idx in picks_list:
+            scales[idx] = rescale[ch_t]
+    elif isinstance(rescale, np.ndarray):
+        if len(rescale) != len(data):
+            raise ValueError('Scaling factors and data are of incompatible '
+                             'shape')
+        scales = rescale
+    else:
+        raise NotImplementedError('No way!')
+    assert np.sum(scales == 0.) == 0
+    data *= (scales[None, :] * scales[:, None])
+
+
+def _rescale_meeg(data, picks_list, rescale):
+    rescale_dict_ = dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+
+    if rescale == 'norm':
+        rescale_ = _computer_norm_scaling(data)
+    elif isinstance(rescale, dict):
+        rescale_dict_.update(rescale)
+        rescale_ = rescale_dict_
+    elif isinstance(rescale, np.ndarray):
+        rescale_ = rescale
+    elif rescale is None:
+        rescale_ = None
+
+    if rescale_ is None:
+        pass
+    elif data.shape[0] == data.shape[1]:
+        _rescale_cov(data, picks_list, rescale_)
+    elif data.shape[1] < data.shape[0]:
+        _rescale_data(data, picks_list, rescale_)
+
+
+def _estimate_rank_meeg(data, info, rescale, tol=1e-4, copy=True):
+    """Estimate rank for M/EEG data.
+
+    Parameters
+    ----------
+    data : np.ndarray of float, shape(n_channels, n_samples | n_channels)
+        The data, either signals or the cov.
+    info : mne.io.measurement_info.Info
+        The measurment info.
+    rescale : dict | 'norm' | np.ndarray | None
+        The rescaling method to be applied. If dict, it will update the
+        following default dict:
+
+            dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+
+        If 'norm' data will be scaled by channel-wise norms. If array,
+        pre-specified norms will be used. If None, no scaling will be applied.
+    """
+    if copy is True:
+        data = data.copy()
+    picks_list = _picks_by_type(info)
+    _rescale_meeg(data, picks_list, rescale)
+    if data.shape[1] < data.shape[0]:
+        logger.warning("You've got fewer samples than channels, your "
+                       "rank estimate might be inaccurate.")
+    rank = estimate_rank(data, tol=tol, norm=False)
+    return rank
