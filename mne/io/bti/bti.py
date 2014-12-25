@@ -781,22 +781,22 @@ def _read_bti_header(pdf_fname, config_fname):
         fid.seek(1, 1)
 
         info.update({'data_format': read_int16(fid),
-                    'acq_mode': read_int16(fid),
-                    'total_epochs': read_int32(fid),
-                    'input_epochs': read_int32(fid),
-                    'total_events': read_int32(fid),
-                    'total_fixed_events': read_int32(fid),
-                    'sample_period': read_float(fid),
-                    'xaxis_label': read_str(fid, 16),
-                    'total_processes': read_int32(fid),
-                    'total_chans': read_int16(fid)})
+                     'acq_mode': read_int16(fid),
+                     'total_epochs': read_int32(fid),
+                     'input_epochs': read_int32(fid),
+                     'total_events': read_int32(fid),
+                     'total_fixed_events': read_int32(fid),
+                     'sample_period': read_float(fid),
+                     'xaxis_label': read_str(fid, 16),
+                     'total_processes': read_int32(fid),
+                     'total_chans': read_int16(fid)})
 
         fid.seek(2, 1)
         info.update({'checksum': read_int32(fid),
-                    'total_ed_classes': read_int32(fid),
-                    'total_associated_files': read_int16(fid),
-                    'last_file_index': read_int16(fid),
-                    'timestamp': read_int32(fid)})
+                     'total_ed_classes': read_int32(fid),
+                     'total_associated_files': read_int16(fid),
+                     'last_file_index': read_int16(fid),
+                     'timestamp': read_int32(fid)})
 
         fid.seek(20, 1)
         _correct_offset(fid)
@@ -988,7 +988,7 @@ class RawBTi(_BaseRaw):
         logger.info('Reading 4D PDF file %s...' % pdf_fname)
         bti_info = _read_bti_header(pdf_fname, config_fname)
 
-         # XXX indx is informed guess. Normally only one transform is stored.
+        # XXX indx is informed guess. Normally only one transform is stored.
         dev_ctf_t = bti_info['bti_transform'][0].astype('>f8')
         bti_to_nm = bti_to_vv_trans(adjust=rotation_x,
                                     translation=translation, dtype='>f8')
@@ -1022,6 +1022,7 @@ class RawBTi(_BaseRaw):
         info['lowpass'] = lp
         info['acq_pars'], info['acq_stim'] = None, None
         info['filename'] = None
+        info['custom_ref_applied'] = False
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]

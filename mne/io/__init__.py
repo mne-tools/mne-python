@@ -30,4 +30,5 @@ from .kit import read_raw_kit
 # for backward compatibility
 from .fiff import RawFIFF
 from .fiff import RawFIFF as Raw
-from .base import concatenate_raws, get_chpi_positions, set_eeg_reference
+from .base import concatenate_raws, get_chpi_positions
+from .reference import set_eeg_reference, set_bipolar_reference

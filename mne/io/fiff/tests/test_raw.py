@@ -20,8 +20,7 @@ from nose.tools import (assert_true, assert_raises, assert_equal,
 from mne import pick_types, pick_channels
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import (Raw, concatenate_raws,
-                    get_chpi_positions, set_eeg_reference)
+from mne.io import Raw, concatenate_raws, get_chpi_positions
 from mne import concatenate_events, find_events, equalize_channels
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
@@ -980,39 +979,6 @@ def test_compensation_raw_mne():
         raw_py = Raw(ctf_comp_fname, preload=True, compensation=grad)
         raw_c = compensate_mne(ctf_comp_fname, grad)
         assert_allclose(raw_py._data, raw_c._data, rtol=1e-6, atol=1e-17)
-
-
-@testing.requires_testing_data
-def test_set_eeg_reference():
-    """ Test rereference eeg data"""
-    raw = Raw(fif_fname, preload=True)
-
-    # Rereference raw data by creating a copy of original data
-    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
-
-    # Separate EEG channels from other channel types
-    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
-    picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
-                             stim=True, exclude='bads')
-
-    # Get the raw EEG data and other channel data
-    raw_eeg_data = raw[picks_eeg][0]
-    raw_other_data = raw[picks_other][0]
-
-    # Get the rereferenced EEG data and channel other
-    reref_eeg_data = reref[picks_eeg][0]
-    unref_eeg_data = reref_eeg_data + ref_data
-    # Undo rereferencing of EEG channels
-    reref_other_data = reref[picks_other][0]
-
-    # Check that both EEG data and other data is the same
-    assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
-    assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
-
-    # Test that data is modified in place when copy=False
-    reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
-                                        copy=False)
-    assert_true(raw is reref)
 
 
 @testing.requires_testing_data
