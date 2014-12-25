@@ -10,11 +10,9 @@ from mne.utils import _TempDir
 from mne import create_info
 
 
-tempdir = _TempDir()
-
-
 def test_montage():
     """Test making montages"""
+    tempdir = _TempDir()
     # no pep8
     input_str = ["""FidNz 0.00000 10.56381 -2.05108
     FidT9 -7.82694 0.45386 -3.76056

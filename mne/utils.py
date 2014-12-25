@@ -261,11 +261,13 @@ class WrapStdOut(object):
 class _TempDir(str):
     """Class for creating and auto-destroying temp dir
 
-    This is designed to be used with testing modules.
+    This is designed to be used with testing modules. Instances should be
+    defined inside test functions. Instances defined at module level can not
+    guarantee proper destruction of the temporary directory.
 
-    We cannot simply use __del__() method for cleanup here because the rmtree
-    function may be cleaned up before this object, so we use the atexit module
-    instead.
+    When used at module level, the current use of the __del__() method for
+    cleanup can fail because the rmtree function may be cleaned up before this
+    object (an alternative could be using the atexit module instead).
     """
     def __new__(self):
         new = str.__new__(self, tempfile.mkdtemp())
