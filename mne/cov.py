@@ -564,7 +564,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx]
         picks_list_eeg = _picks_by_type(pick_info(info, pick_eeg))
-        _rescale_meeg(data=C_meg, picks_list=picks_list_eeg, rescale=rescale)
+        _rescale_meeg(data=C_eeg, picks_list=picks_list_eeg, rescale=rescale)
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
                                                 rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):

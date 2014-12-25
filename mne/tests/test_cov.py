@@ -228,8 +228,7 @@ def test_rank():
                           or 'EOG' in c])
     cov = read_cov(cov_fname)
 
-    # rescale_dict = dict(mag=1e12, grad=1e10, eeg=1e5)
-    rescale_dict = dict(mag=1e15, grad=1e13, eeg=1e6)
+    rescale_dict = dict(mag=1e12, grad=1e10, eeg=1e5)
 
     from mne.io.pick import _picks_by_type
     picks_stack = _picks_by_type(evoked.info)
