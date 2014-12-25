@@ -14,7 +14,6 @@ from mne import io, read_events, Epochs, pick_types
 from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _precompute_st_windows)
 from mne.time_frequency.tfr import AverageTFR
-from mne.utils import _TempDir
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -30,8 +29,6 @@ picks = pick_types(raw.info, meg=True, eeg=True, stim=True,
 
 reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
-
-tempdir = _TempDir()
 
 
 def test_stockwell_core():
