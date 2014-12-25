@@ -27,6 +27,9 @@ def _read_maxfilter_info(fname):
            267 = SSS outs.order
            268 = SSS nr chnls
            269 = SSS components
+           278 = SSS nfree
+           243 = HPI g limit    0.98
+           244 = HPI dist limit 0.005
         105 = }             502 = SSS info
         104 = {             501 = CTC correction
            103 = block ID
@@ -111,6 +114,15 @@ def _read_maxfilter_info(fname):
             elif kind == FIFF.FIFF_SSS_INFO_COMPONENTS:
                 tag = read_tag(fid, pos)
                 sss_info['components'] = np.array(tag.data)
+            elif kind == FIFF.FIFF_SSS_INFO_NFREE:
+                tag = read_tag(fid, pos)
+                sss_info['nfree'] = int(tag.data)
+            elif kind == FIFF.FIFF_SSS_INFO_HPI_G_LIMIT:
+                tag = read_tag(fid, pos)
+                sss_info['hpi_g_limit'] = tag.data
+            elif kind == FIFF.FIFF_SSS_INFO_HPI_DIST_LIMIT:
+                tag = read_tag(fid, pos)
+                sss_info['hpi_dist_limit'] = tag.data
 
     sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL_ADJUST)  # 503
     sss_cal = {}
@@ -126,5 +138,19 @@ def _read_maxfilter_info(fname):
                 tag = read_tag(fid, pos)
                 sss_cal['cal_coef'] = np.array(tag.data)
 
+    sss_max_st_block = dir_tree_find(tree, FIFF.FIFFB_SSS_ST_INFO)  # 504
+    max_st = {}
+    if len(sss_max_st_block) > 0:
+        sss_max_st_block = sss_max_st_block[0]
+        for i_ent in range(sss_max_st_block['nent']):
+            kind = sss_cal_block['directory'][i_ent].kind
+            pos = sss_cal_block['directory'][i_ent].pos
+            if kind == FIFF.FIFF_SSST_SUBSPCOR:
+                tag = read_tag(fid, pos)
+                max_st['subspcorr'] = tag.data
+            elif kind == FIFF.FIFF_SSST_BUFLEN:
+                tag = read_tag(fid, pos)
+                max_st['buflen'] = tag.data
+
     # return ordered of relevance
-    return sss_info, sss_ctc, sss_cal
+    return sss_info, sss_ctc, sss_cal, max_st

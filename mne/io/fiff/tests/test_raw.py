@@ -126,8 +126,18 @@ def test_rank_estimation():
     import itertools as itt
     iter_tests = itt.product(
         [fif_fname, hp_fif_fname],  # sss
-        ['norm', dict(mag=1e15, grad=1e13, eeg=1e6)]
+        ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
     )
+
+    def _get_sss_rank(sss):
+        """Get SSS rank"""
+        nfree = sss['info'].get('nfree', None)
+        if nfree is None:
+            inside = sss['info']['in_order']
+            outside = sss['info']['out_order']
+            nfree = (inside + 1) ** 2 - (outside + 1) ** 2 - 2
+        return nfree
+
     for fname, rescale in iter_tests:
         raw = Raw(fname)
         picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
@@ -136,16 +146,26 @@ def test_rank_estimation():
         n_eeg = len(picks_eeg)
 
         raw = Raw(fname, preload=True)
-        assert_array_equal(raw.estimate_rank(rescale=rescale), n_meg + n_eeg)
+        if 'sss' not in raw.info:
+            expected_rank = n_meg + n_eeg
+        else:
+            expected_rank = _get_sss_rank(raw.info['sss']) + n_eeg
+        assert_array_equal(raw.estimate_rank(rescale=rescale), expected_rank)
+
         assert_array_equal(raw.estimate_rank(picks=picks_eeg, rescale=rescale),
                            n_eeg)
 
         raw = Raw(fname, preload=False)
         raw.apply_proj()
         n_proj = len(raw.info['projs'])
-        assert_array_equal(raw.estimate_rank(tstart=10, tstop=20,
+        if 'sss' in fname:
+            tstart, tstop = 0., 30.
+        else:
+            tstart, tstop = 10., 20.
+
+        assert_array_equal(raw.estimate_rank(tstart=tstart, tstop=tstop,
                                              rescale=rescale),
-                           n_meg + n_eeg - n_proj)
+                           expected_rank - n_proj)
 
 
 @testing.requires_testing_data

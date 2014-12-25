@@ -573,13 +573,15 @@ def read_meas_info(fid, tree, verbose=None):
     if FIFF.FIFFB_PROCESSING_HISTORY in info['orig_blocks']['blocks']:
         fid = BytesIO(info['orig_blocks']['bytes'])
         sss = dict()
-        sss_info, sss_ctc, sss_cal = _read_maxfilter_info(fid)
+        sss_info, sss_ctc, sss_cal, max_st = _read_maxfilter_info(fid)
         if len(sss_info) > 1:
             sss['info'] = sss_info
         if len(sss_ctc) > 1:
             sss['ctc'] = sss_ctc
         if len(sss_cal) > 1:
             sss['cal'] = sss_cal
+        if len(max_st) > 1:
+            sss['max_st'] = max_st
         if len(sss) > 1:
             info['sss'] = sss
 
