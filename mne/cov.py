@@ -478,14 +478,9 @@ def _unpack_epochs(epochs):
 @verbose
 def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
     # whitening operator
-    if rank is None:
-        rnk = estimate_rank(A)
-        logger.info('Estimated rank for %s: %d' % (ch_type, rnk))
-    else:
-        rnk = rank
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
-    eig[:-rnk] = 0.0
+    eig[:-rank] = 0.0
     logger.info('Setting small %s eigenvalues to zero.' % ch_type)
     if not pca:  # No PCA case.
         logger.info('Not doing PCA for %s.' % ch_type)
@@ -493,7 +488,7 @@ def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
         logger.info('Doing PCA for %s.' % ch_type)
         # This line will reduce the actual number of variables in data
         # and leadfield to the true rank.
-        eigvec = eigvec[:-rnk].copy()
+        eigvec = eigvec[:-rank].copy()
     return eig, eigvec
 
 
@@ -569,21 +564,30 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     if has_meg:
         C_meg = C[C_meg_idx][:, C_meg_idx].copy()
         this_info = pick_info(info, pick_meg)
-        if len(C_meg_idx) < len(pick_meg):
-            this_info = pick_info(info, C_meg_idx)
-        picks_list_meg = _picks_by_type(this_info)
-        _apply_scaling_cov(data=C_meg, picks_list=picks_list_meg,
-                           scalings=scalings_)
+        if rank_meg is None:
+            if len(C_meg_idx) < len(pick_meg):
+                this_info = pick_info(info, C_meg_idx)
+            picks_list_meg = _picks_by_type(this_info)
+            _apply_scaling_cov(data=C_meg, picks_list=picks_list_meg,
+                               scalings=scalings_)
+
+            rank_meg = estimate_rank(C_meg)
+            _undo_scaling_cov(data=C_meg, picks_list=picks_list_meg,
+                              scalings=scalings_)
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
     if has_eeg:
         C_eeg = C[C_eeg_idx][:, C_eeg_idx].copy()
         this_info = pick_info(info, pick_eeg)
-        if len(C_meg_idx) < len(pick_meg):
-            this_info = pick_info(info, C_eeg_idx)
-        picks_list_eeg = _picks_by_type(this_info)
-        _apply_scaling_cov(data=C_eeg, picks_list=picks_list_eeg,
-                           scalings=scalings_)
+        if rank_eeg is None:
+            if len(C_meg_idx) < len(pick_meg):
+                this_info = pick_info(info, C_eeg_idx)
+            picks_list_eeg = _picks_by_type(this_info)
+            _apply_scaling_cov(data=C_eeg, picks_list=picks_list_eeg,
+                               scalings=scalings_)
+            rank_eeg = estimate_rank(C_eeg)
+            _undo_scaling_cov(data=C_eeg, picks_list=picks_list_eeg,
+                              scalings=scalings_)
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
                                                 rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -758,17 +762,12 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
-    scalings_ = dict(mag=1e15, grad=1e13, eeg=1e6)
-    if scalings is None:
-        pass
-    elif isinstance(scalings, dict):
-        scalings_.update(scalings)
 
     ch_names = [info['chs'][k]['ch_name'] for k in picks]
 
     noise_cov = cp.deepcopy(noise_cov)
     noise_cov = prepare_noise_cov(noise_cov, info, ch_names,
-                                  rank=rank, scalings=scalings_)
+                                  rank=rank, scalings=scalings)
     n_chan = len(ch_names)
 
     W = np.zeros((n_chan, n_chan), dtype=np.float)
@@ -833,10 +832,6 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
 
     W, _ = compute_whitener(noise_cov, evoked.info, rank=rank,
                             scalings=scalings)
-    if scalings is not None:
-        _apply_scaling_array(data=evoked.data,
-                             scalings=scalings,
-                             picks_list=_picks_by_type(evoked.info))
     evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
