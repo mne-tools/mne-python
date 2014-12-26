@@ -559,8 +559,8 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
     """Get data channel indices as separate list of tuples
     Parameters
     ----------
-    inst : instance of mne.measuerment_info.Info
-        The info
+    info : instance of mne.measuerment_info.Info
+        The info.
     meg_combined : bool
         Whether to return combined picks for grad and mag.
     ref_meg : bool

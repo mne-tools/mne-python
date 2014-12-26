@@ -10,6 +10,7 @@ import os.path as op
 import glob
 from copy import deepcopy
 import warnings
+import itertools as itt
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
@@ -22,12 +23,14 @@ from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
                     get_chpi_positions, set_eeg_reference)
-from mne import concatenate_events, find_events, equalize_channels
+from mne import (concatenate_events, find_events, equalize_channels,
+                 compute_proj_raw)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
 from mne.io.maxfilter import _get_sss_rank
+from mne.io.pick import _picks_by_type
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -124,17 +127,15 @@ def test_copy_append():
 def test_rank_estimation():
     """Test raw rank estimation
     """
-    import itertools as itt
     iter_tests = itt.product(
         [fif_fname, hp_fif_fname],  # sss
         ['norm', dict(mag=1e11, grad=1e9, eeg=1e5)]
     )
-
-    for fname, rescale in iter_tests:
+    for fname, scalings in iter_tests:
         raw = Raw(fname)
-        picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
+        (_, picks_meg), (_, picks_eeg) = _picks_by_type(raw.info,
+                                                        meg_combined=True)
         n_meg = len(picks_meg)
-        picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
         n_eeg = len(picks_eeg)
 
         raw = Raw(fname, preload=True)
@@ -142,22 +143,26 @@ def test_rank_estimation():
             expected_rank = n_meg + n_eeg
         else:
             expected_rank = _get_sss_rank(raw.info['sss']) + n_eeg
-        assert_array_equal(raw.estimate_rank(rescale=rescale), expected_rank)
+        assert_array_equal(raw.estimate_rank(scalings=scalings), expected_rank)
 
-        assert_array_equal(raw.estimate_rank(picks=picks_eeg, rescale=rescale),
+        assert_array_equal(raw.estimate_rank(picks=picks_eeg,
+                                             scalings=scalings),
                            n_eeg)
 
         raw = Raw(fname, preload=False)
-        raw.apply_proj()
-        n_proj = len(raw.info['projs'])
         if 'sss' in fname:
             tstart, tstop = 0., 30.
+            raw.add_proj(compute_proj_raw(raw))
+            raw.apply_proj()
         else:
             tstart, tstop = 10., 20.
 
+        raw.apply_proj()
+        n_proj = len(raw.info['projs'])
+
         assert_array_equal(raw.estimate_rank(tstart=tstart, tstop=tstop,
-                                             rescale=rescale),
-                           expected_rank - n_proj)
+                                             scalings=scalings),
+                           expected_rank - (1 if 'sss' in fname else n_proj))
 
 
 @testing.requires_testing_data

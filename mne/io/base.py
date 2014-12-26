@@ -960,7 +960,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                               use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      rescale='norm',
+                      scalings='norm',
                       return_singular=False, picks=None):
         """Estimate rank of the raw data
 
@@ -986,14 +986,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
             If None (default) meg and eeg channels are included.
-        rescale : dict | 'norm' | np.ndarray | None
-            The rescaling method to be applied. If dict, it will update the
+        scalings : dict | 'norm'
+            To achieve reliable rank estimation on multiple sensors,
+            sensors have to be rescaled. This parameter controls the
+            rescaling. If dict, it will update the
             following default dict:
 
-                dict(mag=1e-15, grad=1e-13, eeg=1e-6)
+                dict(mag=1e-11, grad=1e-9, eeg=1e-5)
 
-            If 'norm' data will be scaled by channel-wise norms. If array,
-            pre-specified norms will be used. If None, no scaling will be applied.
+            If 'norm' data will be scaled by internally computed
+            channel-wise norms.
 
         Returns
         -------
@@ -1014,7 +1016,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Bad channels will be excluded from calculations.
         """
-        from ..cov import _estimate_rank_meeg
+        from ..cov import _estimate_rank_meeg_signals
 
         start = max(0, self.time_as_index(tstart)[0])
         if tstop is None:
@@ -1025,15 +1027,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                exclude='bads')
-
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        out = _estimate_rank_meeg(
+        out = _estimate_rank_meeg_signals(
             data, pick_info(self.info, picks),
-            rescale=rescale, tol=tol, return_singular=return_singular,
+            scalings=scalings, tol=tol, return_singular=return_singular,
             copy=False)
 
         return out
