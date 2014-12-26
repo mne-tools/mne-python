@@ -49,6 +49,8 @@ Changelog
 
    - Add parameter to `whiten_evoked`, `compute_whitener` and `prepare_noise_cov` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
 
+   - Add fiff I/O for processing history and MaxFilter info by `Denis Engemann`_ and `Eric Larson`_
+
 
 BUG
 ~~~

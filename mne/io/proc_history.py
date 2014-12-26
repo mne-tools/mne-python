@@ -1,3 +1,7 @@
+# Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+# License: Simplified BSD
+
 import numpy as np
 from scipy.sparse import csc_matrix
 import warnings
@@ -91,16 +95,16 @@ def _read_proc_history(fid, tree, info):
             if len(record['max_info']) > 0:
                 out.append(record)
         if len(proc_records) > 0:
-            info['proc_records'] = out
+            info['proc_history'] = out
 
 
 def _write_proc_history(fid, info):
     """Write processing history to file"""
-    if 'proc_records' not in info:
+    if 'proc_history' not in info:
         return
-    if len(info['proc_records']) > 0:
+    if len(info['proc_history']) > 0:
         start_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
-        for record in info['proc_records']:
+        for record in info['proc_history']:
             start_block(fid, FIFF.FIFFB_PROCESSING_RECORD)
             for key, id_, writer in zip(_proc_keys, _proc_ids, _proc_writers):
                 if key in record:
@@ -267,6 +271,6 @@ def _get_sss_rank(sss):
     """Get SSS rank"""
     inside = sss['sss_info']['in_order']
     nfree = (inside + 1) ** 2 - 1
-    nfree -= (len(sss['sss_info']['components'])
-              - sss['sss_info']['components'].sum())
+    nfree -= (len(sss['sss_info']['components'][:nfree])
+              - sss['sss_info']['components'][:nfree].sum())
     return nfree
