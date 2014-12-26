@@ -287,8 +287,9 @@ def test_rank():
                 n_projs_eeg = 0
 
             # check sss
-            if 'sss' in this_very_info:
-                n_free = _get_sss_rank(this_very_info['sss'])
+            if 'proc_records' in this_very_info:
+                mf = this_very_info['proc_records'][0]['max_info']
+                n_free = _get_sss_rank(mf)
                 if 'mag' not in ch_types and 'grad' not in ch_types:
                     n_free = 0
                 # - n_projs XXX clarify

@@ -69,7 +69,7 @@ def _read_proc_history(fid, tree, info):
     105 = }                 900 = proc. history
     """
     proc_history = dir_tree_find(tree, FIFF.FIFFB_PROCESSING_HISTORY)
-    info['proc_records'] = list()
+    out = list()
     if len(proc_history) > 0:
         proc_history = proc_history[0]
         proc_records = dir_tree_find(proc_history,
@@ -88,11 +88,16 @@ def _read_proc_history(fid, tree, info):
                 else:
                     warnings.warn('Unknown processing history item %s' % kind)
             record['max_info'] = _read_maxfilter_record(fid, proc_record)
-            info['proc_records'].append(record)
+            if len(record['max_info']) > 0:
+                out.append(record)
+        if len(proc_records) > 0:
+            info['proc_records'] = out
 
 
 def _write_proc_history(fid, info):
     """Write processing history to file"""
+    if 'proc_records' not in info:
+        return
     if len(info['proc_records']) > 0:
         start_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
         for record in info['proc_records']:
