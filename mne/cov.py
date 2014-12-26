@@ -511,10 +511,10 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     scalings : dict | None
-        The rescaling method to be applied. If dict, it will update the
-        following default dict (default if None):
+        Data will be rescaled before rank estimation to improve accuracy.
+        If dict, it will update the following dict (default if None):
 
-            dict(mag=1e-11, grad=1e-9, eeg=1e-5)
+            dict(mag=1e15, grad=1e13, eeg=1e6)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -744,11 +744,8 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
         channels. A dictionary with entries 'eeg' and/or 'meg' can be used
         to specify the rank for each modality.
     scalings : dict | None
-        The rescaling method to be applied. If dict, it will update the
-        following default dict (default if None):
-
-            dict(mag=1e-11, grad=1e-9, eeg=1e-5)
-
+        The rescaling method to be applied. See documentation of
+        ``prepare_noise_cov`` for details.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -810,7 +807,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
         rescaling. If dict, it will update the
         following default dict (default if None):
 
-            dict(mag=1e-11, grad=1e-9, eeg=1e-5)
+            dict(mag=1e15, grad=1e13, eeg=1e6)
 
     Returns
     -------

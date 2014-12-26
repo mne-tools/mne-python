@@ -990,12 +990,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             To achieve reliable rank estimation on multiple sensors,
             sensors have to be rescaled. This parameter controls the
             rescaling. If dict, it will update the
-            following default dict:
+            following dict of defaults:
 
-                dict(mag=1e-11, grad=1e-9, eeg=1e-5)
+                dict(mag=1e11, grad=1e9, eeg=1e5)
 
             If 'norm' data will be scaled by internally computed
             channel-wise norms.
+            Defaults to 'norm'.
 
         Returns
         -------
