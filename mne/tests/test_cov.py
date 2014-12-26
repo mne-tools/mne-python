@@ -20,7 +20,7 @@ from mne import pick_channels_cov, pick_channels, pick_types, pick_info
 from mne.io import Raw
 from mne.io.pick import channel_type
 from mne.utils import _TempDir
-from mne.io.maxfilter import _get_sss_rank
+from mne.io.proc_history import _get_sss_rank
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

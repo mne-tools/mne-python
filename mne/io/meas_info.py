@@ -23,7 +23,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian)
-from .maxfilter import _read_maxfilter_info
+from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
@@ -568,22 +568,11 @@ def read_meas_info(fid, tree, verbose=None):
         si = None
     info['subject_info'] = si
 
+    #   Read processing history
+    _read_proc_history(fid, tree, info)
+
     #   Load extra information blocks
     read_extra_meas_info(fid, tree, info)
-    if FIFF.FIFFB_PROCESSING_HISTORY in info['orig_blocks']['blocks']:
-        fid = BytesIO(info['orig_blocks']['bytes'])
-        sss = dict()
-        sss_info, sss_ctc, sss_cal, max_st = _read_maxfilter_info(fid)
-        if len(sss_info) > 1:
-            sss['info'] = sss_info
-        if len(sss_ctc) > 1:
-            sss['ctc'] = sss_ctc
-        if len(sss_cal) > 1:
-            sss['cal'] = sss_cal
-        if len(max_st) > 1:
-            sss['max_st'] = max_st
-        if len(sss) > 1:
-            info['sss'] = sss
 
     #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:
@@ -652,8 +641,7 @@ def read_extra_meas_info(fid, tree, info):
     # this and its partner, write_extra_meas_info, could be made more
     # comprehensive (i.e.., actually parse and read the data instead of
     # just storing it for later)
-    blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS,
-              FIFF.FIFFB_PROCESSING_HISTORY]
+    blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS]
     info['orig_blocks'] = dict(blocks=blocks)
     fid_bytes = BytesIO()
     start_file(fid_bytes, tree['id'])
@@ -702,6 +690,9 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
 
     #   Extra measurement info
     write_extra_meas_info(fid, info)
+
+    #   Processing history
+    _write_proc_history(fid, info)
 
     #   Polhemus data
     if info['dig'] is not None:

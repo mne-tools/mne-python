@@ -29,7 +29,7 @@ from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
-from mne.io.maxfilter import _get_sss_rank
+from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
