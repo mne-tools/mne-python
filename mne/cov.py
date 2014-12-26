@@ -562,7 +562,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         rank_meg, rank_eeg = None, None
 
     if has_meg:
-        C_meg = C[C_meg_idx][:, C_meg_idx].copy()
+        C_meg = C[C_meg_idx][:, C_meg_idx]
         this_info = pick_info(info, pick_meg)
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
@@ -577,7 +577,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
     if has_eeg:
-        C_eeg = C[C_eeg_idx][:, C_eeg_idx].copy()
+        C_eeg = C[C_eeg_idx][:, C_eeg_idx]
         this_info = pick_info(info, pick_eeg)
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
