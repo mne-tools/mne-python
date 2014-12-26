@@ -4,20 +4,23 @@
 
 import os.path as op
 
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_almost_equal
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_raises
 import numpy as np
 from scipy import linalg
 import warnings
+import itertools as itt
 
-from mne.cov import regularize, whiten_evoked
+from mne.cov import regularize, whiten_evoked, _estimate_rank_meeg_cov
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
-                 compute_covariance, read_evokeds)
-from mne import pick_channels_cov, pick_channels, pick_types
+                 compute_covariance, read_evokeds, compute_proj_raw)
+from mne import pick_channels_cov, pick_channels, pick_types, pick_info
 from mne.io import Raw
+from mne.io.pick import channel_type
 from mne.utils import _TempDir
+from mne.io.proc_history import _get_sss_rank
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -28,6 +31,7 @@ cov_km_fname = op.join(base_dir, 'test-km-cov.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
+hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
 def test_io_cov():
@@ -219,3 +223,84 @@ def test_evoked_whiten():
     mean_baseline = np.mean(np.abs(whiten_baseline_data), axis=1)
     assert_true(np.all(mean_baseline < 1.))
     assert_true(np.all(mean_baseline > 0.2))
+
+
+def test_rank():
+    """Test cov rank estimation"""
+    raw_sample = Raw(raw_fname)
+
+    raw_sss = Raw(hp_fif_fname)
+    raw_sss.add_proj(compute_proj_raw(raw_sss))
+
+    cov_sample = compute_raw_data_covariance(raw_sample)
+    cov_sample_proj = compute_raw_data_covariance(
+        raw_sample.copy().apply_proj())
+
+    cov_sss = compute_raw_data_covariance(raw_sss)
+    cov_sss_proj = compute_raw_data_covariance(
+        raw_sss.copy().apply_proj())
+
+    picks_all_sample = pick_types(raw_sample.info, meg=True, eeg=True)
+    picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
+
+    info_sample = pick_info(raw_sample.info, picks_all_sample)
+    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False, eeg=True))]
+    picks_stack_sample += [('meg', pick_types(info_sample, meg=True))]
+    picks_stack_sample += [('all',
+                            pick_types(info_sample, meg=True, eeg=True))]
+
+    info_sss = pick_info(raw_sss.info, picks_all_sss)
+    picks_stack_somato = [('eeg', pick_types(info_sss, meg=False, eeg=True))]
+    picks_stack_somato += [('meg', pick_types(info_sss, meg=True))]
+    picks_stack_somato += [('all',
+                            pick_types(info_sss, meg=True, eeg=True))]
+
+    iter_tests = list(itt.product(
+        [(cov_sample, picks_stack_sample, info_sample),
+         (cov_sample_proj, picks_stack_sample, info_sample),
+         (cov_sss, picks_stack_somato, info_sss),
+         (cov_sss_proj, picks_stack_somato, info_sss)],  # sss
+        [dict(mag=1e15, grad=1e13, eeg=1e6)]
+    ))
+
+    for (cov, picks_list, this_info), scalings in iter_tests:
+        for ch_type, picks in picks_list:
+
+            this_very_info = pick_info(this_info, picks)
+
+            # compute subset of projs
+            this_projs = [c['active'] and
+                          len(set(c['data']['col_names'])
+                              .intersection(set(this_very_info['ch_names']))) > 0
+                          for c in cov['projs']]
+            n_projs = sum(this_projs)
+
+            # count channel types
+            ch_types = [channel_type(this_very_info, idx)
+                        for idx in range(len(picks))]
+            n_eeg, n_mag, n_grad = [ch_types.count(k) for k in
+                                    ['eeg', 'mag', 'grad']]
+            n_meg = n_mag + n_grad
+            if ch_type in ('all', 'eeg'):
+                n_projs_eeg = 1
+            else:
+                n_projs_eeg = 0
+
+            # check sss
+            if 'proc_history' in this_very_info:
+                mf = this_very_info['proc_history'][0]['max_info']
+                n_free = _get_sss_rank(mf)
+                if 'mag' not in ch_types and 'grad' not in ch_types:
+                    n_free = 0
+                # - n_projs XXX clarify
+                expected_rank = n_free + n_eeg
+                if n_projs > 0 and ch_type in ('all', 'eeg'):
+                    expected_rank -= n_projs_eeg
+            else:
+                expected_rank = n_meg + n_eeg - n_projs
+
+            C = cov['data'][np.ix_(picks, picks)]
+            est_rank = _estimate_rank_meeg_cov(C, this_very_info,
+                                               scalings=scalings)
+
+            assert_almost_equal(expected_rank, est_rank)

@@ -281,7 +281,7 @@ class _TempDir(str):
 
 
 def estimate_rank(data, tol=1e-4, return_singular=False,
-                  copy=True):
+                  norm=True, copy=True):
     """Helper to estimate the rank of data
 
     This function will normalize the rows of the data (typically
@@ -300,6 +300,9 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     return_singular : bool
         If True, also return the singular values that were used
         to determine the rank.
+    norm : bool
+        If True, data will be scaled by their estimated row-wise norm.
+        Else data are assumed to be scaled. Defaults to True.
     copy : bool
         If False, values in data will be modified in-place during
         rank estimation (saves memory).
@@ -314,15 +317,22 @@ def estimate_rank(data, tol=1e-4, return_singular=False,
     """
     if copy is True:
         data = data.copy()
-    norms = np.sqrt(np.sum(data ** 2, axis=1))
-    norms[norms == 0] = 1.0
-    data /= norms[:, np.newaxis]
+    if norm is True:
+        norms = _compute_row_norms(data)
+        data /= norms[:, np.newaxis]
     s = linalg.svd(data, compute_uv=False, overwrite_a=True)
     rank = np.sum(s >= tol)
     if return_singular is True:
         return rank, s
     else:
         return rank
+
+
+def _compute_row_norms(data):
+    """Compute scaling based on estimated norm"""
+    norms = np.sqrt(np.sum(data ** 2, axis=1))
+    norms[norms == 0] = 1.0
+    return norms
 
 
 def _reject_data_segments(data, reject, flat, decim, info, tstep):

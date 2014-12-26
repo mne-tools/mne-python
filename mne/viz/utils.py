@@ -340,7 +340,7 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
     if fname_out is not None:
         f = open(fname_out, 'w')
     else:
-        f = tempfile.NamedTemporaryFile('w', delete=False)
+        f = tempfile.NamedTemporaryFile('w', delete=False, suffix='.html')
         fname_out = f.name
     with f as fid:
         fid.write(diff)

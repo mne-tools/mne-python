@@ -18,7 +18,7 @@ from scipy.signal import hilbert
 from scipy import linalg
 
 from .constants import FIFF
-from .pick import pick_types, channel_type, pick_channels
+from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
 from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
                    _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
@@ -34,7 +34,7 @@ from .write import (start_file, end_file, start_block, end_block,
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
-from ..utils import (_check_fname, estimate_rank, _check_pandas_installed,
+from ..utils import (_check_fname, _check_pandas_installed,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
@@ -960,6 +960,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                               use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
+                      scalings='norm',
                       return_singular=False, picks=None):
         """Estimate rank of the raw data
 
@@ -985,6 +986,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         picks : array_like of int, shape (n_selected_channels,)
             The channels to be considered for rank estimation.
             If None (default) meg and eeg channels are included.
+        scalings : dict | 'norm'
+            To achieve reliable rank estimation on multiple sensors,
+            sensors have to be rescaled. This parameter controls the
+            rescaling. If dict, it will update the
+            following dict of defaults:
+
+                dict(mag=1e11, grad=1e9, eeg=1e5)
+
+            If 'norm' data will be scaled by internally computed
+            channel-wise norms.
+            Defaults to 'norm'.
 
         Returns
         -------
@@ -1005,6 +1017,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Bad channels will be excluded from calculations.
         """
+        from ..cov import _estimate_rank_meeg_signals
+
         start = max(0, self.time_as_index(tstart)[0])
         if tstop is None:
             stop = self.n_times - 1
@@ -1014,13 +1028,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True, ref_meg=False,
                                exclude='bads')
-
         # ensure we don't get a view of data
         if len(picks) == 1:
             return 1.0, 1.0
         # this should already be a copy, so we can overwrite it
         data = self[picks, tslice][0]
-        return estimate_rank(data, tol, return_singular, copy=False)
+        out = _estimate_rank_meeg_signals(
+            data, pick_info(self.info, picks),
+            scalings=scalings, tol=tol, return_singular=return_singular,
+            copy=False)
+
+        return out
 
     @property
     def ch_names(self):
