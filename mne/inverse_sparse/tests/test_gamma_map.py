@@ -12,7 +12,7 @@ from mne import read_cov, read_forward_solution, read_evokeds
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
 from mne import pick_types_forward
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow
 
 data_path = testing.data_path(download=False)
 fname_evoked = op.join(data_path, 'MEG', 'sample',
@@ -22,6 +22,7 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
 
 
+@slow
 @testing.requires_testing_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""

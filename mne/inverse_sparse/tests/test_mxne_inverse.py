@@ -14,7 +14,7 @@ from mne.label import read_label
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.inverse_sparse import mixed_norm, tf_mixed_norm
 from mne.minimum_norm import apply_inverse, make_inverse_operator
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow
 
 
 data_path = testing.data_path(download=False)
@@ -27,6 +27,7 @@ label = 'Aud-rh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
 
 
+@slow
 @testing.requires_testing_data
 def test_mxne_inverse():
     """Test (TF-)MxNE inverse computation"""
