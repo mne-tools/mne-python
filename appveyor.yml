@@ -33,4 +33,4 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests, but (sadly) exclude ones that take a long time
-  - "nosetests --with-timer --timer-top-n=30 --verbosity=2 -a '!slow_test'"
+  - "nosetests --with-timer --timer-top-n=30 --verbosity=2 -a !slow_test"
