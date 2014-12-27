@@ -11,7 +11,7 @@ from mne.stats.cluster_level import (permutation_cluster_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main, slow
+from mne.utils import run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -293,7 +293,7 @@ def test_cluster_permutation_with_connectivity():
         assert_true(np.min(out_connectivity_6[2]) < 0.05)
 
 
-@slow
+@slow_test
 def test_permutation_connectivity_equiv():
     """Test cluster level permutations with and without connectivity
     """

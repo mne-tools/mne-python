@@ -525,9 +525,10 @@ def verbose(function, *args, **kwargs):
     return function(*args, **kwargs)
 
 
-def slow(f):
+@nottest
+def slow_test(f):
     """Decorator for slow tests"""
-    f.slow = True
+    f.slow_test = True
     return f
 
 
