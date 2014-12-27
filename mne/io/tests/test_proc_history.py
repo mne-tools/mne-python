@@ -26,12 +26,12 @@ def test_maxfilter_io():
 
     assert_equal(raw.ch_names[:mf['sss_info']['nchan']],
                  mf['sss_ctc']['proj_items_chs'])
-    assert_equal(mf['sss_ctc']['ctc'].shape,
+    assert_equal(mf['sss_ctc']['decoupler'].shape,
                  (mf['sss_info']['nchan'], mf['sss_info']['nchan']))
-    assert_equal(np.unique(np.diag(mf['sss_ctc']['ctc'].toarray())),
+    assert_equal(np.unique(np.diag(mf['sss_ctc']['decoupler'].toarray())),
                  np.array([1.], dtype=np.float32))
 
-    assert_equal(mf['sss_cal']['cal_coef'].shape, (306, 14))
+    assert_equal(mf['sss_cal']['cal_corrs'].shape, (306, 14))
     assert_equal(mf['sss_cal']['cal_chans'].shape, (306, 2))
     vv_coils = [v for k, v in FIFF.items() if 'FIFFV_COIL_VV' in k]
     assert_true(all(k in vv_coils
