@@ -18,12 +18,12 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
-from mne import io
-from mne import read_evokeds, read_proj
+from mne import io, read_evokeds, read_proj
 from mne.io.constants import FIFF
 from mne.channels import read_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
+from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 
@@ -47,6 +47,7 @@ def _get_raw():
     return io.Raw(raw_fname, preload=False)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_plot_topomap():
     """Test topomap plotting

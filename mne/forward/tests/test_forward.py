@@ -15,7 +15,8 @@ from mne import (read_forward_solution, apply_forward, apply_forward_raw,
                  convert_forward_solution)
 from mne import SourceEstimate, pick_types_forward, read_evokeds
 from mne.label import read_label
-from mne.utils import requires_mne, run_subprocess, _TempDir, run_tests_if_main
+from mne.utils import (requires_mne, run_subprocess, _TempDir,
+                       run_tests_if_main, slow_test)
 from mne.forward import (restrict_forward_to_stc, restrict_forward_to_label,
                          Forward)
 
@@ -90,6 +91,7 @@ def test_convert_forward():
     gc.collect()
 
 
+@slow_test
 @testing.requires_testing_data
 def test_io_forward():
     """Test IO for forward solutions

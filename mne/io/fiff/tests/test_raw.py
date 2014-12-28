@@ -26,7 +26,8 @@ from mne.io import (Raw, concatenate_raws,
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
-                       requires_mne, run_subprocess, run_tests_if_main)
+                       requires_mne, run_subprocess, run_tests_if_main,
+                       slow_test)
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
@@ -381,6 +382,7 @@ def test_load_bad_channels():
     assert_equal([], raw_new.info['bads'])
 
 
+@slow_test
 @testing.requires_testing_data
 def test_io_raw():
     """Test IO for raw data (Neuromag + CTF + gz)
@@ -641,6 +643,7 @@ def test_preload_modify():
         assert_allclose(data, data_new)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
@@ -1104,4 +1107,4 @@ def test_equalize_channels():
         assert_equal(ch_names, e.ch_names)
 
 
-# run_tests_if_main()
+run_tests_if_main()
