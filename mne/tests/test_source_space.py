@@ -120,6 +120,7 @@ def test_add_source_space_distances_limited():
         assert_allclose(np.zeros_like(d.data), d.data, rtol=0, atol=1e-6)
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_scipy_version('0.11')
 def test_add_source_space_distances():

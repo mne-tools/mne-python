@@ -38,6 +38,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_PIL
 def test_render_report():

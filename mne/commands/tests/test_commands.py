@@ -154,6 +154,7 @@ def test_maxfilter():
             assert_true(check in out.stdout.getvalue(), check)
 
 
+@slow_test
 @requires_mayavi
 @requires_PIL
 @testing.requires_testing_data
