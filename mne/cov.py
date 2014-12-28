@@ -658,6 +658,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     from sklearn.covariance import (LedoitWolf, ShrunkCovariance,
                                     EmpiricalCovariance)
 
+    # rescale to improve numerical stability
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
@@ -745,13 +746,13 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                              ' a .fit method')
         logger.info('Done.')
 
-    # undo scaling
-    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _
-     in estimator_cov_info]
-
     logger.info('Using cross-validation to select the best estimator.')
     estimators, _, _ = zip(*estimator_cov_info)
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
+
+    # undo scaling
+    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _
+     in estimator_cov_info]
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -978,6 +979,7 @@ def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
     eig[:-rank] = 0.0
+
     logger.info('Setting small %s eigenvalues to zero.' % ch_type)
     if not pca:  # No PCA case.
         logger.info('Not doing PCA for %s.' % ch_type)
@@ -1064,13 +1066,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
-            picks_list_meg = _picks_by_type(this_info)
-            _apply_scaling_cov(data=C_meg, picks_list=picks_list_meg,
-                               scalings=scalings_)
-
-            rank_meg = estimate_rank(C_meg)
-            _undo_scaling_cov(data=C_meg, picks_list=picks_list_meg,
-                              scalings=scalings_)
+            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
     if has_eeg:
@@ -1079,12 +1075,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
-            picks_list_eeg = _picks_by_type(this_info)
-            _apply_scaling_cov(data=C_eeg, picks_list=picks_list_eeg,
-                               scalings=scalings_)
-            rank_eeg = estimate_rank(C_eeg)
-            _undo_scaling_cov(data=C_eeg, picks_list=picks_list_eeg,
-                              scalings=scalings_)
+            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
                                                 rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -1319,7 +1310,6 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     ch_names = [evoked.ch_names[k] for k in picks]
     evoked = cp.deepcopy(evoked)
 
-    scalings_ = None
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
@@ -1593,6 +1583,9 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
                         return_singular=return_singular)
+    rank = out[0] if isinstance(out, tuple) else out
+    ch_type = ' + '.join(list(zip(*picks_list))[0])
+    logger.info('estimated rank (%s): %d' % (ch_type, rank))
     if copy is False:
         _undo_scaling_array(data, picks_list, scalings)
     return out
@@ -1640,6 +1633,9 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
                         return_singular=return_singular)
+    rank = out[0] if isinstance(out, tuple) else out
+    ch_type = ' + '.join(list(zip(*picks_list))[0])
+    logger.info('estimated rank (%s): %d' % (ch_type, rank))
     if copy is False:
         _undo_scaling_cov(data, picks_list, scalings)
     return out

@@ -424,7 +424,8 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                                 ' method = "%s"' % label)
 
             this_rank = rank_[ch]
-            gfp = whitened_gfp(evoked_white.data[sub_picks], rank=this_rank)
+            data = evoked_white.data[sub_picks]
+            gfp = whitened_gfp(data, rank=this_rank)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])
