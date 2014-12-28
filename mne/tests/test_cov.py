@@ -394,7 +394,6 @@ def test_auto_low_rank():
 @requires_sklearn
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
-    from sklearn.covariance import EmpiricalCovariance as ec
 
     raw = Raw(raw_fname, preload=False)
     events = find_events(raw, stim_channel='STI 014')
@@ -424,14 +423,15 @@ def test_compute_covariance_auto_reg():
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
     with warnings.catch_warnings(record=True) as w:
-        cov3 = compute_covariance(epochs, method=[ec, 'factor_analysis'],
+        cov3 = compute_covariance(epochs, method=['empirical',
+                                                  'factor_analysis'],
                                   method_params=method_params, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
 
     assert_equal(set([c['method'] for c in cov3]),
-                 set([ec.__name__, 'factor_analysis']))
+                 set(['empirical', 'factor_analysis']))
 
     # projs not allowed with FA or PCA
     assert_raises(ValueError, compute_covariance, epochs, method='pca',
@@ -439,9 +439,6 @@ def test_compute_covariance_auto_reg():
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
-
-    # invalid callable
-    assert_raises(ValueError, compute_covariance, epochs, method=lambda x: x)
 
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',

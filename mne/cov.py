@@ -374,13 +374,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         List of projectors to use in covariance calculation, or None
         to indicate that the projectors from the epochs should be
         inherited. If None, then projectors from all epochs must match.
-    method : str | list | callable | None
+    method : str | list | None
         The method used for covariance estimation. If 'empirical' (default),
         the sample covariance will be computed. A list can be passed to run a
         set of the different methods.
-        If callable object is passed, it has to specify a fit method, which
-        must set the attribute 'covariance_' to self when invoked
-        (see scikit-learn estimator objects).
         If 'auto' or a list of methods, the best estimator will be determined
         based on log-likelihood and cross-validation on unseen data as described
         in ref. [1]. Valid methods are:
@@ -568,7 +565,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         data_mean = [1.0 / n_epoch * np.dot(mean, mean.T) for n_epoch, mean
                      in zip(n_epochs, data_mean)]
 
-    if all(k in accepted_methods or callable(k) for k in method):
+    if all(k in accepted_methods for k in method):
         info = pick_info(info, picks_meeg)
         tslice = _get_tslice(epochs[0], tmin, tmax)
         epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
@@ -735,12 +732,6 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
                                              verbose=verbose)
             fa.fit(data_)
             estimator_cov_info.append((fa, fa.get_covariance(), _info))
-
-        elif callable(this_method) and hasattr(this_method, 'fit'):
-            est = this_method()
-            est.fit(data_)
-            _info = None
-            estimator_cov_info.append((est, est.covariance_, _info))
         else:
             raise ValueError('Oh no! Your estimator does not have'
                              ' a .fit method')
