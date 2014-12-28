@@ -420,6 +420,8 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     times = evoked.times * 1e3
     titles_ = _mutable_defaults(('titles', None))[0]
+    if has_sss:
+        titles_['meg'] = 'MEG (combined)'
 
     colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
     ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan',
@@ -429,13 +431,14 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
     else:
-        axes_evoked[0].plot(times, evokeds_white[0].data.T, color='k')
-        for hline in [-1.96, 1.96]:
-            axes_evoked[0].axhline(hline, color='red', linestyle='--')
-
+        for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
+            ax.plot(times, evokeds_white[0].data[picks].T, color='k')
+            for hline in [-1.96, 1.96]:
+                ax.axhline(hline, color='red', linestyle='--')
     for evoked_white, noise_cov, rank_, color in iter_gfp:
         i = 0
         for ch, sub_picks in picks_list:
+            this_rank = rank_[ch]
             title = '{0} ({2}{1})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     this_rank, 'rank ' if n_columns > 1 else '')
@@ -445,7 +448,6 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                                 'whitened global field power (GFP),'
                                 ' method = "%s"' % label)
 
-            this_rank = rank_[ch]
             data = evoked_white.data[sub_picks]
             gfp = whitened_gfp(data, rank=this_rank)
             ax_gfp[i].plot(times, gfp,
@@ -465,8 +467,11 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.05), fontsize=12)
     else:
         ax.legend(loc='upper right', fontsize=10)
-        fig.subplots_adjust(top=[0.69, 0.82, 0.87][n_rows - 1],
-                            bottom=[0.22, 0.13, 0.09][n_rows - 1])
+        params = dict(top=[0.69, 0.82, 0.87][n_rows - 1],
+                      bottom=[0.22, 0.13, 0.09][n_rows - 1])
+        if has_sss:
+            params['hspace'] = 0.49
+        fig.subplots_adjust(**params)
     fig.canvas.draw()
 
     if show is True:
