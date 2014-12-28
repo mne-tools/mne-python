@@ -168,6 +168,7 @@ def test_warn_inverse_operator():
     assert_equal(len(w), 1)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_make_inverse_operator():
     """Test MNE inverse computation (precomputed and non-precomputed)
@@ -345,6 +346,7 @@ def test_inverse_operator_volume():
     assert_array_almost_equal(stc.times, stc2.times)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_io_inverse_operator():
     """Test IO of inverse_operator with GZip

@@ -533,6 +533,7 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
