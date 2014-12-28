@@ -22,7 +22,7 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       write_inverse_operator,
                                       compute_rank_inverse,
                                       prepare_inverse_operator)
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.externals import six
 
 s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
@@ -193,6 +193,7 @@ def test_make_inverse_operator():
     assert_true('mri_head_t' in my_inv_op)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_apply_inverse_operator():
     """Test MNE inverse application

@@ -14,7 +14,7 @@ from mne.io import Raw
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
-                       requires_PIL, run_tests_if_main)
+                       requires_PIL, run_tests_if_main, slow_test)
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -146,6 +146,7 @@ def test_render_add_sections():
         assert_true(w[0].category == DeprecationWarning)
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_mayavi
 @requires_nibabel()

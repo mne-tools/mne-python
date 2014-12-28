@@ -18,18 +18,16 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import (assert_true, assert_raises, assert_equal,
                         assert_not_equal)
 
-from mne import pick_types, pick_channels
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws,
                     get_chpi_positions, set_eeg_reference)
 from mne import (concatenate_events, find_events, equalize_channels,
-                 compute_proj_raw)
+                 compute_proj_raw, pick_types, pick_channels)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
                        requires_mne, run_subprocess, run_tests_if_main,
                        slow_test)
-from mne.externals.six.moves import zip
-from mne.externals.six.moves import cPickle as pickle
+from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
 
@@ -124,6 +122,7 @@ def test_copy_append():
     assert_true(data.shape[1] == 2 * raw._data.shape[1])
 
 
+@slow_test
 @testing.requires_testing_data
 def test_rank_estimation():
     """Test raw rank estimation
@@ -198,6 +197,7 @@ def _compare_combo(raw, new, times, n_times):
         assert_allclose(orig, new[:, ti][0])
 
 
+@slow_test
 @testing.requires_testing_data
 def test_multiple_files():
     """Test loading multiple files simultaneously

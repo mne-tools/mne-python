@@ -15,7 +15,7 @@ from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
-                       run_tests_if_main)
+                       run_tests_if_main, slow_test)
 from mne.surface import _accumulate_normals, _triangle_neighbors
 from mne.source_space import _get_mgz_header
 from mne.externals.six.moves import zip
@@ -293,6 +293,7 @@ def test_accumulate_normals():
     assert_allclose(nn, this['nn'], rtol=1e-7, atol=1e-7)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_setup_source_space():
     """Test setting up ico, oct, and all source spaces
@@ -372,9 +373,10 @@ def test_read_source_spaces():
     assert_true(rh_use_faces.max() <= rh_points.shape[0] - 1)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_write_source_space():
-    """Test writing and reading of source spaces
+    """Test reading and writing of source spaces
     """
     tempdir = _TempDir()
     src0 = read_source_spaces(fname, add_geom=False)

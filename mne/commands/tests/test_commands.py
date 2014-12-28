@@ -12,7 +12,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_make_scalp_surfaces, mne_maxfilter,
                           mne_report, mne_surf2bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
-                       requires_mayavi, requires_tvtk, ArgvSetter)
+                       requires_mayavi, requires_tvtk, ArgvSetter, slow_test)
 from mne.io import Raw
 from mne.datasets import testing
 
@@ -63,6 +63,7 @@ def test_clean_eog_ecg():
     assert_true(len(fnames) == 3)  # raw plus two projs
 
 
+@slow_test
 def test_compute_proj_ecg_eog():
     """Test mne compute_proj_ecg/eog"""
     for fun in (mne_compute_proj_ecg, mne_compute_proj_eog):

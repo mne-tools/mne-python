@@ -21,7 +21,7 @@ from mne.source_estimate import (spatio_temporal_tris_connectivity,
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
 from mne.utils import (_TempDir, requires_pandas, requires_sklearn,
-                       requires_h5py, run_tests_if_main)
+                       requires_h5py, run_tests_if_main, slow_test)
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -220,6 +220,7 @@ def test_stc_arithmetic():
     assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
 
 
+@slow_test
 @testing.requires_testing_data
 def test_stc_methods():
     """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
@@ -357,6 +358,7 @@ def test_extract_label_time_course():
     assert_true(x.size == 0)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_morph_data():
     """Test morphing of data

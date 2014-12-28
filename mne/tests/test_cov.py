@@ -15,11 +15,11 @@ import itertools as itt
 from mne.cov import regularize, whiten_evoked, _estimate_rank_meeg_cov
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
-                 compute_covariance, read_evokeds, compute_proj_raw)
-from mne import pick_channels_cov, pick_channels, pick_types, pick_info
+                 compute_covariance, read_evokeds, compute_proj_raw,
+                 pick_channels_cov, pick_channels, pick_types, pick_info)
 from mne.io import Raw
 from mne.io.pick import channel_type
-from mne.utils import _TempDir
+from mne.utils import _TempDir, slow_test
 from mne.io.proc_history import _get_sss_rank
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -225,6 +225,7 @@ def test_evoked_whiten():
     assert_true(np.all(mean_baseline > 0.2))
 
 
+@slow_test
 def test_rank():
     """Test cov rank estimation"""
     raw_sample = Raw(raw_fname)

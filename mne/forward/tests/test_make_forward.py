@@ -164,6 +164,7 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python

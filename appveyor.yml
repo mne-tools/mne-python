@@ -22,7 +22,7 @@ install:
   - "python -c \"import struct; print(struct.calcsize('P') * 8)\""
 
   # Install the dependencies of the project (skip nibabel for speed)
-  - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py"
+  - "conda install --yes --quiet setuptools numpy scipy matplotlib scikit-learn nose mayavi pandas h5py PIL"
   - "pip install nose-timer nibabel"
   - "python setup.py develop"
   - "SET MNE_SKIP_NETWORK_TESTS=1"
@@ -33,4 +33,4 @@ build: false  # Not a C# project, build stuff at the test step instead.
 
 test_script:
   # Run the project tests, but (sadly) exclude ones that take a long time
-  - "nosetests --verbosity=2 -a !slow_test --with-timer --timer-top-n=30 --timer-ok 5 --timer-warning 20"
+  - "nosetests --verbosity=2 -a !slow_test --with-timer --timer-top-n=30 --timer-ok 5 --timer-warning 15"

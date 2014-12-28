@@ -101,6 +101,7 @@ def test_cluster_permutation_test():
         assert_array_equal(cluster_p_values, cluster_p_values_buff)
 
 
+@slow_test
 def test_cluster_permutation_t_test():
     """Test cluster level permutations T-test
     """
