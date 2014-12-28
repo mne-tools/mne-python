@@ -37,7 +37,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = io.Raw(raw_fname, preload=True)
-raw.filter(1, 45, method='iir', n_jobs=4)
+raw.filter(1, 45, method='iir', n_jobs=1)
 raw.info['bads'] += ['MEG 2443']  # bads + 1 more
 events = mne.read_events(event_fname)
 

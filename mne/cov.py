@@ -1057,7 +1057,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
-            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
+            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings_)
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
     if has_eeg:
@@ -1066,7 +1066,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
-            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
+            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings_)
         C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
                                                 rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -1565,20 +1565,17 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is True:
-        data = data.copy()
     picks_list = _picks_by_type(info)
     _apply_scaling_array(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
+                        return_singular=return_singular, copy=copy)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    if copy is False:
-        _undo_scaling_array(data, picks_list, scalings)
+    _undo_scaling_array(data, picks_list, scalings)
     return out
 
 
@@ -1615,18 +1612,15 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         If return_singular is True, the singular values that were
         thresholded to determine the rank are also returned.
     """
-    if copy is True:
-        data = data.copy()
     picks_list = _picks_by_type(info)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
                    "rank estimate might be inaccurate.")
     out = estimate_rank(data, tol=tol, norm=False,
-                        return_singular=return_singular)
+                        return_singular=return_singular, copy=copy)
     rank = out[0] if isinstance(out, tuple) else out
     ch_type = ' + '.join(list(zip(*picks_list))[0])
     logger.info('estimated rank (%s): %d' % (ch_type, rank))
-    if copy is False:
-        _undo_scaling_cov(data, picks_list, scalings)
+    _undo_scaling_cov(data, picks_list, scalings)
     return out
