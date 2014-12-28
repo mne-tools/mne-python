@@ -603,9 +603,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Parameters
         ----------
         tmin : float
-            New start time (must be >= 0).
+            New start time in seconds (must be >= 0).
         tmax : float | None
-            New end time of the data (cannot exceed data duration).
+            New end time in seconds of the data (cannot exceed data duration).
         copy : bool
             If False Raw is cropped in place.
 
@@ -646,7 +646,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raw.first_samp = raw._first_samps[0]
         raw.last_samp = raw.first_samp + (smax - smin)
         if raw.preload:
-            raw._data = raw._data[:, smin:smax + 1]
+            # slice and copy to avoid the reference to large array
+            raw._data = raw._data[:, smin:smax + 1].copy()
             raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
 
