@@ -876,29 +876,34 @@ if check_sklearn_version('0.15') is True:
             else:
                 shrinkage = self.shrinkage
 
-            is_cross_cov = np.ones_like(cov, dtype=bool)
-            for ch_type, c, picks in shrinkage:
-                is_cross_cov[np.ix_(picks, picks)] = False
-            self.is_cross_cov_ = is_cross_cov
+            zero_cross_cov = np.zeros_like(cov, dtype=bool)
+            for a, b in itt.combinations(shrinkage, 2):
+                ch_ = a[0], b[0]
+                picks_i, picks_j = a[2], b[2]
+                if 'eeg' in ch_ or not self.keep_cross_cov:
+                    zero_cross_cov[np.ix_(picks_i, picks_j)] = True
 
-            if self.keep_cross_cov is True:
-                for a, b in itt.combinations(shrinkage, 2):
-                    ch_ = a[0], b[0]
-                    shrinkage_i, shrinkage_j = a[1], b[1]
-                    picks_i, picks_j = a[2], b[2]
-                    if 'eeg' not in ch_:
-                        c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
-                    else:
-                        c_ij = 0.0
-                    cov[np.ix_(picks_i, picks_j)] *= c_ij
-                    cov[np.ix_(picks_j, picks_i)] *= c_ij
-            else:
-                cov[is_cross_cov] = 0.0
+            self.zero_cross_cov_ = zero_cross_cov
 
+            # Apply shrinkage to blocks
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
                 cov[np.ix_(picks, picks)] = shrunk_covariance(sub_cov,
                                                               shrinkage=c)
+
+            # Apply shrinkage to cross-cov
+            for a, b in itt.combinations(shrinkage, 2):
+                ch_ = a[0], b[0]
+                shrinkage_i, shrinkage_j = a[1], b[1]
+                picks_i, picks_j = a[2], b[2]
+                c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
+                cov[np.ix_(picks_i, picks_j)] *= c_ij
+                cov[np.ix_(picks_j, picks_i)] *= c_ij
+
+            # Set to zero the necessary cross-cov
+            if np.any(zero_cross_cov):
+                cov[zero_cross_cov] = 0.0
+
             self.covariance_ = cov
             return self
 
@@ -921,14 +926,12 @@ if check_sklearn_version('0.15') is True:
             res : float
                 The likelihood of the data set with `self.covariance_` as an
                 estimator of its covariance matrix.
-
             """
             from sklearn.covariance import empirical_covariance, log_likelihood
             # compute empirical covariance of the test set
             test_cov = empirical_covariance(
                 X_test - self.location_, assume_centered=True)
-            if self.keep_cross_cov is False:
-                test_cov[self.is_cross_cov_] = 0.
+            test_cov[self.zero_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
             return res
 else:
