@@ -37,26 +37,23 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
 raw = io.Raw(raw_fname, preload=True)
-raw.filter(1, 45, method='iir', n_jobs=1)
+raw.filter(1, 40, method='iir', n_jobs=1)
 raw.info['bads'] += ['MEG 2443']  # bads + 1 more
 events = mne.read_events(event_fname)
 
 # let's look at rare events, button presses
-event_id, tmin, tmax = 1, -0.2, 0.5
-picks = mne.pick_types(raw.info, meg=True, eeg=True, exclude='bads')
+event_id, tmin, tmax = 2, -0.2, 0.5
+picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, exclude='bads')
 reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=None, reject=reject, preload=True,
-                    proj=True)
+                    baseline=None, reject=reject, preload=True)
 
 # Uncomment next line to use fewer samples and study regularization effects
 # epochs = epochs[:20]  # For your data, use as many samples as you can!
 
 ###############################################################################
 # Compute covariance using automated regularization
-
-# the best solution out of a list of relevant estimators will be selected
 noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method='auto',
                                 return_estimators=True, verbose=True, n_jobs=1,
                                 projs=None)
@@ -80,4 +77,4 @@ evoked.plot()  # plot evoked response
 # 0 with less than 2 standard deviations. For the Global field power we expect
 # a value of 1.
 
-evoked.plot_white(noise_covs, scalings=dict(mag=4e15, grad=1e13, eeg=1e6))
+evoked.plot_white(noise_covs)

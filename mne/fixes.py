@@ -11,7 +11,8 @@ at which the fixe is no longer needed.
 #          Fabian Pedregosa <fpedregosa@acm.org>
 #          Lars Buitinck <L.J.Buitinck@uva.nl>
 # License: BSD
-# from __future__ import division
+
+from __future__ import division
 import collections
 from operator import itemgetter
 import inspect

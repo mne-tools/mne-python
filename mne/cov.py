@@ -392,6 +392,11 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
+        Note. 'ledoit_wolf' and 'pca' are similar to 'shrunk' and
+        'factor_analysis', respectively. They are not included to avoid
+        redundancy. In most cases 'shrunk' and 'factor_analysis' represent
+        more appropriate default choices.
+
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
         method is not None. Keys must correspond to the value(s) of `method`.
@@ -451,7 +456,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     msg = ('Invalid method ({method}). Accepted values (individually or '
            'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
 
-    _scalings = dict(grad=1e13, mag=4e15, eeg=1e6)
+    # scale to natural unit for best stability with MEG/EEG
+    _scalings = dict(grad=1e13, mag=1e15, eeg=1e6)
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
@@ -550,66 +556,66 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         n_samples = np.zeros(n_epoch_types, dtype=np.int)
         n_epochs = np.zeros(n_epoch_types, dtype=np.int)
 
-        for i, epochs_t in enumerate(epochs):
+        for ii, epochs_t in enumerate(epochs):
 
             tslice = _get_tslice(epochs_t, tmin, tmax)
             for e in epochs_t:
                 e = e[picks_meeg, tslice]
                 if not keep_sample_mean:
-                    data_mean[i] += e
-                n_samples[i] += e.shape[1]
-                n_epochs[i] += 1
+                    data_mean[ii] += e
+                n_samples[ii] += e.shape[1]
+                n_epochs[ii] += 1
 
         n_samples_epoch = n_samples // n_epochs
         norm_const = np.sum(n_samples_epoch * (n_epochs - 1))
         data_mean = [1.0 / n_epoch * np.dot(mean, mean.T) for n_epoch, mean
                      in zip(n_epochs, data_mean)]
 
-    if all(k in accepted_methods for k in method):
-        info = pick_info(info, picks_meeg)
-        tslice = _get_tslice(epochs[0], tmin, tmax)
-        epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
-        picks_meeg = np.arange(len(picks_meeg))
-        picks_list = _picks_by_type(info)
-
-        if len(epochs) > 1:
-            epochs = np.concatenate(epochs, 0)
-        else:
-            epochs = epochs[0]
-
-        epochs = np.hstack(epochs)
-        n_samples_tot = epochs.shape[-1]
-        _check_n_samples(n_samples_tot, len(picks_meeg))
-
-        epochs = epochs.T  # sklearn | C-order
-        if ok_sklearn:
-            cov_data = _compute_covariance_auto(epochs, method=method,
-                                                method_params=_method_params,
-                                                info=info,
-                                                verbose=verbose,
-                                                cv=cv,
-                                                n_jobs=n_jobs,
-                                                # XXX expose later
-                                                stop_early=True,  # if needed.
-                                                picks_list=picks_list,
-                                                scalings=scalings)
-        else:
-            if _method_params['empirical']['assume_centered'] is True:
-                cov = epochs.T.dot(epochs) / n_samples_tot
-            else:
-                cov = np.cov(epochs.T, bias=1)
-            cov_data = {'empirical': {'data': cov}}
-
-        if keep_sample_mean is False:
-            cov = cov_data['empirical']['data']
-            # undo scaling
-            cov *= n_samples_tot
-            # ... apply pre-computed class-wise normalization
-            for i, mean_cov in enumerate(data_mean):
-                cov -= mean_cov
-            cov /= norm_const
-    else:
+    if not all(k in accepted_methods for k in method):
         raise ValueError(msg.format(method=method))
+
+    info = pick_info(info, picks_meeg)
+    tslice = _get_tslice(epochs[0], tmin, tmax)
+    epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+    picks_meeg = np.arange(len(picks_meeg))
+    picks_list = _picks_by_type(info)
+
+    if len(epochs) > 1:
+        epochs = np.concatenate(epochs, 0)
+    else:
+        epochs = epochs[0]
+
+    epochs = np.hstack(epochs)
+    n_samples_tot = epochs.shape[-1]
+    _check_n_samples(n_samples_tot, len(picks_meeg))
+
+    epochs = epochs.T  # sklearn | C-order
+    if ok_sklearn:
+        cov_data = _compute_covariance_auto(epochs, method=method,
+                                            method_params=_method_params,
+                                            info=info,
+                                            verbose=verbose,
+                                            cv=cv,
+                                            n_jobs=n_jobs,
+                                            # XXX expose later
+                                            stop_early=True,  # if needed.
+                                            picks_list=picks_list,
+                                            scalings=scalings)
+    else:
+        if _method_params['empirical']['assume_centered'] is True:
+            cov = epochs.T.dot(epochs) / n_samples_tot
+        else:
+            cov = np.cov(epochs.T, bias=1)
+        cov_data = {'empirical': {'data': cov}}
+
+    if keep_sample_mean is False:
+        cov = cov_data['empirical']['data']
+        # undo scaling
+        cov *= n_samples_tot
+        # ... apply pre-computed class-wise normalization
+        for mean_cov in data_mean:
+            cov -= mean_cov
+        cov /= norm_const
 
     covs = list()
     for this_method, data in cov_data.items():
@@ -646,7 +652,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     return out
 
 
-@requires_sklearn
 def _compute_covariance_auto(data, method, info, method_params, cv,
                              scalings, n_jobs, stop_early, picks_list,
                              verbose):
@@ -717,8 +722,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
-                                              stop_early=stop_early,
-                                              verbose=verbose)
+                                              stop_early=stop_early)
             pca.fit(data_)
             estimator_cov_info.append((pca, pca.get_covariance(), _info))
 
@@ -726,8 +730,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             mp = method_params[this_method]
             fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
-                                             stop_early=stop_early,
-                                             verbose=verbose)
+                                             stop_early=stop_early)
             fa.fit(data_)
             estimator_cov_info.append((fa, fa.get_covariance(), _info))
         else:
@@ -762,8 +765,6 @@ def _cross_val(data, est, cv, n_jobs):
     return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
 
 
-@verbose
-@requires_sklearn
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
                          verbose=None):
     """compute latent variable models"""
@@ -860,12 +861,10 @@ if check_sklearn_version('0.15') is True:
     class _ShrunkCovariance(ShrunkCovariance):
         """Aux class"""
 
-        def __init__(self, store_precision, assume_centered, shrinkage=0.1,
-                     keep_cross_cov=True):
+        def __init__(self, store_precision, assume_centered, shrinkage=0.1):
             self.store_precision = store_precision
             self.assume_centered = assume_centered
             self.shrinkage = shrinkage
-            self.keep_cross_cov = keep_cross_cov
 
         def fit(self, X):
             EmpiricalCovariance.fit(self, X)
@@ -878,10 +877,11 @@ if check_sklearn_version('0.15') is True:
 
             zero_cross_cov = np.zeros_like(cov, dtype=bool)
             for a, b in itt.combinations(shrinkage, 2):
-                ch_ = a[0], b[0]
                 picks_i, picks_j = a[2], b[2]
-                if 'eeg' in ch_ or not self.keep_cross_cov:
+                ch_ = a[0], b[0]
+                if 'eeg' in ch_:
                     zero_cross_cov[np.ix_(picks_i, picks_j)] = True
+                    zero_cross_cov[np.ix_(picks_j, picks_i)] = True
 
             self.zero_cross_cov_ = zero_cross_cov
 
@@ -893,7 +893,6 @@ if check_sklearn_version('0.15') is True:
 
             # Apply shrinkage to cross-cov
             for a, b in itt.combinations(shrinkage, 2):
-                ch_ = a[0], b[0]
                 shrinkage_i, shrinkage_j = a[1], b[1]
                 picks_i, picks_j = a[2], b[2]
                 c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
@@ -929,9 +928,10 @@ if check_sklearn_version('0.15') is True:
             """
             from sklearn.covariance import empirical_covariance, log_likelihood
             # compute empirical covariance of the test set
-            test_cov = empirical_covariance(
-                X_test - self.location_, assume_centered=True)
-            test_cov[self.zero_cross_cov_] = 0.
+            test_cov = empirical_covariance(X_test - self.location_,
+                                            assume_centered=True)
+            if np.any(self.zero_cross_cov_):
+                test_cov[self.zero_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
             return res
 else:
@@ -1015,11 +1015,12 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if noise_cov['diag'] is False:
+
         C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
     else:
         C = np.diag(noise_cov.data[C_ch_idx])
 
-    scalings_ = dict(mag=1e15, grad=1e13, eeg=1e6)
+    scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
     if scalings is None:
         pass
     elif isinstance(scalings, dict):
@@ -1310,7 +1311,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
-    scalings_ = dict(mag=1e15, grad=1e13, eeg=1e6)
+    scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
     if scalings is None:
         pass
     elif isinstance(scalings, dict):

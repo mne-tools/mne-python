@@ -11,7 +11,6 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-from copy import deepcopy
 from itertools import cycle
 
 import numpy as np
@@ -300,18 +299,35 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
+def plot_evoked_white(evoked, noise_cov, scalings=None, show=True):
     """Plot whitened evoked response
+
+    Plots the whitened evoked response and the whitened GFP as described in
+    [1]. If one single covariance object is passed, the GFP panel (bottom)
+    will depict different sensor sensor types. If multiple covariance objects
+    are passed as a list, the left column will display the whitened evoked
+    responses for each channel based on the whitener from the noise covariance
+    that has the highest log-likelihood. The left column will depict the
+    whitened GFPs based on each estimator separately for each sensor type.
+    Instead of numbers of channels the GFP display shows the estimated rank.
+    Note. The rank estimation will be printed by the logger for each noise
+    covariance estimator that is passed.
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked response.
-    rank : dict of int | None
-        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-        the rank is detected automatically. Defaults to None.
-    noise_cov : list or tuple or single instance of mne.cov.Covariance
-        The noise covs.
+    noise_cov : list | instance of Covariance
+        The noise covariance as computed by ``mne.cov.compute_covariance``.
+    scalings : dict | None
+        The rescaling method to be applied to improve the accuracy of rank
+        estimaiton. If dict, it will update the following default dict
+        (used if None):
+
+            dict(mag=1e12, grad=1e11, eeg=1e5)
+
+        Note. Theses values were tested on different datests across various
+        conditions. You should not need to update them.
     show : bool
         Whether to show the figure or not. Defaults to True.
 
@@ -319,7 +335,30 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object containing the plot.
+
+    References
+    ----------
+    [1] Engemann D. and Gramfort A (in press). Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals.
+        NeuroImage.
     """
+    return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
+                              scalings=scalings, rank=None, show=show)
+
+
+def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
+    """helper to plot_evoked_white
+
+    Additional Paramter
+    -------------------
+    rank : dict of int | None
+        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
+        the rank is detected automatically. Defaults to None. Note.
+        The rank estimation will be printed by the logger for each noise
+        covariance estimator that is passed.
+
+    """
+
     from ..cov import whiten_evoked  # recursive import
     from ..cov import _estimate_rank_meeg_cov
     import matplotlib.pyplot as plt
@@ -344,12 +383,22 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     'whitening jointly.')
 
     evoked = evoked.copy()  # handle ref meg
+    evoked.info['projs'] = []  # either applied already or not-- otherwise issue
+
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
     evoked.pick_channels([evoked.ch_names[k] for k in picks], copy=False)
+    # important to re-pick. will otherwise crash on systems with ref channels
+    # as first sensor block
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
+
     picks_list = _picks_by_type(evoked.info, meg_combined=has_sss)
     if has_meg and has_sss:
-        ch_used = [c for c, _ in picks_list]
+        # reduce ch_used to combined mag grad
+        ch_used = list(zip(*picks_list))[0]
+    # order pick list by ch_used (required for compat with plot_evoked)
+    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
     n_ch_used = len(ch_used)
 
     # make sure we use the same rank estimates for GFP and whitening
@@ -370,8 +419,7 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         if rank is not None:
             rank_.update(rank)
         rank_list.append(rank_)
-
-    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r, scalings=scalings)
+    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
                      for n, r in zip(noise_cov, rank_list)]
 
     axes_evoked = None

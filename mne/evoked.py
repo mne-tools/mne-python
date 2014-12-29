@@ -18,7 +18,8 @@ from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     object_hash)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
-from .viz import plot_evoked_image, plot_evoked_white
+from .viz import plot_evoked_image
+from .viz.evoked import _plot_evoked_white
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -561,16 +562,36 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, scalings=None, rank=None, show=True):
+    def plot_white(self, noise_cov, scalings=None, show=True):
         """Plot whitened evoked response
+
+        Plots the whitened evoked response and the whitened GFP as described in
+        [1]. If one single covariance object is passed, the GFP panel (bottom)
+        will depict different sensor sensor types. If multiple covariance
+        objects are passed as a list, the left column will display the whitened
+        evoked responses for each channel based on the whitener from the noise
+        covariance that has the highest log-likelihood. The left column will
+        depict the whitened GFPs based on each estimator separately for each
+        sensor type. Instead of numbers of channels the GFP display shows the
+        estimated rank. The rank estimation will be printed by the logger for
+        each noise covariance estimator that is passed.
+
 
         Parameters
         ----------
-        noise_cov : list or tuple or single instance of mne.cov.Covariance
-            The noise covs.
-        rank : dict of int | None
-            Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
-            the rank is detected automatically. Defaults to None.
+        evoked : instance of mne.Evoked
+            The evoked response.
+        noise_cov : list | instance of Covariance
+            The noise covariance as computed by ``mne.cov.compute_covariance``.
+        scalings : dict | None
+            The rescaling method to be applied to improve the accuracy of rank
+            estimaiton. If dict, it will update the following default dict
+            (used if None):
+
+                dict(mag=1e12, grad=1e11, eeg=1e5)
+
+            Note. Theses values were tested on different datests across various
+            conditions. You should not need to update them.
         show : bool
             Whether to show the figure or not. Defaults to True.
 
@@ -578,9 +599,15 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -------
         fig : instance of matplotlib.figure.Figure
             The figure object containing the plot.
+
+        References
+        ----------
+        [1] Engemann D. and Gramfort A (in press). Automated model selection in
+            covariance estimation and spatial whitening of MEG and EEG signals.
+            NeuroImage.
         """
-        return plot_evoked_white(self, noise_cov=noise_cov, rank=rank,
-                                 scalings=scalings, show=show)
+        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=scalings,
+                                  rank=None, show=show)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
