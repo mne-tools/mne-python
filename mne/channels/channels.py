@@ -91,7 +91,9 @@ def equalize_channels(candidates, verbose=None):
     verbose : None | bool
         whether to be verbose or not.
 
-    Note. This function operates inplace.
+    Notes
+    -----
+    This function operates inplace.
     """
     from ..io.base import _BaseRaw
     from ..epochs import Epochs

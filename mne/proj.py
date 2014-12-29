@@ -273,8 +273,8 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    Return
-    ------
+    Returns
+    -------
     stc : SourceEstimate
         The sensitivity map as a SourceEstimate instance for
         visualization.

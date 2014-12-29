@@ -304,6 +304,8 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
 
     Parameters
     ----------
+    ica : instance of mne.preprocessing.ICA
+        The ICA object.
     inst : instance of mne.io.Raw or mne.Evoked
         The signals to be compared given the ICA solution. If Raw input,
         The raw data are displayed before and after cleaning. In a second

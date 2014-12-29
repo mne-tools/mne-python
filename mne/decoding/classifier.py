@@ -122,8 +122,7 @@ class ConcatenateChannels(TransformerMixin):
         self.info = info
 
     def fit(self, epochs_data, y):
-        """Concatenates data from different channels into a single feature
-        vector
+        """Concatenate different channels into a single feature vector
 
         Parameters
         ----------
@@ -198,8 +197,8 @@ class PSDEstimator(TransformerMixin):
         If not None, override default verbose level (see mne.verbose).
     """
     def __init__(self, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
-                 adaptive=False, low_bias=True, n_jobs=1, normalization='length',
-                 verbose=None):
+                 adaptive=False, low_bias=True, n_jobs=1,
+                 normalization='length', verbose=None):
         self.sfreq = sfreq
         self.fmin = fmin
         self.fmax = fmax
@@ -323,7 +322,7 @@ class FilterEstimator(TransformerMixin):
     """
     def __init__(self, info, l_freq, h_freq, picks=None, filter_length='10s',
                  l_trans_bandwidth=0.5, h_trans_bandwidth=0.5, n_jobs=1,
-                 method='fft', iir_params=None):
+                 method='fft', iir_params=None, verbose=None):
         self.info = info
         self.l_freq = l_freq
         self.h_freq = h_freq
@@ -342,6 +341,8 @@ class FilterEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data.
+        y : array
+            The label for each epoch.
 
         Returns
         -------

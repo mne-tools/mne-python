@@ -1191,8 +1191,8 @@ class Epochs(_BaseEpochs):
         epochs : Epochs instance
             The cropped epochs.
 
-        Note
-        ----
+        Notes
+        -----
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """

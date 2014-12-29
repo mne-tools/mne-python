@@ -30,8 +30,6 @@ class CrossSpectralDensity(object):
     frequencies : float | list of float
         Frequency or frequencies for which the CSD matrix was calculated. If a
         list is passed, data is a sum across CSD matrices for all frequencies.
-    sfreq : float
-        Sampling frequency of the data from which the CSD was obtained.
     n_fft : int
         Length of the FFT used when calculating the CSD matrix.
     """

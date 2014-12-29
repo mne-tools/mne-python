@@ -477,9 +477,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             for grad and 1e15 for mag.
         scale_time : float | None
             Scale the time labels. Defaults to 1e3 (ms).
-        units : str | None
-            The units of the channel types used for colorbar lables. If
-            scale == None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -517,6 +514,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             If dict, each key refers to a tuple of x and y positions. The
             values in 'mask_pos' will serve as image mask. If None,
             nothing will be drawn. Defaults to 'head'.
+        contours : int | False | None
+            The number of contour lines to draw. If 0, no contours will be
+            drawn.
         image_interp : str
             The image interpolation to be used. All matplotlib options are
             accepted.

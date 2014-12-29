@@ -324,9 +324,9 @@ def transform_surface_to(surf, dest, trans):
 
     Parameters
     ----------
-    src : dict
+    surf : dict
         Surface.
-    orig: 'meg' | 'mri' | 'head' | int
+    dest : 'meg' | 'mri' | 'head' | int
         Destination coordinate system. Can be an integer for using
         FIFF types.
     trans : dict
@@ -382,8 +382,8 @@ def transform_coordinates(filename, pos, orig, dest):
     trans_pos: array of shape N x 3
         The transformed locations
 
-    Example
-    -------
+    Examples
+    --------
     transform_coordinates('all-trans.fif', np.eye(3), 'meg', 'fs_tal')
     transform_coordinates('all-trans.fif', np.eye(3), 'mri', 'mni_tal')
     """

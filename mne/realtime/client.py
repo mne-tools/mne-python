@@ -287,7 +287,7 @@ class RtClient(object):
                                                  args=(self, nchan))
             self._recv_thread.start()
 
-    def stop_receive_thread(self, nchan, stop_measurement=False):
+    def stop_receive_thread(self, stop_measurement=False):
         """Stop the receive thread
 
         Parameters

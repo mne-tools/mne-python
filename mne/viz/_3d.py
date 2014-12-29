@@ -517,8 +517,6 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  opacity=0.2, brain_color=(0.7,) * 3,
                                  show=True, high_resolution=False,
                                  fig_name=None, fig_number=None, labels=None,
-                                 modes=['cone', 'sphere'],
-                                 scale_factors=[1, 0.6],
                                  verbose=None, **kwargs):
     """Plot source estimates obtained with sparse solver
 
@@ -546,6 +544,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         Brain color.
     show : bool
         Show figures if True.
+    high_resolution : bool
+        If True, plot on the original (non-downsampled) cortical mesh.
     fig_name :
         Mayavi figure name.
     fig_number :
@@ -560,6 +560,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
+    modes=['cone', 'sphere'],
+    scale_factors=[1, 0.6],
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):

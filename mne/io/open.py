@@ -130,8 +130,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
         Max number of characters of string representation to print for
         each tag's data.
     output : type
-        Either str or list. str is equivalent to ``"\n".join(list)``,
-        which is more convenient for using ``print show_fiff(...)``.
+        Either str or list. str is a convenience output for printing.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """

@@ -342,8 +342,6 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Filter high cut-off frequency in Hz.
     average : bool
         Compute SSP after averaging.
-    preload : string (or True)
-        Temporary file used during computaion.
     filter_length : str | int | None
         Number of taps to use for filtering.
     n_jobs : int

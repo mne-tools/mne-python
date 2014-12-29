@@ -24,6 +24,8 @@ def pick_events(events, include=None, exclude=None):
 
     Parameters
     ----------
+    events : ndarray
+        Array as returned by mne.find_events.
     include : int | list | None
         A event id to include or a list of them.
         If None all events are included.
@@ -337,10 +339,12 @@ def find_stim_steps(raw, pad_start=None, pad_stop=None, merge=0,
     ----------
     raw : Raw object
         The raw data.
-    pad_start, pad_stop : None | int
+    pad_start: None | int
         Values to assume outside of the stim channel (e.g., if pad_start=0 and
         the stim channel starts with value 5, an event of [0, 0, 5] will be
         inserted at the beginning). With None, no steps will be inserted.
+    pad_stop : None | int
+        Values to assume outside of the stim channel, see ``pad_start``.
     merge : int
         Merge steps occurring in neighboring samples. The integer value
         indicates over how many samples events should be merged, and the sign

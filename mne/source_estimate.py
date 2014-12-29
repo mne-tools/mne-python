@@ -1206,18 +1206,22 @@ class SourceEstimate(_BaseSourceEstimate):
         time courses are extracted depends on the mode parameter.
 
         Valid values for mode are:
-        'mean': Average within each label.
-        'mean_flip': Average within each label with sign flip depending on
-        source orientation.
-        'pca_flip': Apply an SVD to the time courses within each label and use
-        the scaled and sign-flipped first right-singular vector as the label
-        time course. The scaling is performed such that the power of the label
-        time course is the same as the average per-vertex time course power
-        within the label. The sign of the resulting time course is adjusted by
-        multiplying it with "sign(dot(u, flip))" where u is the first
-        left-singular vector, and flip is a sing-flip vector based on the
-        vertex normals. This procedure assures that the phase does not
-        randomly change by 180 degrees from one stc to the next.
+
+            - 'mean': Average within each label.
+            - 'mean_flip': Average within each label with sign flip depending
+              on source orientation.
+            - 'pca_flip': Apply an SVD to the time courses within each label
+              and use the scaled and sign-flipped first right-singular vector
+              as the label time course. The scaling is performed such that the
+              power of the label time course is the same as the average
+              per-vertex time course power within the label. The sign of the
+              resulting time course is adjusted by multiplying it with
+              "sign(dot(u, flip))" where u is the first left-singular vector,
+              and flip is a sing-flip vector based on the vertex normals. This
+              procedure assures that the phase does not randomly change by 180
+              degrees from one stc to the next.
+
+            - 'max': Max value within each label.
 
         See also mne.extract_label_time_course to extract time courses for a
         list of SourceEstimate more efficiently.
@@ -1359,8 +1363,6 @@ class SourceEstimate(_BaseSourceEstimate):
 
         Parameters
         ----------
-        stc : SourceEstimates
-            The source estimates to plot.
         subject : str | None
             The subject name corresponding to FreeSurfer environment
             variable SUBJECT. If None stc.subject will be used. If that
@@ -1429,8 +1431,6 @@ class SourceEstimate(_BaseSourceEstimate):
         ----------
         subject_to : string
             Name of the subject on which to morph as named in the SUBJECTS_DIR
-        stc_from : SourceEstimate
-            Source estimates for subject "from" to morph
         grade : int, list (of two arrays), or None
             Resolution of the icosahedral mesh (typically 5). If None, all
             vertices will be used (potentially filling the surface). If a list,
@@ -2840,24 +2840,22 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
     parameter.
 
     Valid values for mode are:
-    --------------------------
 
-    mean : Average within each label.
+        - 'mean': Average within each label.
+        - 'mean_flip': Average within each label with sign flip depending
+          on source orientation.
+        - 'pca_flip': Apply an SVD to the time courses within each label
+          and use the scaled and sign-flipped first right-singular vector
+          as the label time course. The scaling is performed such that the
+          power of the label time course is the same as the average
+          per-vertex time course power within the label. The sign of the
+          resulting time course is adjusted by multiplying it with
+          "sign(dot(u, flip))" where u is the first left-singular vector,
+          and flip is a sing-flip vector based on the vertex normals. This
+          procedure assures that the phase does not randomly change by 180
+          degrees from one stc to the next.
 
-    mean_flip : Average within each label with sign flip depending on source
-        orientation.
-
-    pca_flip : Apply an SVD to the time courses within each label and use the
-        scaled and sign-flipped first right-singular vector as the label time
-        course. The scaling is performed such that the power of the label time
-        course is the same as the average per-vertex time course power within
-        the label. The sign of the resulting time course is adjusted by
-        multiplying it with "sign(dot(u, flip))" where u is the first
-        left-singular vector, and flip is a sing-flip vector based on the
-        vertex normals. This procedure assures that the phase does not randomly
-        change by 180 degrees from one stc to the next.
-
-    max : Max value within each label.
+        - 'max': Max value within each label.
 
     Parameters
     ----------

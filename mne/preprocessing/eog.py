@@ -19,10 +19,10 @@ def find_eog_events(raw, event_id=998, l_freq=1, h_freq=10,
         The raw data.
     event_id : int
         The index to assign to found events.
-    low_pass : float
-        Low pass frequency.
-    high_pass : float
-        High pass frequency.
+    l_freq : float
+        Low cut-off frequency in Hz.
+    h_freq : float
+        High cut-off frequency in Hz.
     filter_length : str | int | None
         Number of taps to use for filtering.
     ch_name: str | None

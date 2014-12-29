@@ -63,6 +63,7 @@ FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL            = 503
 FIFF.FIFFB_SSS_ST_INFO        = 504
 FIFF.FIFFB_SSS_BASES          = 505
+FIFF.FIFFB_FIFFB_SMARTSHIELD  = 510
 #
 # Of general interest
 #
@@ -511,7 +512,7 @@ FIFF.FIFF_SSS_COMPONENTS            = 269
 FIFF.FIFF_SSS_CAL_CHANS             = 270
 FIFF.FIFF_SSS_CAL_CORRS             = 271
 FIFF.FIFF_SSS_ST_CORR               = 272
-FIFF.FIFF_SSS_NFREE                 = 278  # name not verified
+FIFF.FIFF_SSS_NFREE                 = 278
 FIFF.FIFF_SSS_ST_BUFLEN             = 279  # name not verified
 FIFF.FIFF_DECOUPLER_MATRIX          = 800
 #

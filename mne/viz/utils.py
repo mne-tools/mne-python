@@ -98,9 +98,14 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
     pad : float
         padding between the figure edge and the edges of subplots, as a
         fraction of the font-size.
-    h_pad, w_pad : float
-        padding (height/width) between edges of adjacent subplots.
+    h_pad : float
+        Padding height between edges of adjacent subplots.
         Defaults to `pad_inches`.
+    w_pad : float
+        Padding width between edges of adjacent subplots.
+        Defaults to `pad_inches`.
+    fig : instance of Figure
+        Figure to apply changes to.
     """
     import matplotlib.pyplot as plt
     if fig is None:

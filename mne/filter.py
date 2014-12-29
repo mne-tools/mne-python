@@ -29,8 +29,8 @@ def is_power2(num):
     b : bool
         True if is power of 2.
 
-    Example
-    -------
+    Examples
+    --------
     >>> is_power2(2 ** 3)
     True
     >>> is_power2(5)

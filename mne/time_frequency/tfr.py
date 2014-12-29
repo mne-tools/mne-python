@@ -559,6 +559,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     method : str | None
         Comment on the method used to compute the data, e.g., morlet wavelet.
         Defaults to None.
+
     Attributes
     ----------
     ch_names : list
@@ -634,18 +635,12 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         vmax : float | None
             The maxinum value an the color scale. If vmax is None, the data
             maximum value is used.
-        layout : Layout | None
-            Layout instance specifying sensor positions. If possible, the
-            correct layout is inferred from the data.
         cmap : matplotlib colormap | str
             The colormap to use. Defaults to 'RdBu_r'.
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
             If true, colorbar will be added to the plot
-        layout_scale : float
-            Scaling factor for adjusting the relative size of the layout
-            on the canvas
         show : bool
             Call pyplot.show() at the end.
         title : str | None
@@ -846,8 +841,6 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
         Parameters
         ----------
-        tfr : AvereageTFR
-            The AvereageTFR object.
         tmin : None | float
             The first time instant to display. If None the first time point
             available is used.

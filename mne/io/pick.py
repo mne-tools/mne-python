@@ -353,7 +353,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     return res
 
 
-def pick_types_evoked(orig, meg=True, eeg=False, stim=False, eog=False,
+def pick_types_evoked(info, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
                       syst=False, seeg=False, include=[], exclude='bads'):

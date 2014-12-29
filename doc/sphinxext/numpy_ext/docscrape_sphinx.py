@@ -1,9 +1,15 @@
-import re, inspect, textwrap, pydoc
-import sphinx
-from docscrape import NumpyDocString, FunctionDoc, ClassDoc
+import re
+import inspect
+import textwrap
+import pydoc
+from .docscrape import NumpyDocString
+from .docscrape import FunctionDoc
+from .docscrape import ClassDoc
+
 
 class SphinxDocString(NumpyDocString):
-    def __init__(self, docstring, config={}):
+    def __init__(self, docstring, config=None):
+        config = {} if config is None else config
         self.use_plots = config.get('use_plots', False)
         NumpyDocString.__init__(self, docstring, config=config)
 
@@ -17,7 +23,7 @@ class SphinxDocString(NumpyDocString):
     def _str_indent(self, doc, indent=4):
         out = []
         for line in doc:
-            out += [' '*indent + line]
+            out += [' ' * indent + line]
         return out
 
     def _str_signature(self):
@@ -38,11 +44,11 @@ class SphinxDocString(NumpyDocString):
         if self[name]:
             out += self._str_field_list(name)
             out += ['']
-            for param,param_type,desc in self[name]:
+            for param, param_type, desc in self[name]:
                 out += self._str_indent(['**%s** : %s' % (param.strip(),
                                                           param_type)])
                 out += ['']
-                out += self._str_indent(desc,8)
+                out += self._str_indent(desc, 8)
                 out += ['']
         return out
 
@@ -78,13 +84,16 @@ class SphinxDocString(NumpyDocString):
                     others.append((param, param_type, desc))
 
             if autosum:
-                out += ['.. autosummary::', '   :toctree:', '']
+                # GAEL: Toctree commented out below because it creates
+                # hundreds of sphinx warnings
+                # out += ['.. autosummary::', '   :toctree:', '']
+                out += ['.. autosummary::', '']
                 out += autosum
 
             if others:
                 maxlen_0 = max([len(x[0]) for x in others])
                 maxlen_1 = max([len(x[1]) for x in others])
-                hdr = "="*maxlen_0 + "  " + "="*maxlen_1 + "  " + "="*10
+                hdr = "=" * maxlen_0 + "  " + "=" * maxlen_1 + "  " + "=" * 10
                 fmt = '%%%ds  %%%ds  ' % (maxlen_0, maxlen_1)
                 n_indent = maxlen_0 + maxlen_1 + 4
                 out += [hdr]
@@ -126,7 +135,7 @@ class SphinxDocString(NumpyDocString):
         if len(idx) == 0:
             return out
 
-        out += ['.. index:: %s' % idx.get('default','')]
+        out += ['.. index:: %s' % idx.get('default', '')]
         for section, references in idx.iteritems():
             if section == 'default':
                 continue
@@ -146,10 +155,11 @@ class SphinxDocString(NumpyDocString):
             out += ['']
             # Latex collects all references to a separate bibliography,
             # so we need to insert links to it
+            import sphinx  # local import to avoid test dependency
             if sphinx.__version__ >= "0.6":
-                out += ['.. only:: latex','']
+                out += ['.. only:: latex', '']
             else:
-                out += ['.. latexonly::','']
+                out += ['.. latexonly::', '']
             items = []
             for line in self['References']:
                 m = re.match(r'.. \[([a-z0-9._-]+)\]', line, re.I)
@@ -178,32 +188,36 @@ class SphinxDocString(NumpyDocString):
         out += self._str_index() + ['']
         out += self._str_summary()
         out += self._str_extended_summary()
-        for param_list in ('Parameters', 'Returns', 'Raises'):
+        for param_list in ('Parameters', 'Returns', 'Raises', 'Attributes'):
             out += self._str_param_list(param_list)
         out += self._str_warnings()
         out += self._str_see_also(func_role)
         out += self._str_section('Notes')
         out += self._str_references()
         out += self._str_examples()
-        for param_list in ('Attributes', 'Methods'):
+        for param_list in ('Methods',):
             out += self._str_member_list(param_list)
-        out = self._str_indent(out,indent)
+        out = self._str_indent(out, indent)
         return '\n'.join(out)
+
 
 class SphinxFunctionDoc(SphinxDocString, FunctionDoc):
     def __init__(self, obj, doc=None, config={}):
         self.use_plots = config.get('use_plots', False)
         FunctionDoc.__init__(self, obj, doc=doc, config=config)
 
+
 class SphinxClassDoc(SphinxDocString, ClassDoc):
     def __init__(self, obj, doc=None, func_doc=None, config={}):
         self.use_plots = config.get('use_plots', False)
         ClassDoc.__init__(self, obj, doc=doc, func_doc=None, config=config)
 
+
 class SphinxObjDoc(SphinxDocString):
-    def __init__(self, obj, doc=None, config={}):
+    def __init__(self, obj, doc=None, config=None):
         self._f = obj
         SphinxDocString.__init__(self, doc, config=config)
+
 
 def get_doc_object(obj, what=None, doc=None, config={}):
     if what is None:

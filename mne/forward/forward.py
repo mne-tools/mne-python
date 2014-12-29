@@ -1101,7 +1101,7 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
 
     Parameters
     ----------
-    forward : dict
+    fwd : dict
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
@@ -1166,7 +1166,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
 
     Parameters
     ----------
-    forward : dict
+    fwd : dict
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.

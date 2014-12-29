@@ -373,7 +373,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
-    contour : int | False | None
+    contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
         The image interpolation to be used. All matplotlib options are

@@ -1367,11 +1367,11 @@ class ICA(ContainsMixin):
             The figure object.
         """
         return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
-                               axhline=axhline, title=title, figsize=figsize,
-                               show=show)
+                               picks=None, axhline=axhline, title=title,
+                               figsize=figsize, show=show)
 
-    def plot_overlay(self, inst, exclude=None, start=None, stop=None,
-                     title=None, show=True):
+    def plot_overlay(self, inst, exclude=None, picks=None, start=None,
+                     stop=None, title=None, show=True):
         """Overlay of raw and cleaned signals given the unmixing matrix.
 
         This method helps visualizing signal quality and arficat rejection.
@@ -1405,8 +1405,8 @@ class ICA(ContainsMixin):
         fig : instance of pyplot.Figure
             The figure.
         """
-        return plot_ica_overlay(self, inst=inst, exclude=exclude, start=start,
-                                stop=stop, title=title, show=show)
+        return plot_ica_overlay(self, inst=inst, exclude=exclude, picks=picks,
+                                start=start, stop=stop, title=title, show=show)
 
     def detect_artifacts(self, raw, start_find=None, stop_find=None,
                          ecg_ch=None, ecg_score_func='pearsonr',
@@ -1437,6 +1437,8 @@ class ICA(ContainsMixin):
 
         Parameters
         ----------
+        raw : instance of Raw
+            Raw object to draw sources from.
         start_find : int | float | None
             First sample to include for artifact search. If float, data will be
             interpreted as time in seconds. If None, data will be used from the
@@ -1607,10 +1609,10 @@ def ica_find_eog_events(raw, eog_source=None, event_id=998, l_freq=1,
         ICA source resembling EOG to find peaks from.
     event_id : int
         The index to assign to found events.
-    low_pass : float
-        Low pass frequency.
-    high_pass : float
-        High pass frequency.
+    l_freq : float
+        Low cut-off frequency in Hz.
+    h_freq : float
+        High cut-off frequency in Hz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1908,11 +1910,11 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
 @verbose
 def run_ica(raw, n_components, max_pca_components=100,
             n_pca_components=64, noise_cov=None, random_state=None,
-            verbose=None, picks=None, start=None, stop=None, start_find=None,
+            picks=None, start=None, stop=None, start_find=None,
             stop_find=None, ecg_ch=None, ecg_score_func='pearsonr',
             ecg_criterion=0.1, eog_ch=None, eog_score_func='pearsonr',
             eog_criterion=0.1, skew_criterion=-1, kurt_criterion=-1,
-            var_criterion=0, add_nodes=None):
+            var_criterion=0, add_nodes=None, verbose=None):
     """Run ICA decomposition on raw data and identify artifact sources
 
     This function implements an automated artifact removal work flow.
@@ -1960,17 +1962,6 @@ def run_ica(raw, n_components, max_pca_components=100,
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
-    algorithm : {'parallel', 'deflation'}
-        Apply parallel or deflational algorithm for FastICA
-    fun : string or function, optional. Default: 'logcosh'
-        The functional form of the G function used in the
-        approximation to neg-entropy. Could be either 'logcosh', 'exp',
-        or 'cube'.
-        You can also provide your own function. It should return a tuple
-        containing the value of the function, and of its derivative, in the
-        point.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     picks : array-like of int
         Channels to be included. This selection remains throughout the
         initialized ICA solution. If None only good data channels are used.
@@ -2042,6 +2033,8 @@ def run_ica(raw, n_components, max_pca_components=100,
         generalization of the artifact specific parameters above and has
         the same structure. Example:
         add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

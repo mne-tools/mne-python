@@ -498,12 +498,12 @@ def verbose(function, *args, **kwargs):
 
     Parameters
     ----------
-    function - function
+    function : function
         Function to be decorated by setting the verbosity level.
 
     Returns
     -------
-    dec - function
+    dec : function
         The decorated function
     """
     arg_names = inspect.getargspec(function).args

@@ -30,8 +30,8 @@ def stft(x, wsize, tstep=None, verbose=None):
         STFT coefficients for positive frequencies with
         n_step = ceil(T / tstep)
 
-    Usage
-    -----
+    Examples
+    --------
     X = stft(x, wsize)
     X = stft(x, wsize, tstep)
 
@@ -120,8 +120,8 @@ def istft(X, tstep=None, Tx=None):
     x : 1d array of length Tx
         vector containing the inverse STFT signal
 
-    Usage
-    -----
+    Examples
+    --------
     x = istft(X)
     x = istft(X, tstep)
 

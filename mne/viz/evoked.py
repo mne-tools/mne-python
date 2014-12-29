@@ -175,7 +175,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
                 ylim=None, proj=False, xlim='tight', hline=None, units=None,
-                scalings=None, titles=None, axes=None, plot_type="butterfly"):
+                scalings=None, titles=None, axes=None):
     """Plot evoked data
 
     Note: If bad channels are not excluded they are shown in red.

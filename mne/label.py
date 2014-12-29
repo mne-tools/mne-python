@@ -158,7 +158,11 @@ class Label(object):
         values at the vertices. If None, then ones are used.
     hemi : 'lh' | 'rh'
         Hemisphere to which the label applies.
-    comment, name, fpath : str
+    comment : str
+        Kept as information but not used by the object itself.
+    name : str
+        Kept as information but not used by the object itself.
+    filename : str
         Kept as information but not used by the object itself.
     subject : str | None
         Name of the subject the label is from.
@@ -658,16 +662,19 @@ class BiHemiLabel(object):
 
     Parameters
     ----------
-    lh, rh : Label
-        Label objects representing the left and the right hemisphere,
-        respectively
+    lh : Label
+        Label for the left hemisphere.
+    rh : Label
+        Label for the right hemisphere.
     name : None | str
         name for the label
 
     Attributes
     ----------
-    lh, rh : Label
-        Labels for the left and right hemisphere, respectively.
+    lh : Label
+        Label for the left hemisphere.
+    rh : Label
+        Label for the right hemisphere.
     name : None | str
         A name for the label. It is OK to change that attribute manually.
     subject : str | None

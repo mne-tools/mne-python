@@ -10,35 +10,70 @@ example files.
 Files that generate images should start with 'plot'
 
 """
+from __future__ import division, print_function
 from time import time
+import ast
 import os
+import re
 import shutil
 import traceback
 import glob
 import sys
-from StringIO import StringIO
-import cPickle
-import re
-import urllib2
 import gzip
 import posixpath
+import subprocess
+import warnings
+
+
+# Try Python 2 first, otherwise load from Python 3
+try:
+    from StringIO import StringIO
+    import cPickle as pickle
+    import urllib2 as urllib
+    from urllib2 import HTTPError, URLError
+except ImportError:
+    from io import StringIO
+    import pickle
+    import urllib.request
+    import urllib.error
+    import urllib.parse
+    from urllib.error import HTTPError, URLError
+
 
 try:
-    from PIL import Image
-except:
-    import Image
+    # Python 2 built-in
+    execfile
+except NameError:
+    def execfile(filename, global_vars=None, local_vars=None):
+        with open(filename) as f:
+            code = compile(f.read(), filename, 'exec')
+            exec(code, global_vars, local_vars)
 
-import matplotlib
-matplotlib.use('Agg')
+try:
+    basestring
+except NameError:
+    basestring = str
 
 import token
 import tokenize
+import numpy as np
+import joblib
+
+try:
+    # make sure that the Agg backend is set before importing any
+    # matplotlib
+    import matplotlib
+    matplotlib.use('Agg')
+except ImportError:
+    # this script can be imported by nosetest to find tests to run: we should not
+    # impose the matplotlib requirement in that case.
+    pass
+
 
 MAX_NB_LINES_STDOUT = 20
 
 ###############################################################################
 # A tee object to redict streams to multiple outputs
-
 
 class Tee(object):
 
@@ -58,29 +93,33 @@ class Tee(object):
 # Documentation link resolver objects
 
 
-def get_data(url):
+def _get_data(url):
     """Helper function to get data over http or from a local file"""
     if url.startswith('http://'):
+        # Try Python 2, use Python 3 on exception
         try:
-            resp = urllib2.urlopen(url)
+            resp = urllib.urlopen(url)
             encoding = resp.headers.dict.get('content-encoding', 'plain')
-            data = resp.read()
-            if encoding == 'plain':
-                pass
-            elif encoding == 'gzip':
-                data = StringIO(data)
-                data = gzip.GzipFile(fileobj=data).read()
-            else:
-                raise RuntimeError('unknown encoding')
-        except urllib2.HTTPError as err:
-            print 'Error downloading %s: %s' % (url, str(err))
-            return ''
+        except AttributeError:
+            resp = urllib.request.urlopen(url)
+            encoding = resp.headers.get('content-encoding', 'plain')
+        data = resp.read()
+        if encoding == 'plain':
+            pass
+        elif encoding == 'gzip':
+            data = StringIO(data)
+            data = gzip.GzipFile(fileobj=data).read()
+        else:
+            raise RuntimeError('unknown encoding')
     else:
         with open(url, 'r') as fid:
             data = fid.read()
         fid.close()
 
     return data
+
+mem = joblib.Memory(cachedir='_build')
+get_data = mem.cache(_get_data)
 
 
 def parse_sphinx_searchindex(searchindex):
@@ -154,6 +193,10 @@ def parse_sphinx_searchindex(searchindex):
 
         return dict_out
 
+    # Make sure searchindex uses UTF-8 encoding
+    if hasattr(searchindex, 'decode'):
+        searchindex = searchindex.decode('UTF-8')
+
     # parse objects
     query = 'objects:'
     pos = searchindex.find(query)
@@ -192,7 +235,7 @@ class SphinxDocLinkResolver(object):
     """
 
     def __init__(self, doc_url, searchindex='searchindex.js',
-                 extra_modules_test=[], relative=False):
+                 extra_modules_test=None, relative=False):
         self.doc_url = doc_url
         self.relative = relative
         self._link_cache = {}
@@ -211,7 +254,7 @@ class SphinxDocLinkResolver(object):
         if os.name.lower() == 'nt' and not doc_url.startswith('http://'):
             if not relative:
                 raise ValueError('You have to use relative=True for the local'
-                                 'package on a Windows system.')
+                                 ' package on a Windows system.')
             self._is_windows = True
         else:
             self._is_windows = False
@@ -226,21 +269,16 @@ class SphinxDocLinkResolver(object):
         """Get a valid link, False if not found"""
 
         fname_idx = None
-        modules_test = [cobj['module_short']] + self.extra_modules_test
-
-        for module in modules_test:
-            full_name = module + '.' + cobj['name']
-            if full_name in self._searchindex['objects']:
-                value = self._searchindex['objects'][full_name]
-                if isinstance(value, dict):
-                    value = value[value.keys()[0]]
-                fname_idx = value[0]
-            elif module in self._searchindex['objects']:
-                value = self._searchindex['objects'][module]
-                if cobj['name'] in value.keys():
-                    fname_idx = value[cobj['name']][0]
-            if fname_idx is not None:
-                break
+        full_name = cobj['module_short'] + '.' + cobj['name']
+        if full_name in self._searchindex['objects']:
+            value = self._searchindex['objects'][full_name]
+            if isinstance(value, dict):
+                value = value[next(iter(value.keys()))]
+            fname_idx = value[0]
+        elif cobj['module_short'] in self._searchindex['objects']:
+            value = self._searchindex['objects'][cobj['module_short']]
+            if cobj['name'] in value.keys():
+                fname_idx = value[cobj['name']][0]
 
         if fname_idx is not None:
             fname = self._searchindex['filenames'][fname_idx] + '.html'
@@ -251,6 +289,9 @@ class SphinxDocLinkResolver(object):
             else:
                 link = posixpath.join(self.doc_url, fname)
 
+            if hasattr(link, 'decode'):
+                link = link.decode('utf-8', 'replace')
+
             if link in self._page_cache:
                 html = self._page_cache[link]
             else:
@@ -258,11 +299,21 @@ class SphinxDocLinkResolver(object):
                 self._page_cache[link] = html
 
             # test if cobj appears in page
+            comb_names = [cobj['module_short'] + '.' + cobj['name']]
+            if self.extra_modules_test is not None:
+                for mod in self.extra_modules_test:
+                    comb_names.append(mod + '.' + cobj['name'])
             url = False
-            for comb_name in ['%s.%s' % (module, cobj['name']) for module
-                              in modules_test]:
-                if html.find(comb_name) >= 0:
-                    url = link + '#' + comb_name
+            if hasattr(html, 'decode'):
+                # Decode bytes under Python 3
+                html = html.decode('utf-8', 'replace')
+
+            for comb_name in comb_names:
+                if hasattr(comb_name, 'decode'):
+                    # Decode bytes under Python 3
+                    comb_name = comb_name.decode('utf-8', 'replace')
+                if comb_name in html:
+                    url = link + u'#' + comb_name
             link = url
         else:
             link = False
@@ -388,18 +439,19 @@ SINGLE_IMAGE = """
 """
 
 
-def extract_docstring(filename):
+
+def extract_docstring(filename, ignore_heading=False):
     """ Extract a module-level docstring, if any
     """
-    lines = file(filename).readlines()
+    lines = open(filename).readlines()
     start_row = 0
     if lines[0].startswith('#!'):
         lines.pop(0)
         start_row = 1
-
     docstring = ''
     first_par = ''
-    tokens = tokenize.generate_tokens(iter(lines).next)
+    line_iterator = iter(lines)
+    tokens = tokenize.generate_tokens(lambda: next(line_iterator))
     for tok_type, tok_content, _, (erow, _), _ in tokens:
         tok_type = token.tok_name[tok_type]
         if tok_type in ('NEWLINE', 'COMMENT', 'NL', 'INDENT', 'DEDENT'):
@@ -408,10 +460,23 @@ def extract_docstring(filename):
             docstring = eval(tok_content)
             # If the docstring is formatted with several paragraphs, extract
             # the first one:
-            paragraphs = '\n'.join(line.rstrip() for line in
-                                   docstring.split('\n')).split('\n\n')
-            if len(paragraphs) > 0:
-                first_par = paragraphs[0]
+            paragraphs = '\n'.join(
+                line.rstrip() for line
+                in docstring.split('\n')).split('\n\n')
+            if paragraphs:
+                if ignore_heading:
+                    if len(paragraphs) > 1:
+                        first_par = re.sub('\n', ' ', paragraphs[1])
+                        first_par = ((first_par[:95] + '...')
+                                     if len(first_par) > 95 else first_par)
+                    else:
+                        raise ValueError("Docstring not found by gallery.\n"
+                                         "Please check the layout of your"
+                                         " example file:\n {}\n and make sure"
+                                         " it's correct".format(filename))
+                else:
+                    first_par = paragraphs[0]
+
         break
     return docstring, first_par, erow + 1 + start_row
 
@@ -421,7 +486,8 @@ def generate_example_rst(app):
         examples.
     """
     root_dir = os.path.join(app.builder.srcdir, 'auto_examples')
-    example_dir = os.path.abspath(app.builder.srcdir + '/../../' + 'examples')
+    example_dir = os.path.abspath(os.path.join(app.builder.srcdir, '..', '..',
+                                               'examples'))
     try:
         plot_gallery = eval(app.builder.config.plot_gallery)
     except TypeError:
@@ -432,8 +498,8 @@ def generate_example_rst(app):
         os.makedirs(root_dir)
 
     # we create an index.rst with all examples
-    fhindex = file(os.path.join(root_dir, 'index.rst'), 'w')
-    #Note: The sidebar button has been removed from the examples page for now
+    fhindex = open(os.path.join(root_dir, 'index.rst'), 'w')
+    # Note: The sidebar button has been removed from the examples page for now
     #      due to how it messes up the layout. Will be fixed at a later point
     fhindex.write("""\
 
@@ -476,31 +542,33 @@ Examples
         if os.path.isdir(os.path.join(example_dir, dir)):
             generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery)
     fhindex.flush()
+    fhindex.close()
 
 
-def generate_dir_rst(dir, fhindex, example_dir, root_dir, plot_gallery):
+def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery):
     """ Generate the rst file for an example directory.
     """
-    if not dir == '.':
-        target_dir = os.path.join(root_dir, dir)
-        src_dir = os.path.join(example_dir, dir)
+    if not directory == '.':
+        target_dir = os.path.join(root_dir, directory)
+        src_dir = os.path.join(example_dir, directory)
     else:
         target_dir = root_dir
         src_dir = example_dir
     if not os.path.exists(os.path.join(src_dir, 'README.txt')):
-        print 80 * '_'
-        print ('Example directory %s does not have a README.txt file'
-               % src_dir)
-        print 'Skipping this directory'
-        print 80 * '_'
+        print(80 * '_')
+        print('Example directory %s does not have a README.txt file'
+              % src_dir)
+        print('Skipping this directory')
+        print(80 * '_')
         return
-    fhindex.write("""
+    with open(os.path.join(src_dir, 'README.txt')) as fid:
+        fhindex.write("""
 
 
 %s
 
 
-""" % file(os.path.join(src_dir, 'README.txt')).read())
+""" % fid.read())
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
 
@@ -546,6 +614,11 @@ def make_thumbnail(in_fname, out_fname, width, height):
     """Make a thumbnail with the same aspect ratio centered in an
        image with a given width and height
     """
+    # local import to avoid testing dependency on PIL:
+    try:
+        from PIL import Image
+    except ImportError:
+        import Image
     img = Image.open(in_fname)
     width_in, height_in = img.size
     scale_w = width / float(width_in)
@@ -564,7 +637,7 @@ def make_thumbnail(in_fname, out_fname, width, height):
 
     # insert centered
     thumb = Image.new('RGB', (width, height), (255, 255, 255))
-    pos_insert = ((width - width_sc) / 2, (height - height_sc) / 2)
+    pos_insert = ((width - width_sc) // 2, (height - height_sc) // 2)
     thumb.paste(img, pos_insert)
 
     thumb.save(out_fname)
@@ -638,9 +711,9 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                                'stdout_%s.txt' % base_image_name)
     time_path = os.path.join(image_dir,
                              'time_%s.txt' % base_image_name)
-    thumb_file = os.path.join(thumb_dir, fname[:-3] + '.png')
+    thumb_file = os.path.join(thumb_dir, base_image_name + '.png')
     time_elapsed = 0
-    if plot_gallery:
+    if plot_gallery and fname.startswith('plot'):
         # generate the plot as png image if file name
         # starts with plot and if it is more recent than an
         # existing image.
@@ -652,18 +725,17 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
         if os.path.exists(time_path):
             time_elapsed = float(open(time_path).read())
 
-        if (not os.path.exists(first_image_file) or
-                os.stat(first_image_file).st_mtime
-                <= os.stat(src_file).st_mtime):
+        if not os.path.exists(first_image_file) or \
+           os.stat(first_image_file).st_mtime <= os.stat(src_file).st_mtime:
             # We need to execute the code
-            print 'plotting %s' % fname
+            print('plotting %s' % fname)
             t0 = time()
             import matplotlib.pyplot as plt
             plt.close('all')
 
             try:
                 from mayavi import mlab
-            except Exception, e:
+            except Exception:
                 from enthought.mayavi import mlab
             mlab.close(all=True)
 
@@ -687,7 +759,7 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                 for var_name, var in my_globals.iteritems():
                     if not hasattr(var, '__module__'):
                         continue
-                    if not isinstance(var.__module__, basestring):
+                    if not isinstance(var.__module__, string_types):
                         continue
                     if var.__module__.split('.')[0] not in DOCMODULES:
                         continue
@@ -718,15 +790,16 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                             try:
                                 exec('this_fun = %s' % fun_name, my_globals)
                             except Exception as err:
-                                print ('Error: extracting function %s failed: '
-                                       '%s' % (fun_name, str(err)))
+                                print('Error: extracting function %s failed: '
+                                      '%s' % (fun_name, str(err)))
                                 continue
                             this_fun = my_globals['this_fun']
                             if not callable(this_fun):
                                 continue
                             if not hasattr(this_fun, '__module__'):
                                 continue
-                            if not isinstance(this_fun.__module__, basestring):
+                            if not isinstance(this_fun.__module__,
+                                              string_types):
                                 continue
                             if (this_fun.__module__.split('.')[0]
                                     not in DOCMODULES):
@@ -748,14 +821,15 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                     codeobj_fname = example_file[:-3] + '_codeobj.pickle'
                     with open(codeobj_fname, 'wb') as fid:
                         cPickle.dump(example_code_obj, fid,
-                                     cPickle.HIGHEST_PROTOCOL)
+                                    cPickle.HIGHEST_PROTOCOL)
                     fid.close()
                 if '__doc__' in my_globals:
                     # The __doc__ is often printed in the example, we
                     # don't with to echo it
-                    my_stdout = my_stdout.replace(my_globals['__doc__'],
-                                                  '')
-                my_stdout = my_stdout.strip()
+                    my_stdout = my_stdout.replace(
+                        my_globals['__doc__'],
+                        '')
+                my_stdout = my_stdout.strip().expandtabs()
                 if my_stdout:
                     output_lines = my_stdout.split('\n')
                     if len(output_lines) > MAX_NB_LINES_STDOUT:
@@ -801,15 +875,15 @@ def generate_file_rst(fname, target_dir, src_dir, plot_gallery):
                     mlab.close(scene)
 
             except:
-                print 80 * '_'
-                print '%s is not compiling:' % fname
+                print(80 * '_')
+                print('%s is not compiling:' % fname)
                 traceback.print_exc()
-                print 80 * '_'
+                print(80 * '_')
             finally:
                 os.chdir(cwd)
                 sys.stdout = orig_stdout
 
-            print " - time elapsed : %.2g sec" % time_elapsed
+            print(" - time elapsed : %.2g sec" % time_elapsed)
         else:
             figure_list = [f[len(image_dir):]
                            for f in glob.glob(image_path % '[1-9]')]
@@ -844,7 +918,7 @@ def embed_code_links(app, exception):
     """Embed hyperlinks to documentation into example code"""
     if exception is not None:
         return
-    print 'Embedding documentation hyperlinks in examples..'
+    print('Embedding documentation hyperlinks in examples..')
 
     # Add resolvers for the packages for which we want to show links
     doc_resolvers = {}
@@ -867,6 +941,7 @@ def embed_code_links(app, exception):
     example_dir = os.path.join(app.builder.srcdir, 'auto_examples')
     html_example_dir = os.path.abspath(os.path.join(app.builder.outdir,
                                                     'auto_examples'))
+
     # patterns for replacement
     link_pattern = '<a href="%s">%s</a>'
     orig_pattern = '<span class="n">%s</span>'
@@ -874,7 +949,7 @@ def embed_code_links(app, exception):
 
     for dirpath, _, filenames in os.walk(html_example_dir):
         for fname in filenames:
-            print '\tprocessing: %s' % fname
+            print('\tprocessing: %s' % fname)
             full_fname = os.path.join(html_example_dir, dirpath, fname)
             subpath = dirpath[len(html_example_dir) + 1:]
             pickle_fname = os.path.join(example_dir, subpath,
@@ -883,38 +958,49 @@ def embed_code_links(app, exception):
             if os.path.exists(pickle_fname):
                 # we have a pickle file with the objects to embed links for
                 with open(pickle_fname, 'rb') as fid:
-                    example_code_obj = cPickle.load(fid)
+                    example_code_obj = pickle.load(fid)
                 fid.close()
                 str_repl = {}
                 # generate replacement strings with the links
-                for name, cobj in example_code_obj.iteritems():
+                for name, cobj in example_code_obj.items():
                     this_module = cobj['module'].split('.')[0]
 
                     if this_module not in doc_resolvers:
                         continue
 
-                    link = doc_resolvers[this_module].resolve(cobj,
-                                                              full_fname)
+                    try:
+                        link = doc_resolvers[this_module].resolve(cobj,
+                                                                  full_fname)
+                    except (HTTPError, URLError) as e:
+                        print("The following error has occurred:\n")
+                        print(repr(e))
+                        continue
+
                     if link is not None:
                         parts = name.split('.')
-                        name_html = orig_pattern % parts[0]
-                        for part in parts[1:]:
-                            name_html += period + orig_pattern % part
+                        name_html = period.join(orig_pattern % part
+                                                for part in parts)
                         str_repl[name_html] = link_pattern % (link, name_html)
                 # do the replacement in the html file
-                if len(str_repl) > 0:
-                    with open(full_fname, 'rt') as fid:
-                        lines_in = fid.readlines()
-                    fid.close()
-                    with open(full_fname, 'wt') as fid:
-                        for line in lines_in:
-                            for name, link in str_repl.iteritems():
-                                line = line.replace(name.encode('utf-8'),
-                                                    link.encode('utf-8'))
-                            fid.write(line)
-                    fid.close()
 
-    print '[done]'
+                # ensure greediness
+                names = sorted(str_repl, key=len, reverse=True)
+                expr = re.compile(r'(?<!\.)\b' +  # don't follow . or word
+                                  '|'.join(re.escape(name)
+                                           for name in names))
+
+                def substitute_link(match):
+                    return str_repl[match.group()]
+
+                if len(str_repl) > 0:
+                    with open(full_fname, 'rb') as fid:
+                        lines_in = fid.readlines()
+                    with open(full_fname, 'wb') as fid:
+                        for line in lines_in:
+                            line = line.decode('utf-8')
+                            line = expr.sub(substitute_link, line)
+                            fid.write(line.encode('utf-8'))
+    print('[done]')
 
 
 def setup(app):
@@ -938,9 +1024,14 @@ def setup(app):
     #  changes their layout between versions, this will not work (though
     #  it should probably not cause a crash).  Tested successfully
     #  on Sphinx 1.0.7
-    build_image_dir = 'build/html/_images'
+    build_image_dir = '_build/html/_images'
     if os.path.exists(build_image_dir):
         filelist = os.listdir(build_image_dir)
         for filename in filelist:
             if filename.endswith('png'):
                 os.remove(os.path.join(build_image_dir, filename))
+
+
+def setup_module():
+    # HACK: Stop nosetests running setup() above
+    pass

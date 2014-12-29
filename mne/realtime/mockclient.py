@@ -103,6 +103,8 @@ class MockRtClient(object):
             Start time before event.
         tmax : float
             End time after event.
+        picks : array-like of int
+            Indices of channels.
         stim_channel : None | string | list of string
             Name of the stim channel or all the stim channels
             affected by the trigger. If None, the config variables

@@ -52,8 +52,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     return evoked_noise
 
 
-def generate_noise_evoked(evoked, noise_cov, iir_filter=None,
-                          random_state=None):
+def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     """Creates noise as a multivariate Gaussian
 
     The spatial covariance of the noise is given from the cov matrix.

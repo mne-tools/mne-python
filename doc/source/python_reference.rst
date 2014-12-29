@@ -31,6 +31,7 @@ Classes
    io.RawFIFF
    Epochs
    Evoked
+   SourceSpaces
    SourceEstimate
    VolSourceEstimate
    MixedSourceEstimate
@@ -130,6 +131,7 @@ Functions:
    decimate_surface
    get_head_surf
    get_meg_helmet_surf
+   get_volume_labels_from_aseg
    parse_config
    read_labels_from_annot
    read_bem_solution
@@ -352,12 +354,10 @@ Manipulate channels and set sensors locations for processing and plotting:
    create_eog_epochs
    find_ecg_events
    find_eog_events
-   find_outlier_adaptive
    ica_find_ecg_events
    ica_find_eog_events
    read_ica
    run_ica
-   infomax
 
 :py:mod:`mne.filter`:
 
@@ -528,23 +528,6 @@ Functions:
    :no-members:
    :no-inherited-members:
 
-.. currentmodule:: mne.source_space
-
-Classes:
-
-.. autosummary::
-   :toctree: generated/
-   :template: class.rst
-
-   SourceSpaces
-
-Functions:
-
-.. autosummary::
-   :toctree: generated/
-   :template: function.rst
-
-   get_volume_labels_from_aseg
 
 Inverse Solutions
 =================
@@ -637,7 +620,7 @@ Source Space Data
    label_sign_flip
    morph_data
    morph_data_precomputed
-   read_annot
+   read_labels_from_annot
    read_dip
    read_label
    read_source_estimate
@@ -647,7 +630,7 @@ Source Space Data
    transform_coordinates
    transform_surface_to
    vertex_to_mni
-   write_annot
+   write_labels_to_annot
    write_label
 
 
