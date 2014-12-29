@@ -747,7 +747,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
     cov_methods = [c.__name__ if callable(c) else c for c in method]
     runtime_infos, covs = list(runtime_infos), list(covs)
-    my_zip = zip(*[cov_methods, runtime_infos, logliks, covs, estimators])
+    my_zip = zip(cov_methods, runtime_infos, logliks, covs, estimators)
     for this_method, runtime_info, loglik, data, est in my_zip:
         out[this_method] = {'loglik': loglik, 'data': data, 'estimator': est}
         if runtime_info is not None:
@@ -871,28 +871,29 @@ if check_sklearn_version('0.15') is True:
             EmpiricalCovariance.fit(self, X)
             cov = self.covariance_
 
-            is_cross_cov = np.ones_like(cov, dtype=bool)
             if not isinstance(self.shrinkage, (list, tuple)):
                 shrinkage = [('all', self.shrinkage, np.arange(len(cov)))]
             else:
                 shrinkage = self.shrinkage
+
+            is_cross_cov = np.ones_like(cov, dtype=bool)
             for ch_type, c, picks in shrinkage:
                 is_cross_cov[np.ix_(picks, picks)] = False
-                self.is_cross_cov_ = is_cross_cov
+            self.is_cross_cov_ = is_cross_cov
 
-            if self.keep_cross_cov is False:
-                cov[is_cross_cov] = 0.0
-            elif self.keep_cross_cov is True:
+            if self.keep_cross_cov is True:
                 for a, b in itt.combinations(shrinkage, 2):
                     ch_ = a[0], b[0]
                     shrinkage_i, shrinkage_j = a[1], b[1]
                     picks_i, picks_j = a[2], b[2]
                     if 'eeg' not in ch_:
-                        c_ij = np.sqrt((1 - shrinkage_i) * (1 - shrinkage_j))
+                        c_ij = np.sqrt((1. - shrinkage_i) * (1. - shrinkage_j))
                     else:
                         c_ij = 0.0
                     cov[np.ix_(picks_i, picks_j)] *= c_ij
                     cov[np.ix_(picks_j, picks_i)] *= c_ij
+            else:
+                cov[is_cross_cov] = 0.0
 
             for ch_type, c, picks in shrinkage:
                 sub_cov = cov[np.ix_(picks, picks)]
