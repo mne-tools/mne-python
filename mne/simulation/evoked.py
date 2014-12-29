@@ -74,7 +74,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
         an instance of evoked
     """
     noise = copy.deepcopy(evoked)
-    noise_cov = pick_channels_cov(noise_cov, include=noise.info['ch_names'])
+    noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
     rng = check_random_state(random_state)
     n_channels = np.zeros(noise.info['nchan'])
     n_samples = evoked.data.shape[1]

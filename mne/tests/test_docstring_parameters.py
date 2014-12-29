@@ -5,7 +5,6 @@ from os import path as op
 import inspect
 import warnings
 import imp
-from importlib import import_module
 from mne.utils import run_tests_if_main, SkipTest
 
 public_modules = [
@@ -107,7 +106,7 @@ def test_docstring_parameters():
         raise SkipTest('This must be run from the mne-python source directory')
     incorrect = []
     for name in public_modules:
-        module = import_module(name)
+        module = __import__(name, globals())
         classes = inspect.getmembers(module, inspect.isclass)
         for cname, cls in classes:
             if cname.startswith('_'):
