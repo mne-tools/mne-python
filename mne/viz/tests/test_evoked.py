@@ -55,6 +55,7 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    picks[0] = 2  # make sure we have a magnetometer
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     return epochs
@@ -104,3 +105,8 @@ def test_plot_evoked():
         cov['method'] = 'empirical'
         evoked.plot_white(cov)
         evoked.plot_white([cov, cov])
+
+        # Hack to test plotting of maxfiltered data
+        evoked_sss = evoked.copy()
+        evoked_sss.info['proc_history'] = [dict(max_info=None)]
+        evoked_sss.plot_white(cov)

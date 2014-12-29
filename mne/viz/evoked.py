@@ -341,18 +341,15 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         has_sss = 'max_info' in proc_history[0] and has_meg
     if has_sss:
         logger.info('SSS has been applied to data. Showing mag and grad '
-                    'whitening jointly')
+                    'whitening jointly.')
 
     evoked = evoked.copy()  # handle ref meg
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
     evoked.pick_channels([evoked.ch_names[k] for k in picks], copy=False)
-    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
     picks_list = _picks_by_type(evoked.info, meg_combined=has_sss)
     if has_meg and has_sss:
-        ch_used = list(zip(*picks_list))[0]
-    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
+        ch_used = [c for c, _ in picks_list]
     n_ch_used = len(ch_used)
 
     # make sure we use the same rank estimates for GFP and whitening
@@ -435,6 +432,8 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
             for hline in [-1.96, 1.96]:
                 ax.axhline(hline, color='red', linestyle='--')
+
+    # Now plot the GFP
     for evoked_white, noise_cov, rank_, color in iter_gfp:
         i = 0
         for ch, sub_picks in picks_list:
@@ -460,6 +459,7 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             ax_gfp[i].axhline(1, color='red', linestyle='--')
             if n_columns > 1:
                 i += 1
+
     ax = ax_gfp[0]
     if n_columns == 1:
         ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.9), fontsize=12)
