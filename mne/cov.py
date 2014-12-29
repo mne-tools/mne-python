@@ -671,9 +671,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((est, est.covariance_, _info))
 
         elif this_method == 'diagonal_fixed':
-            Est = cp.deepcopy(_RegCovariance)
-            Est.info = info
-            est = Est(**method_params[this_method])
+            est = _RegCovariance(info=info, **method_params[this_method])
             est.fit(data_)
             _info = None
             estimator_cov_info.append((est, est.covariance_, _info))
@@ -716,7 +714,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((sc, sc.covariance_, _info))
 
         elif this_method == 'pca':
-            mp = cp.deepcopy(method_params[this_method])
+            mp = method_params[this_method]
             pca, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early,
@@ -725,7 +723,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
             estimator_cov_info.append((pca, pca.get_covariance(), _info))
 
         elif this_method == 'factor_analysis':
-            mp = cp.deepcopy(method_params[this_method])
+            mp = method_params[this_method]
             fa, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
                                              method_params=mp, cv=cv,
                                              stop_early=stop_early,
@@ -769,6 +767,7 @@ def _cross_val(data, est, cv, n_jobs):
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
                          verbose=None):
     """compute latent variable models"""
+    method_params = cp.deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
     if iter_n_components is None:
         iter_n_components = np.arange(5, data.shape[1], 5)
@@ -834,13 +833,14 @@ if check_sklearn_version('0.15') is True:
     class _RegCovariance(EmpiricalCovariance):
         """Aux class"""
 
-        def __init__(self, grad=0.01, mag=0.01, eeg=0.0,
+        def __init__(self, info, grad=0.01, mag=0.01, eeg=0.0,
                      store_precision=False, assume_centered=False):
-            self.store_precision = store_precision
-            self.assume_centered = assume_centered
+            self.info = info
             self.grad = grad
             self.mag = mag
             self.eeg = eeg
+            self.store_precision = store_precision
+            self.assume_centered = assume_centered
 
         def fit(self, X):
             EmpiricalCovariance.fit(self, X)
