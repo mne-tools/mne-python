@@ -416,7 +416,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         Defaults to ``dict(grad=1e-13, mag=4e-15, eeg=1e-6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
-    n_jobs : int | str
+    n_jobs : int
         Number of jobs to run in parallel.
     return_estimators : bool
         Whether to return all estimators or the best. Only considered if
