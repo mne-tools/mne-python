@@ -1015,7 +1015,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if noise_cov['diag'] is False:
-        C = noise_cov.data[C_ch_idx][:, C_ch_idx]
+        C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
     else:
         C = np.diag(noise_cov.data[C_ch_idx])
 
@@ -1056,7 +1056,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         rank_meg, rank_eeg = None, None
 
     if has_meg:
-        C_meg = C[C_meg_idx][:, C_meg_idx]
+        C_meg = C[np.ix_(C_meg_idx, C_meg_idx)]
         this_info = pick_info(info, pick_meg)
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
@@ -1065,7 +1065,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
                                                 rank_meg)
     if has_eeg:
-        C_eeg = C[C_eeg_idx][:, C_eeg_idx]
+        C_eeg = C[np.ix_(C_eeg_idx, C_eeg_idx)]
         this_info = pick_info(info, pick_eeg)
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
@@ -1189,7 +1189,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
 
         logger.info("    %s regularization : %s" % (desc, reg))
 
-        this_C = C[idx][:, idx]
+        this_C = C[np.ix_(idx, idx)]
         if proj:
             this_ch_names = [ch_names[k] for k in idx]
             P, ncomp, _ = make_projector(projs, this_ch_names)
@@ -1589,7 +1589,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
 
     Parameters
     ----------
-    data : np.ndarray of float, shape(n_channels, n_channels)
+    data : np.ndarray of float, shape (n_channels, n_channels)
         The M/EEG covariance.
     info : mne.io.measurement_info.Info
         The measurment info.
