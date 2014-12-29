@@ -13,7 +13,7 @@ from mne import find_events, Epochs, pick_types, concatenate_raws
 from mne.io import Raw
 from mne.io.array import RawArray
 from mne.io.meas_info import create_info, _kind_dict
-from mne.utils import _TempDir
+from mne.utils import _TempDir, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests might throw warnings
 
@@ -21,6 +21,7 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'tests', 'data')
 fif_fname = op.join(base_dir, 'test_raw.fif')
 
 
+@slow_test
 def test_array_raw():
     """Test creating raw from array
     """

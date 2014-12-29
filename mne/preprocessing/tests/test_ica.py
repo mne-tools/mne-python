@@ -23,7 +23,7 @@ from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
 from mne.preprocessing.ica import score_funcs, _check_n_pca_components
 from mne.io.meas_info import Info
-from mne.utils import set_log_file, _TempDir, requires_sklearn
+from mne.utils import set_log_file, _TempDir, requires_sklearn, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -229,6 +229,7 @@ def test_ica_core():
     assert_raises(ValueError, ica.apply, offender)
 
 
+@slow_test
 @requires_sklearn
 def test_ica_additional():
     """Test additional ICA functionality"""

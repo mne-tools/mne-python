@@ -14,12 +14,12 @@ from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 from mne.datasets import testing
 from mne import (label_time_courses, read_label, stc_to_label,
                  read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label)
+                 read_labels_from_annot, write_labels_to_annot, split_label,
+                 spatial_tris_connectivity, read_surface)
 from mne.label import Label, _blend_colors
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
-                       run_tests_if_main)
+                       run_tests_if_main, slow_test)
 from mne.fixes import digitize, in1d, assert_is, assert_is_not
-from mne import spatial_tris_connectivity, read_surface
 from mne.label import _n_colors
 from mne.source_space import SourceSpaces
 from mne.source_estimate import mesh_edges
@@ -533,6 +533,7 @@ def test_split_label():
     assert_equal(antmost.name, "lingual_div40-lh")
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_sklearn
 def test_stc_to_label():
@@ -595,6 +596,7 @@ def test_stc_to_label():
         assert_labels_equal(l1, l2, decimal=4)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_morph():
     """Test inter-subject label morphing

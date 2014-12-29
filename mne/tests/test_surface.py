@@ -15,7 +15,7 @@ from mne import (read_bem_surfaces, write_bem_surface, read_surface,
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
-from mne.utils import _TempDir, requires_tvtk, run_tests_if_main
+from mne.utils import _TempDir, requires_tvtk, run_tests_if_main, slow_test
 from mne.io import read_info
 from mne.transforms import _get_mri_head_t_from_trans_file
 
@@ -87,6 +87,7 @@ def test_compute_nearest():
         assert_array_equal(nn1, nn2)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_make_morph_maps():
     """Test reading and creating morph maps

@@ -114,19 +114,19 @@ def _write_proc_history(fid, info):
         end_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
 
 
-_sss_info_keys = ['task', 'frame', 'origin', 'in_order',
+_sss_info_keys = ['job', 'frame', 'origin', 'in_order',
                   'out_order', 'nchan', 'components', 'nfree',
                   'hpi_g_limit', 'hpi_dist_limit']
-_sss_info_ids = [FIFF.FIFF_SSS_INFO_TASK,
-                 FIFF.FIFF_SSS_INFO_COORD_FRAME,
-                 FIFF.FIFF_SSS_INFO_ORIGIN,
-                 FIFF.FIFF_SSS_INFO_IN_ORDER,
-                 FIFF.FIFF_SSS_INFO_OUT_ORDER,
-                 FIFF.FIFF_SSS_INFO_NCHAN,
-                 FIFF.FIFF_SSS_INFO_COMPONENTS,
-                 FIFF.FIFF_SSS_INFO_NFREE,
-                 FIFF.FIFF_SSS_INFO_HPI_G_LIMIT,
-                 FIFF.FIFF_SSS_INFO_HPI_DIST_LIMIT]
+_sss_info_ids = [FIFF.FIFF_SSS_JOB,
+                 FIFF.FIFF_SSS_FRAME,
+                 FIFF.FIFF_SSS_ORIGIN,
+                 FIFF.FIFF_SSS_ORD_IN,
+                 FIFF.FIFF_SSS_ORD_OUT,
+                 FIFF.FIFF_SSS_NMAG,
+                 FIFF.FIFF_SSS_COMPONENTS,
+                 FIFF.FIFF_SSS_NFREE,
+                 FIFF.FIFF_HPI_FIT_GOOD_LIMIT,
+                 FIFF.FIFF_HPI_FIT_DIST_LIMIT]
 _sss_info_writers = [write_int, write_int, write_float, write_int,
                      write_int, write_int, write_int, write_int,
                      write_float, write_float]
@@ -135,25 +135,25 @@ _sss_info_casters = [int, int, np.array, int,
                      float, float]
 
 _max_st_keys = ['subspcorr', 'buflen']
-_max_st_ids = [FIFF.FIFF_SSST_SUBSPCOR, FIFF.FIFF_SSST_BUFLEN]
+_max_st_ids = [FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_BUFLEN]
 _max_st_writers = [write_float, write_float]
 _max_st_casters = [float, float]
 
 _sss_ctc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
-                 'date', 'creator', 'ctc']
+                 'date', 'creator', 'decoupler']
 _sss_ctc_ids = [FIFF.FIFF_PARENT_FILE_ID,
                 FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_PARENT_BLOCK_ID,
                 FIFF.FIFF_MEAS_DATE,
                 FIFF.FIFF_CREATOR,
-                FIFF.FIFF_SSS_CTC_CTC_MAT]
+                FIFF.FIFF_DECOUPLER_MATRIX]
 _sss_ctc_writers = [write_id, write_id, write_id,
                     write_int, write_string, write_float_sparse_rcs]
 _sss_ctc_casters = [dict, dict, dict,
                     list, str, csc_matrix]
 
-_sss_cal_keys = ['cal_chans', 'cal_coef']
-_sss_cal_ids = [FIFF.FIFF_SSS_CAL_CHNLS, FIFF.FIFF_SSS_CAL_COEFF]
+_sss_cal_keys = ['cal_chans', 'cal_corrs']
+_sss_cal_ids = [FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS]
 _sss_cal_writers = [write_int_matrix, write_float_matrix]
 _sss_cal_casters = [np.array, np.array]
 
@@ -188,7 +188,7 @@ def _read_maxfilter_record(fid, tree):
                     max_st[key] = cast(tag.data)
                     break
 
-    sss_ctc_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CTC)  # 501
+    sss_ctc_block = dir_tree_find(tree, FIFF.FIFFB_CHANNEL_DECOUPLER)  # 501
     sss_ctc = dict()
     if len(sss_ctc_block) > 0:
         sss_ctc_block = sss_ctc_block[0]
@@ -202,11 +202,11 @@ def _read_maxfilter_record(fid, tree):
                     sss_ctc[key] = cast(tag.data)
                     break
             else:
-                if kind == FIFF.FIFF_SSS_CTC_PROJ_ITEM_CHS:
+                if kind == FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST:
                     tag = read_tag(fid, pos)
                     sss_ctc['proj_items_chs'] = tag.data.split(':')
 
-    sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL_ADJUST)  # 503
+    sss_cal_block = dir_tree_find(tree, FIFF.FIFFB_SSS_CAL)  # 503
     sss_cal = dict()
     if len(sss_cal_block) > 0:
         sss_cal_block = sss_cal_block[0]
@@ -247,24 +247,24 @@ def _write_maxfilter_record(fid, record):
 
     sss_ctc = record['sss_ctc']
     if len(sss_ctc) > 0:  # dict has entries
-        start_block(fid, FIFF.FIFFB_SSS_CTC)
+        start_block(fid, FIFF.FIFFB_CHANNEL_DECOUPLER)
         for key, id_, writer in zip(_sss_ctc_keys, _sss_ctc_ids,
                                     _sss_ctc_writers):
             if key in sss_ctc:
                 writer(fid, id_, sss_ctc[key])
         if 'proj_items_chs' in sss_ctc:
-            write_string(fid, FIFF.FIFF_SSS_CTC_PROJ_ITEM_CHS,
+            write_string(fid, FIFF.FIFF_PROJ_ITEM_CH_NAME_LIST,
                          ':'.join(sss_ctc['proj_items_chs']))
-        end_block(fid, FIFF.FIFFB_SSS_CTC)
+        end_block(fid, FIFF.FIFFB_CHANNEL_DECOUPLER)
 
     sss_cal = record['sss_cal']
     if len(sss_cal) > 0:
-        start_block(fid, FIFF.FIFFB_SSS_CAL_ADJUST)
+        start_block(fid, FIFF.FIFFB_SSS_CAL)
         for key, id_, writer in zip(_sss_cal_keys, _sss_cal_ids,
                                     _sss_cal_writers):
             if key in sss_cal:
                 writer(fid, id_, sss_cal[key])
-        end_block(fid, FIFF.FIFFB_SSS_CAL_ADJUST)
+        end_block(fid, FIFF.FIFFB_SSS_CAL)
 
 
 def _get_sss_rank(sss):

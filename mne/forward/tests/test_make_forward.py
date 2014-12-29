@@ -19,7 +19,7 @@ from mne import (read_forward_solution, make_forward_solution,
                  convert_forward_solution, setup_volume_source_space,
                  read_source_spaces)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
-                       run_tests_if_main)
+                       run_tests_if_main, slow_test)
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces, setup_source_space)
@@ -164,6 +164,7 @@ def test_make_forward_solution_kit():
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
@@ -249,6 +250,7 @@ def test_do_forward_solution():
     # done in previous tests.
 
 
+@slow_test
 @testing.requires_testing_data
 @requires_nibabel(False)
 def test_forward_mixed_source_space():

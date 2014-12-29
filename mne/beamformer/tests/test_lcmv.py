@@ -11,7 +11,7 @@ from mne.datasets import testing
 from mne.beamformer import lcmv, lcmv_epochs, lcmv_raw, tf_lcmv
 from mne.beamformer._lcmv import _lcmv_source_power
 from mne.externals.six import advance_iterator
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, slow_test
 
 
 data_path = testing.data_path(download=False)
@@ -91,6 +91,7 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True, epochs=True,
         forward_surf_ori, forward_fixed, forward_vol
 
 
+@slow_test
 @testing.requires_testing_data
 def test_lcmv():
     """Test LCMV with evoked data and single trials

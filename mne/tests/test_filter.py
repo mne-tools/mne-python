@@ -11,7 +11,7 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         notch_filter, detrend)
 
 from mne import set_log_file
-from mne.utils import _TempDir, sum_squared, run_tests_if_main
+from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
 from mne.cuda import cuda_capable
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
@@ -102,6 +102,7 @@ def test_resample():
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
 
 
+@slow_test
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling
     """

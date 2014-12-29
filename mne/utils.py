@@ -525,6 +525,13 @@ def verbose(function, *args, **kwargs):
     return function(*args, **kwargs)
 
 
+@nottest
+def slow_test(f):
+    """Decorator for slow tests"""
+    f.slow_test = True
+    return f
+
+
 def has_nibabel(vox2ras_tkr=False):
     try:
         import nibabel
