@@ -462,9 +462,7 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                 i += 1
     ax = ax_gfp[0]
     if n_columns == 1:
-        box = ax.get_position()
-        ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
-        ax.legend(loc='upper right', bbox_to_anchor=(1.25, 1.05), fontsize=12)
+        ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.9), fontsize=12)
     else:
         ax.legend(loc='upper right', fontsize=10)
         params = dict(top=[0.69, 0.82, 0.87][n_rows - 1],
