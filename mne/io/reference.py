@@ -30,12 +30,13 @@ def _apply_reference(raw, ref_from, ref_to=None, copy=True):
         all EEG channels are chosen.
     copy : bool
         Specifies whether instance of Raw will be copied or modified in place.
+        Defaults to True.
 
     Returns
     -------
     raw : instance of Raw
         Instance of Raw with EEG channels rereferenced.
-    ref_data : array
+    ref_data : array, shape (n_times,)
         Array of reference data subtracted from EEG channels.
 
     Notes
