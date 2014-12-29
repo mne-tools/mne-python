@@ -359,7 +359,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
     Parameters
     ----------
     epochs : instance of Epochs, or a list of Epochs objects
-        The epochs
+        The epochs.
     keep_sample_mean : bool
         If False, the average response over epochs is computed for
         each event type and subtracted during the covariance
@@ -554,7 +554,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
             tslice = _get_tslice(epochs_t, tmin, tmax)
             for e in epochs_t:
-                e = e[picks_meeg][:, tslice]
+                e = e[picks_meeg, tslice]
                 if not keep_sample_mean:
                     data_mean[i] += e
                 n_samples[i] += e.shape[1]
