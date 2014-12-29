@@ -135,8 +135,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                    fig=fig, layout_scale=layout_scale,
                                    axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
-                                   fig_facecolor=fig_facecolor,
-                                   colorbar=colorbar)
+                                   fig_facecolor=fig_facecolor)
 
     for ax, ch_idx in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:

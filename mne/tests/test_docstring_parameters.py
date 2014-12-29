@@ -6,8 +6,7 @@ import inspect
 import warnings
 import imp
 from importlib import import_module
-import sys
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, SkipTest
 
 public_modules = [
     # the list of modules users need to access for all functionality
@@ -36,7 +35,10 @@ public_modules = [
 
 docscrape_path = op.join(op.dirname(__file__), '..', '..', 'doc', 'sphinxext',
                          'numpy_ext', 'docscrape.py')
-docscrape = imp.load_source('docscrape', docscrape_path)
+if op.isfile(docscrape_path):
+    docscrape = imp.load_source('docscrape', docscrape_path)
+else:
+    docscrape = None
 
 
 def get_name(func):
@@ -101,6 +103,8 @@ def check_parameters_match(func, doc=None):
 
 def test_docstring_parameters():
     """Test module docsting formatting"""
+    if docscrape is None:
+        raise SkipTest('This must be run from the mne-python source directory')
     incorrect = []
     for name in public_modules:
         module = import_module(name)

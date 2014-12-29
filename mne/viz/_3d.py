@@ -560,8 +560,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
-    modes=['cone', 'sphere'],
-    scale_factors=[1, 0.6],
+    modes = ['cone', 'sphere']
+    scale_factors = [1, 0.6]
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):

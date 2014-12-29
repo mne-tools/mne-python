@@ -353,7 +353,7 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     return res
 
 
-def pick_types_evoked(info, meg=True, eeg=False, stim=False, eog=False,
+def pick_types_evoked(evoked, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,
                       syst=False, seeg=False, include=[], exclude='bads'):
@@ -361,8 +361,8 @@ def pick_types_evoked(info, meg=True, eeg=False, stim=False, eog=False,
 
     Parameters
     ----------
-    info : dict
-        The measurement info
+    evoked : instance of Evoked
+        Evoked object to operate on.
     meg : bool or string
         If True include all MEG channels. If False include None
         If string it can be 'mag' or 'grad' to select only gradiometers
@@ -406,7 +406,7 @@ def pick_types_evoked(info, meg=True, eeg=False, stim=False, eog=False,
         Evoked data restricted to selected channels. If include and
         exclude are None it returns orig without copy.
     """
-    sel = pick_types(info=orig.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
+    sel = pick_types(info=evoked.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
                      ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
                      resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
                      seeg=seeg, include=include, exclude=exclude)

@@ -57,7 +57,9 @@ General code guidelines
 
 * mne-python adheres to the same docstring formatting as seen on
   `numpy style`_.
-  New public functions should have all variables defined.
+  New public functions should have all variables defined. The test suite
+  has some functionality that checks docstrings, but docstrings should
+  still be checked for clarity, uniformity, and completeness.
 
 * New functionality should be covered by appropriate tests, e.g. a method in
   ``mne/evoked.py`` should have a corresponding test in

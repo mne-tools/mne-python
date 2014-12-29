@@ -1367,7 +1367,7 @@ class ICA(ContainsMixin):
             The figure object.
         """
         return plot_ica_scores(ica=self, scores=scores, exclude=exclude,
-                               picks=None, axhline=axhline, title=title,
+                               axhline=axhline, title=title,
                                figsize=figsize, show=show)
 
     def plot_overlay(self, inst, exclude=None, picks=None, start=None,
