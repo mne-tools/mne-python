@@ -53,6 +53,8 @@ Changelog
 
    - Add automated regularization with support for multiple sensor types to mne.cov.compute_covariance by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Add ``mne.viz.plot_evoked_white`` function and `Evoked.plot_white` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
+
 BUG
 ~~~
 
@@ -100,6 +102,8 @@ API
    - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
 
    - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and made private by `Teon Brooks`_
+
+   - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann` and `Eric Larson`_ and `Alex Gramfort`_
 
 .. _changes_0_8:
 
