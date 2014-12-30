@@ -513,7 +513,7 @@ FIFF.FIFF_SSS_CAL_CHANS             = 270
 FIFF.FIFF_SSS_CAL_CORRS             = 271
 FIFF.FIFF_SSS_ST_CORR               = 272
 FIFF.FIFF_SSS_NFREE                 = 278
-FIFF.FIFF_SSS_ST_BUFLEN             = 279  # name not verified
+FIFF.FIFF_SSS_ST_LENGTH             = 279
 FIFF.FIFF_DECOUPLER_MATRIX          = 800
 #
 # Fiff values associated with MNE computations

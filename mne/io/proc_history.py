@@ -135,7 +135,7 @@ _sss_info_casters = [int, int, np.array, int,
                      float, float]
 
 _max_st_keys = ['subspcorr', 'buflen']
-_max_st_ids = [FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_BUFLEN]
+_max_st_ids = [FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_LENGTH]
 _max_st_writers = [write_float, write_float]
 _max_st_casters = [float, float]
 
