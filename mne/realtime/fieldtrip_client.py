@@ -207,6 +207,16 @@ class FieldTripClient(object):
 
         else:
 
+            # XXX: the data in real-time mode and offline mode
+            # does not match unless this is done
+            self.info['projs'] = list()
+
+            # FieldTrip buffer already does the calibration
+            for this_info in self.info['chs']:
+                this_info['range'] = 1.0
+                this_info['cal'] = 1.0
+                this_info['unit_mul'] = 0
+
             info = copy.deepcopy(self.info)
 
         return info
