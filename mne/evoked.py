@@ -581,8 +581,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Parameters
         ----------
-        evoked : instance of mne.Evoked
-            The evoked response.
         noise_cov : list | instance of Covariance
             The noise covariance as computed by ``mne.cov.compute_covariance``.
         show : bool
