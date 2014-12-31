@@ -114,10 +114,10 @@ def _write_proc_history(fid, info):
         end_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
 
 
-_sss_info_keys = ['job', 'frame', 'origin', 'in_order',
+_sss_info_keys = ('job', 'frame', 'origin', 'in_order',
                   'out_order', 'nchan', 'components', 'nfree',
-                  'hpi_g_limit', 'hpi_dist_limit']
-_sss_info_ids = [FIFF.FIFF_SSS_JOB,
+                  'hpi_g_limit', 'hpi_dist_limit')
+_sss_info_ids = (FIFF.FIFF_SSS_JOB,
                  FIFF.FIFF_SSS_FRAME,
                  FIFF.FIFF_SSS_ORIGIN,
                  FIFF.FIFF_SSS_ORD_IN,
@@ -126,36 +126,36 @@ _sss_info_ids = [FIFF.FIFF_SSS_JOB,
                  FIFF.FIFF_SSS_COMPONENTS,
                  FIFF.FIFF_SSS_NFREE,
                  FIFF.FIFF_HPI_FIT_GOOD_LIMIT,
-                 FIFF.FIFF_HPI_FIT_DIST_LIMIT]
-_sss_info_writers = [write_int, write_int, write_float, write_int,
+                 FIFF.FIFF_HPI_FIT_DIST_LIMIT)
+_sss_info_writers = (write_int, write_int, write_float, write_int,
                      write_int, write_int, write_int, write_int,
-                     write_float, write_float]
-_sss_info_casters = [int, int, np.array, int,
+                     write_float, write_float)
+_sss_info_casters = (int, int, np.array, int,
                      int, int, np.array, int,
-                     float, float]
+                     float, float)
 
-_max_st_keys = ['subspcorr', 'buflen']
-_max_st_ids = [FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_LENGTH]
-_max_st_writers = [write_float, write_float]
-_max_st_casters = [float, float]
+_max_st_keys = ('subspcorr', 'buflen')
+_max_st_ids = (FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_LENGTH)
+_max_st_writers = (write_float, write_float)
+_max_st_casters = (float, float)
 
-_sss_ctc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
-                 'date', 'creator', 'decoupler']
-_sss_ctc_ids = [FIFF.FIFF_PARENT_FILE_ID,
+_sss_ctc_keys = ('parent_file_id', 'block_id', 'parent_block_id',
+                 'date', 'creator', 'decoupler')
+_sss_ctc_ids = (FIFF.FIFF_PARENT_FILE_ID,
                 FIFF.FIFF_BLOCK_ID,
                 FIFF.FIFF_PARENT_BLOCK_ID,
                 FIFF.FIFF_MEAS_DATE,
                 FIFF.FIFF_CREATOR,
-                FIFF.FIFF_DECOUPLER_MATRIX]
-_sss_ctc_writers = [write_id, write_id, write_id,
-                    write_int, write_string, write_float_sparse_rcs]
-_sss_ctc_casters = [dict, dict, dict,
-                    list, str, csc_matrix]
+                FIFF.FIFF_DECOUPLER_MATRIX)
+_sss_ctc_writers = (write_id, write_id, write_id,
+                    write_int, write_string, write_float_sparse_rcs)
+_sss_ctc_casters = (dict, dict, dict,
+                    list, str, csc_matrix)
 
-_sss_cal_keys = ['cal_chans', 'cal_corrs']
-_sss_cal_ids = [FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS]
-_sss_cal_writers = [write_int_matrix, write_float_matrix]
-_sss_cal_casters = [np.array, np.array]
+_sss_cal_keys = ('cal_chans', 'cal_corrs')
+_sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
+_sss_cal_writers = (write_int_matrix, write_float_matrix)
+_sss_cal_casters = (np.array, np.array)
 
 
 def _read_maxfilter_record(fid, tree):
