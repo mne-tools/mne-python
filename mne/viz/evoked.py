@@ -299,7 +299,7 @@ def _plot_update_evoked(params, bools):
     params['fig'].canvas.draw()
 
 
-def plot_evoked_white(evoked, noise_cov, scalings=None, show=True):
+def plot_evoked_white(evoked, noise_cov, show=True):
     """Plot whitened evoked response
 
     Plots the whitened evoked response and the whitened GFP as described in
@@ -319,15 +319,6 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, show=True):
         The evoked response.
     noise_cov : list | instance of Covariance
         The noise covariance as computed by ``mne.cov.compute_covariance``.
-    scalings : dict | None
-        The rescaling method to be applied to improve the accuracy of rank
-        estimaiton. If dict, it will update the following default dict
-        (used if None):
-
-            dict(mag=1e12, grad=1e11, eeg=1e5)
-
-        Note. Theses values were tested on different datests across various
-        conditions. You should not need to update them.
     show : bool
         Whether to show the figure or not. Defaults to True.
 
@@ -343,7 +334,7 @@ def plot_evoked_white(evoked, noise_cov, scalings=None, show=True):
         NeuroImage.
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
-                              scalings=scalings, rank=None, show=show)
+                              scalings=None, rank=None, show=show)
 
 
 def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
@@ -351,6 +342,16 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     Additional Paramter
     -------------------
+    scalings : dict | None
+        The rescaling method to be applied to improve the accuracy of rank
+        estimaiton. If dict, it will override the following default values
+        (used if None):
+
+            dict(mag=1e12, grad=1e11, eeg=1e5)
+
+        Note. Theses values were tested on different datests across various
+        conditions. You should not need to update them.
+
     rank : dict of int | None
         Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
         the rank is detected automatically. Defaults to None. Note.

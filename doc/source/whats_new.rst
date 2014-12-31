@@ -103,7 +103,7 @@ API
 
    - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and made private by `Teon Brooks`_
 
-   - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann` and `Eric Larson`_ and `Alex Gramfort`_
+   - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann`_ and `Eric Larson`_ and `Alex Gramfort`_
 
 .. _changes_0_8:
 

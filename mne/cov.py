@@ -1006,7 +1006,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         to specify the rank for each modality.
     scalings : dict | None
         Data will be rescaled before rank estimation to improve accuracy.
-        If dict, it will update the following dict (default if None):
+        If dict, it will override the following dict (default if None):
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
 
@@ -1293,7 +1293,7 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     scalings : dict | None
         To achieve reliable rank estimation on multiple sensors,
         sensors have to be rescaled. This parameter controls the
-        rescaling. If dict, it will update the
+        rescaling. If dict, it will override the
         following default dict (default if None):
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
@@ -1548,7 +1548,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
     info : mne.io.measurement_info.Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will update the
+        The rescaling method to be applied. If dict, it will override the
         following default dict:
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
@@ -1595,7 +1595,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
     info : mne.io.measurement_info.Info
         The measurment info.
     scalings : dict | 'norm' | np.ndarray | None
-        The rescaling method to be applied. If dict, it will update the
+        The rescaling method to be applied. If dict, it will override the
         following default dict:
 
             dict(mag=1e15, grad=1e13, eeg=1e6)

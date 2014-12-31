@@ -3,12 +3,15 @@
 Demonstrate impact of whitening on source estimates
 ===================================================
 
-This example computes dSPM source estimates for the SPM faces data and compares
-proper regularization with insufficient regularization based on the methods
-described in [1]. The example demonstrates that insufficient regularization can
-lead to overestimation of source amplitudes. The example makes use of the
-previous, non-optimized code path that was used before implementing the
-suggestions presented in [1].
+This example demonstrates the relationship between the noise covariance
+estimate and the MNE / dSPM source amplitudes. It computes source estimates for
+the SPM faces data and compares proper regularization with insufficient
+regularization based on the methods described in [1]. The example demonstrates
+that improper regularization can lead to overestimation of source amplitudes.
+This example makes use of the previous, non-optimized code path that was used
+before implementing the suggestions presented in [1]. Please do not copy the
+patterns presented here for your own analysis, this is example is purely
+illustrative.
 
 References
 ----------
@@ -107,10 +110,12 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
     # compute stc based on worst and best
     for est, ax, kind, color in zip(noise_covs, (ax_stc_worst, ax_stc_best),
                                     ['best', 'worst'], best_colors):
-        # we skip empirical rank estimation that we introduced in response to
+        # We skip empirical rank estimation that we introduced in response to
         # the findings in reference [1] to use the naive code path that
         # triggered the behavior described in [1]. The expected true rank is
-        # 274 for this dataset.
+        # 274 for this dataset. Please do not do this with your data but
+        # rely on the default rank estimator that helps regularizing the
+        # covariance.
         inverse_operator = make_inverse_operator(epochs_train.info, forward,
                                                  est, loose=0.2, depth=0.8,
                                                  rank=274)

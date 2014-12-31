@@ -583,15 +583,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The evoked response.
         noise_cov : list | instance of Covariance
             The noise covariance as computed by ``mne.cov.compute_covariance``.
-        scalings : dict | None
-            The rescaling method to be applied to improve the accuracy of rank
-            estimaiton. If dict, it will update the following default dict
-            (used if None):
-
-                dict(mag=1e12, grad=1e11, eeg=1e5)
-
-            Note. Theses values were tested on different datests across various
-            conditions. You should not need to update them.
         show : bool
             Whether to show the figure or not. Defaults to True.
 
@@ -606,7 +597,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             covariance estimation and spatial whitening of MEG and EEG signals.
             NeuroImage.
         """
-        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=scalings,
+        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
 
     def to_nitime(self, picks=None):
