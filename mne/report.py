@@ -1359,7 +1359,11 @@ class Report(object):
         """
         kwargs = dict(info=info, trans_fname=trans_fname, subject=subject,
                       subjects_dir=subjects_dir)
-        img = _iterate_trans_views(function=plot_trans, **kwargs)
+        try:
+            img = _iterate_trans_views(function=plot_trans, **kwargs)
+        except IOError:
+            img = _iterate_trans_views(function=plot_trans, source='head',
+                                       **kwargs)
 
         if img is not None:
             global_id = self._get_id()
