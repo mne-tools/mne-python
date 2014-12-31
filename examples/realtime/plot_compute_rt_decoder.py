@@ -13,8 +13,6 @@ accuracy is plotted
 
 print(__doc__)
 
-import time
-
 import mne
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
@@ -70,15 +68,18 @@ clf = SVC(C=1, kernel='linear')
 concat_classifier = Pipeline([('filter', filt), ('concat', concatenator),
                               ('scaler', scaler), ('svm', clf)])
 
+data_picks = mne.pick_types(rt_epochs.info, meg='grad', eeg=False, eog=True,
+                            stim=False, exclude=raw.info['bads'])
+
 for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
 
     print("Just got epoch %d" % (ev_num + 1))
 
     if ev_num == 0:
-        X = ev.data[None, ...]
-        y = int(ev.comment)
+        X = ev.data[None, data_picks, :]
+        y = int(ev.comment)  # the comment attribute contains the event_id
     else:
-        X = np.concatenate((X, ev.data[None, ...]), axis=0)
+        X = np.concatenate((X, ev.data[None, data_picks, :]), axis=0)
         y = np.append(y, int(ev.comment))
 
     if ev_num >= min_trials:
@@ -94,18 +95,19 @@ for ev_num, ev in enumerate(rt_epochs.iter_evoked()):
         # Plot accuracy
         plt.clf()
 
-        plt.plot(scores_x[-5:], scores[-5:], '+', label="Classif. score")
+        plt.plot(scores_x, scores, '+', label="Classif. score")
         plt.hold(True)
-        plt.plot(scores_x[-5:], scores[-5:])
+        plt.plot(scores_x, scores)
         plt.axhline(50, color='k', linestyle='--', label="Chance level")
-        hyp_limits = (np.asarray(scores[-5:]) - np.asarray(std_scores[-5:]),
-                      np.asarray(scores[-5:]) + np.asarray(std_scores[-5:]))
-        plt.fill_between(scores_x[-5:], hyp_limits[0], y2=hyp_limits[1],
+        hyp_limits = (np.asarray(scores) - np.asarray(std_scores),
+                      np.asarray(scores) + np.asarray(std_scores))
+        plt.fill_between(scores_x, hyp_limits[0], y2=hyp_limits[1],
                          color='b', alpha=0.5)
         plt.xlabel('Trials')
         plt.ylabel('Classification score (% correct)')
+        plt.xlim([min_trials, 50])
         plt.ylim([30, 105])
         plt.title('Real-time decoding')
-        plt.show()
-
-        time.sleep(0.1)
+        plt.show(block=False)
+        plt.pause(0.01)
+plt.show()
