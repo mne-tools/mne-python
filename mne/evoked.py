@@ -19,6 +19,7 @@ from .utils import (_check_pandas_installed, check_fname, logger, verbose,
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
+from .viz.evoked import _plot_evoked_white
 from .externals.six import string_types
 
 from .io.constants import FIFF
@@ -560,6 +561,44 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
+
+    def plot_white(self, noise_cov, scalings=None, show=True):
+        """Plot whitened evoked response
+
+        Plots the whitened evoked response and the whitened GFP as described in
+        [1]. If one single covariance object is passed, the GFP panel (bottom)
+        will depict different sensor sensor types. If multiple covariance
+        objects are passed as a list, the left column will display the whitened
+        evoked responses for each channel based on the whitener from the noise
+        covariance that has the highest log-likelihood. The left column will
+        depict the whitened GFPs based on each estimator separately for each
+        sensor type. Instead of numbers of channels the GFP display shows the
+        estimated rank. The rank estimation will be printed by the logger for
+        each noise covariance estimator that is passed.
+
+
+        Parameters
+        ----------
+        evoked : instance of mne.Evoked
+            The evoked response.
+        noise_cov : list | instance of Covariance
+            The noise covariance as computed by ``mne.cov.compute_covariance``.
+        show : bool
+            Whether to show the figure or not. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure object containing the plot.
+
+        References
+        ----------
+        [1] Engemann D. and Gramfort A (in press). Automated model selection in
+            covariance estimation and spatial whitening of MEG and EEG signals.
+            NeuroImage.
+        """
+        return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
+                                  rank=None, show=show)
 
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime

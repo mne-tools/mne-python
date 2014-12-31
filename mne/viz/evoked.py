@@ -15,10 +15,12 @@ from itertools import cycle
 
 import numpy as np
 
-from ..io.pick import channel_type
+from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
 from .utils import _mutable_defaults, _check_delayed_ssp
 from .utils import _draw_proj_checkbox, tight_layout
+from ..utils import logger
+from ..io.pick import pick_info
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -295,3 +297,230 @@ def _plot_update_evoked(params, bools):
         else:
             ax.images[0].set_data(D)
     params['fig'].canvas.draw()
+
+
+def plot_evoked_white(evoked, noise_cov, show=True):
+    """Plot whitened evoked response
+
+    Plots the whitened evoked response and the whitened GFP as described in
+    [1]. If one single covariance object is passed, the GFP panel (bottom)
+    will depict different sensor sensor types. If multiple covariance objects
+    are passed as a list, the left column will display the whitened evoked
+    responses for each channel based on the whitener from the noise covariance
+    that has the highest log-likelihood. The left column will depict the
+    whitened GFPs based on each estimator separately for each sensor type.
+    Instead of numbers of channels the GFP display shows the estimated rank.
+    Note. The rank estimation will be printed by the logger for each noise
+    covariance estimator that is passed.
+
+    Parameters
+    ----------
+    evoked : instance of mne.Evoked
+        The evoked response.
+    noise_cov : list | instance of Covariance
+        The noise covariance as computed by ``mne.cov.compute_covariance``.
+    show : bool
+        Whether to show the figure or not. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure object containing the plot.
+
+    References
+    ----------
+    [1] Engemann D. and Gramfort A (in press). Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals.
+        NeuroImage.
+    """
+    return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
+                              scalings=None, rank=None, show=show)
+
+
+def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
+    """helper to plot_evoked_white
+
+    Additional Paramter
+    -------------------
+    scalings : dict | None
+        The rescaling method to be applied to improve the accuracy of rank
+        estimaiton. If dict, it will override the following default values
+        (used if None):
+
+            dict(mag=1e12, grad=1e11, eeg=1e5)
+
+        Note. Theses values were tested on different datests across various
+        conditions. You should not need to update them.
+
+    rank : dict of int | None
+        Dict of ints where keys are 'eeg', 'mag' or 'grad'. If None,
+        the rank is detected automatically. Defaults to None. Note.
+        The rank estimation will be printed by the logger for each noise
+        covariance estimator that is passed.
+
+    """
+
+    from ..cov import whiten_evoked  # recursive import
+    from ..cov import _estimate_rank_meeg_cov
+    import matplotlib.pyplot as plt
+    if scalings is None:
+        scalings = dict(mag=1e12, grad=1e11, eeg=1e5)
+
+    ch_used = [ch for ch in ['eeg', 'grad', 'mag'] if ch in evoked]
+    has_meg = 'mag' in ch_used and 'grad' in ch_used
+
+    if not isinstance(noise_cov, (list, tuple)):
+        noise_cov = [noise_cov]
+
+    proc_history = evoked.info.get('proc_history', [])
+    has_sss = False
+    if len(proc_history) > 0:
+        # if SSSed, mags and grad are not longer independent
+        # for correct display of the whitening we will drop the cross-terms
+        # (the gradiometer * magnetometer covariance)
+        has_sss = 'max_info' in proc_history[0] and has_meg
+    if has_sss:
+        logger.info('SSS has been applied to data. Showing mag and grad '
+                    'whitening jointly.')
+
+    evoked = evoked.copy()  # handle ref meg
+    evoked.info['projs'] = []  # either applied already or not-- otherwise issue
+
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
+    evoked.pick_channels([evoked.ch_names[k] for k in picks], copy=False)
+    # important to re-pick. will otherwise crash on systems with ref channels
+    # as first sensor block
+    picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
+                       exclude='bads')
+
+    picks_list = _picks_by_type(evoked.info, meg_combined=has_sss)
+    if has_meg and has_sss:
+        # reduce ch_used to combined mag grad
+        ch_used = list(zip(*picks_list))[0]
+    # order pick list by ch_used (required for compat with plot_evoked)
+    picks_list = [x for x, y in sorted(zip(picks_list, ch_used))]
+    n_ch_used = len(ch_used)
+
+    # make sure we use the same rank estimates for GFP and whitening
+    rank_list = []
+    for cov in noise_cov:
+        rank_ = {}
+        C = cov['data'].copy()
+        picks_list2 = [k for k in picks_list]
+        if rank is None:
+            if has_meg and not has_sss:
+                picks_list2 += _picks_by_type(evoked.info,
+                                              meg_combined=True)
+            for ch_type, this_picks in picks_list2:
+                this_info = pick_info(evoked.info, this_picks)
+                idx = np.ix_(this_picks, this_picks)
+                this_rank = _estimate_rank_meeg_cov(C[idx], this_info, scalings)
+                rank_[ch_type] = this_rank
+        if rank is not None:
+            rank_.update(rank)
+        rank_list.append(rank_)
+    evokeds_white = [whiten_evoked(evoked, n, picks, rank=r)
+                     for n, r in zip(noise_cov, rank_list)]
+
+    axes_evoked = None
+
+    def whitened_gfp(x, rank=None):
+        """Whitened Global Field Power
+
+        The MNE inverse solver assumes zero mean whitened data as input.
+        Therefore, a chi^2 statistic will be best to detect model violations.
+        """
+        return np.sum(x ** 2, axis=0) / (len(x) if rank is None else rank)
+
+    # prepare plot
+    if len(noise_cov) > 1:
+        n_columns = 2
+        n_extra_row = 0
+    else:
+        n_columns = 1
+        n_extra_row = 1
+
+    n_rows = n_ch_used + n_extra_row
+    fig, axes = plt.subplots(n_rows,
+                             n_columns, sharex=True, sharey=False,
+                             figsize=(8.8, 2.2 * n_rows))
+    if n_columns > 1:
+        suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
+                    'and global field power '
+                    '(right, comparison of estimators)' %
+                    noise_cov[0]['method'])
+        fig.suptitle(suptitle)
+
+    ax_gfp = None
+    if any(((n_columns == 1 and n_ch_used == 1),
+            (n_columns == 1 and n_ch_used > 1),
+            (n_columns == 2 and n_ch_used == 1))):
+        axes_evoked = axes[:n_ch_used]
+        ax_gfp = axes[-1:]
+    elif n_columns == 2 and n_ch_used > 1:
+        axes_evoked = axes[:n_ch_used, 0]
+        ax_gfp = axes[:, 1]
+    else:
+        raise RuntimeError('Wrong axes inputs')
+
+    times = evoked.times * 1e3
+    titles_ = _mutable_defaults(('titles', None))[0]
+    if has_sss:
+        titles_['meg'] = 'MEG (combined)'
+
+    colors = [plt.cm.Set1(i) for i in np.linspace(0, 0.5, len(noise_cov))]
+    ch_colors = {'eeg': 'black', 'mag': 'blue', 'grad': 'cyan',
+                 'meg': 'steelblue'}
+    iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
+
+    if not has_sss:
+        evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
+    else:
+        for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
+            ax.plot(times, evokeds_white[0].data[picks].T, color='k')
+            for hline in [-1.96, 1.96]:
+                ax.axhline(hline, color='red', linestyle='--')
+
+    # Now plot the GFP
+    for evoked_white, noise_cov, rank_, color in iter_gfp:
+        i = 0
+        for ch, sub_picks in picks_list:
+            this_rank = rank_[ch]
+            title = '{0} ({2}{1})'.format(
+                    titles_[ch] if n_columns > 1 else ch,
+                    this_rank, 'rank ' if n_columns > 1 else '')
+            label = noise_cov['method']
+
+            ax_gfp[i].set_title(title if n_columns > 1 else
+                                'whitened global field power (GFP),'
+                                ' method = "%s"' % label)
+
+            data = evoked_white.data[sub_picks]
+            gfp = whitened_gfp(data, rank=this_rank)
+            ax_gfp[i].plot(times, gfp,
+                           label=(label if n_columns > 1 else title),
+                           color=color if n_columns > 1 else ch_colors[ch])
+            ax_gfp[i].set_xlabel('times [ms]')
+            ax_gfp[i].set_ylabel('GFP [chi^2]')
+            ax_gfp[i].set_xlim(times[0], times[-1])
+            ax_gfp[i].set_ylim(0, 10)
+            ax_gfp[i].axhline(1, color='red', linestyle='--')
+            if n_columns > 1:
+                i += 1
+
+    ax = ax_gfp[0]
+    if n_columns == 1:
+        ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.9), fontsize=12)
+    else:
+        ax.legend(loc='upper right', fontsize=10)
+        params = dict(top=[0.69, 0.82, 0.87][n_rows - 1],
+                      bottom=[0.22, 0.13, 0.09][n_rows - 1])
+        if has_sss:
+            params['hspace'] = 0.49
+        fig.subplots_adjust(**params)
+    fig.canvas.draw()
+
+    if show is True:
+        fig.show()
+    return fig

@@ -565,6 +565,7 @@ def _picks_by_type(info, meg_combined=False, ref_meg=False):
         Whether to return combined picks for grad and mag.
     ref_meg : bool
         If True include CTF / 4D reference channels
+
     Returns
     -------
     picks_list : list of tuples

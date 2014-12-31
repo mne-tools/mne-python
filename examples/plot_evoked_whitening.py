@@ -3,44 +3,78 @@
 Whitening evoked data with a noise covariance
 =============================================
 
-Evoked data are loaded and then whitened using a given
-noise covariance matrix. It's an excellent
-quality check to see if baseline signals match the assumption
-of Gaussian whiten noise from which we expect values around
-and less than 2 standard deviations.
+Evoked data are loaded and then whitened using a given noise covariance
+matrix. It's an excellent quality check to see if baseline signals match
+the assumption of Gaussian white noise from which we expect values around
+0 with less than 2 standard deviations. Covariance estimation and diagnostic
+plots are based on [1].
+
+References
+----------
+[1] Engemann D. and Gramfort A. Automated model selection in covariance
+    estimation and spatial whitening of MEG and EEG signals. (in press.)
+    NeuroImage.
 
 """
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis A. Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 print(__doc__)
 
-from mne import read_cov, whiten_evoked, pick_types, read_evokeds
-from mne.cov import regularize
+import mne
+
+from mne import io
 from mne.datasets import sample
-
-data_path = sample.data_path()
-
-fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
-
-# Reading
-evoked = read_evokeds(fname, condition=0, baseline=(None, 0), proj=True)
-noise_cov = read_cov(cov_fname)
+from mne.cov import compute_covariance
 
 ###############################################################################
-# Show result
+# Set parameters
 
-  # Pick channels to view
-picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-evoked.plot(picks=picks)
+data_path = sample.data_path()
+raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
+event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 
-noise_cov = regularize(noise_cov, evoked.info, grad=0.1, mag=0.1, eeg=0.1)
+raw = io.Raw(raw_fname, preload=True)
+raw.filter(1, 40, method='iir', n_jobs=1)
+raw.info['bads'] += ['MEG 2443']  # bads + 1 more
+events = mne.read_events(event_fname)
 
-evoked_white = whiten_evoked(evoked, noise_cov, picks, diag=True)
+# let's look at rare events, button presses
+event_id, tmin, tmax = 2, -0.2, 0.5
+picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, exclude='bads')
+reject = dict(mag=4e-12, grad=4000e-13, eeg=80e-6)
 
-# plot the whitened evoked data to see if baseline signals match the
-# assumption of Gaussian whiten noise from which we expect values around
-# and less than 2 standard deviations.
-evoked_white.plot(picks=picks, unit=False, hline=[-2, 2])
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    baseline=None, reject=reject, preload=True)
+
+# Uncomment next line to use fewer samples and study regularization effects
+# epochs = epochs[:20]  # For your data, use as many samples as you can!
+
+###############################################################################
+# Compute covariance using automated regularization
+noise_covs = compute_covariance(epochs, tmin=None, tmax=0, method='auto',
+                                return_estimators=True, verbose=True, n_jobs=1,
+                                projs=None)
+
+# With "return_estimator=True" all estimated covariances sorted
+# by log-likelihood are returned.
+
+print('Covariance estimates sorted from best to worst')
+for c in noise_covs:
+    print("%s : %s" % (c['method'], c['loglik']))
+
+###############################################################################
+# Show whitening
+
+evoked = epochs.average()
+
+evoked.plot()  # plot evoked response
+
+# plot the whitened evoked data for to see if baseline signals match the
+# assumption of Gaussian white noise from which we expect values around
+# 0 with less than 2 standard deviations. For the Global field power we expect
+# a value of 1.
+
+evoked.plot_white(noise_covs)

@@ -19,7 +19,7 @@ matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
-from mne import pick_types
+from mne import pick_types, read_cov
 from mne.channels import read_layout
 
 
@@ -55,6 +55,7 @@ def _get_epochs():
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
     picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    picks[0] = 2  # make sure we have a magnetometer
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
     return epochs
@@ -99,3 +100,13 @@ def test_plot_evoked():
         evoked.plot_image(exclude='bads')
         evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
+
+        cov = read_cov(cov_fname)
+        cov['method'] = 'empirical'
+        evoked.plot_white(cov)
+        evoked.plot_white([cov, cov])
+
+        # Hack to test plotting of maxfiltered data
+        evoked_sss = evoked.copy()
+        evoked_sss.info['proc_history'] = [dict(max_info=None)]
+        evoked_sss.plot_white(cov)
