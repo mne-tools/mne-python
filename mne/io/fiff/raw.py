@@ -176,13 +176,17 @@ class RawFIFF(_BaseRaw):
             raw_node = dir_tree_find(meas, FIFF.FIFFB_RAW_DATA)
             if len(raw_node) == 0:
                 raw_node = dir_tree_find(meas, FIFF.FIFFB_CONTINUOUS_DATA)
-                if allow_maxshield:
+                if (len(raw_node) == 0) and allow_maxshield:
                     raw_node = dir_tree_find(meas, FIFF.FIFFB_SMSH_RAW_DATA)
-                    if len(raw_node) == 0:
-                        raise ValueError('No raw data in %s' % fname)
-                else:
-                    if len(raw_node) == 0:
-                        raise ValueError('No raw data in %s' % fname)
+                    msg = ('This file contains raw Internal Active Shielding '
+                           'data. It may be distorted. Elekta recommends it be'
+                           ' run through MaxFilter to produce reliable '
+                           'results. Consider closing the file and running '
+                           'MaxFilter on the data.')
+                    warnings.warn(msg)
+
+            if len(raw_node) == 0:
+                raise ValueError('No raw data in %s' % fname)
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
