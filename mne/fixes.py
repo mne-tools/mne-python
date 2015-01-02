@@ -773,22 +773,27 @@ def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
     higher-precision accumulator using the `dtype` keyword can alleviate
     this issue.
     """
+    if keepdims is True:
+        keepdims_ = [slice(None, None, None) for _ in arr.ndim]
+        keepdims_[axis] = np.newaxis
+    else:
+        keepdims = Ellipsis
     arr, mask = _replace_nan(a, 0)
     if mask is None:
-        return np.mean(arr, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+        return np.mean(arr, axis=axis, dtype=dtype, out=out)[keepdims_]
 
     if dtype is not None:
         dtype = np.dtype(dtype)
     if dtype is not None and not issubclass(dtype.type, np.inexact):
         raise TypeError("If a is inexact, then dtype must be inexact")
-    if out is not None and not issubclass(out.dtype.type, np.inexact):
+    if out is not None and not issunpbclass(out.dtype.type, np.inexact):
         raise TypeError("If a is inexact, then out must be inexact")
 
     # The warning context speeds things up.
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        cnt = np.sum(~mask, axis=axis, dtype=np.intp, keepdims=keepdims)
-        tot = np.sum(arr, axis=axis, dtype=dtype, out=out, keepdims=keepdims)
+        cnt = np.sum(~mask, axis=axis, dtype=np.intp)[keepdims_]
+        tot = np.sum(arr, axis=axis, dtype=dtype, out=out)[keepdims_]
         avg = _divide_by_count(tot, cnt, out=out)
 
     isbad = (cnt == 0)

@@ -22,10 +22,21 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  compute_covariance, read_evokeds, compute_proj_raw,
                  pick_channels_cov, pick_channels, pick_types, pick_info)
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test, requires_sklearn
+from mne.utils import _TempDir, slow_test, requires_module
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
+from mne.fixes import partial
 
+_recent_sklearn_call = """
+required_version = '0.15'
+import sklearn
+version = LooseVersion(sklearn.__version__)
+if version < required_version:
+    raise ImportError
+"""
+
+requires_recent_sklearn = partial(requires_module, name='sklearn',
+                                  call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -36,6 +47,8 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+
 
 
 def test_io_cov():
@@ -343,7 +356,7 @@ def test_cov_scaling():
     assert_true(cov.max() < 1)
 
 
-@requires_sklearn
+@requires_recent_sklearn
 def test_auto_low_rank():
     """Test probabilistic low rank estimators"""
 
@@ -391,7 +404,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
-@requires_sklearn
+@requires_recent_sklearn
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
 

@@ -511,9 +511,10 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     ax = ax_gfp[0]
     if n_columns == 1:
-        ax.legend(loc='upper right', bbox_to_anchor=(0.98, 0.9), fontsize=12)
+        ax.legend(  # mpl < 1.2.1 compatibility: use prop
+            loc='upper right', bbox_to_anchor=(0.98, 0.9), prop=dict(size=12))
     else:
-        ax.legend(loc='upper right', fontsize=10)
+        ax.legend(loc='upper right', prop=dict(size=10))
         params = dict(top=[0.69, 0.82, 0.87][n_rows - 1],
                       bottom=[0.22, 0.13, 0.09][n_rows - 1])
         if has_sss:
