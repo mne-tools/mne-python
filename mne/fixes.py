@@ -786,7 +786,7 @@ def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
         dtype = np.dtype(dtype)
     if dtype is not None and not issubclass(dtype.type, np.inexact):
         raise TypeError("If a is inexact, then dtype must be inexact")
-    if out is not None and not issunpbclass(out.dtype.type, np.inexact):
+    if out is not None and not issubclass(out.dtype.type, np.inexact):
         raise TypeError("If a is inexact, then out must be inexact")
 
     # The warning context speeds things up.
