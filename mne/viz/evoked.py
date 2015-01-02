@@ -511,7 +511,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     ax = ax_gfp[0]
     if n_columns == 1:
-        ax.legend(  # mpl < 1.2.1 compatibility: use prop
+        ax.legend(  # mpl < 1.2.1 compatibility: use prop instead of fontsize
             loc='upper right', bbox_to_anchor=(0.98, 0.9), prop=dict(size=12))
     else:
         ax.legend(loc='upper right', prop=dict(size=10))
