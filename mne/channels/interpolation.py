@@ -117,20 +117,29 @@ def _interpolate_bads_eeg(inst):
     from mne.io.base import _BaseRaw
     from mne.epochs import _BaseEpochs
     from mne.evoked import Evoked
+
     if 'eeg' not in inst:
-        raise ValueError('This interpolation function requires EEG channels')
+        raise ValueError('This interpolation function requires EEG channels.')
     if len(inst.info['bads']) == 0:
-        raise ValueError('No bad channels to interpolate')
+        raise ValueError('No bad channels to interpolate.')
     if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded')
+        raise ValueError('Data must be preloaded.')
 
     bads_idx = np.array([ch in inst.info['bads'] for ch in inst.ch_names])
-    goods_idx = np.invert(bads_idx)
+    goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
+    goods_idx[picks] = True
+    goods_idx[bads_idx] = False
+
     pos = inst.get_channel_positions(picks)
-    pos_good = pos[goods_idx]
-    pos_bad = pos[bads_idx]
+
+    # Make sure only EEG are used
+    bads_idx_pos = bads_idx[picks]
+    goods_idx_pos = goods_idx[picks]
+
+    pos_good = pos[goods_idx_pos]
+    pos_bad = pos[bads_idx_pos]
 
     # test spherical fit
     radius, center = _fit_sphere(pos_good)
