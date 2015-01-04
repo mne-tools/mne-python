@@ -12,7 +12,8 @@ import warnings
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin)
+                                SetChannelsMixin, InterpolationMixin,
+                                equalize_channels)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -120,7 +121,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # find string-based entry
             if isinstance(condition, string_types):
-                if not kind in aspect_dict.keys():
+                if kind not in aspect_dict.keys():
                     raise ValueError('kind must be "average" or '
                                      '"standard_error"')
 
@@ -956,9 +957,10 @@ def grand_average(all_evokeds, interpolate_bads='eeg'):
     ----------
     all_evoked : list of Evoked data
         The evoked datasets.
-    interpolate_bads : str
+    interpolate_bads : str | None
         The type of bad channels that are interpolated.
         Currently only EEG channels can be interpolated.
+        If None no channels are interpolated.
         Defaults to 'eeg'.
 
     Returns
@@ -967,20 +969,27 @@ def grand_average(all_evokeds, interpolate_bads='eeg'):
         The grand average data.
     """
     # check if all elements in the given list are evoked data
-    if not all(isinstance(evk, Evoked) for evk in all_evokeds):
+    if not all(isinstance(e, Evoked) for e in all_evokeds):
         raise ValueError("Not all the elements in list are evoked data")
 
+    if interpolate_bads != 'eeg':
+        raise ValueError('Only EEG channels can be interpolated currently.')
+
     # Copy channels to leave the original evoked datasets intact.
-    tmp_list = deepcopy(all_evokeds)
+    all_evokeds = [e.copy() for e in all_evokeds]
 
-    # change the nave for all evoked datasets.
-    average_nave = int(np.mean([e.nave for e in all_evokeds]))
-    for evk in tmp_list:
-        evk.nave = average_nave
+    # Interpolates if necessary
+    if interpolate_bads is not None:
+        all_evokeds = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
+                       else e for e in all_evokeds]
 
-    equalize_channels(tmp_list)  # apply equalize_channels
+    # change and ignore the nave for all evoked datasets.
+    for e in all_evokeds:
+        e.nave = 1
+
+    equalize_channels(all_evokeds)  # apply equalize_channels
     # make grand_average object using merge_evoked
-    grand_average = merge_evoked(tmp_list)
+    grand_average = merge_evoked(all_evokeds)
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_evokeds)
     # change comment field

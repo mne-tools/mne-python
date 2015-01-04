@@ -335,15 +335,13 @@ def test_equalize_channels():
 def test_grand_average():
     """Test grand average
     """
-    evoked1 = read_evokeds(fname, condition=0, proj=True)
-    evoked2 = evoked1.copy()
+    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
     ch_names = evoked1.ch_names[2:]
+    evoked1.info['bads'] = ['EEG 008']  # test interpolation
     evoked1.drop_channels(evoked1.ch_names[:1])
     evoked2.drop_channels(evoked2.ch_names[1:2])
-    evoked1.nave = 2
-    evoked2.nave = 4
-    my_comparison = [evoked1, evoked2]
-    gave = grand_average(my_comparison)
+    gave = grand_average([evoked1, evoked2])
+    assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
     assert_equal(ch_names, gave.ch_names)
     assert_equal(gave.nave, 2)
 
