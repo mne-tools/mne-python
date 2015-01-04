@@ -1,6 +1,7 @@
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
 #         Andrew Dykstra <andrew.r.dykstra@gmail.com>
+#         Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -14,7 +15,8 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import equalize_channels, pick_types, read_evokeds, write_evokeds
-from mne.evoked import _get_peak, EvokedArray
+from mne import grand_average
+from mne.evoked import _get_peak, EvokedArray, grand_average
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, requires_nitime
@@ -329,6 +331,20 @@ def test_equalize_channels():
     equalize_channels(my_comparison)
     for e in my_comparison:
         assert_equal(ch_names, e.ch_names)
+
+
+def test_grand_average():
+    """Test grand average
+    """
+    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
+    ch_names = evoked1.ch_names[2:]
+    evoked1.info['bads'] = ['EEG 008']  # test interpolation
+    evoked1.drop_channels(evoked1.ch_names[:1])
+    evoked2.drop_channels(evoked2.ch_names[1:2])
+    gave = grand_average([evoked1, evoked2])
+    assert_equal(gave.data.shape, [len(ch_names), evoked1.data.shape[1]])
+    assert_equal(ch_names, gave.ch_names)
+    assert_equal(gave.nave, 2)
 
 
 def test_array_epochs():

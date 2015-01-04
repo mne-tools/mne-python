@@ -22,10 +22,13 @@ picks = pick_types(raw.info, meg=False, eeg=True, exclude=[])
 
 reject = dict(eeg=80e-6)
 epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                preload=True)
-picks2 = pick_types(raw.info, meg=True, eeg=True, exclude=[])
-epochs2 = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                 preload=True)[:1]
+                preload=True, reject=reject)
+
+# make sure it works if MEG channels are present:
+picks2 = np.concatenate([[0, 1, 2], picks])
+n_meg = 3
+epochs2 = Epochs(raw, events[epochs.selection], event_id, tmin, tmax,
+                 picks=picks2, preload=True)
 
 
 def test_interplation():
@@ -54,12 +57,12 @@ def test_interplation():
     epochs.info['bads'] = ['EEG 012']
     epochs.preload = False
     assert_raises(ValueError,  epochs.interpolate_bads_eeg)
-
     epochs.preload = True
-    epochs2 = epochs.copy()
+
+    epochs2.info['bads'] = ['EEG 012']
 
     epochs2.interpolate_bads_eeg()
-    ave_after2 = epochs2.average().data[bads_idx]
+    ave_after2 = epochs2.average().data[n_meg + np.where(bads_idx)[0]]
 
     assert_array_almost_equal(ave_after, ave_after2, decimal=16)
 

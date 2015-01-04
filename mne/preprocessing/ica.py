@@ -1237,7 +1237,7 @@ class ICA(ContainsMixin):
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
                         contours=6, image_interp='bilinear'):
-        """Project unmixing matrix on interpolated sensor topogrpahy.
+        """Project unmixing matrix on interpolated sensor topography.
 
         Parameters
         ----------

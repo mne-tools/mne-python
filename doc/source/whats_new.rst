@@ -55,6 +55,9 @@ Changelog
 
    - Add ``mne.viz.plot_evoked_white`` function and `Evoked.plot_white` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
+
+
 BUG
 ~~~
 
@@ -891,7 +894,7 @@ of commits):
 
 .. _Roan LaPlante: https://github.com/aestrivex
 
-.. _Mads Jensen: http://cnru.dk/people/mads-jensen
+.. _Mads Jensen: https://github.com/MadsJensen
 
 .. _Dan Wakeman: https://github.com/dgwakeman
 

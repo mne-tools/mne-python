@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Andrew Dykstra <andrew.r.dykstra@gmail.com>
+#          Mads Jensen <mje.mads@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -11,7 +12,8 @@ import warnings
 
 from .baseline import rescale
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                SetChannelsMixin, InterpolationMixin)
+                                SetChannelsMixin, InterpolationMixin,
+                                equalize_channels)
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
@@ -119,7 +121,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # find string-based entry
             if isinstance(condition, string_types):
-                if not kind in aspect_dict.keys():
+                if kind not in aspect_dict.keys():
                     raise ValueError('kind must be "average" or '
                                      '"standard_error"')
 
@@ -936,6 +938,64 @@ def _get_evoked_node(fname):
         _, meas = read_meas_info(fid, tree)
         evoked_node = dir_tree_find(meas, FIFF.FIFFB_EVOKED)
     return evoked_node
+
+
+def grand_average(all_evokeds, interpolate_bads='eeg'):
+    """Make grand average of a list evoked data
+
+    The function interpolates bad channels based on `interpolate_bads`
+    parameter. If `interpolate_bads` is equal to 'eeg' the grand average
+    file will only contain the MEG channels that are marked good
+    in all of the evoked datasets. The EEG channels markeds as
+    bad will be interpolated.
+
+    The grand_average.nave attribute will be equal the number
+    of evoked datasets used to calculate the grand average.
+
+    Note: Grand average evoked shall not be used for source localization.
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked data
+        The evoked datasets.
+    interpolate_bads : str | None
+        The type of bad channels that are interpolated.
+        Currently only EEG channels can be interpolated.
+        If None no channels are interpolated.
+        Defaults to 'eeg'.
+
+    Returns
+    -------
+    grand_average : Evoked
+        The grand average data.
+    """
+    # check if all elements in the given list are evoked data
+    if not all(isinstance(e, Evoked) for e in all_evokeds):
+        raise ValueError("Not all the elements in list are evoked data")
+
+    if interpolate_bads != 'eeg':
+        raise ValueError('Only EEG channels can be interpolated currently.')
+
+    # Copy channels to leave the original evoked datasets intact.
+    all_evokeds = [e.copy() for e in all_evokeds]
+
+    # Interpolates if necessary
+    if interpolate_bads == 'eeg':
+        all_evokeds = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
+                       else e for e in all_evokeds]
+
+    # change and ignore the nave for all evoked datasets.
+    for e in all_evokeds:
+        e.nave = 1
+
+    equalize_channels(all_evokeds)  # apply equalize_channels
+    # make grand_average object using merge_evoked
+    grand_average = merge_evoked(all_evokeds)
+    # change the grand_average.nave to the number of Evokeds
+    grand_average.nave = len(all_evokeds)
+    # change comment field
+    grand_average.comment = "Grand average (n = %d)" % grand_average.nave
+    return grand_average
 
 
 def merge_evoked(all_evoked):
