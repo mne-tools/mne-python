@@ -35,7 +35,7 @@ if version < required_version:
     raise ImportError
 """
 
-requires_recent_sklearn = partial(requires_module, name='sklearn',
+requires_sklearn_0_15 = partial(requires_module, name='sklearn',
                                   call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -356,7 +356,7 @@ def test_cov_scaling():
     assert_true(cov.max() < 1)
 
 
-@requires_recent_sklearn
+@requires_sklearn_0_15
 def test_auto_low_rank():
     """Test probabilistic low rank estimators"""
 
@@ -404,7 +404,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
-@requires_recent_sklearn
+@requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
 
