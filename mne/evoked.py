@@ -939,18 +939,27 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evokeds):
+def grand_average(all_evokeds, interpolate_bads='eeg'):
     """Make grand average of a list evoked data
 
-    The grand average file will only contain the channels that are marked good
+    The function interpolates bad channels based on `interpolate_bads`
+    parameter. If `interpolate_bads` is equal to 'eeg' the grand average
+    file will only contain the MEG channels that are marked good
     in all of the evoked datasets.
-    Note that the grand_average.nave will be equal the number of evoked
-    datasets that are used to calculate the grand average.
+
+    The grand_average.nave attribute will be equal the number
+    of evoked datasets used to calculate the grand average.
+
+    Note: Grand average evoked shall not be used for source localization.
 
     Parameters
     ----------
     all_evoked : list of Evoked data
         The evoked datasets.
+    interpolate_bads : str
+        The type of bad channels that are interpolated.
+        Currently only EEG channels can be interpolated.
+        Defaults to 'eeg'.
 
     Returns
     -------
