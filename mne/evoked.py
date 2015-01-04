@@ -946,7 +946,8 @@ def grand_average(all_evokeds, interpolate_bads='eeg'):
     The function interpolates bad channels based on `interpolate_bads`
     parameter. If `interpolate_bads` is equal to 'eeg' the grand average
     file will only contain the MEG channels that are marked good
-    in all of the evoked datasets.
+    in all of the evoked datasets. The EEG channels markeds as
+    bad will be interpolated.
 
     The grand_average.nave attribute will be equal the number
     of evoked datasets used to calculate the grand average.
@@ -979,7 +980,7 @@ def grand_average(all_evokeds, interpolate_bads='eeg'):
     all_evokeds = [e.copy() for e in all_evokeds]
 
     # Interpolates if necessary
-    if interpolate_bads is not None:
+    if interpolate_bads == 'eeg':
         all_evokeds = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
                        else e for e in all_evokeds]
 

@@ -425,6 +425,7 @@ Sensor Space Data
 
    concatenate_raws
    equalize_channels
+   grand_average
    get_chpi_positions
    pick_channels
    pick_channels_cov
