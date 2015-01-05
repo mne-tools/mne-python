@@ -2,6 +2,8 @@
 =========================================
 Reading/Writing a noise covariance matrix
 =========================================
+
+Plot a noise covariance matrix.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

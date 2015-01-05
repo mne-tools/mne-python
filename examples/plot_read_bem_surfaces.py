@@ -2,6 +2,8 @@
 ============================================
 Reading BEM surfaces from a forward solution
 ============================================
+
+Plot BEM surfaces used for forward solution generation.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

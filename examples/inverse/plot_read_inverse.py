@@ -1,7 +1,9 @@
 """
-=======================================================
-Reading an inverse operator and view source space in 3D
-=======================================================
+===========================
+Reading an inverse operator
+===========================
+
+The inverse operator's source space is shown in 3D.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

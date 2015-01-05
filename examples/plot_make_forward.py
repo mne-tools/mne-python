@@ -2,6 +2,10 @@
 ======================================================
 Create a forward operator and display sensitivity maps
 ======================================================
+
+Sensitivity maps can be produced from forward operators that
+indicate how well different sensor types will be able to detect
+neural currents from different regions of the brain.
 """
 # Author: Eric Larson <larson.eric.d@gmail.com>
 #
@@ -19,6 +23,7 @@ src = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
 bem = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 subjects_dir = data_path + '/subjects'
 
+# Note that forward solutions can also be read with read_forward_solution
 fwd = mne.make_forward_solution(raw_fname, mri=mri, src=src, bem=bem,
                                 fname=None, meg=True, eeg=True, mindist=5.0,
                                 n_jobs=2, overwrite=True)

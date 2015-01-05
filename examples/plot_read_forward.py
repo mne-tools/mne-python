@@ -2,6 +2,8 @@
 ====================================================
 Read a forward operator and display sensitivity maps
 ====================================================
+
+Forward solutions can be read using read_forward_solution in Python.
 """
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #         Denis Engemann <denis.engemann@gmail.com>
