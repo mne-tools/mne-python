@@ -32,16 +32,16 @@ picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True, exclude='bads')
 
 reject = dict(eeg=180e-6, eog=150e-6)
 epochs_params = dict(events=events, event_id=event_id, tmin=tmin, tmax=tmax,
-                     picks=picks)
+                     picks=picks, reject=reject)
 
 # No reference. This assumes that the EEG has already been referenced properly.
 # This explicitly prevents MNE from adding a default EEG reference.
 raw_no_ref, _ = mne.io.set_eeg_reference(raw, [])
-evoved_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
+evoked_no_ref = mne.Epochs(raw_no_ref, **epochs_params).average()
 del raw_no_ref  # Free memory
 
 fig, (ax1, ax2, ax3) = plt.subplots(nrows=3, ncols=1, sharex=True)
-evoved_no_ref.plot(axes=ax1, titles=dict(eeg='EEG Original reference'))
+evoked_no_ref.plot(axes=ax1, titles=dict(eeg='EEG Original reference'))
 
 # Average reference. This is normally added by default, but can also be added
 # explicitly.
