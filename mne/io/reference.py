@@ -9,6 +9,7 @@ from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
 from ..evoked import Evoked
+from ..epochs import Epochs
 from ..utils import logger
 
 
@@ -68,28 +69,35 @@ def _apply_reference(data, ref_from, ref_to=None, copy=True):
 
     eeg_idx = pick_types(data.info, eeg=True, meg=False, ref_meg=False)
 
+    if ref_to is None:
+        ref_to = [data.ch_names[i] for i in eeg_idx]
+
     if copy:
         data = data.copy()
 
     # After referencing, existing SSPs might not be valid anymore.
-    for proj in data.info['projs']:
+    for i, proj in enumerate(data.info['projs']):
         if (not proj['active'] and
             len([ch for ch in (ref_from + ref_to)
                  if ch in proj['data']['col_names']]) > 0):
 
-            logger.info('Inactive signal space projection (SSP) operators are '
-                        'present that operate on sensors involved in the '
-                        'current referencing scheme. Applying them now. Be '
-                        'aware that after re-referencing, these operators '
-                        'will be invalid.')
-            data.apply_proj()
+            # Remove any average reference projections, apply any other types
+            if proj['desc'] == 'Average EEG reference' or \
+                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+                logger.info('Removing existing average EEG reference '
+                            'projection.')
+                del data.info['projs'][i]
+            else:
+                logger.info(
+                    'Inactive signal space projection (SSP) operators are '
+                    'present that operate on sensors involved in the current '
+                    'referencing scheme. Applying them now. Be aware that '
+                    'after re-referencing, these operators will be invalid.')
+                data.apply_proj()
             break
 
     ref_from = [data.ch_names.index(ch) for ch in ref_from]
-    if ref_to is None:
-        ref_to = eeg_idx
-    else:
-        ref_to = [data.ch_names.index(ch) for ch in ref_to]
+    ref_to = [data.ch_names.index(ch) for ch in ref_to]
 
     if isinstance(data, Evoked):
         _data = data.data
@@ -98,23 +106,19 @@ def _apply_reference(data, ref_from, ref_to=None, copy=True):
 
     # Compute reference
     if len(ref_from) > 0:
-        ref_data = _data[ref_from].mean(0)
-        _data[ref_to] -= ref_data
+        ref_data = _data[..., ref_from, :].mean(-2)
+
+        if isinstance(data, Epochs):
+            _data[:, ref_to, :] -= np.tile(ref_data, (1, len(ref_to), 1))
+        else:
+            _data[ref_to] -= ref_data
     else:
         ref_data = None
 
-    # If the reference touches EEG electrodes, remove any pre-existing common
-    # reference and note in the info that a non-CAR has been applied.
+    # If the reference touches EEG electrodes, note in the info that a non-CAR
+    # has been applied.
     if len(np.intersect1d(ref_to, eeg_idx)) > 0:
         data.info['custom_ref_applied'] = True
-
-        # Remove any existing average reference projections
-        for i, proj in enumerate(data.info['projs']):
-            if proj['desc'] == 'Average EEG reference' or \
-                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
-                logger.info('Removing existing average EEG reference '
-                            'projection.')
-                del data.info['projs'][i]
 
     return data, ref_data
 
