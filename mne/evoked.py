@@ -938,7 +938,7 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evokeds, interpolate_bads='eeg'):
+def grand_average(all_evoked, interpolate_bads='eeg'):
     """Make grand average of a list evoked data
 
     The function interpolates bad channels based on `interpolate_bads`
@@ -968,29 +968,29 @@ def grand_average(all_evokeds, interpolate_bads='eeg'):
         The grand average data.
     """
     # check if all elements in the given list are evoked data
-    if not all(isinstance(e, Evoked) for e in all_evokeds):
+    if not all(isinstance(e, Evoked) for e in all_evoked):
         raise ValueError("Not all the elements in list are evoked data")
 
     if interpolate_bads != 'eeg':
         raise ValueError('Only EEG channels can be interpolated currently.')
 
     # Copy channels to leave the original evoked datasets intact.
-    all_evokeds = [e.copy() for e in all_evokeds]
+    all_evoked = [e.copy() for e in all_evoked]
 
     # Interpolates if necessary
     if interpolate_bads == 'eeg':
-        all_evokeds = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
-                       else e for e in all_evokeds]
+        all_evoked = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
+                      else e for e in all_evoked]
 
     # change and ignore the nave for all evoked datasets.
-    for e in all_evokeds:
+    for e in all_evoked:
         e.nave = 1
 
-    equalize_channels(all_evokeds)  # apply equalize_channels
+    equalize_channels(all_evoked)  # apply equalize_channels
     # make grand_average object using merge_evoked
-    grand_average = merge_evoked(all_evokeds)
+    grand_average = merge_evoked(all_evoked)
     # change the grand_average.nave to the number of Evokeds
-    grand_average.nave = len(all_evokeds)
+    grand_average.nave = len(all_evoked)
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average

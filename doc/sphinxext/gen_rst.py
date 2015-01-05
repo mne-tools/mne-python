@@ -73,6 +73,8 @@ except ImportError:
 
 
 import joblib
+MAX_NB_LINES_STDOUT = 20
+
 
 ###############################################################################
 # A tee object to redict streams to multiple outputs
@@ -945,8 +947,12 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                         '')
                 my_stdout = my_stdout.strip().expandtabs()
                 if my_stdout:
+                    output_lines = my_stdout.split('\n')
+                    if len(output_lines) > MAX_NB_LINES_STDOUT:
+                        output_lines = output_lines[:MAX_NB_LINES_STDOUT]
+                        output_lines.append('...')
                     stdout = '**Script output**::\n\n  %s\n\n' % (
-                        '\n  '.join(my_stdout.split('\n')))
+                        '\n  '.join(output_lines))
                 open(stdout_path, 'w').write(stdout)
                 open(time_path, 'w').write('%f' % time_elapsed)
                 os.chdir(cwd)
@@ -976,6 +982,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                     scale_image(image_path % fig_mngr.num, 850)
                     figure_list.append(image_fname % fig_mngr.num)
                     last_fig_num = fig_mngr.num
+                plt.close('all')
                 e = mlab.get_engine()
                 for scene in e.scenes:
                     last_fig_num += 1
@@ -984,6 +991,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                     scale_image(image_path % last_fig_num, 850)
                     figure_list.append(image_fname % last_fig_num)
                     mlab.close(scene)
+                mlab.close(all=True)
 
             except Exception:
                 print(80 * '_')

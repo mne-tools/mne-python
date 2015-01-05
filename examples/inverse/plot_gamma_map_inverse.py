@@ -50,7 +50,8 @@ stc, residual = gamma_map(evoked, forward, cov, alpha, xyz_same_gamma=True,
 scale_factors = np.max(np.abs(stc.data), axis=1)
 scale_factors = 0.5 * (1 + scale_factors / np.max(scale_factors))
 
-plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
+plot_sparse_source_estimates(
+    forward['src'], stc, bgcolor=(1, 1, 1),
     modes=['sphere'], opacity=0.1, scale_factors=(scale_factors, None),
     fig_name="Gamma-MAP")
 

@@ -517,6 +517,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                                  opacity=0.2, brain_color=(0.7,) * 3,
                                  show=True, high_resolution=False,
                                  fig_name=None, fig_number=None, labels=None,
+                                 modes=('cone', 'sphere'),
+                                 scale_factors=(1, 0.6),
                                  verbose=None, **kwargs):
     """Plot source estimates obtained with sparse solver
 
@@ -555,13 +557,21 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         label and the waveforms within each cluster are presented in
         the same color. labels should be a list of ndarrays when
         stcs is a list ie. one label for each stc.
+    modes : list
+        Should be a list, with each entry being ``'cone'`` or ``'sphere'``
+        to specify how the dipoles should be shown.
+    scale_factros : list
+        List of floating point scale factors for the markers.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
-    modes = ['cone', 'sphere']
-    scale_factors = [1, 0.6]
+    known_modes = ['cone', 'sphere']
+    if not isinstance(modes, (list, tuple)) or \
+            not all(mode in known_modes for mode in modes):
+        raise ValueError('mode must be a list containing only '
+                         '"cone" or "sphere"')
     if not isinstance(stcs, list):
         stcs = [stcs]
     if labels is not None and not isinstance(labels, list):
