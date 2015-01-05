@@ -12,7 +12,7 @@ from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
                        _triangle_coords)
 from ..io.constants import FIFF
 from ..transforms import apply_trans
-from ..utils import logger
+from ..utils import logger, verbose
 from ..parallel import parallel_func
 from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
@@ -283,8 +283,9 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     return B
 
 
+@verbose
 def _compute_forwards(src, bem, coils_list, cfs, ccoils_list, ccfs,
-                      infos, coil_types, n_jobs):
+                      infos, coil_types, n_jobs, verbose=None):
     """Compute the MEG and EEG forward solutions"""
     if bem['bem_method'] != 'linear collocation':
         raise RuntimeError('only linear collocation supported')

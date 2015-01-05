@@ -25,7 +25,8 @@ from ..source_space import (read_source_spaces, _filter_source_spaces,
 from ..surface import read_bem_solution, _normalize_vectors
 
 
-def _read_coil_defs(fname=None):
+@verbose
+def _read_coil_defs(fname=None, verbose=None):
     """Read a coil definition file"""
     if fname is None:
         fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
@@ -399,7 +400,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                                               coilset=templates)
     eegels = None
     if neeg > 0:
-        eegels, _ = _create_coils(eegchs, coil_type='eeg')
+        eegels, _ = _create_coils(eegchs, coil_type='eeg', coilset=templates)
     logger.info('%s coordinate coil definitions created.' % extra_str)
 
     # Transform the source spaces into the appropriate coordinates

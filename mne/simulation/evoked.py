@@ -9,12 +9,13 @@ import numpy as np
 from scipy import signal
 
 from ..io.pick import pick_channels_cov
-from ..utils import check_random_state
+from ..utils import check_random_state, verbose
 from ..forward import apply_forward
 
 
+@verbose
 def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
-                    iir_filter=None, random_state=None):
+                    iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data
 
     Parameters
@@ -40,13 +41,15 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
         IIR filter coefficients (denominator) e.g. [1, -1, 0.2]
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, evoked)
+    evoked = apply_forward(fwd, stc, evoked)  # verbose
     noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
     evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
     return evoked_noise
@@ -116,9 +119,8 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
     if tmax is None:
         tmax = np.max(times)
     tmask = (times >= tmin) & (times <= tmax)
-    tmp = np.mean((evoked.data[:, tmask] ** 2).ravel()) / \
-                                     np.mean((noise.data ** 2).ravel())
-    tmp = 10 * np.log10(tmp)
+    tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
+                        np.mean((noise.data ** 2).ravel()))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data
     evoked.data += noise.data
     return evoked
