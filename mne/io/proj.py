@@ -17,7 +17,7 @@ from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
 from ..utils import logger, verbose
-from ..externals.six import string_type
+from ..externals.six import string_types
 
 
 class Projection(dict):
@@ -197,7 +197,7 @@ class ProjMixin(object):
                 layout = []
                 if ch_type is None:
                     ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, string_type):
+                elif isinstance(ch_type, string_types):
                     ch_type = [ch_type]
                 for ch in ch_type:
                     if ch in self:
