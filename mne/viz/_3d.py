@@ -560,7 +560,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     modes : list
         Should be a list, with each entry being ``'cone'`` or ``'sphere'``
         to specify how the dipoles should be shown.
-    scale_factros : list
+    scale_factors : list
         List of floating point scale factors for the markers.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
