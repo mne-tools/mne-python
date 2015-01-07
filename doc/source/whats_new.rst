@@ -57,7 +57,7 @@ Changelog
 
    - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
 
-   - Add support for bipolar referencing by `Marijn van Vliet`_
+   - Improve EEG referencing support and add support for bipolar referencing by `Marijn van Vliet`_ and `Alex Gramfort`_
 
 BUG
 ~~~

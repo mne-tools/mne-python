@@ -5,7 +5,8 @@ Re-referencing the EEG signal
 
 Load raw data and apply some EEG referencing schemes.
 """
-# Author: Marijn van Vliet <w.m.vanvliet@gmail.com>
+# Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
