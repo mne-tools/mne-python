@@ -5,7 +5,6 @@
 
 import os.path as op
 import warnings
-import numpy as np
 
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
@@ -25,9 +24,10 @@ fif_fname = op.join(data_dir, 'sample_audvis_trunc_raw.fif')
 eve_fname = op.join(data_dir, 'sample_audvis_trunc_raw-eve.fif')
 ave_fname = op.join(data_dir, 'sample_audvis_trunc-ave.fif')
 
+
 def _test_reference(raw, reref, ref_data, ref_from):
-    '''Helper function to test whether a reference has been correctly
-    applied'''
+    """Helper function to test whether a reference has been correctly
+    applied."""
     # Separate EEG channels from other channel types
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     picks_other = pick_types(raw.info, meg=True, eeg=False, eog=True,
@@ -57,8 +57,9 @@ def _test_reference(raw, reref, ref_data, ref_from):
 
     # Undo rereferencing of EEG channels
     if isinstance(raw, Epochs):
-        unref_eeg_data = reref_eeg_data + np.tile(ref_data[:, np.newaxis, :],
-                                                  (1, len(picks_eeg), 1))
+        unref_eeg_data = reref_eeg_data.transpose(1, 0, 2)
+        unref_eeg_data += ref_data
+        unref_eeg_data = unref_eeg_data.transpose(1, 0, 2)
     else:
         unref_eeg_data = reref_eeg_data + ref_data
 
@@ -66,11 +67,11 @@ def _test_reference(raw, reref, ref_data, ref_from):
     assert_allclose(raw_eeg_data, unref_eeg_data, 1e-6, atol=1e-15)
     assert_allclose(raw_other_data, reref_other_data, 1e-6, atol=1e-15)
 
+
 @testing.requires_testing_data
 def test_apply_reference():
-    '''Test base function for rereferencing'''
+    """Test base function for rereferencing"""
     raw = Raw(fif_fname, preload=True, add_eeg_ref=True)
-
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = _apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
@@ -111,7 +112,7 @@ def test_apply_reference():
 
 @testing.requires_testing_data
 def test_set_eeg_reference():
-    '''Test rereference eeg data'''
+    """Test rereference eeg data"""
     raw = Raw(fif_fname, preload=True)
 
     # Rereference raw data by creating a copy of original data
@@ -127,7 +128,7 @@ def test_set_eeg_reference():
 
 @testing.requires_testing_data
 def test_set_bipolar_reference():
-    '''Test bipolar referencing'''
+    """Test bipolar referencing"""
     raw = Raw(fif_fname, preload=True)
     reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002', 'bipolar',
                                   {'kind': FIFF.FIFFV_EOG_CH,

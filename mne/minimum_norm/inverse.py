@@ -718,6 +718,7 @@ def _check_ori(pick_ori, pick_normal):
 
 
 def _check_reference(inst):
+    """Aux funcion"""
     if "eeg" in inst and not _has_eeg_average_ref_proj(inst.info['projs']):
         raise ValueError('EEG average reference is mandatory for inverse '
                          'modeling.')
