@@ -15,6 +15,7 @@ from ..io.tag import find_tag
 from ..io.matrix import (_read_named_matrix, _transpose_named_matrix,
                          write_named_matrix)
 from ..io.proj import _read_proj, make_projector, _write_proj
+from ..io.proj import _has_eeg_average_ref_proj
 from ..io.tree import dir_tree_find
 from ..io.write import (write_int, write_float_matrix, start_file,
                         start_block, end_block, end_file, write_float,
@@ -716,6 +717,16 @@ def _check_ori(pick_ori, pick_normal):
     return pick_ori
 
 
+def _check_reference(inst):
+    """Aux funcion"""
+    if "eeg" in inst and not _has_eeg_average_ref_proj(inst.info['projs']):
+        raise ValueError('EEG average reference is mandatory for inverse '
+                         'modeling.')
+    if inst.info['custom_ref_applied']:
+        raise ValueError('Custom EEG reference is not allowed for inverse '
+                         'modeling.')
+
+
 def _subject_from_inverse(inverse_operator):
     """Get subject id from inverse operator"""
     return inverse_operator['src'][0].get('subject_his_id', None)
@@ -752,6 +763,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
     """
+    _check_reference(evoked)
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
     #
@@ -850,6 +862,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The source estimates.
     """
+    _check_reference(raw)
     method = _check_method(method)
     pick_ori = _check_ori(pick_ori, pick_normal)
 
@@ -1017,6 +1030,7 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
     """
+    _check_reference(epochs)
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,

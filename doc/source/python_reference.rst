@@ -359,6 +359,17 @@ Manipulate channels and set sensors locations for processing and plotting:
    read_ica
    run_ica
 
+EEG referencing:
+
+.. currentmodule:: mne.io
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   set_bipolar_reference
+   set_eeg_reference
+
 :py:mod:`mne.filter`:
 
 .. automodule:: mne.filter

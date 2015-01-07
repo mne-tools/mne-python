@@ -14,7 +14,7 @@ from scipy import linalg
 from ..utils import logger, verbose
 from ..io.pick import pick_types
 from ..forward import _subject_from_forward
-from ..minimum_norm.inverse import combine_xyz
+from ..minimum_norm.inverse import combine_xyz, _check_reference
 from ..source_estimate import SourceEstimate
 from ..time_frequency import CrossSpectralDensity, compute_epochs_csd
 from ._lcmv import _prepare_beamformer_input
@@ -186,6 +186,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
+    _check_reference(evoked)
     info = evoked.info
     data = evoked.data
     tmin = evoked.times[0]
@@ -244,6 +245,7 @@ def dics_epochs(epochs, forward, noise_csd, data_csd, reg=0.01, label=None,
     Gross et al. Dynamic imaging of coherent sources: Studying neural
     interactions in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
     """
+    _check_reference(epochs)
 
     info = epochs.info
     tmin = epochs.times[0]
@@ -481,6 +483,7 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
     NOTE : Dalal et al. used a synthetic aperture magnetometry beamformer (SAM)
     in each time-frequency window instead of DICS.
     """
+    _check_reference(epochs)
 
     if pick_ori not in [None, 'normal']:
         raise ValueError('Unrecognized orientation option in pick_ori, '

@@ -401,7 +401,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         else:
             if lowpass <= highpass:
                 raise ValueError('lowpass (%s) must be > highpass (%s)'
-                                 %(lowpass, highpass))
+                                 % (lowpass, highpass))
             ba = butter(filtorder, [highpass / nyq, lowpass / nyq], 'bandpass',
                         analog=False)
 

@@ -13,7 +13,6 @@ import datetime
 import re
 import warnings
 from math import ceil, floor
-import warnings
 
 import numpy as np
 from scipy.interpolate import interp1d
@@ -422,6 +421,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['experimenter'] = None
     info['line_freq'] = None
     info['subject_info'] = None
+    info['custom_ref_applied'] = False
 
     edf_info = dict()
     edf_info['annot'] = annot

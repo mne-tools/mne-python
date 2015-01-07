@@ -3,6 +3,7 @@
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -20,8 +21,7 @@ from scipy import linalg
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
-from .proj import (setup_proj, activate_proj, proj_equal, ProjMixin,
-                   _has_eeg_average_ref_proj, make_eeg_average_ref_proj)
+from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.layout import read_montage, apply_montage, Montage
@@ -76,15 +76,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if not self.preload:
             raise RuntimeError('Cannot hash raw unless preloaded')
         return object_hash(dict(info=self.info, data=self._data))
-
-    def _add_eeg_ref(self, add_eeg_ref):
-        """Helper to add an average EEG reference"""
-        if add_eeg_ref:
-            eegs = pick_types(self.info, meg=False, eeg=True, ref_meg=False)
-            projs = self.info['projs']
-            if len(eegs) > 0 and not _has_eeg_average_ref_proj(projs):
-                eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
-                projs.append(eeg_ref)
 
     def _parse_get_set_params(self, item):
         # make sure item is a tuple
@@ -397,7 +388,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             if l_freq < h_freq:
                 logger.info('Band-pass filtering from %0.2g - %0.2g Hz'
                             % (l_freq, h_freq))
-                self._data = band_pass_filter(self._data, fs, l_freq, h_freq,
+                self._data = band_pass_filter(
+                    self._data, fs, l_freq, h_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=l_trans_bandwidth,
                     h_trans_bandwidth=h_trans_bandwidth,
@@ -406,7 +398,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             else:
                 logger.info('Band-stop filtering from %0.2g - %0.2g Hz'
                             % (h_freq, l_freq))
-                self._data = band_stop_filter(self._data, fs, h_freq, l_freq,
+                self._data = band_stop_filter(
+                    self._data, fs, h_freq, l_freq,
                     filter_length=filter_length,
                     l_trans_bandwidth=h_trans_bandwidth,
                     h_trans_bandwidth=l_trans_bandwidth, method=method,
@@ -742,7 +735,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if not format in type_dict.keys():
+        if format not in type_dict.keys():
             raise ValueError('format must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
@@ -1349,60 +1342,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._data[pick, idx - self.first_samp] += events[:, 2]
 
 
-def set_eeg_reference(raw, ref_channels, copy=True):
-    """Rereference eeg channels to new reference channel(s).
-
-    If multiple reference channels are specified, they will be averaged.
-
-    Parameters
-    ----------
-    raw : instance of Raw
-        Instance of Raw with eeg channels and reference channel(s).
-
-    ref_channels : list of str
-        The name(s) of the reference channel(s).
-
-    copy : bool
-        Specifies whether instance of Raw will be copied or modified in place.
-
-    Returns
-    -------
-    raw : instance of Raw
-        Instance of Raw with eeg channels rereferenced.
-
-    ref_data : array
-        Array of reference data subtracted from eeg channels.
-    """
-    # Check to see that raw data is preloaded
-    if not raw.preload:
-        raise RuntimeError('Raw data needs to be preloaded. Use '
-                           'preload=True (or string) in the constructor.')
-    # Make sure that reference channels are loaded as list of string
-    if not isinstance(ref_channels, list):
-        raise IOError('Reference channel(s) must be a list of string. '
-                      'If using a single reference channel, enter as '
-                      'a list with one element.')
-    # Find the indices to the reference electrodes
-    ref_idx = [raw.ch_names.index(c) for c in ref_channels]
-
-    # Get the reference array
-    ref_data = raw._data[ref_idx].mean(0)
-
-    # Get the indices to the eeg channels using the pick_types function
-    eeg_idx = pick_types(raw.info, exclude="bads", eeg=True, meg=False,
-                         ref_meg=False)
-
-    # Copy raw data or modify raw data in place
-    if copy:  # copy data
-        raw = raw.copy()
-
-    # Rereference the eeg channels
-    raw._data[eeg_idx] -= ref_data
-
-    # Return rereferenced data and reference array
-    return raw, ref_data
-
-
 def _allocate_data(data, data_buffer, data_shape, dtype):
     if data is None:
         # if not already done, allocate array with right type
@@ -1545,7 +1484,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
 
         # Split files if necessary, leave some space for next file info
         if pos >= split_size - this_buff_size_bytes - 2 ** 20:
-            next_fname, next_idx = _write_raw(fname, raw, info, picks, format,
+            next_fname, next_idx = _write_raw(
+                fname, raw, info, picks, format,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, inv_comp, drop_small_buffer, split_size,
                 part_idx + 1, use_fname)
@@ -1665,7 +1605,7 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if not format in ['short', 'int', 'single', 'double']:
+    if format not in ['short', 'int', 'single', 'double']:
         raise ValueError('format must be "short", "single", or "double"')
 
     if np.isrealobj(buf):
@@ -1883,7 +1823,7 @@ def _check_update_montage(info, montage):
             # raise error if positions are missing
             if missing_positions:
                 err = ("The following positions are missing from the montage "
-                        "definitions: %s. If those channels lack positions "
-                        "because they are EOG channels use the eog parameter."
-                        % str(missing_positions))
+                       "definitions: %s. If those channels lack positions "
+                       "because they are EOG channels use the eog parameter."
+                       % str(missing_positions))
                 raise KeyError(err)

@@ -234,6 +234,13 @@ def test_apply_inverse_operator():
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
 
+    # Test we get errors when using custom ref or no average proj is present
+    evoked.info['custom_ref_applied'] = True
+    assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+    evoked.info['custom_ref_applied'] = False
+    evoked.info['projs'] = []  # remove EEG proj
+    assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
+
 
 @testing.requires_testing_data
 def test_make_inverse_operator_fixed():

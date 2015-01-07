@@ -17,6 +17,7 @@ from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
 from ..utils import logger, verbose
+from ..externals.six import string_types
 
 
 class Projection(dict):
@@ -165,10 +166,10 @@ class ProjMixin(object):
         self.info['projs'].pop(idx)
 
         return self
-    
+
     def plot_projs_topomap(self, ch_type=None, layout=None):
         """Plot SSP vector
-        
+
         Parameters
         ----------
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None | List
@@ -196,8 +197,8 @@ class ProjMixin(object):
                 layout = []
                 if ch_type is None:
                     ch_type = [ch for ch in ['meg', 'eeg'] if ch in self]
-                elif isinstance(ch_type, str):
-                    ch_type = [ch_type]                    
+                elif isinstance(ch_type, string_types):
+                    ch_type = [ch_type]
                 for ch in ch_type:
                     if ch in self:
                         layout.append(find_layout(self.info, ch, exclude=[]))
@@ -207,7 +208,7 @@ class ProjMixin(object):
             fig = plot_projs_topomap(self.info['projs'], layout)
         else:
             raise ValueError("Info is missing projs. Nothing to plot.")
-        
+
         return fig
 
 
@@ -584,6 +585,11 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     eeg_proj: instance of Projection
         The SSP/PCA projector.
     """
+    if info['custom_ref_applied']:
+        raise RuntimeError('Cannot add an average EEG reference projection '
+                           'since a custom reference has been applied to the '
+                           'data earlier.')
+
     logger.info("Adding average EEG reference projection.")
     eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
                          exclude='bads')
@@ -605,10 +611,23 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
 def _has_eeg_average_ref_proj(projs):
     """Determine if a list of projectors has an average EEG ref"""
     for proj in projs:
-        if proj['desc'] == 'Average EEG reference' or \
-                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF:
+        if (proj['desc'] == 'Average EEG reference' or
+                proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
             return True
     return False
+
+
+def _needs_eeg_average_ref_proj(info):
+    """Determine if the EEG needs an averge EEG reference
+
+    This returns True if no custom reference has been applied and no average
+    reference projection is present in the list of projections.
+    """
+    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
+    return (len(eeg_sel) > 0 and
+            not info['custom_ref_applied'] and
+            not _has_eeg_average_ref_proj(info['projs']))
 
 
 @verbose
@@ -636,14 +655,11 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         The modified measurement info (Warning: info is modified inplace).
     """
     # Add EEG ref reference proj if necessary
-    eeg_sel = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                         exclude='bads')
-    if len(eeg_sel) > 0 and not _has_eeg_average_ref_proj(info['projs']) \
-            and add_eeg_ref is True:
+    if _needs_eeg_average_ref_proj(info) and add_eeg_ref:
         eeg_proj = make_eeg_average_ref_proj(info, activate=activate)
         info['projs'].append(eeg_proj)
 
-    #   Create the projector
+    # Create the projector
     projector, nproj = make_projector_info(info)
     if nproj == 0:
         if verbose:
@@ -654,7 +670,7 @@ def setup_proj(info, add_eeg_ref=True, activate=True,
         logger.info('Created an SSP operator (subspace dimension = %d)'
                     % nproj)
 
-    #   The projection items have been activated
+    # The projection items have been activated
     if activate:
         info['projs'] = activate_proj(info['projs'], copy=False)
 

@@ -57,6 +57,7 @@ Changelog
 
    - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
 
+   - Improve EEG referencing support and add support for bipolar referencing by `Marijn van Vliet`_ and `Alex Gramfort`_
 
 BUG
 ~~~
@@ -87,6 +88,8 @@ BUG
    - The API change to the edf, brainvision, and egi break backwards compatibility for when importing eeg data by `Teon Brooks`_
 
    - Fix bug in `mne.viz.plot_topo` if ylim was passed for single sensor layouts by `Denis Engemann`_
+
+   - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
 
 API
 ~~~

@@ -8,7 +8,7 @@ from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
 from ..io.pick import pick_channels_evoked
-from ..minimum_norm.inverse import _prepare_forward
+from ..minimum_norm.inverse import _prepare_forward, _check_reference
 from ..utils import logger, verbose
 from .mxne_inverse import _make_sparse_stc, _prepare_gain
 
@@ -231,6 +231,8 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     Wipf et al. A unified Bayesian framework for MEG/EEG source imaging,
     NeuroImage, vol. 44, no. 3, pp. 947-66, Mar. 2009.
     """
+    _check_reference(evoked)
+
     # make forward solution in fixed orientation if necessary
     if loose is None and not is_fixed_orient(forward):
         forward = deepcopy(forward)
