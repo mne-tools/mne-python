@@ -18,6 +18,9 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data.
 
+    This function uses a source estimate and forward model to simulate sensor
+    space data.
+
     .. note:: No projections from ``info`` will be present in the
               output ``evoked``. You can use e.g.
               :func:`evoked.add_proj <mne.Evoked.add_proj>` or
@@ -26,34 +29,39 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
 
     Parameters
     ----------
-    fwd : Forward
-        a forward solution.
-    stc : SourceEstimate object
-        The source time courses.
-    info : dict
+    fwd : instance of Forward
+        Forward operator to use.
+    stc : instance of SourceEstimate | instance of FullSourceEstimate
+        The source estimate from which the sensor space data is computed.
+        If an instance of SourceEstimate is given, the forward operator has to
+        use fixed dipole orientations (force_fixed=True). If an instance of
+        FullSourceEstimate is given, the forward operator should be in the same
+        configuration as to one used to construct the source estimate.
+    info : instance of Info
         Measurement info to generate the evoked.
-    cov : Covariance object
+    cov : instance of Covariance
         The noise covariance.
     snr : float
         signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) ).
+        10 * log10( var(signal) / var(noise) ). Defaults to 3.
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
-        is used.
+        is used. Defaults to None.
     tmax : float | None
         start of time interval to estimate SNR. If None last time point
-        is used.
+        is used. Defaults to None.
     iir_filter : None | array
-        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
+        IIR filter coefficients (denominator) e.g. [1, -1, 0.2]. If None, no
+        filter is applied. Defaults to None.
     random_state : None | int | np.random.RandomState
-        To specify the random generator state.
+        To specify the random generator state. Defaults to None.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    evoked : Evoked object
+    evoked : instance of Evoked
         The simulated evoked data
 
     See Also
@@ -61,6 +69,7 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
     simulate_raw
     simulate_stc
     simulate_sparse_stc
+    apply_forward
 
     Notes
     -----
@@ -79,23 +88,24 @@ def simulate_evoked(fwd, stc, info, cov, snr=3., tmin=None, tmax=None,
 def simulate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     """Create noise as a multivariate Gaussian.
 
-    The spatial covariance of the noise is given from the cov matrix.
+    The spatial covariance of the noise is given in the cov matrix.
 
     Parameters
     ----------
-    evoked : evoked object
-        an instance of evoked used as template
-    cov : Covariance object
-        The noise covariance
+    evoked : instance of Evoked
+        the Evoked data to generate the noise for.
+    cov : instance of Covariance
+        The noise covariance.
     iir_filter : None | array
-        IIR filter coefficients (denominator)
+        If not none, an IIR filter with the given coefficients (denominator)
+        will be applied to the noise. Defaults to None.
     random_state : None | int | np.random.RandomState
-        To specify the random generator state.
+        To specify the random generator state. Defaults to None.
 
     Returns
     -------
-    noise : evoked object
-        an instance of evoked
+    noise : instance of Evoked
+        The generated noise.
 
     Notes
     -----

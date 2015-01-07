@@ -11,9 +11,9 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from scipy.fftpack import fft
 
 from mne.datasets import testing
-from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
-                 read_source_spaces, MixedSourceEstimate, read_source_estimate,
-                 morph_data, extract_label_time_course,
+from mne import (stats, SourceEstimate, FullSourceEstimate, VolSourceEstimate,
+                 Label, read_source_spaces, MixedSourceEstimate,
+                 read_source_estimate, morph_data, extract_label_time_course,
                  spatio_temporal_tris_connectivity,
                  spatio_temporal_src_connectivity,
                  spatial_inter_hemi_connectivity)
@@ -37,6 +37,8 @@ fname_src = op.join(data_path, 'MEG', 'sample',
 fname_src_3 = op.join(data_path, 'subjects', 'sample', 'bem',
                       'sample-oct-4-src.fif')
 fname_stc = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-meg')
+fname_full_stc = op.join(data_path, 'MEG', 'sample',
+                         'sample_audvis_trunc-meg-full')
 fname_smorph = op.join(data_path, 'MEG', 'sample',
                        'sample_audvis_trunc-meg')
 fname_fmorph = op.join(data_path, 'MEG', 'sample',
@@ -155,20 +157,23 @@ def test_volume_stc():
 def test_expand():
     """Test stc expansion
     """
-    stc = read_source_estimate(fname_stc, 'sample')
-    assert_true('sample' in repr(stc))
-    labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
-                                       subjects_dir=subjects_dir)
-    new_label = labels_lh[0] + labels_lh[1]
-    stc_limited = stc.in_label(new_label)
-    stc_new = stc_limited.copy()
-    stc_new.data.fill(0)
-    for label in labels_lh[:2]:
-        stc_new += stc.in_label(label).expand(stc_limited.vertices)
-    assert_raises(TypeError, stc_new.expand, stc_limited.vertices[0])
-    assert_raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
-    # make sure we can't add unless vertno agree
-    assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
+    stc_ = read_source_estimate(fname_stc, 'sample')
+    full_stc_ = read_source_estimate(fname_full_stc, 'sample')
+
+    for stc in [stc_, full_stc_]:
+        assert_true('sample' in repr(stc))
+        labels_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                           subjects_dir=subjects_dir)
+        new_label = labels_lh[0] + labels_lh[1]
+        stc_limited = stc.in_label(new_label)
+        stc_new = stc_limited.copy()
+        stc_new.data.fill(0)
+        for label in labels_lh[:2]:
+            stc_new += stc.in_label(label).expand(stc_limited.vertices)
+        assert_raises(TypeError, stc_new.expand, stc_limited.vertices[0])
+        assert_raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
+        # make sure we can't add unless vertno agree
+        assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
 
 def _fake_stc(n_time=10):
@@ -176,43 +181,53 @@ def _fake_stc(n_time=10):
     return SourceEstimate(np.random.rand(100, n_time), verts, 0, 1e-1, 'foo')
 
 
+def _fake_full_stc(n_time=10):
+    verts = [np.arange(10), np.arange(90)]
+    return FullSourceEstimate(np.random.rand(100, 3, n_time), verts, 0, 1e-1,
+                              'foo')
+
+
 def test_io_stc():
     """Test IO for STC files
     """
     tempdir = _TempDir()
-    stc = _fake_stc()
-    stc.save(op.join(tempdir, "tmp.stc"))
-    stc2 = read_source_estimate(op.join(tempdir, "tmp.stc"))
+    for stc in [_fake_stc(), _fake_full_stc()]:
+        fname = 'tmp'
+        if isinstance(stc, FullSourceEstimate):
+            fname += '-full'
+        stc.save(op.join(tempdir, fname))
+        stc2 = read_source_estimate(op.join(tempdir, fname))
 
-    assert_array_almost_equal(stc.data, stc2.data)
-    assert_array_almost_equal(stc.tmin, stc2.tmin)
-    assert_equal(len(stc.vertices), len(stc2.vertices))
-    for v1, v2 in zip(stc.vertices, stc2.vertices):
-        assert_array_almost_equal(v1, v2)
-    assert_array_almost_equal(stc.tstep, stc2.tstep)
+        assert_array_almost_equal(stc.data, stc2.data)
+        assert_array_almost_equal(stc.tmin, stc2.tmin)
+        assert_equal(len(stc.vertices), len(stc2.vertices))
+        for v1, v2 in zip(stc.vertices, stc2.vertices):
+            assert_array_almost_equal(v1, v2)
+        assert_array_almost_equal(stc.tstep, stc2.tstep)
 
 
 @requires_h5py
 def test_io_stc_h5():
     """Test IO for STC files using HDF5
     """
-    tempdir = _TempDir()
-    stc = _fake_stc()
-    assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'), ftype='foo')
-    out_name = op.join(tempdir, 'tmp')
-    stc.save(out_name, ftype='h5')
-    stc.save(out_name, ftype='h5')  # test overwrite
-    stc3 = read_source_estimate(out_name)
-    stc4 = read_source_estimate(out_name + '-stc.h5')
-    assert_raises(RuntimeError, read_source_estimate, out_name, subject='bar')
-    for stc_new in stc3, stc4:
-        assert_equal(stc_new.subject, stc.subject)
-        assert_array_equal(stc_new.data, stc.data)
-        assert_array_equal(stc_new.tmin, stc.tmin)
-        assert_array_equal(stc_new.tstep, stc.tstep)
-        assert_equal(len(stc_new.vertices), len(stc.vertices))
-        for v1, v2 in zip(stc_new.vertices, stc.vertices):
-            assert_array_equal(v1, v2)
+    for stc in [_fake_stc(), _fake_full_stc()]:
+        tempdir = _TempDir()
+        assert_raises(ValueError, stc.save, op.join(tempdir, 'tmp'),
+                      ftype='foo')
+        out_name = op.join(tempdir, 'tmp')
+        stc.save(out_name, ftype='h5')
+        stc3 = read_source_estimate(out_name)
+        stc4 = read_source_estimate(out_name + '-stc.h5')
+        assert_raises(RuntimeError, read_source_estimate, out_name,
+                      subject='bar')
+        for stc_new in stc3, stc4:
+            assert_equal(stc_new.subject, stc.subject)
+            assert_array_equal(stc_new.data, stc.data)
+            assert_array_equal(stc_new.tmin, stc.tmin)
+            assert_array_equal(stc_new.tstep, stc.tstep)
+            assert_equal(len(stc_new.vertices), len(stc.vertices))
+            for v1, v2 in zip(stc_new.vertices, stc.vertices):
+                assert_array_equal(v1, v2)
 
 
 def test_io_w():
@@ -235,9 +250,11 @@ def test_stc_arithmetic():
     """
     stc = _fake_stc()
     data = stc.data.copy()
+    full_stc = _fake_full_stc()
+    full_data = full_stc.data.copy()
 
     out = list()
-    for a in [data, stc]:
+    for a in [data, stc, full_data, full_stc]:
         a = a + a * 3 + 3 * a - a ** 2 / 2
 
         a += a
@@ -261,70 +278,79 @@ def test_stc_arithmetic():
         out.append(a)
 
     assert_array_equal(out[0], out[1].data)
+    assert_array_equal(out[2], out[3].data)
     assert_array_equal(stc.sqrt().data, np.sqrt(stc.data))
+    assert_array_equal(full_stc.sqrt().data, np.sqrt(full_stc.data))
 
     stc_mean = stc.mean()
     assert_array_equal(stc_mean.data, np.mean(stc.data, 1)[:, None])
+    full_stc_mean = full_stc.mean()
+    assert_array_equal(full_stc_mean.data,
+                       np.mean(full_stc.data, 2)[:, :, None])
 
 
 @slow_test
 @testing.requires_testing_data
 def test_stc_methods():
-    """Test stc methods lh_data, rh_data, bin, center_of_mass, resample"""
-    stc = read_source_estimate(fname_stc)
+    """Test stc methods lh_data, rh_data, bin(), center_of_mass(), resample()
+    """
+    stc_ = read_source_estimate(fname_stc)
+    full_stc_ = read_source_estimate(fname_full_stc)
 
-    # lh_data / rh_data
-    assert_array_equal(stc.lh_data, stc.data[:len(stc.lh_vertno)])
-    assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno):])
+    for stc in [stc_, full_stc_]:
+        # lh_data / rh_data
+        assert_array_equal(stc.lh_data, stc.data[:len(stc.lh_vertno)])
+        assert_array_equal(stc.rh_data, stc.data[len(stc.lh_vertno):])
 
-    # bin
-    bin = stc.bin(.12)
-    a = np.array((1,), dtype=stc.data.dtype)
-    a[0] = np.mean(stc.data[0, stc.times < .12])
-    assert a[0] == bin.data[0, 0]
+        # bin
+        bin = stc.bin(.12)
+        a = np.mean(stc.data[..., :np.searchsorted(stc.times, .12)], axis=-1)
+        assert_array_equal(a, bin.data[..., 0])
 
-    assert_raises(ValueError, stc.center_of_mass, 'sample')
-    assert_raises(TypeError, stc.center_of_mass, 'sample',
-                  subjects_dir=subjects_dir, surf=1)
-    stc.lh_data[:] = 0
-    vertex, hemi, t = stc.center_of_mass('sample', subjects_dir=subjects_dir)
-    assert_true(hemi == 1)
-    # XXX Should design a fool-proof test case, but here were the results:
-    assert_equal(vertex, 124791)
-    assert_equal(np.round(t, 2), 0.12)
+        assert_raises(ValueError, stc.center_of_mass, 'sample')
+        stc.lh_data[:] = 0
+        vertex, hemi, t = stc.center_of_mass('sample',
+                                             subjects_dir=subjects_dir)
+        assert_true(hemi == 1)
+        # XXX Should design a fool-proof test case, but here were the results:
+        if isinstance(stc, FullSourceEstimate):
+            assert_equal(vertex, 96129)
+        else:
+            assert_equal(vertex, 124791)
+        assert_equal(np.round(t, 2), 0.12)
 
-    stc = read_source_estimate(fname_stc)
-    stc.subject = 'sample'
-    label_lh = read_labels_from_annot('sample', 'aparc', 'lh',
-                                      subjects_dir=subjects_dir)[0]
-    label_rh = read_labels_from_annot('sample', 'aparc', 'rh',
-                                      subjects_dir=subjects_dir)[0]
-    label_both = label_lh + label_rh
-    for label in (label_lh, label_rh, label_both):
-        assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
-        stc_label = stc.in_label(label)
-        if label.hemi != 'both':
-            if label.hemi == 'lh':
-                verts = stc_label.vertices[0]
-            else:  # label.hemi == 'rh':
-                verts = stc_label.vertices[1]
-            n_vertices_used = len(label.get_vertices_used(verts))
-            assert_equal(len(stc_label.data), n_vertices_used)
-    stc_lh = stc.in_label(label_lh)
-    assert_raises(ValueError, stc_lh.in_label, label_rh)
-    label_lh.subject = 'foo'
-    assert_raises(RuntimeError, stc.in_label, label_lh)
+        stc = read_source_estimate(fname_stc)
+        stc.subject = 'sample'
+        label_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                          subjects_dir=subjects_dir)[0]
+        label_rh = read_labels_from_annot('sample', 'aparc', 'rh',
+                                          subjects_dir=subjects_dir)[0]
+        label_both = label_lh + label_rh
+        for label in (label_lh, label_rh, label_both):
+            assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
+            stc_label = stc.in_label(label)
+            if label.hemi != 'both':
+                if label.hemi == 'lh':
+                    verts = stc_label.vertices[0]
+                else:  # label.hemi == 'rh':
+                    verts = stc_label.vertices[1]
+                n_vertices_used = len(label.get_vertices_used(verts))
+                assert_equal(len(stc_label.data), n_vertices_used)
+        stc_lh = stc.in_label(label_lh)
+        assert_raises(ValueError, stc_lh.in_label, label_rh)
+        label_lh.subject = 'foo'
+        assert_raises(RuntimeError, stc.in_label, label_lh)
 
-    stc_new = deepcopy(stc)
-    o_sfreq = 1.0 / stc.tstep
-    # note that using no padding for this STC reduces edge ringing...
-    stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
-    assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
-    assert_true(stc_new.tstep == stc.tstep / 2)
-    stc_new.resample(o_sfreq, npad=0)
-    assert_true(stc_new.data.shape[1] == stc.data.shape[1])
-    assert_true(stc_new.tstep == stc.tstep)
-    assert_array_almost_equal(stc_new.data, stc.data, 5)
+        stc_new = deepcopy(stc)
+        o_sfreq = 1.0 / stc.tstep
+        # note that using no padding for this STC reduces edge ringing...
+        stc_new.resample(2 * o_sfreq, npad=0, n_jobs=2)
+        assert_true(stc_new.data.shape[1] == 2 * stc.data.shape[1])
+        assert_true(stc_new.tstep == stc.tstep / 2)
+        stc_new.resample(o_sfreq, npad=0)
+        assert_true(stc_new.data.shape[1] == stc.data.shape[1])
+        assert_true(stc_new.tstep == stc.tstep)
+        assert_array_almost_equal(stc_new.data, stc.data, 5)
 
 
 @testing.requires_testing_data
@@ -371,7 +397,18 @@ def test_extract_label_time_course():
                 idx = len(vertices[0]) + np.searchsorted(vertices[1], idx)
             data[idx] = label_means[j]
 
-        this_stc = SourceEstimate(data, vertices, 0, 1)
+        # the last stc will be a FullSourceEstimate
+        if i == n_stcs - 1:
+            this_stc = FullSourceEstimate(
+                np.concatenate(
+                    (data[:, np.newaxis, :],
+                    np.zeros((data.shape[0], 1, data.shape[1]))),
+                    axis=1
+                ),
+                vertices, 0, 1
+            )
+        else:
+            this_stc = SourceEstimate(data, vertices, 0, 1)
         stcs.append(this_stc)
 
     # test some invalid inputs
@@ -698,21 +735,27 @@ def test_get_peak():
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
     data = rng.randn(n_vert, n_times)
+    data[5, 2] += 10
     stc_surf = SourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
                               subject='sample')
-
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
                                 subject='sample')
+    data = rng.randn(n_vert, 3, n_times)
+    data[5, 0, 2] += 10
+    stc_full = FullSourceEstimate(data, vertices=vertices, tmin=0, tstep=1,
+                                  subject='sample')
 
-    for ii, stc in enumerate([stc_surf, stc_vol]):
+    for ii, stc in enumerate([stc_surf, stc_full, stc_vol]):
         assert_raises(ValueError, stc.get_peak, tmin=-100)
         assert_raises(ValueError, stc.get_peak, tmax=90)
         assert_raises(ValueError, stc.get_peak, tmin=0.002, tmax=0.001)
 
         vert_idx, time_idx = stc.get_peak()
-        vertno = np.concatenate(stc.vertices) if ii == 0 else stc.vertices
+        vertno = np.concatenate(stc.vertices) if ii < 2 else stc.vertices
         assert_true(vert_idx in vertno)
         assert_true(time_idx in stc.times)
+        assert_equal(vert_idx, 5)
+        assert_equal(time_idx, 2)
 
         ch_idx, time_idx = stc.get_peak(vert_as_index=True,
                                         time_as_index=True)

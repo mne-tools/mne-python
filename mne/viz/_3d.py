@@ -676,8 +676,9 @@ def _sensor_shape(coil):
     return rrs, tris
 
 
-def _limits_to_control_points(clim, stc_data, colormap):
-    """Convert limits (values or percentiles) to control points.
+def _limits_to_control_points(clim, stc_data, colormap, transparent):
+    """Private helper function to convert limits (values or percentiles)
+    to control points.
 
     Note: If using 'mne', generate cmap control points for a directly
     mirrored cmap for simplicity (i.e., no normalization is computed to account
@@ -687,13 +688,22 @@ def _limits_to_control_points(clim, stc_data, colormap):
     ----------
     clim : str | dict
         Desired limits use to set cmap control points.
+    stc_data : 2D Array (n_vertices, n_samples)
+        The data in source space.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        The desired colormap.
+    transparent : boolean
+        if True: use a linear transparency between fmin and fmid.
 
     Returns
     -------
-    ctrl_pts : list (length 3)
+    scale_pts : list (length 3)
         Array of floats corresponding to values to use as cmap control points.
+        (min, mid, max)
     colormap : str
-        The colormap.
+        The colormap to use.
+    transparent : bool
+        Whether to use transparency.
     """
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
@@ -744,7 +754,95 @@ def _limits_to_control_points(clim, stc_data, colormap):
             bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
             ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
-    return ctrl_pts, colormap
+    # Construct cmap manually if 'mne' and get cmap bounds
+    # and triage transparent argument
+    if colormap in ('mne', 'mne_analyze'):
+        colormap = mne_analyze_colormap(ctrl_pts)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+        transparent = False if transparent is None else transparent
+    else:
+        scale_pts = ctrl_pts
+        transparent = True if transparent is None else transparent
+
+    return scale_pts, colormap, transparent
+
+
+def _scale_mayavi_lut(lut_manager, fmin, fmid, fmax, transparent,
+                      verbose=None):
+        """Scale a mayavi colormap LUT to a given fmin, fmid and fmax
+
+        This function operates on a Mayavi LUTManager. This manager can be
+        obtained through the traits interface of mayavi. For example:
+        `x.module_manager.vector_lut_manager`.
+
+        Parameters
+        ----------
+        lut : LUTManager
+            The Mayavi lookup table manager used to scale the colormap.
+        fmin : float
+            minimum value of colormap.
+        fmid : float
+            value corresponding to color midpoint.
+        fmax : float
+            maximum value for colormap.
+        transparent : boolean
+            if True: use a linear transparency between fmin and fmid.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        lut_table : 2D array (n_colors, 4)
+            The re-scaled color lookup table
+
+        Notes
+        -----
+        Much of this code was taken from PySurfer's scale_data_colormap
+        function.
+        """
+        if not (fmin < fmid) and (fmid < fmax):
+            raise ValueError("Invalid colormap, we need fmin<fmid<fmax")
+
+        # Cast inputs to float to prevent integer division
+        fmin = float(fmin)
+        fmid = float(fmid)
+        fmax = float(fmax)
+
+        logger.info("colormap: fmin=%0.2e fmid=%0.2e fmax=%0.2e "
+                    "transparent=%d" % (fmin, fmid, fmax, transparent))
+
+        # Get the original colormap
+        lut_table = lut_manager.lut.table.to_array()
+
+        # Add transparency if needed
+        if transparent:
+            n_colors = lut_table.shape[0]
+            n_colors2 = int(n_colors / 2)
+            lut_table[:n_colors2, -1] = np.linspace(0, 255, n_colors2)
+            lut_table[n_colors2:, -1] = 255 * np.ones(n_colors - n_colors2)
+
+        # Scale the colormap
+        lut_table_new = lut_table.copy()
+        n_colors = lut_table.shape[0]
+        n_colors2 = int(n_colors / 2)
+
+        # Index of fmid in new colorbar
+        fmid_idx = int(np.round(n_colors * ((fmid - fmin) /
+                                            (fmax - fmin))) - 1)
+
+        # Go through channels
+        for i in range(4):
+            part1 = np.interp(np.linspace(0, n_colors2 - 1, fmid_idx + 1),
+                              np.arange(n_colors),
+                              lut_table[:, i])
+            lut_table_new[:fmid_idx + 1, i] = part1
+            part2 = np.interp(np.linspace(n_colors2, n_colors - 1,
+                                          n_colors - fmid_idx - 1),
+                              np.arange(n_colors),
+                              lut_table[:, i])
+            lut_table_new[fmid_idx + 1:, i] = part2
+
+        return lut_table_new
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
@@ -767,8 +865,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     Parameters
     ----------
-    stc : SourceEstimates
-        The source estimates to plot.
+    stc : SourceEstimate
+        The source estimate to plot.
     subject : str | None
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT. If None stc.subject will be used. If that
@@ -899,17 +997,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             raise TypeError('figure must be a mayavi scene or list of scenes')
 
     # convert control points to locations in colormap
-    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
-
-    # Construct cmap manually if 'mne' and get cmap bounds
-    # and triage transparent argument
-    if colormap in ('mne', 'mne_analyze'):
-        colormap = mne_analyze_colormap(ctrl_pts)
-        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-        transparent = False if transparent is None else transparent
-    else:
-        scale_pts = ctrl_pts
-        transparent = True if transparent is None else transparent
+    scale_pts, colormap, transparent = _limits_to_control_points(
+        clim, stc.data, colormap, transparent)
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
@@ -955,6 +1044,183 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     if time_viewer:
         TimeViewer(brain)
     return brain
+
+
+def plot_full_source_estimates(stc, src, time, transparent=None,
+                               bgcolor=(1, 1, 1), opacity=0.3,
+                               brain_color=(0.7, 0.7, 0.7),
+                               high_resolution=False, fig_name=None,
+                               fig_size=(600, 600), mode='2darrow',
+                               scale_factor=None, hemi='both', colorbar=True,
+                               cmap='hot', clim='auto', verbose=None):
+    """Plot a full source estimate
+
+    A "glass brain" is drawn and all dipoles defined in the source estimate
+    are shown using arrows, depicting the direction and magnitude of the
+    current moment at the dipole.
+
+    Parameters
+    ----------
+    stc : instance of FullSourceEstimate
+        The full source estimate to plot.
+    src : instance of SourceSpaces
+        The source space for which the source estimate is defined
+    time : float
+        The time (in seconds) at which to plot the source estimate.
+    transparent : bool | None
+        If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type. Defaults to
+        None.
+    bgcolor : tuple of length 3
+        Background color in 3D. Defaults to white (1, 1, 1).
+    opacity : float in [0, 1]
+        Opacity of brain mesh. Defaults to 0.3.
+    brain_color : tuple of length 3
+        Brain color. Defaults to gray (0.7, 0.7, 0.7).
+    high_resolution : bool
+        If True, plot on the original (non-downsampled) cortical mesh.
+        Defaults to False.
+    fig_name : str | None
+        Mayavi figure name. Defaults to None.
+    fig_size : tuple of length 2
+        Mayavi figure size. Defaults to (600, 600).
+    mode : str
+        The mode of the dipole glyps. See the mayavi `quiver3d` documentation
+        for possible values. Defaults to '2darrow'.
+    scale_factor : float | None
+        Dipoles are drawn at a size proportional to the magnitude of the
+        current at the corresponding source vertex. This parameter controls the
+        overall size of the dipoles in the plot. If None, an automatic scaling
+        will be attempted. Defaults to None.
+    hemi : 'lh' | 'rh' | 'both'
+        The hemisphere to plot. Defaults to 'both'.
+    colorbar : bool
+        If True, display colorbar on scene. Defaults to True.
+    cmap : str
+        The Mayavi colormap to use. Defaults to 'mne'.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+            ``kind`` : str
+                Flag to specify type of limits. 'value' or 'percent'.
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne'.
+                Left, middle, and right bound for colormap.
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+    from mayavi import mlab
+
+    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+
+    t = np.searchsorted(stc.times, time)
+    magnitude = stc.magnitude()
+
+    scale_pts, colormap, transparent = _limits_to_control_points(
+        clim, stc.data, cmap, transparent)
+
+    # The colomap can be specified both as a LUT table and a string
+    if isinstance(colormap, np.ndarray):
+        lut_table = colormap
+        cmap = 'hot'
+    else:
+        lut_table = None
+        cmap = colormap
+
+    if scale_factor is None:
+        scale_factor = 1. / (80 * np.max(magnitude.data[:, t]))
+
+    def _plot_hemi_mesh(src, hemi_ind):
+        """Plot the mesh of a single hemisphere"""
+        with warnings.catch_warnings(record=True):  # FutureWarning in traits
+            if high_resolution:
+                tris = src[hemi_ind]['tris']
+            else:
+                tris = src[hemi_ind]['use_tris']
+
+            # Plot mesh
+            mlab.triangular_mesh(src[hemi_ind]['rr'][:, 0],
+                                 src[hemi_ind]['rr'][:, 1],
+                                 src[hemi_ind]['rr'][:, 2],
+                                 tris,
+                                 color=brain_color,
+                                 opacity=opacity,
+                                 representation='surface')
+
+    def _plot_hemi_glyphs(src, hemi_ind, lut_table):
+        """Plot the glyphs of a single hemisphere"""
+        if hemi_ind == 0:
+            rr = src[hemi_ind]['rr'][stc.lh_vertno]
+            data = stc.lh_data
+            scalars = magnitude.lh_data[:, t]
+        else:
+            rr = src[hemi_ind]['rr'][stc.rh_vertno]
+            data = stc.rh_data
+            scalars = magnitude.rh_data[:, t]
+
+        q = mlab.quiver3d(
+            rr[:, 0],
+            rr[:, 1],
+            rr[:, 2],
+            data[:, 0, t],
+            data[:, 1, t],
+            data[:, 2, t],
+            scale_factor=scale_factor,
+            scalars=scalars,
+            colormap=cmap,
+            mode=mode,
+        )
+
+        # Scale colormap used for the glyphs
+        if lut_table is None:
+            lut_table = _scale_mayavi_lut(q.parent.vector_lut_manager,
+                                          scale_pts[0], scale_pts[1],
+                                          scale_pts[2], transparent,
+                                          verbose=verbose)
+        lut_manager = q.parent.vector_lut_manager
+        lut_manager.lut.table = lut_table
+        lut_manager.data_range = np.array([scale_pts[0], scale_pts[2]])
+
+        return q
+
+    # Plot the requested hemispheres. Always plot the full mesh before the
+    # glyphs so that the z-ordering is correct. This is important for the
+    # transparancy effects to properly show.
+    if hemi == 'lh':
+        _plot_hemi_mesh(src, 0)
+        q = _plot_hemi_glyphs(src, 0, lut_table)
+    elif hemi == 'rh':
+        _plot_hemi_mesh(src, 1)
+        q = _plot_hemi_glyphs(src, 1, lut_table)
+    else:
+        _plot_hemi_mesh(src, 0)
+        _plot_hemi_mesh(src, 1)
+        _plot_hemi_glyphs(src, 0, lut_table)
+        q = _plot_hemi_glyphs(src, 1, lut_table)
+
+    if colorbar:
+        mlab.colorbar(q, title='Source current amplitude (Amp)', nb_labels=2)
+
+    if fig_name is not None:
+        mlab.title(fig_name)
+    if fig.scene is not None:  # safe for Travis
+        fig.scene.x_plus_view()
+
+    if hemi == 'lh':
+        # Rotate camera to properly view left hemisphere
+        mlab.view(180)
+
+    return fig
 
 
 def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,

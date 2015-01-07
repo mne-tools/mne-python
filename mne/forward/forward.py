@@ -36,7 +36,8 @@ from ..epochs import BaseEpochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
-from ..source_estimate import VolSourceEstimate
+from ..source_estimate import (SourceEstimate, VolSourceEstimate,
+                               FullSourceEstimate)
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c, warn,
@@ -1046,15 +1047,17 @@ def _fill_measurement_info(info, fwd, sfreq):
 
 @verbose
 def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
-    """Apply forward model and return data, times, ch_names."""
-    if not is_fixed_orient(fwd):
-        raise ValueError('Only fixed-orientation forward operators are '
-                         'supported.')
+    """Apply forward model and return data, times"""
+    if not isinstance(stc, FullSourceEstimate):
+        if not is_fixed_orient(fwd):
+            raise ValueError('Only fixed-orientation forward operators are '
+                             'supported.')
 
-    if np.all(stc.data > 0):
-        warn('Source estimate only contains currents with positive values. '
-             'Use pick_ori="normal" when computing the inverse to compute '
-             'currents not current magnitudes.')
+        if np.all(stc.data > 0):
+            warn('Source estimate only contains currents with positive '
+                 'values. Use pick_ori="full" or pick_ori="normal" when '
+                 'computing the inverse to compute currents not current '
+                 'magnitudes.')
 
     max_cur = np.max(np.abs(stc.data))
     if max_cur > 1e-7:  # 100 nAm threshold for warning
@@ -1069,13 +1072,25 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
     else:
         n_src = sum([len(v) for v in stc.vertices])
     if len(src_sel) != n_src:
-        raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
+        raise RuntimeError('Only %i of %i source estimate vertices found in '
                            'fwd' % (len(src_sel), n_src))
 
-    gain = fwd['sol']['data'][:, src_sel]
+    if isinstance(stc, FullSourceEstimate):
+        gain = fwd['sol']['data']
+        # Reshape gain matrix to (n_sensors, n_dipoles, XYZ)
+        gain = gain.reshape(gain.shape[0], -1, 3)
+        gain = gain[:, src_sel, :]  # Select the dipoles present in the stc
+        # Reshape gain matrix back to (n_sensors, XYZ*n_dipoles)
+        gain = gain.reshape(gain.shape[0], -1)
+        data = stc.data[:, :, start:stop]
+        # Reshape stc data to (XYZ*n_dipoles, n_samples)
+        data = data.reshape(-1, data.shape[2])
+    else:
+        gain = fwd['sol']['data'][:, src_sel]
+        data = stc.data[:, start:stop]
 
     logger.info('Projecting source estimate to sensor space...')
-    data = np.dot(gain, stc.data[:, start:stop])
+    data = np.dot(gain, data)
     logger.info('[done]')
 
     times = deepcopy(stc.times[start:stop])
@@ -1084,7 +1099,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None,
+def apply_forward(fwd, stc, info, start=None, stop=None, comment='',
                   verbose=None):
     """Project source space currents to sensor space using a forward operator.
 
@@ -1092,42 +1107,53 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     pick_channels_forward or pick_types_forward to restrict the solution to a
     subset of channels.
 
-    The function returns an Evoked object, which is constructed from
-    evoked_template. The evoked_template should be from the same MEG system on
+    The function returns an Evoked object, which is constructed using the
+    provided Info object. The Info object should be from the same MEG system on
     which the original data was acquired. An exception will be raised if the
     forward operator contains channels that are not present in the template.
 
-
     Parameters
     ----------
-    fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
-    stc : SourceEstimate
+    fwd : instance of Forward
+        Forward operator to use.
+    stc : SourceEstimate | VolSourceEstimate | FullSourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        Measurement info to generate the evoked.
-    start : int, optional
-        Index of first time sample (index not time is seconds).
-    stop : int, optional
-        Index of first time sample not to include (index not time is seconds).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see :func:`mne.verbose`
-        and :ref:`Logging documentation <tut_logging>` for more).
+        If an instance of SourceEstimate or VolSourceEstimate is given, the
+        forward operator has to use fixed dipole orientations
+        (force_fixed=True). If an instance of FullSourceEstimate is given, the
+        forward operator should be in the same configuration as the one used to
+        construct the source estimate.
+    info : instance of mne.io.meas_info.Info
+        Measurement info to generate the Evokeds object.
+    start : int | None
+        Index of first time sample (in samples). Defaults to the first sample
+        in the source estimate.
+    stop : int | None
+        Index of first time sample not to include (in samples). Defaults to
+        the last sample in the source estimate.
+    comment : str | None
+        Comment on the data. This is stored in the comment field of the
+        generated Evokeds object. Defaults to ''.
+    verbose : bool | str | int | None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    evoked : Evoked
+    evoked : instance of Evoked
         Evoked object with computed sensor space data.
 
     See Also
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
+    convert_forward_solution : To convert the forward solution to use fixed
+                               dipole orientations.
     """
-    # make sure evoked_template contains all channels in fwd
-    for ch_name in fwd['sol']['row_names']:
-        if ch_name not in info['ch_names']:
-            raise ValueError('Channel %s of forward operator not present in '
-                             'evoked_template.' % ch_name)
+    # make sure the Info object contains all channels in fwd
+    not_found = set(fwd['sol']['row_names']) - set(info['ch_names'])
+    if len(not_found) > 0:
+        raise ValueError('The following channels of the forward operator are '
+                         'not present in the supplied Info object: %s'
+                         % not_found)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
@@ -1136,8 +1162,9 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     sfreq = float(1.0 / stc.tstep)
     info_out = _fill_measurement_info(info, fwd, sfreq)
 
-    evoked = EvokedArray(data, info_out, times[0], nave=1)
+    evoked = EvokedArray(data, info_out, times[0], comment)
 
+    # Force the times field to equal the times field in the stc
     evoked.times = times
     evoked.first = int(np.round(evoked.times[0] * sfreq))
     evoked.last = evoked.first + evoked.data.shape[1] - 1
@@ -1154,41 +1181,51 @@ def apply_forward_raw(fwd, stc, info, start=None, stop=None,
     pick_channels_forward or pick_types_forward to restrict the solution to a
     subset of channels.
 
-    The function returns a Raw object, which is constructed using provided
-    info. The info object should be from the same MEG system on which the
-    original data was acquired. An exception will be raised if the forward
-    operator contains channels that are not present in the info.
+    The function returns a Raw object, which is constructed using the
+    provided Info object. The Info object should be from the same MEG system on
+    which the original data was acquired. An exception will be raised if the
+    forward operator contains channels that are not present in the template.
 
     Parameters
     ----------
-    fwd : Forward
-        Forward operator to use. Has to be fixed-orientation.
-    stc : SourceEstimate
+    fwd : instance of Forward
+        Forward operator to use.
+    stc : SourceEstimate | VolSourceEstimate | FullSourceEstimate
         The source estimate from which the sensor space data is computed.
-    info : instance of Info
-        The measurement info.
-    start : int, optional
-        Index of first time sample (index not time is seconds).
-    stop : int, optional
-        Index of first time sample not to include (index not time is seconds).
+        If an instance of SourceEstimate or VolSourceEstimate is given, the
+        forward operator has to use fixed dipole orientations
+        (force_fixed=True). If an instance of FullSourceEstimate is given, the
+        forward operator should be in the same configuration as when it was
+        used to construct the source estimate.
+    info : Instance of mne.io.meas_info.Info
+        The measurement info to generate the Raw object.
+    start : int | None
+        Index of first time sample (in samples). Defaults to the first sample
+        in the source estimate.
+    stop : int | None
+        Index of first time sample not to include (in samples). Defaults to
+        the last sample in the source estimate.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see :func:`mne.verbose`
         and :ref:`Logging documentation <tut_logging>` for more).
 
     Returns
     -------
-    raw : Raw object
+    raw : instance of Raw
         Raw object with computed sensor space data.
 
     See Also
     --------
     apply_forward: Compute sensor space data and return an Evoked object.
+    convert_forward_solution : To convert the forward solution to use fixed
+                               dipole orientations.
     """
-    # make sure info contains all channels in fwd
-    for ch_name in fwd['sol']['row_names']:
-        if ch_name not in info['ch_names']:
-            raise ValueError('Channel %s of forward operator not present in '
-                             'info.' % ch_name)
+    # make sure the Info object contains all channels in fwd
+    not_found = set(fwd['sol']['row_names']) - set(info['ch_names'])
+    if len(not_found) > 0:
+        raise ValueError('The following channels of the forward operator are '
+                         'not present in the supplied Info object: %s'
+                         % not_found)
 
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
@@ -1214,7 +1251,7 @@ def restrict_forward_to_stc(fwd, stc):
     ----------
     fwd : Forward
         Forward operator.
-    stc : SourceEstimate
+    stc : SourceEstimate | FullSourceEstimate
         Source estimate.
 
     Returns

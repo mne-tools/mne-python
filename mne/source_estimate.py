@@ -13,6 +13,7 @@ import warnings
 import numpy as np
 from scipy import linalg, sparse
 from scipy.sparse import coo_matrix, block_diag as sparse_block_diag
+from scipy.sparse import lil_matrix
 
 from .filter import resample
 from .evoked import _get_peak
@@ -22,8 +23,10 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
 from .source_space import (_ensure_src, _get_morph_src_reordering,
                            _ensure_src_subject, SourceSpaces)
 from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    _time_mask, warn as warn_, copy_function_doc_to_method_doc)
-from .viz import plot_source_estimates
+                    _time_mask, warn as warn_, copy_function_doc_to_method_doc,
+                    copy_doc)
+from .viz import plot_source_estimates, plot_full_source_estimates
+from .fixes import in1d, sparse_block_diag
 from .io.base import ToDataFrameMixin, TimeMixin
 
 from .externals.six import string_types
@@ -33,8 +36,6 @@ from .externals.h5io import read_hdf5, write_hdf5
 
 def _read_stc(filename):
     """Aux Function."""
-    fid = open(filename, 'rb')
-
     stc = dict()
 
     fid.seek(0, 2)  # go to end of file
@@ -58,26 +59,29 @@ def _read_stc(filename):
     # read the number of timepts
     data_n = int(np.fromfile(fid, dtype=">u4", count=1))
 
-    if (vertices_n and  # vertices_n can be 0 (empty stc)
-            ((file_length / 4 - 4 - vertices_n) % (data_n * vertices_n)) != 0):
-        raise ValueError('incorrect stc file size')
+    if vertices_n == 0:  # vertices_n can be 0 (empty stc)
+        data_length = 0
+    else:
+        data_length = file_length / 4 - 4 - vertices_n
+
+        if data_length % (data_n * vertices_n) != 0:
+            raise ValueError('incorrect stc file size')
 
     # read the data matrix
-    stc['data'] = np.fromfile(fid, dtype=">f4", count=vertices_n * data_n)
-    stc['data'] = stc['data'].reshape([data_n, vertices_n]).T
+    stc['data'] = np.fromfile(fid, dtype=">f4", count=data_length)
+    stc['data'] = stc['data'].reshape(data_n, -1).T
 
-    # close the file
-    fid.close()
     return stc
 
 
-def _write_stc(filename, tmin, tstep, vertices, data):
+def _write_stc(fid, tmin, tstep, vertices, data):
     """Write an STC file.
 
     Parameters
     ----------
-    filename : string
-        The name of the STC file.
+    fid : int
+        File identifier of an opened file to write to.
+        (Open with `open(filename, 'wb')`)
     tmin : float
         The first time point of the data in seconds.
     tstep : float
@@ -87,8 +91,6 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     data : 2D array
         The data matrix (nvert * ntime).
     """
-    fid = open(filename, 'wb')
-
     # write start time in ms
     fid.write(np.array(1000 * tmin, dtype='>f4').tostring())
     # write sampling rate in ms
@@ -104,9 +106,6 @@ def _write_stc(filename, tmin, tstep, vertices, data):
     # write the data
     #
     fid.write(np.array(data.T, dtype='>f4').tostring())
-
-    # close the file
-    fid.close()
 
 
 def _read_3(fid):
@@ -219,7 +218,7 @@ def read_source_estimate(fname, subject=None):
 
     Returns
     -------
-    stc : SourceEstimate | VolSourceEstimate
+    stc : SourceEstimate | FullSourceEstimate | VolSourceEstimate
         The soure estimate object loaded from file.
 
     Notes
@@ -231,6 +230,9 @@ def read_source_estimate(fname, subject=None):
        '*-rh.stc') or only specify the asterisk part in these patterns. In any
        case, the function expects files for both hemisphere with names
        following this pattern.
+     - for full surface source estimates, ``fname`` should follow the same
+       pattern as for surface estimates, except that files are named
+       '*-full-lh.stc' and '*-full-rh.stc'.
      - for single time point .w files, ``fname`` should follow the same
        pattern as for surface estimates, except that files are named
        '*-lh.w' and '*-rh.w'.
@@ -244,8 +246,11 @@ def read_source_estimate(fname, subject=None):
                 fname.endswith('-vl.w') or fname.endswith('-vol.w'):
             ftype = 'volume'
         elif fname.endswith('.stc'):
-            ftype = 'surface'
-            if fname.endswith(('-lh.stc', '-rh.stc')):
+            if fname.endswith(('-full-lh.stc', '-full-rh.stc')):
+                ftype = 'full-surface'
+                fname = fname[:-7]
+            elif fname.endswith(('-lh.stc', '-rh.stc')):
+                ftype = 'surface'
                 fname = fname[:-7]
             else:
                 err = ("Invalid .stc filename: %r; needs to end with "
@@ -274,7 +279,10 @@ def read_source_estimate(fname, subject=None):
                    for f in [fname + '-rh.w', fname + '-lh.w']]
         h5_exist = op.exists(fname + '-stc.h5')
         if all(stc_exist) and (ftype is not 'w'):
-            ftype = 'surface'
+            if fname.endswith('-full'):
+                ftype = 'full-surface'
+            else:
+                ftype = 'surface'
         elif all(w_exist):
             ftype = 'w'
         elif h5_exist:
@@ -288,7 +296,8 @@ def read_source_estimate(fname, subject=None):
     # read the files
     if ftype == 'volume':  # volume source space
         if fname.endswith('.stc'):
-            kwargs = _read_stc(fname)
+            with open(fname, 'rb') as fid:
+                kwargs = _read_stc(fid)
         elif fname.endswith('.w'):
             kwargs = _read_w(fname)
             kwargs['data'] = kwargs['data'][:, np.newaxis]
@@ -296,14 +305,20 @@ def read_source_estimate(fname, subject=None):
             kwargs['tstep'] = 0.0
         else:
             raise IOError('Volume source estimate must end with .stc or .w')
-    elif ftype == 'surface':  # stc file with surface source spaces
-        lh = _read_stc(fname + '-lh.stc')
-        rh = _read_stc(fname + '-rh.stc')
+    elif ftype == 'surface' or ftype == 'full-surface':
+        # stc file with surface source spaces
+        with open(fname + '-lh.stc', 'rb') as fid:
+            lh = _read_stc(fid)
+        with open(fname + '-rh.stc', 'rb') as fid:
+            rh = _read_stc(fid)
         assert lh['tmin'] == rh['tmin']
         assert lh['tstep'] == rh['tstep']
         kwargs = lh.copy()
         kwargs['data'] = np.r_[lh['data'], rh['data']]
         kwargs['vertices'] = [lh['vertices'], rh['vertices']]
+        if ftype == 'full-surface':
+            n_vertices = len(lh['vertices']) + len(rh['vertices'])
+            kwargs['data'] = kwargs['data'].reshape(n_vertices, 3, -1)
     elif ftype == 'w':  # w file with surface source spaces
         lh = _read_w(fname + '-lh.w')
         rh = _read_w(fname + '-rh.w')
@@ -335,18 +350,40 @@ def read_source_estimate(fname, subject=None):
 
     if ftype == 'volume':
         stc = VolSourceEstimate(**kwargs)
+    elif ftype == 'full-surface' or (ftype == 'h5' and
+                                     kwargs['data'].ndim == 3):
+        stc = FullSourceEstimate(**kwargs)
     else:
         stc = SourceEstimate(**kwargs)
 
     return stc
 
 
-def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
-    """Generate a surface, volume or mixed source estimate."""
+def _make_stc(data, vertices, inverse_operator=None, tmin=None, tstep=None,
+              subject=None):
+    """Helper function to generate a surface, full-surface, volume or mixed
+       source estimate."""
+
     if isinstance(vertices, list) and len(vertices) == 2:
         # make a surface source estimate
-        stc = SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep,
-                             subject=subject)
+        n_vertices = len(vertices[0]) + len(vertices[1])
+        if data.ndim == 3 or data.shape[0] == 3 * n_vertices:
+            # Full source estimate
+            if data.ndim == 2:
+                data = data.reshape(n_vertices, 3, -1)
+
+            if inverse_operator is not None:
+                # Rotate data to absolute XYZ coordinates
+                source_nn = inverse_operator['source_nn'].reshape(-1, 3, 3)
+                data_rot = np.zeros_like(data)
+                for i, d, n in zip(range(data.shape[0]), data, source_nn):
+                    data_rot[i] = np.dot(n.T, d)
+                data = data_rot
+            stc = FullSourceEstimate(data, vertices=vertices, tmin=tmin,
+                                     tstep=tstep, subject=subject)
+        else:
+            stc = SourceEstimate(data, vertices=vertices, tmin=tmin,
+                                 tstep=tstep, subject=subject)
     elif isinstance(vertices, np.ndarray) or isinstance(vertices, list)\
             and len(vertices) == 1:
         stc = VolSourceEstimate(data, vertices=vertices, tmin=tmin,
@@ -364,13 +401,16 @@ def _make_stc(data, vertices, tmin=None, tstep=None, subject=None):
 def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations."""
     compat = False
+    if a.__class__ != b.__class__:
+        raise ValueError('Cannot combine %s and %s.' % (a.__class__.__name__,
+                                                        b.__class__.__name__))
     if len(a.vertices) == len(b.vertices):
         if all(np.array_equal(av, vv)
                for av, vv in zip(a.vertices, b.vertices)):
             compat = True
     if not compat:
-        raise ValueError('Cannot combine SourceEstimates that do not have the '
-                         'same vertices. Consider using stc.expand().')
+        raise ValueError('Cannot combine source estimates that do not have '
+                         'the same vertices. Consider using stc.expand().')
     if a.subject != b.subject:
         raise ValueError('source estimates do not have the same subject '
                          'names, %r and %r' % (a.subject, b.subject))
@@ -488,9 +528,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
         mask = _time_mask(self.times, tmin, tmax, sfreq=self.sfreq)
         self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
-            self._sens_data = self._sens_data[:, mask]
+            self._sens_data = self._sens_data[..., mask]
         else:
-            self._data = self._data[:, mask]
+            self._data = self._data[..., mask]
 
         self._update_times()
         return self  # return self for chaining methods
@@ -554,7 +594,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
     def _update_times(self):
         """Update the times attribute after changing tmin, tmax, or tstep."""
-        self.times = self.tmin + (self.tstep * np.arange(self.shape[1]))
+        self.times = self.tmin + (self.tstep * np.arange(self.shape[-1]))
 
     def __add__(self, a):
         stc = copy.deepcopy(self)
@@ -579,10 +619,10 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             The modified stc (method operates inplace).
         """
         data = self.data
-        tmax = self.tmin + self.tstep * data.shape[1]
+        tmax = self.tmin + self.tstep * data.shape[-1]
         tmin = (self.tmin + tmax) / 2.
         tstep = tmax - self.tmin
-        mean_stc = SourceEstimate(self.data.mean(axis=1)[:, np.newaxis],
+        mean_stc = SourceEstimate(self.data.mean(axis=-1)[..., np.newaxis],
                                   vertices=self.vertices, tmin=tmin,
                                   tstep=tstep, subject=self.subject)
         return mean_stc
@@ -713,12 +753,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
             tstop = self.times[-1]
 
         times = np.arange(tstart, tstop + self.tstep, width)
-        nv, _ = self.shape
         nt = len(times) - 1
-        data = np.empty((nv, nt), dtype=self.data.dtype)
+        data = np.empty(self.shape[:-1] + (nt,), dtype=self.data.dtype)
         for i in range(nt):
             idx = (self.times >= times[i]) & (self.times < times[i + 1])
-            data[:, i] = func(self.data[:, idx], axis=1)
+            data[..., i] = func(self.data[..., idx], axis=-1)
 
         tmin = times[0] + width / 2.
         stc = _make_stc(data, vertices=self.vertices,
@@ -728,7 +767,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
     def transform_data(self, func, idx=None, tmin_idx=None, tmax_idx=None):
         """Get data after a linear (time) transform has been applied.
 
-        The transorm is applied to each source time course independently.
+        The transform is applied to each source time course independently.
 
 
         Parameters
@@ -773,7 +812,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
                       'attribute before calling this method.')
 
             # transform source space data directly
-            data_t = func(self.data[idx, tmin_idx:tmax_idx])
+            data_t = func(self.data[idx, ..., tmin_idx:tmax_idx])
 
             if isinstance(data_t, tuple):
                 # use only first return value
@@ -835,7 +874,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, TimeMixin):
 
         Returns
         -------
-        stcs : instance of SourceEstimate | list
+        stcs : SourceEstimate | FullSourceEstimate | list
             The transformed stc or, in the case of transforms which yield
             N-dimensional output (where N > 2), a list of stcs. For a list,
             copy must be True.
@@ -1004,10 +1043,13 @@ class SourceEstimate(_BaseSourceEstimate):
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            _write_stc(fname + '-lh.stc', tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.lh_vertno, data=lh_data)
-            _write_stc(fname + '-rh.stc', tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.rh_vertno, data=rh_data)
+            with open(fname + '-lh.stc', 'wb') as fid:
+                _write_stc(fid, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.lh_vertno, data=lh_data)
+            with open(fname + '-rh.stc', 'wb') as fid:
+                _write_stc(fid, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.rh_vertno, data=rh_data)
+
         elif ftype == 'w':
             if self.shape[1] != 1:
                 raise ValueError('w files can only contain a single time '
@@ -1116,9 +1158,8 @@ class SourceEstimate(_BaseSourceEstimate):
         if sum([len(v) for v in vertices]) == 0:
             raise ValueError('No vertices match the label in the stc file')
 
-        label_stc = SourceEstimate(values, vertices=vertices,
-                                   tmin=self.tmin, tstep=self.tstep,
-                                   subject=self.subject)
+        label_stc = self.__class__(values, vertices=vertices, tmin=self.tmin,
+                                   tstep=self.tstep, subject=self.subject)
         return label_stc
 
     def expand(self, vertices):
@@ -1157,7 +1198,7 @@ class SourceEstimate(_BaseSourceEstimate):
             self.vertices[vi] = np.insert(v_old, inds, v_new)
         inds = [ii + offset for ii, offset in zip(inserters, offsets[:-1])]
         inds = np.concatenate(inds)
-        new_data = np.zeros((len(inds), self._data.shape[1]))
+        new_data = np.zeros((len(inds),) + self._data.shape[1:])
         self._data = np.insert(self._data, inds, new_data, axis=0)
         return self
 
@@ -1573,8 +1614,9 @@ class VolSourceEstimate(_BaseSourceEstimate):
             logger.info('Writing STC to disk...')
             if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
                 fname += '-vl.stc'
-            _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
-                       vertices=self.vertices, data=self.data)
+            with open(fname, 'wb') as fid:
+                _write_stc(fid, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.vertices, data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
             if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
@@ -1689,6 +1731,166 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         return (vert_idx if vert_as_index else self.vertices[vert_idx],
                 time_idx if time_as_index else self.times[time_idx])
+
+
+class FullSourceEstimate(SourceEstimate):
+    """Container for full MNE surface estimate, including dipole directions
+
+    Parameters
+    ----------
+    data : array of shape (n_dipoles, 3, n_times)
+        The data in source space. Each dipole contains three vectors that
+        denote the dipole strength in X, Y and Z directions over time.
+    vertices : array | list of two arrays
+        Vertex numbers corresponding to the data.
+    tmin : float
+        Time point of the first sample in data.
+    tstep : float
+        Time step between successive samples in data.
+    subject : str | None
+        The subject name. While not necessary, it is safer to set the
+        subject parameter to avoid analysis errors.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    subject : str | None
+        The subject name.
+    times : array of shape (n_times,)
+        The time vector.
+    shape : tuple
+        The shape of the data. A tuple of int (n_dipoles, n_times).
+    Notes
+    -----
+    .. versionadded:: 0.13
+    """
+    @verbose
+    def __init__(self, data, vertices=None, tmin=None,
+                 tstep=None, subject=None, verbose=None):
+        SourceEstimate.__init__(self, data, vertices=vertices, tmin=tmin,
+                                tstep=tstep, subject=subject, verbose=verbose)
+
+    @verbose
+    def save(self, fname, ftype='stc', verbose=None):
+        """Save the full source estimate to a file
+
+        Parameters
+        ----------
+        fname : string
+            The stem of the file name. The file names used for surface source
+            spaces are obtained by adding "-lh.stc" and "-rh.stc" to the stem
+            provided, for the left and the right hemisphere, respectively.
+        ftype : string
+            File format to use. Allowed values are "stc" (default) and "h5".
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+            Defaults to self.verbose.
+        """
+        if ftype not in ('stc', 'h5'):
+            raise ValueError('ftype must be "stc", or "h5", not "%s"' % ftype)
+
+        if ftype == 'stc':
+            if not fname.endswith('-full'):
+                fname += '-full'
+
+            logger.info('Writing STC to disk as ' + fname + '-(lh/rh).stc')
+
+            n_lh_verts, n_rh_verts = len(self.lh_vertno), len(self.rh_vertno)
+            lh_data = self.data[:n_lh_verts].reshape(3 * n_lh_verts, -1)
+            rh_data = self.data[n_lh_verts:].reshape(3 * n_rh_verts, -1)
+
+            with open(fname + '-lh.stc', 'wb') as fid:
+                _write_stc(fid, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.lh_vertno, data=lh_data)
+            with open(fname + '-rh.stc', 'wb') as fid:
+                _write_stc(fid, tmin=self.tmin, tstep=self.tstep,
+                           vertices=self.rh_vertno, data=rh_data)
+
+        elif ftype == 'h5':
+            write_hdf5(fname + '-stc.h5',
+                       dict(vertices=self.vertices, data=self.data,
+                            tmin=self.tmin, tstep=self.tstep,
+                            subject=self.subject),
+                       title='mnepython')
+
+        logger.info('[done]')
+
+    def magnitude(self):
+        """Compute magnitude of activity without directionality
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The source estimate without directionality information.
+        """
+        data_abs = np.linalg.norm(self.data, axis=1)
+        return SourceEstimate(data_abs, self.vertices, self.tmin, self.tstep,
+                              self.subject, self.verbose)
+
+    def normal(self, src):
+        """Compute activity orthogonal to the cortex
+
+        Parameters
+        ----------
+        src : instance of SourceSpaces
+            The source space for which this source estimate is specified.
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            The source estimate only retaining the activity orthogonal to the
+            cortex.
+        """
+        normals = np.vstack([s['nn'][v] for s, v in zip(src, self.vertices)])
+        data_norm = np.einsum('ijk,ij->ik', self.data, normals)
+        return SourceEstimate(data_norm, self.vertices, self.tmin, self.tstep,
+                              self.subject, self.verbose)
+
+    @copy_function_doc_to_method_doc(plot_full_source_estimates)
+    def plot(self, src, time, transparent=None, bgcolor=(1, 1, 1), opacity=0.3,
+             brain_color=(0.7, 0.7, 0.7), high_resolution=False, fig_name=None,
+             fig_size=(600, 600), mode='2darrow', scale_factor=None,
+             hemi='both', colorbar=True, cmap='hot', clim='auto',
+             verbose=None):
+
+        return plot_full_source_estimates(self, src, time,
+                                          transparent=transparent,
+                                          bgcolor=bgcolor, opacity=opacity,
+                                          brain_color=brain_color,
+                                          high_resolution=high_resolution,
+                                          fig_name=fig_name, fig_size=fig_size,
+                                          mode=mode, scale_factor=scale_factor,
+                                          hemi=hemi, colorbar=colorbar,
+                                          cmap=cmap, clim=clim,
+                                          verbose=verbose)
+
+    @copy_doc(SourceEstimate.center_of_mass)
+    def center_of_mass(self, subject=None, hemi=None, restrict_vertices=False,
+                       subjects_dir=None, surf='sphere'):
+        return self.magnitude().center_of_mass(subject, hemi,
+                                               restrict_vertices, subjects_dir,
+                                               surf)
+
+    @copy_doc(SourceEstimate.get_peak)
+    def get_peak(self, hemi=None, tmin=None, tmax=None, mode='abs',
+                 vert_as_index=False, time_as_index=False):
+        return self.magnitude().get_peak(hemi, tmin, tmax, mode, vert_as_index,
+                                         time_as_index)
+
+    def __repr__(self):
+        if isinstance(self.vertices, list):
+            nv = sum([len(v) for v in self.vertices])
+        else:
+            nv = self.vertices.size
+        s = "%d vertices" % nv
+        if self.subject is not None:
+            s += ", subject : %s" % self.subject
+        s += ", tmin : %s (ms)" % (1e3 * self.tmin)
+        s += ", tmax : %s (ms)" % (1e3 * self.times[-1])
+        s += ", tstep : %s (ms)" % (1e3 * self.tstep)
+        s += ", data size : %s x %s x %s" % self.shape
+        return "<FullSourceEstimate  |  %s>" % s
 
 
 class MixedSourceEstimate(_BaseSourceEstimate):
@@ -1979,7 +2181,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     Parameters
     ----------
-    stc : SourceEstimate
+    stc : SourceEstimate | FullSourceEstimate
         The sparse STC.
     subject_from : str
         The subject on which stc is defined.
@@ -1990,7 +2192,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
     Returns
     -------
-    stc_morph : SourceEstimate
+    stc_morph : SourceEstimate | FullSourceEstimate
         The morphed source estimates.
     """
     maps = read_morph_map(subject_to, subject_from, subjects_dir)
@@ -2026,7 +2228,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Name of the original subject as named in the SUBJECTS_DIR
     subject_to : string
         Name of the subject on which to morph as named in the SUBJECTS_DIR
-    stc_from : SourceEstimate
+    stc_from : SourceEstimate | FullSourceEstimate
         Source estimates for subject "from" to morph
     grade : int, list (of two arrays), or None
         Resolution of the icosahedral mesh (typically 5). If None, all
@@ -2057,7 +2259,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
     Returns
     -------
-    stc_to : SourceEstimate
+    stc_to : SourceEstimate | FullSourceEstimate
         Source estimate for the destination subject.
     """
     if not isinstance(stc_from, SourceEstimate):
@@ -2107,8 +2309,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     else:
         data = np.r_[data_morphed[0], data_morphed[1]]
 
-    stc_to = SourceEstimate(data, vertices, stc_from.tmin, stc_from.tstep,
-                            subject=subject_to, verbose=stc_from.verbose)
+    if isinstance(stc_from, FullSourceEstimate):
+        stc_to = FullSourceEstimate(data, vertices, stc_from.tmin,
+                                    stc_from.tstep, subject=subject_to,
+                                    verbose=stc_from.verbose)
+    else:
+        stc_to = SourceEstimate(data, vertices, stc_from.tmin, stc_from.tstep,
+                                subject=subject_to, verbose=stc_from.verbose)
     logger.info('[done]')
 
     return stc_to
@@ -2262,7 +2469,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
         Name of the original subject as named in the SUBJECTS_DIR.
     subject_to : string
         Name of the subject on which to morph as named in the SUBJECTS_DIR.
-    stc_from : SourceEstimate
+    stc_from : SourceEstimate | FullSourceEstimate
         Source estimates for subject "from" to morph.
     vertices_to : list of array of int
         The vertices on the destination subject's brain.
@@ -2271,7 +2478,7 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
 
     Returns
     -------
-    stc_to : SourceEstimate
+    stc_to : SourceEstimate | FullSourceEstimate
         Source estimate for the destination subject.
     """
     if not sparse.issparse(morph_mat):
@@ -2283,15 +2490,34 @@ def morph_data_precomputed(subject_from, subject_to, stc_from, vertices_to,
     if not sum(len(v) for v in vertices_to) == morph_mat.shape[0]:
         raise ValueError('number of vertices in vertices_to must match '
                          'morph_mat.shape[0]')
+
     if not stc_from.data.shape[0] == morph_mat.shape[1]:
         raise ValueError('stc_from.data.shape[0] must be the same as '
                          'morph_mat.shape[0]')
 
     if stc_from.subject is not None and stc_from.subject != subject_from:
         raise ValueError('stc_from.subject and subject_from must match')
-    data = morph_mat * stc_from.data
-    stc_to = SourceEstimate(data, vertices_to, stc_from.tmin, stc_from.tstep,
-                            verbose=stc_from.verbose, subject=subject_to)
+
+    if isinstance(stc_from, FullSourceEstimate):
+        # Morph the locations of the dipoles, but not their orientation
+        morph_xyz = lil_matrix((morph_mat.shape[0] * 3,
+                                morph_mat.shape[1] * 3))
+        morph_xyz[0::3, 0::3] = morph_mat
+        morph_xyz[1::3, 1::3] = morph_mat
+        morph_xyz[2::3, 2::3] = morph_mat
+        morph_xyz = morph_xyz.tocsr()
+
+        data = morph_xyz * stc_from.data.reshape(-1, stc_from.data.shape[2])
+        data = data.reshape(-1, 3, stc_from.data.shape[2])
+        stc_to = FullSourceEstimate(data, vertices=vertices_to,
+                                    tmin=stc_from.tmin, tstep=stc_from.tstep,
+                                    verbose=stc_from.verbose,
+                                    subject=subject_to)
+    else:
+        data = morph_mat * stc_from.data
+        stc_to = SourceEstimate(data, vertices=vertices_to, tmin=stc_from.tmin,
+                                tstep=stc_from.tstep, verbose=stc_from.verbose,
+                                subject=subject_to)
     return stc_to
 
 
@@ -2760,6 +2986,10 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         logger.info('Extracting time courses for %d labels (mode: %s)'
                     % (n_labels, mode))
 
+        # operate on dipole magnitudes
+        if isinstance(stc, FullSourceEstimate):
+            stc = stc.magnitude()
+
         # do the extraction
         label_tc = np.zeros((n_labels, stc.data.shape[1]),
                             dtype=stc.data.dtype)
@@ -2826,7 +3056,9 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Parameters
     ----------
-    stcs : SourceEstimate | list (or generator) of SourceEstimate
+    stcs : SourceEstimate | FullSourceEstimate |
+           list (or generator) of SourceEstimate |
+           list (or generator) of FullSourceEstimate
         The source estimates from which to extract the time course.
     labels : Label | list of Label
         The labels for which to extract the time course.
@@ -2845,7 +3077,8 @@ def extract_label_time_course(stcs, labels, src, mode='mean_flip',
 
     Returns
     -------
-    label_tc : array | list (or generator) of array, shape=(len(labels), n_times)
+    label_tc : array | list (or generator) of array,
+               shape=(len(labels), n_times)
         Extracted time course for each label and source estimate.
     """  # noqa: E501
     # convert inputs to lists
