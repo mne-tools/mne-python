@@ -26,6 +26,21 @@ from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
 
 
+def _get_data(inst, return_itc):
+    """Get data from Epochs or Evoked instance as epochs x ch x time"""
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    if not isinstance(inst, (Epochs, Evoked)):
+        raise TypeError('inst must be Epochs or Evoked')
+    if isinstance(inst, Epochs):
+        data = inst.get_data()
+    else:
+        if return_itc:
+            raise ValueError('return_itc must be False for evoked data')
+        data = inst.data[np.newaxis, ...].copy()
+    return data
+
+
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """Compute Wavelets for the given frequency range
 
@@ -1043,16 +1058,7 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
     """
-    from ..epochs import Epochs
-    from ..evoked import Evoked
-    if not isinstance(inst, (Epochs, Evoked)):
-        raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, Epochs):
-        data = inst.get_data()
-    else:
-        if return_itc:
-            raise ValueError('return_itc must be False for evoked data')
-        data = inst.data[np.newaxis, ...].copy()
+    data = _get_data(inst, return_itc)
     picks = pick_types(inst.info, meg=True, eeg=True)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
@@ -1163,14 +1169,14 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     return psd, itc
 
 
-def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
+def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                    return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
     ----------
-    epochs : Epochs
-        The epochs.
+    inst : Epochs | Evoked
+        The epochs or evoked object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -1206,9 +1212,9 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
         is True.
     """
 
-    data = epochs.get_data()
-    picks = pick_types(epochs.info, meg=True, eeg=True)
-    info = pick_info(epochs.info, picks)
+    data = _get_data(inst, return_itc)
+    picks = pick_types(inst.info, meg=True, eeg=True)
+    info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,
@@ -1216,9 +1222,10 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                                     use_fft=use_fft, decim=decim,
                                     n_jobs=n_jobs, zero_mean=True,
                                     verbose='INFO')
-    times = epochs.times[::decim].copy()
+    times = inst.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
+    out = AverageTFR(info, power, times, freqs, nave,
+                     method='mutlitaper-power')
     if return_itc:
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='mutlitaper-itc'))

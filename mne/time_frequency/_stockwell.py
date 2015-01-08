@@ -12,7 +12,7 @@ from scipy import fftpack
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
 from ..parallel import parallel_func, check_n_jobs
-from .tfr import AverageTFR
+from .tfr import AverageTFR, _get_data
 
 
 @verbose
@@ -152,8 +152,8 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen (2010).
         During Visual Word Recognition, Phonology Is Accessed
         within 100 ms and May Be Mediated by a Speech Production
-        Code: Evidence from Magnetoencephalography. The Journal of Neuroscience,
-        30 (15), 5229-5233.
+        Code: Evidence from Magnetoencephalography. The Journal of
+        Neuroscience, 30 (15), 5229-5233.
     K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
         Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
         (2006). S-transform time-frequency analysis of P300 reveals deficits in
@@ -193,14 +193,14 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     return psd, itc, freqs
 
 
-def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
+def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
                   width=1.0, decim=1, return_itc=False, n_jobs=1):
     """Time-Frequency Representation (TFR) using Stockwell Transform
 
     Parameters
     ----------
-    epochs : Epochs
-        The epochs.
+    inst : Epochs | Evoked
+        The epochs or evoked object.
     fmin : None, float
         The minimum frequency to include. If None defaults to the minimum fft
         frequency greater than zero.
@@ -227,9 +227,9 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     itc : AverageTFR
         The intertrial coherence. Only returned if return_itc is True.
     """
-    data = epochs.get_data()
-    picks = pick_types(epochs.info, meg=True, eeg=True)
-    info = pick_info(epochs.info, picks)
+    data = _get_data(inst, return_itc)
+    picks = pick_types(inst.info, meg=True, eeg=True)
+    info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     power, itc, freqs = _induced_power_stockwell(data,
                                                  sfreq=info['sfreq'],
@@ -239,7 +239,7 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
                                                  decim=decim,
                                                  return_itc=return_itc,
                                                  n_jobs=n_jobs)
-    times = epochs.times[::decim].copy()
+    times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='stockwell-power')
     if return_itc:

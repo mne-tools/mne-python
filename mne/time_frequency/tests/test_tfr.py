@@ -166,6 +166,12 @@ def test_tfr_multitaper():
     assert_true(tmax > 0.3 and tmax < 0.7)
     assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)
+    power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
+                                  n_cycles=freqs / 2., time_bandwidth=4.0,
+                                  return_itc=False)
+    # XXX The other two transforms (stockwell, CWT) have data equal but this
+    # one does not, need to think about if it should be
+    assert_array_equal(power.data.shape, power_evoked.data.shape)
 
 
 def test_io():

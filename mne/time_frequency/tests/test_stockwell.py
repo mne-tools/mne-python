@@ -48,7 +48,8 @@ def test_stockwell_core():
     freqs = fftpack.fftfreq(len(pulse), 1. / sfreq)
     fmin, fmax = 1.0, 100.0
     start_f, stop_f = [np.abs(freqs - f).argmin() for f in (fmin, fmax)]
-    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    st_precomputed = _precompute_st_windows(1000, start_f, stop_f,
+                                            sfreq, width)
 
     st_pulse = _st(pulse, *st_precomputed)
     st_pulse = np.abs(st_pulse) ** 2
@@ -64,7 +65,8 @@ def test_stockwell_core():
 
     width = 1.0
     start_f, stop_f = 0, len(pulse)
-    st_precomputed = _precompute_st_windows(1000, start_f, stop_f, sfreq, width)
+    st_precomputed = _precompute_st_windows(1000, start_f, stop_f,
+                                            sfreq, width)
     y = _st(pulse, *st_precomputed)
     # invert stockwell
     y_inv = fftpack.ifft(np.sum(y, axis=1)).real
@@ -81,6 +83,9 @@ def test_stockwell_api():
                                    return_itc=True)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
+        power_evoked = tfr_stockwell(epochs.average(), fmin=fmin, fmax=fmax,
+                                     return_itc=False)
+        assert_array_almost_equal(power_evoked.data, power.data)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
     assert_equals(power.data.shape, itc.data.shape)
