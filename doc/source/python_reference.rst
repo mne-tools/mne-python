@@ -661,6 +661,7 @@ Time-Frequency
    ar_raw
    compute_raw_psd
    compute_epochs_psd
+   cwt_morlet
    iir_filter_raw
    morlet
    tfr_morlet

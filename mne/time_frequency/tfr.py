@@ -236,6 +236,9 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                Fs=None):
     """Compute time freq decomposition with Morlet wavelets
 
+    This function operates directly on numpy arrays. Consider using
+    `tfr_morlet` to process `Epochs` or `Evoked` instances.
+
     Parameters
     ----------
     X : array of shape [n_signals, n_times]
@@ -534,7 +537,6 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     return data, times, freqs, vmin, vmax
 
 
-# XXX : todo IO of TFRs
 class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     """Container for Time-Frequency data
 
@@ -1011,14 +1013,14 @@ def read_tfrs(fname, condition=None):
     return out
 
 
-def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
                return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
     ----------
-    epochs : Epochs
-        The epochs.
+    inst : Epochs | Evoked
+        The epochs or evoked object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -1027,6 +1029,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
         The fft based convolution or not.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
+        Must be ``False`` for evoked data.
     decim : int
         The decimation factor on the time axis. To reduce memory usage.
     n_jobs : int
@@ -1040,15 +1043,24 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
     """
-    data = epochs.get_data()
-    picks = pick_types(epochs.info, meg=True, eeg=True)
-    info = pick_info(epochs.info, picks)
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    if not isinstance(inst, (Epochs, Evoked)):
+        raise TypeError('inst must be Epochs or Evoked')
+    if isinstance(inst, Epochs):
+        data = inst.get_data()
+    else:
+        if return_itc:
+            raise ValueError('return_itc must be False for evoked data')
+        data = inst.data[np.newaxis, ...].copy()
+    picks = pick_types(inst.info, meg=True, eeg=True)
+    info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     power, itc = _induced_power(data, sfreq=info['sfreq'], frequencies=freqs,
                                 n_cycles=n_cycles, n_jobs=n_jobs,
                                 use_fft=use_fft, decim=decim,
                                 zero_mean=True)
-    times = epochs.times[::decim].copy()
+    times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:

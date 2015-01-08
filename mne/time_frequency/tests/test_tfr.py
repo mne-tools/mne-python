@@ -59,8 +59,13 @@ def test_time_frequency():
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
 
+    evoked = epochs.average()
+    power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
+                              return_itc=False)
+    assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
