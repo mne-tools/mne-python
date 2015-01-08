@@ -523,5 +523,5 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     fig.canvas.draw()
 
     if show is True:
-        fig.show()
+        plt.show()
     return fig
