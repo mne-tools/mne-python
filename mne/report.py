@@ -659,7 +659,7 @@ class Report(object):
                  title=None, verbose=None):
 
         self.info_fname = info_fname
-        self.subjects_dir = subjects_dir
+        self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
         self.subject = subject
         self.title = title
         self.verbose = verbose
