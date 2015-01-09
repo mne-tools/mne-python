@@ -341,8 +341,8 @@ def _time_frequency(X, Ws, use_fft):
     """
     n_epochs, n_times = X.shape
     n_frequencies = len(Ws)
-    psd = np.zeros((n_frequencies, n_times))  # PSD
-    plf = np.zeros((n_frequencies, n_times), dtype=np.complex)  # phase lock
+    psd = np.zeros((n_frequencies, n_times), np.complex)  # PSD
+    plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
 
     mode = 'same'
     if use_fft:
@@ -351,10 +351,11 @@ def _time_frequency(X, Ws, use_fft):
         tfrs = _cwt_convolve(X, Ws, mode)
 
     for tfr in tfrs:
-        tfr_abs = np.abs(tfr)
-        psd += tfr_abs ** 2
-        plf += tfr / tfr_abs
-
+        psd += tfr
+        plf += tfr / np.abs(tfr)
+    psd = np.abs(psd) / n_epochs
+    psd *= psd
+    plf = np.abs(plf) / n_epochs
     return psd, plf
 
 
@@ -488,28 +489,13 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    if n_jobs == 1:
-        psd = np.empty((n_channels, n_frequencies, n_times))
-        plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
-
-        for c in range(n_channels):
-            X = data[:, c, :]
-            this_psd, this_plf = _time_frequency(X, Ws, use_fft)
-            psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
-    else:
-        parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-
-        psd_plf = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
-                                             Ws, use_fft)
-                           for c in range(n_channels))
-
-        psd = np.zeros((n_channels, n_frequencies, n_times))
-        plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)
-        for c, (psd_c, plf_c) in enumerate(psd_plf):
-            psd[c, :, :], plf[c, :, :] = psd_c[:, ::decim], plf_c[:, ::decim]
-
-    psd /= n_epochs
-    plf = np.abs(plf) / n_epochs
+    psd = np.empty((n_channels, n_frequencies, n_times))
+    plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
+    psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft)
+                       for c in range(n_channels))
+    for c, (psd_c, plf_c) in enumerate(psd_plf):
+        psd[c, :, :], plf[c, :, :] = psd_c[:, ::decim], plf_c[:, ::decim]
     return psd, plf
 
 
@@ -1132,37 +1118,17 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     if n_times <= n_times_wavelets:
         warnings.warn("Time windows are as long or longer than the epoch. "
                       "Consider reducing n_cycles.")
-    psd, itc = 0., 0.
-    for m in range(n_taps):  # n_taps is typically small, better to save RAM
-        if n_jobs == 1:
-            psd_m = np.empty((n_channels, n_frequencies, n_times))
-            itc_m = np.empty((n_channels, n_frequencies, n_times),
-                             dtype=np.complex)
-
-            for c in range(n_channels):
-                logger.debug('Analysing channel #%d', c)
-                X = data[:, c, :]
-                this_psd, this_itc = _time_frequency(X, Ws[m], use_fft)
-                psd_m[c], itc_m[c] = this_psd[:, ::decim], this_itc[:, ::decim]
-        else:
-            parallel, my_time_frequency, _ = parallel_func(_time_frequency,
-                                                           n_jobs)
-
-            psd_itc = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
-                                                 Ws[m], use_fft)
-                               for c in range(n_channels))
-
-            psd_m = np.zeros((n_channels, n_frequencies, n_times))
-            itc_m = np.zeros((n_channels, n_frequencies, n_times),
-                             dtype=np.complex)
-            for c, (psd_c, itc_c) in enumerate(psd_itc):
-                psd_m[c, :, :] = psd_c[:, ::decim]
-                itc_m[c, :, :] = itc_c[:, ::decim]
-
-        psd_m /= n_epochs
-        itc_m = np.abs(itc_m) / n_epochs
-        psd += psd_m
-        itc += itc_m
+    psd = np.zeros((n_channels, n_frequencies, n_times))
+    itc = np.zeros((n_channels, n_frequencies, n_times))
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                   n_jobs)
+    for m in range(n_taps):
+        psd_itc = parallel(my_time_frequency(data[:, c, :],
+                                             Ws[m], use_fft)
+                           for c in range(n_channels))
+        for c, (psd_c, itc_c) in enumerate(psd_itc):
+            psd[c, :, :] += psd_c[:, ::decim]
+            itc[c, :, :] += itc_c[:, ::decim]
 
     psd /= n_taps
     itc /= n_taps

@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
@@ -161,17 +161,16 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
+    power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
+                                  n_cycles=freqs / 2., time_bandwidth=4.0,
+                                  return_itc=False)
+    assert_array_almost_equal(power.data, power_evoked.data)
+
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
     assert_true(tmax > 0.3 and tmax < 0.7)
     assert_false(np.any(itc.data < 0.))
     assert_true(fmax > 40 and fmax < 60)
-    power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
-                                  n_cycles=freqs / 2., time_bandwidth=4.0,
-                                  return_itc=False)
-    # XXX The other two transforms (stockwell, CWT) have data equal but this
-    # one does not, need to think about if it should be
-    assert_array_equal(power.data.shape, power_evoked.data.shape)
 
 
 def test_io():
@@ -215,3 +214,5 @@ def test_io():
     assert_equal(tfr2.comment, tfr4.comment)
 
     assert_raises(ValueError, read_tfrs, fname, condition='nonono')
+
+run_tests_if_main()
