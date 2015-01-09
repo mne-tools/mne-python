@@ -7,16 +7,15 @@ from copy import deepcopy
 import math
 import numpy as np
 from scipy import fftpack
-# XXX explore cuda optimazation at some point.
 
 from ..io.pick import pick_types, pick_info
 from ..utils import logger, verbose
-from ..parallel import parallel_func, check_n_jobs
+from ..parallel import parallel_func
+from ..cuda import st_power_itc, setup_cuda_st_power_itc
 from .tfr import AverageTFR
 
 
-@verbose
-def _check_input_st(x_in, n_fft, verbose=None):
+def _check_input_st(x_in, n_fft):
     """Aux function"""
     # flatten to 2 D and memorize original shape
     n_times = x_in.shape[-1]
@@ -32,16 +31,17 @@ def _check_input_st(x_in, n_fft, verbose=None):
     if n_times < n_fft:
         msg = ('The input signal is shorter ({0}) than "n_fft" ({1}). '
                'Applying zero padding.').format(x_in.shape[-1], n_fft)
-        logger.warn(msg)
+        logger.warning(msg)
         zero_pad = n_fft - n_times
-        pad_array = np.zeros(list(x_in.shape[:-1]) + [zero_pad], dtype=x_in.dtype)
+        pad_array = np.zeros(list(x_in.shape[:-1]) + [zero_pad],
+                             dtype=x_in.dtype)
         x_in = np.concatenate((x_in, pad_array), axis=-1)
         return x_in, n_fft, zero_pad
 
 
-def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
-    """Precompute stockwell gausian windows """
-    tw = fftpack.fftfreq(M, 1. / sfreq) / M
+def _precompute_st_windows(n_samp, start_f, stop_f, sfreq, width):
+    """Precompute stockwell gausian windows (in the freq domain)"""
+    tw = fftpack.fftfreq(n_samp, 1. / sfreq) / n_samp
     tw = np.r_[tw[:1], tw[1:][::-1]]
 
     k = width  # 1 for classical stowckwell transform
@@ -54,52 +54,26 @@ def _precompute_st_windows(M, start_f, stop_f, sfreq, width):
             window = ((f / (np.sqrt(2. * np.pi) * k)) *
                       np.exp(-0.5 * (1. / k ** 2.) * (f ** 2.) * tw ** 2.))
         window /= window.sum()  # normalisation
-        windows[i_f] = fftpack.fft(window)
-    return M, f_range, windows
+        windows[i_f] = window
+    windows = fftpack.fft(windows, axis=1)
+    return windows
 
 
-def _st(x, M, f_range, windows):
+def _st(x, start_f, windows, cuda_dict):
     """Implementation based on Matlab code by Ali Moukadem"""
-    if x.ndim == 1:
-        x = x[np.newaxis, :]
+    n_samp = x.shape[-1]
+    ST = np.empty(x.shape[:-1] + (len(windows), n_samp), dtype=np.complex)
+    # do the work
     Fx = fftpack.fft(x)
-    XF = np.c_[Fx, Fx]
-    ST = np.empty((x.shape[0], len(f_range), M), dtype=np.complex)
-    for i_f, (window, f) in enumerate(zip(windows, f_range)):
-        for i in range(len(x)):
-            ST[i, i_f, :] = fftpack.ifft(XF[i, f:f + M] * window)
-    if ST.shape[0] == 1:
-        ST = ST[0]
+    XF = np.concatenate([Fx, Fx], axis=-1)
+    for i_f, window in enumerate(windows):
+        f = start_f + i_f
+        ST[..., i_f, :] = fftpack.ifft(XF[..., f:f + n_samp] * window)
     return ST
 
 
-def _st_power_itc(x, M, f_range, windows, compute_itc, zero_pad, decim,
-                  final_times):
-    """Aux function"""
-    psd = np.zeros((len(f_range), final_times))
-    if compute_itc is True:
-        itc = np.zeros((len(f_range), final_times), dtype=np.complex)
-    else:
-        itc = None
-    for tfr in _st(x, M, f_range, windows):
-        tfr = tfr[..., :-zero_pad]
-        tfr = tfr[..., ::decim]
-        tfr_abs = np.abs(tfr)
-        psd += tfr_abs ** 2
-        if compute_itc:
-            itc += tfr / tfr_abs
-
-    n_signals = x.shape[0]
-    psd /= n_signals
-    if compute_itc:
-        itc = np.abs(itc) / n_signals
-    return psd, itc
-
-
-@verbose
 def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
-                             decim=1, return_itc=False, n_jobs=1,
-                             verbose=None):
+                             decim=1, return_itc=False, n_jobs=1):
     """Computes power and intertrial coherence using Stockwell (S) transform
 
     Parameters
@@ -127,8 +101,6 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         Number of parallel jobs to use.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -152,16 +124,17 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     Wheat, K., Cornelissen, P. L., Frost, S.J, and Peter C. Hansen (2010).
         During Visual Word Recognition, Phonology Is Accessed
         within 100 ms and May Be Mediated by a Speech Production
-        Code: Evidence from Magnetoencephalography. The Journal of Neuroscience,
-        30 (15), 5229-5233.
+        Code: Evidence from Magnetoencephalography. The Journal of
+        Neuroscience, 30 (15), 5229-5233.
     K. A. Jones and B. Porjesz and D. Chorlian and M. Rangaswamy and C.
         Kamarajan and A. Padmanabhapillai and A. Stimus and H. Begleiter
         (2006). S-transform time-frequency analysis of P300 reveals deficits in
         individuals diagnosed with alcoholism.
         Clinical Neurophysiology 117 2128--2143
     """
-    n_epochs, n_channels, n_times = data[:, :, ::decim].shape
-    data, n_fft_, zero_pad = _check_input_st(data, n_fft, verbose)
+    n_epochs, n_channels = data.shape[:2]
+    n_out = data.shape[2] // decim
+    data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
     if fmin is None:
@@ -171,30 +144,35 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
 
     start_f = np.abs(freqs - fmin).argmin()
     stop_f = np.abs(freqs - fmax).argmin()
+    freqs = freqs[start_f:stop_f]
 
-    M, f_range, windows = _precompute_st_windows(data.shape[-1], start_f,
-                                                 stop_f, sfreq, width)
-    n_frequencies = len(f_range)
-    psd = np.empty((n_channels, n_frequencies, n_times))
-    itc = np.empty((n_channels, n_frequencies, n_times))
+    W = _precompute_st_windows(data.shape[-1], start_f, stop_f, sfreq, width)
+    n_freq = stop_f - start_f
+    psd = np.empty((n_channels, n_freq, n_out))
+    itc = np.empty((n_channels, n_freq, n_out))
 
-    n_jobs = check_n_jobs(n_jobs)
-    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-    tfrs = parallel(my_st(data[:, c, :], M, f_range, windows,
-                          return_itc, zero_pad, decim, n_times)
-                    for c in range(n_channels))
-    tfrs = iter(tfrs)
-    for i_chan, (this_psd, this_itc) in enumerate(tfrs):
+    n_jobs, cuda_dict = setup_cuda_st_power_itc(n_jobs, W, n_epochs)
+    if n_jobs == 1:
+        tfrs = [st_power_itc(data[:, c, :], start_f, return_itc, zero_pad,
+                             decim, cuda_dict)
+                for c in range(n_channels)]
+    else:
+        parallel, my_st, _ = parallel_func(st_power_itc, n_jobs)
+        tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
+                              decim, cuda_dict)
+                        for c in range(n_channels))
+    for i_chan, (this_psd, this_itc) in enumerate(iter(tfrs)):
         psd[i_chan] = this_psd
         if this_itc is not None:
             itc[i_chan] = this_itc
 
-    freqs = freqs[start_f:stop_f]
     return psd, itc, freqs
 
 
+@verbose
 def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
-                  width=1.0, decim=1, return_itc=False, n_jobs=1):
+                  width=1.0, decim=1, return_itc=False, n_jobs=1,
+                  verbose=None):
     """Time-Frequency Representation (TFR) using Stockwell Transform
 
     Parameters
@@ -219,6 +197,8 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
         Return intertrial coherence (ITC) as well as averaged power.
     n_jobs : int
         The number of jobs to run in parallel (over channels).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -227,6 +207,7 @@ def tfr_stockwell(epochs, fmin=None, fmax=None, n_fft=None,
     itc : AverageTFR
         The intertrial coherence. Only returned if return_itc is True.
     """
+    # verbose dec is used b/c subfunctions are verbose
     data = epochs.get_data()
     picks = pick_types(epochs.info, meg=True, eeg=True)
     info = pick_info(epochs.info, picks)

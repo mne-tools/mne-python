@@ -12,14 +12,13 @@ except (ImportError, OSError):
     # need OSError because scikits.cuda throws it if cufft not found
     pass
 
+from .parallel import check_n_jobs
 from .utils import sizeof_fmt, logger
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
 cuda_capable = False
-cuda_multiply_inplace_c128 = None
-cuda_halve_c128 = None
-cuda_real_c128 = None
+cuda_multiply_inplace_c128 = cuda_halve_c128 = cuda_real_c128 = None
 
 
 def init_cuda():
@@ -34,9 +33,7 @@ def init_cuda():
     importing mne. If this variable is not set, this function can
     be manually executed.
     """
-    global cuda_capable
-    global cuda_multiply_inplace_c128
-    global cuda_halve_c128
+    global cuda_capable, cuda_multiply_inplace_c128, cuda_halve_c128
     global cuda_real_c128
     if cuda_capable is True:
         logger.info('CUDA previously enabled, currently %s available memory'
@@ -47,22 +44,23 @@ def init_cuda():
     try:
         import pycuda.gpuarray
         import pycuda.driver
-    except ImportError:
-        logger.warning('module pycuda not found, CUDA not enabled')
+    except ImportError as exp:
+        logger.warning('module pycuda not found, CUDA not enabled (%s)'
+                       % exp)
         return
     try:
         # Initialize CUDA; happens with importing autoinit
         import pycuda.autoinit  # noqa, analysis:ignore
-    except ImportError:
+    except ImportError as exp:
         logger.warning('pycuda.autoinit could not be imported, likely '
-                       'a hardware error, CUDA not enabled')
+                       'a hardware error, CUDA not enabled (%s)' % exp)
         return
     # Make sure scikits.cuda is installed
     try:
         from scikits.cuda import fft as cudafft
-    except ImportError:
+    except ImportError as exp:
         logger.warning('module scikits.cuda not found, CUDA not '
-                       'enabled')
+                       'enabled (%s)' % exp)
         return
 
     # Make our multiply inplace kernel
@@ -138,6 +136,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                      x_fft=None, x=None)
     n_fft = len(h_fft)
     cuda_fft_len = int((n_fft - (n_fft % 2)) / 2 + 1)
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     if n_jobs == 'cuda':
         n_jobs = 1
         if cuda_capable:
@@ -249,6 +248,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     n_fft_x, n_fft_y = len(W), new_len
     cuda_fft_len_x = int((n_fft_x - (n_fft_x % 2)) // 2 + 1)
     cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) // 2 + 1)
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
     if n_jobs == 'cuda':
         n_jobs = 1
         if cuda_capable:
@@ -341,6 +341,126 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y = np.compress(keep, y)
 
     return y
+
+
+###############################################################################
+# Stockwell transform
+
+def setup_cuda_st_power_itc(n_jobs, W, n_trials):
+    """Set up repeated CUDA FFT multiplication with a given filter
+
+    Parameters
+    ----------
+    n_jobs : int | str
+        If n_jobs == 'cuda', the function will attempt to set up for CUDA
+        FFT multiplication.
+    W : array
+        The frequency-domain representation of the set of windows that will
+        be used repeatedly. If n_jobs='cuda', this will be turned into a
+        gpuarray.
+    n_trials : int
+        Number of trials to process.
+
+    Returns
+    -------
+    n_jobs : int
+        Sets n_jobs = 1 if n_jobs == 'cuda' was passed in, otherwise
+        original n_jobs is passed.
+    cuda_dict : dict
+        Dictionary with the following CUDA-related variables:
+            use_cuda : bool
+                Whether CUDA should be used.
+            fft_plan : instance of FFTPlan
+                FFT plan to use in calculating the FFT.
+            ifft_plan : instance of FFTPlan
+                FFT plan to use in calculating the IFFT.
+            x_fft : instance of gpuarray
+                Empty allocated GPU space for storing the result of the
+                frequency-domain multiplication.
+            x : instance of gpuarray
+                Empty allocated GPU space for the data to filter.
+
+    Notes
+    -----
+    This function is designed to be used with st_power_itc().
+    """
+    cuda_dict = dict(use_cuda=False, W=W)
+    n_fft = W.shape[1]
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
+    if n_jobs == 'cuda':
+        n_jobs = 1
+        if cuda_capable:
+            try:
+                W = gpuarray.to_gpu(W.astype(np.complex128) / n_fft)
+                fft_plan = cudafft.Plan(n_fft, np.complex128, np.complex128)
+                ifft_plan = cudafft.Plan(n_fft, np.complex128, np.complex128)
+                x_fft = gpuarray.empty((n_trials, n_fft), np.complex128)
+                x = gpuarray.empty((n_trials, n_fft), np.complex128)
+                xx = gpuarray.empty((n_trials, 2 * n_fft), np.complex128)
+                YY = gpuarray.empty((n_trials, n_fft), np.complex128)
+                ST = gpuarray.empty((n_trials, n_fft), np.complex128)
+                cuda_dict.update(use_cuda=True, fft_plan=fft_plan, W=W,
+                                 ifft_plan=ifft_plan, x_fft=x_fft, x=x, xx=xx,
+                                 YY=YY, ST=ST)
+                logger.info('Using CUDA for Stockwell calculations')
+            except ImportError:  # XXX set back to Exception:
+                logger.info('CUDA not used, could not instantiate memory '
+                            '(arrays may be too large), falling back to '
+                            'n_jobs=1')
+        else:
+            logger.info('CUDA not used, CUDA has not been initialized, '
+                        'falling back to n_jobs=1')
+    return n_jobs, cuda_dict
+
+
+def st_power_itc(x, start_f, compute_itc, zero_pad, decim, cuda_dict):
+    """Aux function"""
+    n_samp = x.shape[-1]
+    n_out = (n_samp - zero_pad) // decim
+    W = cuda_dict['W']  # window functions on the GPU
+    psd = np.empty((len(W), n_out))
+    itc = np.empty_like(psd) if compute_itc else None
+    if cuda_dict['use_cuda']:
+        cuda_dict['x'].set(x.astype(np.complex128))
+        cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
+        # XXX this doesn't work; we'll need to adapt this:
+        # http://hannes-brt.github.io/blog/2013/08/07/column-slicing-in-pycuda
+        x_fft = cuda_dict['x_fft'].get()
+        cuda_dict['xx'].set(np.concatenate([x_fft, x_fft], axis=-1))
+        for i_f, window in enumerate(W):
+            f = start_f + i_f
+            # XXX should col slice here, too :(
+            YY = np.ascontiguousarray(cuda_dict['xx'].get()[:, f:f + n_samp])
+            cuda_dict['YY'].set(YY)
+            cuda_dict['YY'] *= window  # on GPU
+            cudafft.ifft(cuda_dict['YY'], cuda_dict['ST'],
+                         cuda_dict['ifft_plan'])
+            # could adapt page above for real col slicing, might be slower?
+            TFR = cuda_dict['ST']
+            TFR_abs = abs(TFR)
+            # XXX should be able to use ExclusiveScanKernel, but
+            # it won't compile (argh)
+            # Also this could probably be combined nicely in a single-pass
+            # function
+            if compute_itc:
+                TFR /= TFR_abs
+                itc[i_f] = abs(TFR).get()[:, :-zero_pad:decim].mean(axis=0)
+            TFR_abs *= TFR_abs
+            psd[i_f] = TFR_abs.get()[:, :-zero_pad:decim].mean(axis=0)
+    else:
+        X = fft(x)
+        XX = np.concatenate([X, X], axis=-1)
+        for i_f, window in enumerate(W):
+            f = start_f + i_f
+            ST = ifft(XX[:, f:f + n_samp] * window)
+            TFR = ST[:, :-zero_pad:decim]
+            TFR_abs = np.abs(TFR)
+            if compute_itc:
+                TFR /= TFR_abs
+                itc[i_f] = np.abs(np.mean(TFR, axis=0))
+            TFR_abs *= TFR_abs
+            psd[i_f] = np.mean(TFR_abs, axis=0)
+    return psd, itc
 
 
 ###############################################################################
