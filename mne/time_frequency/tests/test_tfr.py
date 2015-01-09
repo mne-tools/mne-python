@@ -65,6 +65,7 @@ def test_time_frequency():
     assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # the actual data arrays here are equivalent, too...
     assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
@@ -164,7 +165,12 @@ def test_tfr_multitaper():
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False)
-    assert_array_almost_equal(power.data, power_evoked.data)
+    # one is squared magnitude of the average (evoked) and
+    # the other is average of the squared magnitudes (epochs PSD)
+    # so values shouldn't match, but shapes should
+    assert_array_equal(power.data.shape, power_evoked.data.shape)
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  power.data, power_evoked.data)
 
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]

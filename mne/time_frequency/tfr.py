@@ -341,7 +341,7 @@ def _time_frequency(X, Ws, use_fft):
     """
     n_epochs, n_times = X.shape
     n_frequencies = len(Ws)
-    psd = np.zeros((n_frequencies, n_times), np.complex)  # PSD
+    psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
 
     mode = 'same'
@@ -351,10 +351,10 @@ def _time_frequency(X, Ws, use_fft):
         tfrs = _cwt_convolve(X, Ws, mode)
 
     for tfr in tfrs:
-        psd += tfr
-        plf += tfr / np.abs(tfr)
-    psd = np.abs(psd) / n_epochs
-    psd *= psd
+        tfr_abs = np.abs(tfr)
+        psd += tfr_abs ** 2
+        plf += tfr / tfr_abs
+    psd /= n_epochs
     plf = np.abs(plf) / n_epochs
     return psd, plf
 
@@ -1172,7 +1172,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     Returns
     -------
     power : AverageTFR
-        The averaged power.
+        The averaged power (PSD).
     itc : AverageTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.

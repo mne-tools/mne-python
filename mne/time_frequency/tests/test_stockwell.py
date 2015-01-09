@@ -85,6 +85,9 @@ def test_stockwell_api():
             assert_true(power.freqs.max() <= fmax)
         power_evoked = tfr_stockwell(epochs.average(), fmin=fmin, fmax=fmax,
                                      return_itc=False)
+        # for multitaper these don't necessarily match, but they seem to
+        # for stockwell... if this fails, this maybe could be changed
+        # just to check the shape
         assert_array_almost_equal(power_evoked.data, power.data)
     assert_true(isinstance(power, AverageTFR))
     assert_true(isinstance(itc, AverageTFR))
