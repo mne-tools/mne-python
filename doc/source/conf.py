@@ -12,12 +12,14 @@
 # serve to show the default.
 
 import sys, os
+import os.path as op
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.append(os.path.abspath('../../mne'))
-sys.path.append(os.path.abspath('../sphinxext'))
+curdir = op.dirname(__file__)
+sys.path.append(op.abspath(op.join(curdir, '..', '..', 'mne')))
+sys.path.append(op.abspath(op.join(curdir, '..', 'sphinxext')))
 
 import mne
 
