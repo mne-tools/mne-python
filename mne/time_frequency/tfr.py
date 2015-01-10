@@ -336,10 +336,11 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-def _time_frequency(X, Ws, use_fft):
+def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
     n_epochs, n_times = X.shape
+    n_times = max(n_times // decim, 1)
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
@@ -351,6 +352,7 @@ def _time_frequency(X, Ws, use_fft):
         tfrs = _cwt_convolve(X, Ws, mode)
 
     for tfr in tfrs:
+        tfr = tfr[:, ::decim]
         tfr_abs = np.abs(tfr)
         psd += tfr_abs ** 2
         plf += tfr / tfr_abs
@@ -490,12 +492,18 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
     psd = np.empty((n_channels, n_frequencies, n_times))
-    plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
-    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-    psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft)
-                       for c in range(n_channels))
-    for c, (psd_c, plf_c) in enumerate(psd_plf):
-        psd[c, :, :], plf[c, :, :] = psd_c[:, ::decim], plf_c[:, ::decim]
+    plf = np.empty((n_channels, n_frequencies, n_times))
+    # Separate to save memory for n_jobs=1
+    if n_jobs == 1:
+        for c in range(n_channels):
+            psd[c, :, :], plf[c, :, :] = \
+                _time_frequency(data[:, c, :], Ws, use_fft, decim)
+    else:
+        parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
+        psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft, decim)
+                           for c in range(n_channels))
+        for c, (psd_c, plf_c) in enumerate(psd_plf):
+            psd[c, :, :], plf[c, :, :] = psd_c, plf_c
     return psd, plf
 
 
@@ -1120,16 +1128,23 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
                       "Consider reducing n_cycles.")
     psd = np.zeros((n_channels, n_frequencies, n_times))
     itc = np.zeros((n_channels, n_frequencies, n_times))
-    parallel, my_time_frequency, _ = parallel_func(_time_frequency,
-                                                   n_jobs)
-    for m in range(n_taps):
-        psd_itc = parallel(my_time_frequency(data[:, c, :],
-                                             Ws[m], use_fft)
-                           for c in range(n_channels))
-        for c, (psd_c, itc_c) in enumerate(psd_itc):
-            psd[c, :, :] += psd_c[:, ::decim]
-            itc[c, :, :] += itc_c[:, ::decim]
-
+    # Separate to save memory for n_jobs=1
+    if n_jobs == 1:
+        for m in range(n_taps):
+            for c in range(n_channels):
+                out = _time_frequency(data[:, c, :], Ws[m], use_fft, decim)
+                psd[c] += out[0]
+                itc[c] += out[1]
+    else:
+        parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                       n_jobs)
+        for m in range(n_taps):
+            psd_itc = parallel(my_time_frequency(data[:, c, :],
+                                                 Ws[m], use_fft, decim)
+                               for c in range(n_channels))
+            for c, (psd_c, itc_c) in enumerate(psd_itc):
+                psd[c, :, :] += psd_c
+                itc[c, :, :] += itc_c
     psd /= n_taps
     itc /= n_taps
     return psd, itc
@@ -1172,7 +1187,7 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     Returns
     -------
     power : AverageTFR
-        The averaged power (PSD).
+        The averaged power.
     itc : AverageTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.

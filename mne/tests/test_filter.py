@@ -115,7 +115,7 @@ def test_filters():
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8,
                       filter_length=fl)
-    for nj in ['blah', 0.5, 0]:
+    for nj in ['blah', 0.5]:
         assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
     assert_raises(ValueError, band_pass_filter, a, Fs, 4, Fs / 2.)  # > Nyq/2
     assert_raises(ValueError, low_pass_filter, a, Fs, Fs / 2.)  # > Nyq/2
