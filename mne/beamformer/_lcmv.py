@@ -26,7 +26,8 @@ from ..externals import six
 
 @verbose
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                label=None, picks=None, pick_ori=None, verbose=None):
+                label=None, picks=None, pick_ori=None, rank=None,
+                verbose=None):
     """ LCMV beamformer for evoked data, single epochs, and raw data
 
     Parameters
@@ -69,7 +70,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
 
     # Handle whitening + data covariance
-    whitener, _ = compute_whitener(noise_cov, info, picks)
+    whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
     # whiten the leadfield
     G = np.dot(whitener, G)
@@ -238,7 +239,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
 
 @verbose
 def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
-         pick_ori=None, verbose=None):
+         pick_ori=None, rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Compute Linearly Constrained Minimum Variance (LCMV) beamformer
@@ -292,7 +293,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = evoked.times[0]
 
     stc = _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
-                      label, pick_ori=pick_ori)
+                      label, pick_ori=pick_ori, rank=None)
 
     return six.advance_iterator(stc)
 
