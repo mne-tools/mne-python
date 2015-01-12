@@ -118,8 +118,9 @@ def test_filters():
                       filter_length=fl)
     for nj in ['blah', 0.5]:
         assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, n_jobs=nj)
-    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.)  # > Nyq/2
-    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.)  # > Nyq/2
+    # > Nyq/2
+    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.)
+    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.)
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
@@ -213,8 +214,8 @@ def test_cuda():
         lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
         hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
 
-        bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda', filter_length=fl,
-                                verbose='INFO')
+        bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda',
+                                filter_length=fl, verbose='INFO')
         bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
                                 filter_length=fl, verbose='INFO')
         lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda', filter_length=fl,
