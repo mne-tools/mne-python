@@ -21,48 +21,49 @@ def test_iir_stability():
     """Test IIR filter stability check
     """
     sig = np.empty(1000)
-    fs = 1000
+    sfreq = 1000
     # This will make an unstable filter, should throw RuntimeError
-    assert_raises(RuntimeError, high_pass_filter, sig, fs, 0.6,
+    assert_raises(RuntimeError, high_pass_filter, sig, sfreq, 0.6,
                   method='iir', iir_params=dict(ftype='butter', order=8))
     # can't pass iir_params if method='fir'
-    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
                   method='fir', iir_params=dict(ftype='butter', order=2))
     # method must be string
-    assert_raises(TypeError, high_pass_filter, sig, fs, 0.1,
+    assert_raises(TypeError, high_pass_filter, sig, sfreq, 0.1,
                   method=1)
     # unknown method
-    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
                   method='blah')
     # bad iir_params
-    assert_raises(ValueError, high_pass_filter, sig, fs, 0.1,
+    assert_raises(ValueError, high_pass_filter, sig, sfreq, 0.1,
                   method='fir', iir_params='blah')
 
     # should pass because dafault trans_bandwidth is not relevant
     high_pass_filter(sig, 250, 0.5, method='iir',
                      iir_params=dict(ftype='butter', order=6))
 
+
 def test_notch_filters():
     """Test notch filters
     """
     tempdir = _TempDir()
     log_file = op.join(tempdir, 'temp_log.txt')
-    # let's use an ugly, prime Fs for fun
-    Fs = 487.0
+    # let's use an ugly, prime sfreq for fun
+    sfreq = 487.0
     sig_len_secs = 20
-    t = np.arange(0, int(sig_len_secs * Fs)) / Fs
+    t = np.arange(0, int(sig_len_secs * sfreq)) / sfreq
     freqs = np.arange(60, 241, 60)
 
     # make a "signal"
     rng = np.random.RandomState(0)
-    a = rng.randn(int(sig_len_secs * Fs))
+    a = rng.randn(int(sig_len_secs * sfreq))
     orig_power = np.sqrt(np.mean(a ** 2))
     # make line noise
     a += np.sum([np.sin(2 * np.pi * f * t) for f in freqs], axis=0)
 
     # only allow None line_freqs with 'spectrum_fit' mode
-    assert_raises(ValueError, notch_filter, a, Fs, None, 'fft')
-    assert_raises(ValueError, notch_filter, a, Fs, None, 'iir')
+    assert_raises(ValueError, notch_filter, a, sfreq, None, 'fft')
+    assert_raises(ValueError, notch_filter, a, sfreq, None, 'iir')
     methods = ['spectrum_fit', 'spectrum_fit', 'fft', 'fft', 'iir']
     filter_lengths = [None, None, None, 8192, None]
     line_freqs = [None, freqs, freqs, freqs, freqs]
@@ -71,7 +72,7 @@ def test_notch_filters():
         if lf is None:
             set_log_file(log_file, overwrite=True)
 
-        b = notch_filter(a, Fs, lf, filter_length=fl, method=meth,
+        b = notch_filter(a, sfreq, lf, filter_length=fl, method=meth,
                          verbose='INFO')
 
         if lf is None:
@@ -106,42 +107,42 @@ def test_resample():
 def test_filters():
     """Test low-, band-, high-pass, and band-stop filters plus resampling
     """
-    Fs = 500
+    sfreq = 500
     sig_len_secs = 30
 
-    a = np.random.randn(2, sig_len_secs * Fs)
+    a = np.random.randn(2, sig_len_secs * sfreq)
 
     # let's test our catchers
     for fl in ['blah', [0, 1], 1000.5, '10ss', '10']:
-        assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8,
+        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8,
                       filter_length=fl)
     for nj in ['blah', 0.5]:
-        assert_raises(ValueError, band_pass_filter, a, Fs, 4, 8, n_jobs=nj)
-    assert_raises(ValueError, band_pass_filter, a, Fs, 4, Fs / 2.)  # > Nyq/2
-    assert_raises(ValueError, low_pass_filter, a, Fs, Fs / 2.)  # > Nyq/2
+        assert_raises(ValueError, band_pass_filter, a, sfreq, 4, 8, n_jobs=nj)
+    assert_raises(ValueError, band_pass_filter, a, sfreq, 4, sfreq / 2.)  # > Nyq/2
+    assert_raises(ValueError, low_pass_filter, a, sfreq, sfreq / 2.)  # > Nyq/2
     # check our short-filter warning:
     with warnings.catch_warnings(record=True) as w:
         # Warning for low attenuation
-        band_pass_filter(a, Fs, 1, 8, filter_length=1024)
+        band_pass_filter(a, sfreq, 1, 8, filter_length=1024)
         # Warning for too short a filter
-        band_pass_filter(a, Fs, 1, 8, filter_length='0.5s')
+        band_pass_filter(a, sfreq, 1, 8, filter_length='0.5s')
     assert_true(len(w) >= 2)
 
     # try new default and old default
     for fl in ['10s', '5000ms', None]:
-        bp = band_pass_filter(a, Fs, 4, 8, filter_length=fl)
-        bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length=fl)
-        lp = low_pass_filter(a, Fs, 8, filter_length=fl, n_jobs=2)
-        hp = high_pass_filter(lp, Fs, 4, filter_length=fl)
+        bp = band_pass_filter(a, sfreq, 4, 8, filter_length=fl)
+        bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, filter_length=fl)
+        lp = low_pass_filter(a, sfreq, 8, filter_length=fl, n_jobs=2)
+        hp = high_pass_filter(lp, sfreq, 4, filter_length=fl)
         assert_array_almost_equal(hp, bp, 2)
         assert_array_almost_equal(bp + bs, a, 1)
 
     # Overlap-add filtering with a fixed filter length
     filter_length = 8192
-    bp_oa = band_pass_filter(a, Fs, 4, 8, filter_length)
-    bs_oa = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, filter_length)
-    lp_oa = low_pass_filter(a, Fs, 8, filter_length)
-    hp_oa = high_pass_filter(lp_oa, Fs, 4, filter_length)
+    bp_oa = band_pass_filter(a, sfreq, 4, 8, filter_length)
+    bs_oa = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, filter_length)
+    lp_oa = low_pass_filter(a, sfreq, 8, filter_length)
+    hp_oa = high_pass_filter(lp_oa, sfreq, 4, filter_length)
     assert_array_almost_equal(hp_oa, bp_oa, 2)
     assert_array_almost_equal(bp_oa + bs_oa, a, 2)
 
@@ -172,9 +173,9 @@ def test_filters():
                               bp_up_dn[n_resamp_ignore:-n_resamp_ignore], 2)
 
     # make sure we don't alias
-    t = np.array(list(range(Fs * sig_len_secs))) / float(Fs)
+    t = np.array(list(range(sfreq * sig_len_secs))) / float(sfreq)
     # make sinusoid close to the Nyquist frequency
-    sig = np.sin(2 * np.pi * Fs / 2.2 * t)
+    sig = np.sin(2 * np.pi * sfreq / 2.2 * t)
     # signal should disappear with 2x downsampling
     sig_gone = resample(sig, 1, 2)[n_resamp_ignore:-n_resamp_ignore]
     assert_array_almost_equal(np.zeros_like(sig_gone), sig_gone, 2)
@@ -200,25 +201,25 @@ def test_cuda():
     # as it should fall back to using n_jobs=1.
     tempdir = _TempDir()
     log_file = op.join(tempdir, 'temp_log.txt')
-    Fs = 500
+    sfreq = 500
     sig_len_secs = 20
-    a = np.random.randn(sig_len_secs * Fs)
+    a = np.random.randn(sig_len_secs * sfreq)
 
     set_log_file(log_file, overwrite=True)
     for fl in ['10s', None, 2048]:
-        bp = band_pass_filter(a, Fs, 4, 8, n_jobs=1, filter_length=fl)
-        bs = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs=1,
+        bp = band_pass_filter(a, sfreq, 4, 8, n_jobs=1, filter_length=fl)
+        bs = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs=1,
                               filter_length=fl)
-        lp = low_pass_filter(a, Fs, 8, n_jobs=1, filter_length=fl)
-        hp = high_pass_filter(lp, Fs, 4, n_jobs=1, filter_length=fl)
+        lp = low_pass_filter(a, sfreq, 8, n_jobs=1, filter_length=fl)
+        hp = high_pass_filter(lp, sfreq, 4, n_jobs=1, filter_length=fl)
 
-        bp_c = band_pass_filter(a, Fs, 4, 8, n_jobs='cuda', filter_length=fl,
+        bp_c = band_pass_filter(a, sfreq, 4, 8, n_jobs='cuda', filter_length=fl,
                                 verbose='INFO')
-        bs_c = band_stop_filter(a, Fs, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
+        bs_c = band_stop_filter(a, sfreq, 4 - 0.5, 8 + 0.5, n_jobs='cuda',
                                 filter_length=fl, verbose='INFO')
-        lp_c = low_pass_filter(a, Fs, 8, n_jobs='cuda', filter_length=fl,
+        lp_c = low_pass_filter(a, sfreq, 8, n_jobs='cuda', filter_length=fl,
                                verbose='INFO')
-        hp_c = high_pass_filter(lp, Fs, 4, n_jobs='cuda', filter_length=fl,
+        hp_c = high_pass_filter(lp, sfreq, 4, n_jobs='cuda', filter_length=fl,
                                 verbose='INFO')
 
         assert_array_almost_equal(bp, bp_c, 12)
@@ -236,7 +237,7 @@ def test_cuda():
                      for o in out]) == tot)
 
     # check resampling
-    a = np.random.RandomState(0).randn(3, sig_len_secs * Fs)
+    a = np.random.RandomState(0).randn(3, sig_len_secs * sfreq)
     a1 = resample(a, 1, 2, n_jobs=2, npad=0)
     a2 = resample(a, 1, 2, n_jobs='cuda', npad=0)
     a3 = resample(a, 2, 1, n_jobs=2, npad=0)
