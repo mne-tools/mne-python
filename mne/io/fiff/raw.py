@@ -187,6 +187,7 @@ class RawFIFF(_BaseRaw):
                            ' run through MaxFilter to produce reliable '
                            'results. Consider closing the file and running '
                            'MaxFilter on the data.')
+                    info['maxshield'] = True
                     warnings.warn(msg)
 
             if len(raw_node) == 0:

@@ -92,6 +92,12 @@ def _read_proc_history(fid, tree, info):
                 else:
                     warnings.warn('Unknown processing history item %s' % kind)
             record['max_info'] = _read_maxfilter_record(fid, proc_record)
+            smartshields = dir_tree_find(proc_record,
+                                         FIFF.FIFFB_SMARTSHIELD)
+            if len(smartshields) > 0:
+                # XXX should eventually populate this
+                ss = [dict() for _ in range(len(smartshields))]
+                record['smartshield'] = ss
             if len(record['max_info']) > 0:
                 out.append(record)
         if len(proc_records) > 0:
@@ -110,6 +116,11 @@ def _write_proc_history(fid, info):
                 if key in record:
                     writer(fid, id_, record[key])
             _write_maxfilter_record(fid, record['max_info'])
+            if 'smartshield' in record:
+                for ss in record['smartshield']:
+                    start_block(fid, FIFF.FIFFB_SMARTSHIELD)
+                    # XXX should eventually populate this
+                    end_block(fid, FIFF.FIFFB_SMARTSHIELD)
             end_block(fid, FIFF.FIFFB_PROCESSING_RECORD)
         end_block(fid, FIFF.FIFFB_PROCESSING_HISTORY)
 
@@ -134,10 +145,11 @@ _sss_info_casters = (int, int, np.array, int,
                      int, int, np.array, int,
                      float, float)
 
-_max_st_keys = ('subspcorr', 'buflen')
-_max_st_ids = (FIFF.FIFF_SSS_ST_CORR, FIFF.FIFF_SSS_ST_LENGTH)
-_max_st_writers = (write_float, write_float)
-_max_st_casters = (float, float)
+_max_st_keys = ('job', 'subspcorr', 'buflen')
+_max_st_ids = (FIFF.FIFF_SSS_JOB, FIFF.FIFF_SSS_ST_CORR,
+               FIFF.FIFF_SSS_ST_LENGTH)
+_max_st_writers = (write_int, write_float, write_float)
+_max_st_casters = (int, float, float)
 
 _sss_ctc_keys = ('parent_file_id', 'block_id', 'parent_block_id',
                  'date', 'creator', 'decoupler')

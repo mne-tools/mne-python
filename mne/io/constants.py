@@ -63,7 +63,7 @@ FIFF.FIFFB_SSS_INFO           = 502
 FIFF.FIFFB_SSS_CAL            = 503
 FIFF.FIFFB_SSS_ST_INFO        = 504
 FIFF.FIFFB_SSS_BASES          = 505
-FIFF.FIFFB_FIFFB_SMARTSHIELD  = 510
+FIFF.FIFFB_SMARTSHIELD        = 510
 #
 # Of general interest
 #
@@ -222,8 +222,11 @@ FIFF.FIFF_PROJ_AIM          = 502
 FIFF.FIFF_PROJ_PERSONS      = 503
 FIFF.FIFF_PROJ_COMMENT      = 504
 
-FIFF.FIFF_EVENT_CHANNELS    = 600  # Event channel numbers */
+FIFF.FIFF_EVENT_CHANNELS    = 600  # Event channel numbers
 FIFF.FIFF_EVENT_LIST        = 601  # List of events (integers: <sample before after>
+FIFF.FIFF_EVENT_CHANNEL     = 602  # Event channel
+FIFF.FIFF_EVENT_BITS        = 603  # Event bits array
+
 #
 # Tags used in saving SQUID characteristics etc.
 #

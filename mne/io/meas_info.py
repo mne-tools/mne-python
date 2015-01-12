@@ -22,7 +22,7 @@ from .ctf import read_ctf_comp, write_ctf_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
-                    write_julian)
+                    write_julian, write_float_matrix)
 from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose
 from ..fixes import Counter
@@ -489,6 +489,7 @@ def read_meas_info(fid, tree, verbose=None):
                           cand['to'] == FIFF.FIFFV_COORD_HEAD and
                           ctf_head_t is None):
                         ctf_head_t = cand
+
     #   Locate the Polhemus data
     isotrak = dir_tree_find(meas_info, FIFF.FIFFB_ISOTRAK)
     dig = None
@@ -540,7 +541,101 @@ def read_meas_info(fid, tree, verbose=None):
     else:
         info = Info(file_id=None)
 
+    #   Locate events list
+    events = dir_tree_find(meas_info, FIFF.FIFFB_EVENTS)
+    evs = list()
+    for event in events:
+        ev = dict()
+        for k in range(event['nent']):
+            kind = event['directory'][k].kind
+            pos = event['directory'][k].pos
+            if kind == FIFF.FIFF_EVENT_CHANNELS:
+                ev['channels'] = read_tag(fid, pos).data
+            elif kind == FIFF.FIFF_EVENT_LIST:
+                ev['list'] = read_tag(fid, pos).data
+        evs.append(ev)
+    if len(evs) > 0:
+        info['events'] = evs
+
+    #   Locate HPI result
+    hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
+    hrs = list()
+    for hpi_result in hpi_results:
+        hr = dict()
+        hr['dig_points'] = []
+        for k in range(hpi_result['nent']):
+            kind = hpi_result['directory'][k].kind
+            pos = hpi_result['directory'][k].pos
+            if kind == FIFF.FIFF_DIG_POINT:
+                hr['dig_points'].append(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_HPI_DIGITIZATION_ORDER:
+                hr['order'] = read_tag(fid, pos).data
+            elif kind == FIFF.FIFF_HPI_COILS_USED:
+                hr['used'] = read_tag(fid, pos).data
+            elif kind == FIFF.FIFF_HPI_COIL_MOMENTS:
+                hr['moments'] = read_tag(fid, pos).data
+            elif kind == FIFF.FIFF_HPI_FIT_GOODNESS:
+                hr['goodness'] = read_tag(fid, pos).data
+            elif kind == FIFF.FIFF_HPI_FIT_GOOD_LIMIT:
+                hr['good_limit'] = float(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_HPI_FIT_DIST_LIMIT:
+                hr['dist_limit'] = float(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_HPI_FIT_ACCEPT:
+                hr['accept'] = int(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_COORD_TRANS:
+                hr['coord_trans'] = read_tag(fid, pos).data
+        hrs.append(hr)
+    if len(hrs) > 0:
+        info['hpi_results'] = hrs
+
+    #   Locate HPI Measurement
+    hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
+    hms = list()
+    for hpi_meas in hpi_meass:
+        hm = dict()
+        for k in range(hpi_meas['nent']):
+            kind = hpi_meas['directory'][k].kind
+            pos = hpi_meas['directory'][k].pos
+            if kind == FIFF.FIFF_CREATOR:
+                hm['creator'] = str(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_SFREQ:
+                hm['sfreq'] = float(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_NCHAN:
+                hm['nchan'] = int(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_NAVE:
+                hm['nave'] = int(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_HPI_NCOIL:
+                hm['ncoil'] = int(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_FIRST_SAMPLE:
+                hm['first_samp'] = int(read_tag(fid, pos).data)
+            elif kind == FIFF.FIFF_LAST_SAMPLE:
+                hm['last_samp'] = int(read_tag(fid, pos).data)
+        hpi_coils = dir_tree_find(hpi_meas, FIFF.FIFFB_HPI_COIL)
+        hcs = []
+        for hpi_coil in hpi_coils:
+            hc = dict()
+            for k in range(hpi_coil['nent']):
+                kind = hpi_coil['directory'][k].kind
+                pos = hpi_coil['directory'][k].pos
+                if kind == FIFF.FIFF_HPI_COIL_NO:
+                    hc['number'] = int(read_tag(fid, pos).data)
+                elif kind == FIFF.FIFF_EPOCH:
+                    hc['epoch'] = read_tag(fid, pos).data
+                elif kind == FIFF.FIFF_HPI_SLOPES:
+                    hc['slopes'] = read_tag(fid, pos).data
+                elif kind == FIFF.FIFF_HPI_CORR_COEFF:
+                    hc['corr_coeff'] = read_tag(fid, pos).data
+                elif kind == FIFF.FIFF_CUSTOM_REF:
+                    hc['custom_ref'] = read_tag(fid, pos).data
+            hcs.append(hc)
+        hm['hpi_coils'] = hcs
+        hms.append(hm)
+
+    if len(hms) > 0:
+        info['hpi_meas'] = hms
+
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
+    si = None
     if len(subject_info) == 1:
         subject_info = subject_info[0]
         si = dict()
@@ -559,6 +654,9 @@ def read_meas_info(fid, tree, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_FIRST_NAME:
                 tag = read_tag(fid, pos)
                 si['first_name'] = str(tag.data)
+            elif kind == FIFF.FIFF_SUBJ_MIDDLE_NAME:
+                tag = read_tag(fid, pos)
+                si['middle_name'] = str(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
                 tag = read_tag(fid, pos)
                 si['birthday'] = tag.data
@@ -568,15 +666,37 @@ def read_meas_info(fid, tree, verbose=None):
             elif kind == FIFF.FIFF_SUBJ_HAND:
                 tag = read_tag(fid, pos)
                 si['hand'] = int(tag.data)
-    else:
-        si = None
     info['subject_info'] = si
+
+    hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
+    if len(hpi_subsystem) == 1:
+        hpi_subsystem = hpi_subsystem[0]
+        hs = dict()
+        for k in range(hpi_subsystem['nent']):
+            kind = hpi_subsystem['directory'][k].kind
+            pos = hpi_subsystem['directory'][k].pos
+            if kind == FIFF.FIFF_HPI_NCOIL:
+                tag = read_tag(fid, pos)
+                hs['ncoil'] = int(tag.data)
+            elif kind == FIFF.FIFF_EVENT_CHANNEL:
+                tag = read_tag(fid, pos)
+                hs['event_channel'] = str(tag.data)
+            hpi_coils = dir_tree_find(hpi_subsystem, FIFF.FIFFB_HPI_COIL)
+            hc = []
+            for coil in hpi_coils:
+                this_coil = dict()
+                for j in range(coil['nent']):
+                    kind = coil['directory'][j].kind
+                    pos = coil['directory'][j].pos
+                    if kind == FIFF.FIFF_EVENT_BITS:
+                        tag = read_tag(fid, pos)
+                        this_coil['event_bits'] = np.array(tag.data)
+                hc.append(this_coil)
+            hs['hpi_coils'] = hc
+        info['hpi_subsystem'] = hs
 
     #   Read processing history
     _read_proc_history(fid, tree, info)
-
-    #   Load extra information blocks
-    read_extra_meas_info(fid, tree, info)
 
     #  Make the most appropriate selection for the measurement id
     if meas_info['parent_id'] is None:
@@ -640,35 +760,6 @@ def read_meas_info(fid, tree, verbose=None):
     return info, meas
 
 
-def read_extra_meas_info(fid, tree, info):
-    """Read extra blocks from fid"""
-    # current method saves them into a BytesIO file instance for simplicity
-    # this and its partner, write_extra_meas_info, could be made more
-    # comprehensive (i.e.., actually parse and read the data instead of
-    # just storing it for later)
-    blocks = [FIFF.FIFFB_EVENTS, FIFF.FIFFB_HPI_RESULT, FIFF.FIFFB_HPI_MEAS]
-    info['orig_blocks'] = dict(blocks=blocks)
-    fid_bytes = BytesIO()
-    start_file(fid_bytes, tree['id'])
-    start_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
-    for block in info['orig_blocks']['blocks']:
-        nodes = dir_tree_find(tree, block)
-        copy_tree(fid, tree['id'], nodes, fid_bytes)
-    end_block(fid_bytes, FIFF.FIFFB_MEAS_INFO)
-    info['orig_blocks']['bytes'] = fid_bytes.getvalue()
-
-
-def write_extra_meas_info(fid, info):
-    """Write otherwise left out blocks of data"""
-    # uses BytesIO fake file to read the appropriate blocks
-    if 'orig_blocks' in info and info['orig_blocks'] is not None:
-        # Blocks from the original
-        fid_bytes, tree, _ = fiff_open(BytesIO(info['orig_blocks']['bytes']))
-        for block in info['orig_blocks']['blocks']:
-            nodes = dir_tree_find(tree, block)
-            copy_tree(fid_bytes, tree['id'], nodes, fid)
-
-
 def write_meas_info(fid, info, data_type=None, reset_range=True):
     """Write measurement info into a file id (from a fif file)
 
@@ -693,11 +784,75 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
-    #   Extra measurement info
-    write_extra_meas_info(fid, info)
+    for event in info.get('events', []):
+        start_block(fid, FIFF.FIFFB_EVENTS)
+        if event.get('channels') is not None:
+            write_int(fid, FIFF.FIFF_EVENT_CHANNELS, event['channels'])
+        if event.get('list') is not None:
+            write_int(fid, FIFF.FIFF_EVENT_LIST, event['list'])
+        end_block(fid, FIFF.FIFFB_EVENTS)
 
-    #   Processing history
-    _write_proc_history(fid, info)
+    #   HPI Result
+    for hpi_result in info.get('hpi_results', []):
+        start_block(fid, FIFF.FIFFB_HPI_RESULT)
+        for d in hpi_result['dig_points']:
+            write_dig_point(fid, d)
+        if 'order' in hpi_result:
+            write_int(fid, FIFF.FIFF_HPI_DIGITIZATION_ORDER,
+                      hpi_result['order'])
+        if 'used' in hpi_result:
+            write_int(fid, FIFF.FIFF_HPI_COILS_USED, hpi_result['used'])
+        if 'moments' in hpi_result:
+            write_float_matrix(fid, FIFF.FIFF_HPI_COIL_MOMENTS,
+                               hpi_result['moments'])
+        if 'goodness' in hpi_result:
+            write_float(fid, FIFF.FIFF_HPI_FIT_GOODNESS,
+                        hpi_result['goodness'])
+        if 'good_limit' in hpi_result:
+            write_float(fid, FIFF.FIFF_HPI_FIT_GOOD_LIMIT,
+                        hpi_result['good_limit'])
+        if 'dist_limit' in hpi_result:
+            write_float(fid, FIFF.FIFF_HPI_FIT_DIST_LIMIT,
+                        hpi_result['dist_limit'])
+        if 'accept' in hpi_result:
+            write_int(fid, FIFF.FIFF_HPI_FIT_ACCEPT, hpi_result['accept'])
+        if 'coord_trans' in hpi_result:
+            write_coord_trans(fid, hpi_result['coord_trans'])
+        end_block(fid, FIFF.FIFFB_HPI_RESULT)
+
+    #   HPI Measurement
+    for hpi_meas in info.get('hpi_meas', []):
+        start_block(fid, FIFF.FIFFB_HPI_MEAS)
+        if hpi_meas.get('creator') is not None:
+            write_string(fid, FIFF.FIFF_CREATOR, hpi_meas['creator'])
+        if hpi_meas.get('sfreq') is not None:
+            write_float(fid, FIFF.FIFF_SFREQ, hpi_meas['sfreq'])
+        if hpi_meas.get('nchan') is not None:
+            write_int(fid, FIFF.FIFF_NCHAN, hpi_meas['nchan'])
+        if hpi_meas.get('nave') is not None:
+            write_int(fid, FIFF.FIFF_NAVE, hpi_meas['nave'])
+        if hpi_meas.get('ncoil') is not None:
+            write_int(fid, FIFF.FIFF_HPI_NCOIL, hpi_meas['ncoil'])
+        if hpi_meas.get('first_samp') is not None:
+            write_int(fid, FIFF.FIFF_FIRST_SAMPLE, hpi_meas['first_samp'])
+        if hpi_meas.get('last_samp') is not None:
+            write_int(fid, FIFF.FIFF_LAST_SAMPLE, hpi_meas['last_samp'])
+        for hpi_coil in hpi_meas['hpi_coils']:
+            start_block(fid, FIFF.FIFFB_HPI_COIL)
+            if hpi_coil.get('number') is not None:
+                write_int(fid, FIFF.FIFF_HPI_COIL_NO, hpi_coil['number'])
+            if hpi_coil.get('epoch') is not None:
+                write_float_matrix(fid, FIFF.FIFF_EPOCH, hpi_coil['epoch'])
+            if hpi_coil.get('slopes') is not None:
+                write_float(fid, FIFF.FIFF_HPI_SLOPES, hpi_coil['slopes'])
+            if hpi_coil.get('corr_coeff') is not None:
+                write_float(fid, FIFF.FIFF_HPI_CORR_COEFF,
+                            hpi_coil['corr_coeff'])
+            if hpi_coil.get('custom_ref') is not None:
+                write_float(fid, FIFF.FIFF_CUSTOM_REF,
+                            hpi_coil['custom_ref'])
+            end_block(fid, FIFF.FIFFB_HPI_COIL)
+        end_block(fid, FIFF.FIFFB_HPI_MEAS)
 
     #   Polhemus data
     if info['dig'] is not None:
@@ -781,6 +936,8 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_string(fid, FIFF.FIFF_SUBJ_LAST_NAME, si['last_name'])
         if si.get('first_name') is not None:
             write_string(fid, FIFF.FIFF_SUBJ_FIRST_NAME, si['first_name'])
+        if si.get('middle_name') is not None:
+            write_string(fid, FIFF.FIFF_SUBJ_MIDDLE_NAME, si['middle_name'])
         if si.get('birthday') is not None:
             write_julian(fid, FIFF.FIFF_SUBJ_BIRTH_DAY, si['birthday'])
         if si.get('sex') is not None:
@@ -789,7 +946,26 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_int(fid, FIFF.FIFF_SUBJ_HAND, si['hand'])
         end_block(fid, FIFF.FIFFB_SUBJECT)
 
+    if info.get('hpi_subsystem') is not None:
+        hs = info['hpi_subsystem']
+        start_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
+        if hs.get('ncoil') is not None:
+            write_int(fid, FIFF.FIFF_HPI_NCOIL, hs['ncoil'])
+        if hs.get('event_channel') is not None:
+            write_string(fid, FIFF.FIFF_EVENT_CHANNEL, hs['event_channel'])
+        if hs.get('hpi_coils') is not None:
+            for coil in hs['hpi_coils']:
+                start_block(fid, FIFF.FIFFB_HPI_COIL)
+                if coil.get('event_bits') is not None:
+                    write_int(fid, FIFF.FIFF_EVENT_BITS,
+                              coil['event_bits'])
+                end_block(fid, FIFF.FIFFB_HPI_COIL)
+        end_block(fid, FIFF.FIFFB_HPI_SUBSYSTEM)
+
     end_block(fid, FIFF.FIFFB_MEAS_INFO)
+
+    #   Processing history
+    _write_proc_history(fid, info)
 
 
 def write_info(fname, info, data_type=None, reset_range=True):
