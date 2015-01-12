@@ -158,6 +158,23 @@ class RawFIFF(_BaseRaw):
         self.close()
 
     @verbose
+    def preload_data(self, verbose=None):
+        """Preload raw data
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Notes
+        -----
+        This function will preload raw data if it was not already preloaded.
+        If data were already preloaded, it will do nothing.
+        """
+        if not self.preload:
+            self._preload_data(True)
+
+    @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
                        do_check_fname=True, verbose=None):
         """Read in header information from a raw file"""

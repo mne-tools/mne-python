@@ -1708,7 +1708,8 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def get_chpi_positions(raw, t_step=None):
+@verbose
+def get_chpi_positions(raw, t_step=None, verbose=None):
     """Extract head positions
 
     Note that the raw instance must have CHPI channels recorded.
