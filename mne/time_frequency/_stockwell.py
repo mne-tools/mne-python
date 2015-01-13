@@ -73,7 +73,8 @@ def _st(x, start_f, windows):
 def _st_power_itc(x, start_f, compute_itc, zero_pad, decim, W):
     """Aux function"""
     n_samp = x.shape[-1]
-    n_out = (n_samp - zero_pad) // decim
+    n_out = (n_samp - zero_pad)
+    n_out = n_out // decim + bool(n_out % decim)
     psd = np.empty((len(W), n_out))
     itc = np.empty_like(psd) if compute_itc else None
     X = fftpack.fft(x)
@@ -152,7 +153,7 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
         Clinical Neurophysiology 117 2128--2143
     """
     n_epochs, n_channels = data.shape[:2]
-    n_out = max(data.shape[2] // decim, 1)
+    n_out = data.shape[2] // decim + bool(data.shape[2] % decim)
     data, n_fft_, zero_pad = _check_input_st(data, n_fft)
 
     freqs = fftpack.fftfreq(n_fft_, 1. / sfreq)
