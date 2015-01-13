@@ -832,7 +832,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_int(fid, FIFF.FIFF_HPI_NCOIL, hpi_meas['ncoil'])
         if hpi_meas.get('first_samp') is not None:
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, hpi_meas['first_samp'])
-        if hpi_meas.get('lastmne/viz/tests/test_montage.py_samp') is not None:
+        if hpi_meas.get('last_samp') is not None:
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, hpi_meas['last_samp'])
         for hpi_coil in hpi_meas['hpi_coils']:
             start_block(fid, FIFF.FIFFB_HPI_COIL)
