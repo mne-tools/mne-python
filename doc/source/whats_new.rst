@@ -111,6 +111,8 @@ API
 
    - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann`_ and `Eric Larson`_ and `Alex Gramfort`_
 
+   - Raw FIFF files can be preloaded after class istantiation using ``raw.preload_data()``.
+
 .. _changes_0_8:
 
 Version 0.8

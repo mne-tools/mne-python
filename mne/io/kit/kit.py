@@ -22,7 +22,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
 from ..constants import FIFF
-from ..meas_info import Info, _read_dig_points, _make_dig_points
+from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -94,29 +94,17 @@ class RawKIT(_BaseRaw):
         self._last_samps = np.array([self.last_samp])
 
         # Create raw.info dict for raw fif object with SQD data
-        self.info = Info()
-        self.info['meas_id'] = None
-        self.info['file_id'] = None
-        self.info['meas_date'] = int(time.time())
-        self.info['projs'] = []
-        self.info['comps'] = []
-        self.info['lowpass'] = self._sqd_params['lowpass']
-        self.info['highpass'] = self._sqd_params['highpass']
-        self.info['sfreq'] = float(self._sqd_params['sfreq'])
+        self.info = info = _empty_info()
+        info['meas_date'] = int(time.time())
+        info['lowpass'] = self._sqd_params['lowpass']
+        info['highpass'] = self._sqd_params['highpass']
+        info['sfreq'] = float(self._sqd_params['sfreq'])
         # meg channels plus synthetic channel
-        self.info['nchan'] = self._sqd_params['nchan'] + 1
-        self.info['bads'] = []
-        self.info['acq_pars'], self.info['acq_stim'] = None, None
-        self.info['filename'] = None
-        self.info['ctf_head_t'] = None
-        self.info['dev_ctf_t'] = []
+        info['nchan'] = self._sqd_params['nchan'] + 1
         self._filenames = []
-        self.info['dig'] = None
-        self.info['dev_head_t'] = None
         self.cals = np.ones(self.info['nchan'])
         self.orig_format = 'double'
         self.rawdirs = list()
-        self.info['custom_ref_applied'] = False
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)

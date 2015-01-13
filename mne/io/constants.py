@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+
 class Bunch(dict):
     """ Container object for datasets: dictionnary-like object that
         exposes its keys as attributes.
@@ -12,8 +13,15 @@ class Bunch(dict):
         dict.__init__(self, kwargs)
         self.__dict__ = self
 
-FIFF = Bunch()
 
+class BunchConst(object):
+    def __setattr__(self, attr, val):
+        # Prevent us from re-defining constants (DRY)
+        if attr != '__dict__' and hasattr(self, attr):
+            raise RuntimeError('Key "%s" already set' % attr)
+        super(BunchConst, self).__setattr__(attr, val)
+
+FIFF = BunchConst()
 #
 # Blocks
 #
@@ -192,9 +200,6 @@ FIFF.FIFFV_COORD_IMAGING_DEVICE = 9
 #
 # Needed for raw and evoked-response data
 #
-FIFF.FIFF_FIRST_SAMPLE   = 208
-FIFF.FIFF_LAST_SAMPLE    = 209
-FIFF.FIFF_ASPECT_KIND    = 210
 FIFF.FIFF_DATA_BUFFER    = 300    # Buffer containing measurement data
 FIFF.FIFF_DATA_SKIP      = 301    # Data skip in buffers
 FIFF.FIFF_EPOCH          = 302    # Buffer containing one epoch and channel
@@ -270,8 +275,6 @@ FIFF.FIFFV_BEM_SURF_ID_BRAIN      = 1
 FIFF.FIFFV_BEM_SURF_ID_SKULL      = 3
 FIFF.FIFFV_BEM_SURF_ID_HEAD       = 4
 
-FIFF.FIFFB_BEM                  = 310  # BEM data
-FIFF.FIFFB_BEM_SURF             = 311  # One of the surfaces
 FIFF.FIFF_BEM_SURF_ID           = 3101  # int    surface number
 FIFF.FIFF_BEM_SURF_NAME         = 3102  # string surface name
 FIFF.FIFF_BEM_SURF_NNODE        = 3103  # int    number of nodes on a surface
@@ -626,9 +629,6 @@ FIFF.FIFFV_COIL_MAGNES_OFFDIAG_REF_GRAD = 4005
 FIFF.FIFFV_COIL_BABY_GRAD               = 7001
 FIFF.FIFFV_COIL_BABY_MAG                = 7002
 FIFF.FIFFV_COIL_BABY_REF_MAG            = 7003
-FIFF.FIFFV_REF_MEG_CH                   = 301
-FIFF.FIFF_UNIT_AM_M2  = 203 # Am/m^2
-FIFF.FIFF_UNIT_AM_M3  = 204	 # Am/m^3
 #
 #   FWD Types
 #
@@ -783,8 +783,6 @@ FIFF.FIFFV_COIL_MAGNES_GRAD        = 4002  # Magnes WH gradiometer
 FIFF.FIFFV_COIL_MAGNES_R_MAG       = 4003  # Magnes WH reference magnetometer
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_DIA  = 4004  # Magnes WH reference diagonal gradioometer
 FIFF.FIFFV_COIL_MAGNES_R_GRAD_OFF  = 4005  # Magnes WH reference off-diagonal gradiometer
-FIFF.FIFFV_COIL_CTF_GRAD           = 5001  # CTF axial gradiometer
-FIFF.FIFFV_COIL_KIT_GRAD           = 6001  # KIT system axial gradiometer
 
 # MNE RealTime
 FIFF.FIFF_MNE_RT_COMMAND           = 3700  # realtime command

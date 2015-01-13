@@ -19,7 +19,7 @@ from scipy.interpolate import interp1d
 
 from ...utils import verbose, logger
 from ..base import _BaseRaw, _check_update_montage
-from ..meas_info import Info
+from ..meas_info import _empty_info
 from ..pick import pick_types
 from ..constants import FIFF
 from ...filter import resample
@@ -37,11 +37,11 @@ class RawEDF(_BaseRaw):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple
-        Names of channels or list of indices that should be designated 
-        EOG channels. Values should correspond to the electrodes in the 
+        Names of channels or list of indices that should be designated
+        EOG channels. Values should correspond to the electrodes in the
         edf file. Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated 
+        Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
     stim_channel : str | int | None
@@ -123,7 +123,7 @@ class RawEDF(_BaseRaw):
     def __repr__(self):
         n_chan = self.info['nchan']
         data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['file_id']),
+        s = ('%r' % os.path.basename(self.info['filename']),
              "n_channels x n_times : %s x %s" % (n_chan, data_range))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
@@ -195,7 +195,7 @@ class RawEDF(_BaseRaw):
         cal = np.array([ch['cal'] for ch in self.info['chs']], float)
         gains = np.atleast_2d(self._edf_info['units'] * (physical_range / cal))
 
-        with open(self.info['file_id'], 'rb') as fid:
+        with open(self.info['filename'], 'rb') as fid:
             # extract data
             fid.seek(data_offset)
             buffer_size = blockstop - blockstart
@@ -403,15 +403,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         eog = []
     if misc is None:
         misc = []
-    info = Info()
-    info['file_id'] = fname
-    # Add info for fif object
-    info['meas_id'] = None
-    info['projs'] = []
-    info['comps'] = []
-    info['bads'] = []
-    info['acq_pars'], info['acq_stim'] = None, None
+    info = _empty_info()
     info['filename'] = fname
+    # Add info for fif object
     info['ctf_head_t'] = None
     info['dev_ctf_t'] = []
     info['dig'] = None
@@ -518,7 +512,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
     info['buffer_size_sec'] = 10.
-    info['orig_blocks'] = None
 
     if edf_info['subtype'] == '24BIT':
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers
@@ -644,11 +637,11 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple
-        Names of channels or list of indices that should be designated 
-        EOG channels. Values should correspond to the electrodes in the 
+        Names of channels or list of indices that should be designated
+        EOG channels. Values should correspond to the electrodes in the
         edf file. Default is None.
     misc : list or tuple
-        Names of channels or list of indices that should be designated 
+        Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes in the
         edf file. Default is None.
     stim_channel : str | int | None

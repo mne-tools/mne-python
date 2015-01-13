@@ -554,8 +554,7 @@ def read_meas_info(fid, tree, verbose=None):
             elif kind == FIFF.FIFF_EVENT_LIST:
                 ev['list'] = read_tag(fid, pos).data
         evs.append(ev)
-    if len(evs) > 0:
-        info['events'] = evs
+    info['events'] = evs
 
     #   Locate HPI result
     hpi_results = dir_tree_find(meas_info, FIFF.FIFFB_HPI_RESULT)
@@ -585,8 +584,7 @@ def read_meas_info(fid, tree, verbose=None):
             elif kind == FIFF.FIFF_COORD_TRANS:
                 hr['coord_trans'] = read_tag(fid, pos).data
         hrs.append(hr)
-    if len(hrs) > 0:
-        info['hpi_results'] = hrs
+    info['hpi_results'] = hrs
 
     #   Locate HPI Measurement
     hpi_meass = dir_tree_find(meas_info, FIFF.FIFFB_HPI_MEAS)
@@ -630,9 +628,7 @@ def read_meas_info(fid, tree, verbose=None):
             hcs.append(hc)
         hm['hpi_coils'] = hcs
         hms.append(hm)
-
-    if len(hms) > 0:
-        info['hpi_meas'] = hms
+    info['hpi_meas'] = hms
 
     subject_info = dir_tree_find(meas_info, FIFF.FIFFB_SUBJECT)
     si = None
@@ -669,6 +665,7 @@ def read_meas_info(fid, tree, verbose=None):
     info['subject_info'] = si
 
     hpi_subsystem = dir_tree_find(meas_info, FIFF.FIFFB_HPI_SUBSYSTEM)
+    hs = None
     if len(hpi_subsystem) == 1:
         hpi_subsystem = hpi_subsystem[0]
         hs = dict()
@@ -693,7 +690,7 @@ def read_meas_info(fid, tree, verbose=None):
                         this_coil['event_bits'] = np.array(tag.data)
                 hc.append(this_coil)
             hs['hpi_coils'] = hc
-        info['hpi_subsystem'] = hs
+    info['hpi_subsystem'] = hs
 
     #   Read processing history
     _read_proc_history(fid, tree, info)
@@ -784,7 +781,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
     # Measurement info
     start_block(fid, FIFF.FIFFB_MEAS_INFO)
 
-    for event in info.get('events', []):
+    for event in info['events']:
         start_block(fid, FIFF.FIFFB_EVENTS)
         if event.get('channels') is not None:
             write_int(fid, FIFF.FIFF_EVENT_CHANNELS, event['channels'])
@@ -793,7 +790,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_EVENTS)
 
     #   HPI Result
-    for hpi_result in info.get('hpi_results', []):
+    for hpi_result in info['hpi_results']:
         start_block(fid, FIFF.FIFFB_HPI_RESULT)
         for d in hpi_result['dig_points']:
             write_dig_point(fid, d)
@@ -821,7 +818,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
         end_block(fid, FIFF.FIFFB_HPI_RESULT)
 
     #   HPI Measurement
-    for hpi_meas in info.get('hpi_meas', []):
+    for hpi_meas in info['hpi_meas']:
         start_block(fid, FIFF.FIFFB_HPI_MEAS)
         if hpi_meas.get('creator') is not None:
             write_string(fid, FIFF.FIFF_CREATOR, hpi_meas['creator'])
@@ -835,7 +832,7 @@ def write_meas_info(fid, info, data_type=None, reset_range=True):
             write_int(fid, FIFF.FIFF_HPI_NCOIL, hpi_meas['ncoil'])
         if hpi_meas.get('first_samp') is not None:
             write_int(fid, FIFF.FIFF_FIRST_SAMPLE, hpi_meas['first_samp'])
-        if hpi_meas.get('last_samp') is not None:
+        if hpi_meas.get('lastmne/viz/tests/test_montage.py_samp') is not None:
             write_int(fid, FIFF.FIFF_LAST_SAMPLE, hpi_meas['last_samp'])
         for hpi_coil in hpi_meas['hpi_coils']:
             start_block(fid, FIFF.FIFFB_HPI_COIL)
@@ -1118,8 +1115,9 @@ def _merge_info(infos, verbose=None):
     other_fields = ['acq_pars', 'acq_stim', 'bads', 'buffer_size_sec',
                     'comps', 'custom_ref_applied', 'description', 'dig',
                     'experimenter', 'file_id', 'filename', 'highpass',
+                    'hpi_results', 'hpi_meas', 'hpi_subsystem', 'events',
                     'line_freq', 'lowpass', 'meas_date', 'meas_id',
-                    'orig_blocks', 'proj_id', 'proj_name', 'projs', 'sfreq',
+                    'proj_id', 'proj_name', 'projs', 'sfreq',
                     'subject_info', 'sfreq']
 
     for k in other_fields:
@@ -1158,17 +1156,11 @@ def create_info(ch_names, sfreq, ch_types=None):
         ch_types = ['misc'] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
-    info = Info()
+    info = _empty_info()
     info['meas_date'] = [0, 0]
     info['sfreq'] = sfreq
-    for key in ['bads', 'projs', 'comps']:
-        info[key] = list()
-    for key in ['meas_id', 'file_id', 'highpass', 'lowpass', 'acq_pars',
-                'acq_stim', 'filename', 'dig']:
-        info[key] = None
     info['ch_names'] = ch_names
     info['nchan'] = nchan
-    info['chs'] = list()
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
@@ -1184,8 +1176,38 @@ def create_info(ch_names, sfreq, ch_types=None):
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
-    info['dev_head_t'] = None
-    info['dev_ctf_t'] = None
-    info['ctf_head_t'] = None
+    return info
+
+
+RAW_INFO_FIELDS = (
+    'acq_pars', 'acq_stim', 'bads', 'ch_names', 'chs', 'comps',
+    'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
+    'dev_head_t', 'dig', 'experimenter', 'events',
+    'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
+    'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
+    'proj_id', 'proj_name', 'projs', 'sfreq', 'subject_info',
+)
+
+
+def _empty_info():
+    """Create an empty info dictionary"""
+    _none_keys = (
+        'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
+        'dev_ctf_t', 'dev_head_t', 'dig', 'experimenter',
+        'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
+        'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
+        'subject_info',
+    )
+    _list_keys = (
+        'bads', 'ch_names', 'chs', 'comps', 'events', 'hpi_meas',
+        'hpi_results', 'projs',
+    )
+    info = Info()
+    for k in _none_keys:
+        info[k] = None
+    for k in _list_keys:
+        info[k] = list()
     info['custom_ref_applied'] = False
+    info['nchan'] = info['sfreq'] = 0
+    assert set(info.keys()) == set(RAW_INFO_FIELDS)
     return info

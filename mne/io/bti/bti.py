@@ -21,7 +21,7 @@ from .read import (read_int32, read_int16, read_str, read_float, read_double,
                    read_int16_matrix)
 from .transforms import (bti_identity_trans, bti_to_vv_trans,
                          bti_to_vv_coil_trans, inverse_trans, merge_trans)
-from ..meas_info import Info
+from ..meas_info import _empty_info, RAW_INFO_FIELDS
 from ...externals import six
 
 FIFF_INFO_CHS_FIELDS = ('loc', 'ch_name', 'unit_mul', 'coil_trans',
@@ -40,12 +40,6 @@ BTI_WH2500_REF_GRAD = ['GxxA', 'GyyA', 'GyxA', 'GzaA', 'GzyA']
 
 dtypes = zip(list(range(1, 5)), ('>i2', '>i4', '>f4', '>f8'))
 DTYPES = dict((i, np.dtype(t)) for i, t in dtypes)
-
-RAW_INFO_FIELDS = ['dev_head_t', 'nchan', 'bads', 'projs', 'dev_ctf_t',
-                   'meas_date', 'meas_id', 'dig', 'sfreq', 'highpass',
-                   'comps', 'chs', 'ch_names', 'file_id',
-                   'lowpass', 'acq_pars', 'acq_stim', 'filename',
-                   'ctf_head_t']
 
 
 def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
@@ -995,12 +989,7 @@ class RawBTi(_BaseRaw):
 
         use_hpi = False  # hard coded, but marked as later option.
         logger.info('Creating Neuromag info structure ...')
-        info = Info()
-        info['bads'] = []
-        info['meas_id'] = None
-        info['file_id'] = None
-        info['projs'] = list()
-        info['comps'] = list()
+        info = _empty_info()
         date = bti_info['processes'][0]['timestamp']
         info['meas_date'] = [date, 0]
         info['sfreq'] = 1e3 / bti_info['sample_period'] * 1e-3
@@ -1020,9 +1009,8 @@ class RawBTi(_BaseRaw):
 
         info['highpass'] = hp
         info['lowpass'] = lp
-        info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = None
-        info['custom_ref_applied'] = False
+        info['acq_pars'] = info['acq_stim'] = info['hpi_subsystem'] = None
+        info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
         chs = []
 
         ch_names = [ch['name'] for ch in bti_info['chs']]
@@ -1146,7 +1134,7 @@ class RawBTi(_BaseRaw):
                            'printed out \nby the 4D \'print_table\' routine.')
 
         # check that the info is complete
-        assert not set(RAW_INFO_FIELDS) - set(info.keys())
+        assert set(RAW_INFO_FIELDS) == set(info.keys())
 
         # check nchan is correct
         assert len(info['ch_names']) == info['nchan']
