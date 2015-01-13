@@ -50,7 +50,6 @@ def test_kit2fiff_model():
     raw_bin = Raw(fif_path)
     trans_bin = raw.info['dev_head_t']['trans']
     want_keys = list(raw_bin.info.keys())
-    want_keys.pop(want_keys.index('hpi_results'))  # XXX we don't convert this
     assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))
     trans_transform = raw_bin.info['dev_head_t']['trans']
     assert_allclose(trans_transform, trans_bin, 0.1)
