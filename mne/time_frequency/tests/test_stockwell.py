@@ -14,6 +14,7 @@ from mne import io, read_events, Epochs, pick_types
 from mne.time_frequency._stockwell import (tfr_stockwell, _st,
                                            _precompute_st_windows)
 from mne.time_frequency.tfr import AverageTFR
+from mne.utils import slow_test
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -72,8 +73,9 @@ def test_stockwell_core():
     assert_array_almost_equal(pulse, y_inv)
 
 
+@slow_test
 def test_stockwell_api():
-    """test stockwell functions"""
+    """Test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
                     event_id, tmin, tmax, picks=[0, 1, 3], baseline=(None, 0))
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:

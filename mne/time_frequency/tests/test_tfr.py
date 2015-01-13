@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
-from mne.utils import _TempDir, run_tests_if_main
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
@@ -121,7 +121,7 @@ def test_time_frequency():
 
 
 def test_dpsswavelet():
-    """Some tests for DPSS wavelet"""
+    """Test DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
     Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2.,
                        time_bandwidth=4.0, zero_mean=True)
@@ -134,8 +134,9 @@ def test_dpsswavelet():
     assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
+@slow_test
 def test_tfr_multitaper():
-    """ Some tests for tfr_multitaper() """
+    """Test tfr_multitaper"""
     sfreq = 200.0
     ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
     ch_types = ['grad', 'grad', 'grad']

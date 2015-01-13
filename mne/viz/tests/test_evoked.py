@@ -18,8 +18,8 @@ import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt
 
-from mne import io, read_events, Epochs
-from mne import pick_types, read_cov
+from mne import io, read_events, Epochs, pick_types, read_cov
+from mne.utils import slow_test
 from mne.channels import read_layout
 
 
@@ -72,6 +72,7 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
+@slow_test
 def test_plot_evoked():
     """Test plotting of evoked
     """
