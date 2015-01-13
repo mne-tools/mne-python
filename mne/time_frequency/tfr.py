@@ -450,8 +450,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     return power
 
 
-def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                   decim=1, n_jobs=1, zero_mean=False, Fs=None):
+def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
+                       decim=1, n_jobs=1, zero_mean=False, Fs=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -494,16 +494,11 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     psd = np.empty((n_channels, n_frequencies, n_times))
     plf = np.empty((n_channels, n_frequencies, n_times))
     # Separate to save memory for n_jobs=1
-    if n_jobs == 1:
-        for c in range(n_channels):
-            psd[c, :, :], plf[c, :, :] = \
-                _time_frequency(data[:, c, :], Ws, use_fft, decim)
-    else:
-        parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-        psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft, decim)
-                           for c in range(n_channels))
-        for c, (psd_c, plf_c) in enumerate(psd_plf):
-            psd[c, :, :], plf[c, :, :] = psd_c, plf_c
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
+    psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft, decim)
+                       for c in range(n_channels))
+    for c, (psd_c, plf_c) in enumerate(psd_plf):
+        psd[c, :, :], plf[c, :, :] = psd_c, plf_c
     return psd, plf
 
 
@@ -1056,10 +1051,11 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     picks = pick_types(inst.info, meg=True, eeg=True)
     info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    power, itc = _induced_power(data, sfreq=info['sfreq'], frequencies=freqs,
-                                n_cycles=n_cycles, n_jobs=n_jobs,
-                                use_fft=use_fft, decim=decim,
-                                zero_mean=True)
+    power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
+                                    frequencies=freqs,
+                                    n_cycles=n_cycles, n_jobs=n_jobs,
+                                    use_fft=use_fft, decim=decim,
+                                    zero_mean=True)
     times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
@@ -1128,23 +1124,15 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
                       "Consider reducing n_cycles.")
     psd = np.zeros((n_channels, n_frequencies, n_times))
     itc = np.zeros((n_channels, n_frequencies, n_times))
-    # Separate to save memory for n_jobs=1
-    if n_jobs == 1:
-        for m in range(n_taps):
-            for c in range(n_channels):
-                out = _time_frequency(data[:, c, :], Ws[m], use_fft, decim)
-                psd[c] += out[0]
-                itc[c] += out[1]
-    else:
-        parallel, my_time_frequency, _ = parallel_func(_time_frequency,
-                                                       n_jobs)
-        for m in range(n_taps):
-            psd_itc = parallel(my_time_frequency(data[:, c, :],
-                                                 Ws[m], use_fft, decim)
-                               for c in range(n_channels))
-            for c, (psd_c, itc_c) in enumerate(psd_itc):
-                psd[c, :, :] += psd_c
-                itc[c, :, :] += itc_c
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                   n_jobs)
+    for m in range(n_taps):
+        psd_itc = parallel(my_time_frequency(data[:, c, :],
+                                             Ws[m], use_fft, decim)
+                           for c in range(n_channels))
+        for c, (psd_c, itc_c) in enumerate(psd_itc):
+            psd[c, :, :] += psd_c
+            itc[c, :, :] += itc_c
     psd /= n_taps
     itc /= n_taps
     return psd, itc

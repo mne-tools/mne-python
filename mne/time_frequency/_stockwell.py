@@ -171,22 +171,14 @@ def _induced_power_stockwell(data, sfreq, fmin, fmax, n_fft=None, width=1.0,
     psd = np.empty((n_channels, n_freq, n_out))
     itc = np.empty((n_channels, n_freq, n_out)) if return_itc else None
 
-    if n_jobs == 1:
-        for c in range(n_channels):
-            psd[c], this_itc = \
-                _st_power_itc(data[:, c, :], start_f, return_itc, zero_pad,
-                              decim, W)
-            if return_itc:
-                itc[c] = this_itc
-    else:
-        parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
-        tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
-                              decim, W)
-                        for c in range(n_channels))
-        for c, (this_psd, this_itc) in enumerate(iter(tfrs)):
-            psd[c] = this_psd
-            if this_itc is not None:
-                itc[c] = this_itc
+    parallel, my_st, _ = parallel_func(_st_power_itc, n_jobs)
+    tfrs = parallel(my_st(data[:, c, :], start_f, return_itc, zero_pad,
+                          decim, W)
+                    for c in range(n_channels))
+    for c, (this_psd, this_itc) in enumerate(iter(tfrs)):
+        psd[c] = this_psd
+        if this_itc is not None:
+            itc[c] = this_itc
 
     return psd, itc, freqs
 

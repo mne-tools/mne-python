@@ -359,13 +359,13 @@ def _check_coefficients(b, a):
 def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
+    n_jobs = check_n_jobs(n_jobs, allow_negative=False)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     _check_coefficients(b, a)
     if n_jobs == 1:
         for p in picks:
             x[p] = filtfilt(b, a, x[p], padlen=padlen)
     else:
-        check_n_jobs(n_jobs, allow_negative=False)
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
         data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
                             for p in picks)
@@ -1056,6 +1056,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
     # set up array for filtering, reshape to 2D, operate on last axis
+    n_jobs = check_n_jobs(n_jobs, allow_negative=False)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if n_jobs == 1:
         freq_list = list()
@@ -1066,7 +1067,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                                                p_value)
                 freq_list.append(f)
     else:
-        check_n_jobs(n_jobs, allow_negative=False)
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   mt_bandwidth, p_value)
