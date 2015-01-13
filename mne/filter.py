@@ -284,6 +284,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     freq = np.array(freq) / (Fs / 2.)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
 
     if filter_length is None or x.shape[1] <= filter_length:
         # Use direct FFT filtering for short signals
@@ -359,7 +360,7 @@ def _check_coefficients(b, a):
 def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
-    n_jobs = check_n_jobs(n_jobs, allow_negative=False)
+    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     _check_coefficients(b, a)
     if n_jobs == 1:
@@ -1056,7 +1057,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
     # set up array for filtering, reshape to 2D, operate on last axis
-    n_jobs = check_n_jobs(n_jobs, allow_negative=False)
+    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if n_jobs == 1:
         freq_list = list()

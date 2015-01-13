@@ -103,7 +103,7 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     return parallel, my_func, n_jobs
 
 
-def check_n_jobs(n_jobs, allow_cuda=False, allow_negative=True):
+def check_n_jobs(n_jobs, allow_cuda=False):
     """Check n_jobs in particular for negative values
 
     Parameters
@@ -112,8 +112,6 @@ def check_n_jobs(n_jobs, allow_cuda=False, allow_negative=True):
         The number of jobs.
     allow_cuda : bool
         Allow n_jobs to be 'cuda'. Default: False.
-    allow_negative : bool
-        Allow negative integers (will be wrapped to positive counterparts).
 
     Returns
     -------
@@ -127,8 +125,6 @@ def check_n_jobs(n_jobs, allow_cuda=False, allow_negative=True):
         elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
         # else, we have n_jobs='cuda' and this is okay, so do nothing
-    elif n_jobs <= 0 and not allow_negative:
-        raise ValueError('n_jobs must be >= 1')
     elif _force_serial:
         n_jobs = 1
         logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
