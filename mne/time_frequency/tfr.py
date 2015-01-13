@@ -340,7 +340,7 @@ def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
     n_epochs, n_times = X.shape
-    n_times = max(n_times // decim, 1)
+    n_times = n_times // decim + bool(n_times % decim)
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
     plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
