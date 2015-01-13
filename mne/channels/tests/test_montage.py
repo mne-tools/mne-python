@@ -65,7 +65,10 @@ def test_montage():
             dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
                      ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                      ('off_sph', 'f8')]
-            table = np.loadtxt(fname, skiprows=2, dtype=dtype)
+            try:
+                table = np.loadtxt(fname, skip_header=2, dtype=dtype)
+            except TypeError:
+                table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
 

@@ -11,7 +11,6 @@
 import logging
 from collections import defaultdict
 from itertools import combinations
-import re
 import os
 import os.path as op
 import numpy as np
@@ -825,7 +824,10 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         pos = np.array(pos)
     elif ext == '.txt':
         # easycap
-        data = np.genfromtxt(fname, dtype='str', skiprows=1)
+        try:  # newer version
+            data = np.genfromtxt(fname, dtype='str', skip_header=1)
+        except TypeError:
+            data = np.genfromtxt(fname, dtype='str', skiprows=1)
         ch_names_ = list(data[:, 0])
         theta, phi = data[:, 1].astype(float), data[:, 2].astype(float)
         x = 85. * np.cos(np.deg2rad(phi)) * np.sin(np.deg2rad(theta))
@@ -837,7 +839,10 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         dtype = [('label', 'S4'), ('theta', 'f8'), ('phi', 'f8'),
                  ('radius', 'f8'), ('x', 'f8'), ('y', 'f8'), ('z', 'f8'),
                  ('off_sph', 'f8')]
-        table = np.loadtxt(fname, skiprows=2, dtype=dtype)
+        try:  # newer version
+            table = np.loadtxt(fname, skip_header=2, dtype=dtype)
+        except TypeError:
+            table = np.loadtxt(fname, skiprows=2, dtype=dtype)
         ch_names_ = table['label']
         theta = (2 * np.pi * table['theta']) / 360.
         phi = (2 * np.pi * table['phi']) / 360.
@@ -846,7 +851,10 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     elif ext == '.elp':
         # standard BESA spherical
         dtype = np.dtype('S8, S8, f8, f8, f8')
-        data = np.loadtxt(fname, dtype=dtype, skiprows=1)
+        try:
+            data = np.loadtxt(fname, dtype=dtype, skip_header=1)
+        except TypeError:
+            data = np.loadtxt(fname, dtype=dtype, skiprows=1)
 
         az = data['f2']
         horiz = data['f3']
@@ -867,10 +875,9 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         pos = np.c_[x, y, z]
         ch_names_ = data['f1'].astype(np.str)
     elif ext == '.hpts':
-        from ..transforms import get_ras_to_neuromag_trans, apply_trans
         # MNE-C specified format for generic digitizer data
         dtype = [('type', 'S8'), ('name', 'S8'),
-                 ('x', 'f8'), ('y','f8'), ('z', 'f8')]
+                 ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
         pos_ = data[data['type'].astype(np.str) == 'eeg']
         pos = np.vstack((pos_['x'], pos_['y'], pos_['z'])).T

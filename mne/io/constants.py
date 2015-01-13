@@ -14,11 +14,11 @@ class Bunch(dict):
         self.__dict__ = self
 
 
-class BunchConst(object):
+class BunchConst(Bunch):
+    """Class to prevent us from re-defining constants (DRY)"""
     def __setattr__(self, attr, val):
-        # Prevent us from re-defining constants (DRY)
         if attr != '__dict__' and hasattr(self, attr):
-            raise RuntimeError('Key "%s" already set' % attr)
+            raise AttributeError('Attribute "%s" already set' % attr)
         super(BunchConst, self).__setattr__(attr, val)
 
 FIFF = BunchConst()
