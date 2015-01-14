@@ -71,8 +71,8 @@ def prox_l21(Y, alpha, n_orient, shape=None, is_stft=False):
     if is_stft:
         rows_norm = np.sqrt(stft_norm2(Y).reshape(n_positions, -1).sum(axis=1))
     else:
-        rows_norm = np.sqrt(np.sum((np.abs(Y) ** 2).reshape(n_positions, -1),
-                                   axis=1))
+        rows_norm = np.sqrt((Y * Y.conj()).real.reshape(n_positions,
+                                                        -1).sum(axis=1))
     # Ensure shrink is >= 0 while avoiding any division by zero
     shrink = np.maximum(1.0 - alpha / np.maximum(rows_norm, alpha), 0.0)
     active_set = shrink > 0.0
@@ -110,7 +110,7 @@ def prox_l1(Y, alpha, n_orient):
     [ True  True False False]
     """
     n_positions = Y.shape[0] // n_orient
-    norms = np.sqrt(np.sum((np.abs(Y) ** 2).T.reshape(-1, n_orient), axis=1))
+    norms = np.sqrt((Y * Y.conj()).real.T.reshape(-1, n_orient).sum(axis=1))
     # Ensure shrink is >= 0 while avoiding any division by zero
     shrink = np.maximum(1.0 - alpha / np.maximum(norms, alpha), 0.0)
     shrink = shrink.reshape(-1, n_positions).T

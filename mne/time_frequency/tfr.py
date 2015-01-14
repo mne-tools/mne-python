@@ -435,12 +435,13 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     cwt_kw = dict(Ws=Ws, use_fft=use_fft, mode=mode, decim=decim)
     if n_jobs == 1:
         for k, e in enumerate(data):
-            power[k] = np.abs(cwt(e, **cwt_kw)) ** 2
+            x = cwt(e, **cwt_kw)
+            power[k] = (x * x.conj()).real
     else:
         # Precompute tf decompositions in parallel
         tfrs = parallel(my_cwt(e, **cwt_kw) for e in data)
         for k, tfr in enumerate(tfrs):
-            power[k] = np.abs(tfr) ** 2
+            power[k] = (tfr * tfr.conj()).real
 
     # Run baseline correction.  Be sure to decimate the times array as well if
     # needed.

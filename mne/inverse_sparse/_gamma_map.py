@@ -110,11 +110,11 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 
         if update_mode == 1:
             # MacKay fixed point update (10) in [1]
-            numer = gammas ** 2 * np.mean(np.abs(A) ** 2, axis=1)
+            numer = gammas ** 2 * np.mean((A * A.conj()).real, axis=1)
             denom = gammas * np.sum(G * CMinvG, axis=0)
         elif update_mode == 2:
             # modified MacKay fixed point update (11) in [1]
-            numer = gammas * np.sqrt(np.mean(np.abs(A) ** 2, axis=1))
+            numer = gammas * np.sqrt(np.mean((A * A.conj()).real, axis=1))
             denom = np.sum(G * CMinvG, axis=0)  # sqrt is applied below
         else:
             raise ValueError('Invalid value for update_mode')

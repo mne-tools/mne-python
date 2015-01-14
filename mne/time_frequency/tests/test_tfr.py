@@ -58,11 +58,6 @@ def test_time_frequency():
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
-    power_par, itc_par = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
-                                    use_fft=True, return_itc=True, n_jobs=2)
-    assert_array_almost_equal(power.data, power_par.data)
-    assert_array_almost_equal(itc.data, itc_par.data)
-
     evoked = epochs.average()
     power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
                               return_itc=False)
@@ -167,12 +162,6 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
-    power_par, itc_par = tfr_multitaper(epochs, freqs=freqs,
-                                        n_cycles=freqs / 2.,
-                                        time_bandwidth=4.0, n_jobs=2)
-    assert_array_almost_equal(power.data, power_par.data)
-    assert_array_almost_equal(itc.data, itc_par.data)
-
     power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
                                   n_cycles=freqs / 2., time_bandwidth=4.0,
                                   return_itc=False)

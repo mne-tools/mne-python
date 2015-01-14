@@ -1151,7 +1151,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
         x_hat = A * H0[:, np.newaxis]
 
         # numerator for F-statistic
-        num = (n_tapers - 1) * (np.abs(A) ** 2) * H0_sq
+        num = (n_tapers - 1) * (A * A.conj()).real * H0_sq
         # denominator for F-statistic
         den = (np.sum(np.abs(x_p[:, tapers_odd, :] - x_hat) ** 2, 1) +
                np.sum(np.abs(x_p[:, tapers_even, :]) ** 2, 1))

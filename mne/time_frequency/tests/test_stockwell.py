@@ -73,7 +73,6 @@ def test_stockwell_core():
     assert_array_almost_equal(pulse, y_inv)
 
 
-@slow_test
 def test_stockwell_api():
     """Test stockwell functions"""
     epochs = Epochs(raw, events,  # XXX pick 2 has epochs of zeros.
@@ -81,10 +80,6 @@ def test_stockwell_api():
     for fmin, fmax in [(None, 50), (5, 50), (5, None)]:
         power, itc = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
                                    return_itc=True)
-        power_par, itc_par = tfr_stockwell(epochs, fmin=fmin, fmax=fmax,
-                                           return_itc=True, n_jobs=2)
-        assert_array_almost_equal(power.data, power_par.data)
-        assert_array_almost_equal(itc.data, itc_par.data)
         if fmax is not None:
             assert_true(power.freqs.max() <= fmax)
         power_evoked = tfr_stockwell(epochs.average(), fmin=fmin, fmax=fmax,

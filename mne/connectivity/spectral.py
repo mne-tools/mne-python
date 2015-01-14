@@ -390,7 +390,7 @@ def _epoch_spectral_connectivity(data, sig_idx, tmin_idx, tmax_idx, sfreq,
                                  wavelets, use_fft=True, mode='same')
 
             if accumulate_psd:
-                this_psd.append(np.abs(this_x_cwt) ** 2)
+                this_psd.append((this_x_cwt * this_x_cwt.conj()).real)
 
             x_cwt.append(this_x_cwt)
 

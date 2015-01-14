@@ -230,7 +230,7 @@ def stft_norm2(X):
     norms2 : array
         The squared L2 norm of every row of X.
     """
-    X2 = np.abs(X) ** 2
+    X2 = (X * X.conj()).real
     # compute all L2 coefs and remove first and last frequency once.
     norms2 = (2. * X2.sum(axis=2).sum(axis=1) - np.sum(X2[:, 0, :], axis=1) -
               np.sum(X2[:, -1, :], axis=1))
