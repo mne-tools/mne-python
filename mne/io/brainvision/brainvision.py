@@ -14,7 +14,7 @@ import numpy as np
 
 from ...utils import verbose, logger
 from ..constants import FIFF
-from ..meas_info import Info
+from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
 
 from ...externals.six import StringIO, u
@@ -32,7 +32,7 @@ class RawBrainVision(_BaseRaw):
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple
-        Names of channels or list of indices that should be designated 
+        Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file.
         Default is ('HEOGL', 'HEOGR', 'VEOGb').
     misc : list or tuple
@@ -91,7 +91,7 @@ class RawBrainVision(_BaseRaw):
         self.comp = None  # no compensation for EEG
         self.proj = False
         self.first_samp = 0
-        with open(self.info['file_id'], 'rb') as f:
+        with open(self.info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
@@ -121,7 +121,7 @@ class RawBrainVision(_BaseRaw):
     def __repr__(self):
         n_chan = self.info['nchan']
         data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['file_id']),
+        s = ('%r' % os.path.basename(self.info['filename']),
              "n_channels x n_times : %s x %s" % (n_chan, data_range))
         return "<RawEEG  |  %s>" % ', '.join(s)
 
@@ -190,7 +190,7 @@ class RawBrainVision(_BaseRaw):
         buffer_size = (stop - start)
         pointer = start * n_eeg * dtype.itemsize
 
-        with open(self.info['file_id'], 'rb') as f:
+        with open(self.info['filename'], 'rb') as f:
             f.seek(pointer)
             # extract data
             data_buffer = np.fromfile(f, dtype=dtype,
@@ -416,28 +416,9 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
         eog = []
     if misc is None:
         misc = []
-    info = Info()
-    # Some keys to be consistent with FIF measurement info
-    info['meas_id'] = None
-    info['projs'] = []
-    info['comps'] = []
-    info['bads'] = []
-    info['acq_pars'], info['acq_stim'] = None, None
-    info['filename'] = vhdr_fname
-    info['ctf_head_t'] = None
-    info['dev_ctf_t'] = []
-    info['dig'] = None
-    info['dev_head_t'] = None
-    info['proj_id'] = None
-    info['proj_name'] = None
-    info['experimenter'] = None
-    info['description'] = None
+    info = _empty_info()
     info['buffer_size_sec'] = 10.
-    info['orig_blocks'] = None
-    info['line_freq'] = None
-    info['subject_info'] = None
-    info['custom_ref_applied'] = False
-
+    info['filename'] = vhdr_fname
     eeg_info = {}
 
     with open(vhdr_fname, 'r') as f:
@@ -575,7 +556,7 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
 
     # locate EEG and marker files
     path = os.path.dirname(vhdr_fname)
-    info['file_id'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
+    info['filename'] = os.path.join(path, cfg.get('Common Infos', 'DataFile'))
     eeg_info['marker_id'] = os.path.join(path, cfg.get('Common Infos',
                                                        'MarkerFile'))
     info['meas_date'] = int(time.time())

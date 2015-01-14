@@ -49,7 +49,8 @@ def test_kit2fiff_model():
     # Compare exported raw with the original binary conversion
     raw_bin = Raw(fif_path)
     trans_bin = raw.info['dev_head_t']['trans']
-    assert_equal(raw_bin.info.keys(), raw.info.keys())
+    want_keys = list(raw_bin.info.keys())
+    assert_equal(sorted(want_keys), sorted(list(raw.info.keys())))
     trans_transform = raw_bin.info['dev_head_t']['trans']
     assert_allclose(trans_transform, trans_bin, 0.1)
 

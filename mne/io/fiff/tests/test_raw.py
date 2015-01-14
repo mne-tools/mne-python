@@ -203,7 +203,10 @@ def test_multiple_files():
     """
     # split file
     tempdir = _TempDir()
-    raw = Raw(fif_fname, preload=True).crop(0, 10)
+    raw = Raw(fif_fname)
+    raw.preload_data()
+    raw.preload_data()  # test no operation
+    raw = raw.crop(0, 10)
     split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp)

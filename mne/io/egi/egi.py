@@ -11,17 +11,9 @@ import warnings
 import numpy as np
 
 from ..base import _BaseRaw, _check_update_montage
-from ..meas_info import Info
+from ..meas_info import _empty_info
 from ..constants import FIFF
 from ...utils import verbose, logger
-
-_other_fields = [
-    'lowpass', 'buffer_size_sec', 'dev_ctf_t',
-    'meas_id', 'subject_info',
-    'dev_head_t', 'line_freq', 'acq_stim', 'proj_id', 'description',
-    'highpass', 'experimenter', 'file_id', 'proj_name',
-    'dig', 'ctf_head_t', 'orig_blocks', 'acq_pars'
-]
 
 
 def _read_header(fid):
@@ -258,7 +250,9 @@ class _RawEGI(_BaseRaw):
                                   include_names], event_ids))
         self._data = data
         self.verbose = verbose
-        self.info = info = Info(dict((k, None) for k in _other_fields))
+        self.info = info = _empty_info()
+        info['hpi_subsystem'] = None
+        info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
         info['sfreq'] = egi_info['samp_rate']
         info['filename'] = input_fname
         my_time = datetime.datetime(

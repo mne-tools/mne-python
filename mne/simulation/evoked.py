@@ -21,16 +21,16 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     Parameters
     ----------
     fwd : dict
-        a forward solution
+        a forward solution.
     stc : SourceEstimate object
-        The source time courses
+        The source time courses.
     evoked : Evoked object
-        An instance of evoked used as template
+        An instance of evoked used as template.
     cov : Covariance object
         The noise covariance
     snr : float
         signal to noise ratio in dB. It corresponds to
-        10 * log10( var(signal) / var(noise) )
+        10 * log10( var(signal) / var(noise) ).
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
         is used.
@@ -38,7 +38,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
         start of time interval to estimate SNR. If None last time point
         is used.
     iir_filter : None | array
-        IIR filter coefficients (denominator) e.g. [1, -1, 0.2]
+        IIR filter coefficients (denominator) e.g. [1, -1, 0.2].
     random_state : None | int | np.random.RandomState
         To specify the random generator state.
     verbose : bool, str, int, or None

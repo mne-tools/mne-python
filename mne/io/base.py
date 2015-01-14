@@ -1502,8 +1502,12 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         pos_prev = pos
 
     logger.info('Closing %s [done]' % use_fname)
-    _finish_writing_raw(fid)
-
+    if info.get('maxshield', False):
+        end_block(fid, FIFF.FIFFB_SMSH_RAW_DATA)
+    else:
+        end_block(fid, FIFF.FIFFB_RAW_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)
     return use_fname, part_idx
 
 
@@ -1578,7 +1582,10 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     #
     # Start the raw data
     #
-    start_block(fid, FIFF.FIFFB_RAW_DATA)
+    if info.get('maxshield', False):
+        start_block(fid, FIFF.FIFFB_SMSH_RAW_DATA)
+    else:
+        start_block(fid, FIFF.FIFFB_RAW_DATA)
 
     return fid, cals
 
@@ -1632,19 +1639,6 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
         buf = buf / np.ravel(cals)[:, None]
 
     write_function(fid, FIFF.FIFF_DATA_BUFFER, buf)
-
-
-def _finish_writing_raw(fid):
-    """Finish writing raw FIF file
-
-    Parameters
-    ----------
-    fid : file descriptor
-        an open raw data file.
-    """
-    end_block(fid, FIFF.FIFFB_RAW_DATA)
-    end_block(fid, FIFF.FIFFB_MEAS)
-    end_file(fid)
 
 
 def _envelope(x):
@@ -1714,7 +1708,8 @@ def concatenate_raws(raws, preload=None, events_list=None):
         return raws[0], events
 
 
-def get_chpi_positions(raw, t_step=None):
+@verbose
+def get_chpi_positions(raw, t_step=None, verbose=None):
     """Extract head positions
 
     Note that the raw instance must have CHPI channels recorded.

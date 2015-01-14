@@ -23,7 +23,7 @@ from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
 from .multitaper import dpss_windows
-from .._hdf5 import write_hdf5, read_hdf5, _check_simplify_h5_info
+from .._hdf5 import write_hdf5, read_hdf5
 
 
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
@@ -945,9 +945,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
 def _prepare_write_tfr(tfr, condition):
     """Aux function"""
-    info = _check_simplify_h5_info(tfr.info)
     return (condition, dict(times=tfr.times, freqs=tfr.freqs,
-                            data=tfr.data, info=info, nave=tfr.nave,
+                            data=tfr.data, info=tfr.info, nave=tfr.nave,
                             comment=tfr.comment, method=tfr.method))
 
 
