@@ -111,7 +111,7 @@ Read data from file:
     >>> print(raw)
     <Raw  |  n_channels x n_times : 376 x 41700>
     >>> print(raw.info) # doctest:+ELLIPSIS
-    <Info | 18 non-empty ...
+    <Info | 20 non-empty ...
 
 Look at the channels in raw:
 
