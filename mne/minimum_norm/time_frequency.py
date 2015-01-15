@@ -90,14 +90,11 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
     frequencies = np.concatenate([np.arange(band[0], band[1] + df / 2.0, df)
                                  for _, band in six.iteritems(bands)])
 
-    powers, _, vertno = _source_induced_power(epochs,
-                                              inverse_operator, frequencies,
-                                              label=label,
-                                              lambda2=lambda2, method=method,
-                                              nave=nave, n_cycles=n_cycles,
-                                              decim=decim, use_fft=use_fft,
-                                              pca=pca, n_jobs=n_jobs,
-                                              with_plv=False, prepared=prepared)
+    powers, _, vertno = _source_induced_power(
+        epochs, inverse_operator, frequencies, label=label, lambda2=lambda2,
+        method=method, nave=nave, n_cycles=n_cycles, decim=decim,
+        use_fft=use_fft, pca=pca, n_jobs=n_jobs, with_plv=False,
+        prepared=prepared)
 
     Fs = epochs.info['sfreq']  # sampling in Hz
     stcs = dict()
@@ -132,7 +129,7 @@ def _compute_pow_plv(data, K, sel, Ws, source_ori, use_fft, Vh, with_plv,
     n_freqs = len(Ws)
     n_sources = K.shape[0]
     is_free_ori = False
-    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori == None):
+    if (source_ori == FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None):
         is_free_ori = True
         n_sources //= 3
 
@@ -244,7 +241,7 @@ def _source_induced_power(epochs, inverse_operator, frequencies, label=None,
     out = parallel(my_compute_pow_plv(data, K, sel, Ws,
                                       inv['source_ori'], use_fft, Vh,
                                       with_plv, pick_ori, decim)
-                        for data in np.array_split(epochs_data, n_jobs))
+                   for data in np.array_split(epochs_data, n_jobs))
     power = sum(o[0] for o in out)
     power /= len(epochs_data)  # average power over epochs
 
@@ -463,10 +460,10 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         data_fft = fftpack.fft(data)[:, freqs_mask]
         sol = np.dot(K, data_fft)
 
-        if is_free_ori and pick_ori == None:
+        if is_free_ori and pick_ori is None:
             sol = combine_xyz(sol, square=True)
         else:
-            sol = np.abs(sol) ** 2
+            sol = (sol * sol.conj()).real
 
         if method != "MNE":
             sol *= noise_norm ** 2
@@ -606,7 +603,7 @@ def _compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
             pos += K_part.shape[0]
 
         # combine orientations
-        if is_free_ori and pick_ori == None:
+        if is_free_ori and pick_ori is None:
             psd = combine_xyz(psd, square=False)
 
         if method != "MNE":

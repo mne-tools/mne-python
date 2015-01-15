@@ -26,6 +26,21 @@ from .multitaper import dpss_windows
 from .._hdf5 import write_hdf5, read_hdf5
 
 
+def _get_data(inst, return_itc):
+    """Get data from Epochs or Evoked instance as epochs x ch x time"""
+    from ..epochs import Epochs
+    from ..evoked import Evoked
+    if not isinstance(inst, (Epochs, Evoked)):
+        raise TypeError('inst must be Epochs or Evoked')
+    if isinstance(inst, Epochs):
+        data = inst.get_data()
+    else:
+        if return_itc:
+            raise ValueError('return_itc must be False for evoked data')
+        data = inst.data[np.newaxis, ...].copy()
+    return data
+
+
 def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """Compute Wavelets for the given frequency range
 
@@ -236,6 +251,9 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
                Fs=None):
     """Compute time freq decomposition with Morlet wavelets
 
+    This function operates directly on numpy arrays. Consider using
+    `tfr_morlet` to process `Epochs` or `Evoked` instances.
+
     Parameters
     ----------
     X : array of shape [n_signals, n_times]
@@ -318,13 +336,14 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     return tfrs
 
 
-def _time_frequency(X, Ws, use_fft):
+def _time_frequency(X, Ws, use_fft, decim):
     """Aux of time_frequency for parallel computing over channels
     """
     n_epochs, n_times = X.shape
+    n_times = n_times // decim + bool(n_times % decim)
     n_frequencies = len(Ws)
     psd = np.zeros((n_frequencies, n_times))  # PSD
-    plf = np.zeros((n_frequencies, n_times), dtype=np.complex)  # phase lock
+    plf = np.zeros((n_frequencies, n_times), np.complex)  # phase lock
 
     mode = 'same'
     if use_fft:
@@ -333,10 +352,12 @@ def _time_frequency(X, Ws, use_fft):
         tfrs = _cwt_convolve(X, Ws, mode)
 
     for tfr in tfrs:
+        tfr = tfr[:, ::decim]
         tfr_abs = np.abs(tfr)
         psd += tfr_abs ** 2
         plf += tfr / tfr_abs
-
+    psd /= n_epochs
+    plf = np.abs(plf) / n_epochs
     return psd, plf
 
 
@@ -414,12 +435,13 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     cwt_kw = dict(Ws=Ws, use_fft=use_fft, mode=mode, decim=decim)
     if n_jobs == 1:
         for k, e in enumerate(data):
-            power[k] = np.abs(cwt(e, **cwt_kw)) ** 2
+            x = cwt(e, **cwt_kw)
+            power[k] = (x * x.conj()).real
     else:
         # Precompute tf decompositions in parallel
         tfrs = parallel(my_cwt(e, **cwt_kw) for e in data)
         for k, tfr in enumerate(tfrs):
-            power[k] = np.abs(tfr) ** 2
+            power[k] = (tfr * tfr.conj()).real
 
     # Run baseline correction.  Be sure to decimate the times array as well if
     # needed.
@@ -429,8 +451,8 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     return power
 
 
-def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                   decim=1, n_jobs=1, zero_mean=False, Fs=None):
+def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
+                       decim=1, n_jobs=1, zero_mean=False, Fs=None):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -470,28 +492,14 @@ def _induced_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     # Precompute wavelets for given frequency range to save time
     Ws = morlet(sfreq, frequencies, n_cycles=n_cycles, zero_mean=zero_mean)
 
-    if n_jobs == 1:
-        psd = np.empty((n_channels, n_frequencies, n_times))
-        plf = np.empty((n_channels, n_frequencies, n_times), dtype=np.complex)
-
-        for c in range(n_channels):
-            X = data[:, c, :]
-            this_psd, this_plf = _time_frequency(X, Ws, use_fft)
-            psd[c], plf[c] = this_psd[:, ::decim], this_plf[:, ::decim]
-    else:
-        parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
-
-        psd_plf = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
-                                             Ws, use_fft)
-                           for c in range(n_channels))
-
-        psd = np.zeros((n_channels, n_frequencies, n_times))
-        plf = np.zeros((n_channels, n_frequencies, n_times), dtype=np.complex)
-        for c, (psd_c, plf_c) in enumerate(psd_plf):
-            psd[c, :, :], plf[c, :, :] = psd_c[:, ::decim], plf_c[:, ::decim]
-
-    psd /= n_epochs
-    plf = np.abs(plf) / n_epochs
+    psd = np.empty((n_channels, n_frequencies, n_times))
+    plf = np.empty((n_channels, n_frequencies, n_times))
+    # Separate to save memory for n_jobs=1
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency, n_jobs)
+    psd_plf = parallel(my_time_frequency(data[:, c, :], Ws, use_fft, decim)
+                       for c in range(n_channels))
+    for c, (psd_c, plf_c) in enumerate(psd_plf):
+        psd[c, :, :], plf[c, :, :] = psd_c, plf_c
     return psd, plf
 
 
@@ -534,7 +542,6 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     return data, times, freqs, vmin, vmax
 
 
-# XXX : todo IO of TFRs
 class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     """Container for Time-Frequency data
 
@@ -1011,14 +1018,14 @@ def read_tfrs(fname, condition=None):
     return out
 
 
-def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
                return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
     ----------
-    epochs : Epochs
-        The epochs.
+    inst : Epochs | Evoked
+        The epochs or evoked object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -1027,6 +1034,7 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
         The fft based convolution or not.
     return_itc : bool
         Return intertrial coherence (ITC) as well as averaged power.
+        Must be ``False`` for evoked data.
     decim : int
         The decimation factor on the time axis. To reduce memory usage.
     n_jobs : int
@@ -1040,15 +1048,16 @@ def tfr_morlet(epochs, freqs, n_cycles, use_fft=False,
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
     """
-    data = epochs.get_data()
-    picks = pick_types(epochs.info, meg=True, eeg=True)
-    info = pick_info(epochs.info, picks)
+    data = _get_data(inst, return_itc)
+    picks = pick_types(inst.info, meg=True, eeg=True)
+    info = pick_info(inst.info, picks)
     data = data[:, picks, :]
-    power, itc = _induced_power(data, sfreq=info['sfreq'], frequencies=freqs,
-                                n_cycles=n_cycles, n_jobs=n_jobs,
-                                use_fft=use_fft, decim=decim,
-                                zero_mean=True)
-    times = epochs.times[::decim].copy()
+    power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
+                                    frequencies=freqs,
+                                    n_cycles=n_cycles, n_jobs=n_jobs,
+                                    use_fft=use_fft, decim=decim,
+                                    zero_mean=True)
+    times = inst.times[::decim].copy()
     nave = len(data)
     out = AverageTFR(info, power, times, freqs, nave, method='morlet-power')
     if return_itc:
@@ -1114,51 +1123,30 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     if n_times <= n_times_wavelets:
         warnings.warn("Time windows are as long or longer than the epoch. "
                       "Consider reducing n_cycles.")
-    psd, itc = 0., 0.
-    for m in range(n_taps):  # n_taps is typically small, better to save RAM
-        if n_jobs == 1:
-            psd_m = np.empty((n_channels, n_frequencies, n_times))
-            itc_m = np.empty((n_channels, n_frequencies, n_times),
-                             dtype=np.complex)
-
-            for c in range(n_channels):
-                logger.debug('Analysing channel #%d', c)
-                X = data[:, c, :]
-                this_psd, this_itc = _time_frequency(X, Ws[m], use_fft)
-                psd_m[c], itc_m[c] = this_psd[:, ::decim], this_itc[:, ::decim]
-        else:
-            parallel, my_time_frequency, _ = parallel_func(_time_frequency,
-                                                           n_jobs)
-
-            psd_itc = parallel(my_time_frequency(np.squeeze(data[:, c, :]),
-                                                 Ws[m], use_fft)
-                               for c in range(n_channels))
-
-            psd_m = np.zeros((n_channels, n_frequencies, n_times))
-            itc_m = np.zeros((n_channels, n_frequencies, n_times),
-                             dtype=np.complex)
-            for c, (psd_c, itc_c) in enumerate(psd_itc):
-                psd_m[c, :, :] = psd_c[:, ::decim]
-                itc_m[c, :, :] = itc_c[:, ::decim]
-
-        psd_m /= n_epochs
-        itc_m = np.abs(itc_m) / n_epochs
-        psd += psd_m
-        itc += itc_m
-
+    psd = np.zeros((n_channels, n_frequencies, n_times))
+    itc = np.zeros((n_channels, n_frequencies, n_times))
+    parallel, my_time_frequency, _ = parallel_func(_time_frequency,
+                                                   n_jobs)
+    for m in range(n_taps):
+        psd_itc = parallel(my_time_frequency(data[:, c, :],
+                                             Ws[m], use_fft, decim)
+                           for c in range(n_channels))
+        for c, (psd_c, itc_c) in enumerate(psd_itc):
+            psd[c, :, :] += psd_c
+            itc[c, :, :] += itc_c
     psd /= n_taps
     itc /= n_taps
     return psd, itc
 
 
-def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
+def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                    return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
     ----------
-    epochs : Epochs
-        The epochs.
+    inst : Epochs | Evoked
+        The epochs or evoked object.
     freqs : ndarray, shape (n_freqs,)
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
@@ -1194,9 +1182,9 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
         is True.
     """
 
-    data = epochs.get_data()
-    picks = pick_types(epochs.info, meg=True, eeg=True)
-    info = pick_info(epochs.info, picks)
+    data = _get_data(inst, return_itc)
+    picks = pick_types(inst.info, meg=True, eeg=True)
+    info = pick_info(inst.info, picks)
     data = data[:, picks, :]
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,
@@ -1204,9 +1192,10 @@ def tfr_multitaper(epochs, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
                                     use_fft=use_fft, decim=decim,
                                     n_jobs=n_jobs, zero_mean=True,
                                     verbose='INFO')
-    times = epochs.times[::decim].copy()
+    times = inst.times[::decim].copy()
     nave = len(data)
-    out = AverageTFR(info, power, times, freqs, nave, method='mutlitaper-power')
+    out = AverageTFR(info, power, times, freqs, nave,
+                     method='mutlitaper-power')
     if return_itc:
         out = (out, AverageTFR(info, itc, times, freqs, nave,
                                method='mutlitaper-itc'))

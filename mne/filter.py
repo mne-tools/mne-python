@@ -10,7 +10,7 @@ from copy import deepcopy
 
 from .fixes import firwin2, filtfilt  # back port for old scipy
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
-from .parallel import parallel_func
+from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
 from .utils import logger, verbose, sum_squared
@@ -140,7 +140,6 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
             x[p] = _1d_overlap_filter(x[p], h_fft, n_edge, n_fft, zero_phase,
                                       n_segments, n_seg, cuda_dict)
     else:
-        _check_njobs(n_jobs, can_be_cuda=True)
         parallel, p_fun, _ = parallel_func(_1d_overlap_filter, n_jobs)
         data_new = parallel(p_fun(x[p], h_fft, n_edge, n_fft, zero_phase,
                                   n_segments, n_seg, cuda_dict)
@@ -222,7 +221,8 @@ def _1d_fftmult_ext(x, B, extend_x, cuda_dict):
 def _prep_for_filtering(x, copy, picks=None):
     """Set up array as 2D for filtering ease"""
     if x.dtype != np.float64:
-        raise TypeError("Arrays passed for filtering must have a dtype of np.float64")
+        raise TypeError("Arrays passed for filtering must have a dtype of "
+                        "np.float64")
     if copy is True:
         x = x.copy()
     orig_shape = x.shape
@@ -284,6 +284,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     freq = np.array(freq) / (Fs / 2.)
     gain = np.array(gain)
     filter_length = _get_filter_length(filter_length, Fs, len_x=x.shape[1])
+    n_jobs = check_n_jobs(n_jobs, allow_cuda=True)
 
     if filter_length is None or x.shape[1] <= filter_length:
         # Use direct FFT filtering for short signals
@@ -316,7 +317,6 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
             for p in picks:
                 x[p] = _1d_fftmult_ext(x[p], B, extend_x, cuda_dict)
         else:
-            _check_njobs(n_jobs, can_be_cuda=True)
             parallel, p_fun, _ = parallel_func(_1d_fftmult_ext, n_jobs)
             data_new = parallel(p_fun(x[p], B, extend_x, cuda_dict)
                                 for p in picks)
@@ -360,13 +360,13 @@ def _check_coefficients(b, a):
 def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
+    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     _check_coefficients(b, a)
     if n_jobs == 1:
         for p in picks:
             x[p] = filtfilt(b, a, x[p], padlen=padlen)
     else:
-        _check_njobs(n_jobs)
         parallel, p_fun, _ = parallel_func(filtfilt, n_jobs)
         data_new = parallel(p_fun(b, a, x[p], padlen=padlen)
                             for p in picks)
@@ -1057,6 +1057,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
     # set up array for filtering, reshape to 2D, operate on last axis
+    n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     if n_jobs == 1:
         freq_list = list()
@@ -1067,7 +1068,6 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                                                p_value)
                 freq_list.append(f)
     else:
-        _check_njobs(n_jobs)
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
                                   mt_bandwidth, p_value)
@@ -1151,7 +1151,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
         x_hat = A * H0[:, np.newaxis]
 
         # numerator for F-statistic
-        num = (n_tapers - 1) * (np.abs(A) ** 2) * H0_sq
+        num = (n_tapers - 1) * (A * A.conj()).real * H0_sq
         # denominator for F-statistic
         den = (np.sum(np.abs(x_p[:, tapers_odd, :] - x_hat) ** 2, 1) +
                np.sum(np.abs(x_p[:, tapers_even, :]) ** 2, 1))
@@ -1287,7 +1287,6 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
             y[xi] = fft_resample(x_, W, new_len, npad, to_remove,
                                  cuda_dict)
     else:
-        _check_njobs(n_jobs, can_be_cuda=True)
         parallel, p_fun, _ = parallel_func(fft_resample, n_jobs)
         y = parallel(p_fun(x_, W, new_len, npad, to_remove, cuda_dict)
                      for x_ in x_flat)
@@ -1381,13 +1380,3 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
         if not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be str, int, or None')
     return filter_length
-
-
-def _check_njobs(n_jobs, can_be_cuda=False):
-    if not isinstance(n_jobs, int):
-        if can_be_cuda is True:
-            raise ValueError('n_jobs must be an integer, or "cuda"')
-        else:
-            raise ValueError('n_jobs must be an integer')
-    if n_jobs < 1:
-        raise ValueError('n_jobs must be >= 1')

@@ -18,6 +18,7 @@ if 'MNE_FORCE_SERIAL' in os.environ:
 else:
     _force_serial = None
 
+
 @verbose
 def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
     """Return parallel instance with delayed function
@@ -118,17 +119,16 @@ def check_n_jobs(n_jobs, allow_cuda=False):
         The checked number of jobs. Always positive (or 'cuda' if
         applicable.)
     """
-    if _force_serial:
-        n_jobs = 1
-        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
-                    'serial mode.')
-
-    elif not isinstance(n_jobs, int):
+    if not isinstance(n_jobs, int):
         if not allow_cuda:
             raise ValueError('n_jobs must be an integer')
         elif not isinstance(n_jobs, string_types) or n_jobs != 'cuda':
             raise ValueError('n_jobs must be an integer, or "cuda"')
-        #else, we have n_jobs='cuda' and this is okay, so do nothing
+        # else, we have n_jobs='cuda' and this is okay, so do nothing
+    elif _force_serial:
+        n_jobs = 1
+        logger.info('... MNE_FORCE_SERIAL set. Processing in forced '
+                    'serial mode.')
     elif n_jobs <= 0:
         try:
             import multiprocessing

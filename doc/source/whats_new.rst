@@ -59,6 +59,8 @@ Changelog
 
    - Improve EEG referencing support and add support for bipolar referencing by `Marijn van Vliet`_ and `Alex Gramfort`_
 
+   - Enable TFR calculation on Evoked objects by `Eric Larson`_
+
 BUG
 ~~~
 

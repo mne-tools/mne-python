@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
@@ -58,9 +58,14 @@ def test_time_frequency():
     # Test first with a single epoch
     power, itc = tfr_morlet(epochs[0], freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
-
+    evoked = epochs.average()
+    power_evoked = tfr_morlet(evoked, freqs, n_cycles, use_fft=True,
+                              return_itc=False)
+    assert_raises(ValueError, tfr_morlet, evoked, freqs, 1., return_itc=True)
     power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
                             use_fft=True, return_itc=True)
+    # the actual data arrays here are equivalent, too...
+    assert_array_almost_equal(power.data, power_evoked.data)
 
     print(itc)  # test repr
     print(itc.ch_names)  # test property
@@ -111,7 +116,7 @@ def test_time_frequency():
 
 
 def test_dpsswavelet():
-    """Some tests for DPSS wavelet"""
+    """Test DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
     Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2.,
                        time_bandwidth=4.0, zero_mean=True)
@@ -124,8 +129,9 @@ def test_dpsswavelet():
     assert_true(len(Ws[0]) == len(freqs))  # As many wavelets as asked for
 
 
+@slow_test
 def test_tfr_multitaper():
-    """ Some tests for tfr_multitaper() """
+    """Test tfr_multitaper"""
     sfreq = 200.0
     ch_names = ['SIM0001', 'SIM0002', 'SIM0003']
     ch_types = ['grad', 'grad', 'grad']
@@ -156,6 +162,16 @@ def test_tfr_multitaper():
     freqs = np.arange(5, 100, 3, dtype=np.float)
     power, itc = tfr_multitaper(epochs, freqs=freqs, n_cycles=freqs / 2.,
                                 time_bandwidth=4.0)
+    power_evoked = tfr_multitaper(epochs.average(), freqs=freqs,
+                                  n_cycles=freqs / 2., time_bandwidth=4.0,
+                                  return_itc=False)
+    # one is squared magnitude of the average (evoked) and
+    # the other is average of the squared magnitudes (epochs PSD)
+    # so values shouldn't match, but shapes should
+    assert_array_equal(power.data.shape, power_evoked.data.shape)
+    assert_raises(AssertionError, assert_array_almost_equal,
+                  power.data, power_evoked.data)
+
     tmax = t[np.argmax(itc.data[0, freqs == 50, :])]
     fmax = freqs[np.argmax(power.data[1, :, t == 0.5])]
     assert_true(tmax > 0.3 and tmax < 0.7)
@@ -204,3 +220,5 @@ def test_io():
     assert_equal(tfr2.comment, tfr4.comment)
 
     assert_raises(ValueError, read_tfrs, fname, condition='nonono')
+
+run_tests_if_main()

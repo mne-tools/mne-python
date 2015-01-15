@@ -378,10 +378,9 @@ def _psd_from_mt(x_mt, weights):
     psd : array
         The computed PSD
     """
-
-    psd = np.sum(np.abs(weights * x_mt) ** 2, axis=-2)
-    psd *= 2 / np.sum(np.abs(weights) ** 2, axis=-2)
-
+    psd = weights * x_mt
+    psd = (psd * psd.conj()).real.sum(axis=-2)
+    psd *= 2 / (weights * weights.conj()).real.sum(axis=-2)
     return psd
 
 
@@ -404,14 +403,10 @@ def _csd_from_mt(x_mt, y_mt, weights_x, weights_y):
     psd: array
         The computed PSD
     """
-
     csd = np.sum(weights_x * x_mt * (weights_y * y_mt).conj(), axis=-2)
-
-    denom = (np.sqrt(np.sum(np.abs(weights_x) ** 2, axis=-2))
-             * np.sqrt(np.sum(np.abs(weights_y) ** 2, axis=-2)))
-
+    denom = (np.sqrt((weights_x * weights_x.conj()).real.sum(axis=-2)) *
+             np.sqrt((weights_y * weights_y.conj()).real.sum(axis=-2)))
     csd *= 2 / denom
-
     return csd
 
 
