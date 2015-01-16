@@ -8,12 +8,17 @@ from ..parallel import parallel_func
 from ..io.proj import make_projector_info
 from ..io.pick import pick_types
 from ..utils import logger, verbose
+from scipy.signal import welch
 
+def _pwelch(epoch, nperseg, noverlap, nfft, fs):
+    return [welch(channel, nperseg=nperseg, noverlap=noverlap,
+                  nfft=nfft, fs=fs)
+            for channel in epoch]
 
 @verbose
 def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
                     fmin=0, fmax=np.inf, n_fft=2048, pad_to=None, n_overlap=0,
-                    n_jobs=1, plot=False, proj=False, verbose=None):
+                    nperseg=2048, n_jobs=1, plot=False, proj=False, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -75,21 +80,40 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
     import matplotlib.pyplot as plt
-    parallel, my_psd, n_jobs = parallel_func(plt.psd, n_jobs)
-    fig = plt.figure()
-    out = parallel(my_psd(d, Fs=Fs, NFFT=n_fft, noverlap=n_overlap,
-                          pad_to=pad_to) for d in data)
-    if not plot:
-        plt.close(fig)
-    freqs = out[0][1]
-    psd = np.array([o[0] for o in out])
+    parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
+                                                verbose=verbose)
 
-    mask = (freqs >= fmin) & (freqs <= fmax)
-    freqs = freqs[mask]
-    psd = psd[:, mask]
+    out = np.array(parallel(my_pwelch(data, nperseg=nperseg, noverlap=n_overlap,
+                    nfft=n_fft,fs=Fs)))
+    psds = out[:, 1, :]
+    freqs = out[0, 0]
 
-    return psd, freqs
+    freq_mask = np.where(np.logical_and((freqs >= fmin), (freqs <= fmax)))[0]
+    freqs = freqs[freq_mask]
+    psds = psds[..., freq_mask]
 
+    if plot:
+        # Convert PSDs to dB
+        psds = 10 * np.log10(psds)
+        psd_mean = np.mean(psds, axis=0)
+        if area_mode == 'std':
+            psd_std = np.std(psds, axis=0)
+            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+        elif area_mode == 'range':
+            hyp_limits = (np.min(psds, axis=0), np.max(psds, axis=0))
+        else:  # area_mode is None
+            hyp_limits = None
+
+        plt.plot(freqs, psd_mean, color=color)
+        if hyp_limits is not None:
+            plt.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                            color=color, alpha=area_alpha)
+
+        ax.set_xlabel('Freq (Hz)')
+        ax.set_ylabel('Power Spectral Density (dB/Hz)')
+
+
+    return psds, freqs
 
 def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
     """Compute the PSD"""
