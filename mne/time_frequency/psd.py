@@ -12,8 +12,8 @@ from scipy.signal import welch
 
 @verbose
 def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
-                    fmin=0, fmax=np.inf, n_fft=2048, pad_to=None, n_overlap=0,
-                    nperseg=2048, n_jobs=1, proj=False, verbose=None):
+                    fmin=0, fmax=np.inf, n_fft=2048, n_overlap=1,
+                    segment_size=2048, n_jobs=1, proj=False, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -34,16 +34,13 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
-    pad_to : int | None
-        The number of points to which the data segment is padded when
-        performing the FFT. If None, pad_to equals `n_fft`.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
+    segment_size : int, optional
+        Length of each segment.
     n_jobs : int
         Number of CPUs to use in the computation.
-    plot : bool
-        Plot each PSD estimates
     proj : bool
         Apply SSP projection vectors
     verbose : bool, str, int, or None
@@ -78,8 +75,8 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
     parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
                                                 verbose=verbose)
     
-    out = np.array(parallel(my_pwelch(data, nperseg=nperseg, noverlap=n_overlap,
-                    nfft=n_fft,fs=Fs)))
+    out = np.squeeze(parallel(my_pwelch([channel], segment_size=segment_size, 
+                    noverlap=n_overlap, nfft=n_fft,fs=Fs) for channel in data))
     psds = out[:, 1, :]
     freqs = out[0, 0]
 
@@ -89,8 +86,8 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None,
 
     return psds, freqs
 
-def _pwelch(epoch, nperseg, noverlap, nfft, fs):
-    return [welch(channel, nperseg=nperseg, noverlap=noverlap,
+def _pwelch(epoch, segment_size, noverlap, nfft, fs):
+    return [welch(channel, nperseg=segment_size, noverlap=noverlap,
                   nfft=nfft, fs=fs)
             for channel in epoch]
 
@@ -106,9 +103,8 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
 
 
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
-                       pad_to=None, n_overlap=0, nperseg=256, n_jobs=1, 
-                       verbose=None):
+def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
+                       n_overlap=0, segment_size=2048, n_jobs=1, verbose=None):
     """Compute power spectral density with with average periodograms.
 
     Parameters
@@ -125,12 +121,11 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
-    pad_to : int | None
-        The number of points to which the data segment is padded when
-        performing the FFT. If None, pad_to equals `n_fft`.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
+    segment_size : int, optional
+        Length of each segment.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -159,7 +154,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     psds = np.empty(epochs.get_data().shape[:-1] + (n_fft // 2 + 1,))
     freqs = np.arange(psds.shape[-1]) * (Fs / n_fft)
     for i_epoch, fepoch in enumerate(parallel(
-        my_pwelch(epoch, nperseg=nperseg, noverlap=n_overlap, nfft=n_fft,
+        my_pwelch(epoch, segment_size=segment_size, noverlap=n_overlap, nfft=n_fft,
                   fs=epochs.info['sfreq']) for epoch in epochs)):
         for i_channel, fchannel in enumerate(fepoch):
             psds[i_epoch, i_channel, :] = fchannel[1]
