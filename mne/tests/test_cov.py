@@ -49,8 +49,6 @@ erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
-
-
 def test_io_cov():
     """Test IO for noise covariance matrices
     """

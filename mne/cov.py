@@ -6,7 +6,6 @@
 
 import copy as cp
 import os
-from math import floor, ceil
 import itertools as itt
 import warnings
 
@@ -17,7 +16,7 @@ from .io.write import start_file, end_file
 from .io.proj import (make_projector, proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
-from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
+from .io.pick import (pick_types, pick_channels_cov,
                       pick_channels, pick_info, _picks_by_type)
 
 from .io.constants import FIFF
@@ -27,9 +26,11 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
-from .epochs import _is_good
+
+from .event import make_fixed_length_events
+from .epochs import Epochs
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, requires_sklearn, check_sklearn_version )
+                    _compute_row_norms, check_sklearn_version)
 
 from .externals.six.moves import zip
 from .fixes import nanmean
@@ -261,65 +262,20 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     cov : instance of Covariance
         Noise covariance matrix.
     """
-    sfreq = raw.info['sfreq']
-
-    # Convert to samples
-    start = 0 if tmin is None else int(floor(tmin * sfreq))
-    if tmax is None:
-        stop = int(raw.last_samp - raw.first_samp)
-    else:
-        stop = int(ceil(tmax * sfreq))
-    step = int(ceil(tstep * raw.info['sfreq']))
 
     # don't exclude any bad channels, inverses expect all channels present
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, eog=False,
                            ref_meg=False, exclude=[])
-
-    data = 0
-    n_samples = 0
-    mu = 0
-
-    info = cp.copy(raw.info)
-    info['chs'] = [info['chs'][k] for k in picks]
-    info['ch_names'] = [info['ch_names'][k] for k in picks]
-    info['nchan'] = len(picks)
-    idx_by_type = channel_indices_by_type(info)
-
-    # Read data in chuncks
-    for first in range(start, stop, step):
-        last = first + step
-        if last >= stop:
-            last = stop
-        raw_segment, times = raw[picks, first:last]
-        if _is_good(raw_segment, info['ch_names'], idx_by_type, reject, flat,
-                    ignore_chs=info['bads']):
-            mu += raw_segment.sum(axis=1)
-            data += np.dot(raw_segment, raw_segment.T)
-            n_samples += raw_segment.shape[1]
-        else:
-            logger.info("Artefact detected in [%d, %d]" % (first, last))
-
-    _check_n_samples(n_samples, len(picks))
-    mu /= n_samples
-    data -= n_samples * mu[:, None] * mu[None, :]
-    data /= (n_samples - 1.0)
-    logger.info("Number of samples used : %d" % n_samples)
-    logger.info('[done]')
-
-    cov = Covariance(None)
-
-    ch_names = [raw.info['ch_names'][k] for k in picks]
-    # XXX : do not compute eig and eigvec now (think it's better...)
-    eig = None
-    eigvec = None
-
-    #   Store structure for fif
-    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=False, dim=len(data),
-               names=ch_names, data=data,
-               projs=cp.deepcopy(raw.info['projs']),
-               bads=raw.info['bads'], nfree=n_samples, eig=eig,
-               eigvec=eigvec)
+    if tmin is None:
+        tmin = 0
+    events = make_fixed_length_events(
+        raw=raw, id=42, start=tmin, stop=tmax, duration=tstep)
+    epochs = Epochs(
+        raw, events=events, event_id=42, tmin=0.0, tmax=tstep, baseline=None,
+        picks=picks, flat=flat, reject=reject, verbose=verbose, proj=raw.proj)
+    epochs.baseline = (None, None)  # hack to avoid baselining warnings
+    cov = compute_covariance(epochs)
 
     return cov
 
