@@ -26,7 +26,7 @@ from .io.proj import _read_proj, _write_proj
 from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
-                       write_double, write_float_matrix)
+                       write_double, write_float_matrix, write_string)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, requires_sklearn, check_sklearn_version )
@@ -1350,6 +1350,18 @@ def _read_cov(fid, node, cov_kind, verbose=None):
             else:
                 nfree = int(tag.data)
 
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_METHOD)
+            if tag is None:
+                method = None
+            else:
+                method = tag.data
+
+            tag = find_tag(fid, this, FIFF.FIFF_MNE_COV_SCORE)
+            if tag is None:
+                score = None
+            else:
+                score = tag.data[0]
+
             tag = find_tag(fid, this, FIFF.FIFF_MNE_ROW_NAMES)
             if tag is None:
                 names = []
@@ -1409,6 +1421,11 @@ def _read_cov(fid, node, cov_kind, verbose=None):
             cov = dict(kind=cov_kind, diag=diagmat, dim=dim, names=names,
                        data=data, projs=projs, bads=bads, nfree=nfree, eig=eig,
                        eigvec=eigvec)
+            if score is not None:
+                cov['loglik'] = score
+            if method is not None:
+                cov['method'] = method
+
             return cov
 
     logger.info('    Did not find the desired covariance matrix (kind = %d)'
@@ -1455,6 +1472,15 @@ def _write_cov(fid, cov):
         start_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
         write_name_list(fid, FIFF.FIFF_MNE_CH_NAME_LIST, cov['bads'])
         end_block(fid, FIFF.FIFFB_MNE_BAD_CHANNELS)
+
+    # estimator method
+    if 'method' in cov:
+        write_string(fid, FIFF.FIFF_MNE_COV_METHOD, cov['method'])
+
+    # negative log-likelihood score
+    if 'loglik' in cov:
+        write_double(
+            fid, FIFF.FIFF_MNE_COV_SCORE, np.array(cov['loglik']))
 
     #   Done!
     end_block(fid, FIFF.FIFFB_MNE_COV)
