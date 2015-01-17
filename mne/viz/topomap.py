@@ -42,7 +42,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
             np.unique([ch['coil_type'] for ch in info['chs']])):
-        from ..channels.layout  import _pair_grad_sensors
+        from ..channels.layout import _pair_grad_sensors
         picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
     else:
@@ -70,7 +70,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         # change names so that vectorview combined grads appear as MEG014x
         # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
-
+    pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
     return picks, pos, merge_grads, ch_names, ch_type
 
 
@@ -186,7 +186,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
 
             pos = l.pos[idx]
             if is_vv and grad_pairs:
-                from ..channels.layout  import _merge_grad_data
+                from ..channels.layout import _merge_grad_data
                 shape = (len(idx) / 2, 2, -1)
                 pos = pos.reshape(shape).mean(axis=1)
                 data = _merge_grad_data(data[grad_pairs]).ravel()
@@ -1002,7 +1002,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     data *= scale
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
