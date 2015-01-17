@@ -445,6 +445,9 @@ FIFF.FIFF_MNE_COV_DIAG               = 3533  # Diagonal matrix
 FIFF.FIFF_MNE_COV_EIGENVALUES        = 3534  # Eigenvalues and eigenvectors of the above
 FIFF.FIFF_MNE_COV_EIGENVECTORS       = 3535
 FIFF.FIFF_MNE_COV_NFREE              = 3536  # Number of degrees of freedom
+FIFF.FIFF_MNE_COV_METHOD             = 3537  # The estimator used
+FIFF.FIFF_MNE_COV_SCORE              = 3538  # Negative log-likelihood
+
 #
 # 3540... Inverse operator
 #

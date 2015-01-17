@@ -56,9 +56,13 @@ def test_io_cov():
     """
     tempdir = _TempDir()
     cov = read_cov(cov_fname)
+    cov['method'] = 'empirical'
+    cov['loglik'] = -np.inf
     cov.save(op.join(tempdir, 'test-cov.fif'))
     cov2 = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_array_almost_equal(cov.data, cov2.data)
+    assert_equal(cov['method'], cov2['method'])
+    assert_equal(cov['loglik'], cov2['loglik'])
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
