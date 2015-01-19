@@ -38,6 +38,7 @@ from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
+from .viz.epochs import plot_psds
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
@@ -508,6 +509,51 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_epochs(self, epoch_idx=epoch_idx, picks=picks,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
+
+    def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
+                  ax=None, window_size=256, n_overlap=1, area_mode='std',
+                  area_alpha=0.33, color='black', proj=False, n_jobs=1,
+                  verbose=None):
+        """Plot the power spectral density across epochs
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs object
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : array-like of int | None
+            List of channels to use.
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        window_size : int, optional
+            Length of each window.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 0 (no overlap).
+        area_mode : str | None
+            Mode for plotting area. If 'std', the mean +/- 1 STD (across
+            channels) will be plotted. If 'range', the min and max (across
+            channels) will be plotted. Bad channels will be excluded from
+            these calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        proj : bool
+            Apply projection.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        return plot_psds(self, fmin=fmin, fmax=fmax, n_fft=n_fft, picks=picks,
+                         ax=ax, window_size=window_size, n_overlap=n_overlap,
+                         area_mode=area_mode, area_alpha=area_alpha,
+                         color=color, proj=proj, n_jobs=n_jobs,
+                         verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):
