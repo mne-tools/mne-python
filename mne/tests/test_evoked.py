@@ -16,7 +16,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked)
-from mne.evoked import _get_peak, EvokedArray
+from mne.evoked import _get_peak, EvokedArray, merge_evoked
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, requires_nitime
@@ -336,14 +336,40 @@ def test_equalize_channels():
 def test_evoked_arithmetic():
     """Test evoked arithmetic
     """
-    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1])
-    evoked = evoked1 + evoked2
-    assert_equal(evoked.nave, evoked1.nave + evoked2.nave)
-    evoked = evoked1 - evoked2
-    assert_equal(evoked.nave, evoked1.nave + evoked2.nave)
-    evoked3 = combine_evoked([evoked1, evoked2], [evoked1.nave, -evoked2.nave])
-    assert_array_almost_equal(evoked.data, evoked3.data)
-    assert_equal(evoked.nave, evoked3.nave)
+    ev = read_evokeds(fname, condition=0)
+    ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
+    ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
+    
+    # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
+    # data should be added according to their `nave` weights
+    # nave = ev1.nave + ev2.nave
+    ev = ev1 + ev2
+    assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
+    ev = ev1 - ev2
+    assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_allclose(ev.data, np.ones_like(ev1.data))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        ev = merge_evoked([ev1, ev2])
+    assert_true(len(w) >= 1)
+    assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
+
+    # equal weighting
+    ev = combine_evoked([ev1, ev2], weights='equal')
+    assert_allclose(ev.data, np.zeros_like(ev1.data))
+
+    # combine_evoked([ev1, ev2], weights=[1, 0]) should yield the same as ev1
+    ev = combine_evoked([ev1, ev2], weights=[1, 0])
+    assert_equal(ev.nave, ev1.nave)
+    assert_allclose(ev.data, ev1.data)
+
+    # simple subtraction (like in oddball)
+    ev = combine_evoked([ev1, ev2], weights=[1, -1])
+    assert_allclose(ev.data, 2 * np.ones_like(ev1.data))
+
+    assert_raises(ValueError, combine_evoked, [ev1, ev2], weights='foo')
+    assert_raises(ValueError, combine_evoked, [ev1, ev2], weights=[1])
 
     # grand average
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
