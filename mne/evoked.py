@@ -1035,7 +1035,8 @@ def combine_evoked(all_evoked, weights='nave'):
 
     all_nave = max(int(sum(w * w / e.nave
                        for w, e in zip(weights, all_evoked))), 1)
-    evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
+    evoked.data = sum(w * e.data
+                      for w, e in zip(weights, all_evoked)) / all_nave
     evoked.nave = all_nave
     return evoked
 
