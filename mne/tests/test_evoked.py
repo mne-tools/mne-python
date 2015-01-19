@@ -14,9 +14,9 @@ from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
 
-from mne import equalize_channels, pick_types, read_evokeds, write_evokeds
-from mne import grand_average
-from mne.evoked import _get_peak, EvokedArray, grand_average
+from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
+                 grand_average, combine_evoked)
+from mne.evoked import _get_peak, EvokedArray
 from mne.epochs import EpochsArray
 
 from mne.utils import _TempDir, requires_pandas, requires_nitime
@@ -333,9 +333,19 @@ def test_equalize_channels():
         assert_equal(ch_names, e.ch_names)
 
 
-def test_grand_average():
-    """Test grand average
+def test_evoked_arithmetic():
+    """Test evoked arithmetic
     """
+    evoked1, evoked2 = read_evokeds(fname, condition=[0, 1])
+    evoked = evoked1 + evoked2
+    assert_equal(evoked.nave, evoked1.nave + evoked2.nave)
+    evoked = evoked1 - evoked2
+    assert_equal(evoked.nave, evoked1.nave + evoked2.nave)
+    evoked3 = combine_evoked([evoked1, evoked2], [evoked1.nave, -evoked2.nave])
+    assert_array_almost_equal(evoked.data, evoked3.data)
+    assert_equal(evoked.nave, evoked3.nave)
+
+    # grand average
     evoked1, evoked2 = read_evokeds(fname, condition=[0, 1], proj=True)
     ch_names = evoked1.ch_names[2:]
     evoked1.info['bads'] = ['EEG 008']  # test interpolation

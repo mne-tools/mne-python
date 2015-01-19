@@ -434,6 +434,7 @@ Sensor Space Data
    :toctree: generated/
    :template: function.rst
 
+   combine_evoked
    concatenate_raws
    equalize_channels
    grand_average
