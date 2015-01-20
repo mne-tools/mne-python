@@ -4,8 +4,8 @@
 # License: BSD (3-clause)
 
 import warnings
-import numpy as np
 import os.path as op
+import numpy as np
 
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
