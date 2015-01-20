@@ -552,7 +552,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 @verbose
 def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
             freq_bins, subtract_evoked=False, reg=0.01, label=None,
-            pick_ori=None, n_jobs=1, verbose=None):
+            pick_ori=None, baseline=None, mode='ratio', n_jobs=1,
+            verbose=None):
     """5D time-frequency beamforming based on LCMV.
 
     Calculate source power in time-frequency windows using a spatial filter
@@ -594,6 +595,22 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept.
+    baseline : tuple or list of length 2, or None
+        Time interval used as baseline period that will be used to normalize
+        source power in each time window. If None do not use a baseline period
+        and normalize source power using noise covariance. If baseline is (a,
+        b) the interval is between "a (s)" and "b (s)". If a is None the
+        beginning of the data is used and if b is None then b is set to the end
+        of the interval. If baseline is equal ot (None, None) all the time
+        interval is used.
+        XXX: Currently unused and baseline is always set to one of the tf bins
+    mode : 'ratio' | 'wilcoxon'
+        If mode is 'ratio', source power estimates returned will be normalized
+        by projected noise or baseline (if baseline is not None) power. If mode
+        is set to 'wilcoxon', a Wilcoxon signed-rank test is conducted
+        comparing data in each time window to baseline data across all epochs
+        and z scores are returned.
+        XXX: 'logratio' to be implemented, then add it here as an option
     n_jobs : int | str
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
@@ -626,6 +643,10 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     if any(win_length < tstep for win_length in win_lengths):
         raise ValueError('Time step should not be larger than any of the '
                          'window lengths')
+    if mode not in ['ratio', 'wilcoxon']:
+        # XXX: Add 'logratio' option once implemented
+        raise ValueError('Unrecognized baseline_mode option, available '
+                         'choices are "ratio" and "wilcoxon"')
 
     # Extract raw object from the epochs object
     raw = epochs.raw
@@ -642,9 +663,17 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
     # Multiplying by 1e3 to avoid numerical issues, e.g. 0.3 // 0.05 == 5
     n_time_steps = int(((tmax - tmin) * 1e3) // (tstep * 1e3))
 
-    sol_final = []
-    for (l_freq, h_freq), win_length, noise_cov in \
-            zip(freq_bins, win_lengths, noise_covs):
+    if mode == 'wilcoxon':
+        # XXX: Maybe we should allow source power estimation on epochs and then
+        # average the results for other modes, like 'logratio'?
+        n_epochs = epochs.get_data().shape[0]
+    else:
+        n_epochs = 1
+    n_vert = len(label_src_vertno_sel(label, forward['src'])[0][0])
+
+    sol_final = np.zeros((len(freq_bins), n_time_steps, n_epochs, n_vert))
+    for i_freq, ((l_freq, h_freq), win_length, noise_cov) in \
+            enumerate(zip(freq_bins, win_lengths, noise_covs)):
         n_overlap = int((win_length * 1e3) // (tstep * 1e3))
 
         raw_band = raw.copy()
@@ -660,8 +689,9 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         if subtract_evoked:
             epochs_band.subtract_evoked()
 
-        sol_single = []
-        sol_overlap = []
+        sol_time_windows = np.zeros((n_time_steps, n_epochs, n_vert))
+        sol_smoothed = np.zeros((n_time_steps, n_epochs, n_vert))
+
         for i_time in range(n_time_steps):
             win_tmin = tmin + i_time * tstep
             win_tmax = win_tmin + win_length
@@ -692,28 +722,61 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                 data_cov = compute_covariance(epochs_band, tmin=win_tmin,
                                               tmax=win_tmax)
 
-                stc = _lcmv_source_power(epochs_band.info, forward, noise_cov,
-                                         data_cov, reg=reg, label=label,
-                                         pick_ori=pick_ori, verbose=verbose)
-                sol_single.append(stc.data[:, 0])
+                if mode == 'wilcoxon':
+                    # XXX: Crop and average epochs instead of stc? Maybe not,
+                    # would this require copying the epochs object every time?
+                    stcs = lcmv_epochs(epochs_band, forward, noise_cov,
+                                       data_cov, reg=reg, label=label,
+                                       pick_ori=pick_ori, verbose=verbose)
+                    for i_epoch, stc in enumerate(stcs):
+                        stc.crop(win_tmin, win_tmax)
+                        sol_time_windows[i_time, i_epoch] =\
+                            stc.mean().data[:, 0]
+                else:
+                    stc = _lcmv_source_power(epochs_band.info, forward,
+                                             noise_cov, data_cov, reg=reg,
+                                             label=label, pick_ori=pick_ori,
+                                             verbose=verbose)
+                    sol_time_windows[i_time, 0] = stc.data[:, 0]
 
             # Average over all time windows that contain the current time
             # point, which is the current time window along with
             # n_overlap - 1 previous ones
             if i_time - n_overlap < 0:
-                curr_sol = np.mean(sol_single[0:i_time + 1], axis=0)
+                sol_tf_bin = np.mean(sol_time_windows[0:i_time + 1], axis=0)
             else:
-                curr_sol = np.mean(sol_single[i_time - n_overlap + 1:
-                                              i_time + 1], axis=0)
+                sol_tf_bin = np.mean(sol_time_windows[i_time - n_overlap + 1:
+                                                      i_time + 1], axis=0)
 
             # The final result for the current time point in the current
-            # frequency bin
-            sol_overlap.append(curr_sol)
+            # frequency bin for all epochs and sources
+            sol_smoothed[i_time, :, :] = sol_tf_bin
 
         # Gathering solutions for all time points for current frequency bin
-        sol_final.append(sol_overlap)
+        sol_final[i_freq, :, :, :] = sol_smoothed
 
-    sol_final = np.array(sol_final)
+    if mode == 'wilcoxon':
+        z_scores = np.zeros((len(freq_bins), n_time_steps, n_vert))
+        for i_freq, i_time, i_vert in\
+                [(i_freq, i_time, i_vert) for i_freq in range(len(freq_bins))
+                 for i_time in range(n_time_steps)
+                 for i_vert in range(n_vert)]:
+            # XXX Baseline choice is hardcoded here
+            # XXX The wilcoxon test should be performed before smoothing
+            baseline_time = 5
+            if i_time != baseline_time:
+                (z_score, p_value) = wilcoxon(
+                    sol_final[i_freq, baseline_time, :, i_vert],
+                    sol_final[i_freq, i_time, :, i_vert], return_stat='z')
+            else:
+                # XXX hardcoded value for tf bin used as baseline
+                z_score = -1.0
+            z_scores[i_freq, i_time, i_vert] = z_score
+
+    if mode == 'wilcoxon':
+        sol_final = z_scores
+    else:
+        sol_final = np.squeeze(sol_final, 2)
 
     # Creating stc objects containing all time points for each frequency bin
     stcs = []
@@ -723,3 +786,128 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         stcs.append(stc)
 
     return stcs
+
+
+from numpy import asarray, compress, not_equal, sqrt, sum
+from scipy import stats
+from scipy.stats import distributions
+from scipy.stats import find_repeats
+
+
+# XXX: The below code is adopted from scipy.stats.wilcoxon because that version
+# does not return the desired z-score, instead returning the 'T' statistic (see
+# below). Ideally this change should be passed on to scipy (esp. since an issue
+# is open about this already) and placed at a more suitable location in
+# MNE-Python in the mean time?
+def wilcoxon(x, y=None, zero_method="wilcox", correction=False,
+             return_stat='T'):
+    """
+    Calculate the Wilcoxon signed-rank test.
+
+    The Wilcoxon signed-rank test tests the null hypothesis that two
+    related paired samples come from the same distribution. In particular,
+    it tests whether the distribution of the differences x - y is symmetric
+    about zero. It is a non-parametric version of the paired T-test.
+
+    Adopted from scipy.stats (morestats.py) to allow returning of z scores
+    instead of T.
+
+    Parameters
+    ----------
+    x : array_like
+        The first set of measurements.
+    y : array_like, optional
+        The second set of measurements.  If `y` is not given, then the `x`
+        array is considered to be the differences between the two sets of
+        measurements.
+    zero_method : string, {"pratt", "wilcox", "zsplit"}, optional
+        "pratt":
+            Pratt treatment: includes zero-differences in the ranking process
+            (more conservative)
+        "wilcox":
+            Wilcox treatment: discards all zero-differences
+        "zsplit":
+            Zero rank split: just like Pratt, but spliting the zero rank
+            between positive and negative ones
+    correction : bool, optional
+        If True, apply continuity correction by adjusting the Wilcoxon rank
+        statistic by 0.5 towards the mean value when computing the
+        z-statistic.  Default is False.
+    return_stat : string, {"T", "z"}, optional
+        Select which test statistic should be returned.
+
+    Returns
+    -------
+    test_stat : float
+        When return_stat is set to 'T' (default), the sum of the ranks of the
+        differences above or below zero, whichever is smaller, is returned.
+        When return_stat is set to 'z', the z score is returned.
+    p-value : float
+        The two-sided p-value for the test.
+
+    Notes
+    -----
+    Because the normal approximation is used for the calculations, the
+    samples used should be large.  A typical rule is to require that
+    n > 20.
+
+    References
+    ----------
+    .. [1] http://en.wikipedia.org/wiki/Wilcoxon_signed-rank_test
+
+    """
+
+    if zero_method not in ["wilcox", "pratt", "zsplit"]:
+        raise ValueError("Zero method should be either 'wilcox' \
+                          or 'pratt' or 'zsplit'")
+    if return_stat not in ["T", "z"]:
+        raise ValueError("Test statistic to be returned should be either 'T' \
+                          or 'z'")
+
+    if y is None:
+        d = x
+    else:
+        x, y = map(asarray, (x, y))
+        if len(x) != len(y):
+            raise ValueError('Unequal N in wilcoxon.  Aborting.')
+        d = x-y
+
+    if zero_method == "wilcox":
+        d = compress(not_equal(d, 0), d, axis=-1)  # Reject zero differences
+
+    count = len(d)
+    if (count < 10):
+        warnings.warn("Warning: sample size too small for normal \
+                       approximation.")
+    r = stats.rankdata(abs(d))
+    r_plus = sum((d > 0) * r, axis=0)
+    r_minus = sum((d < 0) * r, axis=0)
+
+    if zero_method == "zsplit":
+        r_zero = sum((d == 0) * r, axis=0)
+        r_plus += r_zero / 2.
+        r_minus += r_zero / 2.
+
+    T = min(r_plus, r_minus)
+    mn = count*(count + 1.) * 0.25
+    se = count*(count + 1.) * (2. * count + 1.)
+
+    if zero_method == "pratt":
+        r = r[d != 0]
+
+    replist, repnum = find_repeats(r)
+    if repnum.size != 0:
+        # Correction for repeated elements.
+        se -= 0.5 * (repnum * (repnum * repnum - 1)).sum()
+
+    se = sqrt(se / 24)
+    correction = 0.5 * int(bool(correction)) * np.sign(T - mn)
+    z = (T - mn - correction) / se
+    prob = 2. * distributions.norm.sf(abs(z))
+
+    if return_stat == 'T':
+        test_stat = T
+    elif return_stat == 'z':
+        test_stat = z
+
+    return test_stat, prob
