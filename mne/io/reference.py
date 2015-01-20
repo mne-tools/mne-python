@@ -174,7 +174,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                            'added. The data has been left untouched.')
             return inst, None
         else:
-            inst.add_proj(make_eeg_average_ref_proj(inst.info), activate=False)
+            inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
