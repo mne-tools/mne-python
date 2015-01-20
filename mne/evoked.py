@@ -17,7 +17,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash)
+                    object_hash, deprecated)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -751,7 +751,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def __add__(self, evoked):
         """Add evoked taking into account number of epochs"""
-        out = merge_evoked([self, evoked])
+        out = combine_evoked([self, evoked])
         out.comment = self.comment + " + " + evoked.comment
         return out
 
@@ -759,7 +759,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Add evoked taking into account number of epochs"""
         this_evoked = deepcopy(evoked)
         this_evoked.data *= -1.
-        out = merge_evoked([self, this_evoked])
+        out = combine_evoked([self, this_evoked])
         out.comment = self.comment + " - " + this_evoked.comment
         return out
 
@@ -982,13 +982,9 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
         all_evoked = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
                       else e for e in all_evoked]
 
-    # change and ignore the nave for all evoked datasets.
-    for e in all_evoked:
-        e.nave = 1
-
     equalize_channels(all_evoked)  # apply equalize_channels
-    # make grand_average object using merge_evoked
-    grand_average = merge_evoked(all_evoked)
+    # make grand_average object using combine_evoked
+    grand_average = combine_evoked(all_evoked, weights='equal')
     # change the grand_average.nave to the number of Evokeds
     grand_average.nave = len(all_evoked)
     # change comment field
@@ -996,6 +992,8 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     return grand_average
 
 
+@deprecated('merge_evoked is deprecated and will be removed in 0.10. Please '
+            'use combine_evoked instead')
 def merge_evoked(all_evoked):
     """Merge/concat evoked data
 
@@ -1004,14 +1002,49 @@ def merge_evoked(all_evoked):
     Parameters
     ----------
     all_evoked : list of Evoked
-        The evoked datasets
+        The evoked datasets.
 
     Returns
     -------
     evoked : Evoked
-        The merged evoked data
+        The merged evoked data.
     """
-    evoked = deepcopy(all_evoked[0])
+    return combine_evoked(all_evoked)
+
+
+def combine_evoked(all_evoked, weights='nave'):
+    """Merge evoked data by weighted addition
+
+    Data should have the same channels and the same time instants.
+    Subtraction can be performed by passing negative weights (e.g., [1, -1]).
+
+    Parameters
+    ----------
+    all_evoked : list of Evoked
+        The evoked datasets.
+    weights : list of float | str
+        The weights to apply to the data of each evoked instance.
+        Can also be ``'nave'`` to weight according to evoked.nave,
+        or ``"equal"`` to use equal weighting (each weighted as ``1/N``).
+
+    Returns
+    -------
+    evoked : Evoked
+        The new evoked data.
+    """
+    evoked = all_evoked[0].copy()
+    if isinstance(weights, string_types):
+        if weights not in ('nave', 'equal'):
+            raise ValueError('weights must be a list of float, or "nave" or '
+                             '"equal"')
+        if weights == 'nave':
+            weights = np.array([e.nave for e in all_evoked], float)
+            weights /= weights.sum()
+        else:  # == 'equal'
+            weights = [1. / len(all_evoked)] * len(all_evoked)
+    weights = np.array(weights, float)
+    if weights.ndim != 1 or weights.size != len(all_evoked):
+        raise ValueError('weights must be the same size as all_evoked')
 
     ch_names = evoked.ch_names
     for e in all_evoked[1:]:
@@ -1019,17 +1052,17 @@ def merge_evoked(all_evoked):
                                                   "the same channels"
                                                   % (evoked, e))
         assert np.max(np.abs(e.times - evoked.times)) < 1e-7, \
-            ValueError("%s and %s do not contain the same time "
-                       "instants" % (evoked, e))
+            ValueError("%s and %s do not contain the same time instants"
+                       % (evoked, e))
 
     # use union of bad channels
     bads = list(set(evoked.info['bads']).union(*(ev.info['bads']
                                                  for ev in all_evoked[1:])))
     evoked.info['bads'] = bads
 
-    all_nave = sum(e.nave for e in all_evoked)
-    evoked.data = sum(e.nave * e.data for e in all_evoked) / all_nave
-    evoked.nave = all_nave
+    evoked.data = sum(w * e.data for w, e in zip(weights, all_evoked))
+    evoked.nave = max(int(1. / sum(w ** 2 / e.nave
+                                   for w, e in zip(weights, all_evoked))), 1)
     return evoked
 
 

@@ -468,8 +468,8 @@ class _BaseSourceEstimate(object):
 
     @property
     def vertno(self):
-        warnings.warn("The .vertno attribute is deprecated and will be remove "
-                      "in version 0.11. Use .vertices instead",
+        warnings.warn("The .vertno attribute is deprecated and will be "
+                      "removed in version 0.10. Use .vertices instead",
                       category=DeprecationWarning)
         return self.vertices
 

@@ -61,6 +61,8 @@ Changelog
 
    - Enable TFR calculation on Evoked objects by `Eric Larson`_
 
+   - Add support for combining Evoked datasets with arbitrary weights (e.g., for oddball paradigms) by `Eric Larson`_ and `Alex Gramfort`_
+
 BUG
 ~~~
 
