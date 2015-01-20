@@ -109,8 +109,9 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
         ref_data = data[..., ref_from, :].mean(-2)
 
         if isinstance(inst, Epochs):
-            data[:, ref_to, :] -= np.tile(ref_data[:, np.newaxis, :],
-                                          (len(ref_to), 1))
+            data = data.transpose(1, 0, 2)
+            data[ref_to, :, :] -= ref_data
+            data = data.transpose(1, 0, 2)
         else:
             data[ref_to] -= ref_data
     else:
