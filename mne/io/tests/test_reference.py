@@ -3,8 +3,9 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import warnings
+import numpy as np
+import os.path as op
 
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
@@ -57,9 +58,7 @@ def _test_reference(raw, reref, ref_data, ref_from):
 
     # Undo rereferencing of EEG channels
     if isinstance(raw, Epochs):
-        unref_eeg_data = reref_eeg_data.transpose(1, 0, 2)
-        unref_eeg_data += ref_data
-        unref_eeg_data = unref_eeg_data.transpose(1, 0, 2)
+        unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
     else:
         unref_eeg_data = reref_eeg_data + ref_data
 
