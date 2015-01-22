@@ -3,8 +3,9 @@
 #
 # License: BSD (3-clause)
 
-import os.path as op
 import warnings
+import os.path as op
+import numpy as np
 
 from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_array_equal, assert_allclose
@@ -57,9 +58,7 @@ def _test_reference(raw, reref, ref_data, ref_from):
 
     # Undo rereferencing of EEG channels
     if isinstance(raw, Epochs):
-        unref_eeg_data = reref_eeg_data.transpose(1, 0, 2)
-        unref_eeg_data += ref_data
-        unref_eeg_data = unref_eeg_data.transpose(1, 0, 2)
+        unref_eeg_data = reref_eeg_data + ref_data[:, np.newaxis, :]
     else:
         unref_eeg_data = reref_eeg_data + ref_data
 
@@ -71,7 +70,7 @@ def _test_reference(raw, reref, ref_data, ref_from):
 @testing.requires_testing_data
 def test_apply_reference():
     """Test base function for rereferencing"""
-    raw = Raw(fif_fname, preload=True, add_eeg_ref=True)
+    raw = Raw(fif_fname, preload=True)
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = _apply_reference(raw, ref_from=['EEG 001', 'EEG 002'],
@@ -114,6 +113,13 @@ def test_apply_reference():
 def test_set_eeg_reference():
     """Test rereference eeg data"""
     raw = Raw(fif_fname, preload=True)
+    raw.info['projs'] = []
+
+    # Test setting an average reference
+    assert_true(not _has_eeg_average_ref_proj(raw.info['projs']))
+    reref, ref_data = set_eeg_reference(raw)
+    assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_true(ref_data is None)
 
     # Rereference raw data by creating a copy of original data
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'], copy=True)
@@ -124,6 +130,10 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw, ['EEG 001', 'EEG 002'],
                                         copy=False)
     assert_true(raw is reref)
+
+    # Setting an average reference on a dataset that already contains a custom
+    # reference should fail
+    assert_raises(RuntimeError, set_eeg_reference, reref)
 
 
 @testing.requires_testing_data

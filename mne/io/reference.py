@@ -109,8 +109,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
         ref_data = data[..., ref_from, :].mean(-2)
 
         if isinstance(inst, Epochs):
-            data[:, ref_to, :] -= np.tile(ref_data[:, np.newaxis, :],
-                                          (len(ref_to), 1))
+            data[:, ref_to, :] -= ref_data[:, np.newaxis, :]
         else:
             data[ref_to] -= ref_data
     else:
@@ -174,7 +173,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                            'added. The data has been left untouched.')
             return inst, None
         else:
-            inst.add_proj(make_eeg_average_ref_proj(inst.info), activate=False)
+            inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
             return inst, None
     else:
         logger.info('Applying a custom EEG reference.')
