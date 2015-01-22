@@ -1254,6 +1254,7 @@ def test_array_epochs():
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
 
+
 @requires_pandas
 def test_dataframe_time_indexing():
     """Test that dataframe conversion doesn't duplicate time indices"""
