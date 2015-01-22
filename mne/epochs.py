@@ -1418,8 +1418,8 @@ class Epochs(_BaseEpochs):
 
         mindex = list()
         mindex.append(('condition', np.repeat(names, shape[2])))
-        mindex.append(('time', np.tile(self.times, shape[0]) *
-                      scale_time))  # if 'epoch' in index:
+        mindex.append(('time', np.round(np.tile(self.times, shape[0]) *
+                      scale_time)))  # if 'epoch' in index:
         mindex.append(('epoch', np.repeat(np.arange(shape[0]),
                       shape[2])))
 

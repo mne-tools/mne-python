@@ -17,7 +17,7 @@ import warnings
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds)
+                 write_evokeds, find_events)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
                         add_channels_epochs, EpochsArray)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
@@ -1253,6 +1253,35 @@ def test_array_epochs():
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
+
+def test_dataframe_time_indexing():
+    '''Make sure that conversion to dataframe
+    doesn't duplicate time indices due to rounding
+    error + floating point precision'''
+    # Synthesize data
+    data = np.random.randn(2, 10000)
+    data_event = np.zeros(data.shape[1])
+    data_event[[2, 2000]] = 1  # Insert some events
+    data_raw = np.vstack([data, data_event])
+
+    # For the Info object
+    ch_types = ['eeg']*data_raw.shape[0]
+    ch_names = ['{0}'.format(i) for i in range(data_raw.shape[0])]
+    ch_names[-1] = 'stim'
+    ch_types[-1] = 'misc'
+
+
+    # Create base MNE objects
+    info = create_info(ch_names, 1000, ch_types=ch_types)
+    raw = io.RawArray(data_raw, info)
+    events = find_events(raw, 'stim')
+    epochs = Epochs(raw, events, 1, -.2, 1.5)
+
+    # Convert to dataframe
+    epochs_df = epochs.as_data_frame()
+    epochs_times = epochs_df.index.get_level_values('time')
+
+    assert epochs_times.duplicated().values.sum() == 0, 'Conversion to DataFrame duplicated timepoints'
 
 
 run_tests_if_main()
