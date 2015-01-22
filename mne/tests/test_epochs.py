@@ -1256,32 +1256,26 @@ def test_array_epochs():
 
 
 def test_dataframe_time_indexing():
-    '''Make sure that conversion to dataframe
-    doesn't duplicate time indices due to rounding
-    error + floating point precision'''
+    """Test that dataframe conversion doesn't duplicate time indices"""
     # Synthesize data
     data = np.random.randn(2, 10000)
-    data_event = np.zeros(data.shape[1])
-    data_event[[2, 2000]] = 1  # Insert some events
-    data_raw = np.vstack([data, data_event])
+    events = np.array([[2, 0, 1],
+                       [2000, 0, 1]])
 
     # For the Info object
-    ch_types = ['eeg']*data_raw.shape[0]
-    ch_names = ['{0}'.format(i) for i in range(data_raw.shape[0])]
-    ch_names[-1] = 'stim'
-    ch_types[-1] = 'misc'
+    ch_types = ['eeg'] * data.shape[0]
+    ch_names = ['{0}'.format(i) for i in range(data.shape[0])]
 
     # Create base MNE objects
     info = create_info(ch_names, 1000, ch_types=ch_types)
-    raw = io.RawArray(data_raw, info)
-    events = find_events(raw, 'stim')
+    raw = io.RawArray(data, info)
     epochs = Epochs(raw, events, 1, -.2, 1.5)
 
     # Convert to dataframe
     epochs_df = epochs.as_data_frame()
     epochs_times = epochs_df.index.get_level_values('time')
 
-    assert epochs_times.duplicated().values.sum() == 0, 'Conversion to DataFrame duplicated timepoints'
+    assert_equal(epochs_times.duplicated().values.sum(), 0)
 
 
 run_tests_if_main()
