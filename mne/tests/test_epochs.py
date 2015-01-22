@@ -1254,6 +1254,7 @@ def test_array_epochs():
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
 
+
 def test_dataframe_time_indexing():
     '''Make sure that conversion to dataframe
     doesn't duplicate time indices due to rounding
@@ -1269,7 +1270,6 @@ def test_dataframe_time_indexing():
     ch_names = ['{0}'.format(i) for i in range(data_raw.shape[0])]
     ch_names[-1] = 'stim'
     ch_types[-1] = 'misc'
-
 
     # Create base MNE objects
     info = create_info(ch_names, 1000, ch_types=ch_types)
