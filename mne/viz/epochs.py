@@ -450,10 +450,10 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
-              ax=None, window_size=256, n_overlap=1, area_mode='std',
-              area_alpha=0.33, color='black', proj=False, n_jobs=1,
-              verbose=None):
+def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
+                    window_size=256, n_overlap=128, picks=None, ax=None,
+                    color='black', area_mode='std', area_alpha=0.33,
+                    n_jobs=1, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -464,17 +464,21 @@ def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
         Start frequency to consider.
     fmax : float
         End frequency to consider.
+    proj : bool
+        Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    picks : array-like of int | None
-        List of channels to use.
-    ax : instance of matplotlib Axes | None
-        Axes to plot into. If None, axes will be created.
     window_size : int, optional
         Length of each window.
     n_overlap : int
         The number of points of overlap between blocks. The default value
-        is 0 (no overlap).
+        is 128 (window_size // 2).
+    picks : array-like of int | None
+        List of channels to use.
+    ax : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
+    color : str | tuple
+        A matplotlib-compatible color to use.
     area_mode : str | None
         Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
         will be plotted. If 'range', the min and max (across channels) will be
@@ -482,8 +486,6 @@ def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
-    proj : bool
-        Apply projection.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -502,7 +504,7 @@ def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
         picks_list = list()
         titles_list = list()
         for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(self.info, meg=meg, eeg=eeg, ref_meg=False)
+            picks = pick_types(epochs.info, meg=meg, eeg=eeg, ref_meg=False)
             if len(picks) > 0:
                 picks_list.append(picks)
                 titles_list.append(name)
@@ -531,7 +533,7 @@ def plot_psds(self, fmin=0, fmax=np.inf, n_fft=2048, picks=None,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(self, fmin=fmin, fmax=fmax,
+        psds, freqs = compute_epochs_psd(epochs, fmin=fmin, fmax=fmax,
                                          n_fft=n_fft, picks=picks,
                                          window_size=window_size,
                                          n_overlap=n_overlap, proj=False,
