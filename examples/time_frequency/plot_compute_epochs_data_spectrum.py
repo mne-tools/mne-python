@@ -14,11 +14,12 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io, read_selection
 from mne.time_frequency.psd import compute_epochs_psd
-from mne.datasets import somato
+# from mne.datasets import somato
 
 ###############################################################################
 # Load real somatosensory sample data.
-data_path = somato.data_path()
+# data_path = somato.data_path()
+data_path = '/home/ybekhti/work/src/mne-python/examples/MNE-somato-data'
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 event_id, tmin, tmax = 1, -1., 3.
 
@@ -40,7 +41,7 @@ epochs.plot_psds(area_mode='range')
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
-                        stim=False, exclude='bads', selection=selection)
+                       stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]
