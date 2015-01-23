@@ -532,11 +532,15 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
     use_balltree : bool
         Use fast BallTree based search from scikit-learn. If scikit-learn
         is not installed it will fall back to the slow brute force search.
+    return_dists : bool
+        If True, return associated distances.
 
     Returns
     -------
     nearest : array, shape=(n_query,)
         Index of nearest neighbor in xhs for every point in rr.
+    distances : array, shape=(n_query,)
+        The distances. Only returned if return_dists is True.
     """
     if use_balltree:
         try:
@@ -546,6 +550,10 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
                         'faster if scikit-learn is installed.')
             use_balltree = False
 
+    if xhs.size == 0 or rr.size == 0:
+        if return_dists:
+            return np.array([], int), np.array([])
+        return np.array([], int)
     if use_balltree is True:
         ball_tree = BallTree(xhs)
         if return_dists:

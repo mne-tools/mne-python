@@ -372,7 +372,8 @@ def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
     if len(a.vertices) == len(b.vertices):
-        if all([np.array_equal(av, vv) for av, vv in zip(a.vertices, b.vertices)]):
+        if all([np.array_equal(av, vv)
+                for av, vv in zip(a.vertices, b.vertices)]):
             compat = True
     if not compat:
         raise ValueError('Cannot combine SourceEstimates that do not have the '
@@ -1143,10 +1144,10 @@ class SourceEstimate(_BaseSourceEstimate):
             values = np.vstack((lh_val, rh_val))
         elif label.hemi == 'lh':
             lh_vert, values = self._hemilabel_stc(label)
-            vertices = [lh_vert, np.array([])]
+            vertices = [lh_vert, np.array([], int)]
         elif label.hemi == 'rh':
             rh_vert, values = self._hemilabel_stc(label)
-            vertices = [np.array([]), rh_vert]
+            vertices = [np.array([], int), rh_vert]
         else:
             raise TypeError("Expected  Label or BiHemiLabel; got %r" % label)
 
@@ -1177,7 +1178,8 @@ class SourceEstimate(_BaseSourceEstimate):
         if not isinstance(vertices, list):
             raise TypeError('vertices must be a list')
         if not len(self.vertices) == len(vertices):
-            raise ValueError('vertices must have the same length as stc.vertices')
+            raise ValueError('vertices must have the same length as '
+                             'stc.vertices')
 
         # can no longer use kernel and sensor data
         self._remove_kernel_sens_data_()
@@ -2097,7 +2099,7 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
             stc_morph.vertices[k] = vertno_k[order]
             cnt += n_active_hemi
         else:
-            stc_morph.vertices[k] = np.array([], dtype=np.int64)
+            stc_morph.vertices[k] = np.array([], int)
 
     return stc_morph
 
@@ -2180,13 +2182,13 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
     if data_morphed[0] is None:
         if data_morphed[1] is None:
             data = np.r_[[], []]
-            vertices = [np.array([], dtype=int), np.array([], dtype=int)]
+            vertices = [np.array([], int), np.array([], int)]
         else:
             data = data_morphed[1]
-            vertices = [np.array([], dtype=int), vertices[1]]
+            vertices = [np.array([], int), vertices[1]]
     elif data_morphed[1] is None:
         data = data_morphed[0]
-        vertices = [vertices[0], np.array([], dtype=int)]
+        vertices = [vertices[0], np.array([], int)]
     else:
         data = np.r_[data_morphed[0], data_morphed[1]]
 
@@ -2783,9 +2785,9 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
 
     # loop through source estimates and extract time series
     for stc in stcs:
-
         # make sure the stc is compatible with the source space
-        if len(stc.vertices[0]) != nvert[0] or len(stc.vertices[1]) != nvert[1]:
+        if len(stc.vertices[0]) != nvert[0] or \
+                len(stc.vertices[1]) != nvert[1]:
             raise ValueError('stc not compatible with source space')
         if any([np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)]):
             raise ValueError('stc not compatible with source space')
