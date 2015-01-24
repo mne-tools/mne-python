@@ -202,13 +202,13 @@ class RawEDF(_BaseRaw):
             buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
-            datas = np.zeros((n_chan, buffer_size), dtype=float)
+            datas = np.empty((n_chan, buffer_size), dtype=float)
             blocks = int(ceil(float(buffer_size) / sfreq))
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
             # bdf data: 24bit data
             if subtype == '24BIT' or subtype == 'bdf':
-                # sixteen bit trigger
+                # sixteen bit trigger mask based on bdf2biosig_events from BIOSIG
                 mask = 2 ** 15 - 1
                 # loop over 10s increment to not tax the memory
                 buffer_step = int(sfreq * 10)
@@ -218,23 +218,52 @@ class RawEDF(_BaseRaw):
                         step = block
                     samp = int(step * n_chan * data_size)
                     blocks = int(ceil(float(step) / sfreq))
-                    data = np.fromfile(fid, dtype=np.uint8, count=samp)
-                    data = data.reshape(-1, 3).astype(np.int32)
-                    # this converts to 24-bit little endian integer
-                    # # no support in numpy
-                    data = (data[:, 0] + (data[:, 1] << 8) +
-                            (data[:, 2] << 16))
-                    # 24th bit determines the sign
-                    data[data >= (1 << 23)] -= (1 << 24)
-
-                    data = data.reshape((int(sfreq), n_chan, blocks),
-                                        order='F')
                     for i in range(blocks):
-                        start_pt = int((sfreq * i) + (k * buffer_step))
-                        stop_pt = int(start_pt + sfreq)
-                        datas[:, start_pt:stop_pt] = data[:, :, i].T
+                        # complicated bdf: various sampling rates within file
+                        if 'n_samps' in self._edf_info:
+                            data = np.empty((n_chan, sfreq), dtype=int)
+                            for j, samp in enumerate(n_samps):
+                                chan_data = np.fromfile(fid, dtype=np.uint8,
+                                                        count=samp*data_size)
+                                chan_data = (chan_data[0::3] +
+                                             chan_data[1::3] << 8 +
+                                             chan_data[2::3] << 16)
+                                if j == stim_channel and samp < sfreq:
+                                    warnings.warn('Interpolating stim channel. '
+                                                  'Events may jitter.')
+                                    oldrange = np.linspace(0, 1, samp + 1,
+                                                           True)
+                                    newrange = np.linspace(0, 1, sfreq, False)
+                                    chan_data = interp1d(oldrange,
+                                                         np.append(chan_data, 0),
+                                                         kind='zero')(newrange)
+                                elif samp != sfreq:
+                                    mult = sfreq / samp
+                                    chan_data = resample(x=chan_data, up=mult,
+                                                         down=1, npad=0)
+                                data[j] = chan_data
+                            start_pt = int((sfreq * i) + (k * buffer_step))
+                            stop_pt = int(start_pt + sfreq)
+                            datas[:, start_pt:stop_pt] = data
+                        else:
+                            # simple bdf                    
+                            data = np.fromfile(fid, dtype=np.uint8, count=samp)
+                            data = data.reshape(-1, 3).astype(np.int32)
+                            # this converts to 24-bit little endian integer
+                            # # no support in numpy
+                            data = (data[:, 0] + (data[:, 1] << 8) +
+                                    (data[:, 2] << 16))
+                            # 24th bit determines the sign
+                            data[data >= (1 << 23)] -= (1 << 24)
+
+                            data = data.reshape((int(sfreq), n_chan, blocks),
+                                                order='F')
+                            for i in range(blocks):
+                                start_pt = int((sfreq * i) + (k * buffer_step))
+                                stop_pt = int(start_pt + sfreq)
+                                datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
-                # eight bit trigger
+                # eight bit trigger mask
                 mask = 2 ** 8 - 1
                 # complicated edf: various sampling rates within file
                 if 'n_samps' in self._edf_info:
