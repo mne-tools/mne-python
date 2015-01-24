@@ -355,10 +355,10 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
-                          smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+                          smoothing_steps=10, fmin=None, fmid=None, fmax=None,
                           transparent=True, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True):
+                          views='lat', colorbar=True, limits=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -416,6 +416,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
+    limits : str | 3-tuple | dict
+        Colorbar limits specification (if colormap='mne_analyze'). If 'auto',
+        set limits automatically based on quartiles of data. If 3-tuple, set
+        limits manually. If dict, set quartiles and whether the colormap is
+        one- or two-sided.
 
     Returns
     -------
@@ -465,6 +470,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
+    # Check for flims and deprecation error
+    if any(f is None for f in [fmin, fmid, fmax]):
+        limits = (fmin, fmid, fmax)
+        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
+                      'removed in v0.10. Use "limits" instead.',
+                      DeprecationWarning)
+
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
     subject = _check_subject(stc.subject, subject, False)
@@ -488,6 +500,21 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         logger.info('PySurfer does not support "views" argument, please '
                     'consider updating to a newer version (0.4 or later)')
+    if colormap == 'mne_analyze':
+        if limits is None:
+            raise ValueError('"limits" must be defined to use mne_analyze'
+                             ' colormap')
+        elif limits == 'auto':
+            ctrl_pts = np.percentile(stc.data, [80, 90, 99])
+            colormap = mne_analyze_colormap(ctrl_pts)
+        elif type(limits) is tuple:
+            ctrl_pts = limits
+            colormap = mne_analyze_colormap(limits)
+        elif type(limits) is dict:
+            if limits['one-sided'] is False:
+                ctrl_pts = np.percentile(stc.data, limits['bounds'])
+                colormap = mne_analyze_colormap(ctrl_pts)
+
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:
@@ -505,8 +532,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                                  transparent=transparent)
+        brain.scale_data_colormap(fmin=ctrl_pts[0], fmid=ctrl_pts[1],
+                                  fmax=ctrl_pts[2], transparent=transparent)
 
     if time_viewer:
         TimeViewer(brain)
