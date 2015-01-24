@@ -143,7 +143,7 @@ feature_weights -= feature_weights.mean(axis=1)[:, None]
 # unmask, take absolute values, emulate f-value scale
 feature_weights = np.abs(feature_weights.data) * 10
 
-vertices = [stc.lh_vertno, np.array([])]  # empty array for right hemisphere
+vertices = [stc.lh_vertno, np.array([], int)]  # empty array for right hemi
 stc_feat = mne.SourceEstimate(feature_weights, vertices=vertices,
                               tmin=stc.tmin, tstep=stc.tstep,
                               subject='sample')

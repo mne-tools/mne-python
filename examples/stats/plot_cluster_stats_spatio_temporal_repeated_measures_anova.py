@@ -75,7 +75,7 @@ inverse_operator = read_inverse_operator(fname_inv)
 
 # we'll only use one hemisphere to speed up this example
 # instead of a second vertex array we'll pass an empty array
-sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([])]
+sample_vertices = [inverse_operator['src'][0]['vertno'], np.array([], int)]
 
 #    Let's average and compute inverse, then resample to speed things up
 conditions = []
@@ -115,7 +115,7 @@ for ii, condition in enumerate(conditions):
 #    each subject's data separately (and you might want to use morph_data
 #    instead), but here since all estimates are on 'sample' we can use one
 #    morph matrix for all the heavy lifting.
-fsave_vertices = [np.arange(10242), np.array([])]  # right hemisphere is empty
+fsave_vertices = [np.arange(10242), np.array([], int)]  # right hemi is empty
 morph_mat = compute_morph_matrix('sample', 'fsaverage', sample_vertices,
                                  fsave_vertices, 20, subjects_dir)
 n_vertices_fsave = morph_mat.shape[0]

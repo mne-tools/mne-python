@@ -536,13 +536,13 @@ class Label(object):
                              'something like label.values.fill(1.0).')
         if(isinstance(grade, np.ndarray)):
             if self.hemi == 'lh':
-                grade = [grade, np.array([])]
+                grade = [grade, np.array([], int)]
             else:
-                grade = [np.array([]), grade]
+                grade = [np.array([], int), grade]
         if self.hemi == 'lh':
-            vertices = [self.vertices, np.array([])]
+            vertices = [self.vertices, np.array([], int)]
         else:
-            vertices = [np.array([]), self.vertices]
+            vertices = [np.array([], int), self.vertices]
         data = self.values[:, np.newaxis]
         stc = SourceEstimate(data, vertices, tmin=1, tstep=1,
                              subject=subject_from)
@@ -1049,12 +1049,12 @@ def label_sign_flip(label, src):
     if label.hemi == 'lh':
         vertno_sel = np.intersect1d(lh_vertno, label.vertices)
         if len(vertno_sel) == 0:
-            return np.array([])
+            return np.array([], int)
         ori = src[0]['nn'][vertno_sel]
     elif label.hemi == 'rh':
         vertno_sel = np.intersect1d(rh_vertno, label.vertices)
         if len(vertno_sel) == 0:
-            return np.array([])
+            return np.array([], int)
         ori = src[1]['nn'][vertno_sel]
     else:
         raise Exception("Unknown hemisphere type")

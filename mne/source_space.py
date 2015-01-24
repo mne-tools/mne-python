@@ -844,11 +844,11 @@ def label_src_vertno_sel(label, src):
         vertno_sel = np.intersect1d(vertno[0], label.vertices)
         src_sel = np.searchsorted(vertno[0], vertno_sel)
         vertno[0] = vertno_sel
-        vertno[1] = np.array([])
+        vertno[1] = np.array([], int)
     elif label.hemi == 'rh':
         vertno_sel = np.intersect1d(vertno[1], label.vertices)
         src_sel = np.searchsorted(vertno[1], vertno_sel) + len(vertno[0])
-        vertno[0] = np.array([])
+        vertno[0] = np.array([], int)
         vertno[1] = vertno_sel
     elif label.hemi == 'both':
         vertno_sel_lh = np.intersect1d(vertno[0], label.lh.vertices)

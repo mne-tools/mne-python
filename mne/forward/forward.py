@@ -1259,7 +1259,7 @@ def restrict_forward_to_stc(fwd, stc):
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
         fwd_out['src'][i]['inuse'].fill(0)
         fwd_out['src'][i]['inuse'][stc.vertices[i]] = 1
-        fwd_out['src'][i]['use_tris'] = np.array([])
+        fwd_out['src'][i]['use_tris'] = np.array([], int)
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
     return fwd_out
@@ -1292,11 +1292,11 @@ def restrict_forward_to_label(fwd, labels):
     fwd_out['sol']['ncol'] = 0
 
     for i in range(2):
-        fwd_out['src'][i]['vertno'] = np.array([])
+        fwd_out['src'][i]['vertno'] = np.array([], int)
         fwd_out['src'][i]['nuse'] = 0
         fwd_out['src'][i]['inuse'] = fwd['src'][i]['inuse'].copy()
         fwd_out['src'][i]['inuse'].fill(0)
-        fwd_out['src'][i]['use_tris'] = np.array([])
+        fwd_out['src'][i]['use_tris'] = np.array([], int)
         fwd_out['src'][i]['nuse_tri'] = np.array([0])
 
     for label in labels:

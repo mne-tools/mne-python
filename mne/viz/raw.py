@@ -176,9 +176,8 @@ def _plot_raw_onkey(event, params):
     """Interpret key presses"""
     import matplotlib.pyplot as plt
     # check for initial plot
-    plot_fun = params['plot_fun']
     if event is None:
-        plot_fun()
+        params['plot_fun']()
         return
 
     # quit event
@@ -205,17 +204,32 @@ def _plot_raw_onkey(event, params):
         return
 
     # deal with plotting changes
-    if ch_changed is True:
-        if params['ch_start'] >= len(params['info']['ch_names']):
-            params['ch_start'] = 0
-        elif params['ch_start'] < 0:
-            # wrap to end
-            rem = len(params['info']['ch_names']) % params['n_channels']
-            params['ch_start'] = len(params['info']['ch_names'])
-            params['ch_start'] -= rem if rem != 0 else params['n_channels']
-
     if ch_changed:
-        plot_fun()
+        _channels_changed(params)
+
+
+def _channels_changed(params):
+    if params['ch_start'] >= len(params['info']['ch_names']):
+        params['ch_start'] = 0
+    elif params['ch_start'] < 0:
+        # wrap to end
+        rem = len(params['info']['ch_names']) % params['n_channels']
+        params['ch_start'] = len(params['info']['ch_names'])
+        params['ch_start'] -= rem if rem != 0 else params['n_channels']
+    params['plot_fun']()
+
+
+def _plot_raw_onscroll(event, params):
+    """Interpret scroll events"""
+    orig_start = params['ch_start']
+    if event.step < 0:
+        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
+                                 len(params['info']['ch_names']) -
+                                 params['n_channels'])
+    else:  # event.key == 'up':
+        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
+    if orig_start != params['ch_start']:
+        _channels_changed(params)
 
 
 def _plot_traces(params, inds, color, bad_color, lines, event_lines,
@@ -550,6 +564,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     opt_button.on_clicked(callback_option)
     callback_key = partial(_plot_raw_onkey, params=params)
     fig.canvas.mpl_connect('key_press_event', callback_key)
+    callback_scroll = partial(_plot_raw_onscroll, params=params)
+    fig.canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     fig.canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_resize, params=params)
