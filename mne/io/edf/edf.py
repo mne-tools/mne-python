@@ -176,6 +176,7 @@ class RawEDF(_BaseRaw):
         tal_channel = self._edf_info['tal_channel']
         annot = self._edf_info['annot']
         annotmap = self._edf_info['annotmap']
+        subtype = self._edf_info['subtype']
 
         # this is used to deal with indexing in the middle of a sampling period
         blockstart = int(floor(float(start) / sfreq) * sfreq)
@@ -206,7 +207,9 @@ class RawEDF(_BaseRaw):
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
             # bdf data: 24bit data
-            if self._edf_info['subtype'] == '24BIT':
+            if subtype == '24BIT' or subtype == 'bdf':
+                # sixteen bit trigger
+                mask = 2 ** 15 - 1
                 # loop over 10s increment to not tax the memory
                 buffer_step = int(sfreq * 10)
                 for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
@@ -231,6 +234,8 @@ class RawEDF(_BaseRaw):
                         stop_pt = int(start_pt + sfreq)
                         datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
+                # eight bit trigger
+                mask = 2 ** 8 - 1
                 # complicated edf: various sampling rates within file
                 if 'n_samps' in self._edf_info:
                     data = []
@@ -305,7 +310,7 @@ class RawEDF(_BaseRaw):
                     datas[stim_channel][n_start:n_stop] = evid
             else:
                 stim = np.array(datas[stim_channel], int)
-                mask = 255 * np.ones(stim.shape, int)
+                mask = mask * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
                 datas[stim_channel] = stim
         datastart = start - blockstart
@@ -437,7 +442,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
         edf_info['data_offset'] = header_nbytes = int(fid.read(8).decode())
         subtype = fid.read(44).strip().decode()[:5]
-        edf_info['subtype'] = subtype
+        if len(subtype) > 0:
+            edf_info['subtype'] = subtype
+        else:
+            edf_info['subtype'] = os.path.splitext(fname)[1][1:].lower()
 
         edf_info['n_records'] = n_records = int(fid.read(8).decode())
         # record length in seconds
@@ -496,12 +504,12 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                                   ' Lowest filter setting will be stored.'))
         # number of samples per record
         n_samps = np.array([int(fid.read(8).decode()) for _ in channels])
-        if np.unique(n_samps).size != 1:
+        if np.unique(n_samps).size != 1 or record_length != 1:
             edf_info['n_samps'] = n_samps
-            if not preload:
-                raise RuntimeError('%s' % ('Channels contain different'
-                                           'sampling rates. '
-                                           'Must set preload=True'))
+        if np.unique(n_samps).size != 1 and not preload:
+            raise RuntimeError('%s' % ('Channels contain different'
+                                       'sampling rates. '
+                                       'Must set preload=True'))
 
         fid.read(32 * info['nchan']).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -513,7 +521,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['description'] = None
     info['buffer_size_sec'] = 10.
 
-    if edf_info['subtype'] == '24BIT':
+    if edf_info['subtype'] == '24BIT' or edf_info['subtype'] == 'bdf':
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
