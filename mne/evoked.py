@@ -34,6 +34,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
+from .io.base import ToDataFrameMixin
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -42,7 +43,8 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin):
+             SetChannelsMixin, InterpolationMixin, FilterMixin,
+             ToDataFrameMixin):
     """Evoked data
 
     Parameters
