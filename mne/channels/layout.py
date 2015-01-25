@@ -25,6 +25,7 @@ from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
                           _cartesian_to_sphere, apply_trans,
                           get_ras_to_neuromag_trans)
+from matplotlib.pyplot import imread
 
 
 class Layout(object):
@@ -981,3 +982,75 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
+
+
+def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
+                       ch_indices=None, name='ecog', bg_image=None):
+    '''Generates a 2-D layout for plotting with plot_topo methods and
+    functions. XY points will be normalized between 0 and 1, where
+    normalization extremes will be either the min/max of xy, or
+    the width/height of bg_image.
+
+    Parameters
+    -------
+    xy : ndarray (N x 2) | 'interactive'
+        The xy coordinates of sensor locations. If 'interactive',
+        bg_image must not be None, as this will be displayed
+        and the user must click on positions of the image to
+        create xy values.
+
+    w, h : float
+        The width and height of each sensor's axis (between 0 and 1)
+
+    bg_image : str | ndarray
+        The image over which sensor axes will be plotted. Either a path to an
+        image file, or an array that can be plotted with plt.imshow. If
+        provided, xy points will be normalized by the width/height of this
+        image. If not, xy points will be normalized by their own min/max.
+
+
+    Returns
+    --------
+    layout : Layout
+        A Layout object that can be plotted with plot_topo
+        functions and methods.
+    '''
+    # Check that len(ch_names) == len(ch_indices) if not None
+    # Check that len(ch_names) == len(xy) if not None
+
+    xy = xy.copy().astype(float)
+    if ch_indices is None:
+        ch_indices = np.arange(xy.shape[0])
+    if ch_names is None:
+        ch_names = ['{0}'.format(i) for i in ch_indices]
+
+    # To interactively pull xy values
+    if xy == 'interactive' and bg_image is not None:
+        # Pull xy coordinates interactively
+        # Can add this later but the function should work with pre-suppleid
+        # xy points first
+        pass
+    else:
+        # Raise an error that we need an image to do interactive stuff
+        pass
+
+    # Normalize xy to 0-1
+    if bg_image is not None:
+        # Normalize by image dimensions
+        if isinstance(bg_image, str):
+            img = imread(bg_image)
+        xy /= img.shape[:2]
+    else:
+        # Normalize x and y by their maxes
+        xy -= xy.min(0)  # Separate out into x and y
+        xy /= (xy.max(0) - xy.min(0))
+    x, y = xy.T
+    y = 1-y  # Flip y-axis
+
+    # Create box and pos variable
+    box = (0-pad, 1+pad, 0-pad, 1+pad)
+    w, h = [np.array(i * x.shape[0]) for i in [[w], [h]]]
+    loc_params = np.vstack([x, y, w, h]).T
+
+    layout = Layout(box, loc_params, ch_names, ch_indices, name)
+    return layout
