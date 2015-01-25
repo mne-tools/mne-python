@@ -1830,3 +1830,108 @@ def _check_update_montage(info, montage):
                        "because they are EOG channels use the eog parameter."
                        % str(missing_positions))
                 raise KeyError(err)
+
+
+class ToDataFrameMixin(object):
+    '''Class to add to_dataframe capabilities to certain classes.'''
+    def to_data_frame(self, picks=None, index=None, scale_time=1e3,
+                      scalings=None, copy=True):
+        """Get the epochs as Pandas DataFrame
+
+        Export epochs data in tabular structure with MEG channels as columns
+        and three additional info columns 'epoch', 'condition', and 'time'.
+        The format matches a long table format commonly used to represent
+        repeated measures in within-subject designs.
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
+        index : tuple of str | None
+            Column to be used as index for the data. Valid string options
+            are 'epoch', 'time' and 'condition'. If None, all three info
+            columns will be included in the table as categorial data.
+        scale_time : float
+            Scaling to be applied to time units.
+        scalings : dict | None
+            Scaling to be applied to the channels picked. If None, defaults to
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
+
+        Returns
+        -------
+        df : instance of pandas.core.DataFrame
+            Epochs exported into tabular data structure.
+        """
+        from ..epochs import Epochs, EpochsArray
+
+        pd = _check_pandas_installed()
+
+        ####### ADDITION #######
+        if isinstance(self, (Epochs, EpochsArray)):
+            default_index = ['condition', 'epoch', 'time']
+        else:
+            default_index = ['condition', 'time']
+
+        if index is not None:
+            _check_pandas_index_arguments(index, default_index)
+        else:
+            index = default_index
+
+        if picks is None:
+            picks = list(range(self.info['nchan']))
+        else:
+            if not in1d(picks, np.arange(len(self.events))).all():
+                raise ValueError('At least one picked channel is not present '
+                                 'in this epochs instance.')
+
+        data = self.get_data()[:, picks, :]
+        shape = data.shape
+        data = np.hstack(data).T
+        if copy:
+            data = data.copy()
+
+        types = [channel_type(self.info, idx) for idx in picks]
+        n_channel_types = 0
+        ch_types_used = []
+
+        scalings = _mutable_defaults(('scalings', scalings))[0]
+        for t in scalings.keys():
+            if t in types:
+                n_channel_types += 1
+                ch_types_used.append(t)
+
+        for t in ch_types_used:
+            scaling = scalings[t]
+            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+            if len(idx) > 0:
+                data[:, idx] *= scaling
+
+        id_swapped = dict((v, k) for k, v in self.event_id.items())
+        names = [id_swapped[k] for k in self.events[:, 2]]
+
+        # Assume all objects have time and condition index
+        mindex = list()
+        mindex.append(('time', np.round(np.tile(self.times, shape[0]) *
+                      scale_time)))
+        mindex.append(('condition', np.repeat(names, shape[2])))
+
+        # Switch for object-specific indices
+        if isinstance(self, (Epochs, EpochsArray)):
+            mindex.append(('epoch', np.repeat(np.arange(shape[0]),
+                          shape[2])))
+
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+        col_names = [self.ch_names[k] for k in picks]
+
+        df = pd.DataFrame(data, columns=col_names)
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
+        if index is not None:
+            with warnings.catch_warnings(record=True):
+                if 'time' in index:
+                    df['time'] = df['time'].astype(np.int64)
+                df.set_index(index, inplace=True)
+
+        return df
