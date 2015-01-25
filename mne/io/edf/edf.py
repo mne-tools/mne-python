@@ -602,7 +602,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
     info['sfreq'] = n_samps[picks].max() / float(record_length)
-    edf_info['nsamples'] = int(n_records * info['sfreq'])
+    edf_info['nsamples'] = int(n_records * info['sfreq'] * record_length)
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
