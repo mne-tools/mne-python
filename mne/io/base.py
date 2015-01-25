@@ -35,6 +35,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
+                     _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
