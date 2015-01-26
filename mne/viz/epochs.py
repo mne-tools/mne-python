@@ -451,8 +451,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
-                    window_size=256, n_overlap=128, picks=None, ax=None,
-                    color='black', area_mode='std', area_alpha=0.33,
+                    picks=None, ax=None, color='black', area_mode='std',
+                    area_alpha=0.33, window_size=256, n_overlap=128,
                     n_jobs=1, verbose=None):
     """Plot the power spectral density across epochs
 
@@ -468,11 +468,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    window_size : int, optional
-        Length of each window.
-    n_overlap : int
-        The number of points of overlap between blocks. The default value
-        is 128 (window_size // 2).
     picks : array-like of int | None
         List of channels to use.
     ax : instance of matplotlib Axes | None
@@ -486,6 +481,11 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
+    window_size : int, optional
+        Length of each window.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 128 (window_size // 2).
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -534,13 +534,12 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
         psds, freqs = compute_epochs_psd(epochs, fmin=fmin, fmax=fmax,
-                                         n_fft=n_fft, picks=picks,
+                                         proj=proj, n_fft=n_fft, picks=picks,
                                          window_size=window_size,
-                                         n_overlap=n_overlap, proj=False,
-                                         n_jobs=n_jobs)
+                                         n_overlap=n_overlap, n_jobs=n_jobs)
 
         # Convert PSDs to dB
-        psds = 10 * np.log10(psds)
+        psds = 20 * np.log10(psds)
         # mean across epochs and channels
         psd_mean = np.mean(psds, axis=0).mean(axis=0)
         if area_mode == 'std':
