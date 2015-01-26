@@ -4,8 +4,7 @@ Compute the power spectral density of epochs data
 ==================================================
 
 This script shows how to compute the power spectral density (PSD)
-of measurements on a epochs dataset. It also show the effect of applying SSP
-to the data to reduce ECG and EOG artifacts.
+of measurements on a epochs dataset.
 """
 
 import numpy as np
@@ -14,12 +13,11 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io, read_selection
 from mne.time_frequency.psd import compute_epochs_psd
-# from mne.datasets import somato
+from mne.datasets import somato
 
 ###############################################################################
 # Load real somatosensory sample data.
-# data_path = somato.data_path()
-data_path = '/home/ybekhti/work/src/mne-python/examples/MNE-somato-data'
+data_path = somato.data_path()
 raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
 event_id, tmin, tmax = 1, -1., 3.
 
