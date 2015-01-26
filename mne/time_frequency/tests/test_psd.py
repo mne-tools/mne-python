@@ -55,7 +55,6 @@ def test_psd():
     assert_true(np.sum(psds < 0) == 0)
 
 
-
 def test_psd_epochs():
     """Test PSD estimation on epochs
     """
@@ -97,6 +96,7 @@ def test_psd_epochs():
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
 
+
 def test_compares_psd():
     """Test PSD estimation on raw for the two computations:
     plt.psd and the second using scipy.signal.welch
@@ -107,9 +107,7 @@ def test_compares_psd():
 
     # picks MEG gradiometers
     picks = pick_types(raw.info, meg='grad', eeg=False, stim=False,
-                            exclude=exclude)
-
-    picks = picks[:2]
+                       exclude=exclude)[:2]
 
     tmin, tmax = 0, 10  # use the first 60s of data
     fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
@@ -134,6 +132,7 @@ def test_compares_psd():
     psds_mpl = psds_mpl[:, mask]
 
     assert_array_almost_equal(psds_welch, psds_mpl)
+    assert_array_almost_equal(freqs_welch, freqs_mpl)
 
     assert_true(psds_welch.shape == (len(picks), len(freqs_welch)))
     assert_true(psds_mpl.shape == (len(picks), len(freqs_mpl)))
