@@ -877,9 +877,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
-                  proj=False, n_fft=2048, window_size=2048, n_overlap=0,
-                  picks=None, ax=None, color='black', area_mode='std',
-                  area_alpha=0.33, n_jobs=1, verbose=None):
+                  proj=False, n_fft=2048, picks=None, ax=None,
+                  color='black', area_mode='std', area_alpha=0.33,
+                  window_size=2048, n_overlap=0, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -896,11 +896,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Apply projection.
         n_fft : int
             Number of points to use in Welch FFT calculations.
-        window_size : int, optional
-            Length of each window.
-        n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 0 (no overlap).
         picks : array-like of int | None
             List of channels to use. Cannot be None if `ax` is supplied. If
             both `picks` and `ax` are None, separate subplots will be created
@@ -916,16 +911,21 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
+        window_size : int, optional
+            Length of each window.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 0 (no overlap).
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
         return plot_raw_psds(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                             proj=proj, n_fft=n_fft, window_size=window_size,
-                             n_overlap=n_overlap, picks=picks, ax=ax,
+                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                              color=color, area_mode=area_mode,
-                             area_alpha=area_alpha, n_jobs=n_jobs)
+                             area_alpha=area_alpha, window_size=window_size,
+                             n_overlap=n_overlap, n_jobs=n_jobs)
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices

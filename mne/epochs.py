@@ -505,8 +505,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            show=show, block=block)
 
     def plot_psds(self, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
-                  window_size=256, n_overlap=128, picks=None, ax=None,
-                  color='black', area_mode='std', area_alpha=0.33,
+                  picks=None, ax=None, color='black', area_mode='std',
+                  area_alpha=0.33, window_size=256, n_overlap=128,
                   n_jobs=1, verbose=None):
         """Plot the power spectral density across epochs
 
@@ -520,11 +520,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Apply projection.
         n_fft : int
             Number of points to use in Welch FFT calculations.
-        window_size : int, optional
-            Length of each window.
-        n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 128 (window_size // 2).
         picks : array-like of int | None
             List of channels to use.
         ax : instance of matplotlib Axes | None
@@ -538,17 +533,22 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             these calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
+        window_size : int, optional
+            Length of each window.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 128 (window_size // 2).
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
-                               n_fft=n_fft, window_size=window_size,
-                               n_overlap=n_overlap, picks=picks, ax=ax,
+                               n_fft=n_fft, picks=picks, ax=ax,
                                color=color, area_mode=area_mode,
-                               area_alpha=area_alpha, n_jobs=n_jobs,
-                               verbose=None)
+                               area_alpha=area_alpha,
+                               window_size=window_size, n_overlap=n_overlap,
+                               n_jobs=n_jobs, verbose=None)
 
 
 class Epochs(_BaseEpochs):

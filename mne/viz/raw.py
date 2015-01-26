@@ -601,9 +601,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
 @verbose
 def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                  n_fft=2048, window_size=2048, n_overlap=0, picks=None,
-                  ax=None, color='black', area_mode='std', area_alpha=0.33,
-                  n_jobs=1, verbose=None):
+                  n_fft=2048, picks=None, ax=None, color='black',
+                  area_mode='std', area_alpha=0.33, window_size=2048,
+                  n_overlap=0, n_jobs=1, verbose=None):
     """Plot the power spectral density across channels
 
     Parameters
@@ -622,11 +622,6 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    window_size : int, optional
-        Length of each window.
-    n_overlap : int
-        The number of points of overlap between blocks. The default value
-        is 0 (no overlap).
     picks : array-like of int | None
         List of channels to use. Cannot be None if `ax` is supplied. If both
         `picks` and `ax` are None, separate subplots will be created for
@@ -642,6 +637,11 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
+    window_size : int, optional
+        Length of each window.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 0 (no overlap).
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -691,12 +691,12 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                                                 ax_list)):
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                                       fmax=fmax, proj=proj, n_fft=n_fft,
-                                      window_size=window_size,
-                                      n_overlap=n_overlap, picks=picks,
-                                      n_jobs=1, verbose=None)
+                                      picks=picks, window_size=window_size,
+                                      n_overlap=n_overlap, n_jobs=1,
+                                      verbose=None)
 
         # Convert PSDs to dB
-        psds = 10 * np.log10(psds)
+        psds = 20 * np.log10(psds)
         psd_mean = np.mean(psds, axis=0)
         if area_mode == 'std':
             psd_std = np.std(psds, axis=0)

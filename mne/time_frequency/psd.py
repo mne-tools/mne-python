@@ -13,8 +13,8 @@ from ..utils import logger, verbose
 
 @verbose
 def compute_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf,
-                    proj=False, n_fft=2048, window_size=2048, n_overlap=0,
-                    picks=None, n_jobs=1, verbose=None):
+                    proj=False, n_fft=2048, picks=None, window_size=2048,
+                    n_overlap=0, n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -34,14 +34,14 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf,
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
+    picks : array-like of int | None
+        The selection of channels to include in the computation.
+        If None, take all channels.
     window_size : int, optional
         Length of each window.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
-    picks : array-like of int | None
-        The selection of channels to include in the computation.
-        If None, take all channels.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -108,8 +108,8 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
 
 
 @verbose
-def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
-                       window_size=256, n_overlap=128, proj=False, n_jobs=1,
+def compute_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
+                       picks=None, window_size=256, n_overlap=128, n_jobs=1,
                        verbose=None):
     """Compute power spectral density with with average periodograms.
 
@@ -117,16 +117,18 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
     ----------
     epochs : instance of Epochs
         The epochs.
-    picks : array-like of int | None
-        The selection of channels to include in the computation.
-        If None, take all channels.
     fmin : float
         Min frequency of interest
     fmax : float
         Max frequency of interest
+    proj : bool
+        Apply SSP projection vectors
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs. The default value is 2048.
+    picks : array-like of int | None
+        The selection of channels to include in the computation.
+        If None, take all channels.
     window_size : int, optional
         Length of each window. The default value is 256.
     n_overlap : int
@@ -151,6 +153,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
+    data = epochs.get_data()[:, picks]
     if proj:
         proj, _ = make_projector_info(raw.info)
         if picks is not None:
@@ -164,14 +167,13 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
     parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
                                                 verbose=verbose)
 
-    psds = np.empty(epochs.get_data()[:, picks].shape[:-1] +
-                    (n_fft // 2 + 1,))
+    psds = np.empty(data.shape[:-1] + (n_fft // 2 + 1,))
     freqs = np.arange(psds.shape[-1]) * (Fs / n_fft)
 
     for i_epoch, fepoch in enumerate(parallel(
-        my_pwelch(epoch[:, picks], window_size=window_size,
+        my_pwelch(epoch, window_size=window_size,
                   noverlap=n_overlap, nfft=n_fft, fs=Fs)
-                  for epoch in np.array_split(epochs.get_data(), n_jobs))):
+                  for epoch in np.array_split(data, n_jobs))):
 
         for i_channel, fchannel in enumerate(fepoch):
             if i_epoch == 0:
