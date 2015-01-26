@@ -207,7 +207,7 @@ class RawEDF(_BaseRaw):
             if 'n_samps' in self._edf_info:
                 n_samps = self._edf_info['n_samps']
             # bdf data: 24bit data
-            if subtype == '24BIT' or subtype == 'bdf':
+            if subtype in ('24BIT', 'bdf'):
                 # sixteen bit trigger mask based on bdf2biosig_events from BIOSIG
                 mask = 2 ** 15 - 1
                 # loop over 10s increment to not tax the memory
@@ -297,9 +297,8 @@ class RawEDF(_BaseRaw):
                                                      np.append(chan_data, 0),
                                                      kind='zero')(newrange)
                         elif samp != sfreq:
-                            mult = sfreq / samp
-                            chan_data = resample(x=chan_data, up=mult,
-                                                 down=1, npad=0)
+                            chan_data = resample(x=chan_data, up=sfreq,
+                                                 down=samp, npad=0)
                         stop_pt = chan_data.shape[0]
                         datas[j, :stop_pt] = chan_data
                 # simple edf
@@ -550,7 +549,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['description'] = None
     info['buffer_size_sec'] = 10.
 
-    if edf_info['subtype'] == '24BIT' or edf_info['subtype'] == 'bdf':
+    if edf_info['subtype'] in ('24BIT', 'bdf'):
         edf_info['data_size'] = 3  # 24-bit (3 byte) integers
     else:
         edf_info['data_size'] = 2  # 16-bit (2 byte) integers
