@@ -1018,7 +1018,6 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     # Check that len(ch_names) == len(ch_indices) if not None
     # Check that len(ch_names) == len(xy) if not None
 
-    xy = xy.copy().astype(float)
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
@@ -1034,21 +1033,27 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         # Raise an error that we need an image to do interactive stuff
         pass
 
+    x, y = xy.copy().astype(float).T
+
     # Normalize xy to 0-1
     if bg_image is not None:
         # Normalize by image dimensions
         if isinstance(bg_image, str):
             img = imread(bg_image)
-        xy /= img.shape[:2]
+        else:
+            img = bg_image
+        x /= img.shape[1]
+        y /= img.shape[0]
     else:
         # Normalize x and y by their maxes
-        xy -= xy.min(0)  # Separate out into x and y
-        xy /= (xy.max(0) - xy.min(0))
-    x, y = xy.T
+        for i_dim in [x, y]:
+            i_dim -= i_dim.min(0)
+            i_dim /= (i_dim.max(0) - i_dim.min(0))
+
     y = 1-y  # Flip y-axis
 
     # Create box and pos variable
-    box = (0-pad, 1+pad, 0-pad, 1+pad)
+    box = _box_size(np.vstack([x, y]).T, padding=pad)
     w, h = [np.array(i * x.shape[0]) for i in [[w], [h]]]
     loc_params = np.vstack([x, y, w, h]).T
 
