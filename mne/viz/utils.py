@@ -168,10 +168,10 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     """
     l = np.asarray(limits, dtype='float')
-    if len(l) != 3:
-        raise ValueError('limits must have 3 elements')
-    if any(l < 0):
-        raise ValueError('limits must all be positive')
+    if len(l) != 3 and len(l) != 6:
+        raise ValueError('limits must have 3 or 6 elements')
+    if len(l) == 3 and any(l < 0):
+        raise ValueError('if 3 elements, limits must all be positive')
     if any(np.diff(l) <= 0):
         raise ValueError('limits must be monotonically increasing')
     if format == 'matplotlib':
