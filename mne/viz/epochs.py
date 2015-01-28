@@ -533,13 +533,14 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_epochs_psd(epochs, fmin=fmin, fmax=fmax,
-                                         proj=proj, n_fft=n_fft, picks=picks,
+        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
+                                         fmax=fmax, n_fft=n_fft,
                                          window_size=window_size,
-                                         n_overlap=n_overlap, n_jobs=n_jobs)
+                                         n_overlap=n_overlap, proj=proj,
+                                         n_jobs=n_jobs)
 
         # Convert PSDs to dB
-        psds = 20 * np.log10(psds)
+        psds = 10 * np.log10(psds)
         # mean across epochs and channels
         psd_mean = np.mean(psds, axis=0).mean(axis=0)
         if area_mode == 'std':

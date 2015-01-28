@@ -4,7 +4,7 @@ Compute the power spectral density of epochs data
 ==================================================
 
 This script shows how to compute the power spectral density (PSD)
-of measurements on a epochs dataset. 
+of measurements on a epochs. 
 """
 
 import numpy as np
