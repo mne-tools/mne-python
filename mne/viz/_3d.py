@@ -470,12 +470,16 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    # Check for flims and deprecation error
-    if any(f is None for f in [fmin, fmid, fmax]):
-        limits = (fmin, fmid, fmax)
-        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                      'removed in v0.10. Use "limits" instead.',
-                      DeprecationWarning)
+    # Handle retro behavior for flims and potentially throw deprecation error
+    ctrl_pts = [fmin, fmid, fmax]
+    for fi, f in enumerate(ctrl_pts):
+        # Throw deprecation warning (should only show up once)
+        if f is not None:
+            warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
+                          ' removed in v0.10. Use "limits" instead.',
+                          DeprecationWarning)
+        else:
+            ctrl_pts[fi] = [5., 10., 15.][fi]
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
@@ -511,8 +515,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             ctrl_pts = limits
             colormap = mne_analyze_colormap(limits)
         elif type(limits) is dict:
-            if limits['one-sided'] is False:
-                ctrl_pts = np.percentile(stc.data, limits['bounds'])
+            if (not isinstance(limits['bounds'], list) or
+                not isinstance(limits['one_sided'], bool)):
+                    #all(key in ['bounds', 'one_sided']
+                    #   for key in limits.keys()):
+                raise ValueError('"limits" dict must contain "bounds" list and'
+                                 ' "one_sided" bool')
+            if limits['one_sided'] is False:
+                ctrl_pts = np.percentile(np.abs(stc.data), limits['bounds'])
+                print('Final ctrl_pts: ' + str(ctrl_pts))
                 colormap = mne_analyze_colormap(ctrl_pts)
 
     with warnings.catch_warnings(record=True):  # traits warnings
@@ -532,7 +543,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=ctrl_pts[0], fmid=ctrl_pts[1],
+        brain.scale_data_colormap(fmin=ctrl_pts[2], fmid=0,
                                   fmax=ctrl_pts[2], transparent=transparent)
 
     if time_viewer:
