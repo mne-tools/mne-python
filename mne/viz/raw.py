@@ -689,14 +689,14 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
-        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
-                                      fmax=fmax, proj=proj, n_fft=n_fft,
-                                      picks=picks, window_size=window_size,
-                                      n_overlap=n_overlap, n_jobs=1,
+        psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
+                                      fmin=fmin, fmax=fmax, proj=proj,
+                                      n_fft=n_fft, window_size=window_size,
+                                      n_overlap=n_overlap, n_jobs=n_jobs,
                                       verbose=None)
 
         # Convert PSDs to dB
-        psds = 20 * np.log10(psds)
+        psds = 10 * np.log10(psds)
         psd_mean = np.mean(psds, axis=0)
         if area_mode == 'std':
             psd_std = np.std(psds, axis=0)
