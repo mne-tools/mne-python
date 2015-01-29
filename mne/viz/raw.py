@@ -581,6 +581,51 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     return fig
 
 
+def _set_psds_plot_params(info, proj, picks, ax, area_mode):
+    """Aux function"""
+    import matplotlib.pyplot as plt
+    if area_mode not in [None, 'std', 'range']:
+        raise ValueError('"area_mode" must be "std", "range", or None')
+    if picks is None:
+        if ax is not None:
+            raise ValueError('If "ax" is not supplied (None), then "picks" '
+                             'must also be supplied')
+        megs = ['mag', 'grad', False]
+        eegs = [False, False, True]
+        names = ['Magnetometers', 'Gradiometers', 'EEG']
+        picks_list = list()
+        titles_list = list()
+        for meg, eeg, name in zip(megs, eegs, names):
+            picks = pick_types(info, meg=meg, eeg=eeg, ref_meg=False)
+            if len(picks) > 0:
+                picks_list.append(picks)
+                titles_list.append(name)
+        if len(picks_list) == 0:
+            raise RuntimeError('No MEG or EEG channels found')
+    else:
+        picks_list = [picks]
+        titles_list = ['Selected channels']
+        ax_list = [ax]
+
+    make_label = False
+    fig = None
+    if ax is None:
+        fig = plt.figure()
+        ax_list = list()
+        for ii in range(len(picks_list)):
+            # Make x-axes change together
+            if ii > 0:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
+                                           sharex=ax_list[0]))
+            else:
+                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
+        make_label = True
+    else:
+        fig = ax_list[0].get_figure()
+
+    return fig, picks_list, titles_list, ax_list, make_label
+
+
 @verbose
 def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                   n_fft=2048, picks=None, ax=None, color='black',
@@ -620,7 +665,7 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     area_alpha : float
         Alpha for the area.
     window_size : int, optional
-        Length of each window.
+        Length of each window. The default value is 2048.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
@@ -630,44 +675,10 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If not None, override default verbose level (see mne.verbose).
     """
     import matplotlib.pyplot as plt
-    if area_mode not in [None, 'std', 'range']:
-        raise ValueError('"area_mode" must be "std", "range", or None')
-    if picks is None:
-        if ax is not None:
-            raise ValueError('If "ax" is not supplied (None), then "picks" '
-                             'must also be supplied')
-        megs = ['mag', 'grad', False]
-        eegs = [False, False, True]
-        names = ['Magnetometers', 'Gradiometers', 'EEG']
-        picks_list = list()
-        titles_list = list()
-        for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(raw.info, meg=meg, eeg=eeg, ref_meg=False)
-            if len(picks) > 0:
-                picks_list.append(picks)
-                titles_list.append(name)
-        if len(picks_list) == 0:
-            raise RuntimeError('No MEG or EEG channels found')
-    else:
-        picks_list = [picks]
-        titles_list = ['Selected channels']
-        ax_list = [ax]
-
-    make_label = False
-    fig = None
-    if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
-    else:
-        fig = ax_list[0].get_figure()
+    fig, picks_list, titles_list, ax_list, make_label = _set_psds_plot_params(
+                                                            raw.info, proj,
+                                                            picks, ax,
+                                                            area_mode)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
