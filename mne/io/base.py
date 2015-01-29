@@ -912,7 +912,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         area_alpha : float
             Alpha for the area.
         window_size : int, optional
-            Length of each window.
+            Length of each window. The default value is 2048.
         n_overlap : int
             The number of points of overlap between blocks. The default value
             is 0 (no overlap).
