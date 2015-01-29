@@ -20,6 +20,7 @@ from ..utils import create_chunks
 from ..io.pick import pick_types, channel_type
 from ..fixes import Counter
 from ..time_frequency import compute_epochs_psd
+from .raw import _set_psds_plot_params
 from .utils import _mutable_defaults, tight_layout, _prepare_trellis
 from .utils import figure_nobar
 
@@ -453,7 +454,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
                     picks=None, ax=None, color='black', area_mode='std',
                     area_alpha=0.33, window_size=256, n_overlap=128,
-                    n_jobs=1, verbose=None):
+                    plot_kind=1, i_trial=1, n_jobs=1, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -482,89 +483,101 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
     area_alpha : float
         Alpha for the area.
     window_size : int, optional
-        Length of each window.
+        Length of each window. The default value is 256.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 128 (window_size // 2).
+    plot_kind: int
+        Kind of the plot. If '1', plot the average psd across epochs and across
+        all channel types. If '2', plot one single trial spectra and the
+        average across epochs for all channels. The default value is 1.
+    i_trial: int
+        The trial index to plot. The default value is 1.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
     import matplotlib.pyplot as plt
-    if area_mode not in [None, 'std', 'range']:
-        raise ValueError('"area_mode" must be "std", "range", or None')
-    if picks is None:
-        if ax is not None:
-            raise ValueError('If "ax" is not supplied (None), then "picks" '
-                             'must also be supplied')
-        megs = ['mag', 'grad', False]
-        eegs = [False, False, True]
-        names = ['Magnetometers', 'Gradiometers', 'EEG']
-        picks_list = list()
-        titles_list = list()
-        for meg, eeg, name in zip(megs, eegs, names):
-            picks = pick_types(epochs.info, meg=meg, eeg=eeg, ref_meg=False)
-            if len(picks) > 0:
-                picks_list.append(picks)
-                titles_list.append(name)
-        if len(picks_list) == 0:
-            raise RuntimeError('No MEG or EEG channels found')
-    else:
-        picks_list = [picks]
-        titles_list = ['Selected channels']
-        ax_list = [ax]
+    if plot_kind == 1:
+        fig, picks_list, titles_list, ax_list, make_label = _set_psds_plot_params(
+                                                                epochs.info,
+                                                                proj, picks,
+                                                                ax, area_mode)
 
-    make_label = False
-    fig = None
-    if ax is None:
-        fig = plt.figure()
-        ax_list = list()
-        for ii in range(len(picks_list)):
-            # Make x-axes change together
-            if ii > 0:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1,
-                                           sharex=ax_list[0]))
-            else:
-                ax_list.append(plt.subplot(len(picks_list), 1, ii + 1))
-        make_label = True
-    else:
-        fig = ax_list[0].get_figure()
+        for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
+                                                    ax_list)):
+            psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
+                                             fmax=fmax, n_fft=n_fft,
+                                             window_size=window_size,
+                                             n_overlap=n_overlap, proj=proj,
+                                             n_jobs=n_jobs)
 
-    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
-                                                ax_list)):
+            # Convert PSDs to dB
+            psds = 10 * np.log10(psds)
+            # mean across epochs and channels
+            psd_mean = np.mean(psds, axis=0).mean(axis=0)
+            if area_mode == 'std':
+                # std across channels
+                psd_std = np.std(np.mean(psds, axis=0), axis=0)
+                hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+            elif area_mode == 'range':
+                hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
+                              np.max(np.mean(psds, axis=0), axis=0))
+            else:  # area_mode is None
+                hyp_limits = None
+
+            ax.plot(freqs, psd_mean, color=color)
+            if hyp_limits is not None:
+                ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                                color=color, alpha=area_alpha)
+            if make_label:
+                if ii == len(picks_list) - 1:
+                    ax.set_xlabel('Freq (Hz)')
+                if ii == len(picks_list) / 2:
+                    ax.set_ylabel('Power Spectral Density (dB/Hz)')
+                ax.set_title(title)
+                ax.set_xlim(freqs[0], freqs[-1])
+        if make_label:
+            tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+    elif plot_kind == 2:
+        if picks is None:
+            picks = pick_types(epochs.info, meg=True, eeg=False,
+                               ref_meg=False)
+        if len(picks) == 0:
+            raise RuntimeError('No MEG channels found')
+
         psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
                                          fmax=fmax, n_fft=n_fft,
                                          window_size=window_size,
                                          n_overlap=n_overlap, proj=proj,
                                          n_jobs=n_jobs)
 
-        # Convert PSDs to dB
-        psds = 10 * np.log10(psds)
-        # mean across epochs and channels
-        psd_mean = np.mean(psds, axis=0).mean(axis=0)
-        if area_mode == 'std':
-            # std across channels
-            psd_std = np.std(np.mean(psds, axis=0), axis=0)
-            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
-        elif area_mode == 'range':
-            hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
-                          np.max(np.mean(psds, axis=0), axis=0))
-        else:  # area_mode is None
-            hyp_limits = None
+        # average psds and save psds from first trial separately
+        psd_mean = 10 * np.log10(np.mean(psds, axis=0))  # Convert PSDs to dB
+        some_psds = 10 * np.log10(psds[i_trial])
 
-        ax.plot(freqs, psd_mean, color=color)
-        if hyp_limits is not None:
-            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
-                            color=color, alpha=area_alpha)
-        if make_label:
-            if ii == len(picks_list) - 1:
-                ax.set_xlabel('Freq (Hz)')
-            if ii == len(picks_list) / 2:
-                ax.set_ylabel('Power Spectral Density (dB/Hz)')
-            ax.set_title(title)
-            ax.set_xlim(freqs[0], freqs[-1])
-    if make_label:
-        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+        fig, (ax1, ax2) = plt.subplots(1, 2, sharex=True, sharey=True,
+                                       figsize=(10, 5))
+
+        fig.suptitle('Single trial power', fontsize=12)
+
+        cmap = 'RdBu_r'
+        ax1.set_title('single trial', fontsize=10)
+        ax1.imshow(some_psds.T, aspect='auto', origin='lower', cmap=cmap)
+        ax1.set_yticks(np.arange(0, len(freqs), 10))
+        ax1.set_yticklabels(freqs[::10].round(1))
+        ax1.set_ylabel('Frequency (Hz)')
+
+        ax2.set_title('averaged over trials', fontsize=10)
+        ax2.imshow(psd_mean.T, aspect='auto', origin='lower', cmap=cmap)
+        ax2.set_xticks(np.arange(0, len(picks), 30))
+        ax2.set_xticklabels(picks[::30])
+        ax2.set_xlabel('MEG channel index (Gradiometers)')
+
+        tight_layout()
+    else:
+        raise ValueError('"plot_kind" must be "1", or 2')
+
     plt.show()
     return fig

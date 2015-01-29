@@ -507,7 +507,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_psds(self, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
                   picks=None, ax=None, color='black', area_mode='std',
                   area_alpha=0.33, window_size=256, n_overlap=128,
-                  n_jobs=1, verbose=None):
+                  plot_kind=1, n_jobs=1, verbose=None):
         """Plot the power spectral density across epochs
 
         Parameters
@@ -534,10 +534,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         area_alpha : float
             Alpha for the area.
         window_size : int, optional
-            Length of each window.
+            Length of each window. The default value is 256.
         n_overlap : int
             The number of points of overlap between blocks. The default value
             is 128 (window_size // 2).
+        plot_kind: int
+            Kind of the plot. If '1', plot the average psd across epochs and
+            across all channel types. If '2', plot one single trial spectra
+            and the average across epochs for all channels.
+            The default value is 1.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
@@ -546,8 +551,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
                                n_fft=n_fft, picks=picks, ax=ax,
                                color=color, area_mode=area_mode,
-                               area_alpha=area_alpha,
-                               window_size=window_size, n_overlap=n_overlap,
+                               area_alpha=area_alpha, window_size=window_size,
+                               n_overlap=n_overlap, plot_kind=plot_kind,
                                n_jobs=n_jobs, verbose=None)
 
 
