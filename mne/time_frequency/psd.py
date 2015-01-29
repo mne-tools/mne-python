@@ -33,12 +33,12 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
     fmax : float
         Max frequency of interest
     proj : bool
-        Apply SSP projection vectors
+        Apply SSP projection vectors.
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
     window_size : int, optional
-        Length of each window.
+        Length of each window. The default value is 2048.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
@@ -89,6 +89,7 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
 
 
 def _pwelch(epoch, window_size, noverlap, nfft, fs, freq_mask):
+    """Aux function"""
     return [welch(channel, nperseg=window_size, noverlap=noverlap,
                   nfft=nfft, fs=fs)[1][..., freq_mask]
             for channel in epoch]
@@ -109,7 +110,7 @@ def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
 def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
                        window_size=256, n_overlap=128, proj=False, n_jobs=1,
                        verbose=None):
-    """Compute power spectral density with with average periodograms.
+    """Compute power spectral density with average periodograms.
 
     Parameters
     ----------
@@ -131,7 +132,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
         The number of points of overlap between blocks. The default value
         is 128 (window_size // 2).
     proj : bool
-        Apply SSP projection vectors
+        Apply SSP projection vectors.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -169,12 +170,12 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
     parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
                                                 verbose=verbose)
 
-    for idx, fepoch in zip(np.array_split(np.arange(len(data)), n_jobs),
+    for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
                            parallel(my_pwelch(epoch, window_size=window_size,
                                     noverlap=n_overlap, nfft=n_fft, fs=Fs,
                                     freq_mask=freq_mask)
                            for epoch in np.array_split(data, n_jobs))):
-        for k, p in zip(idx, fepoch):
-            psds[k, :, :] = p
+        for i_epoch, f_epoch in zip(idx, fepochs):
+            psds[i_epoch, :, :] = f_epoch
 
     return psds, freqs
