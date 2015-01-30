@@ -168,15 +168,19 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     """
     l = np.asarray(limits, dtype='float')
-    if len(l) != 3 and len(l) != 6:
+    if len(l) != 3 and len(l) != 7:
         raise ValueError('limits must have 3 or 6 elements')
     if len(l) == 3 and any(l < 0.):
-        raise ValueError('if 3 elements, limits must all be positive')
+        raise ValueError('if 3 elements, limits must all be non-negative')
     if any(np.diff(l) <= 0):
         raise ValueError('limits must be monotonically increasing')
     if format == 'matplotlib':
         from matplotlib import colors
-        l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
+        if len(l) == 3:
+            l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
+        else:
+            l = l - np.min(l) / np.max(l - np.min(l))
+
         cdict = {'red': ((l[0], 0.0, 0.0),
                          (l[1], 0.0, 0.0),
                          (l[2], 0.5, 0.5),
@@ -197,12 +201,16 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
                           (l[5], 0.0, 0.0))}
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
     elif format == 'mayavi':
-        l = np.concatenate((-np.flipud(l), [0], l)) / l[-1]
+        if len(l) == 3:
+            l = np.concatenate((-np.flipud(l), [0], l)) / l[-1]
+        else:
+            l /= np.max(np.abs(l))
         r = np.array([0, 0, 0, 0, 1, 1, 1])
         g = np.array([1, 0, 0, 0, 0, 0, 1])
         b = np.array([1, 1, 1, 0, 0, 0, 0])
         a = np.array([1, 1, 0, 0, 0, 1, 1])
         xp = (np.arange(256) - 128) / 128.0
+        print(l)
         colormap = np.r_[[np.interp(xp, l, 255 * c) for c in [r, g, b, a]]].T
         return colormap
     else:
