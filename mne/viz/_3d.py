@@ -504,27 +504,30 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         logger.info('PySurfer does not support "views" argument, please '
                     'consider updating to a newer version (0.4 or later)')
+
+    # Create mne_analyze colormap using data quartiles
     if colormap == 'mne_analyze':
         if limits is None:
             raise ValueError('"limits" must be defined to use mne_analyze'
                              ' colormap')
         elif limits == 'auto':
-            ctrl_pts = np.percentile(stc.data, [80, 90, 99])
+            ctrl_pts = np.percentile(stc.data, [90, 95, 99.5])
             colormap = mne_analyze_colormap(ctrl_pts)
-        elif type(limits) is tuple:
+        elif isinstance(limits, tuple):
             ctrl_pts = limits
             colormap = mne_analyze_colormap(limits)
-        elif type(limits) is dict:
+        elif isinstance(limits, dict):
             if (not isinstance(limits['bounds'], list) or
                 not isinstance(limits['one_sided'], bool)):
-                    #all(key in ['bounds', 'one_sided']
-                    #   for key in limits.keys()):
                 raise ValueError('"limits" dict must contain "bounds" list and'
                                  ' "one_sided" bool')
             if limits['one_sided'] is False:
-                ctrl_pts = np.percentile(np.abs(stc.data), limits['bounds'])
+                ctrl_pts = np.percentile(np.abs(stc.data),
+                                         list(np.abs(limits['bounds'])))
                 print('Final ctrl_pts: ' + str(ctrl_pts))
                 colormap = mne_analyze_colormap(ctrl_pts)
+            else:
+                ctrl_pts = np.percentile(stc.data, limits['bounds'])
 
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
@@ -543,7 +546,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=ctrl_pts[2], fmid=0,
+        brain.scale_data_colormap(fmin=-1 * ctrl_pts[2], fmid=0,
                                   fmax=ctrl_pts[2], transparent=transparent)
 
     if time_viewer:
