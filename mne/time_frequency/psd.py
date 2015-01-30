@@ -149,7 +149,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
     n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
-        picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
+        picks = pick_types(epochs.info, meg=True, eeg=False, ref_meg=False,
                            exclude='bads')
 
     data = epochs.get_data()[:, picks]
