@@ -3,6 +3,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from copy import deepcopy
 import os.path as op
 import numpy as np
+from scipy import sparse
 import os
 import warnings
 
@@ -157,6 +158,18 @@ def test_hash():
     d2[1] = (x for x in d0)
     assert_raises(RuntimeError, object_diff, d1, d2)
     assert_raises(RuntimeError, object_hash, d1)
+
+    x = sparse.eye(2, format='csc')
+    y = sparse.eye(2, format='csr')
+    assert_true('type mismatch' in object_diff(x, y))
+    y = sparse.eye(2, format='csc')
+    assert_equal(len(object_diff(x, y)), 0)
+    y[1, 1] = 2
+    assert_true('elements' in object_diff(x, y))
+    y = sparse.eye(3, format='csc')
+    assert_true('shape' in object_diff(x, y))
+    y = 0
+    assert_true('type mismatch' in object_diff(x, y))
 
 
 def test_md5sum():
