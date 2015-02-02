@@ -25,7 +25,7 @@ _proc_ids = [FIFF.FIFF_PARENT_FILE_ID,
 _proc_writers = [write_id, write_id, write_id,
                  write_int, write_string, write_string]
 _proc_casters = [dict, dict, dict,
-                 list, str, str]
+                 np.array, str, str]
 
 
 def _read_proc_history(fid, tree, info):
@@ -162,7 +162,7 @@ _sss_ctc_ids = (FIFF.FIFF_PARENT_FILE_ID,
 _sss_ctc_writers = (write_id, write_id, write_id,
                     write_int, write_string, write_float_sparse_rcs)
 _sss_ctc_casters = (dict, dict, dict,
-                    list, str, csc_matrix)
+                    np.array, str, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)

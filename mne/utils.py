@@ -30,7 +30,7 @@ import atexit
 
 import numpy as np
 import scipy
-from scipy import linalg
+from scipy import linalg, sparse
 
 
 from .externals.six.moves import urllib
@@ -170,6 +170,17 @@ def object_diff(a, b, pre=''):
     elif isinstance(a, (StringIO, BytesIO)):
         if a.getvalue() != b.getvalue():
             out += pre + ' StringIO mismatch\n'
+    elif sparse.isspmatrix(a):
+        # sparsity and sparse type of b vs a already checked above by type()
+        if b.shape != a.shape:
+            out += pre + (' sparse matrix a and b shape mismatch'
+                          '(%s vs %s)' % (a.shape, b.shape))
+        else:
+            c = a - b
+            c.eliminate_zeros()
+            if c.nnz > 0:
+                out += pre + (' sparse matrix a and b differ on %s '
+                              'elements' % c.nnz)
     else:
         raise RuntimeError(pre + ': unsupported type %s (%s)' % (type(a), a))
     return out

@@ -1157,7 +1157,7 @@ def create_info(ch_names, sfreq, ch_types=None):
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
     info = _empty_info()
-    info['meas_date'] = [0, 0]
+    info['meas_date'] = np.array([0, 0], np.int32)
     info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
