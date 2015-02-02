@@ -15,7 +15,7 @@ def test_hdf5():
     """
     tempdir = _TempDir()
     test_file = op.join(tempdir, 'test.hdf5')
-    sp = sparse.eye(3, format='csc')
+    sp = sparse.eye(3, 3, format='csc')
     sp[2, 2] = 2
     x = dict(a=dict(b=np.zeros(3)), c=np.zeros(2, np.complex128),
              d=[dict(e=(1, -2., 'hello', u'goodbyeu\u2764')), None], f=sp)

@@ -159,14 +159,14 @@ def test_hash():
     assert_raises(RuntimeError, object_diff, d1, d2)
     assert_raises(RuntimeError, object_hash, d1)
 
-    x = sparse.eye(2, format='csc')
-    y = sparse.eye(2, format='csr')
+    x = sparse.eye(2, 2, format='csc')
+    y = sparse.eye(2, 2, format='csr')
     assert_true('type mismatch' in object_diff(x, y))
-    y = sparse.eye(2, format='csc')
+    y = sparse.eye(2, 2, format='csc')
     assert_equal(len(object_diff(x, y)), 0)
     y[1, 1] = 2
     assert_true('elements' in object_diff(x, y))
-    y = sparse.eye(3, format='csc')
+    y = sparse.eye(3, 3, format='csc')
     assert_true('shape' in object_diff(x, y))
     y = 0
     assert_true('type mismatch' in object_diff(x, y))
