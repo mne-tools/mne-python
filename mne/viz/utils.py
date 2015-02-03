@@ -168,7 +168,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     """
     l = np.asarray(limits, dtype='float')
-    if len(l) != 3 and len(l) != 7:
+    if len(l) != 3 and len(l) != 6:
         raise ValueError('limits must have 3 or 6 elements')
     if len(l) == 3 and any(l < 0.):
         raise ValueError('if 3 elements, limits must all be non-negative')
@@ -179,7 +179,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         if len(l) == 3:
             l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
         else:
-            l = l - np.min(l) / np.max(l - np.min(l))
+            l = (l - np.min(l)) / np.max(l - np.min(l))
 
         cdict = {'red': ((l[0], 0.0, 0.0),
                          (l[1], 0.0, 0.0),
@@ -204,6 +204,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         if len(l) == 3:
             l = np.concatenate((-np.flipud(l), [0], l)) / l[-1]
         else:
+            l = [l[:3], [0], l[3:]]
             l /= np.max(np.abs(l))
         r = np.array([0, 0, 0, 0, 1, 1, 1])
         g = np.array([1, 0, 0, 0, 0, 0, 1])
