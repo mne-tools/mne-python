@@ -168,6 +168,8 @@ class RawEDF(_BaseRaw):
         start = int(start)
         stop = int(stop)
 
+        n_samps = self._edf_info['n_samps']
+        max_samp = np.max(n_samps)
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -179,8 +181,8 @@ class RawEDF(_BaseRaw):
         subtype = self._edf_info['subtype']
 
         # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / sfreq) * sfreq)
-        blockstop = int(ceil(float(stop) / sfreq) * sfreq)
+        blockstart = int(floor(float(start) / max_samp) * max_samp)
+        blockstop = int(ceil(float(stop) / max_samp) * max_samp)
         if blockstop > self.last_samp:
             blockstop = self.last_samp + 1
 
@@ -203,47 +205,44 @@ class RawEDF(_BaseRaw):
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
             datas = np.empty((n_chan, buffer_size), dtype=float)
-            blocks = int(ceil(float(buffer_size) / sfreq))
-            if 'n_samps' in self._edf_info:
-                n_samps = self._edf_info['n_samps']
+            blocks = int(ceil(float(buffer_size) / max_samp))
             # bdf data: 24bit data
             if subtype in ('24BIT', 'bdf'):
                 # sixteen bit trigger mask based on bdf2biosig_events from BIOSIG
                 mask = 2 ** 15 - 1
-                # loop over 10s increment to not tax the memory
-                buffer_step = int(sfreq * 10)
+                # loop over 10 record increments to not tax the memory
+                buffer_step = int(max_samp * 10)
                 for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
                     step = buffer_step
                     if block < step:
                         step = block
                     samp = int(step * n_chan * data_size)
-                    blocks = int(ceil(float(step) / sfreq))
+                    blocks = int(ceil(float(step) / max_samp))
                     # complicated bdf: various sampling rates within file
-                    if 'n_samps' in self._edf_info:
+                    if np.unique(n_samps) != 1:
                         for i in range(blocks):
-                            data = np.empty((n_chan, sfreq), dtype=int)
+                            data = np.empty((n_chan, max_samp), dtype=int)
                             for j, samp in enumerate(n_samps):
                                 chan_data = np.fromfile(fid, dtype=np.uint8,
                                                         count=samp*data_size)
                                 chan_data = (chan_data[0::3] +
                                              chan_data[1::3] << 8 +
                                              chan_data[2::3] << 16)
-                                if j == stim_channel and samp < sfreq:
+                                if j == stim_channel and samp < max_samp:
                                     warnings.warn('Interpolating stim channel. '
                                                   'Events may jitter.')
                                     oldrange = np.linspace(0, 1, samp + 1,
                                                            True)
-                                    newrange = np.linspace(0, 1, sfreq, False)
+                                    newrange = np.linspace(0, 1, max_samp, False)
                                     chan_data = interp1d(oldrange,
                                                          np.append(chan_data, 0),
                                                          kind='zero')(newrange)
-                                elif samp != sfreq:
-                                    mult = sfreq / samp
-                                    chan_data = resample(x=chan_data, up=mult,
-                                                         down=1, npad=0)
+                                elif samp != max_samp:
+                                    chan_data = resample(x=chan_data, up=max_samp,
+                                                         down=samp, npad=0)
                                 data[j] = chan_data
-                            start_pt = int((sfreq * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + sfreq)
+                            start_pt = int((max_samp * i) + (k * buffer_step))
+                            stop_pt = int(start_pt + max_samp)
                             datas[:, start_pt:stop_pt] = data
                     else:
                         # simple bdf                    
@@ -257,60 +256,58 @@ class RawEDF(_BaseRaw):
                         # 24th bit determines the sign
                         data[data >= (1 << 23)] -= (1 << 24)
 
-                        data = data.reshape((int(sfreq), n_chan, blocks),
+                        data = data.reshape((int(max_samp), n_chan, blocks),
                                             order='F')
                         for i in range(blocks):
-                            start_pt = int((sfreq * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + sfreq)
+                            start_pt = int((max_samp * i) + (k * buffer_step))
+                            stop_pt = int(start_pt + max_samp)
                             datas[:, start_pt:stop_pt] = data[:, :, i].T
             else:
                 # eight bit trigger mask
                 mask = 2 ** 8 - 1
                 # complicated edf: various sampling rates within file
-                if 'n_samps' in self._edf_info:
-                    data = []
+                if np.unique(n_samps) != 1:
                     for i in range(blocks):
-                        for samp in n_samps:
+                        data = np.empty((n_chan, max_samp), dtype=int)
+                        for j, samp in enumerate(n_samps):
                             chan_data = np.fromfile(fid, dtype='<i2',
                                                     count=samp)
-                            data.append(chan_data)
-                    for j, samp in enumerate(n_samps):
-                        chan_data = data[j::n_chan]
-                        chan_data = np.hstack(chan_data)
-                        if j == tal_channel:
-                            # don't resample tal_channel,
-                            # pad with zeros instead.
-                            n_missing = int(sfreq - samp) * blocks
-                            chan_data = np.hstack([chan_data, [0] * n_missing])
-                        elif j == stim_channel and samp < sfreq:
-                            if annot and annotmap or tal_channel is not None:
-                                # don't bother with resampling the stim channel
-                                # because it gets overwritten later on.
-                                chan_data = np.zeros(sfreq)
-                            else:
-                                warnings.warn('Interpolating stim channel. '
-                                              'Events may jitter.')
-                                oldrange = np.linspace(0, 1, samp * blocks + 1,
-                                                       True)
-                                newrange = np.linspace(0, 1, sfreq * blocks,
-                                                       False)
-                                chan_data = interp1d(oldrange,
-                                                     np.append(chan_data, 0),
-                                                     kind='zero')(newrange)
-                        elif samp != sfreq:
-                            chan_data = resample(x=chan_data, up=sfreq,
-                                                 down=samp, npad=0)
-                        stop_pt = chan_data.shape[0]
-                        datas[j, :stop_pt] = chan_data
+                            if j == tal_channel:
+                                # don't resample tal_channel,
+                                # pad with zeros instead.
+                                n_missing = int(max_samp - samp) * blocks
+                                chan_data = np.hstack([chan_data, [0] * n_missing])
+                            elif j == stim_channel and samp < max_samp:
+                                if annot and annotmap or tal_channel is not None:
+                                    # don't bother with resampling the stim channel
+                                    # because it gets overwritten later on.
+                                    chan_data = np.zeros(max_samp)
+                                else:
+                                    warnings.warn('Interpolating stim channel. '
+                                                  'Events may jitter.')
+                                    oldrange = np.linspace(0, 1, samp * blocks + 1,
+                                                           True)
+                                    newrange = np.linspace(0, 1, max_samp * blocks,
+                                                           False)
+                                    chan_data = interp1d(oldrange,
+                                                         np.append(chan_data, 0),
+                                                         kind='zero')(newrange)
+                            elif samp != max_samp:
+                                chan_data = resample(x=chan_data, up=max_samp,
+                                                     down=samp, npad=0)
+                            data[j] = chan_data
+                        start_pt = int(max_samp * i)
+                        stop_pt = int(start_pt + max_samp)
+                        datas[:, start_pt:stop_pt] = data
                 # simple edf
                 else:
                     data = np.fromfile(fid, dtype='<i2',
                                        count=buffer_size * n_chan)
-                    data = data.reshape((int(sfreq), n_chan, blocks),
+                    data = data.reshape((int(max_samp), n_chan, blocks),
                                         order='F')
                     for i in range(blocks):
-                        start_pt = int(sfreq * i)
-                        stop_pt = int(start_pt + sfreq)
+                        start_pt = int(max_samp * i)
+                        stop_pt = int(start_pt + max_samp)
                         datas[:, start_pt:stop_pt] = data[:, :, i].T
         datas *= gains.T
 
@@ -533,12 +530,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                                   ' Lowest filter setting will be stored.'))
         # number of samples per record
         n_samps = np.array([int(fid.read(8).decode()) for _ in channels])
-        if np.unique(n_samps).size != 1 or record_length != 1:
-            edf_info['n_samps'] = n_samps
-        if np.unique(n_samps).size != 1 and not preload:
-            raise RuntimeError('%s' % ('Channels contain different'
-                                       'sampling rates. '
-                                       'Must set preload=True'))
+        edf_info['n_samps'] = n_samps
 
         fid.read(32 * info['nchan']).decode()  # reserved
         assert fid.tell() == header_nbytes
@@ -601,8 +593,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
-    info['sfreq'] = n_samps[picks].max() / float(record_length)
-    edf_info['nsamples'] = int(n_records * info['sfreq'] * record_length)
+    max_samp_per_block = n_samps[picks].max()
+    info['sfreq'] = max_samp_per_block / float(record_length)
+    edf_info['nsamples'] = int(n_records * max_samp_per_block)
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
