@@ -417,10 +417,21 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colorbar : bool
         If True, display colorbar on scene.
     limits : str | 3-tuple | dict
-        Colorbar limits specification (if colormap='mne_analyze'). If 'auto',
+        Colorbar limit specification (if colormap='mne_analyze'). If 'auto',
         set limits automatically based on quartiles of data. If 3-tuple, set
-        limits manually. If dict, set quartiles and whether the colormap is
-        one- or two-sided.
+        limits manually. If dict, should contain:
+            kind : str
+                Flag to specify type of limits. 'values' or 'percentages'
+            lims : length 3 list or array
+                Left, middle, and right bound of colormap. Only used if
+                colormap is NOT 'mne_analyze'
+            pos_lims : None or length 3 list or array
+                Minimum, middle, and maximum positive control points for
+                colormap. Only used if colormap is 'mne_analyze'
+            neg_lims : length 3 list or array
+                Minimum, middle, and maximum positive control points for
+                asymmetric colormap control points. Only used if colormap
+                is 'mne_analyze'
 
     Returns
     -------
@@ -470,8 +481,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
+##############################################################################
     # Handle retro behavior for flims and potentially throw deprecation error
     ctrl_pts = [fmin, fmid, fmax]
+    scaling_pts = [fmin, fmid, fmax]
     for fi, f in enumerate(ctrl_pts):
         # Throw deprecation warning (should only show up once)
         if f is not None:
@@ -480,6 +493,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           DeprecationWarning)
         else:
             ctrl_pts[fi] = [5., 10., 15.][fi]
+##############################################################################
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
@@ -505,11 +519,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         logger.info('PySurfer does not support "views" argument, please '
                     'consider updating to a newer version (0.4 or later)')
 
-    # Create mne_analyze colormap using data quartiles
+##############################################################################
+    # Create mne_analyze colormap using control points based on percentages
     if colormap == 'mne_analyze':
         if limits is None:
             raise ValueError('"limits" must be defined to use mne_analyze'
                              ' colormap')
+        elif isinstance(limits['kind']) and (limits['kind'] == 'value' or
+                                             limits['kind'] == 'percentage'):
+            raise ValueError('"limits[kind]" must "value" or "percentage"')
         elif limits == 'auto':
             ctrl_pts = np.percentile(stc.data, [90, 95, 99.5])
             colormap = mne_analyze_colormap(ctrl_pts)
@@ -517,17 +535,28 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             ctrl_pts = limits
             colormap = mne_analyze_colormap(limits)
         elif isinstance(limits, dict):
-            if (not isinstance(limits['bounds'], list) or
-                not isinstance(limits['one_sided'], bool)):
-                raise ValueError('"limits" dict must contain "bounds" list and'
-                                 ' "one_sided" bool')
-            if limits['one_sided'] is False:
-                ctrl_pts = np.percentile(np.abs(stc.data),
-                                         list(np.abs(limits['bounds'])))
-                print('Final ctrl_pts: ' + str(ctrl_pts))
-                colormap = mne_analyze_colormap(ctrl_pts)
+            if not isinstance(limits['pos_lims'], list):
+                raise ValueError('"limits" dict must contain "pos_lims" list')
+            if isinstance(limits['lims'], list):
+                warnings.warn('"limits[lim]" is not used if colormap is'
+                              '"mne_analyze." Use pos_lims and optionally'
+                              'neg_lims.')
+            if isinstance(limits['neg_lims'], list):
+                temp_pts = limits['neg_lims'].extend(limits['pos_lims'])
+                ctrl_pts.extend(np.percentile(stc.data, temp_pts))
+                scaling_pts = [ctrl_pts[0], 0, ctrl_pts[-1]]
             else:
-                ctrl_pts = np.percentile(stc.data, limits['bounds'])
+                ctrl_pts.extend(np.percentile(np.abs(stc.data),
+                                              np.abs(limits['pos_lims'])))
+                scaling_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+
+            print('Final ctrl_pts: ' + str(ctrl_pts))
+            colormap = mne_analyze_colormap(ctrl_pts)
+    else:
+        scaling_pts = limits['lims']
+
+
+##############################################################################
 
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
@@ -546,8 +575,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=-1 * ctrl_pts[2], fmid=0,
-                                  fmax=ctrl_pts[2], transparent=transparent)
+        brain.scale_data_colormap(fmin=scaling_pts[0], fmid=scaling_pts[1],
+                                  fmax=scaling_pts[2], transparent=transparent)
 
     if time_viewer:
         TimeViewer(brain)
