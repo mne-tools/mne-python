@@ -169,7 +169,7 @@ class RawEDF(_BaseRaw):
         stop = int(stop)
 
         n_samps = self._edf_info['n_samps']
-        max_samp = np.max(n_samps)
+        max_samp = self._edf_info['max_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -219,7 +219,7 @@ class RawEDF(_BaseRaw):
                     samp = int(step * n_chan * data_size)
                     blocks = int(ceil(float(step) / max_samp))
                     # complicated bdf: various sampling rates within file
-                    if np.unique(n_samps) != 1:
+                    if len(np.unique(n_samps)) != 1:
                         for i in range(blocks):
                             data = np.empty((n_chan, max_samp), dtype=int)
                             for j, samp in enumerate(n_samps):
@@ -266,7 +266,7 @@ class RawEDF(_BaseRaw):
                 # eight bit trigger mask
                 mask = 2 ** 8 - 1
                 # complicated edf: various sampling rates within file
-                if np.unique(n_samps) != 1:
+                if len(np.unique(n_samps)) != 1:
                     for i in range(blocks):
                         data = np.empty((n_chan, max_samp), dtype=int)
                         for j, samp in enumerate(n_samps):
@@ -285,10 +285,9 @@ class RawEDF(_BaseRaw):
                                 else:
                                     warnings.warn('Interpolating stim channel. '
                                                   'Events may jitter.')
-                                    oldrange = np.linspace(0, 1, samp * blocks + 1,
+                                    oldrange = np.linspace(0, 1, samp + 1,
                                                            True)
-                                    newrange = np.linspace(0, 1, max_samp * blocks,
-                                                           False)
+                                    newrange = np.linspace(0, 1, max_samp, False)
                                     chan_data = interp1d(oldrange,
                                                          np.append(chan_data, 0),
                                                          kind='zero')(newrange)
@@ -593,9 +592,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
-    max_samp_per_block = n_samps[picks].max()
-    info['sfreq'] = max_samp_per_block / float(record_length)
-    edf_info['nsamples'] = int(n_records * max_samp_per_block)
+    edf_info['max_samp'] = max_samp = n_samps[picks].max()
+    info['sfreq'] = max_samp / float(record_length)
+    edf_info['nsamples'] = int(n_records * max_samp)
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
