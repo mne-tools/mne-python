@@ -356,7 +356,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=None, fmid=None, fmax=None,
-                          transparent=True, alpha=1.0, time_viewer=False,
+                          transparent=None, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
                           views='lat', colorbar=True, limits=None):
     """Plot SourceEstimates with PySurfer
@@ -427,11 +427,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 colormap is NOT 'mne_analyze'
             pos_lims : None or length 3 list or array
                 Minimum, middle, and maximum positive control points for
-                colormap. Only used if colormap is 'mne_analyze'
-            neg_lims : length 3 list or array
-                Minimum, middle, and maximum positive control points for
-                asymmetric colormap control points. Only used if colormap
-                is 'mne_analyze'
+                (only) 'mne_analyze' colormap.
 
     Returns
     -------
@@ -482,17 +478,75 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'will be created (%s)' % n_split * n_views)
 
 ##############################################################################
-    # Handle retro behavior for flims and potentially throw deprecation error
-    ctrl_pts = [fmin, fmid, fmax]
-    scaling_pts = [fmin, fmid, fmax]
-    for fi, f in enumerate(ctrl_pts):
+    scale_pts = [fmin, fmid, fmax]
+    # Check if using old fmin/fmid/fmax behavior
+    if limits is None:
         # Throw deprecation warning (should only show up once)
-        if f is not None:
-            warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                          ' removed in v0.10. Use "limits" instead.',
-                          DeprecationWarning)
+        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
+                      ' removed in v0.10. Use "limits" instead.',
+                      DeprecationWarning)
+        for fi, f in enumerate(scale_pts):
+            if f is None:
+                scale_pts[fi] = [5., 10., 15.][fi]
+
+    # Using new cmap limit behavior. Check if using mne_analyze
+    else:
+        if any([f is not None for f in [fmin, fmid, fmax]]):
+            warnings.warn('"limits" overrides fmin, fmid, fmax')
+        # Colormap is 'mne_analyze'. Need to construct cmap and get scale vals
+        if colormap == 'mne_analyze':
+            if limits == 'auto':
+                ctrl_pts = np.percentile(np.abs(stc.data), [97, 98.5, 99.9])
+                colormap = mne_analyze_colormap(ctrl_pts)
+            elif isinstance(limits, tuple):
+                assert len(limits) == 3, '"limits" tuple must be length 3'
+                ctrl_pts = limits
+                colormap = mne_analyze_colormap(ctrl_pts)
+            elif isinstance(limits, dict):
+                if limits['kind'] == 'percent':
+                    ctrl_pts = np.percentile(np.abs(stc.data),
+                                             np.abs(limits['pos_lims']))
+                elif limits['kind'] == 'value':
+                    ctrl_pts = limits['pos_lims']
+                else:
+                    raise ValueError('limits[kind] must be "value" or '
+                                     ' "percent"')
+                if 'lims' in limits:
+                    warnings.warn('"limits[lim]" is not used if colormap is'
+                                  ' "mne_analyze." Use "pos_lims"')
+                print('Final ctrl_pts: ' + str(ctrl_pts))
+                colormap = mne_analyze_colormap(ctrl_pts)
+            else:
+                raise ValueError('"limits" must be "auto", tuple or dict')
+
+            scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+            if transparent is None:
+                transparent = False
+
+        # Standard colormap (not 'mne_analyze'). Only need to get scale vals
         else:
-            ctrl_pts[fi] = [5., 10., 15.][fi]
+            if limits == 'auto':
+                scale_pts = np.percentile(np.abs(stc.data), [97, 98.5, 99.9])
+            elif isinstance(limits, tuple):
+                assert len(limits) == 3, '"limits" tuple must be length 3'
+                scale_pts = limits
+            elif isinstance(limits, dict):
+                if limits['kind'] == 'value':
+                    scale_pts = limits['lims']
+                elif limits['kind'] == 'percent':
+                    scale_pts = np.percentile(stc.data, limits['lims'])
+                else:
+                    raise ValueError('limits[kind] must be "value" or '
+                                     ' "percent"')
+
+                if 'pos_lims' in limits:
+                    warnings.warn('limits[pos_lims] not used if colormap is '
+                                  ' not mne_analyze. Use limits[lims]')
+            else:
+                raise ValueError('"limits" must be "auto", tuple or dict')
+            if transparent is None:
+                transparent = True
+
 ##############################################################################
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
@@ -520,43 +574,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                     'consider updating to a newer version (0.4 or later)')
 
 ##############################################################################
-    # Create mne_analyze colormap using control points based on percentages
-    if colormap == 'mne_analyze':
-        if limits is None:
-            raise ValueError('"limits" must be defined to use mne_analyze'
-                             ' colormap')
-        elif isinstance(limits['kind']) and (limits['kind'] == 'value' or
-                                             limits['kind'] == 'percentage'):
-            raise ValueError('"limits[kind]" must "value" or "percentage"')
-        elif limits == 'auto':
-            ctrl_pts = np.percentile(stc.data, [90, 95, 99.5])
-            colormap = mne_analyze_colormap(ctrl_pts)
-        elif isinstance(limits, tuple):
-            ctrl_pts = limits
-            colormap = mne_analyze_colormap(limits)
-        elif isinstance(limits, dict):
-            if not isinstance(limits['pos_lims'], list):
-                raise ValueError('"limits" dict must contain "pos_lims" list')
-            if isinstance(limits['lims'], list):
-                warnings.warn('"limits[lim]" is not used if colormap is'
-                              '"mne_analyze." Use pos_lims and optionally'
-                              'neg_lims.')
-            if isinstance(limits['neg_lims'], list):
-                temp_pts = limits['neg_lims'].extend(limits['pos_lims'])
-                ctrl_pts.extend(np.percentile(stc.data, temp_pts))
-                scaling_pts = [ctrl_pts[0], 0, ctrl_pts[-1]]
-            else:
-                ctrl_pts.extend(np.percentile(np.abs(stc.data),
-                                              np.abs(limits['pos_lims'])))
-                scaling_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-
-            print('Final ctrl_pts: ' + str(ctrl_pts))
-            colormap = mne_analyze_colormap(ctrl_pts)
-    else:
-        scaling_pts = limits['lims']
-
-
-##############################################################################
 
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
@@ -574,9 +591,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            time_label=time_label, alpha=alpha, hemi=hemi,
                            colorbar=colorbar)
 
+        print('Final scale_pts: ' + str(scale_pts))
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=scaling_pts[0], fmid=scaling_pts[1],
-                                  fmax=scaling_pts[2], transparent=transparent)
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], transparent=transparent)
 
     if time_viewer:
         TimeViewer(brain)
