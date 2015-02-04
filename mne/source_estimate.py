@@ -1350,7 +1350,7 @@ class SourceEstimate(_BaseSourceEstimate):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-             transparent=True, alpha=1.0, time_viewer=False,
+             transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
              views='lat', colorbar=True, limits=None):
         """Plot SourceEstimates with PySurfer
