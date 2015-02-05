@@ -64,7 +64,9 @@ A typical mne-python workflow is as follows:
 .. image:: _static/mne-python_flow.svg
 
 For example, here we use a simplistic pipeline to go from raw data to brain
-source time courses in under 30 lines of code:
+source time courses in under 30 lines of code. Note that the only step that
+requires manual coregistration is the creation of the head-to-mri transform
+file :code:`sample_audvis_raw-trans.fif`:
 
     >>> # import the necesary packages and functions
     >>> from os import path as op
