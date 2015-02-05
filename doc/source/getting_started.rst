@@ -83,7 +83,8 @@ source time courses in under 30 lines of code:
     >>> raw_fname = op.join(data_path(), 'MEG', 'sample', 'sample_audvis_raw.fif')
 
     >>> # process data
-    >>> raw = mne.io.Raw(raw_fname)  # Load raw data
+    >>> raw = mne.io.Raw(raw_fname, preload=True)  # Load raw data
+    >>> raw.filter(0, 40)  # Low-pass filter
     >>> events = mne.find_events(raw, stim_channel='STI 014')  # Extract events
     >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
                             reject=dict(eeg=80e-6, eog=150e-6))  # Create Epochs

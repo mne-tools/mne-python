@@ -2,14 +2,25 @@
 
 import os
 from os import path as op
-import warnings
 
 title = 'mne-python flow diagram'
 
 font_face = 'Arial'
 node_size = 12
-node_small_size = 8
-edge_size = 8
+node_small_size = 9
+edge_size = 9
+sensor_color = '#7bbeca'
+source_color = '#ff6347'
+
+legend = """
+<<FONT POINT-SIZE="%s">
+<TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
+<TR><TD>    </TD><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+Sensor (M/EEG) space</TD></TR>
+<TR><TD>    </TD><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+Source (brain) space</TD></TR>
+</TABLE></FONT>>""" % (edge_size, sensor_color, source_color)
+legend = ''.join(legend.split('\n'))
 
 nodes = dict(
     T1='T1',
@@ -26,12 +37,11 @@ nodes = dict(
     epo='Epoched data\nmne.Epochs',
     evo='Averaged data\nmne.Evoked',
     pre='Preprocessed data\nmne.io.Raw',
+    legend=legend,
 )
 
 sensor_space = ('raw', 'pre', 'epo', 'evo', 'cov')
-sensor_color = '#7bbeca'
 source_space = ('src', 'stc', 'bem', 'flashes', 'recon', 'T1')
-source_color = '#ff6347'
 
 edges = (
     ('T1', 'recon'),
@@ -45,7 +55,8 @@ edges = (
     ('cov', 'inv', 'make_inverse_operator'),
     ('inv', 'stc'),
     ('evo', 'stc', 'apply_inverse'),
-    ('raw', 'pre', 'raw.filter\netc.'),
+    ('raw', 'pre', 'raw.filter\nICA\ncompute_proj_eog\ncompute_proj_ecg\n'
+                   '...'),
     ('pre', 'epo', 'Epochs'),
     ('epo', 'evo', 'epochs.average'),
     ('epo', 'cov', 'compute_covariance'),
@@ -53,7 +64,9 @@ edges = (
 )
 
 subgraphs = (
-    [('T1', 'flashes', 'recon', 'bem', 'src'), 'Structural information'],
+    [('T1', 'flashes', 'recon', 'bem', 'src'),
+     ('<Structural information<BR/><FONT POINT-SIZE="%s"><I>'
+      'Freesurfer / MNE-C</I></FONT>>' % node_small_size)],
 )
 
 
@@ -69,9 +82,11 @@ def setup_module():
 
 def generate_flow_diagram(app):
     out_dir = op.join(app.builder.outdir, '_static')
-    os.makedirs(out_dir, exist_ok=True)
+    if not op.isdir(out_dir):
+        os.makedirs(out_dir)
     out_fname = op.join(out_dir, 'mne-python_flow.svg')
-    make_flow_diagram = bool(app.builder.config.make_flow_diagram)
+    make_flow_diagram = app is None or \
+        bool(app.builder.config.make_flow_diagram)
     if not make_flow_diagram:
         print('Skipping flow diagram, webpage will have a missing image')
         return
@@ -81,12 +96,16 @@ def generate_flow_diagram(app):
 
     for key, label in nodes.items():
         label = label.split('\n')
-        label[0] = '<<FONT POINT-SIZE="%s">' % node_size + label[0] + '</FONT>'
-        for li in range(1, len(label)):
-            label[li] = ('<FONT POINT-SIZE="%s"><I>' % node_small_size
-                         + label[li] + '</I></FONT>')
-        label[-1] = label[-1] + '>'
-        label = '<BR/>'.join(label)
+        if len(label) > 1:
+            label[0] = ('<<FONT POINT-SIZE="%s">' % node_size
+                        + label[0] + '</FONT>')
+            for li in range(1, len(label)):
+                label[li] = ('<FONT POINT-SIZE="%s"><I>' % node_small_size
+                             + label[li] + '</I></FONT>')
+            label[-1] = label[-1] + '>'
+            label = '<BR/>'.join(label)
+        else:
+            label = label[0]
         g.add_node(key, shape='plaintext', label=label)
 
     # Create and customize nodes and edges
@@ -94,7 +113,9 @@ def generate_flow_diagram(app):
         g.add_edge(*edge[:2])
         e = g.get_edge(*edge[:2])
         if len(edge) > 2:
-            e.attr['label'] = edge[2]
+            e.attr['label'] = ('<<I>' +
+                               '<BR ALIGN="LEFT"/>'.join(edge[2].split('\n')) +
+                               '<BR ALIGN="LEFT"/></I>>')
         e.attr['fontsize'] = edge_size
     g.get_node
     # Change colors
@@ -124,6 +145,20 @@ def generate_flow_diagram(app):
         node.attr['fillcolor'] = ':'.join(colors)
         node.attr['style'] = 'filled'
     del node
+    g.get_node('legend').attr.update(shape='plaintext', margin=0, rank='sink')
+    # put legend in same rank/level as inverse
+    l = g.add_subgraph(['legend', 'inv'], name='legendy')
+    l.graph_attr['rank'] = 'same'
 
     g.layout('dot')
     g.draw(out_fname, format='svg')
+    return g
+
+
+# This is useful for testing/iterating to see what the result looks like
+if __name__ == '__main__':
+    from mne.io.constants import Bunch
+    out_dir = op.abspath(op.join(op.dirname(__file__), '..', 'build', 'html'))
+    app = Bunch(builder=Bunch(outdir=out_dir,
+                              config=Bunch(make_flow_diagram=True)))
+    g = generate_flow_diagram(app)
