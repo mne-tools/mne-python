@@ -9,12 +9,13 @@ import shutil
 
 from nose.tools import assert_true, assert_equal, assert_raises
 
-from mne import Epochs, read_events, pick_types
+from mne import Epochs, read_events, pick_types, read_evokeds
 from mne.io import Raw
 from mne.datasets import testing
 from mne.report import Report
 from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        requires_PIL, run_tests_if_main, slow_test)
+from mne.viz import plot_trans
 
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
@@ -30,6 +31,9 @@ mri_fname = op.join(subjects_dir, 'sample', 'mri', 'T1.mgz')
 
 base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
+evoked_fname = op.join(base_dir, 'test-ave.fif')
+
+
 
 # Set our plotters to test mode
 import matplotlib
@@ -114,6 +118,7 @@ def test_render_report():
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
 
+@testing.requires_testing_data
 @requires_mayavi
 @requires_PIL
 def test_render_add_sections():
@@ -121,7 +126,6 @@ def test_render_add_sections():
     """
     tempdir = _TempDir()
     import matplotlib.pyplot as plt
-
     report = Report(subjects_dir=subjects_dir)
     # Check add_figs_to_section functionality
     fig = plt.plot([1, 2], [1, 2])[0].figure
@@ -146,6 +150,13 @@ def test_render_add_sections():
                            captions=['evoked response'])
         assert_true(w[0].category == DeprecationWarning)
 
+    evoked = read_evokeds(evoked_fname, condition='Left Auditory',
+                          baseline=(-0.2, 0.0))
+    fig = plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
+                     subjects_dir=subjects_dir)
+
+    report.add_figs_to_section(figs=fig,  # test non-list input
+                               captions='random image', scale=1.2)
 
 @slow_test
 @testing.requires_testing_data
