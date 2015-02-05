@@ -701,6 +701,8 @@ class Report(object):
                              image_format='png', scale=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
+        from scipy.misc import imread
+        import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, analysis:ignore... mlab imported
@@ -720,11 +722,19 @@ class Report(object):
             if isinstance(fig, mayavi.core.scene.Scene):
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
-                fig.scene.save_png(temp_fname)
+                if fig.scene is not None:
+                    fig.scene.save_png(temp_fname)
+                    img = imread(temp_fname)
+                else:  # Testing mode
+                    img = np.zeros((2, 2, 3))
+
                 mayavi.mlab.close(fig)
-            else:
-                img = _fig_to_img(fig=fig, scale=scale,
-                                  image_format=image_format)
+                fig = plt.figure()
+                plt.imshow(img)
+                plt.axis('off')
+
+            img = _fig_to_img(fig=fig, scale=scale,
+                              image_format=image_format)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
