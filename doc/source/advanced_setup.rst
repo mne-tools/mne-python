@@ -93,12 +93,12 @@ functions might not work as expected.
 IPython notebooks
 ^^^^^^^^^^^^^^^^^
 
-To take full advantage of MNE-Python's visualization capacities in combination
+To take full advantage of mne-python's visualization capacities in combination
 with IPython notebooks and inline displaying, please explicitly add the
 following magic method invocation to your notebook or configure your notebook
 runtime accordingly.
 
-    %pylab inline
+    %matplotlib inline
 
 If you use another Python setup and you encounter some difficulties please
 report them on the MNE mailing list or on github to get assistance.

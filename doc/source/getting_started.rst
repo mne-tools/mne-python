@@ -3,7 +3,7 @@
 Getting Started
 ===============
 
-This page will help you get started with MNE-python. If you are at the
+This page will help you get started with mne-python. If you are at the
 Martinos Center, please see this section :ref:`inside_martinos`. If you
 would like to use a custom installation of python (or have specific
 questions about integrating special tools like IPython notebooks), please
@@ -29,7 +29,7 @@ To test that everything works properly, open up IPython::
 
 Now that you have a working Python environment you can install MNE.
 
-MNE-Python installation
+mne-python installation
 -----------------------
 Most users should start with the "stable" version of mne-python, which can
 be installed this way:
@@ -59,7 +59,7 @@ mne-python basics
 -----------------
 mne-python uses its own custom objects to store M/EEG data. A full description
 of these objects is available in the :ref:`api_reference` section.
-A typical MNE-python workflow is as follows:
+A typical mne-python workflow is as follows:
 
 .. image:: _static/mne-python_flow.svg
 
