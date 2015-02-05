@@ -916,7 +916,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
         else:
             stdout = ''
         if os.path.exists(time_path):
-            with open(time_path).read() as fid:
+            with open(time_path) as fid:
                 time_elapsed = float(fid.read())
 
         if not os.path.exists(first_image_file) or \

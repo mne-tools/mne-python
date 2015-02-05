@@ -874,8 +874,9 @@ class EvokedArray(Evoked):
                              'n_samples)')
 
         if len(info['ch_names']) != np.shape(data)[0]:
-            raise ValueError('Info and data must have same number of '
-                             'channels.')
+            raise ValueError('Info (%s) and data (%s) must have same number '
+                             'of channels.' % (len(info['ch_names']),
+                                               np.shape(data)[0]))
 
         self.data = data
 

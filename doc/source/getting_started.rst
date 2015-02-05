@@ -83,17 +83,17 @@ source time courses in under 30 lines of code:
     >>> raw_fname = op.join(data_path(), 'MEG', 'sample', 'sample_audvis_raw.fif')
 
     >>> # process data
-    >>> raw = mne.io.Raw(raw_fname, preload=True)  # Load raw data
-    >>> raw.filter(None, 40)  # Low-pass filter
-    >>> events = mne.find_events(raw, stim_channel='STI 014')  # Extract events
-    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
-                            reject=dict(eeg=80e-6, eog=150e-6))  # Create Epochs
-    >>> evoked = epochs.average()  # Average to create Evoked
-    >>> cov = mne.compute_covariance(epochs, tmax=0)  # Calculate baseline covariance
-    >>> forward = mne.make_forward_solution(evoked.info, mri, src, bem, mindist=5.0)
-    >>> inverse = mne.minimum_norm.make_inverse_operator(evoked.info, forward, cov)
-    >>> stc = mne.minimum_norm.apply_inverse(evoked, inverse,
-                                             lambda2=1. / 9.)  # Source estimates
+    >>> raw = mne.io.Raw(raw_fname, preload=True)  # Load raw data # doctest: +SKIP
+    >>> raw.filter(None, 40)  # Low-pass filter # doctest: +SKIP
+    >>> events = mne.find_events(raw, stim_channel='STI 014')  # Extract events # doctest: +SKIP
+    >>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,  # doctest: +SKIP
+                            reject=dict(eeg=80e-6, eog=150e-6))  # Create Epochs # doctest: +SKIP
+    >>> evoked = epochs.average()  # Average to create Evoked # doctest: +SKIP
+    >>> cov = mne.compute_covariance(epochs, tmax=0)  # Calculate baseline covariance # doctest: +SKIP
+    >>> forward = mne.make_forward_solution(evoked.info, mri, src, bem, mindist=5.0)  # doctest: +SKIP
+    >>> inverse = mne.minimum_norm.make_inverse_operator(evoked.info, forward, cov)  # doctest: +SKIP
+    >>> stc = mne.minimum_norm.apply_inverse(evoked, inverse,  # doctest: +SKIP
+                                             lambda2=1. / 9.)  # Source estimates # doctest: +SKIP
 
 Check out :ref:`mne_python_tutorial` for a more complete explanation
 of these steps. Also check out the :ref:`examples-index` for many more
