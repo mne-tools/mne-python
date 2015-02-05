@@ -67,12 +67,11 @@ try:
     import matplotlib
     matplotlib.use('Agg')
 except ImportError:
-    # this script can be imported by nosetest to find tests to run: we should not
-    # impose the matplotlib requirement in that case.
+    # this script can be imported by nosetest to find tests to run: we should
+    # not impose the matplotlib requirement in that case.
     pass
 
 
-import joblib
 MAX_NB_LINES_STDOUT = 20
 
 
@@ -122,8 +121,12 @@ def _get_data(url):
 
     return data
 
-mem = joblib.Memory(cachedir='_build')
-get_data = mem.cache(_get_data)
+try:
+    import joblib
+    mem = joblib.Memory(cachedir='_build')
+    get_data = mem.cache(_get_data)
+except ImportError:
+    get_data = _get_data
 
 
 def parse_sphinx_searchindex(searchindex):
@@ -504,10 +507,7 @@ def generate_example_rst(app):
     generated_dir = os.path.abspath(os.path.join(app.builder.srcdir,
                                                  'modules', 'generated'))
 
-    try:
-        plot_gallery = eval(app.builder.config.plot_gallery)
-    except TypeError:
-        plot_gallery = bool(app.builder.config.plot_gallery)
+    plot_gallery = bool(app.builder.config.plot_gallery)
     if not os.path.exists(example_dir):
         os.makedirs(example_dir)
     if not os.path.exists(root_dir):
@@ -516,10 +516,11 @@ def generate_example_rst(app):
         os.makedirs(generated_dir)
 
     # we create an index.rst with all examples
-    fhindex = open(os.path.join(root_dir, 'index.rst'), 'w')
-    # Note: The sidebar button has been removed from the examples page for now
-    #      due to how it messes up the layout. Will be fixed at a later point
-    fhindex.write("""\
+    with open(os.path.join(root_dir, 'index.rst'), 'w') as fhindex:
+        # Note: The sidebar button has been removed from the examples page
+        #       for now due to how it messes up the layout. Will be fixed
+        #       at a later point
+        fhindex.write("""\
 
 
 
@@ -556,20 +557,22 @@ Examples
 ========
 
 """)
-    # Here we don't use an os.walk, but we recurse only twice: flat is
-    # better than nested.
-    seen_backrefs = set()
-    generate_dir_rst('.', fhindex, example_dir, root_dir, plot_gallery, seen_backrefs)
-    for directory in sorted(os.listdir(example_dir)):
-        if os.path.isdir(os.path.join(example_dir, directory)):
-            generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery, seen_backrefs)
-    fhindex.flush()
+        # Here we don't use an os.walk, but we recurse only twice: flat is
+        # better than nested.
+        seen_backrefs = set()
+        generate_dir_rst('.', fhindex, example_dir, root_dir, plot_gallery,
+                         seen_backrefs)
+        for directory in sorted(os.listdir(example_dir)):
+            if os.path.isdir(os.path.join(example_dir, directory)):
+                generate_dir_rst(directory, fhindex, example_dir, root_dir,
+                                 plot_gallery, seen_backrefs)
 
 
 def extract_line_count(filename, target_dir):
     # Extract the line count of a file
     example_file = os.path.join(target_dir, filename)
-    lines = open(example_file).readlines()
+    with open(example_file) as fid:
+        lines = fid.readlines()
     start_row = 0
     if lines and lines[0].startswith('#!'):
         lines.pop(0)
@@ -639,7 +642,8 @@ def _thumbnail_div(subdir, full_dir, fname, snippet):
     return ''.join(out)
 
 
-def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery, seen_backrefs):
+def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery,
+                     seen_backrefs):
     """ Generate the rst file for an example directory.
     """
     if not directory == '.':
@@ -655,13 +659,15 @@ def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery, se
         print('Skipping this directory')
         print(80 * '_')
         return
+    with open(os.path.join(src_dir, 'README.txt')) as fid:
+        readme = fid.read()
     fhindex.write("""
 
 
 %s
 
 
-""" % open(os.path.join(src_dir, 'README.txt')).read())
+""" % readme)
     if not os.path.exists(target_dir):
         os.makedirs(target_dir)
     sorted_listdir = line_count_sort(os.listdir(src_dir),
@@ -670,7 +676,8 @@ def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery, se
         os.makedirs(os.path.join(directory, 'images', 'thumb'))
     for fname in sorted_listdir:
         if fname.endswith('py'):
-            backrefs = generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery)
+            backrefs = generate_file_rst(fname, target_dir, src_dir, root_dir,
+                                         plot_gallery)
             new_fname = os.path.join(src_dir, fname)
             _, snippet, _ = extract_docstring(new_fname, True)
             fhindex.write(_thumbnail_div(directory, directory, fname, snippet))
@@ -904,11 +911,13 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
         # existing image.
         first_image_file = image_path % 1
         if os.path.exists(stdout_path):
-            stdout = open(stdout_path).read()
+            with open(stdout_path) as fid:
+                stdout = fid.read()
         else:
             stdout = ''
         if os.path.exists(time_path):
-            time_elapsed = float(open(time_path).read())
+            with open(time_path).read() as fid:
+                time_elapsed = float(fid.read())
 
         if not os.path.exists(first_image_file) or \
            os.stat(first_image_file).st_mtime <= os.stat(src_file).st_mtime:
@@ -920,7 +929,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
 
             try:
                 from mayavi import mlab
-            except Exception, e:
+            except Exception:
                 from enthought.mayavi import mlab
             mlab.close(all=True)
 
@@ -953,8 +962,10 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                         output_lines.append('...')
                     stdout = '**Script output**::\n\n  %s\n\n' % (
                         '\n  '.join(output_lines))
-                open(stdout_path, 'w').write(stdout)
-                open(time_path, 'w').write('%f' % time_elapsed)
+                with open(stdout_path, 'w') as fid:
+                    fid.write(stdout)
+                with open(time_path, 'w') as fid:
+                    fid.write('%f' % time_elapsed)
                 os.chdir(cwd)
 
                 # In order to save every figure we have two solutions :
@@ -1051,12 +1062,12 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
             image_list += HLIST_IMAGE_TEMPLATE % figure_name.lstrip('/')
 
     time_m, time_s = divmod(time_elapsed, 60)
-    f = open(os.path.join(target_dir, base_image_name + '.rst'), 'w')
-    f.write(this_template % locals())
-    f.flush()
+    with open(os.path.join(target_dir, base_image_name + '.rst'), 'w') as f:
+        f.write(this_template % locals())
 
     # save variables so we can later add links to the documentation
-    example_code_obj = identify_names(open(example_file).read())
+    with open(example_file) as fid:
+        example_code_obj = identify_names(fid.read())
     if example_code_obj:
         codeobj_fname = example_file[:-3] + '_codeobj.pickle'
         with open(codeobj_fname, 'wb') as fid:

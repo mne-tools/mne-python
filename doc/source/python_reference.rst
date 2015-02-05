@@ -1,6 +1,8 @@
-=========
-Reference
-=========
+.. _api_reference:
+
+=============
+API Reference
+=============
 
 .. automodule:: mne
    :no-members:
