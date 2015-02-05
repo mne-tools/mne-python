@@ -118,6 +118,7 @@ def test_render_report():
         assert_true(''.join(report.html).find(op.basename(fname)) != -1)
 
 
+@testing.requires_testing_data
 @requires_mayavi
 @requires_PIL
 def test_render_add_sections():
