@@ -265,7 +265,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id,
                                    l_freq=l_freq, h_freq=h_freq,
                                    verbose=verbose)
-    if picks is not None:
+    if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=False)
 
     # create epochs around ECG events and baseline (important)

@@ -125,12 +125,18 @@ def _interpolate_bads_eeg(inst):
     if getattr(inst, 'preload', None) is False:
         raise ValueError('Data must be preloaded.')
 
-    bads_idx = np.array([ch in inst.info['bads'] for ch in inst.ch_names])
+    bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
+    bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
+
+    if len(bads_idx) != len(inst.info['bads']):
+        logger.warning('Channel interpolation is currently only implemented '
+                       'for EEG. The MEG channels marked as bad will remain '
+                       'untouched.')
 
     pos = inst.get_channel_positions(picks)
 
