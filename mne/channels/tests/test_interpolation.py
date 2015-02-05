@@ -59,7 +59,7 @@ def test_interplation():
     assert_raises(ValueError,  epochs.interpolate_bads_eeg)
     epochs.preload = True
 
-    epochs2.info['bads'] = ['EEG 012']
+    epochs2.info['bads'] = ['EEG 012', 'MEG 1711']
 
     epochs2.interpolate_bads_eeg()
     ave_after2 = epochs2.average().data[n_meg + np.where(bads_idx)[0]]
