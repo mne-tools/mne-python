@@ -15,9 +15,9 @@ source_color = '#ff6347'
 legend = """
 <<FONT POINT-SIZE="%s">
 <TABLE BORDER="0" CELLBORDER="0" CELLSPACING="4" CELLPADDING="4">
-<TR><TD>    </TD><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
 Sensor (M/EEG) space</TD></TR>
-<TR><TD>    </TD><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
+<TR><TD BGCOLOR="%s">    </TD><TD ALIGN="left">
 Source (brain) space</TD></TR>
 </TABLE></FONT>>""" % (edge_size, sensor_color, source_color)
 legend = ''.join(legend.split('\n'))
@@ -31,7 +31,7 @@ nodes = dict(
     src='Source space\nmne.SourceSpaces',
     cov='Noise covariance\nmne.Covariance',
     fwd='Forward solution\nmne.forward.Forward',
-    inv='Inverse operator\nmne.minimum_norm.Inverse',
+    inv='Inverse operator\nmne.minimum_norm.InverseOperator',
     stc='Source estimate\nmne.SourceEstimate',
     raw='Raw data\nmne.io.Raw',
     epo='Epoched data\nmne.Epochs',
@@ -47,20 +47,22 @@ edges = (
     ('T1', 'recon'),
     ('flashes', 'bem'),
     ('recon', 'bem'),
-    ('recon', 'src', 'setup_source_space'),
+    ('recon', 'src', 'mne.setup_source_space'),
     ('src', 'fwd'),
     ('bem', 'fwd'),
-    ('trans', 'fwd', 'make_forward_solution'),
+    ('trans', 'fwd', 'mne.make_forward_solution'),
     ('fwd', 'inv'),
-    ('cov', 'inv', 'make_inverse_operator'),
+    ('cov', 'inv', 'mne.make_inverse_operator'),
     ('inv', 'stc'),
-    ('evo', 'stc', 'apply_inverse'),
-    ('raw', 'pre', 'raw.filter\nICA\ncompute_proj_eog\ncompute_proj_ecg\n'
+    ('evo', 'stc', 'mne.minimum_norm.apply_inverse'),
+    ('raw', 'pre', 'raw.filter\n'
+                   'mne.preprocessing.ICA\n'
+                   'mne.preprocessing.compute_proj_eog\n'
+                   'mne.preprocessing.compute_proj_ecg\n'
                    '...'),
-    ('pre', 'epo', 'Epochs'),
+    ('pre', 'epo', 'mne.Epochs'),
     ('epo', 'evo', 'epochs.average'),
-    ('epo', 'cov', 'compute_covariance'),
-    ('epo', 'stc', 'apply_inverse_epochs'),
+    ('epo', 'cov', 'mne.compute_covariance'),
 )
 
 subgraphs = (
