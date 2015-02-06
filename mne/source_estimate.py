@@ -1380,11 +1380,11 @@ class SourceEstimate(_BaseSourceEstimate):
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float | None
+        fmin : float | None (Deprecated)
             The minimum value to display.
-        fmid : float | None
+        fmid : float | None (Deprecated)
             The middle value on the colormap.
-        fmax : float | None
+        fmax : float | None (Deprecated)
             The maximum value for the colormap.
         transparent : bool
             If True, use a linear transparency between fmin and fmid.
