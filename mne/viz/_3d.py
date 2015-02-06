@@ -418,16 +418,15 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         If True, display colorbar on scene.
     limits : str | 3-tuple | dict
         Colorbar limit specification (if colormap='mne_analyze'). If 'auto',
-        set limits automatically based on quartiles of data. If 3-tuple, set
-        limits manually. If dict, should contain:
+        set limits automatically based on quartiles of data. If 3-tuple, of
+        floats, set limits according to these values. If dict, should contain:
             kind : str
-                Flag to specify type of limits. 'values' or 'percentages'
+                Flag to specify type of limits. 'value' or 'percent'.
             lims : length 3 list or array
-                Left, middle, and right bound of colormap. Only used if
-                colormap is NOT 'mne_analyze'
+                Left, middle, and right bound of colormap.
             pos_lims : None or length 3 list or array
                 Minimum, middle, and maximum positive control points for
-                (only) 'mne_analyze' colormap.
+                (only) 'mne_analyze' colormap that hasn't been pre-constructed.
 
     Returns
     -------
@@ -477,7 +476,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-##############################################################################
     # Set default transparency if user didn't specify it
     if transparent is None:
         if colormap == 'mne_analyze':
@@ -495,12 +493,12 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         for fi, f in enumerate(scale_pts):
             if f is None:
                 scale_pts[fi] = [5., 10., 15.][fi]
-        print('Scale pts: ' + str(scale_pts))
 
-    # Using new cmap limit behavior. Check if using mne_analyze
+    # Using new cmap limit behavior
     else:
         if any([f is not None for f in [fmin, fmid, fmax]]):
             warnings.warn('"limits" overrides fmin, fmid, fmax')
+
         # Colormap is 'mne_analyze'. Need to construct cmap and get scale vals
         if colormap == 'mne_analyze':
             if limits == 'auto':
@@ -522,7 +520,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 if 'lims' in limits:
                     warnings.warn('"limits[lim]" is not used if colormap is'
                                   ' "mne_analyze." Use "pos_lims"')
-                print('Final ctrl_pts: ' + str(ctrl_pts))
                 colormap = mne_analyze_colormap(ctrl_pts)
             else:
                 raise ValueError('"limits" must be "auto", tuple or dict')
@@ -550,8 +547,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                   ' not mne_analyze. Use limits[lims]')
             else:
                 raise ValueError('"limits" must be "auto", tuple or dict')
-
-##############################################################################
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
 
@@ -595,8 +590,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            time_label=time_label, alpha=alpha, hemi=hemi,
                            colorbar=colorbar)
 
-        #XXX
-        print('Final scale_pts: ' + str(scale_pts))
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
                                   fmax=scale_pts[2], transparent=transparent)
