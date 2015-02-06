@@ -478,6 +478,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'will be created (%s)' % n_split * n_views)
 
 ##############################################################################
+    # Set default transparency if user didn't specify it
+    if transparent is None:
+        if colormap == 'mne_analyze':
+            transparent = False
+        else:
+            transparent = True
+
     scale_pts = [fmin, fmid, fmax]
     # Check if using old fmin/fmid/fmax behavior
     if limits is None:
@@ -488,6 +495,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         for fi, f in enumerate(scale_pts):
             if f is None:
                 scale_pts[fi] = [5., 10., 15.][fi]
+        print('Scale pts: ' + str(scale_pts))
 
     # Using new cmap limit behavior. Check if using mne_analyze
     else:
@@ -505,7 +513,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             elif isinstance(limits, dict):
                 if limits['kind'] == 'percent':
                     ctrl_pts = np.percentile(np.abs(stc.data),
-                                             np.abs(limits['pos_lims']))
+                                             list(np.abs(limits['pos_lims'])))
                 elif limits['kind'] == 'value':
                     ctrl_pts = limits['pos_lims']
                 else:
@@ -520,8 +528,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 raise ValueError('"limits" must be "auto", tuple or dict')
 
             scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-            if transparent is None:
-                transparent = False
 
         # Standard colormap (not 'mne_analyze'). Only need to get scale vals
         else:
@@ -534,7 +540,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                 if limits['kind'] == 'value':
                     scale_pts = limits['lims']
                 elif limits['kind'] == 'percent':
-                    scale_pts = np.percentile(stc.data, limits['lims'])
+                    scale_pts = np.percentile(stc.data, list(limits['lims']))
                 else:
                     raise ValueError('limits[kind] must be "value" or '
                                      ' "percent"')
@@ -544,8 +550,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                   ' not mne_analyze. Use limits[lims]')
             else:
                 raise ValueError('"limits" must be "auto", tuple or dict')
-            if transparent is None:
-                transparent = True
 
 ##############################################################################
 
@@ -591,6 +595,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            time_label=time_label, alpha=alpha, hemi=hemi,
                            colorbar=colorbar)
 
+        #XXX
         print('Final scale_pts: ' + str(scale_pts))
         # scale colormap and set time (index) to display
         brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
