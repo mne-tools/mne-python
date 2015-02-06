@@ -571,7 +571,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         logger.info('PySurfer does not support "views" argument, please '
                     'consider updating to a newer version (0.4 or later)')
-
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:
