@@ -54,7 +54,7 @@ epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,
                     picks=picks, baseline=(None, 0), reject=reject)
 
 # Generate list of evoked objects from conditions names
-evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
+evokeds = [epochs[name].average() for name in ('audio_l', 'visual_r')]
 
 ###############################################################################
 # Show topography for two different conditions

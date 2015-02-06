@@ -585,7 +585,7 @@ def make_eeg_average_ref_proj(info, activate=True, verbose=None):
     eeg_proj: instance of Projection
         The SSP/PCA projector.
     """
-    if info['custom_ref_applied']:
+    if info.get('custom_ref_applied', False):
         raise RuntimeError('Cannot add an average EEG reference projection '
                            'since a custom reference has been applied to the '
                            'data earlier.')

@@ -32,7 +32,7 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Vis-lh.label']
 
 
-# read forward solution (sources in surface-based coordinates)
+# read forward solution
 forward = mne.read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
 
@@ -50,21 +50,13 @@ method = 'MNE'  # can be 'MNE' or 'sLORETA'
 mode = 'svd'
 n_svd_comp = 1
 
-stc_psf_eegmeg, _ = point_spread_function(inverse_operator_eegmeg,
-                                          forward, method=method,
-                                          labels=labels,
-                                          lambda2=lambda2,
-                                          pick_ori='normal',
-                                          mode=mode,
-                                          n_svd_comp=n_svd_comp)
+stc_psf_eegmeg, _ = point_spread_function(
+    inverse_operator_eegmeg, forward, method=method, labels=labels,
+    lambda2=lambda2, pick_ori='normal', mode=mode, n_svd_comp=n_svd_comp)
 
-stc_psf_meg, _ = point_spread_function(inverse_operator_meg,
-                                       forward, method=method,
-                                       labels=labels,
-                                       lambda2=lambda2,
-                                       pick_ori='normal',
-                                       mode=mode,
-                                       n_svd_comp=n_svd_comp)
+stc_psf_meg, _ = point_spread_function(
+    inverse_operator_meg, forward, method=method, labels=labels,
+    lambda2=lambda2, pick_ori='normal', mode=mode, n_svd_comp=n_svd_comp)
 
 # save for viewing in mne_analyze in order of labels in 'labels'
 # last sample is average across PSFs

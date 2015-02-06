@@ -31,9 +31,8 @@ fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
                data_path + '/MEG/sample/labels/Vis-rh.label',
                data_path + '/MEG/sample/labels/Vis-lh.label']
 
-# In order to get gain matrix with fixed source orientation,
-# read forward solution with fixed orientations
-forward = mne.read_forward_solution(fname_fwd, force_fixed=True, surf_ori=True)
+# read forward solution
+forward = mne.read_forward_solution(fname_fwd)
 
 # read label(s)
 labels = [mne.read_label(ss) for ss in fname_label]
@@ -47,16 +46,14 @@ mode = 'svd'
 n_svd_comp = 1
 
 method = 'MNE'  # can be 'MNE', 'dSPM', or 'sLORETA'
-stc_ctf_mne = cross_talk_function(inverse_operator, forward, labels,
-                                  method=method, lambda2=lambda2,
-                                  signed=False, mode=mode,
-                                  n_svd_comp=n_svd_comp)
+stc_ctf_mne = cross_talk_function(
+    inverse_operator, forward, labels, method=method, lambda2=lambda2,
+    signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
 method = 'dSPM'
-stc_ctf_dspm = cross_talk_function(inverse_operator, forward, labels,
-                                   method=method, lambda2=lambda2,
-                                   signed=False, mode=mode,
-                                   n_svd_comp=n_svd_comp)
+stc_ctf_dspm = cross_talk_function(
+    inverse_operator, forward, labels, method=method, lambda2=lambda2,
+    signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
 from mayavi import mlab
 fmin = 0.

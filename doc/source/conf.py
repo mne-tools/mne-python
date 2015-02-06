@@ -13,6 +13,7 @@
 
 import sys, os
 import os.path as op
+from datetime import date
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -29,7 +30,7 @@ import mne
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 import numpy_ext.numpydoc
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
-              'sphinx.ext.pngmath',
+              'sphinx.ext.pngmath', 'flow_diagram',
               'gen_rst', 'numpy_ext.numpydoc']
 autosummary_generate = True
 
@@ -53,15 +54,12 @@ source_suffix = '.rst'
 # The encoding of source files.
 #source_encoding = 'utf-8'
 
-# Generate the plots for the gallery
-plot_gallery = True
-
 # The master toctree document.
 master_doc = 'index'
 
 # General information about the project.
 project = u'MNE'
-copyright = u'2012-2013, MNE Developers'
+copyright = u'2012-%s, MNE Developers' % date.today().year
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -127,10 +125,10 @@ html_style = 'navy.css'
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-html_title = None
+# html_title = None
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
-html_short_title = None
+# html_short_title = None
 
 # The name of an image file (relative to this directory) to place at the top
 # of the sidebar.
@@ -139,7 +137,7 @@ html_short_title = None
 # The name of an image file (within the static path) to use as favicon of the
 # docs.  This file should be a Windows icon file (.ico) being 16x16 or 32x32
 # pixels large.
-html_favicon = "favicon.ico"
+# html_favicon = "favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

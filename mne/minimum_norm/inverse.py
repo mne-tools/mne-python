@@ -25,7 +25,7 @@ from ..io.pick import channel_type, pick_info, pick_types
 from ..cov import prepare_noise_cov, _read_cov, _write_cov
 from ..forward import (compute_depth_prior, _read_forward_meas_info,
                        write_forward_meas_info, is_fixed_orient,
-                       compute_orient_prior, _to_fixed_ori)
+                       compute_orient_prior, convert_forward_solution)
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi, _get_vertno,
                             _write_source_spaces_to_fid, label_src_vertno_sel)
@@ -1248,11 +1248,13 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     if depth is not None:
         if not (0 < depth <= 1):
             raise ValueError('depth should be a scalar between 0 and 1')
-        if is_fixed_ori or not forward['surf_ori']:
+        if is_fixed_ori:
             raise ValueError('You need a free-orientation, surface-oriented '
                              'forward solution to do depth weighting even '
                              'when calculating a fixed-orientation inverse.')
-
+        if not forward['surf_ori']:
+            forward = convert_forward_solution(forward, surf_ori=True)
+        assert forward['surf_ori']
     if loose is not None:
         if not (0 <= loose <= 1):
             raise ValueError('loose value should be smaller than 1 and bigger '
@@ -1294,8 +1296,9 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         if not is_fixed_ori:
             # Convert to the fixed orientation forward solution now
             depth_prior = depth_prior[2::3]
-            forward = deepcopy(forward)
-            _to_fixed_ori(forward)
+            forward = convert_forward_solution(forward, 
+                                               surf_ori=forward['surf_ori'],
+                                               force_fixed=True)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
                 _prepare_forward(forward, info, noise_cov, verbose=False)
