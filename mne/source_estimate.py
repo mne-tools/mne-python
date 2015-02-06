@@ -1406,10 +1406,19 @@ class SourceEstimate(_BaseSourceEstimate):
         colorbar : bool
             If True, display colorbar on scene.
         limits : str | 3-tuple | dict
-            Colorbar limits specification (if colormap='mne_analyze'). If
-            'auto', set limits automatically based on quartiles of data.
-            If 3-tuple, set limits manually. If dict, set quartiles and whether
-            the colormap is one- or two-sided.
+            Colorbar limit specification (if colormap='mne_analyze'). If
+            'auto', set limits automatically based on quartiles of data. If
+            3-tuple, of floats, set limits according to these values. If dict,
+            should contain:
+                kind : str
+                    Flag to specify type of limits. 'value' or 'percent'.
+                lims : length 3 list or array
+                    Left, middle, and right bound of colormap.
+                pos_lims : None or length 3 list or array
+                    Minimum, middle, and maximum positive control points for
+                    (only) 'mne_analyze' colormap that hasn't been
+                    pre-constructed.
+
 
         Returns
         -------
