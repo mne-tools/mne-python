@@ -1349,7 +1349,7 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
-             smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
+             smoothing_steps=10, fmin=None, fmid=None, fmax=None,
              transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
              views='lat', colorbar=True, limits=None):
@@ -1380,11 +1380,11 @@ class SourceEstimate(_BaseSourceEstimate):
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
+        fmin : float | None
             The minimum value to display.
-        fmid : float
+        fmid : float | None
             The middle value on the colormap.
-        fmax : float
+        fmax : float | None
             The maximum value for the colormap.
         transparent : bool
             If True, use a linear transparency between fmin and fmid.
