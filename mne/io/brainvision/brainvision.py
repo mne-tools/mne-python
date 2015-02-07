@@ -340,7 +340,7 @@ def _read_vmrk_events(fname):
         except IndexError:
             pass
 
-    events = np.array(events)
+    events = np.array(events).reshape(-1,3)
     return events
 
 
