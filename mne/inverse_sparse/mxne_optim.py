@@ -481,7 +481,6 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
     if (active_set.sum() > 0) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
-        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
 
     logger.info('Final active set size: %s' % (np.sum(active_set) // n_orient))
 
