@@ -268,7 +268,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # bind info, proj, data to self so apply_proj can be used
         self.data = all_data
         self.proj = False
-        if proj:
+        if all([p['active'] for p in self.info['projs']]):
+            self.proj = True
+        elif proj:
             self.apply_proj()
         # Run baseline correction
         self.data = rescale(self.data, times, baseline, 'mean', copy=False)
