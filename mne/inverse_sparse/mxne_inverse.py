@@ -266,17 +266,21 @@ def _compute_residual(forward, evoked, X, active_set, info):
     residual = pick_channels_evoked(residual, include=info['ch_names'])
     r_tmp = residual.copy()
     r_tmp.data = np.dot(forward['sol']['data'][sel, :][:, active_set], X)
-    if evoked.proj:
-        active_projs = list()
-        non_active_projs = list()
-        for p in evoked.info['projs']:
-            if p['active']:
-                active_projs.append(p)
-            else:
-                non_active_projs.append(p)
+
+    # Take care of proj
+    active_projs = list()
+    non_active_projs = list()
+    for p in evoked.info['projs']:
+        if p['active']:
+            active_projs.append(p)
+        else:
+            non_active_projs.append(p)
+
+    if len(active_projs) > 0:
         r_tmp.info['projs'] = deactivate_proj(active_projs, copy=True)
         r_tmp.apply_proj()
-        r_tmp.add_proj(deepcopy(non_active_projs), remove_existing=False)
+        r_tmp.add_proj(non_active_projs, remove_existing=False)
+
     residual.data -= r_tmp.data
 
     return residual
