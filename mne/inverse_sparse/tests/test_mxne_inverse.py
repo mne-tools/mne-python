@@ -80,16 +80,16 @@ def test_mxne_inverse():
     assert_allclose(stc_prox.data, stc_cd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_prox.data, stc_bcd.data, rtol=1e-3, atol=0.0)
     assert_allclose(stc_cd.data, stc_bcd.data, rtol=1e-3, atol=0.0)
-    assert_true(stc_prox.vertno[1][0] in label.vertices)
-    assert_true(stc_cd.vertno[1][0] in label.vertices)
-    assert_true(stc_bcd.vertno[1][0] in label.vertices)
+    assert_true(stc_prox.vertices[1][0] in label.vertices)
+    assert_true(stc_cd.vertices[1][0] in label.vertices)
+    assert_true(stc_bcd.vertices[1][0] in label.vertices)
 
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                         depth=depth, maxit=500, tol=1e-8,
                         active_set_size=10, return_residual=True,
                         depth_method='sloreta', solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
-    assert_true(stc.vertno[1][0] in label.vertices)
+    assert_true(stc.vertices[1][0] in label.vertices)
 
     # irMxNE tests
     stc = mixed_norm(evoked_l21, forward, cov, alpha,
@@ -105,9 +105,8 @@ def test_mxne_inverse():
 
     stc, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                            loose=loose, depth=depth, maxit=100, tol=1e-4,
-                           tstep=8, wsize=16, window=0.05,
-                           weights=stc_dspm, weights_min=weights_min,
-                           return_residual=True)
+                           tstep=4, wsize=16, window=0.1, weights=stc_dspm,
+                           weights_min=weights_min, return_residual=True)
     assert_array_almost_equal(stc.times, evoked.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
