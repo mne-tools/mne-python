@@ -37,6 +37,10 @@ class Projection(dict):
 class ProjMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
+    @property
+    def proj(self):
+        return all([p['active'] for p in self.info['projs']])
+
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
@@ -120,7 +124,6 @@ class ProjMixin(object):
             return self
 
         self._projector, self.info = _projector, info
-        self.proj = True  # track that proj were applied
         # handle different data / preload attrs and create reference
         # this also helps avoiding circular imports
         for attr in ('get_data', '_data', 'data'):

@@ -456,9 +456,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if len(evoked.info['ch_names']) == 0:
             raise ValueError('No data channel found when averaging.')
 
-        # otherwise the apply_proj will be confused
-        evoked.proj = True if self.proj is True else None
-
         if evoked.nave < 1:
             warnings.warn('evoked object is empty (based on less '
                           'than 1 epoch)', RuntimeWarning)
@@ -696,15 +693,14 @@ class Epochs(_BaseEpochs):
 
         # do the rest
         self.raw = raw
-        proj = proj or raw.proj  # proj is on when applied in Raw
         if proj not in [True, 'delayed', False]:
             raise ValueError(r"'proj' must either be 'True', 'False' or "
                              "'delayed'")
-        self.proj = proj
-        if self._check_delayed():
+
+        if self._check_delayed(proj):
             logger.info('Entering delayed SSP mode.')
 
-        activate = False if self._check_delayed() else self.proj
+        activate = False if self._check_delayed() else proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
@@ -821,17 +817,20 @@ class Epochs(_BaseEpochs):
                              color=color, width=width, ignore=ignore,
                              show=show, return_fig=return_fig)
 
-    def _check_delayed(self):
+    def _check_delayed(self, proj=None):
         """ Aux method
         """
         is_delayed = False
-        if self.proj == 'delayed':
+        if proj == 'delayed':
             if self.reject is None:
                 raise RuntimeError('The delayed SSP mode was requested '
                                    'but no rejection parameters are present. '
                                    'Please add rejection parameters before '
                                    'using this option.')
+            self._delayed_proj = True
             is_delayed = True
+        elif hasattr(self, '_delayed_proj'):
+            is_delayed = self._delayed_proj
         return is_delayed
 
     @verbose
@@ -915,9 +914,8 @@ class Epochs(_BaseEpochs):
         else:
             epochs += [epoch_raw]
 
-        # in case the proj passed is True but self proj is not we
-        # have delayed SSP
-        if self.proj != proj:  # so append another unprojected epoch
+        # if has delayed SSP append another unprojected epoch
+        if self._check_delayed():
             epochs += [epoch_raw.copy()]
 
         # only preprocess first candidate, to make delayed SSP working
@@ -947,9 +945,10 @@ class Epochs(_BaseEpochs):
         n_events = len(self.events)
         data = np.array([])
         if self._bad_dropped:
-            proj = False if self._check_delayed() else self.proj
             if not out:
                 return
+
+            proj = False if self._check_delayed() else self.proj
             for ii in range(n_events):
                 # faster to pre-allocate memory here
                 epoch, epoch_raw = self._get_epoch_from_disk(ii, proj=proj)
@@ -1644,7 +1643,6 @@ class EpochsArray(Epochs):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        self.proj = None
         self.baseline = None
         self.preload = True
         self.reject = None
@@ -2000,7 +1998,6 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.name = comment
     epochs.times = times
     epochs._data = data
-    epochs.proj = proj
     activate = False if epochs._check_delayed() else proj
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                 activate=activate)
@@ -2143,7 +2140,6 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs.preload = True
     epochs._bad_dropped = True
     epochs._data = data
-    epochs.proj = proj
     epochs._projector, epochs.info = setup_proj(epochs.info, add_eeg_ref,
                                                 activate=proj)
     return epochs
