@@ -138,11 +138,11 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
 
     Parameters
     ----------
-    M : array of shape [n_sensors, n_times]
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array of shape [n_sensors, n_active]
+    G : array, shape (n_sensors, n_active)
         The gain matrix a.k.a. lead field.
-    X : array of shape [n_active, n_times]
+    X : array, shape (n_active, n_times)
         Sources
     active_set : array of bool
         Mask of active sources
@@ -159,7 +159,7 @@ def dgap_l21(M, G, X, active_set, alpha, n_orient):
         Primal cost
     dobj : float
         Dual cost. gap = pobj - dobj
-    R : array of shape [n_sensors, n_times]
+    R : array, shape (n_sensors, n_times)
         Current residual of M - G * X
     """
     GX = np.dot(G[:, active_set], X)
@@ -339,9 +339,9 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Parameters
     ----------
-    M : array of shape [n_sensors, n_times]
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array of shape [n_sensors, n_dipoles]
+    G : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
     alpha : float
         The regularization parameter. It should be between 0 and 100.
@@ -363,7 +363,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     Returns
     -------
-    X : array of shape [n_active, n_times]
+    X : array, shape (n_active, n_times)
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -502,9 +502,9 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     Parameters
     ----------
-    M : array of shape [n_sensors, n_times]
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array of shape [n_sensors, n_dipoles]
+    G : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
     alpha : float
         The regularization parameter. It should be between 0 and 100.
@@ -529,7 +529,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
 
     Returns
     -------
-    X : array of shape [n_active, n_times]
+    X : array, shape (n_active, n_times)
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -686,9 +686,9 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Parameters
     ----------
-    M : array of shape [n_sensors, n_times]
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array of shape [n_sensors, n_dipoles]
+    G : array, shape (n_sensors, n_dipoles)
         The gain matrix a.k.a. lead field.
     alpha_space : float
         The spatial regularization parameter. It should be between 0 and 100.
@@ -720,7 +720,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     Returns
     -------
-    X : array of shape [n_active, n_times]
+    X : array, shape (n_active, n_times)
         The source estimates.
     active_set : array
         The mask of active sources.

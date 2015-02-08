@@ -42,9 +42,8 @@ evoked.plot(ylim=ylim, proj=True)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True)
 
-# Read and regularize noise covariance matrix
+# Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
-cov = mne.cov.regularize(cov, evoked.info)
 
 ###############################################################################
 # Run solver
