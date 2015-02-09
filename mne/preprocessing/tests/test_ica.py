@@ -244,6 +244,16 @@ def test_ica_additional():
                        eog=False, exclude='bads')
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
+    # test if n_components=None works
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    picks = pick_types(raw.info, meg='grad', exclude='bads')
+    n_components = None
+    max_pca_components = None
+    with warnings.catch_warnings(record=True):
+        ica = ICA(n_components=n_components,
+                   max_pca_components=max_pca_components,
+                   n_pca_components=n_pca_components, random_state=0)
+        ica.fit(raw, picks=picks, decim=3)                    
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
