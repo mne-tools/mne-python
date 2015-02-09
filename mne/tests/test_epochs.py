@@ -17,7 +17,7 @@ import warnings
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
-                 write_evokeds)
+                 write_evokeds, find_events)
 from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
                         add_channels_epochs, EpochsArray)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
@@ -1253,6 +1253,30 @@ def test_array_epochs():
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
+
+
+@requires_pandas
+def test_dataframe_time_indexing():
+    """Test that dataframe conversion doesn't duplicate time indices"""
+    # Synthesize data
+    data = np.random.randn(2, 10000)
+    events = np.array([[2, 0, 1],
+                       [2000, 0, 1]])
+
+    # For the Info object
+    ch_types = ['eeg'] * data.shape[0]
+    ch_names = ['{0}'.format(i) for i in range(data.shape[0])]
+
+    # Create base MNE objects
+    info = create_info(ch_names, 1000, ch_types=ch_types)
+    raw = io.RawArray(data, info)
+    epochs = Epochs(raw, events, 1, -.2, 1.5)
+
+    # Convert to dataframe
+    epochs_df = epochs.as_data_frame()
+    epochs_times = epochs_df.index.get_level_values('time')
+
+    assert_equal(epochs_times.duplicated().values.sum(), 0)
 
 
 run_tests_if_main()
