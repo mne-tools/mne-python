@@ -249,7 +249,7 @@ def test_ica_additional():
         ica = ICA(n_components=None,
                    max_pca_components=None,
                    n_pca_components=None, random_state=0)
-        ica.fit(raw, picks=picks, decim=3)                    
+        ica.fit(epochs, picks=picks, decim=3)                    
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
