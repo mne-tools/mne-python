@@ -245,8 +245,6 @@ def test_ica_additional():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     # test if n_components=None works
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
-    picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = None
     max_pca_components = None
     with warnings.catch_warnings(record=True):
