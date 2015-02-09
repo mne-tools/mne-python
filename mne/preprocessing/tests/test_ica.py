@@ -245,12 +245,10 @@ def test_ica_additional():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     # test if n_components=None works
-    n_components = None
-    max_pca_components = None
     with warnings.catch_warnings(record=True):
-        ica = ICA(n_components=n_components,
-                   max_pca_components=max_pca_components,
-                   n_pca_components=n_pca_components, random_state=0)
+        ica = ICA(n_components=None,
+                   max_pca_components=None,
+                   n_pca_components=None, random_state=0)
         ica.fit(raw, picks=picks, decim=3)                    
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
