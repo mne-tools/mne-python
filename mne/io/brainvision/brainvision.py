@@ -96,7 +96,7 @@ class RawBrainVision(_BaseRaw):
             n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
         n_chan = self.info['nchan']
-        self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
+        self.last_samp = (n_samples // (dtype * self._eeg_info['n_data_chan'])) - 1
         self._reference = reference
         self._raw_lengths = np.array([self.n_times])
         self._first_samps = np.array([self.first_samp])
@@ -441,7 +441,8 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
     sfreq = int(sfreq)
-    n_data_chan = cfg.getint('Common Infos', 'NumberOfChannels')
+    eeg_info['n_data_chan'] = n_data_chan = cfg.getint('Common Infos',
+                                                       'NumberOfChannels')
     n_eeg_chan = n_data_chan + bool(reference)
 
     # check binary format
