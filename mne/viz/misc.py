@@ -254,7 +254,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
         The filenames for the BEM surfaces in the format
         ['inner_skull.surf', 'outer_skull.surf', 'outer_skin.surf'].
     orientation : str
-        'coronal' or 'transverse' or 'sagittal'
+        'coronal' or 'axial' or 'sagittal'
     slices : list of int
         Slice indices.
     show : bool
@@ -350,7 +350,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
     orientation : str
-        'coronal' or 'transverse' or 'sagittal'.
+        'coronal' or 'axial' or 'sagittal'.
     slices : list of int
         Slice indices.
     show : bool
