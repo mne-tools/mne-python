@@ -38,3 +38,156 @@ def find_outliers(X, threshold=3.0, max_iter=2):
 
     bad_idx = np.where(my_mask)[0]
     return bad_idx
+
+
+def corrmap(icas, template,
+            threshold="auto",
+            name="marked_ics",
+            verbose_return=False,
+            plot=True):
+
+    """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    match to a supplied template. Typically, feed it a list of fitted ICAs and
+    a template IC, for example, the blink for the first subject, to identify
+    specific ICs across subjects.
+
+    The specific procedure consists of two iterations. In a first step, the maps
+    best correlating with the template are identified. In the step, the analysis
+    is repeated with the mean of the maps identified in the first stage.
+
+    Outputs a list of fitted ICAs with the indices of the marked ICs in a
+    specified field.
+
+    The original Corrmap website: www.debener.de/corrmap/corrmapplugin1.html
+
+    Parameters
+    ----------
+    icas : list
+        A list of fitted ICAs.
+    template : (int, int) tuple
+        Index of the list member from which the template should be obtained, and
+        the index of the IC.
+    threshold : "auto" | list of floats > 0 < 1 | float > 0 < 1 | float > 1
+        Correlation threshold for identifying ICs
+        If "auto": search for the best map by trying all correlations between
+        0.6 and 0.95. In the original proposal, lower values are considered, but
+        this is not yet implemented.
+        If list of floats: search for the best map in the specified range of
+        correlation strengths.
+        If float > 0: select ICs correlating better than this.
+        If float > 1: use find_outliers to identify ICs within subjects (not in
+        original Corrmap)
+        Defaults to "auto".
+    name : string
+        Name of the field under which found ICs should be specified.
+        Defaults to "marked_ics".
+    verbose_return : bool
+        Should the output be restricted to the list of ICs (False), or also the
+        correlation of the constructed template with the selected maps and the
+        correlations?
+        Defaults to False.
+    plot : bool
+        Should constructed template and selected maps be plotted?
+    ----------
+    Returns : list
+        Returns a list of fitted ICs, enrichened with the indices of the selected
+        maps in the field specified by the name keyword.
+    """
+
+    from mne.preprocessing.bads import find_outliers
+    import numpy as np
+
+    def vcorrcoef(X,y): # vectorised correlation, by Jon Herman
+        Xm = np.reshape(np.mean(X,axis=1),(X.shape[0],1))
+        ym = np.mean(y)
+        r_num = np.sum((X-Xm)*(y-ym),axis=1)
+        r_den = np.sqrt(np.sum((X-Xm)**2,axis=1)*np.sum((y-ym)**2))
+        r = r_num/r_den
+        return r
+
+    def get_ica_map(ica, components=None):
+        if not components:
+            components = range(ica.n_components_)
+        maps = np.dot(ica.mixing_matrix_.T, ica.pca_components_)[components]
+        return maps
+
+    def find_max_corrs(all_maps, target, threshold):
+        all_corrs = [vcorrcoef(subj, target) for subj in all_maps]
+        abs_corrs = [np.abs(a) for a in all_corrs]
+        corr_polarity = [np.sign(a) for a in all_corrs]
+
+        if threshold < 1:
+            max_corrs = [list(np.nonzero(s_corr>threshold))
+                         for s_corr in abs_corrs]
+        else:
+            max_corrs = [list(find_outliers(s_corr, threshold = threshold))
+                         for s_corr in abs_corrs]
+
+        am = []
+        [am.extend(list(a[m])) for a, m in zip(abs_corrs, max_corrs)]
+        median_corr_with_target = np.median(am)
+
+        maxmaps = []
+        [maxmaps.extend(list(a[m])) for a, m in zip(all_maps, max_corrs)]
+
+        try:
+            newtarget = np.zeros(maxmaps[0].size)
+            for maxmap in maxmaps:
+                newtarget += maxmap
+
+            newtarget /= len(maxmaps)
+
+            similarity_i_o = np.abs(np.corrcoef(target, newtarget)[1,0])
+
+            return newtarget, median_corr_with_target, similarity_i_o, max_corrs
+        except:
+            return [], 0, 0, []
+
+    if threshold == "auto":
+        threshold = [x/100 for x in range(60,95)]
+
+    all_maps = [get_ica_map(ica) for ica in icas]
+
+    target = all_maps[template[0]][template[1]]
+
+    # first run: use user-selected map
+    if isinstance(threshold, int) or isinstance(threshold, float):
+        nt, mt, s, mx = find_max_corrs(all_maps, target, threshold)
+    elif len(threshold)>1:
+        paths = [find_max_corrs(all_maps, target, t) for t in threshold]
+        # find iteration with highest avg correlation with target
+        nt, mt, s, mx = paths[np.argmax([path[2] for path in paths])]
+    else: print("run 1 failed")
+
+    # second run: use output from first run
+    if isinstance(threshold, int) or isinstance(threshold, float):
+        nt, mt, s, mx = find_max_corrs(all_maps, nt, threshold)
+    elif len(threshold)>1:
+        paths = [find_max_corrs(all_maps, nt, t) for t in threshold]
+        # find iteration with highest avg correlation with target
+        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+    else: print("run 2 failed")
+
+    x = 1
+    nones = []
+    if plot:
+        print("Median correlation with constructed map: " + str(mt) +
+              ". Displying selected ICs per subject.")
+        for ica, max_corr in zip(icas, mx):
+            try:
+                if isinstance(max_corr[0], np.ndarray): max_corr = max_corr[0]
+                ica.info[name] = max_corr
+                print("Subject " + str(x))
+                ica.plot_components(max_corr, ch_type="eeg")
+            except:
+                print("No map selected for subject " + str(x) +
+                      ", consider a more liberal threshold.")
+                nones.append(x)
+            x += 1
+        if nones: print("Subjects without any IC selected: ", nones)
+        else: print("At least 1 IC detected for each subject.")
+
+    if verbose_return:
+        return icas, mt, mx
+    else:
+        return icas
