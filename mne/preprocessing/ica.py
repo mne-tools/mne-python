@@ -20,6 +20,7 @@ from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
                   create_ecg_epochs)
 from .eog import _find_eog_events, _get_eog_channel_index
 from .infomax_ import infomax
+from .amica_ import mne_amica
 
 from ..cov import compute_whitener
 from .. import Covariance, Evoked
@@ -128,7 +129,7 @@ class ICA(ContainsMixin):
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
         fix the seed to have reproducible results.
-    method : {'fastica', 'infomax', 'extended-infomax'}
+    method : {'fastica', 'infomax', 'extended-infomax', 'amica'}
         The ICA method to use. Defaults to 'fastica'.
     fit_params : dict | None.
         Additional parameters passed to the ICA estimator chosen by `method`.
@@ -434,6 +435,17 @@ class ICA(ContainsMixin):
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
                             copy=True, random_state=self.random_state)
 
+        if self.method != "amica":
+            data = pca.fit_transform(data.T)
+        else:
+            try:
+                if isinstance(max_pca_components, int):
+                    self.fit_params["max_pca_components"] = max_pca_components
+            except:
+                pass
+            dummy = pca.fit_transform(data.T)
+            data = data.T
+
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
             full_var = np.var(data, axis=1).sum()
@@ -478,18 +490,24 @@ class ICA(ContainsMixin):
                 self.n_pca_components = len(self.pca_components_)
 
         # Take care of ICA
-        if self.method == 'fastica':
-            from sklearn.decomposition import FastICA  # to avoid strong dep.
-            ica = FastICA(whiten=False,
+        if self.method != "amica":
+            if self.method == 'fastica':
+                from sklearn.decomposition import FastICA  # to avoid strong dep.
+                ica = FastICA(whiten=False,
                           random_state=self.random_state, **self.fit_params)
-            ica.fit(data[:, sel])
-            # get unmixing and add scaling
-            self.unmixing_matrix_ = getattr(ica, 'components_',
+                ica.fit(data[:, sel])
+                # get unmixing and add scaling
+                self.unmixing_matrix_ = getattr(ica, 'components_',
                                             'unmixing_matrix_')
-        elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
-        self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
-        self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
+            elif self.method in ('infomax', 'extended-infomax'):
+                self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
+            self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
+            self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
+        else:
+            W, A, S = mne_amica(data[:, sel], **self.fit_params)
+            self.mixing_matrix_ = np.array(np.linalg.pinv(W))
+            self.unmixing_matrix_ = np.array(W)
+            self.pca_components_ = linalg.pinv(S.T)
         self.current_fit = fit_type
 
     def _transform(self, data):
