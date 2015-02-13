@@ -63,6 +63,8 @@ Changelog
 
    - Add support for combining Evoked datasets with arbitrary weights (e.g., for oddball paradigms) by `Eric Larson`_ and `Alex Gramfort`_
 
+   - Add support for concatenating a list of Epochs objects by `Denis Engemann`_
+
 BUG
 ~~~
 
@@ -103,7 +105,7 @@ API
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-	``mne.layouts`` by `Denis Engemann`_
+    ``mne.layouts`` by `Denis Engemann`_
 
    - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
 
