@@ -1257,6 +1257,8 @@ def test_array_epochs():
 
 
 def test_concatenate_epochs():
+    """test concatenate epochs"""
+
     raw, events, picks = _get_data()
     epochs = Epochs(
         raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
