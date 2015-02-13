@@ -2172,11 +2172,8 @@ def concatenate_epochs(epochs_list):
     Parameters
     ----------
     raws : list
-        list of Raw instances to concatenate (in order).
-    preload : bool, or None
-        If None, preload status is inferred using the preload status of the
-        raw files passed in. True or False sets the resulting raw file to
-        have or not have data preloaded.
+        list of Epochs instances to concatenate (in order).
+
     Returns
     -------
     epochs : instance of Epochs
