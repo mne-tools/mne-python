@@ -359,8 +359,12 @@ class FilterEstimator(TransformerMixin):
 
         if self.l_freq == 0:
             self.l_freq = None
-        if self.h_freq > (self.info['sfreq'] / 2.):
+        if self.h_freq is not None and self.h_freq > (self.info['sfreq'] / 2.):
             self.h_freq = None
+        if self.l_freq is not None and not isinstance(self.l_freq, float):
+            self.l_freq = float(self.l_freq)
+        if self.h_freq is not None and not isinstance(self.h_freq, float):
+            self.h_freq = float(self.h_freq)
 
         if self.h_freq is not None and \
                 (self.l_freq is None or self.l_freq < self.h_freq) and \
