@@ -2171,7 +2171,7 @@ def concatenate_epochs(epochs_list):
 
     Parameters
     ----------
-    epochs : list
+    epochs_list : list
         list of Epochs instances to concatenate (in order).
 
     Returns
