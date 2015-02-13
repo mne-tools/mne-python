@@ -2180,19 +2180,21 @@ def concatenate_epochs(epochs_list):
         The result of the concatenation (first Epochs instance passed in).
     """
     out = epochs_list[0]
-    out = EpochsArray(
-        data=out.get_data(), info=out.info, events=out.events,
-        event_id=out.event_id, tmin=out.tmin)
-    out.raw = None
-    out.preload = True
+    data = out.get_data()
+    events = out.events
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
         if not np.all(epochs.times == epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
-        out._data = np.concatenate((out._data, epochs.get_data()), axis=0)
+        data = np.concatenate((data, epochs.get_data()), axis=0)
         new_events = epochs.events.copy()
         new_events += out.events[-1, 0]
-        out.events = np.concatenate((out.events, new_events))
+        events = np.concatenate((events, new_events))
 
+    out = EpochsArray(
+        data=data, info=out.info, events=events, event_id=out.event_id,
+        tmin=out.tmin)
+    out.raw = None
+    out.preload = True
     return out
