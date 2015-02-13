@@ -395,7 +395,7 @@ class FilterEstimator(TransformerMixin):
 
         if self.l_freq is None and self.h_freq is not None:
             epochs_data = \
-                low_pass_filter(epochs_data, self.fs, self.h_freq,
+                low_pass_filter(epochs_data, self.info['sfreq'], self.h_freq,
                                 filter_length=self.filter_length,
                                 trans_bandwidth=self.l_trans_bandwidth,
                                 method=self.method, iir_params=self.iir_params,
