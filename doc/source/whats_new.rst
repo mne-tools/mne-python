@@ -66,6 +66,8 @@ Changelog
 BUG
 ~~~
 
+   - Fix picks argument to filter in 3 dimensions, and bug in highpass filtering for FilterEstimator by `Mainak Jas`_
+
    - Fix energy conservation for STFT with tight frames by `Daniel Strohmeier`_
 
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
