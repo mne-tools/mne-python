@@ -44,7 +44,8 @@ def corrmap(icas, template,
             threshold="auto", 
             name="marked_ics", 
             verbose_return=False, 
-            plot=True):
+            plot=True,
+            inplace=False):
     
     """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
@@ -114,7 +115,7 @@ def corrmap(icas, template,
     def find_max_corrs(all_maps, target, threshold):
         all_corrs = [vcorrcoef(subj, target) for subj in all_maps]
         abs_corrs = [np.abs(a) for a in all_corrs]
-        corr_polarity = [np.sign(a) for a in all_corrs]
+        corr_polarities = [np.sign(a) for a in all_corrs]
 
         if threshold < 1:
             max_corrs = [list(np.nonzero(s_corr>threshold))
@@ -127,13 +128,16 @@ def corrmap(icas, template,
         [am.extend(list(a[m])) for a, m in zip(abs_corrs, max_corrs)]
         median_corr_with_target = np.median(am)
 
+        polarities = []
+        [polarities.extend(list(a[m])) for a, m in zip(corr_polarities, max_corrs)]
+        
         maxmaps = []
         [maxmaps.extend(list(a[m])) for a, m in zip(all_maps, max_corrs)]
 
         try:
             newtarget = np.zeros(maxmaps[0].size)
-            for maxmap in maxmaps:
-                newtarget += maxmap
+            for maxmap, polarity in zip(maxmaps, polarities):
+                newtarget += maxmap*polarity
     
             newtarget /= len(maxmaps)
 
@@ -168,27 +172,42 @@ def corrmap(icas, template,
         nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
     else: print("run 2 failed")
     
-    x = 1
+    x = 0
     nones = []
-    if plot:
-        print("Median correlation with constructed map: " + str(mt) + 
-              ". Displying selected ICs per subject.")
-        for ica, max_corr in zip(icas, mx):
+    new_icas = []
+    print("Median correlation with constructed map: " + str(mt) 
+    if plot: print ("Displying selected ICs per subject."))
+
+    for ica, max_corr in zip(icas, mx):
+        if inplace == False:
+            ica = deepcopy(ica)
+        try:
+#                print(ica.info["bads"])
+#                print(max_corr)
+            if isinstance(max_corr[0], np.ndarray): max_corr = max_corr[0]
             try:
-                if isinstance(max_corr[0], np.ndarray): max_corr = max_corr[0]
-                ica.info[name] = max_corr
-                print("Subject " + str(x))
-                ica.plot_components(max_corr, ch_type="eeg")
+                ica.info["bads"] = list(max_corr) + ica.info["bads"]
             except:
-                print("No map selected for subject " + str(x) + 
-                      ", consider a more liberal threshold.")
-                nones.append(x)
-            x += 1
-        if nones: print("Subjects without any IC selected: ", nones)
-        else: print("At least 1 IC detected for each subject.")
-    
-    if verbose_return:
-        return icas, mt, mx
+                ica.info["bads"] = ica.info["bads"]
+            ica.info["bads"] = list(set(ica.info["bads"]))
+            print("Subject " + str(x))
+            if plot: ica.plot_components(max_corr, ch_type="eeg")
+#                print(ica.info["bads"])
+        except:
+            print("No map selected for subject " + str(x) + 
+                  ", consider a more liberal threshold.")
+            nones.append(x)
+        x += 1
+        if inplace == False:
+            new_icas.append(ica)
+    if nones: print("Subjects without any IC selected: ", nones)
+    else: print("At least 1 IC detected for each subject.")
+
+
+    if inplace == True:
+        return
+    elif verbose_return:
+        return new_icas, mt, mx
     else:
-        return icas
+        return new_icas
 
