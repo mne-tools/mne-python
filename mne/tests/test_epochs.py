@@ -18,8 +18,9 @@ import warnings
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds)
-from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
-                        add_channels_epochs, EpochsArray)
+from mne.epochs import (
+    bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
+    EpochsArray, concatenate_epochs)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime,
                        clean_warning_registry, run_tests_if_main)
 
@@ -1253,6 +1254,40 @@ def test_array_epochs():
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
+
+
+def test_concatenate_epochs():
+    """test concatenate epochs"""
+
+    raw, events, picks = _get_data()
+    epochs = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks)
+
+    epochs_list = [epochs, epochs]
+    epochs_conc = concatenate_epochs(epochs_list)
+    assert_array_equal(
+        epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
+
+    expected_shape = list(epochs.get_data().shape)
+    expected_shape[0] *= 2
+    expected_shape = tuple(expected_shape)
+
+    assert_equal(epochs_conc.get_data().shape, expected_shape)
+
+    epochs2 = epochs.copy()
+    epochs2._data = epochs2.get_data()
+    epochs2.preload = True
+    assert_raises(
+        ValueError, concatenate_epochs,
+        [epochs, epochs2.drop_channels(epochs2.ch_names[:1], copy=True)])
+
+    epochs2.times = np.delete(epochs2.times, 1)
+    assert_raises(
+        ValueError,
+        concatenate_epochs, [epochs, epochs2])
+
+    assert_equal(epochs_conc.raw, None)
 
 
 run_tests_if_main()
