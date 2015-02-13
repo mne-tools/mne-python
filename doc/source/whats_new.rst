@@ -66,8 +66,6 @@ Changelog
 BUG
 ~~~
 
-   - Fix picks argument to filter in 3 dimensions, and bug in highpass filtering for FilterEstimator by `Mainak Jas`_
-
    - Fix energy conservation for STFT with tight frames by `Daniel Strohmeier`_
 
    - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
@@ -96,6 +94,8 @@ BUG
    - Fix bug in `mne.viz.plot_topo` if ylim was passed for single sensor layouts by `Denis Engemann`_
 
    - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
+
+   - Fix picks argument to filter in n dimensions (affects FilterEstimator), and highpass filter in FilterEstimator by `Mainak Jas`_
 
 API
 ~~~
