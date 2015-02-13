@@ -192,6 +192,11 @@ def test_filters():
     assert_true(iir_params['a'].size - 1 == 4)
     assert_true(iir_params['b'].size - 1 == 4)
 
+    # check for n-dimensional case
+    a = np.random.randn(2, 2, 2, 2)
+    assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
+                  picks=np.array([0, 1]))
+
 
 def test_cuda():
     """Test CUDA-based filtering

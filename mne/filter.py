@@ -235,6 +235,9 @@ def _prep_for_filtering(x, copy, picks=None):
         offset = np.repeat(np.arange(0, n_channels * n_epochs, n_channels),
                            len(picks))
         picks = np.tile(picks, n_epochs) + offset
+    elif len(orig_shape) > 3:
+        raise ValueError('picks argument is not supported for data with more'
+                         ' than three dimensions')
 
     return x, orig_shape, picks
 
