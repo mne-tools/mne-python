@@ -25,8 +25,8 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels, pick_info)
-from .io.proj import setup_proj, ProjMixin
+                      pick_channels)
+from .io.proj import setup_proj, ProjMixin, proj_equal
 from .io.base import _BaseRaw, _time_as_index, _index_as_time
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
@@ -41,7 +41,7 @@ from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import deprecated, _check_type_picks
+from .utils import _check_type_picks
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -82,7 +82,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if (reject_tmin is not None) and (reject_tmax is not None):
             if reject_tmin >= reject_tmax:
                 raise ValueError('reject_tmin needs to be < reject_tmax')
-        if not detrend in [None, 0, 1]:
+        if detrend not in [None, 0, 1]:
             raise ValueError('detrend must be None, 0, or 1')
 
         # check that baseline is in available data
@@ -1783,7 +1783,7 @@ def _get_drop_indices(event_times, method):
     """Helper to get indices to drop from multiple event timing lists"""
     small_idx = np.argmin([e.shape[0] for e in event_times])
     small_e_times = event_times[small_idx]
-    if not method in ['mintime', 'truncate']:
+    if method not in ['mintime', 'truncate']:
         raise ValueError('method must be either mintime or truncate, not '
                          '%s' % method)
     indices = list()
@@ -2147,3 +2147,48 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs._projector, epochs.info = setup_proj(epochs.info, add_eeg_ref,
                                                 activate=proj)
     return epochs
+
+
+def _compare_epochs_infos(info1, info2, ind):
+    """Compare infos"""
+    if not info1['nchan'] == info2['nchan']:
+        raise ValueError('epochs[%d][\'info\'][\'nchan\'] must match' % ind)
+    if not info1['bads'] == info2['bads']:
+        raise ValueError('epochs[%d][\'info\'][\'bads\'] must match' % ind)
+    if not info1['sfreq'] == info2['sfreq']:
+        raise ValueError('epochs[%d][\'info\'][\'sfreq\'] must match' % ind)
+    if not set(info1['ch_names']) == set(info2['ch_names']):
+        raise ValueError('epochs[%d][\'info\'][\'ch_names\'] must match' % ind)
+    if len(info2['projs']) != len(info1['projs']):
+        raise ValueError('SSP projectors in epochs files must be the same')
+    if not all(proj_equal(p1, p2) for p1, p2 in
+               zip(info2['projs'], info1['projs'])):
+        raise ValueError('SSP projectors in epochs files must be the same')
+
+
+def concatenate_epochs(epochs_list):
+    """Concatenate a list of epochs into one epochs object
+
+    Parameters
+    ----------
+    raws : list
+        list of Raw instances to concatenate (in order).
+    preload : bool, or None
+        If None, preload status is inferred using the preload status of the
+        raw files passed in. True or False sets the resulting raw file to
+        have or not have data preloaded.
+    Returns
+    -------
+    epochs : instance of Epochs
+        The result of the concatenation (first Epochs instance passed in).
+    """
+    out = epochs_list[0].copy()
+    out._data = out.get_data()
+    out.preload = True
+    for ii, epochs in enumerate(epochs_list[1:]):
+        _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
+        if not np.all(epochs.times == epochs_list[0].times):
+            raise ValueError('Epochs must have same times')
+
+        out._data = np.concatenate((out._data, epochs.get_data()), axis=0)
+    return out
