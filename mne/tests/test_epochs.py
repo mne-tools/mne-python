@@ -1264,6 +1264,8 @@ def test_concatenate_epochs():
 
     epochs_list = [epochs, epochs]
     epochs_conc = concatenate_epochs(epochs_list)
+    assert_array_equal(
+        epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
 
     expected_shape = list(epochs.get_data().shape)
     expected_shape[0] *= 2
@@ -1282,6 +1284,8 @@ def test_concatenate_epochs():
     assert_raises(
         ValueError,
         concatenate_epochs, [epochs, epochs2])
+
+    assert_equal(epochs_conc.raw, None)
 
 
 run_tests_if_main()
