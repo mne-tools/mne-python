@@ -625,7 +625,7 @@ def _sparse_block_diag(mats, fmt=None, dtype=None):
         row = [None] * nmat
         row[ia] = a
         rows.append(row)
-    return sparse.bmat(rows, fmt=fmt, dtype=dtype)
+    return sparse.bmat(rows, format=fmt, dtype=dtype)
 
 try:
     from scipy.sparse import block_diag as sparse_block_diag
