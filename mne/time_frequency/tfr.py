@@ -842,7 +842,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      ch_type='mag', baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
-                     format='%1.1e', show_names=False, title=None,
+                     fmt='%1.1e', show_names=False, title=None,
                      axes=None, show=True):
         """Plot topographic maps of time-frequency intervals of TFR data
 
@@ -907,7 +907,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The resolution of the topomap image (n pixels along each side).
         size : float
             Side length per topomap in inches.
-        format : str
+        fmt : str
             String format for colorbar values.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
@@ -932,7 +932,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,
                                 mode=mode, layout=layout, vmin=vmin, vmax=vmax,
                                 cmap=cmap, sensors=sensors, colorbar=colorbar,
-                                unit=unit, res=res, size=size, format=format,
+                                unit=unit, res=res, size=size, fmt=fmt,
                                 show_names=show_names, title=title, axes=axes,
                                 show=show)
 

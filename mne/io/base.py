@@ -646,7 +646,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj=False, format='single',
+             drop_small_buffer=False, proj=False, fmt='single',
              overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
 
@@ -675,7 +675,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             If True the data is saved with the projections applied (active).
             Note: If apply_proj() was used to apply the projections,
             the projectons will be active even if proj is False.
-        format : str
+        fmt : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
             16-bit integers, respectively. It is STRONGLY recommended to use
@@ -735,15 +735,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if format not in type_dict.keys():
+        if fmt not in type_dict.keys():
             raise ValueError('format must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
-        reset_range = reset_dict[format]
-        data_type = type_dict[format]
+        reset_range = reset_dict[fmt]
+        data_type = type_dict[fmt]
 
         data_test = self[0, 0][0]
-        if format == 'short' and np.iscomplexobj(data_test):
+        if fmt == 'short' and np.iscomplexobj(data_test):
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
@@ -784,7 +784,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
 
         # write the raw file
-        _write_raw(fname, self, info, picks, format, data_type, reset_range,
+        _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, inv_comp,
                    drop_small_buffer, split_size, 0, None)
 
@@ -1412,7 +1412,7 @@ class _RawShell():
 
 ###############################################################################
 # Writing
-def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
+def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, inv_comp, drop_small_buffer,
                split_size, part_idx, prev_fname):
     """Write raw file with splitting
@@ -1471,7 +1471,7 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         if pos_prev is None:
             pos_prev = fid.tell()
 
-        _write_raw_buffer(fid, data, cals, format, inv_comp)
+        _write_raw_buffer(fid, data, cals, fmt, inv_comp)
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
@@ -1485,7 +1485,7 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         # Split files if necessary, leave some space for next file info
         if pos >= split_size - this_buff_size_bytes - 2 ** 20:
             next_fname, next_idx = _write_raw(
-                fname, raw, info, picks, format,
+                fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, inv_comp, drop_small_buffer, split_size,
                 part_idx + 1, use_fname)
@@ -1590,7 +1590,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def _write_raw_buffer(fid, buf, cals, format, inv_comp):
+def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
     """Write raw buffer
 
     Parameters
@@ -1601,7 +1601,7 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
         The buffer to write.
     cals : array
         Calibration factors.
-    format : str
+    fmt : str
         'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
         float for each item. This will be doubled for complex datatypes. Note
         that short and int formats cannot be used for complex data.
@@ -1612,22 +1612,22 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if format not in ['short', 'int', 'single', 'double']:
+    if fmt not in ['short', 'int', 'single', 'double']:
         raise ValueError('format must be "short", "single", or "double"')
 
     if np.isrealobj(buf):
-        if format == 'short':
+        if fmt == 'short':
             write_function = write_dau_pack16
-        elif format == 'int':
+        elif fmt == 'int':
             write_function = write_int
-        elif format == 'single':
+        elif fmt == 'single':
             write_function = write_float
         else:
             write_function = write_double
     else:
-        if format == 'single':
+        if fmt == 'single':
             write_function = write_complex64
-        elif format == 'double':
+        elif fmt == 'double':
             write_function = write_complex128
         else:
             raise ValueError('only "single" and "double" supported for '
