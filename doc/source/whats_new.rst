@@ -65,6 +65,8 @@ Changelog
 
    - Add support for concatenating a list of Epochs objects by `Denis Engemann`_
 
+   - Labels support subtraction (``label_1 - label_2``) by `Christian Brodbeck`_
+
 BUG
 ~~~
 
