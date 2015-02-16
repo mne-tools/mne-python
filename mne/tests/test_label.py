@@ -217,10 +217,19 @@ def test_label_addition():
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
     assert_equal(bhl.color, l.color)
+    # subtraction
+    assert_labels_equal(bhl - l0, l2)
+    assert_labels_equal(bhl - l2, l0)
 
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
+    # subtraction
+    bhl_ = bhl2 - l1
+    assert_labels_equal(bhl_.lh, bhl.lh, comment=False, color=False)
+    assert_labels_equal(bhl_.rh, bhl.rh)
+    assert_labels_equal(bhl2 - l2, l0 + l1)
+    assert_labels_equal(bhl2 - l1 - l0, l2)
 
 
 @testing.requires_testing_data

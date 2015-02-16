@@ -746,6 +746,28 @@ class BiHemiLabel(object):
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
+    def __sub__(self, other):
+        if isinstance(other, Label):
+            if other.hemi == 'lh':
+                lh = self.lh - other
+                rh = self.rh
+            else:
+                rh = self.rh - other
+                lh = self.lh
+        elif isinstance(other, BiHemiLabel):
+            lh = self.lh - other.lh
+            rh = self.rh - other.rh
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        if len(lh.vertices) == 0:
+            return rh
+        elif len(rh.vertices) == 0:
+            return lh
+        else:
+            name = '%s - %s' % (self.name, other.name)
+            return BiHemiLabel(lh, rh, name, self.color)
+
 
 def read_label(filename, subject=None, color=None):
     """Read FreeSurfer Label file
