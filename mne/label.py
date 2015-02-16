@@ -359,7 +359,7 @@ class Label(object):
             raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
 
         if self.hemi == other.hemi:
-            keep = np.in1d(self.vertices, other.vertices, True, invert=True)
+            keep = in1d(self.vertices, other.vertices, True, invert=True)
         else:
             keep = np.arange(len(self.vertices))
 
