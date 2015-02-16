@@ -149,8 +149,13 @@ def _stc_to_label(stc, src, smooth, subjects_dir=None):
     return labels
 
 
-def assert_labels_equal(l0, l1, decimal=5):
-    for attr in ['comment', 'hemi', 'subject', 'color']:
+def assert_labels_equal(l0, l1, decimal=5, comment=True, color=True):
+    if comment:
+        assert_equal(l0.comment, l1.comment)
+    if color:
+        assert_equal(l0.color, l1.color)
+
+    for attr in ['hemi', 'subject']:
         attr0 = getattr(l0, attr)
         attr1 = getattr(l1, attr)
         msg = "label.%s: %r != %r" % (attr, attr0, attr1)
@@ -191,6 +196,9 @@ def test_label_addition():
     assert_equal(len(l01), len(l0) + len(l1))
     assert_array_equal(l01.values[:len(l0)], l0.values)
     assert_equal(l01.color, l0.color)
+    # subtraction
+    assert_labels_equal(l01 - l0, l1, comment=False, color=False)
+    assert_labels_equal(l01 - l1, l0, comment=False, color=False)
 
     # adding overlappig labels
     l = l0 + l2
