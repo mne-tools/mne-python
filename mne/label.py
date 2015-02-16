@@ -341,6 +341,33 @@ class Label(object):
                       self.subject, color, verbose)
         return label
 
+    def __sub__(self, other):
+        if isinstance(other, BiHemiLabel):
+            if self.hemi == 'lh':
+                return self - other.lh
+            else:
+                return self - other.rh
+        elif isinstance(other, Label):
+            if self.subject != other.subject:
+                raise ValueError('Label subject parameters must match, got '
+                                 '"%s" and "%s". Consider setting the '
+                                 'subject parameter on initialization, or '
+                                 'setting label.subject manually before '
+                                 'combining labels.' % (self.subject,
+                                                        other.subject))
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        if self.hemi == other.hemi:
+            keep = in1d(self.vertices, other.vertices, True, invert=True)
+        else:
+            keep = np.arange(len(self.vertices))
+
+        name = "%s - %s" % (self.name or 'unnamed', other.name or 'unnamed')
+        return Label(self.vertices[keep], self.pos[keep], self.values[keep],
+                     self.hemi, self.comment, name, None, self.subject,
+                     self.color, self.verbose)
+
     def save(self, filename):
         """Write to disk as FreeSurfer *.label file
 
@@ -718,6 +745,28 @@ class BiHemiLabel(object):
         name = '%s + %s' % (self.name, other.name)
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
+
+    def __sub__(self, other):
+        if isinstance(other, Label):
+            if other.hemi == 'lh':
+                lh = self.lh - other
+                rh = self.rh
+            else:
+                rh = self.rh - other
+                lh = self.lh
+        elif isinstance(other, BiHemiLabel):
+            lh = self.lh - other.lh
+            rh = self.rh - other.rh
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        if len(lh.vertices) == 0:
+            return rh
+        elif len(rh.vertices) == 0:
+            return lh
+        else:
+            name = '%s - %s' % (self.name, other.name)
+            return BiHemiLabel(lh, rh, name, self.color)
 
 
 def read_label(filename, subject=None, color=None):
