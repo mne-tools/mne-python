@@ -556,6 +556,18 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     logger.info('Setting channel info structure...')
     info['chs'] = []
     info['ch_names'] = ch_names
+    # TODO: deprecate keyword argument for TAL?
+    if tal_channel == -1:
+        edf_info['tal_channel'] = info['nchan'] - 1
+    else:
+        edf_info['tal_channel'] = tal_channel
+
+    if tal_channel and not preload:
+        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
+                                   ' parsed completely on loading.'
+                                   'Must set preload=True'))
+    if 'EDF Annotations' in ch_names:
+        edf_info['tal_channel'] = tal_channel = ch_names.index('EDF Annotations')
     if stim_channel == -1:
         stim_channel = info['nchan'] - 1
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
@@ -593,28 +605,26 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             info['ch_names'][idx] = chan_info['ch_name']
             if isinstance(stim_channel, str):
                 stim_channel = idx
+        if tal_channel == idx:
+            chan_info['range'] = 1
+            chan_info['cal'] = 1
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
         info['chs'].append(chan_info)
     edf_info['stim_channel'] = stim_channel
 
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
-    edf_info['max_samp'] = max_samp = n_samps[picks].max()
+    if len(picks) == 0:
+        edf_info['max_samp'] = max_samp = n_samps.max()
+    else:
+        edf_info['max_samp'] = max_samp = n_samps[picks].max()
     info['sfreq'] = max_samp / record_length
     edf_info['nsamples'] = int(n_records * max_samp)
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
-
-    # TODO: automatic detection of the tal_channel?
-    if tal_channel == -1:
-        edf_info['tal_channel'] = info['nchan'] - 1
-    else:
-        edf_info['tal_channel'] = tal_channel
-
-    if tal_channel and not preload:
-        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
-                                   ' parsed completely on loading.'
-                                   'Must set preload=True'))
 
     return info, edf_info
 
