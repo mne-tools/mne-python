@@ -474,7 +474,13 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
         edf_info['n_records'] = n_records = int(fid.read(8).decode())
         # record length in seconds
-        edf_info['record_length'] = record_length = float(fid.read(8).decode())
+        record_length = float(fid.read(8).decode())
+        if record_length == 0:
+            edf_info['record_length'] = record_length = 1.
+            warnings.warn('Header information is incorrect for record length. '
+                          'Default record length set to 1.')
+        else:
+            edf_info['record_length'] = record_length
         info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
         ch_names = [fid.read(16).strip().decode() for _ in channels]
@@ -593,7 +599,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
     edf_info['max_samp'] = max_samp = n_samps[picks].max()
-    info['sfreq'] = max_samp / float(record_length)
+    info['sfreq'] = max_samp / record_length
     edf_info['nsamples'] = int(n_records * max_samp)
 
     if info['lowpass'] is None:
