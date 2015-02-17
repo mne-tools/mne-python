@@ -556,18 +556,18 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     logger.info('Setting channel info structure...')
     info['chs'] = []
     info['ch_names'] = ch_names
-    # TODO: deprecate keyword argument for TAL?
+    tal_ch_name = 'EDF Annotations'
+    # TODO: keyword argument for TAL is deprecated
     if tal_channel == -1:
-        edf_info['tal_channel'] = info['nchan'] - 1
+        tal_channel = info['nchan'] - 1
+    elif tal_ch_name in ch_names:
+        edf_info['tal_channel'] = tal_channel = ch_names.index(tal_ch_name)
     else:
         edf_info['tal_channel'] = tal_channel
-
-    if tal_channel and not preload:
+    if all([tal_channel, stim_channel]) and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
                                    'Must set preload=True'))
-    if 'EDF Annotations' in ch_names:
-        edf_info['tal_channel'] = tal_channel = ch_names.index('EDF Annotations')
     if stim_channel == -1:
         stim_channel = info['nchan'] - 1
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
@@ -716,6 +716,9 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+    if tal_channel is not None:
+        warnings.warn("`tal_channel` arg is deprecated and will be removed in "
+                      "0.10. This channel will be automatically detected.")
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   tal_channel=tal_channel, preload=preload, verbose=verbose)
