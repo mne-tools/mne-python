@@ -434,7 +434,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
-                     fmt="%3.1f", time_format='%01d ms', proj=False,
+                     format=None, time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
                      image_interp='bilinear', average=None):
@@ -482,7 +482,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         size : scalar
             Side length of the topomaps in inches (only applies when plotting
             multiple topomaps at a time).
-        fmt : str
+        format : str
             String format for colorbar values.
         time_format : str
             String format for topomap values. Defaults to "%01d ms"
@@ -526,13 +526,19 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
         """
+        if format !=  None:
+            warnings.warn("The format parameter is deprecated and will be replaced"
+                      "by fmt in version 0.11. Use fmt instead.",
+                      DeprecationWarning)
+        else:    
+            format = "%3.1f"
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, scale=scale,
                                    scale_time=scale_time,
                                    unit=unit, res=res, proj=proj, size=size,
-                                   fmt=fmt, time_format=time_format,
+                                   format=format, time_format=time_format,
                                    show=show, show_names=show_names,
                                    title=title, mask=mask,
                                    mask_params=mask_params,
