@@ -2252,7 +2252,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
     elif isinstance(morpher[1], list):
         morpher = morpher[0]
     else:
-        morpher = sparse_block_diag(morpher, fmt='csr')
+        morpher = sparse_block_diag(morpher, format='csr')
     logger.info('[done]')
     return morpher
 
