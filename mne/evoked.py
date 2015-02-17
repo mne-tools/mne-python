@@ -526,11 +526,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
         """
-        if format !=  None:
-            warnings.warn("The format parameter is deprecated and will be replaced"
-                      "by fmt in version 0.11. Use fmt instead.",
-                      DeprecationWarning)
-        else:    
+        if format is not None:
+            warnings.warn("The format parameter is deprecated and will be "
+                          "replaced by fmt in version 0.11. Use fmt instead.",
+                          DeprecationWarning)
+        else:
             format = "%3.1f"
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,

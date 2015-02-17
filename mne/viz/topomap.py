@@ -767,7 +767,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fig : matplotlib.figure.Figure
         The figure containing the topography.
     """
-    if format != None:
+    if format is not None:
         warnings.warn("The format parameter is deprecated and will be replaced"
                       "by fmt in version 0.11. Use fmt instead.",
                       DeprecationWarning)
@@ -939,7 +939,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         and ends 5 ms after a given time point. Defaults to None, which means
         no averaging.
     """
-    if format != None:
+    if format is not None:
         warnings.warn("The format parameter is deprecated and will be replaced"
                       "by fmt in version 0.11. Use fmt instead.",
                       DeprecationWarning)
