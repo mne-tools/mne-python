@@ -90,7 +90,7 @@ def test_read_segment():
     """Test writing raw edf files when preload is False
     """
     tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, stim_channel=139, preload=False)
+    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
@@ -100,7 +100,7 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_edf(edf_path, stim_channel=139, preload=True)
+    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
     raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:139, :]
@@ -112,8 +112,8 @@ def test_read_segment():
     assert_array_equal(raw1._data, raw2._data)
 
     # test the _read_segment function by only loading some of the data
-    raw1 = read_raw_edf(edf_path, preload=False)
-    raw2 = read_raw_edf(edf_path, preload=True)
+    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
+    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
 
     # select some random range of data to compare
     data1, times1 = raw1[:, 345:417]
