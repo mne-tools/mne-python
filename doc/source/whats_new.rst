@@ -99,6 +99,8 @@ BUG
 
    - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
 
+   - Fix picks argument to filter in n dimensions (affects FilterEstimator), and highpass filter in FilterEstimator by `Mainak Jas`_
+
 API
 ~~~
 
