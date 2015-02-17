@@ -192,6 +192,16 @@ def test_filters():
     assert_true(iir_params['a'].size - 1 == 4)
     assert_true(iir_params['b'].size - 1 == 4)
 
+    # check that picks work for 3d array with one channel and picks=[0]
+    a = np.random.randn(5 * sfreq, 5 * sfreq)
+    b = a[:, None, :]
+
+    with warnings.catch_warnings(record=True) as w:
+        a_filt = band_pass_filter(a, sfreq, 4, 8)
+        b_filt = band_pass_filter(b, sfreq, 4, 8, picks=[0])
+
+    assert_array_equal(a_filt[:, None, :], b_filt)
+
     # check for n-dimensional case
     a = np.random.randn(2, 2, 2, 2)
     assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
