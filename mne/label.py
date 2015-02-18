@@ -1325,8 +1325,8 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
-                overlap=True, names=None):
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1, 
+    overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1363,6 +1363,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
+    surface : string
+        The surface used to grow the labels, defaults to the white surface.
 
     Returns
     -------
@@ -1416,7 +1418,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.white')
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' + 
+            surface)
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
