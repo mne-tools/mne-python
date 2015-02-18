@@ -46,7 +46,6 @@ class RawArray(_BaseRaw):
         self.cals = cals
         self.orig_format = 'double'
         self.rawdirs = list()
-        self.proj = None
         self.comp = None
         self._filenames = list()
         self.preload = True

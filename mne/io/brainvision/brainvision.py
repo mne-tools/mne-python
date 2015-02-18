@@ -89,7 +89,6 @@ class RawBrainVision(_BaseRaw):
         self.orig_format = 'double'
         self._projector = None
         self.comp = None  # no compensation for EEG
-        self.proj = False
         self.first_samp = 0
         with open(self.info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)

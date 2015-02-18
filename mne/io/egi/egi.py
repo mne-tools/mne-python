@@ -326,7 +326,6 @@ class _RawEGI(_BaseRaw):
         self.first_samp = 0
         self.last_samp = egi_info['n_samples'] - 1
         self.comp = None  # no compensation for egi
-        self.proj = False
         self._first_samps = np.array([self.first_samp])
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([egi_info['n_samples']])

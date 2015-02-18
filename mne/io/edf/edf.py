@@ -95,7 +95,6 @@ class RawEDF(_BaseRaw):
         self.first_samp = 0
         self.last_samp = self._edf_info['nsamples'] - 1
         self.comp = None  # no compensation for EDF
-        self.proj = False
         self._first_samps = np.array([self.first_samp])
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([self._edf_info['nsamples']])
