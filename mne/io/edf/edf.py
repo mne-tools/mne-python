@@ -563,7 +563,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     elif tal_ch_name in ch_names:
         tal_channel = ch_names.index(tal_ch_name)
     edf_info['tal_channel'] = tal_channel
-    if all([tal_channel, stim_channel]) and not preload:
+    if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
                                    'Must set preload=True'))
