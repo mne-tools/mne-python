@@ -566,7 +566,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
                                    ' parsed completely on loading.'
-                                   'Must set preload=True'))
+                                   ' You must set preload parameter to True.'))
     if stim_channel == -1:
         stim_channel = info['nchan'] - 1
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
