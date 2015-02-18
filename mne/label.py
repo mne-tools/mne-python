@@ -1325,8 +1325,8 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
-def grow_labels(subject, seeds, extents, hemis, surface='white',
-                subjects_dir=None, n_jobs=1, overlap=True, names=None):
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1, 
+    overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1352,8 +1352,6 @@ def grow_labels(subject, seeds, extents, hemis, surface='white',
         Hemispheres to use for the labels (0: left, 1: right).
     subjects_dir : string
         Path to SUBJECTS_DIR if not set in the environment.
-    surface : string
-        The surface used to grow the labels, defaults to the white surface.
     n_jobs : int
         Number of jobs to run in parallel. Likely only useful if tens
         or hundreds of labels are being expanded simultaneously. Does not
@@ -1365,6 +1363,8 @@ def grow_labels(subject, seeds, extents, hemis, surface='white',
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
+    surface : string
+        The surface used to grow the labels, defaults to the white surface.
 
     Returns
     -------
