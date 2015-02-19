@@ -1058,24 +1058,18 @@ class Report(object):
 
                     # loop through conditions for evoked
                     if fname.endswith(('-ave.fif', '-ave.fif.gz')):
-                       # XXX: remove redundant read_evokeds
+                        # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
-                        html_toc += toc_list.substitute(div_klass=div_klass,
-                                                        id=None, tooltip=fname,
-                                                        color='#428bca',
-                                                        text=
-                                                        os.path.basename(fname)
-                                                        )
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=None, tooltip=fname,
+                            color='#428bca', text=os.path.basename(fname))
 
                         html_toc += u'<li class="evoked"><ul>'
                         for ev in evokeds:
-                            html_toc += toc_list.substitute(div_klass=
-                                                            div_klass,
-                                                            id=global_id,
-                                                            tooltip=fname,
-                                                            color=color,
-                                                            text=ev.comment)
+                            html_toc += toc_list.substitute(
+                                div_klass=div_klass, id=global_id,
+                                tooltip=fname, color=color, text=ev.comment)
                             global_id += 1
                         html_toc += u'</ul></li>'
 

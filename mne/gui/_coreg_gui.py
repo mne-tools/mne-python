@@ -361,7 +361,7 @@ class CoregModel(HasPrivateTraits):
         mri_pts = self.transformed_mri_points
         point_distance = _point_cloud_error(hsp_pts, mri_pts)
         new_sub_filter = point_distance <= distance
-        n_excluded = np.sum(new_sub_filter == False)
+        n_excluded = np.sum(new_sub_filter == False)  # noqa
         logger.info("Coregistration: Excluding %i head shape points with "
                     "distance >= %.3f m.", n_excluded, distance)
 
@@ -946,7 +946,7 @@ class CoregPanel(HasPrivateTraits):
                                   subject_from=subject_from,
                                   subject_to=subject_to)
             ui = mridlg.edit_traits(kind='modal')
-            if ui.result != True:
+            if ui.result != True:  # noqa
                 return
             subject_to = mridlg.subject_to
 

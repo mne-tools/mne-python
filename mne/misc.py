@@ -74,7 +74,7 @@ def read_reject_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             reject[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return reject
 
@@ -95,6 +95,6 @@ def read_flat_parameters(fname):
         words = line.split()
         if words[0] in reject_names:
             flat[reject_pynames[reject_names.index(words[0])]] = \
-                                                                float(words[1])
+                float(words[1])
 
     return flat

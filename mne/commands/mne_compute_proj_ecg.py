@@ -3,7 +3,9 @@
 
 You can do for example:
 
-$ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" --l-freq 1 --h-freq 100 --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
+$ mne compute_proj_ecg -i sample_audvis_raw.fif -c "MEG 1531" \
+                       --l-freq 1 --h-freq 100 \
+                       --rej-grad 3000 --rej-mag 4000 --rej-eeg 100
 """
 from __future__ import print_function
 

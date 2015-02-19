@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_equal, assert_true, assert_false
+from nose.tools import assert_equal
 
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
@@ -21,7 +21,7 @@ def test_montage():
     // Label       Theta       Phi    Radius         X         Y         Z       off sphere surface
       E1      37.700     -14.000       1.000    0.7677    0.5934   -0.2419  -0.00000000000000011
       E2      44.600      -0.880       1.000    0.7119    0.7021   -0.0154   0.00000000000000000
-      E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000""",
+      E3      51.700      11.000       1.000    0.6084    0.7704    0.1908   0.00000000000000000"""  # noqa,
     """# ASA electrode file
     ReferenceLabel  avg
     UnitPosition    mm

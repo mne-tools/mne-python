@@ -95,8 +95,9 @@ class RawBrainVision(_BaseRaw):
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
-        n_chan = self.info['nchan']
-        self.last_samp = (n_samples // (dtype * self._eeg_info['n_data_chan'])) - 1
+        # n_chan = self.info['nchan']
+        self.last_samp = (n_samples //
+                          (dtype * self._eeg_info['n_data_chan'])) - 1
         self._reference = reference
         self._raw_lengths = np.array([self.n_times])
         self._first_samps = np.array([self.first_samp])
@@ -614,7 +615,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple of str
-        Names of channels or list of indices that should be designated 
+        Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
         Default is ('HEOGL', 'HEOGR', 'VEOGb').
     misc : list or tuple of str

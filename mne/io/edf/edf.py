@@ -208,7 +208,8 @@ class RawEDF(_BaseRaw):
             blocks = int(ceil(float(buffer_size) / max_samp))
             # bdf data: 24bit data
             if subtype in ('24BIT', 'bdf'):
-                # sixteen bit trigger mask based on bdf2biosig_events from BIOSIG
+                # sixteen bit trigger mask based on bdf2biosig_events from
+                # BIOSIG
                 mask = 2 ** 15 - 1
                 # loop over 10 record increments to not tax the memory
                 buffer_step = int(max_samp * 10)
@@ -229,26 +230,28 @@ class RawEDF(_BaseRaw):
                                              chan_data[1::3] << 8 +
                                              chan_data[2::3] << 16)
                                 if j == stim_channel and samp < max_samp:
-                                    warnings.warn('Interpolating stim channel. '
-                                                  'Events may jitter.')
+                                    warnings.warn('Interpolating stim channel.'
+                                                  ' Events may jitter.')
                                     oldrange = np.linspace(0, 1, samp + 1,
                                                            True)
-                                    newrange = np.linspace(0, 1, max_samp, False)
-                                    chan_data = interp1d(oldrange,
-                                                         np.append(chan_data, 0),
-                                                         kind='zero')(newrange)
+                                    newrange = np.linspace(0, 1, max_samp,
+                                                           False)
+                                    chan_data = interp1d(
+                                        oldrange, np.append(chan_data, 0),
+                                        kind='zero')(newrange)
                                 elif samp != max_samp:
-                                    chan_data = resample(x=chan_data, up=max_samp,
-                                                         down=samp, npad=0)
+                                    chan_data = resample(
+                                        x=chan_data, up=max_samp, down=samp,
+                                        npad=0)
                                 data[j] = chan_data
                             start_pt = int((max_samp * i) + (k * buffer_step))
                             stop_pt = int(start_pt + max_samp)
                             datas[:, start_pt:stop_pt] = data
                     else:
-                        # simple bdf                    
+                        # simple bdf
                         data = np.fromfile(fid, dtype=np.uint8, count=samp)
                         data = data.reshape(-1, 3).astype(np.int32)
-                        
+
                         # this converts to 24-bit little endian integer
                         # # no support in numpy
                         data = (data[:, 0] + (data[:, 1] << 8) +
@@ -276,21 +279,24 @@ class RawEDF(_BaseRaw):
                                 # don't resample tal_channel,
                                 # pad with zeros instead.
                                 n_missing = int(max_samp - samp) * blocks
-                                chan_data = np.hstack([chan_data, [0] * n_missing])
+                                chan_data = np.hstack([chan_data,
+                                                       [0] * n_missing])
                             elif j == stim_channel and samp < max_samp:
-                                if annot and annotmap or tal_channel is not None:
-                                    # don't bother with resampling the stim channel
+                                if annot and annotmap or \
+                                        tal_channel is not None:
+                                    # don't bother with resampling the stim ch
                                     # because it gets overwritten later on.
                                     chan_data = np.zeros(max_samp)
                                 else:
-                                    warnings.warn('Interpolating stim channel. '
-                                                  'Events may jitter.')
+                                    warnings.warn('Interpolating stim channel.'
+                                                  ' Events may jitter.')
                                     oldrange = np.linspace(0, 1, samp + 1,
                                                            True)
-                                    newrange = np.linspace(0, 1, max_samp, False)
-                                    chan_data = interp1d(oldrange,
-                                                         np.append(chan_data, 0),
-                                                         kind='zero')(newrange)
+                                    newrange = np.linspace(0, 1, max_samp,
+                                                           False)
+                                    chan_data = interp1d(
+                                        oldrange, np.append(chan_data, 0),
+                                        kind='zero')(newrange)
                             elif samp != max_samp:
                                 chan_data = resample(x=chan_data, up=max_samp,
                                                      down=samp, npad=0)
@@ -456,8 +462,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         assert(fid.tell() == 0)
         fid.seek(8)
 
-        _ = fid.read(80).strip().decode()  # subject id
-        _ = fid.read(80).strip().decode()  # recording id
+        fid.read(80).strip().decode()  # subject id
+        fid.read(80).strip().decode()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)',
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
@@ -483,9 +489,9 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             edf_info['record_length'] = record_length
         info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
-        ch_names = [fid.read(16).strip().decode() for _ in channels]
-        _ = [fid.read(80).strip().decode() for _ in channels]  # transducer
-        units = [fid.read(8).strip().decode() for _ in channels]
+        ch_names = [fid.read(16).strip().decode() for ch in channels]
+        [fid.read(80).strip().decode() for ch in channels]  # transducer
+        units = [fid.read(8).strip().decode() for ch in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
                 units[i] = 1e-6
@@ -493,14 +499,14 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 units[i] = 1
         edf_info['units'] = units
         physical_min = np.array([float(fid.read(8).decode())
-                                 for _ in channels])
+                                 for ch in channels])
         physical_max = np.array([float(fid.read(8).decode())
-                                 for _ in channels])
+                                 for ch in channels])
         digital_min = np.array([float(fid.read(8).decode())
-                                for _ in channels])
+                                for ch in channels])
         digital_max = np.array([float(fid.read(8).decode())
-                                for _ in channels])
-        prefiltering = [fid.read(80).strip().decode() for _ in channels][:-1]
+                                for ch in channels])
+        prefiltering = [fid.read(80).strip().decode() for ch in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
         lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
@@ -534,7 +540,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
         # number of samples per record
-        n_samps = np.array([int(fid.read(8).decode()) for _ in channels])
+        n_samps = np.array([int(fid.read(8).decode()) for ch in channels])
         edf_info['n_samps'] = n_samps
 
         fid.read(32 * info['nchan']).decode()  # reserved

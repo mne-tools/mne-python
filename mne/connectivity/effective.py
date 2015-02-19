@@ -115,9 +115,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
     """
     logger.info('Estimating phase slope index (PSI)')
     # estimate the coherency
-    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(data,
-        method='cohy', indices=indices, sfreq=sfreq, mode=mode, fmin=fmin,
-        fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
+    cohy, freqs_, times, n_epochs, n_tapers = spectral_connectivity(
+        data, method='cohy', indices=indices, sfreq=sfreq, mode=mode,
+        fmin=fmin, fmax=fmax, fskip=0, faverage=False, tmin=tmin, tmax=tmax,
         mt_bandwidth=mt_bandwidth, mt_adaptive=mt_adaptive,
         mt_low_bias=mt_low_bias, cwt_frequencies=cwt_frequencies,
         cwt_n_cycles=cwt_n_cycles, block_size=block_size, n_jobs=n_jobs,

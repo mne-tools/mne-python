@@ -384,7 +384,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     'whitening jointly.')
 
     evoked = evoked.copy()  # handle ref meg
-    evoked.info['projs'] = []  # either applied already or not-- otherwise issue
+    evoked.info['projs'] = []  # either applied already or not-- else issue
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
@@ -415,7 +415,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             for ch_type, this_picks in picks_list2:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
-                this_rank = _estimate_rank_meeg_cov(C[idx], this_info, scalings)
+                this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
+                                                    scalings)
                 rank_[ch_type] = this_rank
         if rank is not None:
             rank_.update(rank)
@@ -475,7 +476,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
     if not has_sss:
-        evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
+        evokeds_white[0].plot(unit=False, axes=axes_evoked,
+                              hline=[-1.96, 1.96])
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')

@@ -92,7 +92,8 @@ def circular_layout(node_names, node_order, start_pos=90, start_between=True,
 
 
 def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
-                                     n_nodes=0, node_angles=None, ylim=[9, 10]):
+                                     n_nodes=0, node_angles=None,
+                                     ylim=[9, 10]):
     """Isolates connections around a single node when user left clicks a node.
 
     On right click, resets all connections."""
@@ -114,7 +115,7 @@ def _plot_connectivity_circle_onpick(event, fig=None, axes=None, indices=None,
         fig.canvas.draw()
     elif event.button == 3:  # right click
         patches = event.inaxes.patches
-        for ii in xrange(np.size(indices, axis=1)):
+        for ii in range(np.size(indices, axis=1)):
             patches[ii].set_visible(True)
         fig.canvas.draw()
 
@@ -398,7 +399,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         cb.ax.tick_params(labelsize=fontsize_colorbar)
         plt.setp(cb_yticks, color=textcolor)
 
-    #Add callback for interaction
+    # Add callback for interaction
     if interactive:
         callback = partial(_plot_connectivity_circle_onpick, fig=fig,
                            axes=axes, indices=indices, n_nodes=n_nodes,

@@ -62,7 +62,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """
+    """  # noqa
 
     if path is None:
         # use an intelligent guess if it's not defined
@@ -189,13 +189,13 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
         Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
-    """
+    """  # noqa
 
     if not condition.lower() in valid_conditions:
         raise ValueError('Unknown condition "%s"' % condition)
-    if not data_format in valid_data_formats:
+    if data_format not in valid_data_formats:
         raise ValueError('Unknown data_format "%s"' % data_format)
-    if not data_type in valid_data_types:
+    if data_type not in valid_data_types:
         raise ValueError('Unknown data_type "%s"' % data_type)
     urls = url_match(condition, data_format, data_type)
 

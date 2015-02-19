@@ -81,8 +81,8 @@ def _make_sparse_stc(X, active_set, forward, tmin, tstep,
 
     n_lh_points = len(src[0]['vertno'])
     lh_vertno = src[0]['vertno'][active_idx[active_idx < n_lh_points]]
-    rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points]
-                                             - n_lh_points]
+    rh_vertno = src[1]['vertno'][active_idx[active_idx >= n_lh_points] -
+                                 n_lh_points]
     vertices = [lh_vertno, rh_vertno]
     stc = SourceEstimate(X, vertices=vertices, tmin=tmin, tstep=tstep)
     return stc
@@ -164,7 +164,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     all_ch_names = evoked[0].ch_names
     if not all(all_ch_names == evoked[i].ch_names
-                                            for i in range(1, len(evoked))):
+               for i in range(1, len(evoked))):
         raise Exception('All the datasets must have the same good channels.')
 
     # put the forward solution in fixed orientation if it's not already
@@ -238,7 +238,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
         if return_residual:
             sel = [forward['sol']['row_names'].index(c)
-                                                for c in gain_info['ch_names']]
+                   for c in gain_info['ch_names']]
             r = deepcopy(e)
             r = pick_channels_evoked(r, include=gain_info['ch_names'])
             r.data -= np.dot(forward['sol']['data'][sel, :][:, active_set], Xe)
@@ -375,11 +375,12 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         _to_fixed_ori(forward)
 
     gain_info, gain, _, whitener, _ = _prepare_forward(forward,
-                                                      info, noise_cov, pca)
+                                                       info, noise_cov, pca)
 
     # Whiten lead field.
     gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                        depth, loose, weights, weights_min)
+                                                 depth, loose, weights,
+                                                 weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)
@@ -420,9 +421,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
     if return_residual:
         sel = [forward['sol']['row_names'].index(c)
-                                            for c in gain_info['ch_names']]
+               for c in gain_info['ch_names']]
         residual = deepcopy(evoked)
-        residual = pick_channels_evoked(residual, include=gain_info['ch_names'])
+        residual = pick_channels_evoked(residual,
+                                        include=gain_info['ch_names'])
         residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
                                 X)
 

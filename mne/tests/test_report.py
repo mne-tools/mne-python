@@ -33,8 +33,6 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-
-
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
@@ -157,6 +155,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
+
 
 @slow_test
 @testing.requires_testing_data

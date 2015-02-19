@@ -285,8 +285,8 @@ def read_inverse_operator(fname, verbose=None):
         #
         inv['proj'] = []       # This is the projector to apply to the data
         inv['whitener'] = []   # This whitens the data
-        inv['reginv'] = []     # This the diagonal matrix implementing
-                               # regularization and the inverse
+        # This the diagonal matrix implementing regularization and the inverse
+        inv['reginv'] = []
         inv['noisenorm'] = []  # These are the noise-normalization factors
         #
         nuse = 0
@@ -1220,7 +1220,7 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
     has patch statistics computed, these are used to improve the depth
     weighting. Thus slightly different results are to be expected with
     and without this information.
-    """
+    """  # noqa
     is_fixed_ori = is_fixed_orient(forward)
 
     if fixed and loose is not None:
@@ -1296,9 +1296,8 @@ def make_inverse_operator(info, forward, noise_cov, loose=0.2, depth=0.8,
         if not is_fixed_ori:
             # Convert to the fixed orientation forward solution now
             depth_prior = depth_prior[2::3]
-            forward = convert_forward_solution(forward, 
-                                               surf_ori=forward['surf_ori'],
-                                               force_fixed=True)
+            forward = convert_forward_solution(
+                forward, surf_ori=forward['surf_ori'], force_fixed=True)
             is_fixed_ori = is_fixed_orient(forward)
             gain_info, gain, noise_cov, whitener, n_nzero = \
                 _prepare_forward(forward, info, noise_cov, verbose=False)

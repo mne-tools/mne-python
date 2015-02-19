@@ -134,7 +134,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
-    if not output in [list, str]:
+    if output not in [list, str]:
         raise ValueError('output must be list or str')
     f, tree, directory = fiff_open(fname)
     with f as fid:

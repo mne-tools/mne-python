@@ -11,7 +11,7 @@ env:
     # by a factor of 2 (!)
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src MNE_DONTWRITE_HOME=true
     - PYTHON=2.7 DEPS=full TEST_LOCATION=install
-    - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src
+    - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=src
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
@@ -52,6 +52,9 @@ install:
             pip install -q pysurfer faulthandler;
           fi;
         fi;
+      fi;
+    - if [ "${DEPS}" == "nodata" ]; then
+        pip install -q coverage coveralls nose-timer > /dev/null;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness
@@ -98,6 +101,9 @@ install:
 
 script:
     - nosetests --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
+    - if [ "${DEPS}" == "nodata" ]; then
+        make flake;
+      fi;
 
 after_success:
     # Need to run from source dir to exectue "git" commands

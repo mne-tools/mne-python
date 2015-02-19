@@ -377,7 +377,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                Item('queue_current', show_label=False, style='readonly'),
                Item('queue_len_str', show_label=False, style='readonly')
                )
-        )
+    )
 
     def __init__(self, *args, **kwargs):
         super(Kit2FiffPanel, self).__init__(*args, **kwargs)

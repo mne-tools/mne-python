@@ -603,7 +603,7 @@ def get_sqd_params(rawfile):
         acq_type = unpack('i', fid.read(KIT_SYS.INT))[0]
         if acq_type == 1:
             sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
-            _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
+            fid.read(KIT_SYS.INT)  # initialized estimate of samples
             sqd['nsamples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
         else:
             err = ("You are probably trying to load a file that is not a "

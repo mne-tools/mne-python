@@ -15,7 +15,7 @@ from datetime import datetime as dt
 from .pick import channel_type
 from .constants import FIFF
 from .open import fiff_open
-from .tree import dir_tree_find, copy_tree
+from .tree import dir_tree_find
 from .tag import read_tag, find_tag
 from .proj import _read_proj, _write_proj, _uniquify_projs
 from .ctf import read_ctf_comp, write_ctf_comp

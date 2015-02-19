@@ -422,7 +422,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    if not ch_type in scalings:
+    if ch_type not in scalings:
         raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 

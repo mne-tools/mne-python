@@ -657,7 +657,7 @@ def read_surface(fname, verbose=None):
                 nface += 2
         elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()  # analysis:ignore
+            fobj.readline()
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
@@ -810,7 +810,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     surf = _read_surface_geom(surf)
 
     if stype in ['ico', 'oct']:
-        ### from mne_ico_downsample.c ###
+        # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)

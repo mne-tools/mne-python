@@ -52,7 +52,7 @@ def _read_named_matrix(fid, node, matkind):
     else:
         if not has_tag(node, matkind):
             raise ValueError('Desired named matrix (kind = %d) not available'
-                                                                    % matkind)
+                             % matkind)
 
     #   Read everything we need
     tag = find_tag(fid, node, matkind)
@@ -179,10 +179,10 @@ def read_ctf_comp(fid, node, chs, verbose=None):
                 p = ch_names.count(mat['col_names'][col])
                 if p == 0:
                     raise Exception('Channel %s is not available in data'
-                                                % mat['col_names'][col])
+                                    % mat['col_names'][col])
                 elif p > 1:
                     raise Exception('Ambiguous channel %s' %
-                                                        mat['col_names'][col])
+                                    mat['col_names'][col])
                 idx = ch_names.index(mat['col_names'][col])
                 col_cals[col] = 1.0 / (chs[idx]['range'] * chs[idx]['cal'])
 
@@ -192,10 +192,10 @@ def read_ctf_comp(fid, node, chs, verbose=None):
                 p = ch_names.count(mat['row_names'][row])
                 if p == 0:
                     raise Exception('Channel %s is not available in data'
-                                               % mat['row_names'][row])
+                                    % mat['row_names'][row])
                 elif p > 1:
                     raise Exception('Ambiguous channel %s' %
-                                                mat['row_names'][row])
+                                    mat['row_names'][row])
                 idx = ch_names.index(mat['row_names'][row])
                 row_cals[row] = chs[idx]['range'] * chs[idx]['cal']
 

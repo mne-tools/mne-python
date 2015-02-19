@@ -185,7 +185,7 @@ class _RawEGI(_BaseRaw):
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
-            _ = _read_events(fid, egi_info)  # update info + jump
+            _read_events(fid, egi_info)  # update info + jump
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)

@@ -12,6 +12,7 @@ from .constants import KIT
 from ..meas_info import _read_dig_points
 from ...externals.six.moves import cPickle as pickle
 
+
 def read_mrk(fname):
     """Marker Point Extraction in MEG space directly from sqd
 

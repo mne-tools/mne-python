@@ -1127,8 +1127,8 @@ def test_add_channels_epochs():
     data3 = np.concatenate([e.get_data() for e in
                             [epochs_meg, epochs_eeg]], axis=1)
     assert_array_equal(data1.shape, data2.shape)
-    assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
-                                      # when proj == True
+    # XXX unrelated bug? this crashes when proj == True
+    assert_array_equal(data1, data3)
     assert_array_equal(data1, data2)
 
     epochs_meg2 = epochs_meg.copy()

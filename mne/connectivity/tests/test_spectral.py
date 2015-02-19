@@ -180,7 +180,7 @@ def test_spectral_connectivity():
                     assert_true(n == n2)
                     assert_array_almost_equal(times_data, times2)
                 else:
-                # we get the same result for the probed connections
+                    # we get the same result for the probed connections
                     assert_true(len(con) == len(con2))
                     for c, c2 in zip(con, con2):
                         assert_array_almost_equal(freqs, freqs2)

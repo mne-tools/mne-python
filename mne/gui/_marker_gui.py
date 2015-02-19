@@ -58,7 +58,7 @@ mrk_view_editable = View(
                Item('use', editor=use_editor_v, enabled_when="enabled",
                     style='custom'),
                'points',
-               ),
+           ),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),

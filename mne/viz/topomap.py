@@ -58,7 +58,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            from ..channels.layout  import _find_topomap_coords
+            from ..channels.layout import _find_topomap_coords
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
@@ -88,7 +88,7 @@ def _plot_update_evoked_topomap(params, bools):
     data = new_evoked.data[np.ix_(params['picks'],
                                   params['time_idx'])] * params['scale']
     if params['merge_grads']:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     image_mask = params['image_mask']
 
@@ -175,7 +175,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         for l in layout:
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
-                from ..channels.layout  import _pair_grad_sensors_from_ch_names
+                from ..channels.layout import _pair_grad_sensors_from_ch_names
                 grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
                 if grad_pairs:
                     ch_names = [ch_names[i] for i in grad_pairs]
@@ -647,7 +647,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     fig.suptitle(title)
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
         ax.set_title('IC #%03d' % ii, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
@@ -796,7 +796,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)

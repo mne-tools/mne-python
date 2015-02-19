@@ -93,7 +93,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
-        if not ch_type in scalings:
+        if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
         this_data *= scalings[ch_type]

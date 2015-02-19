@@ -121,11 +121,11 @@ def test_plot_topomap():
 
         # Remove extra digitization point, so EEG digitization points
         # correspond with the EEG electrodes
-        del evoked.info['dig'][85] 
+        del evoked.info['dig'][85]
         plot_evoked_topomap(evoked, times, ch_type='eeg')
 
         # Remove digitization points. Now topomap should fail
-        evoked.info['dig'] = None 
+        evoked.info['dig'] = None
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       times, ch_type='eeg')
 

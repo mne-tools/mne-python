@@ -339,7 +339,7 @@ def test_evoked_arithmetic():
     ev = read_evokeds(fname, condition=0)
     ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
     ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
-    
+
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave

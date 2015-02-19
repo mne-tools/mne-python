@@ -36,7 +36,7 @@ if version < required_version:
 """
 
 requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                  call=_recent_sklearn_call)
+                                call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -47,8 +47,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-
-
 
 
 def test_io_cov():
@@ -273,7 +271,8 @@ def test_rank():
     picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
 
     info_sample = pick_info(raw_sample.info, picks_all_sample)
-    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False, eeg=True))]
+    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False,
+                                             eeg=True))]
     picks_stack_sample += [('meg', pick_types(info_sample, meg=True))]
     picks_stack_sample += [('all',
                             pick_types(info_sample, meg=True, eeg=True))]
@@ -300,8 +299,8 @@ def test_rank():
             # compute subset of projs
             this_projs = [c['active'] and
                           len(set(c['data']['col_names'])
-                              .intersection(set(this_very_info['ch_names']))) > 0
-                          for c in cov['projs']]
+                              .intersection(set(this_very_info['ch_names'])))
+                          > 0 for c in cov['projs']]
             n_projs = sum(this_projs)
 
             # count channel types

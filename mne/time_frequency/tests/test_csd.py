@@ -23,7 +23,7 @@ def _get_data():
 
     # Set picks
     picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                                stim=False, exclude='bads')
+                           stim=False, exclude='bads')
 
     # Read several epochs
     event_id, tmin, tmax = 1, -0.2, 0.5

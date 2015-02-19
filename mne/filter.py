@@ -477,7 +477,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
-    """
+    """  # noqa
     a = None
     b = None
     # if the filter has been designed, we're good to go

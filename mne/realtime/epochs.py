@@ -142,11 +142,11 @@ class RtEpochs(_BaseEpochs):
         verbose = client.verbose if verbose is None else verbose
 
         # call _BaseEpochs constructor
-        super(RtEpochs, self).__init__(info, event_id, tmin, tmax,
-                baseline=baseline, picks=picks, name=name, reject=reject,
-                flat=flat, decim=decim, reject_tmin=reject_tmin,
-                reject_tmax=reject_tmax, detrend=detrend,
-                add_eeg_ref=add_eeg_ref, verbose=verbose)
+        super(RtEpochs, self).__init__(
+            info, event_id, tmin, tmax, baseline=baseline, picks=picks,
+            name=name, reject=reject, flat=flat, decim=decim,
+            reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
+            add_eeg_ref=add_eeg_ref, verbose=verbose)
 
         self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
@@ -223,8 +223,7 @@ class RtEpochs(_BaseEpochs):
             nchan = self._client_info['nchan']
             self._client.start_receive_thread(nchan)
             self._started = True
-
-            self._last_time = np.inf  # init delay counter. Will stop iterations
+            self._last_time = np.inf  # init delay counter. Will stop iters
 
     def stop(self, stop_receive_thread=False, stop_measurement=False):
         """Stop receiving epochs
