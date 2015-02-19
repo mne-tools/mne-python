@@ -139,7 +139,7 @@ Functions:
    read_bem_solution
    read_bem_surfaces
    read_cov
-   read_dip
+   read_dipoles
    read_epochs
    read_events
    read_evokeds
@@ -157,6 +157,7 @@ Functions:
    write_labels_to_annot
    write_bem_surface
    write_cov
+   write_dipoles
    write_events
    write_evokeds
    write_forward_solution

@@ -2033,8 +2033,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             r1s = apply_trans(inv_trans['trans'], r1s)
 
         # Check that the source is inside surface (often the inner skull)
-        x = _sum_solids_div(r1s, surf, n_jobs)
-        outside = np.abs(x - 1.0) > 1e-5
+        outside = _points_outside_surface(r1s, surf, n_jobs)
         omit_outside = np.sum(outside)
 
         # vectorized nearest using BallTree (or cdist)
@@ -2063,12 +2062,28 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
     logger.info('Thank you for waiting.')
 
 
-def _sum_solids_div(fros, surf, n_jobs):
-    """Compute sum of solid angles according to van Oosterom for all tris"""
+@verbose
+def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+    """Check whether points are outside a surface
+
+    Parameters
+    ----------
+    rr : ndarray
+        Nx3 array of points to check.
+    surf : dict
+        Surface with entries "rr" and "tris".
+
+    Returns
+    -------
+    outside : ndarray
+        1D logical array of size N for which points are outside the surface.
+    """
+    rr = np.atleast_2d(rr)
+    assert rr.shape[1] == 3
     parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
-    tot_angles = parallel(p_fun(surf['rr'][tris], fros)
+    tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
-    return np.sum(tot_angles, axis=0) / (2 * np.pi)
+    return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
 def _get_solids(tri_rrs, fros):
