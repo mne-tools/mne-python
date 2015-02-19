@@ -105,10 +105,14 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
-        if self.info['projs'] is None:
+        if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
             return self
+
+        # Exit delayed mode if you apply proj
+        if hasattr(self, '_delayed_proj'):
+            del self._delayed_proj
 
         if all([p['active'] for p in self.info['projs']]):
             logger.info('Projections have already been applied. Doing '
