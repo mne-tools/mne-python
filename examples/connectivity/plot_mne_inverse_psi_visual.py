@@ -19,14 +19,13 @@ References
 Complex Physical Systems", Physical Review Letters, vol. 100, no. 23,
 pp. 1-4, Jun. 2008.
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
@@ -34,6 +33,7 @@ from mne.minimum_norm import read_inverse_operator, apply_inverse_epochs
 from mne.connectivity import seed_target_indices, phase_slope_index
 from mne.viz import mne_analyze_colormap
 
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

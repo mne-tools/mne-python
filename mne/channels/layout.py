@@ -441,8 +441,11 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
-    xdiff = lambda a, b: np.abs(a[0] - b[0])
-    ydiff = lambda a, b: np.abs(a[1] - b[1])
+    def xdiff(a, b):
+        return np.abs(a[0] - b[0])
+
+    def ydiff(a, b):
+        return np.abs(a[1] - b[1])
 
     points = np.asarray(points)
     all_combinations = list(combinations(points, 2))

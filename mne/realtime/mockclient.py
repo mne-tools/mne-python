@@ -74,8 +74,8 @@ class MockRtClient(object):
             # to undo the calibration done in _process_raw_buffer
             cals = np.zeros(self.info['nchan'])
             for k in range(self.info['nchan']):
-                cals[k] = (self.info['chs'][k]['range']
-                           * self.info['chs'][k]['cal'])
+                cals[k] = (self.info['chs'][k]['range'] *
+                           self.info['chs'][k]['cal'])
 
             self._cals = cals[:, None]
             data[picks, :] = data[picks, :] / self._cals

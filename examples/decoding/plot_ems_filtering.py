@@ -22,17 +22,19 @@ trials by condition. A second plot shows the average time series for each
 condition. Finally a topographic plot is created which exhibits the
 temporal evolution of the spatial filters.
 """
-
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.decoding import compute_ems
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 # Set parameters
@@ -62,8 +64,6 @@ epochs.equalize_event_counts(epochs.event_id, copy=False)
 
 # compute surrogate time series
 surrogates, filters, conditions = compute_ems(epochs, ['AudL', 'VisL'])
-
-import matplotlib.pyplot as plt
 
 times = epochs.times * 1e3
 plt.figure()

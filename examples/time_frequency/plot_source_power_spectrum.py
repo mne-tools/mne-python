@@ -10,12 +10,14 @@ Returns an STC file containing the PSD (in dB) of each of the sources.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, compute_source_psd
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -47,7 +49,6 @@ stc.save('psd_dSPM')
 
 ###############################################################################
 # View PSD of sources in label
-import matplotlib.pyplot as plt
 plt.plot(1e3 * stc.times, stc.data.T)
 plt.xlabel('Frequency (Hz)')
 plt.ylabel('PSD (dB)')

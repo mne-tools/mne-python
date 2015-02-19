@@ -347,7 +347,10 @@ def test_ica_additional():
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
                  'pca_explained_variance_ _pre_whitener')
-        f = lambda x, y: getattr(x, y).dtype
+
+        def f(x, y):
+            return getattr(x, y).dtype
+
         for attr in attrs.split():
             assert_equal(f(ica_read, attr), f(ica, attr))
 

@@ -557,8 +557,14 @@ def has_nibabel(vox2ras_tkr=False):
         return False
 
 
-has_mne_c = lambda: 'MNE_ROOT' in os.environ
-has_freesurfer = lambda: 'FREESURFER_HOME' in os.environ
+def has_mne_c():
+    """Aux function"""
+    return 'MNE_ROOT' in os.environ
+
+
+def has_freesurfer():
+    """Aux function"""
+    return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
@@ -1290,9 +1296,11 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     progress = ProgressBar(file_size, initial_value=local_file_size,
                            max_chars=40, spinner=True, mesg='downloading',
                            verbose_bool=verbose_bool)
+
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
+    def chunk_write(chunk):
+        return _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
     sys.stdout.write('\n')

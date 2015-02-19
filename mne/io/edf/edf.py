@@ -524,9 +524,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 info['highpass'] = float(highpass[0])
         else:
             info['highpass'] = float(np.min(highpass))
-            warnings.warn('%s' % ('Channels contain different highpass'
-                                  + 'filters. Highest filter setting will'
-                                  + 'be stored.'))
+            warnings.warn('Channels contain different highpass filters. '
+                          'Highest filter setting will be stored.')
 
         if lowpass.size == 0:
             info['lowpass'] = None

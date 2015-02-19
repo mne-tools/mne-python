@@ -108,8 +108,8 @@ class Kit2FiffModel(HasPrivateTraits):
         if not has_sqd:
             return False
 
-        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp)
-                       and np.any(self.elp) and np.any(self.fid))
+        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
+                       np.any(self.elp) and np.any(self.fid))
         if has_all_hsp:
             return True
 

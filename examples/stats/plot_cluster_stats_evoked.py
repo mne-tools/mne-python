@@ -8,17 +8,18 @@ between conditions. Multiple comparison problem is addressed
 with cluster level permutation test.
 
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -64,7 +65,6 @@ T_obs, clusters, cluster_p_values, H0 = \
 ###############################################################################
 # Plot
 times = epochs1.times
-import matplotlib.pyplot as plt
 plt.close('all')
 plt.subplot(211)
 plt.title('Channel : ' + channel)

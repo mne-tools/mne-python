@@ -375,8 +375,8 @@ class RawFIFF(_BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir])
-                                   / info['sfreq'])
+        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir]) /
+                                   info['sfreq'])
 
         raw.info = info
         raw.verbose = verbose

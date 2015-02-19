@@ -7,12 +7,9 @@ Compute LCMV beamformer solutions on evoked dataset for three different choices
 of source orientation and stores the solutions in stc files for visualisation.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -21,6 +18,8 @@ import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.beamformer import lcmv
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

@@ -295,8 +295,8 @@ class CoregModel(HasPrivateTraits):
 
     @cached_property
     def _get_point_distance(self):
-        if (len(self.transformed_hsp_points) == 0
-                or len(self.transformed_mri_points) == 0):
+        if (len(self.transformed_hsp_points) == 0 or
+                len(self.transformed_mri_points) == 0):
             return
         dists = cdist(self.transformed_hsp_points, self.transformed_mri_points,
                       'euclidean')

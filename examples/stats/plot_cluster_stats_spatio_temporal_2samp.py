@@ -13,8 +13,6 @@ permutation test across space and time.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import os.path as op
 import numpy as np
 from scipy import stats as stats
@@ -23,6 +21,8 @@ import mne
 from mne import spatial_tris_connectivity, grade_to_tris
 from mne.stats import spatio_temporal_cluster_test, summarize_clusters_stc
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

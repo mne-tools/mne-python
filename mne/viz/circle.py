@@ -328,10 +328,10 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         nodes_n_con_seen[start] += 1
         nodes_n_con_seen[end] += 1
 
-        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start])
-                           / float(nodes_n_con[start]))
-        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end])
-                         / float(nodes_n_con[end]))
+        start_noise[i] *= ((nodes_n_con[start] - nodes_n_con_seen[start]) /
+                           float(nodes_n_con[start]))
+        end_noise[i] *= ((nodes_n_con[end] - nodes_n_con_seen[end]) /
+                         float(nodes_n_con[end]))
 
     # scale connectivity for colormap (vmin<=>0, vmax<=>1)
     con_val_scaled = (con - vmin) / vrange

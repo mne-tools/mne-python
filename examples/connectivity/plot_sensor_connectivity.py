@@ -12,8 +12,6 @@ are used which produces strong connectvitiy in the right occipital sensors.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import linalg
 
@@ -21,6 +19,8 @@ import mne
 from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

@@ -8,14 +8,12 @@ auditory cortex and the rest of the brain based on single-trial
 MNE-dSPM inverse soltions.
 
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
@@ -23,6 +21,7 @@ from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
                               read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
 
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

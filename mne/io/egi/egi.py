@@ -26,7 +26,10 @@ def _read_header(fid):
     else:
         ValueError('Watchout. This does not seem to be a simple '
                    'binary EGI file.')
-    my_fread = lambda *x, **y: np.fromfile(*x, **y)[0]
+
+    def my_fread(*x, **y):
+        return np.fromfile(*x, **y)[0]
+
     info = dict(
         version=version,
         year=my_fread(fid, '>i2', 1),

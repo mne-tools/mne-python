@@ -349,7 +349,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
             _check_delayed_ssp(e)
 
     if ylim is None:
-        set_ylim = lambda x: np.abs(x).max()
+        def set_ylim(x):
+            return np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)

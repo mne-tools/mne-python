@@ -12,8 +12,6 @@ unexpected sounds", PLOS ONE, 2013
 The idea is to learn at one time instant and assess if the decoder
 can predict accurately over time.
 """
-print(__doc__)
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
@@ -24,6 +22,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne.datasets import spm_face
 from mne.decoding import time_generalization
+
+print(__doc__)
 
 data_path = spm_face.data_path()
 

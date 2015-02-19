@@ -1,10 +1,10 @@
 import numpy as np
 from scipy import stats
 from scipy.stats import f
-fprob = f.sf  # stats.fprob is deprecated
 from scipy.signal import detrend
 from ..fixes import matrix_rank
 from functools import reduce
+fprob = f.sf  # stats.fprob is deprecated
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>

@@ -13,13 +13,13 @@ http://dx.doi.org/10.1088/0031-9155/57/7/1937
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
 from mne.inverse_sparse import mixed_norm
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 from mne.viz import plot_sparse_source_estimates
+
+print(__doc__)
 
 data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'

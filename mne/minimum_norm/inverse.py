@@ -786,8 +786,8 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori is None)
+    is_free_ori = (inverse_operator['source_ori'] ==
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
 
     if is_free_ori:
         logger.info('combining the current components...')
@@ -889,8 +889,8 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
     K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
 
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori is None)
+    is_free_ori = (inverse_operator['source_ori'] ==
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
 
     if buffer_size is not None and is_free_ori:
         # Process the data in segments to conserve memory
@@ -955,8 +955,8 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
     tstep = 1.0 / epochs.info['sfreq']
     tmin = epochs.times[0]
 
-    is_free_ori = (inverse_operator['source_ori'] == FIFF.FIFFV_MNE_FREE_ORI
-                   and pick_ori is None)
+    is_free_ori = (inverse_operator['source_ori'] ==
+                   FIFF.FIFFV_MNE_FREE_ORI and pick_ori is None)
 
     if not is_free_ori and noise_norm is not None:
         # premultiply kernel with noise normalization
@@ -1100,10 +1100,10 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
     """
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
     ch_names = [c['ch_name'] for c in info['chs']
-                if (c['ch_name'] not in info['bads']
-                    and c['ch_name'] not in noise_cov['bads'])
-                and (c['ch_name'] in fwd_ch_names
-                     and c['ch_name'] in noise_cov.ch_names)]
+                if ((c['ch_name'] not in info['bads'] and
+                     c['ch_name'] not in noise_cov['bads']) and
+                    (c['ch_name'] in fwd_ch_names and
+                     c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
             not all([b in noise_cov['bads'] for b in info['bads']]):

@@ -10,10 +10,12 @@ Forward solutions can be read using read_forward_solution in Python.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
+import matplotlib.pyplot as plt
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -27,7 +29,6 @@ print("Leadfield size : %d x %d" % leadfield.shape)
 ###############################################################################
 # Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
-import matplotlib.pyplot as plt
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
 picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 

@@ -15,14 +15,15 @@ latter also includes evoked (stimulus-locked) activity.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, source_induced_power
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -61,7 +62,6 @@ n_cycles = frequencies / 3.  # different number of cycle per frequency
 # subtract the evoked response in order to exclude evoked activity
 epochs_induced = epochs.copy().subtract_evoked()
 
-import matplotlib.pyplot as plt
 plt.close('all')
 
 for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],

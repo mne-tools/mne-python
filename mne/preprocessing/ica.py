@@ -54,9 +54,11 @@ except ImportError:
 def _make_xy_sfunc(func, ndim_output=False):
     """Aux function"""
     if ndim_output:
-        sfunc = lambda x, y: np.array([func(a, y.ravel()) for a in x])[:, 0]
+        def sfunc(x, y):
+            return np.array([func(a, y.ravel()) for a in x])[:, 0]
     else:
-        sfunc = lambda x, y: np.array([func(a, y.ravel()) for a in x])
+        def sfunc(x, y):
+            return np.array([func(a, y.ravel()) for a in x])
     sfunc.__name__ = '.'.join(['score_func', func.__module__, func.__name__])
     sfunc.__doc__ = func.__doc__
     return sfunc
@@ -64,11 +66,11 @@ def _make_xy_sfunc(func, ndim_output=False):
 # makes score funcs attr accessible for users
 score_funcs = Bunch()
 
-xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items() if isfunction(f)
-                     and not n.startswith('_')]
+xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items()
+                     if isfunction(f) and not n.startswith('_')]
 
-xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items() if isfunction(f)
-                      and not n.startswith('_')]
+xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
+                      if isfunction(f) and not n.startswith('_')]
 
 score_funcs.update(dict((n, _make_xy_sfunc(f)) for n, f in xy_arg_dist_funcs
                    if getargspec(f).args == ['u', 'v']))
@@ -444,8 +446,8 @@ class ICA(ContainsMixin):
             # compute eplained variance manually, cf. sklearn bug
             # fixed in #2664
             explained_variance_ratio_ = pca.explained_variance_ / full_var
-            n_components_ = np.sum(explained_variance_ratio_.cumsum()
-                                   <= self.n_components)
+            n_components_ = np.sum(explained_variance_ratio_.cumsum() <=
+                                   self.n_components)
             if n_components_ < 1:
                 raise RuntimeError('One PCA component captures most of the '
                                    'explained variance, your threshold resu'
@@ -1527,8 +1529,8 @@ def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
     """Aux function"""
     if isinstance(_n_pca_comp, float):
         _n_pca_comp = ((ica.pca_explained_variance_ /
-                       ica.pca_explained_variance_.sum()).cumsum()
-                       <= _n_pca_comp).sum()
+                       ica.pca_explained_variance_.sum()).cumsum() <=
+                       _n_pca_comp).sum()
         logger.info('Selected %i PCA components by explained '
                     'variance' % _n_pca_comp)
     elif _n_pca_comp is None:
@@ -1831,8 +1833,11 @@ def read_ica(fname):
         logger.info('Reading whitener drawn from noise covariance ...')
 
     logger.info('Now restoring ICA solution ...')
+
     # make sure dtypes are np.float64 to satisfy fast_dot
-    f = lambda x: x.astype(np.float64)
+    def f(x):
+        return x.astype(np.float64)
+
     ica_init = dict((k, v) for k, v in ica_init.items()
                     if k in getargspec(ICA.__init__).args)
     ica = ICA(**ica_init)

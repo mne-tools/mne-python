@@ -16,7 +16,6 @@ evoked responses.
 
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import matplotlib.pyplot as plt
 import mne
@@ -24,6 +23,9 @@ import mne
 from mne.io import Raw
 from mne.viz import plot_topo
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################

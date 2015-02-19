@@ -129,18 +129,18 @@ def test_spectral_connectivity():
                 elif method == 'cohy':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
-                    assert_true(np.all(np.imag(con[1, 0, idx[0]:idx[1]])
-                                < lower_t))
+                    assert_true(np.all(np.imag(con[1, 0, idx[0]:idx[1]]) <
+                                lower_t))
                     # we see something for zero-lag
-                    assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]])
-                                > upper_t))
+                    assert_true(np.all(np.abs(con[1, 0, idx[0]:idx[1]]) >
+                                upper_t))
 
                     idx = np.searchsorted(freqs, (fstart - 1, fend + 1))
                     if mode != 'cwt_morlet':
-                        assert_true(np.all(np.abs(con[1, 0, :idx[0]])
-                                    < lower_t))
-                        assert_true(np.all(np.abs(con[1, 0, idx[1]:])
-                                    < lower_t))
+                        assert_true(np.all(np.abs(con[1, 0, :idx[0]]) <
+                                    lower_t))
+                        assert_true(np.all(np.abs(con[1, 0, idx[1]:]) <
+                                    lower_t))
                 elif method == 'imcoh':
                     idx = np.searchsorted(freqs, (fstart + 1, fend - 1))
                     # imaginary coh will be zero
@@ -201,8 +201,8 @@ def test_spectral_connectivity():
                 assert_true(isinstance(freqs3, list))
                 assert_true(len(freqs3) == len(fmin))
                 for i in range(len(freqs3)):
-                    assert_true(np.all((freqs3[i] >= fmin[i])
-                                       & (freqs3[i] <= fmax[i])))
+                    assert_true(np.all((freqs3[i] >= fmin[i]) &
+                                       (freqs3[i] <= fmax[i])))
 
                 # average con2 "manually" and we get the same result
                 if not isinstance(method, list):

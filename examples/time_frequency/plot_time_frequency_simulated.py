@@ -7,8 +7,6 @@ This examples demonstrates on simulated data the different time-frequency
 estimation methods. It shows the time-frequency resolution trade-off
 and the problem of estimation variance.
 """
-print(__doc__)
-
 # Authors: Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -18,6 +16,8 @@ import numpy as np
 
 from mne import create_info, EpochsArray
 from mne.time_frequency import tfr_multitaper, tfr_stockwell, tfr_morlet
+
+print(__doc__)
 
 ###############################################################################
 # Simulate data

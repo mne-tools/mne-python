@@ -10,14 +10,14 @@ NeuroImage, vol. 44, no. 3, pp. 947?66, Mar. 2009.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 
 import mne
 from mne.datasets import sample
 from mne.inverse_sparse import gamma_map
 from mne.viz import plot_sparse_source_estimates
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

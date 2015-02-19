@@ -13,11 +13,12 @@ for both MEG and EEG data by averaging all the epochs.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################

@@ -13,11 +13,13 @@ data and then saved to disk.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne import io
 from mne.datasets import sample
+import matplotlib.pyplot as plt
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -62,7 +64,6 @@ times = 1e3 * epochs.times  # time in miliseconds
 
 ch_max_name, latency = evoked.get_peak(mode='neg')
 
-import matplotlib.pyplot as plt
 evoked.plot()
 
 plt.xlim([times[0], times[-1]])

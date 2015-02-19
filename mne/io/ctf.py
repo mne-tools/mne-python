@@ -11,6 +11,8 @@ import numpy as np
 from .constants import FIFF
 from .tag import find_tag, has_tag, read_tag
 from .tree import dir_tree_find
+from .write import start_block, end_block, write_int
+from .matrix import write_named_matrix
 
 from ..utils import logger, verbose
 
@@ -219,10 +221,6 @@ def read_ctf_comp(fid, node, chs, verbose=None):
 ###############################################################################
 # Writing
 
-from .write import start_block, end_block, write_int
-from .matrix import write_named_matrix
-
-
 def write_ctf_comp(fid, comps):
     """Write the CTF compensation data into a fif file
 
@@ -249,8 +247,8 @@ def write_ctf_comp(fid, comps):
         if not comp['save_calibrated']:
             # Undo calibration
             comp = deepcopy(comp)
-            data = ((1. / comp['rowcals'][:, None]) * comp['data']['data']
-                    * (1. / comp['colcals'][None, :]))
+            data = ((1. / comp['rowcals'][:, None]) * comp['data']['data'] *
+                    (1. / comp['colcals'][None, :]))
             comp['data']['data'] = data
         write_named_matrix(fid, FIFF.FIFF_MNE_CTF_COMP_DATA, comp['data'])
         end_block(fid, FIFF.FIFFB_MNE_CTF_COMP_DATA)

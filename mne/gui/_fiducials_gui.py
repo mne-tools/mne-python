@@ -129,9 +129,9 @@ class MRIHeadWithFiducialsModel(HasPrivateTraits):
 
     @cached_property
     def _get_can_save_as(self):
-        can = not (np.all(self.nasion == self.lpa)
-                   or np.all(self.nasion == self.rpa)
-                   or np.all(self.lpa == self.rpa))
+        can = not (np.all(self.nasion == self.lpa) or
+                   np.all(self.nasion == self.rpa) or
+                   np.all(self.lpa == self.rpa))
         return can
 
     @cached_property
@@ -290,7 +290,9 @@ class FiducialsPanel(HasPrivateTraits):
         else:
             logger.debug("GUI: picked object other than MRI")
 
-        round_ = lambda x: round(x, 3)
+        def round_(x):
+            return round(x, 3)
+
         poss = [map(round_, pos) for pos in picker.picked_positions]
         pos = map(round_, picker.pick_position)
         msg = ["Pick Event: %i picked_positions:" % n_pos]

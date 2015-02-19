@@ -10,13 +10,16 @@ Locate peaks of EOG to spot blinks and general EOG artifacts.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################

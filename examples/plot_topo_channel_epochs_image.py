@@ -9,8 +9,6 @@ potential / field (ERP/ERF) images.
 One sensor topography plot is produced with the evoked field images from
 the selected channels.
 """
-print(__doc__)
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -21,6 +19,9 @@ import matplotlib.pyplot as plt
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################

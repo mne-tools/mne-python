@@ -248,8 +248,8 @@ def test_restrict_forward_to_label():
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
-                  + len(fwd['src'][0]['vertno']))
+    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
+                  len(fwd['src'][0]['vertno']))
 
     assert_equal(fwd_out['sol']['ncol'], len(src_sel_lh) + len(src_sel_rh))
     assert_equal(fwd_out['src'][0]['nuse'], len(src_sel_lh))
@@ -271,8 +271,8 @@ def test_restrict_forward_to_label():
     src_sel_lh = np.searchsorted(fwd['src'][0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(fwd['src'][1]['vertno'], label_rh.vertices)
-    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh)
-                  + len(fwd['src'][0]['vertno']))
+    src_sel_rh = (np.searchsorted(fwd['src'][1]['vertno'], src_sel_rh) +
+                  len(fwd['src'][0]['vertno']))
 
     assert_equal(fwd_out['sol']['ncol'],
                  3 * (len(src_sel_lh) + len(src_sel_rh)))

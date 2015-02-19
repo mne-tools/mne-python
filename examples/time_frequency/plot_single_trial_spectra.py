@@ -7,12 +7,9 @@ In this example we will look at single trial spectra and then
 compute average spectra to identify channels and
 frequencies of interest for subsequent TFR analyses.
 """
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -21,6 +18,9 @@ import mne
 from mne import io
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_psd
+
+print(__doc__)
+
 ###############################################################################
 # Set parameters
 data_path = sample.data_path()

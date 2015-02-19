@@ -14,10 +14,10 @@ This process can be computationally intensive.
 
 # License: BSD (3-clause)
 
-print(__doc__)
-
 from mne.datasets import sample
 from mne import make_field_map, read_evokeds
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

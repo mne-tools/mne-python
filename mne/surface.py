@@ -1269,14 +1269,13 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
                                0.0), 1.0)
     q0 = np.zeros_like(p0)
     #   Side 2 -> 3
-    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp) +
+                 (2.0 * bb - cc) * qq) / (aa + bb - cc))
     t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
     p1 = 1.0 - t1
     q1 = t1
     #   Side 1 -> 3
-    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                               / bb, 0.0), 1.0)
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc) / bb, 0.0), 1.0)
     p2 = np.zeros_like(q2)
 
     # figure out which one had the lowest distance

@@ -280,8 +280,8 @@ class _PPCEst(_EpochMeanConEstBase):
 
         # note: we use the trick from fieldtrip to compute the
         # the estimate over all pairwise epoch combinations
-        con = ((self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs)
-               / (n_epochs * (n_epochs - 1.)))
+        con = ((self._acc[con_idx] * np.conj(self._acc[con_idx]) - n_epochs) /
+               (n_epochs * (n_epochs - 1.)))
 
         self.con_scores[con_idx] = np.real(con)
 
@@ -1047,8 +1047,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
         con_flat = con
         con = []
         for this_con_flat in con_flat:
-            this_con = np.zeros((n_signals, n_signals)
-                                + this_con_flat.shape[1:],
+            this_con = np.zeros((n_signals, n_signals) +
+                                this_con_flat.shape[1:],
                                 dtype=this_con_flat.dtype)
             this_con[indices_use] = this_con_flat
             con.append(this_con)

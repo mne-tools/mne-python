@@ -324,9 +324,9 @@ class CombineMarkersModel(HasPrivateTraits):
 
     @cached_property
     def _get_distance(self):
-        if (self.mrk1 is None or self.mrk2 is None
-            or (not np.any(self.mrk1.points))
-                or (not np.any(self.mrk2.points))):
+        if (self.mrk1 is None or self.mrk2 is None or
+                (not np.any(self.mrk1.points)) or
+                (not np.any(self.mrk2.points))):
             return ""
 
         ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))

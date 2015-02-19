@@ -7,18 +7,20 @@ This script shows how to export raw files to the NiTime library
 for further signal processing and data analysis.
 
 """
-
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
-import mne
+import matplotlib.pyplot as plt
+import nitime.algorithms as tsa
 
+import mne
 from mne.io import Raw
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -60,10 +62,6 @@ print(raw_ts.ch_names[:3])
 
 ###############################################################################
 # investigate spectral density
-
-import matplotlib.pyplot as plt
-
-import nitime.algorithms as tsa
 
 ch_sel = raw_ts.ch_names.index('MEG 0122')
 

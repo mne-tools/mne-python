@@ -334,8 +334,8 @@ class RawKIT(_BaseRaw):
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._sqd_params['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._sqd_params['DYNAMIC_RANGE'])
-                               * sensor_gain, ndmin=2)
+                                self._sqd_params['DYNAMIC_RANGE']) *
+                               sensor_gain, ndmin=2)
         data = conv_factor * data
         data = data.T
         # Create a synthetic channel
@@ -565,24 +565,24 @@ def get_sqd_params(rawfile):
         fid.seek(amp_offset)
         amp_data = unpack('i', fid.read(KIT_SYS.INT))[0]
 
-        gain1 = KIT_SYS.GAINS[(KIT_SYS.GAIN1_MASK & amp_data)
-                              >> KIT_SYS.GAIN1_BIT]
-        gain2 = KIT_SYS.GAINS[(KIT_SYS.GAIN2_MASK & amp_data)
-                              >> KIT_SYS.GAIN2_BIT]
+        gain1 = KIT_SYS.GAINS[(KIT_SYS.GAIN1_MASK & amp_data) >>
+                              KIT_SYS.GAIN1_BIT]
+        gain2 = KIT_SYS.GAINS[(KIT_SYS.GAIN2_MASK & amp_data) >>
+                              KIT_SYS.GAIN2_BIT]
         if KIT_SYS.GAIN3_BIT:
-            gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data)
-                                  >> KIT_SYS.GAIN3_BIT]
+            gain3 = KIT_SYS.GAINS[(KIT_SYS.GAIN3_MASK & amp_data) >>
+                                  KIT_SYS.GAIN3_BIT]
             sqd['amp_gain'] = gain1 * gain2 * gain3
         else:
             sqd['amp_gain'] = gain1 * gain2
 
         # filter settings
-        sqd['lowpass'] = KIT_SYS.LPFS[(KIT_SYS.LPF_MASK & amp_data)
-                                      >> KIT_SYS.LPF_BIT]
-        sqd['highpass'] = KIT_SYS.HPFS[(KIT_SYS.HPF_MASK & amp_data)
-                                       >> KIT_SYS.HPF_BIT]
-        sqd['notch'] = KIT_SYS.BEFS[(KIT_SYS.BEF_MASK & amp_data)
-                                    >> KIT_SYS.BEF_BIT]
+        sqd['lowpass'] = KIT_SYS.LPFS[(KIT_SYS.LPF_MASK & amp_data) >>
+                                      KIT_SYS.LPF_BIT]
+        sqd['highpass'] = KIT_SYS.HPFS[(KIT_SYS.HPF_MASK & amp_data) >>
+                                       KIT_SYS.HPF_BIT]
+        sqd['notch'] = KIT_SYS.BEFS[(KIT_SYS.BEF_MASK & amp_data) >>
+                                    KIT_SYS.BEF_BIT]
 
         # only sensor channels requires gain. the additional misc channels
         # (trigger channels, audio and voice channels) are passed

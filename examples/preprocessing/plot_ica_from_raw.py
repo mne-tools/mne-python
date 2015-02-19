@@ -7,19 +7,20 @@ ICA is fit to MEG raw data.
 The sources matching the ECG and EOG are automatically found and displayed.
 Subsequently, artifact detection and rejection quality are assessed.
 """
-print(__doc__)
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+
 import mne
 from mne.io import Raw
 from mne.preprocessing import ICA
 from mne.preprocessing import create_ecg_epochs, create_eog_epochs
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Setup paths and prepare raw data

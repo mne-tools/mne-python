@@ -11,7 +11,6 @@ Note: The MNE Real-time server (mne_rt_server), which is part of mne-cpp,
 has to be running on the same computer.
 """
 
-print(__doc__)
 
 # Authors: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Mainak Jas <mainak@neuro.hut.fi>
@@ -19,9 +18,12 @@ print(__doc__)
 # License: BSD (3-clause)
 
 import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.realtime import RtEpochs, MockRtClient
+
+print(__doc__)
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()

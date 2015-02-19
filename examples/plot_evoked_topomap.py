@@ -12,12 +12,12 @@ Load evoked data and plot topomaps for selected time points.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne import read_evokeds
+
+print(__doc__)
 
 path = sample.data_path()
 fname = path + '/MEG/sample/sample_audvis-ave.fif'

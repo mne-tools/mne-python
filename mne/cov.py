@@ -744,8 +744,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     # undo scaling
-    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _  # noqa
-     in estimator_cov_info]
+    for c in estimator_cov_info:
+        _undo_scaling_cov(c[1], picks_list, scalings)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -805,8 +805,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
         if score != -np.inf:
             scores[ii] = score
 
-        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.)
-           and stop_early is True):
+        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.) and
+           stop_early is True):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
             break

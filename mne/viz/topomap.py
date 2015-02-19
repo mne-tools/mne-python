@@ -499,7 +499,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
 
     if show_names:
         if show_names is True:
-            show_names = lambda x: x
+            def show_names(x):
+                return x
         show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
         for ii, (p, ch_id) in enumerate(zip(pos, names)):
             if ii not in show_idx:

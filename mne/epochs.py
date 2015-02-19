@@ -1255,8 +1255,8 @@ class Epochs(_BaseEpochs):
                                   n_jobs=n_jobs)
             # adjust indirectly affected variables
             self.info['sfreq'] = sfreq
-            self.times = (np.arange(self._data.shape[2], dtype=np.float)
-                          / sfreq + self.times[0])
+            self.times = (np.arange(self._data.shape[2], dtype=np.float) /
+                          sfreq + self.times[0])
         else:
             raise RuntimeError('Can only resample preloaded data')
 
@@ -1322,8 +1322,8 @@ class Epochs(_BaseEpochs):
         # The epochs itself
         decal = np.empty(self.info['nchan'])
         for k in range(self.info['nchan']):
-            decal[k] = 1.0 / (self.info['chs'][k]['cal']
-                              * self.info['chs'][k].get('scale', 1.0))
+            decal[k] = 1.0 / (self.info['chs'][k]['cal'] *
+                              self.info['chs'][k].get('scale', 1.0))
 
         data *= decal[np.newaxis, :, np.newaxis]
 

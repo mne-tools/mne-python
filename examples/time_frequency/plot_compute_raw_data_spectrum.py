@@ -12,14 +12,14 @@ to the data to reduce ECG and EOG artifacts.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne import io, read_proj, read_selection
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

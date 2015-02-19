@@ -12,19 +12,19 @@ domain using Morlet wavelets and the debiased Squared Weighted Phase Lag Index
     physiological data in the presence of volume-conduction, noise and
     sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+
 import mne
 from mne import io
 from mne.connectivity import spectral_connectivity, seed_target_indices
 from mne.datasets import sample
 from mne.time_frequency import AverageTFR
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

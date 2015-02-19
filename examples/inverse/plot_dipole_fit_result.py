@@ -19,11 +19,11 @@ $ mne_dipole_fit --meas sample_audvis-ave.fif --set 1 --meg \
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import mne
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'

@@ -148,8 +148,8 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
     vals = [k for k, v in six.iteritems(FIFF)
-            if v == value and any([fmt in k for fmt in fmts])
-            and not any(exc in k for exc in exclude)]
+            if v == value and any([fmt in k for fmt in fmts]) and
+            not any(exc in k for exc in exclude)]
     return vals
 
 
@@ -158,8 +158,8 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
     this_idt = indent * level
     next_idt = indent * (level + 1)
     # print block-level information
-    out = [this_idt + str(tree['block'][0]) + ' = '
-           + '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
+    out = [this_idt + str(tree['block'][0]) + ' = ' +
+           '/'.join(_find_type(tree['block'], fmts=['FIFFB_']))]
     if tree['directory'] is not None:
         kinds = [ent.kind for ent in tree['directory']] + [-1]
         sizes = [ent.size for ent in tree['directory']]
@@ -198,9 +198,9 @@ def _show_tree(fid, tree, indent, level, read_limit, max_str):
                     else:
                         postpend += ' ... (unknown type)'
                 postpend = '>' * 20 + 'BAD' if not good else postpend
-                out += [next_idt + prepend + str(k) + ' = '
-                        + '/'.join(this_type) + ' (' + str(size) + ')'
-                        + postpend]
+                out += [next_idt + prepend + str(k) + ' = ' +
+                        '/'.join(this_type) + ' (' + str(size) + ')' +
+                        postpend]
                 counter = 0
                 good = True
 

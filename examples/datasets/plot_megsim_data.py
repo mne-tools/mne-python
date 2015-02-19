@@ -14,11 +14,12 @@ Gilliam K, Donahue CH, Montano R, Bryant JE, Scott A, Stephen JM
 (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
 Realistic Simulated and Empirical Data. Neuroinformatics 10:141-158
 """
-print(__doc__)
 
 from mne import find_events, Epochs, pick_types, read_evokeds
 from mne.io import Raw
 from mne.datasets.megsim import load_data
+
+print(__doc__)
 
 condition = 'visual'  # or 'auditory' or 'somatosensory'
 

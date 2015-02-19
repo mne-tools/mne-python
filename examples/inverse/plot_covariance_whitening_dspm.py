@@ -23,8 +23,6 @@ NeuroImage.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import os
 import os.path as op
 
@@ -37,6 +35,8 @@ from mne import io
 from mne.datasets import spm_face
 from mne.minimum_norm import apply_inverse, make_inverse_operator
 from mne.cov import compute_covariance
+
+print(__doc__)
 
 ##############################################################################
 # Get data

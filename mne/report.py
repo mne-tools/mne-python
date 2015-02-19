@@ -228,13 +228,13 @@ def _iterate_files(report, fnames, info, sfreq):
                 html = report._render_epochs(fname)
                 report_fname = fname
                 report_sectionlabel = 'epochs'
-            elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
-                  and report.info_fname is not None):
+            elif (fname.endswith(('-cov.fif', '-cov.fif.gz')) and
+                  report.info_fname is not None):
                 html = report._render_cov(fname, info)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
-            elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
-                  and report.info_fname is not None and report.subjects_dir
+            elif (fname.endswith(('-trans.fif', '-trans.fif.gz')) and
+                  report.info_fname is not None and report.subjects_dir
                   is not None and report.subject is not None):
                 html = report._render_trans(fname, report.data_path, info,
                                             report.subject,
@@ -705,7 +705,7 @@ class Report(object):
         import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
-            from mayavi import mlab  # noqa, analysis:ignore... mlab imported
+            from mayavi import mlab  # noqa, mlab imported
             import mayavi
         except ImportError:
             warnings.warn('Could not import mayavi. Trying to render '
@@ -885,11 +885,11 @@ class Report(object):
             f = open(op.join(op.dirname(__file__), 'html', inc_fname),
                      'r')
             if inc_fname.endswith('.js'):
-                include.append(u'<script type="text/javascript">'
-                               + f.read() + u'</script>')
+                include.append(u'<script type="text/javascript">' +
+                               f.read() + u'</script>')
             elif inc_fname.endswith('.css'):
-                include.append(u'<style type="text/css">'
-                               + f.read() + u'</style>')
+                include.append(u'<style type="text/css">' +
+                               f.read() + u'</style>')
             f.close()
 
         self.include = ''.join(include)

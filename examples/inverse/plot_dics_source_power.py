@@ -10,20 +10,20 @@ The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
 in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+from scipy.stats import scoreatpercentile  # for thresholding
 
 import mne
-
 from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics_source_power
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -64,7 +64,6 @@ noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
-from scipy.stats import scoreatpercentile  # for thresholding
 
 for i, csd in enumerate(data_csds):
     message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]

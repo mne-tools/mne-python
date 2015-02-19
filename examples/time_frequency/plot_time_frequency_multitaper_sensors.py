@@ -7,17 +7,18 @@ This examples computes induced power and intertrial
 coherence (ITC) using a multitaper method on a somato sensory MEG data.
 The power plot is rendered so that baseline is mean zero.
 """
-print(__doc__)
-
 # Authors: Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+
 import mne
 from mne import io
 from mne.time_frequency import tfr_multitaper
 from mne.datasets import somato
+
+print(__doc__)
 
 ###############################################################################
 # Load real somatosensory sample data.

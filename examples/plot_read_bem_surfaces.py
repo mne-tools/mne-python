@@ -9,10 +9,10 @@ Plot BEM surfaces used for forward solution generation.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
