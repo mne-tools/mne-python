@@ -1325,8 +1325,8 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
     return labels
 
 
-def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1, 
-    overlap=True, names=None, surface='white'):
+def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
+                overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1418,8 +1418,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' + 
-            surface)
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
+                             surface)
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
@@ -1870,7 +1870,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
             if labels_by_color[no_color_rgb]:
                 default_colors = _n_colors(n_hemi_labels, bytes_=True,
                                            cmap=colormap)
-                safe_color_i = 0  # keep track of colors known to be in hemi_colors
+                # keep track of colors known to be in hemi_colors :
+                safe_color_i = 0
                 for i in xrange(n_hemi_labels):
                     if ctab[i, 0] == -1:
                         color = default_colors[i]
