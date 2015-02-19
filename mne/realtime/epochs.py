@@ -148,9 +148,8 @@ class RtEpochs(_BaseEpochs):
             reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
             add_eeg_ref=add_eeg_ref, verbose=verbose)
 
-        self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=self.proj)
+                                                activate=proj)
 
         self._client = client
 
