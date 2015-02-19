@@ -81,9 +81,9 @@ fmin = 8.
 fmax = 13.
 sfreq = raw.info['sfreq']  # the sampling frequency
 con_methods = ['pli', 'wpli2_debiased']
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    label_ts, method=con_methods, mode='multitaper', sfreq=sfreq, fmin=fmin,
+    fmax=fmax, faverage=True, mt_adaptive=True, n_jobs=2)
 
 # con is a 3D array, get the connectivity for the first (and only) freq. band
 # for each method
@@ -106,7 +106,7 @@ for name in lh_labels:
     label_ypos.append(ypos)
 
 # Reorder the labels based on their location
-lh_labels = [label for (ypos, label) in sorted(zip(label_ypos, lh_labels))]
+lh_labels = [label for (yp, label) in sorted(zip(label_ypos, lh_labels))]
 
 # For the right hemi
 rh_labels = [label[:-2] + 'rh' for label in lh_labels]

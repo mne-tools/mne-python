@@ -73,7 +73,8 @@ for i, csd in enumerate(data_csds):
     fmin, fmax = [scoreatpercentile(stc.data[:, i], ii) for ii in [95, 100]]
     fmid = fmin + (fmax - fmin) / 2
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax, transparent=True)
+    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
+                              transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
-    #brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])
+    # brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])

@@ -81,9 +81,9 @@ baseline_mask = times[::decim] < 0
 # now create TFR representations for all conditions
 epochs_power = []
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
-    this_power = single_trial_power(condition, sfreq=sfreq, frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False,
-                                    decim=decim)
+    this_power = single_trial_power(condition, sfreq=sfreq,
+                                    frequencies=frequencies, n_cycles=n_cycles,
+                                    use_fft=False, decim=decim)
     this_power = this_power[:, 0, :, :]  # we only have one channel.
     # Compute ratio with baseline power (be sure to correct time vector with
     # decimation factor)

@@ -32,7 +32,7 @@ raw.info['bads'] = ['MEG 2443', 'EEG 053']
 
 # picks MEG gradiometers
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                        stim=False, exclude='bads')
+                       stim=False, exclude='bads')
 
 tmin, tmax = 0, 120  # use the first 120s of data
 fmin, fmax = 4, 100  # look at frequencies between 4 and 100Hz

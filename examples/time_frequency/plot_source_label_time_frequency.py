@@ -44,7 +44,7 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']  # bads + 2 more
 
 # Picks MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=True,
-                        stim=False, include=include, exclude='bads')
+                       stim=False, include=include, exclude='bads')
 reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 
 # Load epochs
@@ -68,9 +68,9 @@ for ii, (this_epochs, title) in enumerate(zip([epochs, epochs_induced],
                                               ['evoked + induced',
                                                'induced only'])):
     # compute the source space power and phase lock
-    power, phase_lock = source_induced_power(this_epochs, inverse_operator,
-        frequencies, label, baseline=(-0.1, 0), baseline_mode='percent',
-        n_cycles=n_cycles, n_jobs=1)
+    power, phase_lock = source_induced_power(
+        this_epochs, inverse_operator, frequencies, label, baseline=(-0.1, 0),
+        baseline_mode='percent', n_cycles=n_cycles, n_jobs=1)
 
     power = np.mean(power, axis=0)  # average over sources
     phase_lock = np.mean(phase_lock, axis=0)  # average over sources

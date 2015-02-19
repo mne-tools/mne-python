@@ -98,8 +98,8 @@ epochs_power = np.log10(epochs_power)  # take log of ratio
 # Compute statistic
 threshold = 2.5
 T_obs, clusters, cluster_p_values, H0 = \
-                   permutation_cluster_1samp_test(epochs_power,
-                               n_permutations=100, threshold=threshold, tail=0)
+    permutation_cluster_1samp_test(epochs_power, n_permutations=100,
+                                   threshold=threshold, tail=0)
 
 ###############################################################################
 # View time-frequency plots

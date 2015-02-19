@@ -159,7 +159,7 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 # Visualize results
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # this changes hidden matplotlib vars
+from mpl_toolkits.mplot3d import Axes3D  # noqa this changes hidden mpl vars
 plt.ion()
 fig = plt.figure(facecolor='w')
 

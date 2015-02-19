@@ -94,8 +94,9 @@ fmax = 30.
 tmin_con = 0.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-psi, freqs, times, n_epochs, _ = phase_slope_index(comb_ts, mode='multitaper',
-    indices=indices, sfreq=sfreq, fmin=fmin, fmax=fmax, tmin=tmin_con)
+psi, freqs, times, n_epochs, _ = phase_slope_index(
+    comb_ts, mode='multitaper', indices=indices, sfreq=sfreq,
+    fmin=fmin, fmax=fmax, tmin=tmin_con)
 
 # Generate a SourceEstimate with the PSI. This is simple since we used a single
 # seed (inspect the indices variable to see how the PSI scores are arranged in

@@ -7,7 +7,8 @@ Here the .dip file was generated with the mne_dipole_fit command.
 
 Detailed unix command is :
 
-$mne_dipole_fit --meas sample_audvis-ave.fif --set 1 --meg --tmin 40 --tmax 95 \
+$ mne_dipole_fit --meas sample_audvis-ave.fif --set 1 --meg \
+    --tmin 40 --tmax 95 \
     --bmin -200 --bmax 0 --noise sample_audvis-cov.fif \
     --bem ../../subjects/sample/bem/sample-5120-bem-sol.fif \
     --origin 0:0:40 --mri sample_audvis-meg-oct-6-fwd.fif \

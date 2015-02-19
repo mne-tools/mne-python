@@ -69,7 +69,7 @@ stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
 img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-        forward['src'], mri_resolution=False)  # True for full MRI resolution
+                             forward['src'], mri_resolution=False)
 
 # plot result (one slice)
 plt.close('all')

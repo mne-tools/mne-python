@@ -54,7 +54,7 @@ install:
         fi;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
-        pip install -q coverage coveralls nose-timer > /dev/null;
+        pip install -q flake8 > /dev/null;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
     # Suppress the parallel outputs for logging cleanliness

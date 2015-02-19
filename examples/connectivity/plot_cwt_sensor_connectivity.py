@@ -64,7 +64,8 @@ cwt_n_cycles = cwt_frequencies / 7.
 
 # Run the connectivity analysis using 2 parallel jobs
 sfreq = raw.info['sfreq']  # the sampling frequency
-con, freqs, times, _, _ = spectral_connectivity(epochs, indices=indices,
+con, freqs, times, _, _ = spectral_connectivity(
+    epochs, indices=indices,
     method='wpli2_debiased', mode='cwt_morlet', sfreq=sfreq,
     cwt_frequencies=cwt_frequencies, cwt_n_cycles=cwt_n_cycles, n_jobs=2)
 

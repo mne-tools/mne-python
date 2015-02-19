@@ -31,7 +31,7 @@ eog_events = mne.preprocessing.find_eog_events(raw, event_id)
 
 # Read epochs
 picks = mne.pick_types(raw.info, meg=False, eeg=False, stim=False, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 tmin, tmax = -0.2, 0.2
 epochs = mne.Epochs(raw, eog_events, event_id, tmin, tmax, picks=picks)
 data = epochs.get_data()

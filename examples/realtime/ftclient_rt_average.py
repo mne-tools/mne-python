@@ -71,9 +71,10 @@ with FieldTripClient(host='localhost', port=1972,
     for ii, ev in enumerate(rt_epochs.iter_evoked()):
         print("Just got epoch %d" % (ii + 1))
 
-        if ii > 0:
-            ev += evoked
-        evoked = ev
+        if ii == 0:
+            evoked = ev
+        else:
+            evoked += ev
 
         ax[0].cla(), ax[1].cla()  # clear axis
 

@@ -88,7 +88,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
 
-################################################################################
+# #############################################################################
 # Stockwell (S) transform
 
 # S uses a Gaussian window to balance temporal and spectral resolution
@@ -103,7 +103,7 @@ for width in (0.7, 3.0):
                title='Sim: Using S transform, width '
                      '= {:0.1f}'.format(width), show=True)
 
-################################################################################
+# #############################################################################
 # Finally, compare to morlet wavelet
 
 n_cycles = freqs / 2.

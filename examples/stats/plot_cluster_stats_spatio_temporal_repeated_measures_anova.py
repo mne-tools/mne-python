@@ -169,7 +169,7 @@ def stat_fun(*args):
     # The following expression catches the list input
     # and swaps the first and the second dimension, and finally calls ANOVA.
     return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
-                        effects=effects, return_pvals=return_pvals)[0]
+                       effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.

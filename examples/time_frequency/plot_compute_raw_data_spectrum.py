@@ -49,7 +49,7 @@ raw.plot_psds(area_mode='range', tmax=10.0)
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
-                        stim=False, exclude='bads', selection=selection)
+                       stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]

@@ -65,9 +65,9 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin, fmax = 5., 40.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, mt_adaptive=True, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    label_ts, method='wpli2_debiased', mode='multitaper', sfreq=sfreq,
+    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=2)
 
 import matplotlib.pyplot as plt
 n_rows, n_cols = con.shape[:2]

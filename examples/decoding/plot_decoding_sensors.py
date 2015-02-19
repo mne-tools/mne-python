@@ -72,7 +72,7 @@ cv = ShuffleSplit(len(X), 10, test_size=0.2)
 scores = np.empty(n_times)
 std_scores = np.empty(n_times)
 
-for t in xrange(n_times):
+for t in range(n_times):
     Xt = X[:, :, t]
     # Standardize features
     Xt -= Xt.mean(axis=0)

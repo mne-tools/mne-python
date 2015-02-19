@@ -63,7 +63,8 @@ residual.plot(ylim=ylim, proj=True)
 ###############################################################################
 # View in 2D and 3D ("glass" brain like 3D plot)
 plot_sparse_source_estimates(forward['src'], stc, bgcolor=(1, 1, 1),
-                             opacity=0.1, fig_name="MxNE (cond %s)" % condition)
+                             opacity=0.1,
+                             fig_name="MxNE (cond %s)" % condition)
 
 # and on the fsaverage brain after morphing
 stc_fsaverage = stc.morph(subject_from='sample', subject_to='fsaverage',

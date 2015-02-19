@@ -111,8 +111,8 @@ epochs_power_2 /= epochs_baseline_2[..., np.newaxis]
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-                   permutation_cluster_test([epochs_power_1, epochs_power_2],
-                               n_permutations=100, threshold=threshold, tail=0)
+    permutation_cluster_test([epochs_power_1, epochs_power_2],
+                             n_permutations=100, threshold=threshold, tail=0)
 
 ###############################################################################
 # View time-frequency plots

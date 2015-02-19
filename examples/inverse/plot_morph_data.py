@@ -40,8 +40,8 @@ stc_to.save('%s_audvis-meg' % subject_to)
 
 # Morph using another method -- useful if you're going to do a lot of the
 # same inter-subject morphing operations; you could save and load morph_mat
-morph_mat = mne.compute_morph_matrix(subject_from, subject_to, stc_from.vertices,
-                                     vertices_to)
+morph_mat = mne.compute_morph_matrix(subject_from, subject_to,
+                                     stc_from.vertices, vertices_to)
 stc_to_2 = mne.morph_data_precomputed(subject_from, subject_to,
                                       stc_from, vertices_to, morph_mat)
 stc_to_2.save('%s_audvis-meg_2' % subject_to)

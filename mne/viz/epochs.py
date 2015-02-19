@@ -281,7 +281,7 @@ def _epochs_navigation_onclick(event, params):
                           p['data'][this_idx],
                           p['times'], p['axes'], p['title_str'],
                           p['axes_handler'])
-            # XXX don't ask me why
+        # XXX don't ask me why
         p['axes'][0].get_figure().canvas.draw()
 
 
