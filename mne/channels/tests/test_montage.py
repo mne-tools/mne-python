@@ -82,16 +82,17 @@ def test_montage():
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
 
+
 def test_ieeg_montage():
     """Test an iEEG montage"""
     tempdir = _TempDir()
     # no pep8
     input_str = """
-GR1	-35.6774	-58.8438	10.0284
-GR9	-35.3662	-56.7556	20.0054
-GR17	-35.0972	-54.6765	28.9835
-GR25	-33.8428	-51.5357	38.9114
-GR49	-20.3683	-40.6186	63.2681
+    GR1	-35.6774	-58.8438	10.0284
+    GR9	-35.3662	-56.7556	20.0054
+    GR17	-35.0972	-54.6765	28.9835
+    GR25	-33.8428	-51.5357	38.9114
+    GR49	-20.3683	-40.6186	63.2681
     """
     kind = 'test.sfp'
     fname = op.join(tempdir, kind)
