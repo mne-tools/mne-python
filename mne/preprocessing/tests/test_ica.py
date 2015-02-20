@@ -21,7 +21,8 @@ from mne import io, Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import score_funcs, _check_n_pca_components
+from mne.preprocessing.ica import (score_funcs, _check_n_pca_components, 
+                                   corrmap)
 from mne.io.meas_info import Info
 from mne.utils import set_log_file, _TempDir, requires_sklearn, slow_test
 
@@ -270,6 +271,11 @@ def test_ica_additional():
     assert_raises(RuntimeError, ica.save, '')
     with warnings.catch_warnings(record=True):
         ica.fit(raw, picks=None, start=start, stop=stop2)
+
+    # test corrmap
+    ica2 = deepcopy(ica)
+    corrmap([ica, ica2], (0, 0), threshold=0.99, inplace=True)
+    assert_true(ica.labels["bads"] == ica2.labels["bads"])
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
