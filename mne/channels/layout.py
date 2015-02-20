@@ -916,7 +916,7 @@ def apply_montage(info, montage, ch_type='eeg'):
         The type of electrode contained in this montage. Can be 'eeg' or 'ieeg'.
     """
     supported_types = ('eeg', 'ieeg')
-    if electrode_type not in supported_types:
+    if ch_type not in supported_types:
         raise ValueError('Montage type not supported')
 
     if not _contains_ch_type(info, 'eeg') and ch_type == 'eeg':
