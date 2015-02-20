@@ -898,10 +898,10 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
 
-def apply_montage(info, montage):
-    """Apply montage to EEG data.
+def apply_montage(info, montage, electrode_type='eeg'):
+    """Apply montage.
 
-    This function will replace the EEG channel names and locations with
+    This function will replace the channel names and locations with
     the values specified for the particular montage.
 
     Note: This function will change the info variable in place.
@@ -912,8 +912,14 @@ def apply_montage(info, montage):
         The measurement info to update.
     montage : instance of Montage
         The montage to apply.
+    electrode_type : string
+        The type of electrode contained in this montage. Can be eeg or ieeg.
     """
-    if not _contains_ch_type(info, 'eeg'):
+    supported_types = ('eeg', 'ieeg')
+    if electrode_type not in supported_types:
+        raise ValueError('Montage type not supported')
+
+    if not _contains_ch_type(info, 'eeg') and type=='eeg':
         raise ValueError('No EEG channels found.')
 
     sensors_found = False
@@ -926,6 +932,10 @@ def apply_montage(info, montage):
         info['chs'][ch_idx]['eeg_loc'] = np.c_[pos, [0.] * 3]
         info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
         sensors_found = True
+
+    if electrode_type=='ieeg': 
+        info['chs'][ch_idx]['kind'] = FIFF.FIFF_SEEG_CH
+        info['chs'][ch_idx]['coord_frame'] = FIFF.COORD_MRI
 
     if not sensors_found:
         raise ValueError('None of the sensors defined in the montage were '
