@@ -919,7 +919,7 @@ def apply_montage(info, montage, electrode_type='eeg'):
     if electrode_type not in supported_types:
         raise ValueError('Montage type not supported')
 
-    if not _contains_ch_type(info, 'eeg') and type=='eeg':
+    if not _contains_ch_type(info, 'eeg') and type == 'eeg':
         raise ValueError('No EEG channels found.')
 
     sensors_found = False
@@ -933,7 +933,7 @@ def apply_montage(info, montage, electrode_type='eeg'):
         info['chs'][ch_idx]['loc'] = np.r_[pos, [0.] * 9]
         sensors_found = True
 
-    if electrode_type=='ieeg': 
+    if electrode_type == 'ieeg':
         info['chs'][ch_idx]['kind'] = FIFF.FIFF_SEEG_CH
         info['chs'][ch_idx]['coord_frame'] = FIFF.COORD_MRI
 
