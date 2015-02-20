@@ -1,3 +1,11 @@
+"""Compute Compute a Recursively Applied and Projected MUltiple
+Signal Classification (RAP-MUSIC).
+"""
+
+# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
+#
+# License: BSD (3-clause)
+
 import warnings
 
 import numpy as np
