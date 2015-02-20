@@ -913,7 +913,7 @@ def apply_montage(info, montage, ch_type='eeg'):
     montage : instance of Montage
         The montage to apply.
     ch_type : string
-        The type of electrode contained in this montage. Can be 'eeg' or 'ieeg'.
+        The type of electrode contained in this montage. Can be 'eeg' or 'ieeg'
     """
     supported_types = ('eeg', 'ieeg')
     if ch_type not in supported_types:
