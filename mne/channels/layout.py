@@ -934,8 +934,8 @@ def apply_montage(info, montage, ch_type='eeg'):
         sensors_found = True
 
     if ch_type == 'ieeg':
-        info['chs'][ch_idx]['kind'] = FIFF.FIFF_SEEG_CH
-        info['chs'][ch_idx]['coord_frame'] = FIFF.COORD_MRI
+        info['chs'][ch_idx]['kind'] = FIFF.FIFFV_SEEG_CH
+        info['chs'][ch_idx]['coord_frame'] = FIFF.FIFFV_COORD_MRI
 
     if not sensors_found:
         raise ValueError('None of the sensors defined in the montage were '

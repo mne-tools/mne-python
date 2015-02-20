@@ -8,7 +8,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
-from mne.io import constants
+from mne.io.constants import FIFF
 
 
 def test_montage():
@@ -111,5 +111,5 @@ GR49	-20.3683	-40.6186	63.2681
     assert_array_equal(pos3, montage.pos)
     kinds = np.array([c['kind'] for c in info['chs']])
     coord_frames = np.array([c['coord_frame'] for c in info['chs']])
-    assert_array_equal(kinds, [constants.FIFF.FIFF_SEEG_CH]*5)
-    assert_array_equal(coord_frames, [constants.FIFF.COORD_MRI]*5)
+    assert_array_equal(kinds, [FIFF.FIFFV_SEEG_CH]*5)
+    assert_array_equal(coord_frames, [FIFF.FIFFV_COORD_MRI]*5)
