@@ -494,9 +494,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
     import matplotlib.pyplot as plt
     from .raw import _set_psds_plot_params
     fig, picks_list, titles_list, ax_list, make_label = _set_psds_plot_params(
-                                                            epochs.info,
-                                                            proj, picks,
-                                                            ax, area_mode)
+        epochs.info, proj, picks, ax, area_mode)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
