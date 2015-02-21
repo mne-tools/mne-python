@@ -2182,20 +2182,24 @@ def concatenate_epochs(epochs_list):
     out = epochs_list[0]
     data = [out.get_data()]
     events = [out.events]
+    drop_log = cp.deepcopy(out.drop_log)
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
         if not np.all(epochs.times == epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
         data.append(epochs.get_data())
-        new_events = epochs.events.copy()
-        new_events += events[ii - 1][-1, 0]
-        events.append(new_events)
+        events.append(epochs.events)
+        drop_log.extend(epochs.drop_log)
+
+    events = np.concatenate(events, axis=0)
+    events[:, 0] = np.arange(len(events))  # arbitrary after concat
 
     out = EpochsArray(
         data=np.concatenate(data, axis=0), info=out.info,
-        events=np.concatenate(events, axis=0),
+        events=events,
         event_id=out.event_id, tmin=out.tmin)
     out.raw = None
     out.preload = True
+    out.drop_log = drop_log
     return out
