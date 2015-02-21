@@ -1274,6 +1274,7 @@ def test_concatenate_epochs():
     expected_shape = tuple(expected_shape)
 
     assert_equal(epochs_conc.get_data().shape, expected_shape)
+    assert_equal(epochs_conc.drop_log, epochs.drop_log * 2)
 
     epochs2 = epochs.copy()
     epochs2._data = epochs2.get_data()
