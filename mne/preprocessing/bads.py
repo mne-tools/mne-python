@@ -3,6 +3,7 @@
 
 import numpy as np
 
+
 def find_outliers(X, threshold=3.0, max_iter=2):
     """Find outliers based on iterated Z-scoring
 
