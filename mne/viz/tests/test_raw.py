@@ -10,13 +10,12 @@ from numpy.testing import assert_raises
 from mne import io, read_events, pick_types
 from mne.utils import requires_scipy_version, run_tests_if_main
 
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -67,16 +66,16 @@ def test_plot_raw():
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
         fig.canvas.button_press_event(1, 1, 1)  # outside any axes
         # sadly these fail when no renderer is used (i.e., when using Agg):
-        #ssp_fig = set(plt.get_fignums()) - set([fig.number])
-        #assert_equal(len(ssp_fig), 1)
-        #ssp_fig = plt.figure(list(ssp_fig)[0])
-        #ax = ssp_fig.get_axes()[0]  # only one axis is used
-        #t = [c for c in ax.get_children() if isinstance(c,
-        #     matplotlib.text.Text)]
-        #pos = np.array(t[0].get_position()) + 0.01
-        #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
-        #_fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
-        # test keypresses
+        # ssp_fig = set(plt.get_fignums()) - set([fig.number])
+        # assert_equal(len(ssp_fig), 1)
+        # ssp_fig = plt.figure(list(ssp_fig)[0])
+        # ax = ssp_fig.get_axes()[0]  # only one axis is used
+        # t = [c for c in ax.get_children() if isinstance(c,
+        #      matplotlib.text.Text)]
+        # pos = np.array(t[0].get_position()) + 0.01
+        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # off
+        # _fake_click(ssp_fig, ssp_fig.get_axes()[0], pos, xform='data')  # on
+        #  test keypresses
         fig.canvas.key_press_event('escape')
         fig.canvas.key_press_event('down')
         fig.canvas.key_press_event('up')

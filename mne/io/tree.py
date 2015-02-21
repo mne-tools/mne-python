@@ -101,10 +101,11 @@ def make_dir_tree(fid, directory, start=0, indent=0, verbose=None):
         tree['directory'] = None
 
     logger.debug('    ' * (indent + 1) + 'block = %d nent = %d nchild = %d'
-                % (tree['block'], tree['nent'], tree['nchild']))
+                 % (tree['block'], tree['nent'], tree['nchild']))
     logger.debug('    ' * indent + 'end } %d' % block)
     last = this
     return tree, last
+
 
 ###############################################################################
 # Writing

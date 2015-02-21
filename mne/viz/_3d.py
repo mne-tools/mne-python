@@ -651,8 +651,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if (isinstance(scale_factor, (np.ndarray, list, tuple))
-                and len(unique_vertnos) == len(scale_factor)):
+        if (isinstance(scale_factor, (np.ndarray, list, tuple)) and
+                len(unique_vertnos) == len(scale_factor)):
             scale_factor = scale_factor[idx]
 
         x, y, z = points[v]

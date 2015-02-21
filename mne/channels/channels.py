@@ -239,7 +239,8 @@ class PickDropChannelsMixin(object):
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
                                    ' channels')
 
-        inst_has = lambda attr: getattr(self, attr, None) is not None
+        def inst_has(attr):
+            return getattr(self, attr, None) is not None
 
         if inst_has('picks'):
             self.picks = self.picks[idx]

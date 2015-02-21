@@ -62,7 +62,8 @@ def test_generate_stc():
         assert_true(stc.data[idx].shape[1] == n_times)
 
     # test with function
-    fun = lambda x: x ** 2
+    def fun(x):
+        return x ** 2
     stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
@@ -94,8 +95,8 @@ def test_generate_sparse_stc():
     tmin = 0
     tstep = 1e-3
 
-    stc_data = (np.ones((len(labels), n_times))
-                * np.arange(len(labels))[:, None])
+    stc_data = (np.ones((len(labels), n_times)) *
+                np.arange(len(labels))[:, None])
     stc_1 = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep, 0)
 
     for i, label in enumerate(labels):
@@ -161,7 +162,8 @@ def test_generate_stc_single_hemi():
         assert_true(stc.data[idx].shape[1] == n_times)
 
     # test with function
-    fun = lambda x: x ** 2
+    def fun(x):
+        return x ** 2
     stc = generate_stc(fwd['src'], mylabels, stc_data, tmin, tstep, fun)
 
     # the first label has value 0, the second value 2, the third value 6
@@ -193,8 +195,8 @@ def test_generate_sparse_stc_single_hemi():
                                              'labels', '%s.label' % label))
                           for label in label_names_single_hemi]
 
-    stc_data = (np.ones((len(labels_single_hemi), n_times))
-                * np.arange(len(labels_single_hemi))[:, None])
+    stc_data = (np.ones((len(labels_single_hemi), n_times)) *
+                np.arange(len(labels_single_hemi))[:, None])
     stc_1 = generate_sparse_stc(fwd['src'], labels_single_hemi, stc_data,
                                 tmin, tstep, 0)
 

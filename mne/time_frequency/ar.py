@@ -9,7 +9,8 @@ from scipy.linalg import toeplitz
 
 # XXX : Back ported from statsmodels
 
-def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
+def yule_walker(X, order=1, method="unbiased", df=None, inv=False,
+                demean=True):
     """
     Estimate AR(p) parameters from a sequence X using Yule-Walker equation.
 
@@ -31,8 +32,9 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
        denominator is n=X.shape[0], if "unbiased" the denominator is n-k.
        The default is unbiased.
     df : integer, optional
-       Specifies the degrees of freedom. If `df` is supplied, then it is assumed
-       the X has `df` degrees of freedom rather than `n`.  Default is None.
+       Specifies the degrees of freedom. If `df` is supplied, then it is
+       assumed the X has `df` degrees of freedom rather than `n`.  Default is
+       None.
     inv : bool
         If inv is True the inverse of R is also returned.  Default is False.
     demean : bool
@@ -46,9 +48,9 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
         TODO
 
     """
-#TODO: define R better, look back at notes and technical notes on YW.
-#First link here is useful
-#http://www-stat.wharton.upenn.edu/~steele/Courses/956/ResourceDetails/YuleWalkerAndMore.htm
+    # TODO: define R better, look back at notes and technical notes on YW.
+    # First link here is useful
+    # http://www-stat.wharton.upenn.edu/~steele/Courses/956/ResourceDetails/YuleWalkerAndMore.htm  # noqa
     method = str(method).lower()
     if method not in ["unbiased", "mle"]:
         raise ValueError("ACF estimation method must be 'unbiased' or 'MLE'")
@@ -58,20 +60,22 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False, demean=True):
     n = df or X.shape[0]
 
     if method == "unbiased":        # this is df_resid ie., n - p
-        denom = lambda k: n - k
+        def denom(k):
+            return n - k
     else:
-        denom = lambda k: n
+        def denom(k):
+            return n
     if X.ndim > 1 and X.shape[1] != 1:
         raise ValueError("expecting a vector to estimate AR parameters")
     r = np.zeros(order+1, np.float64)
     r[0] = (X**2).sum() / denom(0)
-    for k in range(1,order+1):
+    for k in range(1, order + 1):
         r[k] = (X[0:-k]*X[k:]).sum() / denom(k)
     R = toeplitz(r[:-1])
 
     rho = np.linalg.solve(R, r[1:])
     sigmasq = r[0] - (r[1:]*rho).sum()
-    if inv == True:
+    if inv:
         return rho, np.sqrt(sigmasq), np.linalg.inv(R)
     else:
         return rho, np.sqrt(sigmasq)

@@ -86,6 +86,7 @@ def test_edf_data():
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
+
 def test_read_segment():
     """Test writing raw edf files when preload is False
     """

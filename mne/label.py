@@ -10,7 +10,6 @@ from os import path as op
 import os
 import copy as cp
 import re
-from warnings import warn
 
 import numpy as np
 from scipy import linalg, sparse
@@ -1576,11 +1575,11 @@ def _read_annot(fname):
             n_entries = np.fromfile(fid, '>i4', 1)[0]
             ctab = np.zeros((n_entries, 5), np.int)
             length = np.fromfile(fid, '>i4', 1)[0]
-            _ = np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
+            np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
             names = list()
             for i in range(entries_to_read):
-                _ = np.fromfile(fid, '>i4', 1)[0]  # Structure
+                np.fromfile(fid, '>i4', 1)[0]  # Structure
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
                 names.append(name)

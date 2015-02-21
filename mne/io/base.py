@@ -566,8 +566,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             # figure out which points in old data to subsample
             # protect against out-of-bounds, which can happen (having
             # one sample more than expected) due to padding
-            stim_inds = np.minimum(np.floor(np.arange(new_ntimes)
-                                            / ratio).astype(int),
+            stim_inds = np.minimum(np.floor(np.arange(new_ntimes) /
+                                            ratio).astype(int),
                                    data_chunk.shape[1] - 1)
             for sp in stim_picks:
                 new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
@@ -581,8 +581,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.first_samp = self._first_samps[0]
         self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
-        self._times = (np.arange(self.n_times, dtype=np.float64)
-                       / self.info['sfreq'])
+        self._times = (np.arange(self.n_times, dtype=np.float64) /
+                       self.info['sfreq'])
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -1461,8 +1461,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         if projector is not None:
             data = np.dot(projector, data)
 
-        if ((drop_small_buffer and (first > start)
-             and (len(times) < buffer_size))):
+        if ((drop_small_buffer and (first > start) and
+             (len(times) < buffer_size))):
             logger.info('Skipping data chunk due to small buffer ... '
                         '[done]')
             break
@@ -1755,8 +1755,8 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
                            chpi=True, exclude=[])
         if len(picks) == 0:
             raise RuntimeError('raw file has no CHPI channels')
-        time_idx = raw.time_as_index(np.arange(0, raw.n_times
-                                               / raw.info['sfreq'], t_step))
+        time_idx = raw.time_as_index(np.arange(0, raw.n_times /
+                                               raw.info['sfreq'], t_step))
         data = [raw[picks, ti] for ti in time_idx]
         t = np.array([d[1] for d in data])
         data = np.array([d[0][:, 0] for d in data])

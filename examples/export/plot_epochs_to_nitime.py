@@ -7,18 +7,22 @@ This script shows how to export Epochs to the NiTime library
 for further signal processing and data analysis.
 
 """
-
 # Author: Denis Engemann <denis.engemann@gmail.com>
 #         Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+from nitime.analysis import MTCoherenceAnalyzer
+from nitime.viz import drawmatrix_channels
+import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -47,9 +51,6 @@ epochs_ts = epochs.to_nitime(picks=np.arange(20), collapse=True)
 ###############################################################################
 # Now use nitime's OO-interface to compute coherence between sensors
 
-from nitime.analysis import MTCoherenceAnalyzer
-from nitime.viz import drawmatrix_channels
-import matplotlib.pyplot as plt
 
 # setup coherency analyzer
 C = MTCoherenceAnalyzer(epochs_ts)

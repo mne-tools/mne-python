@@ -17,6 +17,8 @@ from mne import read_evokeds
 from mne.datasets import sample
 from mne.viz import plot_trans
 
+print(__doc__)
+
 
 data_path = sample.data_path()
 

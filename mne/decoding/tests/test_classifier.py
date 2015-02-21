@@ -30,7 +30,7 @@ def test_scaler():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -97,7 +97,7 @@ def test_psdestimator():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -120,9 +120,9 @@ def test_concatenatechannels():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

@@ -46,15 +46,14 @@ methods tightens the area declared significant (again FWER corrected),
 and allows for evaluation of each point independently instead of as
 a single, broad cluster.
 """
-
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import numpy as np
 from scipy import stats
 from functools import partial
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D  # noqa; this changes hidden mpl vars
 
 from mne.stats import (spatio_temporal_cluster_1samp_test,
                        bonferroni_correction, ttest_1samp_no_p)
@@ -63,6 +62,8 @@ try:
     from sklearn.feature_extraction.image import grid_to_graph
 except ImportError:
     from scikits.learn.feature_extraction.image import grid_to_graph
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -158,8 +159,6 @@ ps_tfce_hat = -np.log10(p_values.reshape((width, width)))
 ###############################################################################
 # Visualize results
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D  # this changes hidden matplotlib vars
 plt.ion()
 fig = plt.figure(facecolor='w')
 

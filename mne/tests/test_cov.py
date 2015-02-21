@@ -36,7 +36,7 @@ if version < required_version:
 """
 
 requires_sklearn_0_15 = partial(requires_module, name='sklearn',
-                                  call=_recent_sklearn_call)
+                                call=_recent_sklearn_call)
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data')
@@ -47,8 +47,6 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
-
-
 
 
 def test_io_cov():
@@ -99,8 +97,8 @@ def test_cov_estimation_on_raw_segment():
     cov = compute_raw_data_covariance(raw)
     cov_mne = read_cov(erm_cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
-    assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro')
-                / linalg.norm(cov.data, ord='fro') < 1e-4)
+    assert_true(linalg.norm(cov.data - cov_mne.data, ord='fro') /
+                linalg.norm(cov.data, ord='fro') < 1e-4)
 
     # test IO when computation done in Python
     cov.save(op.join(tempdir, 'test-cov.fif'))  # test saving
@@ -141,14 +139,14 @@ def test_cov_estimation_with_triggers():
     cov = compute_covariance(epochs, keep_sample_mean=True)
     cov_mne = read_cov(cov_km_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
-    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-                / linalg.norm(cov.data, ord='fro')) < 0.005)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro') /
+                linalg.norm(cov.data, ord='fro')) < 0.005)
 
     # Test with tmin and tmax (different but not too much)
     cov_tmin_tmax = compute_covariance(epochs, tmin=-0.19, tmax=-0.01)
     assert_true(np.all(cov.data != cov_tmin_tmax.data))
-    assert_true((linalg.norm(cov.data - cov_tmin_tmax.data, ord='fro')
-                 / linalg.norm(cov_tmin_tmax.data, ord='fro')) < 0.05)
+    assert_true((linalg.norm(cov.data - cov_tmin_tmax.data, ord='fro') /
+                 linalg.norm(cov_tmin_tmax.data, ord='fro')) < 0.05)
 
     # cov using a list of epochs and keep_sample_mean=True
     epochs = [Epochs(raw, events, ev_id, tmin=-0.2, tmax=0,
@@ -163,8 +161,8 @@ def test_cov_estimation_with_triggers():
     cov = compute_covariance(epochs, keep_sample_mean=False)
     cov_mne = read_cov(cov_fname)
     assert_true(cov_mne.ch_names == cov.ch_names)
-    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro')
-                 / linalg.norm(cov.data, ord='fro')) < 0.005)
+    assert_true((linalg.norm(cov.data - cov_mne.data, ord='fro') /
+                 linalg.norm(cov.data, ord='fro')) < 0.005)
 
     method_params = {'empirical': {'assume_centered': False}}
     assert_raises(ValueError, compute_covariance, epochs,
@@ -178,8 +176,8 @@ def test_cov_estimation_with_triggers():
     cov_read = read_cov(op.join(tempdir, 'test-cov.fif'))
     assert_true(cov_read.ch_names == cov.ch_names)
     assert_true(cov_read.nfree == cov.nfree)
-    assert_true((linalg.norm(cov.data - cov_read.data, ord='fro')
-                 / linalg.norm(cov.data, ord='fro')) < 1e-5)
+    assert_true((linalg.norm(cov.data - cov_read.data, ord='fro') /
+                 linalg.norm(cov.data, ord='fro')) < 1e-5)
 
     # cov with list of epochs with different projectors
     epochs = [Epochs(raw, events[:4], event_ids[0], tmin=-0.2, tmax=0,
@@ -273,7 +271,8 @@ def test_rank():
     picks_all_sss = pick_types(raw_sss.info, meg=True, eeg=True)
 
     info_sample = pick_info(raw_sample.info, picks_all_sample)
-    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False, eeg=True))]
+    picks_stack_sample = [('eeg', pick_types(info_sample, meg=False,
+                                             eeg=True))]
     picks_stack_sample += [('meg', pick_types(info_sample, meg=True))]
     picks_stack_sample += [('all',
                             pick_types(info_sample, meg=True, eeg=True))]
@@ -300,8 +299,8 @@ def test_rank():
             # compute subset of projs
             this_projs = [c['active'] and
                           len(set(c['data']['col_names'])
-                              .intersection(set(this_very_info['ch_names']))) > 0
-                          for c in cov['projs']]
+                              .intersection(set(this_very_info['ch_names']))) >
+                          0 for c in cov['projs']]
             n_projs = sum(this_projs)
 
             # count channel types

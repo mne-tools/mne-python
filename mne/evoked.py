@@ -247,8 +247,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  ' %d)' % (all_data.shape[1], nsamp))
 
         # Calibrate
-        cals = np.array([info['chs'][k]['cal']
-                         * info['chs'][k].get('scale', 1.0)
+        cals = np.array([info['chs'][k]['cal'] *
+                         info['chs'][k].get('scale', 1.0)
                          for k in range(info['nchan'])])
         all_data *= cals[:, np.newaxis]
 
@@ -715,8 +715,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
-        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
-                      + self.times[0])
+        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq +
+                      self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
 
@@ -1164,8 +1164,8 @@ def write_evokeds(fname, evoked):
 
             decal = np.zeros((e.info['nchan'], 1))
             for k in range(e.info['nchan']):
-                decal[k] = 1.0 / (e.info['chs'][k]['cal']
-                                  * e.info['chs'][k].get('scale', 1.0))
+                decal[k] = 1.0 / (e.info['chs'][k]['cal'] *
+                                  e.info['chs'][k].get('scale', 1.0))
 
             write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
             end_block(fid, FIFF.FIFFB_ASPECT)

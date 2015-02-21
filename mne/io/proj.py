@@ -16,6 +16,8 @@ from .tree import dir_tree_find
 from .tag import find_tag
 from .constants import FIFF
 from .pick import pick_types
+from .write import (write_int, write_float, write_string, write_name_list,
+                    write_float_matrix, end_block, start_block)
 from ..utils import logger, verbose
 from ..externals.six import string_types
 
@@ -341,12 +343,9 @@ def _read_proj(fid, node, verbose=None):
 
     return projs
 
+
 ###############################################################################
 # Write
-
-from .write import (write_int, write_float, write_string, write_name_list,
-                    write_float_matrix, end_block, start_block)
-
 
 def _write_proj(fid, projs):
     """Write a projection operator to a file.

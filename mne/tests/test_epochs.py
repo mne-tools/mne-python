@@ -158,8 +158,8 @@ def test_read_write_epochs():
                            eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
-    assert_true(len(epochs.info['chs']) == len(epochs.ch_names)
-                == epochs.get_data().shape[1])
+    assert_true(len(epochs.info['chs']) == len(epochs.ch_names) ==
+                epochs.get_data().shape[1])
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
 
@@ -1127,8 +1127,8 @@ def test_add_channels_epochs():
     data3 = np.concatenate([e.get_data() for e in
                             [epochs_meg, epochs_eeg]], axis=1)
     assert_array_equal(data1.shape, data2.shape)
-    assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
-                                      # when proj == True
+    # XXX unrelated bug? this crashes when proj == True
+    assert_array_equal(data1, data3)
     assert_array_equal(data1, data2)
 
     epochs_meg2 = epochs_meg.copy()

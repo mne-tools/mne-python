@@ -77,7 +77,7 @@ def _compare(a, b):
         if isinstance(a, dict):
             assert_true(isinstance(b, dict))
             for k, v in six.iteritems(a):
-                if not k in b and k not in skip_types:
+                if k not in b and k not in skip_types:
                     raise ValueError('First one had one second one didn\'t:\n'
                                      '%s not in %s' % (k, b.keys()))
                 if k not in skip_types:
@@ -85,7 +85,7 @@ def _compare(a, b):
                     last_keys = [k] + last_keys
                     _compare(v, b[k])
             for k, v in six.iteritems(b):
-                if not k in a and k not in skip_types:
+                if k not in a and k not in skip_types:
                     raise ValueError('Second one had one first one didn\'t:\n'
                                      '%s not in %s' % (k, a.keys()))
         elif isinstance(a, list):

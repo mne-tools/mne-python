@@ -13,13 +13,13 @@ formed through merging two labels.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import os
 
 import mne
 from mne.datasets import sample
 import matplotlib.pyplot as plt
+
+print(__doc__)
 
 data_path = sample.data_path()
 os.environ['SUBJECTS_DIR'] = data_path + '/subjects'

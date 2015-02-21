@@ -316,7 +316,9 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
     if isinstance(noise_csds, CrossSpectralDensity):
         noise_csds = [noise_csds]
 
-    csd_shapes = lambda x: tuple(c.data.shape for c in x)
+    def csd_shapes(x):
+        return tuple(c.data.shape for c in x)
+
     if (csd_shapes(data_csds) != csd_shapes(noise_csds) or
        any([len(set(csd_shapes(c))) > 1 for c in [data_csds, noise_csds]])):
         raise ValueError('One noise CSD matrix should be provided for each '

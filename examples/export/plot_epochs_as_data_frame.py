@@ -89,14 +89,13 @@ pandas doc sites: http://pandas.pydata.org/pandas-docs/stable/
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 import matplotlib.pyplot as plt
 import numpy as np
 from mne.io import Raw
 from mne.datasets import sample
 
+print(__doc__)
 
 # turn on interactive mode
 plt.ion()

@@ -29,7 +29,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, requires_sklearn, check_sklearn_version )
+                    _compute_row_norms, check_sklearn_version)
 
 from .externals.six.moves import zip
 from .fixes import nanmean
@@ -379,8 +379,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         the sample covariance will be computed. A list can be passed to run a
         set of the different methods.
         If 'auto' or a list of methods, the best estimator will be determined
-        based on log-likelihood and cross-validation on unseen data as described
-        in ref. [1]. Valid methods are:
+        based on log-likelihood and cross-validation on unseen data as
+        described in ref. [1]. Valid methods are:
         'empirical', the empirical or sample covariance,
         'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
         (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
@@ -576,7 +576,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
-    epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+    epochs = [ee.get_data()[:, picks_meeg, tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
     picks_list = _picks_by_type(info)
 
@@ -720,7 +720,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
         elif this_method == 'pca':
             mp = method_params[this_method]
-            pca, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
+            pca, _info = _auto_low_rank_model(data_, this_method,
+                                              n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early)
             pca.fit(data_)
@@ -743,8 +744,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     # undo scaling
-    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _
-     in estimator_cov_info]
+    for c in estimator_cov_info:
+        _undo_scaling_cov(c[1], picks_list, scalings)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -765,8 +766,8 @@ def _cross_val(data, est, cv, n_jobs):
     return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
 
 
-def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
-                         verbose=None):
+def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
+                         stop_early=True, verbose=None):
     """compute latent variable models"""
     method_params = cp.deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
@@ -804,8 +805,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
         if score != -np.inf:
             scores[ii] = score
 
-        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.)
-           and stop_early is True):
+        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.) and
+           stop_early is True):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
             break
@@ -913,10 +914,10 @@ if check_sklearn_version('0.15') is True:
             Parameters
             ----------
             X_test : array-like, shape = [n_samples, n_features]
-                Test data of which we compute the likelihood, where n_samples is
-                the number of samples and n_features is the number of features.
-                X_test is assumed to be drawn from the same distribution than
-                the data used in fit (including centering).
+                Test data of which we compute the likelihood, where n_samples
+                is the number of samples and n_features is the number of
+                features. X_test is assumed to be drawn from the same
+                distribution as the data used in fit (including centering).
 
             y : not used, present for API consistence purpose.
 

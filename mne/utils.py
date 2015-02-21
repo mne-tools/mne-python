@@ -557,8 +557,14 @@ def has_nibabel(vox2ras_tkr=False):
         return False
 
 
-has_mne_c = lambda: 'MNE_ROOT' in os.environ
-has_freesurfer = lambda: 'FREESURFER_HOME' in os.environ
+def has_mne_c():
+    """Aux function"""
+    return 'MNE_ROOT' in os.environ
+
+
+def has_freesurfer():
+    """Aux function"""
+    return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
@@ -811,7 +817,7 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
+        if verbose not in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
@@ -1085,7 +1091,7 @@ def set_config(key, value, home_dir=None):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
         raise TypeError('value must be a string or None')
-    if not key in known_config_types and not \
+    if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
@@ -1290,9 +1296,11 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     progress = ProgressBar(file_size, initial_value=local_file_size,
                            max_chars=40, spinner=True, mesg='downloading',
                            verbose_bool=verbose_bool)
+
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
+    def chunk_write(chunk):
+        return _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
     sys.stdout.write('\n')
@@ -1506,7 +1514,7 @@ def _check_pandas_index_arguments(index, defaults):
     """ Helper function to check pandas index arguments """
     if not any(isinstance(index, k) for k in (list, tuple)):
         index = [index]
-    invalid_choices = [e for e in index if not e in defaults]
+    invalid_choices = [e for e in index if e not in defaults]
     if invalid_choices:
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'

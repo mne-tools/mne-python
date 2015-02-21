@@ -490,8 +490,8 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
         if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
                 mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
             mri_head_t = invert_transform(mri_head_t)
-            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI
-                    or mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
+            if (mri_head_t['from'] != FIFF.FIFFV_COORD_MRI or
+                    mri_head_t['to'] != FIFF.FIFFV_COORD_HEAD):
                 fid.close()
                 raise ValueError('MRI/head coordinate transformation not '
                                  'found')
@@ -603,8 +603,8 @@ def convert_forward_solution(fwd, surf_ori=False, force_fixed=False,
             fix_rot = _block_diag(fwd['source_nn'].T, 1)
             # newer versions of numpy require explicit casting here, so *= no
             # longer works
-            fwd['sol']['data'] = (fwd['_orig_sol']
-                                  * fix_rot).astype('float32')
+            fwd['sol']['data'] = (fwd['_orig_sol'] *
+                                  fix_rot).astype('float32')
             fwd['sol']['ncol'] = fwd['nsource']
             fwd['source_ori'] = FIFF.FIFFV_MNE_FIXED_ORI
 
@@ -1018,8 +1018,8 @@ def _stc_src_sel(src, stc):
     src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
 
     src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertices[1])
-    src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh)
-                  + len(src[0]['vertno']))
+    src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh) +
+                  len(src[0]['vertno']))
 
     src_sel = np.r_[src_sel_lh, src_sel_rh]
 
@@ -1307,8 +1307,8 @@ def restrict_forward_to_label(fwd, labels):
         else:
             i = 1
             src_sel = np.intersect1d(fwd['src'][1]['vertno'], label.vertices)
-            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel)
-                       + len(fwd['src'][0]['vertno']))
+            src_sel = (np.searchsorted(fwd['src'][1]['vertno'], src_sel) +
+                       len(fwd['src'][0]['vertno']))
 
         fwd_out['source_rr'] = np.vstack([fwd_out['source_rr'],
                                           fwd['source_rr'][src_sel]])

@@ -283,6 +283,6 @@ def _get_sss_rank(sss):
     """Get SSS rank"""
     inside = sss['sss_info']['in_order']
     nfree = (inside + 1) ** 2 - 1
-    nfree -= (len(sss['sss_info']['components'][:nfree])
-              - sss['sss_info']['components'][:nfree].sum())
+    nfree -= (len(sss['sss_info']['components'][:nfree]) -
+              sss['sss_info']['components'][:nfree].sum())
     return nfree

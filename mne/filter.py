@@ -94,8 +94,8 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
                                np.ceil(np.log2(max_fft)) + 1, dtype=int)
-            cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float))
-                    * N * (np.log2(N) + 1))
+            cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float)) *
+                    N * (np.log2(N) + 1))
 
             # add a heuristic term to prevent too-long FFT's which are slow
             # (not predicted by mult. cost alone, 4e-5 exp. determined)
@@ -477,7 +477,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     >>> print((iir_params['b'], iir_params['a'], iir_params['padlen']))
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
-    """
+    """  # noqa
     a = None
     b = None
     # if the filter has been designed, we're good to go
@@ -1373,8 +1373,8 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
             raise ValueError('filter_length, if a string, must be a '
                              'human-readable time (e.g., "10s"), not '
                              '"%s"' % filter_length)
-        filter_length = 2 ** int(np.ceil(np.log2(filter_length
-                                                 * mult_fact * sfreq)))
+        filter_length = 2 ** int(np.ceil(np.log2(filter_length *
+                                                 mult_fact * sfreq)))
         # shouldn't make filter longer than length of x
         if filter_length >= len_x:
             filter_length = len_x

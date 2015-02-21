@@ -17,6 +17,9 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        requires_PIL, run_tests_if_main, slow_test)
 from mne.viz import plot_trans
 
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 report_dir = op.join(data_dir, 'MEG', 'sample')
@@ -33,11 +36,7 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-
-
 # Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -157,6 +156,7 @@ def test_render_add_sections():
 
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
+
 
 @slow_test
 @testing.requires_testing_data

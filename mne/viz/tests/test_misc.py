@@ -21,14 +21,12 @@ from mne.viz import plot_cov, plot_bem, plot_events
 from mne.viz import plot_source_spectrogram
 from mne.utils import requires_nibabel, run_tests_if_main
 
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 

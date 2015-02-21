@@ -18,12 +18,13 @@ See http://en.wikipedia.org/wiki/Common_spatial_pattern and [1]
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 import numpy as np
 
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 
@@ -53,9 +54,9 @@ evoked = epochs.average()
 ###############################################################################
 # Decoding in sensor space using a linear SVM
 
-from sklearn.svm import SVC
-from sklearn.cross_validation import ShuffleSplit
-from mne.decoding import CSP
+from sklearn.svm import SVC  # noqa
+from sklearn.cross_validation import ShuffleSplit  # noqa
+from mne.decoding import CSP  # noqa
 
 n_components = 3  # pick some components
 svc = SVC(C=1, kernel='linear')
@@ -85,8 +86,8 @@ print("Classification accuracy: %f / Chance level: %f" % (np.mean(scores),
 
 # Or use much more convenient scikit-learn cross_val_score function using
 # a Pipeline
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.cross_validation import cross_val_score  # noqa
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data, labels, cv=cv, n_jobs=1)

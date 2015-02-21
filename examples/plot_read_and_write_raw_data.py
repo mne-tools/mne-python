@@ -11,10 +11,11 @@ raw file.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

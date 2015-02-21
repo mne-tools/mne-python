@@ -314,7 +314,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
 
     has_sklearn = True
     try:
-        from sklearn.linear_model.coordinate_descent import MultiTaskLasso
+        from sklearn.linear_model.coordinate_descent import MultiTaskLasso  # noqa
     except ImportError:
         has_sklearn = False
 
@@ -613,10 +613,10 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
             Z2 **= 2
             X = phiT(Z)
             RZ = M - np.dot(G[:, active_set], X)
-            pobj = 0.5 * linalg.norm(RZ, ord='fro') ** 2 \
-               + alpha_space * norm_l21(X, n_orient) \
-               + alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
-                                             axis=1)).sum()
+            pobj = (0.5 * linalg.norm(RZ, ord='fro') ** 2 +
+                    alpha_space * norm_l21(X, n_orient) +
+                    alpha_time * np.sqrt(np.sum(Z2.T.reshape(-1, n_orient),
+                                                axis=1)).sum())
             E.append(pobj)
             logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
                         pobj, np.sum(active_set)))

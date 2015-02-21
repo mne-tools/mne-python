@@ -10,10 +10,12 @@ Forward solutions can be read using read_forward_solution in Python.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
+import matplotlib.pyplot as plt
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
@@ -27,21 +29,19 @@ print("Leadfield size : %d x %d" % leadfield.shape)
 ###############################################################################
 # Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
-import matplotlib.pyplot as plt
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
 picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 
-fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)  
+fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 fig.suptitle('Lead field matrix (500 dipoles only)', fontsize=14)
 
 for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
-
-   im = ax.imshow(leadfield[picks, :500], origin='lower', aspect='auto',
-                  cmap='RdBu_r')
-   ax.set_title(ch_type.upper())
-   ax.set_xlabel('sources')
-   ax.set_ylabel('sensors')
-   plt.colorbar(im, ax=ax, cmap='RdBu_r')
+    im = ax.imshow(leadfield[picks, :500], origin='lower', aspect='auto',
+                   cmap='RdBu_r')
+    ax.set_title(ch_type.upper())
+    ax.set_xlabel('sources')
+    ax.set_ylabel('sensors')
+    plt.colorbar(im, ax=ax, cmap='RdBu_r')
 
 ###############################################################################
 # Show sensitivity of each sensor type to dipoles in the source space

@@ -8,20 +8,19 @@ to a brain label. The PSD is computed using a multi-taper method with
 Discrete Prolate Spheroidal Sequence (DPSS) windows.
 
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, compute_source_psd_epochs
 
+print(__doc__)
 
 data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
@@ -47,7 +46,7 @@ raw.info['bads'] += ['EEG 053']  # bads + 1 more
 
 # pick MEG channels
 picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False, eog=True,
-                   include=include, exclude='bads')
+                       include=include, exclude='bads')
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(mag=4e-12, grad=4000e-13,

@@ -150,10 +150,10 @@ class RtClient(object):
 
         buf, chunk, begin = [], '', time.time()
         while True:
-            #if we got some data, then break after wait sec
+            # if we got some data, then break after wait sec
             if buf and time.time() - begin > self._timeout:
                 break
-            #if we got no data at all, wait a little longer
+            # if we got no data at all, wait a little longer
             elif time.time() - begin > self._timeout * 2:
                 break
             try:
@@ -258,7 +258,7 @@ class RtClient(object):
         else:
             raise RuntimeError('wrong tag received')
 
-        return  client_id
+        return client_id
 
     def start_measurement(self):
         """Start the measurement"""

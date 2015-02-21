@@ -26,7 +26,10 @@ def _read_header(fid):
     else:
         ValueError('Watchout. This does not seem to be a simple '
                    'binary EGI file.')
-    my_fread = lambda *x, **y: np.fromfile(*x, **y)[0]
+
+    def my_fread(*x, **y):
+        return np.fromfile(*x, **y)[0]
+
     info = dict(
         version=version,
         year=my_fread(fid, '>i2', 1),
@@ -185,7 +188,7 @@ class _RawEGI(_BaseRaw):
             logger.info('Reading EGI header from %s...' % input_fname)
             egi_info = _read_header(fid)
             logger.info('    Reading events ...')
-            _ = _read_events(fid, egi_info)  # update info + jump
+            _read_events(fid, egi_info)  # update info + jump
             logger.info('    Reading data ...')
             # reads events as well
             data = _read_data(fid, egi_info).astype(np.float64)

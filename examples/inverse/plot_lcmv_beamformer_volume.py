@@ -8,20 +8,19 @@ space. It stores the solution in a nifti file for visualisation e.g. with
 Freeview.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.beamformer import lcmv
 
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -69,7 +68,7 @@ stc.crop(0.0, 0.2)
 
 # Save result in a 4D nifti file
 img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
-        forward['src'], mri_resolution=False)  # True for full MRI resolution
+                             forward['src'], mri_resolution=False)
 
 # plot result (one slice)
 plt.close('all')

@@ -7,14 +7,12 @@ import warnings
 
 from mne.viz.utils import compare_fiff
 
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')

@@ -10,16 +10,17 @@ one label) to sources across the cortical surface. Sensitivity
 to sources outside the label is undesirable, and referred to as
 "leakage" or "cross-talk".
 """
-
 # Author: Olaf Hauk <olaf.hauk@mrc-cbu.cam.ac.uk>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+from mayavi import mlab
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import cross_talk_function, read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
@@ -55,7 +56,6 @@ stc_ctf_dspm = cross_talk_function(
     inverse_operator, forward, labels, method=method, lambda2=lambda2,
     signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
-from mayavi import mlab
 fmin = 0.
 time_label = "MNE %d"
 fmax = stc_ctf_mne.data[:, 0].max()

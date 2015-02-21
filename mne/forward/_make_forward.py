@@ -432,8 +432,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     logger.info('')
 
     # Circumvent numerical problems by excluding points too close to the skull
-    idx = np.where(np.array([s['id'] for s in bem['surfs']])
-                   == FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
+    idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
+                   FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the inner skull '
                            'triangulation')

@@ -12,11 +12,11 @@ a.k.a. baseline.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

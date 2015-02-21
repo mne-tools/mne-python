@@ -31,7 +31,7 @@ urls = ['/empdata/neuromag/visual/subject1_day1_vis_raw.fif',
         '/simdata/neuromag/visual/M87174545_vis_sim5_4mm_30na_neuro_rn.fif',
 
         '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_fif.zip',
-        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',
+        '/simdata_singleTrials/subject1_singleTrials_VisWorkingMem_withOsc_fif.zip',  # noqa
         '/simdata_singleTrials/4545_sim_oscOnly_v1_IPS_ILOG_30hzAdded.fif']
 
 data_formats = ['raw',
@@ -142,8 +142,8 @@ data_types = np.atleast_1d(data_types)
 conditions = np.atleast_1d(conditions)
 
 # Useful for testing
-#assert len(conditions) == len(data_types) == len(subjects) \
-#    == len(data_formats) == len(urls)
+# assert len(conditions) == len(data_types) == len(subjects) \
+#     == len(data_formats) == len(urls)
 
 
 def url_match(condition, data_format, data_type):

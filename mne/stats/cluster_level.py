@@ -185,8 +185,8 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
             order = np.argsort(row)
             row = row[order]
             col = col[order]
-            lims = [0] + (np.where(np.diff(row) > 0)[0]
-                          + 1).tolist() + [len(row)]
+            lims = [0] + (np.where(np.diff(row) > 0)[0] +
+                          1).tolist() + [len(row)]
 
         for start, end in zip(lims[:-1], lims[1:]):
             keepers[row[start]] = np.sort(col[start:end])

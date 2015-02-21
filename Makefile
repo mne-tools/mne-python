@@ -84,6 +84,15 @@ ctags:
 upload-pipy:
 	python setup.py sdist bdist_egg register upload
 
+flake:
+	@if command -v flake8 > /dev/null; then \
+		echo "Running flake8"; \
+		flake8 --count mne examples; \
+	else \
+		echo "flake8 not found, please install it!"; \
+		exit 1; \
+	fi;
+
 codespell:
 	# The *.fif had to be there twice to be properly ignored (!)
 	codespell.py -w -i 3 -S="*.fif,*.fif,*.eve,*.gz,*.tgz,*.zip,*.mat,*.stc,*.label,*.w,*.bz2,*.coverage,*.annot,*.sulc,*.log,*.local-copy,*.orig_avg,*.inflated_avg,*.gii" ./dictionary.txt -r .

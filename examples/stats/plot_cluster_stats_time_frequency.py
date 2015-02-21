@@ -21,15 +21,16 @@ The procedure consists in:
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import permutation_cluster_test
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -111,12 +112,11 @@ epochs_power_2 /= epochs_baseline_2[..., np.newaxis]
 # Compute statistic
 threshold = 6.0
 T_obs, clusters, cluster_p_values, H0 = \
-                   permutation_cluster_test([epochs_power_1, epochs_power_2],
-                               n_permutations=100, threshold=threshold, tail=0)
+    permutation_cluster_test([epochs_power_1, epochs_power_2],
+                             n_permutations=100, threshold=threshold, tail=0)
 
 ###############################################################################
 # View time-frequency plots
-import matplotlib.pyplot as plt
 plt.clf()
 plt.subplots_adjust(0.12, 0.08, 0.96, 0.94, 0.2, 0.43)
 plt.subplot(2, 1, 1)

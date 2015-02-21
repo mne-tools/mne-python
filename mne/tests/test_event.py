@@ -3,8 +3,7 @@ import os
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_raises)
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,

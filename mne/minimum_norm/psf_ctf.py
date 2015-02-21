@@ -163,8 +163,8 @@ def point_spread_function(inverse_operator, forward, labels, method='dSPM',
                         np.sum(s_svd * s_svd))
             logger.info("Your %d component(s) explain(s) %.1f%% "
                         "variance in label." % (n_svd_comp, comp_var))
-            this_label_psf_summary = (u_svd[:, :n_svd_comp]
-                                      * s_svd[:n_svd_comp][np.newaxis, :])
+            this_label_psf_summary = (u_svd[:, :n_svd_comp] *
+                                      s_svd[:n_svd_comp][np.newaxis, :])
             # transpose required for conversion to "evoked"
             this_label_psf_summary = this_label_psf_summary.T
 
@@ -339,8 +339,8 @@ def _get_matrix_from_inverse_operator(inverse_operator, forward, labels=None,
                             np.sum(s_svd * s_svd))
                 logger.info("Your %d component(s) explain(s) %.1f%% "
                             "variance in label." % (n_svd_comp, comp_var))
-                this_invmat_summary = (u_svd[:, :n_svd_comp].T
-                                       * s_svd[:n_svd_comp][:, np.newaxis])
+                this_invmat_summary = (u_svd[:, :n_svd_comp].T *
+                                       s_svd[:n_svd_comp][:, np.newaxis])
 
             invmat_summary.append(this_invmat_summary)
 

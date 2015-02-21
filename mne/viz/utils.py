@@ -235,7 +235,7 @@ def _toggle_proj(event, params):
         bools = [True] * len(params['projs'])
 
     compute_proj = False
-    if not 'proj_bools' in params:
+    if 'proj_bools' not in params:
         compute_proj = True
     elif not np.array_equal(bools, params['proj_bools']):
         compute_proj = True

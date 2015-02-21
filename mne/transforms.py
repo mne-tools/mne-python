@@ -421,9 +421,9 @@ def transform_coordinates(filename, pos, orig, dest):
     #
     #   Check we have everything we need
     #
-    if ((orig == FIFF.FIFFV_COORD_HEAD and T0 is None) or (T1 is None)
-            or (T2 is None) or (dest == FIFF.FIFFV_MNE_COORD_FS_TAL and
-                                ((T3minus is None) or (T3minus is None)))):
+    if ((orig == FIFF.FIFFV_COORD_HEAD and T0 is None) or (T1 is None) or
+            (T2 is None) or (dest == FIFF.FIFFV_MNE_COORD_FS_TAL and
+                             ((T3minus is None) or (T3minus is None)))):
         raise ValueError('All required coordinate transforms not found')
 
     #

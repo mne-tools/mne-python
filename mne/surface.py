@@ -657,7 +657,7 @@ def read_surface(fname, verbose=None):
                 nface += 2
         elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()  # analysis:ignore
+            fobj.readline()
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
@@ -810,7 +810,7 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     surf = _read_surface_geom(surf)
 
     if stype in ['ico', 'oct']:
-        ### from mne_ico_downsample.c ###
+        # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
         from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
@@ -1269,14 +1269,13 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
                                0.0), 1.0)
     q0 = np.zeros_like(p0)
     #   Side 2 -> 3
-    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp) +
+                 (2.0 * bb - cc) * qq) / (aa + bb - cc))
     t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
     p1 = 1.0 - t1
     q1 = t1
     #   Side 1 -> 3
-    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                               / bb, 0.0), 1.0)
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc) / bb, 0.0), 1.0)
     p2 = np.zeros_like(q2)
 
     # figure out which one had the lowest distance

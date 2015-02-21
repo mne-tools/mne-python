@@ -774,7 +774,7 @@ def _nanmean(a, axis=None, dtype=None, out=None, keepdims=False):
     this issue.
     """
     if keepdims is True:
-        keepdims_ = [slice(None, None, None) for _ in arr.ndim]
+        keepdims_ = [slice(None, None, None) for _ in a.ndim]
         keepdims_[axis] = np.newaxis
     else:
         keepdims = Ellipsis

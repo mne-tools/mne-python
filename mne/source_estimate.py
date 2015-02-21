@@ -1584,8 +1584,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):
 
-        if not (isinstance(vertices, np.ndarray) or isinstance(vertices, list)
-                and len(vertices) == 1):
+        if not (isinstance(vertices, np.ndarray) or
+                isinstance(vertices, list) and len(vertices) == 1):
             raise ValueError('Vertices must be a numpy array or a list with '
                              'one array')
 
@@ -1614,15 +1614,13 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            if not (fname.endswith('-vl.stc')
-                    or fname.endswith('-vol.stc')):
+            if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
                 fname += '-vl.stc'
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.vertices, data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
-            if not (fname.endswith('-vl.w')
-                    or fname.endswith('-vol.w')):
+            if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
                 fname += '-vl.w'
             _write_w(fname, vertices=self.vertices, data=self.data)
 
@@ -2605,10 +2603,10 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     col = (edges.col[None, :] + aux).ravel()
     row = (edges.row[None, :] + aux).ravel()
     if n_times > 1:  # add temporal edges
-        o = (n_vertices * np.arange(n_times - 1)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
-        d = (n_vertices * np.arange(1, n_times)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
+        o = (n_vertices * np.arange(n_times - 1)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
+        d = (n_vertices * np.arange(1, n_times)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
         row = np.concatenate((row, o, d))
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),

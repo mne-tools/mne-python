@@ -58,7 +58,7 @@ mrk_view_editable = View(
                Item('use', editor=use_editor_v, enabled_when="enabled",
                     style='custom'),
                'points',
-               ),
+           ),
            HGroup(Item('clear', enabled_when="can_save", show_label=False),
                   Item('save_as', enabled_when="can_save",
                        show_label=False)),
@@ -324,9 +324,9 @@ class CombineMarkersModel(HasPrivateTraits):
 
     @cached_property
     def _get_distance(self):
-        if (self.mrk1 is None or self.mrk2 is None
-            or (not np.any(self.mrk1.points))
-                or (not np.any(self.mrk2.points))):
+        if (self.mrk1 is None or self.mrk2 is None or
+                (not np.any(self.mrk1.points)) or
+                (not np.any(self.mrk2.points))):
             return ""
 
         ds = np.sqrt(np.sum((self.mrk1.points - self.mrk2.points) ** 2, 1))

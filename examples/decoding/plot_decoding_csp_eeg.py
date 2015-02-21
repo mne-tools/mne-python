@@ -28,7 +28,6 @@ The data set is available at PhysioNet [3]
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -40,8 +39,10 @@ from mne.event import find_events
 from mne.decoding import CSP
 from mne.layouts import read_layout
 
-###############################################################################
-## Set parameters and read data
+print(__doc__)
+
+# #############################################################################
+# # Set parameters and read data
 
 # avoid classification of evoked responses by using epochs that start 1s after
 # cue onset.
@@ -75,8 +76,8 @@ labels = epochs.events[:, -1] - 2
 ###############################################################################
 # Classification with linear discrimant analysis
 
-from sklearn.lda import LDA
-from sklearn.cross_validation import ShuffleSplit
+from sklearn.lda import LDA  # noqa
+from sklearn.cross_validation import ShuffleSplit  # noqa
 
 # Assemble a classifier
 svc = LDA()
@@ -89,8 +90,8 @@ epochs_data = epochs.get_data()
 epochs_data_train = epochs_train.get_data()
 
 # Use scikit-learn Pipeline with cross_val_score function
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.cross_validation import cross_val_score  # noqa
 clf = Pipeline([('CSP', csp), ('SVC', svc)])
 scores = cross_val_score(clf, epochs_data_train, labels, cv=cv, n_jobs=1)
 

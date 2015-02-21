@@ -209,8 +209,7 @@ def _plot_ica_sources_evoked(evoked, exclude, title, show):
     plt.plot(times, evoked.data.T, 'k')
     for ii in exclude:
         # use indexing to expose event related sources
-        color, label = ('r', 'ICA %02d' % ii)
-        plt.plot(times, evoked.data[ii].T, color='r', label=label)
+        plt.plot(times, evoked.data[ii].T, color='r', label='ICA %02d' % ii)
 
     plt.title(title)
     plt.xlim(times[[0, -1]])
@@ -390,7 +389,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     fig : instance of pyplot.Figure
     """
     import matplotlib.pyplot as plt
-        # Restore sensor space data and keep all PCA components
+    # Restore sensor space data and keep all PCA components
     # let's now compare the date before and after cleaning.
     # first the raw data
     assert data.shape == data_cln.shape

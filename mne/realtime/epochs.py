@@ -142,11 +142,11 @@ class RtEpochs(_BaseEpochs):
         verbose = client.verbose if verbose is None else verbose
 
         # call _BaseEpochs constructor
-        super(RtEpochs, self).__init__(info, event_id, tmin, tmax,
-                baseline=baseline, picks=picks, name=name, reject=reject,
-                flat=flat, decim=decim, reject_tmin=reject_tmin,
-                reject_tmax=reject_tmax, detrend=detrend,
-                add_eeg_ref=add_eeg_ref, verbose=verbose)
+        super(RtEpochs, self).__init__(
+            info, event_id, tmin, tmax, baseline=baseline, picks=picks,
+            name=name, reject=reject, flat=flat, decim=decim,
+            reject_tmin=reject_tmin, reject_tmax=reject_tmax, detrend=detrend,
+            add_eeg_ref=add_eeg_ref, verbose=verbose)
 
         self.proj = proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
@@ -173,8 +173,8 @@ class RtEpochs(_BaseEpochs):
         # update default options if dictionary is provided
         if find_events is not None:
             self._find_events_kwargs.update(find_events)
-        min_samples = (self._find_events_kwargs['min_duration']
-                       * self.info['sfreq'])
+        min_samples = (self._find_events_kwargs['min_duration'] *
+                       self.info['sfreq'])
         self._find_events_kwargs.pop('min_duration', None)
         self._find_events_kwargs['min_samples'] = min_samples
 
@@ -183,8 +183,8 @@ class RtEpochs(_BaseEpochs):
         # add calibration factors
         cals = np.zeros(self._client_info['nchan'])
         for k in range(self._client_info['nchan']):
-            cals[k] = (self._client_info['chs'][k]['range']
-                       * self._client_info['chs'][k]['cal'])
+            cals[k] = (self._client_info['chs'][k]['range'] *
+                       self._client_info['chs'][k]['cal'])
         self._cals = cals[:, None]
 
         # FIFO queues for received epochs and events
@@ -223,8 +223,7 @@ class RtEpochs(_BaseEpochs):
             nchan = self._client_info['nchan']
             self._client.start_receive_thread(nchan)
             self._started = True
-
-            self._last_time = np.inf  # init delay counter. Will stop iterations
+            self._last_time = np.inf  # init delay counter. Will stop iters
 
     def stop(self, stop_receive_thread=False, stop_measurement=False):
         """Stop receiving epochs
@@ -326,14 +325,14 @@ class RtEpochs(_BaseEpochs):
         event_backlog = list()
         for event_samp, event_id in events:
             epoch = None
-            if (event_samp + tmin_samp >= self._first_samp
-                    and event_samp + tmax_samp <= last_samp):
+            if (event_samp + tmin_samp >= self._first_samp and
+                    event_samp + tmax_samp <= last_samp):
                 # easy case: whole epoch is in this buffer
                 start = event_samp + tmin_samp - self._first_samp
                 stop = event_samp + tmax_samp - self._first_samp
                 epoch = raw_buffer[:, start:stop]
-            elif (event_samp + tmin_samp < self._first_samp
-                    and event_samp + tmax_samp <= last_samp):
+            elif (event_samp + tmin_samp < self._first_samp and
+                    event_samp + tmax_samp <= last_samp):
                 # have to use some samples from previous buffer
                 if self._last_buffer is None:
                     continue

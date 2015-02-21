@@ -25,8 +25,7 @@ from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
 from .surface import (read_surface, write_surface, read_bem_surfaces,
                       write_bem_surface)
-from .transforms import (rotation, rotation3d, scaling, translation,
-                         get_ras_to_neuromag_trans)
+from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
 from functools import reduce
 from .externals.six.moves import zip
