@@ -171,10 +171,11 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
                                                 verbose=verbose)
 
     for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
-                           parallel(my_pwelch(epoch, window_size=window_size,
-                                    noverlap=n_overlap, nfft=n_fft, fs=Fs,
-                                    freq_mask=freq_mask)
-                           for epoch in np.array_split(data, n_jobs))):
+                            parallel(my_pwelch(epoch, window_size=window_size,
+                                     noverlap=n_overlap, nfft=n_fft, fs=Fs,
+                                     freq_mask=freq_mask)
+                                     for epoch in np.array_split(data,
+                                                                 n_jobs))):
         for i_epoch, f_epoch in zip(idx, fepochs):
             psds[i_epoch, :, :] = f_epoch
 

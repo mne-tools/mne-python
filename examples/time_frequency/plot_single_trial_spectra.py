@@ -36,7 +36,7 @@ include = []
 raw.info['bads'] += ['MEG 2443']  # bads
 
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-					proj=True, baseline=(None, 0), preload=True,
+                    proj=True, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, eog=150e-6))
 
 n_fft = 256  # the FFT size. Ideally a power of 2
