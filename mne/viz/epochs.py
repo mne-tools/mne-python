@@ -348,7 +348,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
+    scalings = _mutable_defaults(('scalings_plot_raw', scalings))[0]
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if epoch_idx is None:
