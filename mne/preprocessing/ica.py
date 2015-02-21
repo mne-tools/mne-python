@@ -2103,6 +2103,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
     return sources, target
 
+
 @verbose
 def corrmap(icas, template, threshold="auto", name="bads",
             plot=True, inplace=False):
@@ -2166,7 +2167,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         if components is None:
             components = range(ica.n_components_)
         maps = np.dot(ica.mixing_matrix_[:, components].T,
-                  ica.pca_components_[:ica.n_components_])
+                      ica.pca_components_[:ica.n_components_])
         return maps
 
     def find_max_corrs(all_maps, target, threshold):
@@ -2189,7 +2190,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
                       for i in i_s[0]]
 
         maxmaps = [l[i] for l, i_s in zip(all_maps, max_corrs)
-                      for i in i_s[0]]
+                   for i in i_s[0]]
 
         try:
             newtarget = np.zeros(maxmaps[0].size)
