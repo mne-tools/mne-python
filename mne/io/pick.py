@@ -554,6 +554,7 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     res['eigvec'] = None
     return res
 
+
 def _picks_by_type(info, meg_combined=False, ref_meg=False):
     """Get data channel indices as separate list of tuples
     Parameters
