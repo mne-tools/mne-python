@@ -2180,15 +2180,15 @@ def corrmap(icas, template, threshold="auto", name="bads",
             max_corrs = [list(find_outliers(s_corr, threshold=threshold))
                          for s_corr in abs_corrs]
 
-        am = [sub[i] for l, i_s in zip(abs_corrs, max_corrs)
-              for sub, i in zip(l, i_s)]
+        am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
+              for i in i_s[0]]
         median_corr_with_target = np.median(am)
 
-        polarities = [sub[i] for l, i_s in zip(corr_polarities, max_corrs)
-                      for sub, i in zip(l, i_s)]
+        polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
+                      for i in i_s[0]]
 
-        maxmaps = [sub[i] for l, i_s in zip(all_maps, max_corrs)
-                   for sub, i in zip(l, i_s)]
+        maxmaps = [l[i] for l, i_s in zip(all_maps, max_corrs)
+                      for i in i_s[0]]
 
         try:
             newtarget = np.zeros(maxmaps[0].size)
