@@ -760,12 +760,14 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
 
 def _logdet(A):
+    """Compute the log det of a symmetric matrix"""
     vals = linalg.eigh(A)[0]
     vals = np.abs(vals)  # avoid negative values (numerical errors)
     return np.sum(np.log(vals))
 
 
 def _gaussian_loglik_scorer(est, X, y=None):
+    """Compute the Gaussian log likelihood of X under the model in est"""
     from sklearn.utils.extmath import fast_logdet
     # compute empirical covariance of the test set
     precision = est.get_precision()
