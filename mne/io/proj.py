@@ -112,6 +112,7 @@ class ProjMixin(object):
 
         # Exit delayed mode if you apply proj
         if hasattr(self, '_delayed_proj'):
+            logger.info('Leaving delayed SSP mode.')
             del self._delayed_proj
 
         if all([p['active'] for p in self.info['projs']]):
