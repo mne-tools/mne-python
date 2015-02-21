@@ -15,9 +15,9 @@ illustrative.
 
 References
 ----------
-[1] Engemann D. and Gramfort A. Automated model selection in covariance
-estimation and spatial whitening of MEG and EEG signals. (in press.)
-NeuroImage.
+[1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
+    estimation and spatial whitening of MEG and EEG signals, vol. 108,
+    328-342, NeuroImage.
 """
 # Author: Denis A. Engemann <denis.engemann@gmail.com>
 #

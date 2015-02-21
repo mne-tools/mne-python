@@ -438,9 +438,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     References
     ----------
-    [1] Engemann D. and Gramfort A (in press). Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals.
-        NeuroImage.
+    [1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
+        estimation and spatial whitening of MEG and EEG signals, vol. 108,
+        328-342, NeuroImage.
     [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
         large-dimensional covariance matrices. Journal of Multivariate
         Analysis 88 (2), 365 - 411.
