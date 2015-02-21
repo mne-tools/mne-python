@@ -88,25 +88,11 @@ def test_rap_music():
     stc = rap_music(evoked, forward, noise_cov, n_sources=n_sources)
     _check_stc(stc)
 
-    # Test picking normal orientation (surface source space only)
-    stc_normal = rap_music(evoked, forward_surf_ori, noise_cov,
-                           n_sources=n_sources, pick_ori="normal")
-    _check_stc(stc_normal)
-
     # Test with fixed forward
     stc_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
-                               n_sources=n_sources, pick_ori="normal",
+                               n_sources=n_sources,
                                return_residual=True)
     _check_stc(stc_fixed)
-
-    # Test if fixed forward operator is detected when picking normal
-    assert_raises(ValueError, rap_music, evoked, forward_fixed, noise_cov,
-                  pick_ori="normal")
-
-    # Test if non-surface oriented forward operator is detected when picking
-    # normal orientation
-    assert_raises(ValueError, rap_music, evoked, forward, noise_cov,
-                  pick_ori="normal")
 
     # Test the residual times
     assert_array_almost_equal(evoked.times, res.times)

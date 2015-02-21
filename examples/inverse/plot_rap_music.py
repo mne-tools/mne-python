@@ -48,7 +48,7 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 noise_cov = mne.read_cov(cov_fname)
 
 stc, residual = rap_music(evoked, forward, noise_cov, n_sources=2,
-                          return_residual=True)
+                          return_residual=True, verbose=True)
 
 # Plot the evoked data and the residual.
 evoked.plot()
@@ -61,7 +61,7 @@ plot_sparse_source_estimates(forward['src'], stc, fig_name="Rap-Music",
 # With fixed orientation
 forward_fixed = mne.convert_forward_solution(forward, force_fixed=True)
 stc_fixed, residual_fixed = rap_music(evoked, forward_fixed, noise_cov,
-                                        n_sources=2, return_residual=True)
+                                      n_sources=2, return_residual=True)
 
 residual_fixed.plot()
 

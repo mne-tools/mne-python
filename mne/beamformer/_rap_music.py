@@ -19,8 +19,8 @@ from ._lcmv import _prepare_beamformer_input
 
 
 @verbose
-def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
-                     r=15, n_sources=5, picks=None, pick_ori=None,
+def _apply_rap_music(data, info, tmin, forward, noise_cov,
+                     signal_ndim=15, n_sources=5, picks=None,
                      return_residual=False, verbose=None):
     """RAP-MUSIC for evoked data
 
@@ -36,20 +36,14 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
         Forward operator.
     noise_cov : Covariance
         The noise covariance.
-    label : Label
-        Restricts the rap-music solution to a given label.
-        XXX: not implemented yet.
-    r: int
+    signal_ndim : int
         The dimension of the subspace spanning the signal.
         The default value is 15.
-    n_sources: int
+    n_sources : int
         The number of sources to estimate.
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
@@ -59,12 +53,13 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     -------
     stc : SourceEstimate
         Source time courses.
-    residual_data : array
+    explained_data : array
         Data explained by the sources. Computed only if return_residual
         is True.
     """
     is_free_ori, picks, ch_names, proj, vertno, G =\
-        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+        _prepare_beamformer_input(info, forward, label=None,
+                                  picks=picks, pick_ori=None)
     gain = G.copy()
 
     # Handle whitening + data covariance
@@ -77,7 +72,7 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     data = np.dot(whitener, data)
 
     eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))
-    phi_sig = eig_vectors[:, -r:]
+    phi_sig = eig_vectors[:, -signal_ndim:]
 
     n_orient = 3 if is_free_ori else 1
     A = np.zeros((G.shape[0], n_sources))
@@ -94,6 +89,8 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
                         n_orient * i_source + n_orient]
 
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
+            if ori[-1] < 0:  # make sure ori is relative to surface ori
+                ori *= -1.
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
@@ -112,14 +109,9 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     sol = linalg.lstsq(A, data)[0]
 
     active_set = np.sort(active_set)
-    residual_data = None
+    explained_data = None
     if return_residual:
-        residual_data = np.dot(gain[:, active_set], sol)
-
-    # Pick source orientation normal to cortical surface
-    # XXX : still wrong:
-    # if pick_ori == 'normal':
-    #     sol = sol[:, 2::3]
+        explained_data = np.dot(gain[:, active_set], sol)
 
     vertno[1] = vertno[1][active_set[active_set > vertno[0].size]
                           - vertno[0].size]
@@ -128,12 +120,13 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     tstep = 1.0 / info['sfreq']
 
     return _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
-                     subject=subject), residual_data
+                     subject=subject), explained_data
 
 
 def _compute_subcorr(G, phi_sig):
     """ Compute the subspace correlation
     """
+    # XXX not sure why this is useful. Commenting for now
     # if G.shape[1] == 1:
     #     Gh = G.T.conjugate()
     #     phi_sigh = phi_sig.T.conjugate()
@@ -141,10 +134,8 @@ def _compute_subcorr(G, phi_sig):
     #     return np.sqrt(subcorr / np.dot(Gh, G)), np.ones(1)
     # else:
     Ug = linalg.qr(G, mode='economic')[0]
-    Ugh = Ug.T.conjugate()
-    phi_sigh = phi_sig.T.conjugate()
-    subcorr = np.dot(np.dot(Ugh, phi_sig), np.dot(phi_sigh, Ug))
-
+    tmp = np.dot(Ug.T.conjugate(), phi_sig)
+    subcorr = np.dot(tmp, tmp.T.conjugate()).real
     eig_vals, eig_vecs = linalg.eigh(subcorr)
     return np.sqrt(eig_vals[-1]), eig_vecs[:, -1]
 
@@ -155,14 +146,12 @@ def _compute_proj(A):
     """
     Ah = A.T.conjugate()
     I = np.identity(A.shape[0])
-
     return I - np.dot(np.dot(A, linalg.pinv(np.dot(Ah, A))), Ah)
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, label=None, r=15,
-              n_sources=5, pick_ori=None, return_residual=False,
-              verbose=None):
+def rap_music(evoked, forward, noise_cov, signal_ndim=15,
+              n_sources=5, return_residual=False, verbose=None):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
@@ -176,17 +165,11 @@ def rap_music(evoked, forward, noise_cov, label=None, r=15,
         Forward operator.
     noise_cov : Covariance
         The noise covariance.
-    label : Label
-        Restricts the RAP-MUSIC solution to a given label.
-        XXX: not implemented yet.
-    r: int
+    signal_ndim: int
         The dimension of the subspace spanning the signal.
         The default value is 15.
     n_sources: int
         The number of sources to look for. Default value is 5.
-    pick_ori : None | 'normal'
-        If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
@@ -214,16 +197,20 @@ def rap_music(evoked, forward, noise_cov, label=None, r=15,
     data = evoked.data
     tmin = evoked.times[0]
 
-    stc, D = _apply_rap_music(data, info, tmin, forward, noise_cov,
-                              label, r, n_sources, pick_ori=pick_ori,
-                              return_residual=return_residual)
+    stc, explained_data = _apply_rap_music(data, info, tmin, forward,
+                                           noise_cov, signal_ndim, n_sources,
+                                           return_residual=return_residual)
 
     if return_residual:
         residual = evoked.copy()
         residual = pick_channels_evoked(residual,
                                         include=info['ch_names'])
-        residual.data -= D
-
+        residual.data -= explained_data
+        active_projs = [p for p in residual.info['projs'] if p['active']]
+        for p in active_projs:
+            p['active'] = False
+        residual.add_proj(active_projs, remove_existing=True)
+        residual.apply_proj()
         return stc, residual
     else:
         return stc
