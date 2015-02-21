@@ -775,8 +775,6 @@ def _gaussian_loglik_scorer(est, X, y=None):
     log_like -= .5 * (n_features * log(2. * np.pi)
                       - _logdet(precision))
     out = np.mean(log_like)
-    if np.isinf(out):
-        import ipdb; ipdb.set_trace()
     return out
 
 
