@@ -6,7 +6,7 @@
 
 import copy as cp
 import os
-from math import floor, ceil
+from math import floor, ceil, log
 import itertools as itt
 import warnings
 
@@ -32,7 +32,6 @@ from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_sklearn_version)
 
 from .externals.six.moves import zip
-from .fixes import nanmean
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -760,10 +759,32 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     return out
 
 
+def _logdet(A):
+    vals = linalg.eigh(A)[0]
+    vals = np.abs(vals)  # avoid negative values (numerical errors)
+    return np.sum(np.log(vals))
+
+
+def _gaussian_loglik_scorer(est, X, y=None):
+    from sklearn.utils.extmath import fast_logdet
+    # compute empirical covariance of the test set
+    precision = est.get_precision()
+    n_samples, n_features = X.shape
+    log_like = np.zeros(n_samples)
+    log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
+    log_like -= .5 * (n_features * log(2. * np.pi)
+                      - _logdet(precision))
+    out = np.mean(log_like)
+    if np.isinf(out):
+        import ipdb; ipdb.set_trace()
+    return out
+
+
 def _cross_val(data, est, cv, n_jobs):
     """Helper to compute cross validation"""
     from sklearn.cross_validation import cross_val_score
-    return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
+    return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
+                                   scoring=_gaussian_loglik_scorer))
 
 
 def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
