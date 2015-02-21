@@ -2142,7 +2142,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
     def get_ica_map(ica, components=None):
         if components is None:
             components = range(ica.n_components_)
-        maps = np.dot(ica.mixing_matrix_.T, ica.pca_components_)[components]
+        maps = np.dot(ica.mixing_matrix_[:, components].T,
+                  ica.pca_components_[:ica.n_components_])       
         return maps
 
     def find_max_corrs(all_maps, target, threshold):
