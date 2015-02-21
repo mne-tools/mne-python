@@ -2,14 +2,13 @@ import os.path as op
 
 from nose.tools import assert_true, assert_raises
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import assert_array_almost_equal
 import warnings
 
 import mne
 from mne.datasets import testing
 from mne.beamformer import rap_music
-from mne.externals.six import advance_iterator
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import slow_test
 
 
 data_path = testing.data_path(download=False)
@@ -28,19 +27,16 @@ def read_forward_solution_meg(*args, **kwargs):
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
-def _get_data(tmin=-0.1, tmax=0.15, all_forward=True):
+def _get_data(tmin=-0.1, tmax=0.15):
     """Read in data used in tests
     """
     events = mne.read_events(fname_event)
     raw = mne.io.Raw(fname_raw, preload=True)
     forward = mne.read_forward_solution(fname_fwd)
-    if all_forward:
-        forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
-        forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                                  surf_ori=True)
-    else:
-        forward_surf_ori = None
-        forward_fixed = None
+
+    forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                              surf_ori=True)
 
     event_id, tmin, tmax = 1, tmin, tmax
 
@@ -48,14 +44,12 @@ def _get_data(tmin=-0.1, tmax=0.15, all_forward=True):
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
 
     # Set up pick list: MEG - bad channels
-    left_temporal_channels = mne.read_selection('Left-temporal')
     picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
                            eog=True, ref_meg=False, exclude='bads')
 
     # Read epochs
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0),
-                        preload=False,
+                        picks=picks, baseline=(None, 0), preload=False,
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 
     evoked = epochs.average()
@@ -76,36 +70,34 @@ def test_rap_music():
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
 
-    n_sources = 4
+    def _check_stc(stc):
+        stc.crop(0.02, None)
+        assert_true(stc.data.shape[0], n_sources)
+        assert_true(stc.vertices[0].size == 1)
+        assert_true(stc.vertices[1].size == 1)
+
+        stc_pow = np.sum(stc.data, axis=1)
+        idx = np.argmax(stc_pow)
+        max_stc = np.abs(stc.data[idx])
+        tmax = stc.times[np.argmax(max_stc)]
+
+        assert_true(0.06 < tmax < 0.105, tmax)
+
+    n_sources = 2
+
     stc = rap_music(evoked, forward, noise_cov, n_sources=n_sources)
-    stc.crop(0.02, None)
-
-    assert_true(stc.data.shape[0], n_sources)
-    assert_true(stc.vertices[0].shape > 0)
-    assert_true(stc.vertices[1].shape > 0)
-
-    stc_pow = np.sum(stc.data, axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = np.abs(stc.data[idx])
-    tmax = stc.times[np.argmax(max_stc)]
-
-    assert_true(0.09 < tmax < 0.105, tmax)
+    _check_stc(stc)
 
     # Test picking normal orientation (surface source space only)
     stc_normal = rap_music(evoked, forward_surf_ori, noise_cov,
                            n_sources=n_sources, pick_ori="normal")
-    stc_normal.crop(0.02, None)
+    _check_stc(stc_normal)
 
-    assert_true(stc.data.shape[0], n_sources)
-    assert_true(stc.vertices[0].shape > 0)
-    assert_true(stc.vertices[1].shape > 0)
-
-    stc_pow = np.sum(np.abs(stc_normal.data), axis=1)
-    idx = np.argmax(stc_pow)
-    max_stc = np.abs(stc_normal.data[idx])
-    tmax = stc_normal.times[np.argmax(max_stc)]
-
-    assert_true(0.04 < tmax < 0.11, tmax)
+    # Test with fixed forward
+    stc_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
+                               n_sources=n_sources, pick_ori="normal",
+                               return_residual=True)
+    _check_stc(stc_fixed)
 
     # Test if fixed forward operator is detected when picking normal
     assert_raises(ValueError, rap_music, evoked, forward_fixed, noise_cov,
@@ -117,6 +109,4 @@ def test_rap_music():
                   pick_ori="normal")
 
     # Test the residual times
-    stc_normal, res = rap_music(evoked, forward_surf_ori, noise_cov,
-                                n_sources=n_sources, return_residual=True)
     assert_array_almost_equal(evoked.times, res.times)

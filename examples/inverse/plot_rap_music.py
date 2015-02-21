@@ -19,10 +19,8 @@ DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 
 import mne
 
-import numpy as np
 import matplotlib.pyplot as plt
 
-from mne import io
 from mne.datasets import sample
 from mne.beamformer import rap_music
 from mne.io.pick import pick_types_evoked
@@ -52,23 +50,24 @@ noise_cov = mne.read_cov(cov_fname)
 stc, residual = rap_music(evoked, forward, noise_cov, n_sources=2,
                           return_residual=True)
 
-from mne.viz import plot_sparse_source_estimates
-plot_sparse_source_estimates(forward['src'], stc, fig_name="Rap-Music",
-                             bgcolor=(1, 1, 1), modes=["sphere"])
-
 # Plot the evoked data and the residual.
 evoked.plot()
 residual.plot()
 
-# Picking normal orientation
-stc_normal, residual_normal = rap_music(evoked, forward, noise_cov,
-                                        n_sources=2, return_residual=True,
-                                        pick_ori='normal')
-
-plot_sparse_source_estimates(forward['src'], stc_normal, fig_name="Rap-Music",
+from mne.viz import plot_sparse_source_estimates
+plot_sparse_source_estimates(forward['src'], stc, fig_name="Rap-Music",
                              bgcolor=(1, 1, 1), modes=["sphere"])
 
-residual_normal.plot()
+# With fixed orientation
+forward_fixed = mne.convert_forward_solution(forward, force_fixed=True)
+stc_fixed, residual_fixed = rap_music(evoked, forward_fixed, noise_cov,
+                                        n_sources=2, return_residual=True)
 
-plt.tight_layout()
+residual_fixed.plot()
+
+plot_sparse_source_estimates(forward['src'], stc_fixed,
+                             fig_name="Rap-Music (fixed ori)",
+                             bgcolor=(1, 1, 1), modes=["sphere"])
+
+mne.viz.tight_layout()
 plt.show()
