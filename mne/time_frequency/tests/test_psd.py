@@ -86,8 +86,8 @@ def test_psd_epochs():
 
     picks = pick_types(epochs.info, meg='grad', eeg=False, eog=True,
                        stim=False, include=include, exclude='bads')
-    psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300, n_fft=n_fft,
-                                     picks=picks)
+    psds, freqs = compute_epochs_psd(epochs[:1], fmin=2, fmax=300,
+                                     n_fft=n_fft, picks=picks)
     psds_proj, _ = compute_epochs_psd(epochs[:1].apply_proj(), fmin=2,
                                       fmax=300, n_fft=n_fft, picks=picks)
 
