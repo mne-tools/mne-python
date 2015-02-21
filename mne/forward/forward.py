@@ -37,6 +37,7 @@ from ..epochs import Epochs
 from ..source_space import (_read_source_spaces_from_tree,
                             find_source_space_hemi,
                             _write_source_spaces_to_fid)
+from ..source_estimate import VolSourceEstimate
 from ..transforms import (transform_surface_to, invert_transform,
                           write_trans)
 from ..utils import (_check_fname, get_subjects_dir, has_mne_c,
@@ -1014,15 +1015,21 @@ def compute_depth_prior(G, gain_info, is_fixed_ori, exp=0.8, limit=10.0,
 def _stc_src_sel(src, stc):
     """ Select the vertex indices of a source space using a source estimate
     """
-    src_sel_lh = np.intersect1d(src[0]['vertno'], stc.vertices[0])
-    src_sel_lh = np.searchsorted(src[0]['vertno'], src_sel_lh)
-
-    src_sel_rh = np.intersect1d(src[1]['vertno'], stc.vertices[1])
-    src_sel_rh = (np.searchsorted(src[1]['vertno'], src_sel_rh) +
-                  len(src[0]['vertno']))
-
-    src_sel = np.r_[src_sel_lh, src_sel_rh]
-
+    if isinstance(stc, VolSourceEstimate):
+        vertices = [stc.vertices]
+    else:
+        vertices = stc.vertices
+    if not len(src) == len(vertices):
+        raise RuntimeError('Mismatch between number of source spaces (%s) and '
+                           'STC vertices (%s)' % (len(src), len(vertices)))
+    src_sels = []
+    offset = 0
+    for s, v in zip(src, vertices):
+        src_sel = np.intersect1d(s['vertno'], v)
+        src_sel = np.searchsorted(s['vertno'], src_sel)
+        src_sels.append(src_sel + offset)
+        offset += len(s['vertno'])
+    src_sel = np.concatenate(src_sels)
     return src_sel
 
 

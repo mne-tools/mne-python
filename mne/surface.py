@@ -264,19 +264,20 @@ def read_bem_solution(fname, verbose=None):
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-def get_head_surf(subject, source='bem', subjects_dir=None):
+def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     """Load the subject head surface
 
     Parameters
     ----------
     subject : str
         Subject name.
-    source : str
+    source : str | list of str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
         through all files matching the pattern. The head surface will be read
-        from the first file containing a head surface.
+        from the first file containing a head surface. Can also be a list
+        to try multiple strings.
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -289,31 +290,36 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
-    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
-                                    '%s-%s.fif' % (subject, source)))
-    if op.exists(this_head):
-        surf = read_bem_surfaces(this_head, True,
-                                 FIFF.FIFFV_BEM_SURF_ID_HEAD)
-    else:
-        # let's do a more sophisticated search
-        this_head = None
-        path = op.join(subjects_dir, subject, 'bem')
-        if not op.isdir(path):
-            raise IOError('Subject bem directory "%s" does not exist'
-                          % path)
-        files = sorted(glob(op.join(path, '%s*%s.fif' % (subject, source))))
-        for this_head in files:
-            try:
-                surf = read_bem_surfaces(this_head, True,
-                                         FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                break
-            except ValueError:
-                # the file does not contain a head surface
-                this_head = None
+    if isinstance(source, string_types):
+        source = [source]
+    for this_source in source:
+        this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                        '%s-%s.fif' % (subject, this_source)))
+        if op.exists(this_head):
+            surf = read_bem_surfaces(this_head, True,
+                                     FIFF.FIFFV_BEM_SURF_ID_HEAD)
+            break
+        else:
+            # let's do a more sophisticated search
+            this_head = None
+            path = op.join(subjects_dir, subject, 'bem')
+            if not op.isdir(path):
+                raise IOError('Subject bem directory "%s" does not exist'
+                              % path)
+            files = sorted(glob(op.join(path, '%s*%s.fif'
+                                        % (subject, this_source))))
+            for this_head in files:
+                try:
+                    surf = read_bem_surfaces(this_head, True,
+                                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                    break
+                except ValueError:
+                    # the file does not contain a head surface
+                    this_head = None
 
-        if this_head is None:
-            raise IOError('No file matching "%s*%s" and containing a head '
-                          'surface found' % (subject, source))
+    if this_head is None:
+        raise IOError('No file matching "%s*%s" and containing a head '
+                      'surface found' % (subject, this_source))
     return surf
 
 
