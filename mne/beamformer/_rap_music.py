@@ -1,4 +1,4 @@
-"""Compute Compute a Recursively Applied and Projected MUltiple
+"""Compute a Recursively Applied and Projected MUltiple
 Signal Classification (RAP-MUSIC).
 """
 
@@ -50,11 +50,9 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    pick_ori : None | 'normal' | 'max-power'
+    pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-        XXX: 'max-power' not implemented
+        only the radial component is kept.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None
@@ -70,12 +68,17 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
     """
     is_free_ori, picks, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+    gain = G.copy()
 
     # Handle whitening + data covariance
     whitener, _ = compute_whitener(noise_cov, info, picks)
 
     # whiten the leadfield
     G = np.dot(whitener, G)
+
+    # SSP and whitening
+    if info['projs']:
+        data = np.dot(proj, data)
     data = np.dot(whitener, data)
 
     # Pick source orientation normal to cortical surface
@@ -88,45 +91,37 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
 
     n_orient = 3 if is_free_ori else 1
     A = np.zeros((G.shape[0], n_sources))
-    active_set = np.concatenate(-np.ones((n_sources, 1), dtype='int'))
+    active_set = -np.ones(n_sources, dtype=int)
 
-    G_proj = np.dot(np.identity(G.shape[0]), G)
-    phi_sig_proj = np.dot(np.identity(phi_sig.shape[0]), phi_sig)
+    G_proj = G
+    phi_sig_proj = phi_sig
 
     for k in range(n_sources):
         subcorr_max = -1
         for i_source in range(G.shape[1] // n_orient):
-            if n_orient == 1:
-                Gk = G_proj[:, i_source]
-            else:
-                Gk = G_proj[:, n_orient * i_source:
-                            n_orient * i_source + n_orient]
+            Gk = G_proj[:, n_orient * i_source:
+                        n_orient * i_source + n_orient]
 
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
                 subcorr_max, active_set[k] = subcorr, i_source
                 A[:, k] = np.dot(Gk, ori)
 
-        logger.info("source %s found" % (k + 1))
+        logger.info("source %s found: p = %s" % (k + 1, active_set[k]))
         if n_orient == 3:
-            logger.info("p = %s, ori = %s %s %s" % (active_set[k],
-                                                    ori[0], ori[1],
-                                                    ori[2]))
+            logger.info("ori = %s %s %s" % (ori[0], ori[1], ori[2]))
 
         projection = _compute_proj(A[:, :k + 1])
         G_proj = np.dot(projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
 
     subject = _subject_from_forward(forward)
-    sol = np.dot(linalg.pinv(A), data)
+    sol = linalg.lstsq(A, data)[0]
 
     active_set = np.sort(active_set)
+    D = []
     if return_residual:
-        _, _, _, _, _, G = _prepare_beamformer_input(info, forward, label,
-                                                     picks, pick_ori)
-        D = np.dot(G[:, active_set], sol)
-    else:
-        D = []
+        D = np.dot(gain[:, active_set], sol)
 
     vertno[1] = vertno[1][active_set[active_set > vertno[0].size]
                           - vertno[0].size]
@@ -141,19 +136,19 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov, label=None,
 def _compute_subcorr(G, phi_sig):
     """ Compute the subspace correlation
     """
-    if len(G.shape) == 1:
+    if G.shape[1] == 1:
         Gh = G.T.conjugate()
         phi_sigh = phi_sig.T.conjugate()
         subcorr = np.dot(np.dot(Gh, phi_sig), np.dot(phi_sigh, G))
-        return np.sqrt(subcorr / np.dot(Gh, G)), 1
+        return np.sqrt(subcorr / np.dot(Gh, G)), np.ones(1)
     else:
         Ug = np.linalg.qr(G, mode='reduced')[0]
         Ugh = Ug.T.conjugate()
         phi_sigh = phi_sig.T.conjugate()
         subcorr = np.dot(np.dot(Ugh, phi_sig), np.dot(phi_sigh, Ug))
 
-        eig = linalg.eigh(subcorr)
-        return np.sqrt(eig[0][-1]), eig[1][:, -1]
+        eig_vals, eig_vecs = linalg.eigh(subcorr)
+        return np.sqrt(eig_vals[-1]), eig_vecs[:, -1]
 
 
 def _compute_proj(A):
@@ -191,11 +186,9 @@ def rap_music(evoked, forward, noise_cov, label=None, r=15,
         The default value is 15.
     n_sources: int
         The number of sources to look for. Default value is 5.
-    pick_ori : None | 'normal' | 'max-power'
+    pick_ori : None | 'normal'
         If 'normal', rather than pooling the orientations by taking the norm,
-        only the radial component is kept. If 'max-power', the source
-        orientation that maximizes output source power is chosen.
-        XXX: 'max_power' not implemented
+        only the radial component is kept.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     verbose : bool, str, int, or None

@@ -115,3 +115,8 @@ def test_rap_music():
     # normal orientation
     assert_raises(ValueError, rap_music, evoked, forward, noise_cov,
                   pick_ori="normal")
+
+    # Test the residual times
+    stc_normal, res = rap_music(evoked, forward_surf_ori, noise_cov,
+                                n_sources=n_sources, return_residual=True)
+    assert_array_almost_equal(evoked.times, res.times)
