@@ -1263,8 +1263,8 @@ def test_concatenate_epochs():
     epochs = Epochs(
         raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
         picks=picks)
-
-    epochs_list = [epochs, epochs]
+    epochs2 = epochs.copy()
+    epochs_list = [epochs, epochs2]
     epochs_conc = concatenate_epochs(epochs_list)
     assert_array_equal(
         epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
