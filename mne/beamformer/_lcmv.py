@@ -25,22 +25,28 @@ from .. import Epochs
 from ..externals import six
 
 
-def _setup_picks(picks, info, forward, noise_cov):
+def _setup_picks(picks, info, forward, noise_cov=None):
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    chs = [info['chs'][k] for k in picks]
-    ch_names = [c['ch_name'] for c in chs
-                if (c['ch_name'] not in info['bads'] and
-                    c['ch_name'] not in noise_cov['bads']) and
-                (c['ch_name'] in fwd_ch_names and
-                    c['ch_name'] in noise_cov.ch_names)]
+    ok_ch_names = set([c['ch_name'] for c in forward['info']['chs']])
+    if noise_cov is not None:
+        ok_ch_names.union(set(noise_cov.ch_names))
 
-    if set(info['bads']) != set(noise_cov['bads']):
+    if noise_cov is not None and set(info['bads']) != set(noise_cov['bads']):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both')
+
+    bads = set(info['bads'])
+    if noise_cov is not None:
+        bads.union(set(noise_cov['bads']))
+
+    ok_ch_names -= bads
+
+    ch_names = [info['chs'][k]['ch_name'] for k in picks]
+    ch_names = [c for c in ch_names if c in ok_ch_names]
+
     picks = [info['ch_names'].index(k) for k in ch_names if k in
              info['ch_names']]
     return picks
@@ -94,7 +100,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     """
     is_free_ori, ch_names, proj, vertno, G = (
         _prepare_beamformer_input(
-            info, forward, label, picks, pick_ori, noise_cov))
+            info, forward, label, picks, pick_ori))
 
     # Handle whitening + data covariance
     whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
@@ -211,8 +217,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     logger.info('[done]')
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
-                              noise_cov):
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -556,7 +561,7 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
 
     is_free_ori, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(
-            info, forward, label, picks, pick_ori, noise_cov)
+            info, forward, label, picks, pick_ori)
 
     # Handle whitening
     info = pick_info(
