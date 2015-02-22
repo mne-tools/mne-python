@@ -2083,7 +2083,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 @verbose
 def corrmap(icas, template, threshold="auto", name="bads",
-             plot=True, inplace=False, ch_type="eeg"):
+            plot=True, inplace=False, ch_type="eeg"):
 
     """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
@@ -2189,10 +2189,9 @@ def corrmap(icas, template, threshold="auto", name="bads",
         from mne.viz.utils import (_prepare_trellis, tight_layout,
                                    _setup_vmin_vmax)
         from mne.viz.topomap import (_prepare_topo_plot, _check_outlines,
-                                     _make_image_mask, plot_topomap)
+                                     plot_topomap)
 
         import matplotlib.pyplot as plt
-        from mpl_toolkits.axes_grid import make_axes_locatable
 
         title = 'Detected components of type ' + name
         picks = list(range(len(data)))
@@ -2245,10 +2244,10 @@ def corrmap(icas, template, threshold="auto", name="bads",
     target = all_maps[template[0]][template[1]]
 
     if plot is True:
-        t = 'Template IC (Subj. ' + str(template[1]) + ')'
+        ttl = 'Template IC (Subj. ' + str(template[1]) + ')'
         icas[template[0]].plot_components(picks=template[1],
                                           ch_type=ch_type,
-                                          title=t)
+                                          title=ttl)
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
