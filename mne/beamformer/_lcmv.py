@@ -25,6 +25,27 @@ from .. import Epochs
 from ..externals import six
 
 
+def _setup_picks(picks, info, forward, noise_cov):
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    chs = [info['chs'][k] for k in picks]
+    ch_names = [c['ch_name'] for c in chs
+                if (c['ch_name'] not in info['bads'] and
+                    c['ch_name'] not in noise_cov['bads']) and
+                (c['ch_name'] in fwd_ch_names and
+                    c['ch_name'] in noise_cov.ch_names)]
+
+    if set(info['bads']) != set(noise_cov['bads']):
+        logger.info('info["bads"] and noise_cov["bads"] do not match, '
+                    'excluding bad channels from both')
+    picks = [info['ch_names'].index(k) for k in ch_names if k in
+             info['ch_names']]
+    return picks
+
+
 @verbose
 def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
                 label=None, picks=None, pick_ori=None, rank=None,
@@ -71,7 +92,7 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     stc : SourceEstimate | VolSourceEstimate (or list of thereof)
         Source time courses.
     """
-    is_free_ori, picks, ch_names, proj, vertno, G = (
+    is_free_ori, ch_names, proj, vertno, G = (
         _prepare_beamformer_input(
             info, forward, label, picks, pick_ori, noise_cov))
 
@@ -213,25 +234,8 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
                          'forward operator with a surface-based source space '
                          'is used.')
 
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
-
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    chs = [info['chs'][k] for k in picks]
-    ch_names = [c['ch_name'] for c in chs
-                if (c['ch_name'] not in info['bads'] and
-                    c['ch_name'] not in noise_cov['bads']) and
-                (c['ch_name'] in fwd_ch_names and
-                    c['ch_name'] in noise_cov.ch_names)]
-
-    if set(info['bads']) != set(noise_cov['bads']):
-        logger.info('info["bads"] and noise_cov["bads"] do not match, '
-                    'excluding bad channels from both')
-    picks = [info['ch_names'].index(k) for k in ch_names if k in
-             info['ch_names']]
-
     # Restrict forward solution to selected channels
+    ch_names = [info['chs'][k]['ch_name'] for k in picks]
     forward = pick_channels_forward(forward, include=ch_names)
 
     # Get gain matrix (forward operator)
@@ -253,7 +257,7 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
     if info['projs']:
         G = np.dot(proj, G)
 
-    return is_free_ori, picks, ch_names, proj, vertno, G
+    return is_free_ori, ch_names, proj, vertno, G
 
 
 @verbose
@@ -319,14 +323,8 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
-    # use only the good data channels
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+    picks = _setup_picks(picks, info, forward, noise_cov)
 
-    # Do not include channels not present in forward
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
     data = data[picks]
 
     stc = _apply_lcmv(
@@ -403,14 +401,8 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     info = epochs.info
     tmin = epochs.times[0]
 
-    # use only the good data channels
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+    picks = _setup_picks(picks, info, forward, noise_cov)
 
-    # Do not include channels not present in forward
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(
@@ -490,13 +482,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
     info = raw.info
 
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                           exclude='bads')
+    picks = _setup_picks(picks, info, forward, noise_cov)
 
-    # Do not include channels not present in forward
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
     data, times = raw[picks, start:stop]
     tmin = times[0]
 
@@ -563,8 +550,11 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
     constrained minimum variance spatial filtering.
     Biomedical Engineering (1997) vol. 44 (9) pp. 867--880
     """
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
 
-    is_free_ori, picks, ch_names, proj, vertno, G =\
+    is_free_ori, ch_names, proj, vertno, G =\
         _prepare_beamformer_input(
             info, forward, label, picks, pick_ori, noise_cov)
 
@@ -718,8 +708,12 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '
                          'when constructing the epochs object')
+
+    picks = _setup_picks(picks, epochs.info, forward, noise_covs[0])
+    ch_names = [epochs.ch_names[k] for k in picks]
+
     # Use picks from epochs for picking channels in the raw object
-    raw_picks = [raw.ch_names.index(c) for c in epochs.ch_names]
+    raw_picks = [raw.ch_names.index(c) for c in ch_names]
 
     # Make sure epochs.events contains only good events:
     epochs.drop_bad_epochs()
