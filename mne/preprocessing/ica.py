@@ -2267,11 +2267,12 @@ def corrmap(icas, template, threshold="auto", name="bads",
             nt, mt, s, mx = find_max_corrs(all_maps, nt, threshold)
         except ValueError:
             if threshold > 1:
-                logger.info("No component detected using find_outliers."
+                logger.info("No component detected using find_outliers. "
                             "Consider using threshold='auto'")
                 return
 
-    nones, new_icas, allmaps, indices, subjs = [], [], [], [], []
+    nones = list(range(len(icas)))
+    new_icas, allmaps, indices, subjs = [], [], [], []
     logger.info("Median correlation with constructed map: " + str(mt))
     if plot:
         logger.info("Displaying selected ICs per subject.")
@@ -2290,8 +2291,9 @@ def corrmap(icas, template, threshold="auto", name="bads",
                 allmaps.extend(get_ica_map(ica, components=max_corr))
                 subjs.extend([i] * len(max_corr))
                 indices.extend(max_corr)
+            nones.remove(i)
         except IndexError:
-            nones.append(i)
+            pass
         if inplace is False:
             new_icas.append(ica)
 
