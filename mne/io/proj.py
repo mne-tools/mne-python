@@ -36,7 +36,32 @@ class Projection(dict):
 
 class ProjMixin(object):
     """Mixin class for Raw, Evoked, Epochs
+
+    Notes
+    -----
+    This mixin adds a proj attribute as a property to data containers.
+    It is True if all projs are active. The projs might not be applied yet
+    if data are not preloaded. In this case it's the _projector attribute
+    that does the job. If a private _data attribute is present
+    then the projs applied to it are the ones marked as active.
+
+    A proj parameter passed in constructor of raw or epochs calls
+    apply_proj and hence after the .proj attribute is True.
+
+    As soon as you've applied the projs it will stay active in the
+    remaining pipeline.
+
+    The suggested pipeline is proj=True in epochs (it's cheaper than for raw).
+
+    When you use delayed SSP in Epochs, projs are applied when you call
+    get_data() method. They are not applied to the evoked._data unless you call
+    apply_proj(). The reason is that you want to reject with projs although
+    it's not stored in proj mode.
     """
+    @property
+    def proj(self):
+        return all([p['active'] for p in self.info['projs']])
+
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
 
@@ -101,10 +126,15 @@ class ProjMixin(object):
         self : instance of Raw | Epochs | Evoked
             The instance.
         """
-        if self.info['projs'] is None:
+        if self.info['projs'] is None or len(self.info['projs']) == 0:
             logger.info('No projector specified for this dataset.'
                         'Please consider the method self.add_proj.')
             return self
+
+        # Exit delayed mode if you apply proj
+        if hasattr(self, '_delayed_proj'):
+            logger.info('Leaving delayed SSP mode.')
+            del self._delayed_proj
 
         if all([p['active'] for p in self.info['projs']]):
             logger.info('Projections have already been applied. Doing '
@@ -120,7 +150,6 @@ class ProjMixin(object):
             return self
 
         self._projector, self.info = _projector, info
-        self.proj = True  # track that proj were applied
         # handle different data / preload attrs and create reference
         # this also helps avoiding circular imports
         for attr in ('get_data', '_data', 'data'):

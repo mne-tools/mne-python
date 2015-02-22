@@ -267,7 +267,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         # bind info, proj, data to self so apply_proj can be used
         self.data = all_data
-        self.proj = False
         if proj:
             self.apply_proj()
         # Run baseline correction
@@ -890,7 +889,6 @@ class EvokedArray(Evoked):
         self.nave = nave
         self.kind = kind
         self.comment = comment
-        self.proj = None
         self.picks = None
         self.verbose = verbose
         self._projector = None

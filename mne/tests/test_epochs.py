@@ -925,6 +925,7 @@ def test_epochs_proj_mixin():
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                          baseline=(None, 0), proj=True, preload=preload,
                          add_eeg_ref=True, reject=reject)
+
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 

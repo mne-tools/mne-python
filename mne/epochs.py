@@ -456,9 +456,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if len(evoked.info['ch_names']) == 0:
             raise ValueError('No data channel found when averaging.')
 
-        # otherwise the apply_proj will be confused
-        evoked.proj = True if self.proj is True else None
-
         if evoked.nave < 1:
             warnings.warn('evoked object is empty (based on less '
                           'than 1 epoch)', RuntimeWarning)
@@ -684,8 +681,6 @@ class Epochs(_BaseEpochs):
         if event_id is None:  # convert to int to make typing-checks happy
             event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
 
-        proj = proj or raw.proj  # proj is on when applied in Raw
-
         # call _BaseEpochs constructor
         super(Epochs, self).__init__(info, event_id, tmin, tmax,
                                      baseline=baseline, picks=picks, name=name,
@@ -696,15 +691,16 @@ class Epochs(_BaseEpochs):
 
         # do the rest
         self.raw = raw
-        proj = proj or raw.proj  # proj is on when applied in Raw
         if proj not in [True, 'delayed', False]:
             raise ValueError(r"'proj' must either be 'True', 'False' or "
                              "'delayed'")
-        self.proj = proj
-        if self._check_delayed():
+
+        proj = proj or raw.proj  # proj is on when applied in Raw
+
+        if self._check_delayed(proj):
             logger.info('Entering delayed SSP mode.')
 
-        activate = False if self._check_delayed() else self.proj
+        activate = False if self._check_delayed() else proj
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
@@ -821,17 +817,20 @@ class Epochs(_BaseEpochs):
                              color=color, width=width, ignore=ignore,
                              show=show, return_fig=return_fig)
 
-    def _check_delayed(self):
+    def _check_delayed(self, proj=None):
         """ Aux method
         """
         is_delayed = False
-        if self.proj == 'delayed':
+        if proj == 'delayed':
             if self.reject is None:
                 raise RuntimeError('The delayed SSP mode was requested '
                                    'but no rejection parameters are present. '
                                    'Please add rejection parameters before '
                                    'using this option.')
+            self._delayed_proj = True
             is_delayed = True
+        elif hasattr(self, '_delayed_proj'):
+            is_delayed = self._delayed_proj
         return is_delayed
 
     @verbose
@@ -883,8 +882,10 @@ class Epochs(_BaseEpochs):
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
     @verbose
-    def _get_epoch_from_disk(self, idx, proj, verbose=None):
+    def _get_epoch_from_disk(self, idx, verbose=None):
         """Load one epoch from disk"""
+        proj = True if self._check_delayed() else self.proj
+
         if self.raw is None:
             # This should never happen, as raw=None only if preload=True
             raise ValueError('An error has occurred, no valid raw file found.'
@@ -915,9 +916,8 @@ class Epochs(_BaseEpochs):
         else:
             epochs += [epoch_raw]
 
-        # in case the proj passed is True but self proj is not we
-        # have delayed SSP
-        if self.proj != proj:  # so append another unprojected epoch
+        # if has delayed SSP append another unprojected epoch
+        if self._check_delayed():
             epochs += [epoch_raw.copy()]
 
         # only preprocess first candidate, to make delayed SSP working
@@ -947,39 +947,41 @@ class Epochs(_BaseEpochs):
         n_events = len(self.events)
         data = np.array([])
         if self._bad_dropped:
-            proj = False if self._check_delayed() else self.proj
             if not out:
                 return
-            for ii in range(n_events):
+
+            for idx in range(n_events):
                 # faster to pre-allocate memory here
-                epoch, epoch_raw = self._get_epoch_from_disk(ii, proj=proj)
-                if ii == 0:
+                epoch, epoch_raw = self._get_epoch_from_disk(idx)
+                if idx == 0:
                     data = np.empty((n_events, epoch.shape[0],
                                      epoch.shape[1]), dtype=epoch.dtype)
                 if self._check_delayed():
                     epoch = epoch_raw
-                data[ii] = epoch
+                data[idx] = epoch
         else:
-            proj = True if self._check_delayed() else self.proj
             good_events = []
             n_out = 0
             for idx, sel in zip(range(n_events), self.selection):
-                epoch, epoch_raw = self._get_epoch_from_disk(idx, proj=proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(idx)
                 is_good, offenders = self._is_good_epoch(epoch)
-                if is_good:
-                    good_events.append(idx)
-                    if self._check_delayed():
-                        epoch = epoch_raw
-                    if out:
-                        # faster to pre-allocate, then trim as necessary
-                        if n_out == 0:
-                            data = np.empty((n_events, epoch.shape[0],
-                                             epoch.shape[1]),
-                                            dtype=epoch.dtype, order='C')
-                        data[n_out] = epoch
-                        n_out += 1
-                else:
+
+                if not is_good:
                     self.drop_log[sel] += offenders
+                    continue
+
+                good_events.append(idx)
+                if self._check_delayed():
+                    epoch = epoch_raw
+
+                if out:
+                    # faster to pre-allocate, then trim as necessary
+                    if n_out == 0:
+                        data = np.empty((n_events, epoch.shape[0],
+                                         epoch.shape[1]),
+                                        dtype=epoch.dtype, order='C')
+                    data[n_out] = epoch
+                    n_out += 1
 
             self.selection = self.selection[good_events]
             self.events = np.atleast_2d(self.events[good_events])
@@ -1098,13 +1100,11 @@ class Epochs(_BaseEpochs):
                 epoch = self._preprocess(epoch.copy(), self.verbose)
             self._current += 1
         else:
-            proj = True if self._check_delayed() else self.proj
             is_good = False
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch, epoch_raw = self._get_epoch_from_disk(self._current,
-                                                             proj=proj)
+                epoch, epoch_raw = self._get_epoch_from_disk(self._current)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
@@ -1644,7 +1644,6 @@ class EpochsArray(Epochs):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        self.proj = None
         self.baseline = None
         self.preload = True
         self.reject = None
@@ -2000,7 +1999,6 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.name = comment
     epochs.times = times
     epochs._data = data
-    epochs.proj = proj
     activate = False if epochs._check_delayed() else proj
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                 activate=activate)
@@ -2143,7 +2141,6 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs.preload = True
     epochs._bad_dropped = True
     epochs._data = data
-    epochs.proj = proj
     epochs._projector, epochs.info = setup_proj(epochs.info, add_eeg_ref,
                                                 activate=proj)
     return epochs

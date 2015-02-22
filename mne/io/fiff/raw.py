@@ -127,7 +127,6 @@ class RawFIFF(_BaseRaw):
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.orig_format = raws[0].orig_format
-        self.proj = False
 
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
@@ -140,7 +139,6 @@ class RawFIFF(_BaseRaw):
 
         self._projector = None
         # setup the SSP projector
-        self.proj = proj
         if proj:
             self.apply_proj()
 

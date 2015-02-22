@@ -1149,7 +1149,6 @@ class RawBTi(_BaseRaw):
         self.cals = cals
         self.rawdirs = list()
         self.orig_format = 'double'
-        self.proj = None
         self.comp = None
         self._filenames = list()
         self.preload = True
