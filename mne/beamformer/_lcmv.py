@@ -58,6 +58,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
         If 'normal', rather than pooling the orientations by taking the norm,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
+    rank : None | int | dict
+        Specified rank of the noise covariance matrix. If None, the rank is
+        detected automatically. If int, the rank is specified for the MEG
+        channels. A dictionary with entries 'eeg' and/or 'meg' can be used
+        to specify the rank for each modality.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -66,15 +71,11 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     stc : SourceEstimate | VolSourceEstimate (or list of thereof)
         Source time courses.
     """
-
-    (is_free_ori, picks, ch_names, proj, vertno, G) = (
+    is_free_ori, picks, ch_names, proj, vertno, G = (
         _prepare_beamformer_input(
             info, forward, label, picks, pick_ori, noise_cov))
 
     # Handle whitening + data covariance
-    # info = pick_info(
-    #     info, [info['ch_names'].index(k) for k in ch_names
-    #            if k in info['ch_names']])
     whitener, _ = compute_whitener(noise_cov, info, picks, rank=rank)
 
     # whiten the leadfield
@@ -155,9 +156,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     subject = _subject_from_forward(forward)
     for i, M in enumerate(data):
-        M = M[picks]
-        if len(M) != len(picks):
-            raise ValueError('data and picks must have the same length')
+        assert M.shape[0] == len(picks)
+        # M = M[picks]
 
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
@@ -190,7 +190,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     logger.info('[done]')
 
 
-def _prepare_beamformer_input(info, forward, label, picks, pick_ori, noise_cov):
+def _prepare_beamformer_input(info, forward, label, picks, pick_ori,
+                              noise_cov):
     """Input preparation common for all beamformer functions.
 
     Check input values, prepare channel list and gain matrix. For documentation
@@ -217,14 +218,14 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori, noise_cov):
                            exclude='bads')
 
     fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
-    ch_names = [c['ch_name'] for c in info['chs']
-                if (c['ch_name'] not in info['bads']
-                    and c['ch_name'] not in noise_cov['bads'])
-                and (c['ch_name'] in fwd_ch_names
-                     and c['ch_name'] in noise_cov.ch_names)]
+    chs = [info['chs'][k] for k in picks]
+    ch_names = [c['ch_name'] for c in chs
+                if (c['ch_name'] not in info['bads'] and
+                    c['ch_name'] not in noise_cov['bads']) and
+                (c['ch_name'] in fwd_ch_names and
+                    c['ch_name'] in noise_cov.ch_names)]
 
-    if not len(info['bads']) == len(noise_cov['bads']) or \
-            not all([b in noise_cov['bads'] for b in info['bads']]):
+    if set(info['bads']) != set(noise_cov['bads']):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both')
     picks = [info['ch_names'].index(k) for k in ch_names if k in
@@ -246,8 +247,6 @@ def _prepare_beamformer_input(info, forward, label, picks, pick_ori, noise_cov):
     else:
         vertno = _get_vertno(forward['src'])
         G = forward['sol']['data']
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
-    G = G[fwd_idx]
 
     # Apply SSPs
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -287,7 +286,7 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
     picks : array-like of int
-        Channel indices in raw to use for beamforming (if None all channels
+        Channel indices to use for beamforming (if None all channels
         are used except bad channels).
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
@@ -362,7 +361,7 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
         Return a generator object instead of a list. This allows iterating
         over the stcs without having to keep them all in memory.
     picks : array-like of int
-        Channel indices in raw to use for beamforming (if None all channels
+        Channel indices to use for beamforming (if None all channels
         are used except bad channels).
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
@@ -445,7 +444,7 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         only the radial component is kept. If 'max-power', the source
         orientation that maximizes output source power is chosen.
     picks : array-like of int
-        Channel indices in raw to use for beamforming (if None all channels
+        Channel indices to use for beamforming (if None all channels
         are used except bad channels).
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
@@ -493,8 +492,8 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
 
 @verbose
 def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
-                       label=None, picks=None, pick_ori=None, verbose=None,
-                       rank=None):
+                       label=None, picks=None, pick_ori=None,
+                       rank=None, verbose=None):
     """Linearly Constrained Minimum Variance (LCMV) beamformer.
 
     Calculate source power in a time window based on the provided data
@@ -548,7 +547,8 @@ def _lcmv_source_power(info, forward, noise_cov, data_cov, reg=0.01,
     """
 
     is_free_ori, picks, ch_names, proj, vertno, G =\
-        _prepare_beamformer_input(info, forward, label, picks, pick_ori)
+        _prepare_beamformer_input(
+            info, forward, label, picks, pick_ori, noise_cov)
 
     # Handle whitening
     info = pick_info(
@@ -657,7 +657,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
         Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
         is installed properly and CUDA is initialized.
     picks : array-like of int
-        Channel indices in raw to use for beamforming (if None all channels
+        Channel indices to use for beamforming (if None all channels
         are used except bad channels).
     rank : None | int | dict
         Specified rank of the noise covariance matrix. If None, the rank is
