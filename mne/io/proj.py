@@ -36,6 +36,27 @@ class Projection(dict):
 
 class ProjMixin(object):
     """Mixin class for Raw, Evoked, Epochs
+
+    Notes
+    -----
+    This mixin adds a proj attribute as a property to data containers.
+    It is True if all projs are active. The projs might not be applied yet
+    if data are not preloaded. In this case it's the _projector attribute
+    that does the job. If a private _data attribute is present
+    then the projs applied to it are the ones marked as active.
+
+    A proj parameter passed in constructor of raw or epochs calls
+    apply_proj and hence after the .proj attribute is True.
+
+    As soon as you've applied the projs it will stay active in the
+    remaining pipeline.
+
+    The suggested pipeline is proj=True in epochs (it's cheaper than for raw).
+
+    When you use delayed SSP in Epochs, projs are applied when you call
+    get_data() method. They are not applied to the evoked._data unless you call
+    apply_proj(). The reason is that you want to reject with projs although
+    it's not stored in proj mode.
     """
     @property
     def proj(self):
