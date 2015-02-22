@@ -2183,7 +2183,7 @@ def concatenate_epochs(epochs_list):
     data = [out.get_data()]
     events = [out.events]
     drop_log = cp.deepcopy(out.drop_log)
-    event_id = dict()
+    event_id = cp.deepcopy(out.event_id)
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
         if not np.all(epochs.times == epochs_list[0].times):
@@ -2193,7 +2193,6 @@ def concatenate_epochs(epochs_list):
         events.append(epochs.events)
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
-
     events = np.concatenate(events, axis=0)
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
 
