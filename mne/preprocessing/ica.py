@@ -2247,7 +2247,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             ax.set_title('Subj. ' + str(s) + ', IC ' + str(i), fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
-            im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+            plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                               res=64, axis=ax, cmap='RdBu_r', outlines='head',
                               image_mask=None, contours=6,
                               image_interp='bilinear')[0]
