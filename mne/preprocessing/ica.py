@@ -2249,7 +2249,13 @@ def corrmap(icas, template, threshold="auto", name="bads",
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
-        nt, mt, s, mx = find_max_corrs(all_maps, target, threshold)
+        try:
+            nt, mt, s, mx = find_max_corrs(all_maps, target, threshold)
+        except ValueError:
+            if threshold > 1:
+                logger.info("No component detected using find_outliers."
+                            "Consider using threshold='auto'")
+            return
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
@@ -2257,11 +2263,13 @@ def corrmap(icas, template, threshold="auto", name="bads",
 
     # second run: use output from first run
     if isinstance(threshold, (int, float)):
-        nt, mt, s, mx = find_max_corrs(all_maps, nt, threshold)
-    elif len(threshold) > 1:
-        paths = [find_max_corrs(all_maps, nt, t) for t in threshold]
-        # find iteration with highest avg correlation with target
-        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
+        try:
+            nt, mt, s, mx = find_max_corrs(all_maps, nt, threshold)
+        except ValueError:
+            if threshold > 1:
+                logger.info("No component detected using find_outliers."
+                            "Consider using threshold='auto'")
+                return
 
     nones, new_icas, allmaps, indices, subjs = [], [], [], [], []
     logger.info("Median correlation with constructed map: " + str(mt))
