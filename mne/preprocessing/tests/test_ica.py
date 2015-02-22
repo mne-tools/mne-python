@@ -273,7 +273,7 @@ def test_ica_additional():
 
     # test corrmap
     ica2 = deepcopy(ica)
-    _ = corrmap([ica, ica2], (0, 0), threshold=2, inplace=False)
+    # _ = corrmap([ica, ica2], (0, 0), threshold=2, inplace=False)
     corrmap([ica, ica2], (0, 0), threshold=0.99, inplace=True)
     assert_true(ica.labels["bads"] == ica2.labels["bads"])
 
