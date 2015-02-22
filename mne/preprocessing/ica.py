@@ -2255,7 +2255,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             if threshold > 1:
                 logger.info("No component detected using find_outliers."
                             "Consider using threshold='auto'")
-            return
+                return
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
