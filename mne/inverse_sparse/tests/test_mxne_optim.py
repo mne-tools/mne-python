@@ -67,16 +67,10 @@ def test_l21_mxne():
         *args, active_set_size=2, debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     X_hat_bcd, active_set, _ = mixed_norm_solver(
-        M, G, alpha, maxit=1000, tol=1e-8, active_set_size=2,
-        debias=True, solver='bcd')
-    assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_gbcd, active_set, _ = mixed_norm_solver(
-        M, G, alpha, maxit=1000, tol=1e-8, active_set_size=2,
-        debias=True, solver='gbcd')
+        *args, active_set_size=2, debias=True, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
-    assert_allclose(X_hat_bcd, X_hat_gbcd, rtol=1e-2)
 
     X_hat_prox, active_set, _ = mixed_norm_solver(
         *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
@@ -84,24 +78,17 @@ def test_l21_mxne():
     X_hat_bcd, active_set, _ = mixed_norm_solver(
         *args, active_set_size=2, debias=True, n_orient=2, solver='bcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
-    X_hat_gbcd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=2, solver='gbcd')
 
-    assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
     with warnings.catch_warnings(record=True):
         X_hat_cd, active_set, _ = mixed_norm_solver(
             *args, active_set_size=2, debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
-    assert_allclose(X_hat_bcd, X_hat_gbcd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_cd, rtol=1e-2)
 
     X_hat_bcd, active_set, _ = mixed_norm_solver(
         *args, active_set_size=2, debias=True, n_orient=5, solver='bcd')
-    assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
-    X_hat_gbcd, active_set, _ = mixed_norm_solver(
-        *args, active_set_size=2, debias=True, n_orient=5, solver='gbcd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
     X_hat_prox, active_set, _ = mixed_norm_solver(
         *args, active_set_size=2, debias=True, n_orient=5, solver='prox')
@@ -112,7 +99,6 @@ def test_l21_mxne():
 
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
     assert_array_equal(X_hat_bcd, X_hat_cd)
-    assert_allclose(X_hat_bcd, X_hat_gbcd, rtol=1e-2)
     assert_allclose(X_hat_bcd, X_hat_prox, rtol=1e-2)
 
 
