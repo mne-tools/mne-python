@@ -2083,7 +2083,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 @verbose
 def corrmap(icas, template, threshold="auto", name="bads",
-            plot=True, inplace=False):
+             plot=True, inplace=False, ch_type="eeg"):
 
     """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
@@ -2120,10 +2120,12 @@ def corrmap(icas, template, threshold="auto", name="bads",
         Defaults to "auto".
     name : str
         Categorised ICs are stored in a default dictionary "labels". This
-        paramrter gives the key under which found ICs will be stored.
+        parameter gives the key under which found ICs will be stored.
         Defaults to "bads".
     plot : bool
         Should constructed template and selected maps be plotted?
+    ch_type : "eeg" | ...
+        What channels to plot (if plot is True)?
 
     Returns
     -------
@@ -2182,12 +2184,71 @@ def corrmap(icas, template, threshold="auto", name="bads",
         except:
             return [], 0, 0, []
 
+    def _plot_corrmap(data, subjs, indices, ch_type, name):
+
+        from mne.viz.utils import (_prepare_trellis, tight_layout,
+                                   _setup_vmin_vmax)
+        from mne.viz.topomap import (_prepare_topo_plot, _check_outlines,
+                                     _make_image_mask, plot_topomap)
+
+        import matplotlib.pyplot as plt
+        from mpl_toolkits.axes_grid import make_axes_locatable
+
+        title = 'Detected components of type ' + name
+        picks = list(range(len(data)))
+
+        p = 20
+        if len(picks) > p:  # plot components by sets of 20
+            n_components = len(picks)
+            figs = [_plot_corrmap(data[k:k+p], subjs[k:k+p],
+                    indices[k:k+p], ch_type)
+                    for k in range(0, n_components, p)]
+            return figs
+        elif np.isscalar(picks):
+            picks = [picks]
+
+        data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica,
+                                                                    ch_type,
+                                                                    None)
+        pos, outlines = _check_outlines(pos, 'head')
+
+        data = np.atleast_2d(data)
+        data = data[:, data_picks]
+
+        # prepare data for iteration
+        fig, axes = _prepare_trellis(len(picks), max_col=5)
+        fig.suptitle(title)
+
+        if merge_grads:
+            from ..channels.layout import _merge_grad_data
+        for ii, data_, ax, s, i in zip(picks, data, axes, subjs, indices):
+            ax.set_title('Subj. ' + str(s) + ', IC ' + str(i), fontsize=12)
+            data_ = _merge_grad_data(data_) if merge_grads else data_
+            vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
+            im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
+                              res=64, axis=ax, cmap='RdBu_r', outlines='head',
+                              image_mask=None, contours=6,
+                              image_interp='bilinear')[0]
+            ax.set_yticks([])
+            ax.set_xticks([])
+            ax.set_frame_on(False)
+        tight_layout(fig=fig)
+        fig.subplots_adjust(top=0.95)
+        fig.canvas.draw()
+        plt.show()
+
     if threshold == "auto":
         threshold = np.arange(60, 95) / 100
 
     all_maps = [get_ica_map(ica) for ica in icas]
 
     target = all_maps[template[0]][template[1]]
+
+    if plot is True:
+        t = 'Template IC (Subj. ' + str(template[1]) + ')'
+        icas[template[0]].plot_components(picks=template[1],
+                                          ch_type=ch_type,
+                                          title=t)
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
@@ -2205,8 +2266,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         # find iteration with highest avg correlation with target
         nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
-    nones = []
-    new_icas = []
+    nones, new_icas, allmaps, indices, subjs = [], [], [], [], []
     logger.info("Median correlation with constructed map: " + str(mt))
     if plot:
         logger.info("Displying selected ICs per subject.")
@@ -2222,17 +2282,21 @@ def corrmap(icas, template, threshold="auto", name="bads",
             ica.labels[name] = list(set(list(max_corr) +
                                     ica.labels[name]))
             if plot:
-                logger.info("Subject " + str(i))
-                ica.plot_components(max_corr, ch_type="eeg")
+                allmaps.extend(get_ica_map(ica, components=max_corr))
+                subjs.extend([i] * len(max_corr))
+                indices.extend(max_corr)
         except IndexError:
             nones.append(i)
-            if plot:
-                logger.info("No map selected for subject " + str(i) +
-                            ", consider a more liberal threshold.")
         if inplace is False:
             new_icas.append(ica)
+
+    if plot is True:
+        _plot_corrmap(allmaps, subjs, indices, ch_type, name)
+
     if nones:
-        logger.info("Subjects without any IC selected: ", nones)
+        logger.info("No maps selected for subject(s) " +
+                    ", ".join(nones) +
+                    ", consider a more liberal threshold.")
     else:
         logger.info("At least 1 IC detected for each subject.")
 
