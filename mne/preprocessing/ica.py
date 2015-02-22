@@ -2206,7 +2206,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             picks = [picks]
 
         data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
-                                                   ica, ch_type, None)
+            ica, ch_type, None)
         pos, outlines = _check_outlines(pos, 'head')
 
         data = np.atleast_2d(data)
@@ -2223,9 +2223,9 @@ def corrmap(icas, template, threshold="auto", name="bads",
             data_ = _merge_grad_data(data_) if merge_grads else data_
             vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
             plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                              res=64, axis=ax, cmap='RdBu_r', outlines='head',
-                              image_mask=None, contours=6,
-                              image_interp='bilinear')[0]
+                         res=64, axis=ax, cmap='RdBu_r', outlines='head',
+                         image_mask=None, contours=6,
+                         image_interp='bilinear')[0]
             ax.set_yticks([])
             ax.set_xticks([])
             ax.set_frame_on(False)
