@@ -466,6 +466,7 @@ Covariance
 
    compute_covariance
    compute_raw_data_covariance
+   cov.regularize
    read_cov
    write_cov
 
