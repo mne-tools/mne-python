@@ -438,9 +438,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     References
     ----------
-    [1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
-        estimation and spatial whitening of MEG and EEG signals, vol. 108,
-        328-342, NeuroImage.
+    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals,
+        vol. 108, 328-342, NeuroImage.
     [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
         large-dimensional covariance matrices. Journal of Multivariate
         Analysis 88 (2), 365 - 411.
@@ -768,14 +768,12 @@ def _logdet(A):
 
 def _gaussian_loglik_scorer(est, X, y=None):
     """Compute the Gaussian log likelihood of X under the model in est"""
-    from sklearn.utils.extmath import fast_logdet
     # compute empirical covariance of the test set
     precision = est.get_precision()
     n_samples, n_features = X.shape
     log_like = np.zeros(n_samples)
     log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
-    log_like -= .5 * (n_features * log(2. * np.pi)
-                      - _logdet(precision))
+    log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
     out = np.mean(log_like)
     return out
 

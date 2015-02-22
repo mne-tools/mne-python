@@ -593,9 +593,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         References
         ----------
-        [1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
-            estimation and spatial whitening of MEG and EEG signals, vol. 108,
-            328-342, NeuroImage.
+        [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+            covariance estimation and spatial whitening of MEG and EEG signals,
+            vol. 108, 328-342, NeuroImage.
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
