@@ -157,7 +157,6 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
     subject = _subject_from_forward(forward)
     for i, M in enumerate(data):
         assert M.shape[0] == len(picks)
-        # M = M[picks]
 
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
@@ -319,6 +318,16 @@ def lcmv(evoked, forward, noise_cov, data_cov, reg=0.01, label=None,
     data = evoked.data
     tmin = evoked.times[0]
 
+    # use only the good data channels
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+
+    # Do not include channels not present in forward
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
+    data = data[picks]
+
     stc = _apply_lcmv(
         data=data, info=info, tmin=tmin, forward=forward, noise_cov=noise_cov,
         data_cov=data_cov, reg=reg, label=label, picks=picks, rank=rank,
@@ -394,8 +403,13 @@ def lcmv_epochs(epochs, forward, noise_cov, data_cov, reg=0.01, label=None,
     tmin = epochs.times[0]
 
     # use only the good data channels
-    picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
-                       exclude='bads')
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+
+    # Do not include channels not present in forward
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
     data = epochs.get_data()[:, picks, :]
 
     stcs = _apply_lcmv(
@@ -479,6 +493,9 @@ def lcmv_raw(raw, forward, noise_cov, data_cov, reg=0.01, label=None,
         picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
+    # Do not include channels not present in forward
+    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    picks = [p for p in picks if info['chs'][p]['ch_name'] in fwd_ch_names]
     data, times = raw[picks, start:stop]
     tmin = times[0]
 
