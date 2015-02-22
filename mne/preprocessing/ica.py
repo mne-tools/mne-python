@@ -2084,7 +2084,6 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 @verbose
 def corrmap(icas, template, threshold="auto", name="bads",
             plot=True, inplace=False, ch_type="eeg"):
-
     """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
     a template IC, for example, the blink for the first subject, to identify
@@ -2124,8 +2123,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
         Defaults to "bads".
     plot : bool
         Should constructed template and selected maps be plotted?
-    ch_type : "eeg" | ...
-        What channels to plot (if plot is True)?
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+            The channel type to plot. Defaults to 'eeg'.
 
     Returns
     -------
@@ -2154,22 +2153,22 @@ def corrmap(icas, template, threshold="auto", name="bads",
         abs_corrs = [np.abs(a) for a in all_corrs]
         corr_polarities = [np.sign(a) for a in all_corrs]
 
-        if threshold < 1:
-            max_corrs = [list(np.nonzero(s_corr > threshold))
+        if threshold <= 1:
+            max_corrs = [list(np.nonzero(s_corr > threshold)[0])
                          for s_corr in abs_corrs]
         else:
             max_corrs = [list(find_outliers(s_corr, threshold=threshold))
                          for s_corr in abs_corrs]
 
         am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
-              for i in i_s[0]]
+              for i in i_s]
         median_corr_with_target = np.median(am)
 
         polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
-                      for i in i_s[0]]
+                      for i in i_s]
 
         maxmaps = [l[i] for l, i_s in zip(all_maps, max_corrs)
-                   for i in i_s[0]]
+                   for i in i_s]
 
         try:
             newtarget = np.zeros(maxmaps[0].size)
@@ -2181,7 +2180,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             sim_i_o = np.abs(np.corrcoef(target, newtarget)[1, 0])
 
             return newtarget, median_corr_with_target, sim_i_o, max_corrs
-        except:
+        except IndexError:
             return [], 0, 0, []
 
     def _plot_corrmap(data, subjs, indices, ch_type, name):
@@ -2206,9 +2205,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
         elif np.isscalar(picks):
             picks = [picks]
 
-        data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica,
-                                                                    ch_type,
-                                                                    None)
+        data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
+                                                   ica, ch_type, None)
         pos, outlines = _check_outlines(pos, 'head')
 
         data = np.atleast_2d(data)
@@ -2268,7 +2266,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
     nones, new_icas, allmaps, indices, subjs = [], [], [], [], []
     logger.info("Median correlation with constructed map: " + str(mt))
     if plot:
-        logger.info("Displying selected ICs per subject.")
+        logger.info("Displaying selected ICs per subject.")
 
     for i, (ica, max_corr) in enumerate(zip(icas, mx)):
         if inplace is False:
