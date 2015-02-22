@@ -156,7 +156,8 @@ def _apply_lcmv(data, info, tmin, forward, noise_cov, data_cov, reg,
 
     subject = _subject_from_forward(forward)
     for i, M in enumerate(data):
-        assert M.shape[0] == len(picks)
+        if len(M) != len(picks):
+            raise ValueError('data and picks must have the same length')
 
         if not return_single:
             logger.info("Processing epoch : %d" % (i + 1))
