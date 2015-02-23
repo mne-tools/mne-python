@@ -1002,6 +1002,21 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     w, h : float
         The width and height of each sensor's axis (between 0 and 1)
 
+    pad : float
+        Portion of the box to reserve for padding. The value can range between
+        0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).
+
+    ch_names : list
+        The names of each channel. Must be a list of strings, with one
+        string per channel.
+
+    ch_indices : list
+        Index of each channel - must be a collection of unique integers,
+        one index per channel.
+
+    name : string
+        The name of this layout type.
+
     bg_image : str | ndarray
         The image over which sensor axes will be plotted. Either a path to an
         image file, or an array that can be plotted with plt.imshow. If
@@ -1015,6 +1030,9 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         A Layout object that can be plotted with plot_topo
         functions and methods.
     '''
+
+    from matplotlib.pyplot import imread
+
     # Check that len(ch_names) == len(ch_indices) if not None
     # Check that len(ch_names) == len(xy) if not None
 
@@ -1050,7 +1068,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
             i_dim -= i_dim.min(0)
             i_dim /= (i_dim.max(0) - i_dim.min(0))
 
-    y = 1-y  # Flip y-axis
+    y = 1-y  # Flip y-axis for image plotting
 
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
