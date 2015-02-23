@@ -8,6 +8,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
+from mne.io.constants import FIFF
 
 
 def test_montage():
@@ -80,3 +81,36 @@ def test_montage():
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
+
+
+def test_ieeg_montage():
+    """Test an iEEG montage"""
+    tempdir = _TempDir()
+    # no pep8
+    input_str = """
+    GR1	-35.6774	-58.8438	10.0284
+    GR9	-35.3662	-56.7556	20.0054
+    GR17	-35.0972	-54.6765	28.9835
+    GR25	-33.8428	-51.5357	38.9114
+    GR49	-20.3683	-40.6186	63.2681
+    """
+    kind = 'test.sfp'
+    fname = op.join(tempdir, kind)
+    with open(fname, 'w') as fid:
+        fid.write(input_str)
+    montage = read_montage(fname)
+    assert_equal(len(montage.ch_names), 5)
+    assert_equal(len(montage.ch_names), len(montage.pos))
+    assert_equal(montage.pos.shape, (5, 3))
+    assert_equal(montage.kind, op.splitext(kind)[0])
+
+    info = create_info(montage.ch_names, 1e3, ['misc'] * len(montage.ch_names))
+    apply_montage(info, montage, ch_type='ieeg')
+    pos2 = np.array([c['loc'][:3] for c in info['chs']])
+    pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
+    assert_array_equal(pos2, montage.pos)
+    assert_array_equal(pos3, montage.pos)
+    kinds = np.array([c['kind'] for c in info['chs']])
+    coord_frames = np.array([c['coord_frame'] for c in info['chs']])
+    assert_array_equal(kinds, [FIFF.FIFFV_SEEG_CH]*5)
+    assert_array_equal(coord_frames, [FIFF.FIFFV_COORD_MRI]*5)
