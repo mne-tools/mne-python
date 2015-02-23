@@ -290,7 +290,7 @@ def rename_channels(info, mapping):
         a dictionary mapping the old channel to a new channel name {'EEG061' :
         'EEG161'}. If changing the sensor type, make the new name a tuple with
         the name (str) and the new channel type (str)
-        {'EEG061',('EOG061','eog')}.
+        {'EEG061':('EOG061','eog')}.
     """
     human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
                   'emg': FIFF.FIFFV_EMG_CH,
@@ -320,10 +320,6 @@ def rename_channels(info, mapping):
                                  'channel type: %s.' % new_type)
             new_kinds.append((c_ind, human2fiff[new_type]))
 
-        if new_name in ch_names:
-            raise ValueError('The new name ({new}) already exists. Choose a '
-                             'unique name'.format(new=new_name))
-
         new_names.append((c_ind, new_name))
         if ch_name in bads:  # check bads
             new_bads.append((bads.index(ch_name), new_name))
@@ -332,6 +328,7 @@ def rename_channels(info, mapping):
     for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
         for c_ind, new_name in collection:
             chs[c_ind][key] = new_name
+
     for c_ind, new_name in new_bads:
         bads[c_ind] = new_name
 
