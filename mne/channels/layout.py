@@ -993,11 +993,8 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     Parameters
     -------
-    xy : ndarray (N x 2) | 'interactive'
-        The xy coordinates of sensor locations. If 'interactive',
-        bg_image must not be None, as this will be displayed
-        and the user must click on positions of the image to
-        create xy values.
+    xy : ndarray (N x 2)
+        The xy coordinates of sensor locations. 
 
     w, h : float
         The width and height of each sensor's axis (between 0 and 1)
@@ -1033,23 +1030,13 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     from matplotlib.pyplot import imread
 
-    # Check that len(ch_names) == len(ch_indices) if not None
-    # Check that len(ch_names) == len(xy) if not None
-
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
         ch_names = ['{0}'.format(i) for i in ch_indices]
 
-    # To interactively pull xy values
-    if xy == 'interactive' and bg_image is not None:
-        # Pull xy coordinates interactively
-        # Can add this later but the function should work with pre-suppleid
-        # xy points first
-        pass
-    else:
-        # Raise an error that we need an image to do interactive stuff
-        pass
+    assert len(ch_names) == len(ch_indices), 'Unequal # ch names and indices'
+    assert len(ch_names) == len(xy), 'Unequal # ch names and xy vals'
 
     x, y = xy.copy().astype(float).T
 
