@@ -277,7 +277,7 @@ class RawEDF(_BaseRaw):
                             if j == tal_channel:
                                 # don't resample tal_channel,
                                 # pad with zeros instead.
-                                n_missing = int(max_samp - samp) * blocks
+                                n_missing = int(max_samp - samp)
                                 chan_data = np.hstack([chan_data,
                                                        [0] * n_missing])
                             elif j == stim_channel and samp < max_samp:
