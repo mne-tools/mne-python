@@ -994,32 +994,25 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     Parameters
     -------
     xy : ndarray (N x 2)
-        The xy coordinates of sensor locations. 
-
+        The xy coordinates of sensor locations.
     w, h : float
         The width and height of each sensor's axis (between 0 and 1)
-
     pad : float
         Portion of the box to reserve for padding. The value can range between
         0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).
-
     ch_names : list
         The names of each channel. Must be a list of strings, with one
         string per channel.
-
     ch_indices : list
         Index of each channel - must be a collection of unique integers,
         one index per channel.
-
     name : string
         The name of this layout type.
-
     bg_image : str | ndarray
         The image over which sensor axes will be plotted. Either a path to an
         image file, or an array that can be plotted with plt.imshow. If
         provided, xy points will be normalized by the width/height of this
         image. If not, xy points will be normalized by their own min/max.
-
 
     Returns
     --------
