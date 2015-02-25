@@ -1291,7 +1291,7 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     return W, ch_names
 
 
-def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
+def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
                   scalings=None):
     """Whiten evoked data using given noise covariance
 
@@ -1301,8 +1301,9 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array-like of int
-        The channel indices to whiten
+    picks : array-like of int | None
+        The channel indices to whiten. Can be None to whiten MEG and EEG
+        data.
     diag : bool
         If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict
@@ -1323,8 +1324,18 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     evoked_white : instance of Evoked
         The whitened evoked data.
     """
-    ch_names = [evoked.ch_names[k] for k in picks]
     evoked = cp.deepcopy(evoked)
+    _whiten_data(evoked.data, evoked.info, noise_cov, picks,
+                 diag, rank, scalings, evoked.nave)
+    return evoked
+
+
+def _whiten_data(data, info, noise_cov, picks=None, diag=False, rank=None,
+                 scalings=None, nave=1):
+    """Whiten a data matrix in place"""
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True)
+    ch_names = [info['ch_names'][k] for k in picks]
 
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if diag:
@@ -1337,10 +1348,8 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
     elif isinstance(scalings, dict):
         scalings_.update(scalings)
 
-    W, _ = compute_whitener(noise_cov, evoked.info, rank=rank,
-                            scalings=scalings)
-    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
-    return evoked
+    W, _ = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)
+    data[picks] = np.sqrt(nave) * np.dot(W, data[picks])
 
 
 @verbose

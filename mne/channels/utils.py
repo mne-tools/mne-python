@@ -10,7 +10,7 @@ import numpy as np
 from scipy import optimize
 
 
-def _fit_sphere(points):
+def _fit_sphere(points, disp=True):
     """Aux function to fit points to a sphere"""
     # initial guess for center and radius
     xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2
@@ -27,7 +27,7 @@ def _fit_sphere(points):
                       x[3]) ** 2)
 
     x_opt = optimize.fmin_powell(cost_fun, x0, args=(points,),
-                                 disp=True)
+                                 disp=disp)
 
     origin = x_opt[:3]
     radius = x_opt[3]

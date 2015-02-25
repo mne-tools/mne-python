@@ -22,7 +22,7 @@ from ..transforms import (invert_transform, transform_surface_to,
 from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
-from ..surface import read_bem_solution, _normalize_vectors
+from ..surface import read_bem_solution, _normalize_vectors, _bem_find_surface
 
 
 @verbose
@@ -150,7 +150,7 @@ def _create_eeg_el(ch, t):
 
 
 def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
-    """Create a set of MEG or EEG coils"""
+    """Create a set of MEG or EEG coils in the head coordinate frame"""
     if coilset is None:  # auto-read defs if not supplied
         coilset = _read_coil_defs()
     coils = list()
@@ -162,7 +162,128 @@ def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
             coils.append(_create_eeg_el(ch, t))
     else:
         raise RuntimeError('unknown coil type')
-    return coils, coils[0]['coord_frame']  # all get the same coord_frame
+    assert coils[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD
+    return coils
+
+
+def _setup_bem(bem_name, neeg, mri_head_t):
+    """Set up a BEM for forward computation"""
+    logger.info('')
+    logger.info('Setting up the BEM model using %s...\n' % bem_name)
+    bem = read_bem_solution(bem_name)
+    if neeg > 0 and len(bem['surfs']) == 1:
+        raise RuntimeError('Cannot use a homogeneous model in EEG '
+                           'calculations')
+    logger.info('Employing the head->MRI coordinate transform with the '
+                'BEM model.')
+    # fwd_bem_set_head_mri_t: Set the coordinate transformation
+    to, fro = mri_head_t['to'], mri_head_t['from']
+    if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
+        bem['head_mri_t'] = mri_head_t
+    elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
+        bem['head_mri_t'] = invert_transform(mri_head_t)
+    else:
+        raise RuntimeError('Improper coordinate transform')
+    logger.info('BEM model %s is now set up' % op.split(bem_name)[1])
+    logger.info('')
+    return bem
+
+
+def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
+    """Prepare coil definitions for forward calculation"""
+    info_extra = 'info'
+    meg_info = None
+    megnames, eegnames, megcoils, eegels, compcoils = [], [], [], [], []
+    # MEG channels
+    if meg:
+        picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                           exclude=[])
+        nmeg = len(picks)
+        if nmeg > 0:
+            megchs = pick_info(info, picks)['chs']
+            megnames = [info['ch_names'][p] for p in picks]
+            logger.info('Read %3d MEG channels from %s'
+                        % (len(picks), info_extra))
+
+        # comp channels
+        if not ignore_ref:
+            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+            ncomp = len(picks)
+            if (ncomp > 0):
+                compchs = pick_info(info, picks)['chs']
+                logger.info('Read %3d MEG compensation channels from %s'
+                            % (ncomp, info_extra))
+                # We need to check to make sure these are NOT KIT refs
+                if _has_kit_refs(info, picks):
+                    err = ('Cannot create forward solution with KIT '
+                           'reference channels. Consider using '
+                           '"ignore_ref=True" in calculation')
+                    raise NotImplementedError(err)
+            _print_coord_trans(info['dev_head_t'])
+            # make info structure to allow making compensator later
+        else:
+            ncomp = 0
+        ncomp_data = len(info['comps'])
+        ref_meg = True if not ignore_ref else False
+        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=[])
+        meg_info = pick_info(info, picks)
+    else:
+        logger.info('MEG not requested. MEG channels omitted.')
+        nmeg = 0
+
+    # EEG channels
+    if eeg:
+        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                           exclude=[])
+        neeg = len(picks)
+        if neeg > 0:
+            eegchs = pick_info(info, picks)['chs']
+            eegnames = [info['ch_names'][p] for p in picks]
+            logger.info('Read %3d EEG channels from %s'
+                        % (len(picks), info_extra))
+    else:
+        neeg = 0
+        logger.info('EEG not requested. EEG channels omitted.')
+
+    if neeg <= 0 and nmeg <= 0:
+        raise RuntimeError('Could not find any MEG or EEG channels')
+
+    # Create coil descriptions with transformation to head or MRI frame
+    templates = _read_coil_defs()
+    if nmeg > 0 and ncomp > 0:  # Compensation channel information
+        logger.info('%d compensation data sets in %s'
+                    % (ncomp_data, info_extra))
+    if nmeg > 0:
+        megcoils = _create_coils(megchs, FIFF.FWD_COIL_ACCURACY_ACCURATE,
+                                 info['dev_head_t'], 'meg', templates)
+        if ncomp > 0:
+            compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
+                                      info['dev_head_t'], 'meg', templates)
+    if neeg > 0:
+        eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
+    logger.info('Head coordinate coil definitions created.')
+    return megcoils, compcoils, eegels, megnames, eegnames, meg_info
+
+
+def _get_mri_head_t(mri):
+    """Get mri_head_t from mri filename"""
+    if isinstance(mri, string_types):
+        if not op.isfile(mri):
+            raise IOError('mri file "%s" not found' % mri)
+        if op.splitext(mri)[1] in ['.fif', '.gz']:
+            mri_head_t = read_trans(mri)
+        else:
+            mri_head_t = _get_mri_head_t_from_trans_file(mri)
+    else:  # dict
+        mri_head_t = mri
+        mri = 'dict'
+    # it's usually a head->MRI transform, so we probably need to invert it
+    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
+        mri_head_t = invert_transform(mri_head_t)
+    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
+            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
+        raise RuntimeError('Incorrect MRI transform provided')
+    return mri_head_t, mri
 
 
 @verbose
@@ -231,16 +352,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
-    if isinstance(mri, string_types):
-        if not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
-        if op.splitext(mri)[1] in ['.fif', '.gz']:
-            mri_head_t = read_trans(mri)
-        else:
-            mri_head_t = _get_mri_head_t_from_trans_file(mri)
-    else:  # dict
-        mri_head_t = mri
-        mri = 'dict'
+    mri_head_t, mri = _get_mri_head_t(mri)
 
     if not isinstance(src, string_types):
         if not isinstance(src, SourceSpaces):
@@ -269,13 +381,11 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
     # set default forward solution coordinate frame to HEAD
-    # this could, in principle, be an option
     coord_frame = FIFF.FIFFV_COORD_HEAD
 
     # Report the setup
-    mri_extra = mri if isinstance(mri, string_types) else 'dict'
     logger.info('Source space                 : %s' % src)
-    logger.info('MRI -> head transform source : %s' % mri_extra)
+    logger.info('MRI -> head transform source : %s' % mri)
     logger.info('Measurement data             : %s' % info_extra_long)
     logger.info('BEM model                    : %s' % bem)
     logger.info('Accurate field computations')
@@ -301,107 +411,19 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
     # Read the MRI -> head coordinate transformation
     logger.info('')
-
-    # it's actually usually a head->MRI transform, so we probably need to
-    # invert it
-    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-        mri_head_t = invert_transform(mri_head_t)
-    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-        raise RuntimeError('Incorrect MRI transform provided')
     _print_coord_trans(mri_head_t)
 
     # make a new dict with the relevant information
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
     info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
                 ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=mri_extra, mri_id=mri_id, meas_file=info_extra_long,
+                mri_file=mri, mri_id=mri_id, meas_file=info_extra_long,
                 meas_id=None, working_dir=os.getcwd(),
                 command_line=cmd, bads=info['bads'])
-    meg_head_t = info['dev_head_t']
     logger.info('')
 
-    # MEG channels
-    megnames = None
-    if meg:
-        picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                           exclude=[])
-        nmeg = len(picks)
-        if nmeg > 0:
-            megchs = pick_info(info, picks)['chs']
-            megnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d MEG channels from %s'
-                        % (len(picks), info_extra))
-
-        # comp channels
-        if not ignore_ref:
-            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
-            ncomp = len(picks)
-            if (ncomp > 0):
-                compchs = pick_info(info, picks)['chs']
-                logger.info('Read %3d MEG compensation channels from %s'
-                            % (ncomp, info_extra))
-                # We need to check to make sure these are NOT KIT refs
-                if _has_kit_refs(info, picks):
-                    err = ('Cannot create forward solution with KIT '
-                           'reference channels. Consider using '
-                           '"ignore_ref=True" in calculation')
-                    raise NotImplementedError(err)
-            _print_coord_trans(meg_head_t)
-            # make info structure to allow making compensator later
-        else:
-            ncomp = 0
-        ncomp_data = len(info['comps'])
-        ref_meg = True if not ignore_ref else False
-        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=[])
-        meg_info = pick_info(info, picks)
-    else:
-        logger.info('MEG not requested. MEG channels omitted.')
-        nmeg = 0
-        meg_info = None
-
-    # EEG channels
-    eegnames = None
-    if eeg:
-        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                           exclude=[])
-        neeg = len(picks)
-        if neeg > 0:
-            eegchs = pick_info(info, picks)['chs']
-            eegnames = [info['ch_names'][p] for p in picks]
-            logger.info('Read %3d EEG channels from %s'
-                        % (len(picks), info_extra))
-    else:
-        neeg = 0
-        logger.info('EEG not requested. EEG channels omitted.')
-
-    if neeg <= 0 and nmeg <= 0:
-        raise RuntimeError('Could not find any MEG or EEG channels')
-
-    # Create coil descriptions with transformation to head or MRI frame
-    templates = _read_coil_defs()
-    if nmeg > 0 and ncomp > 0:  # Compensation channel information
-        logger.info('%d compensation data sets in %s'
-                    % (ncomp_data, info_extra))
-
-    meg_xform = meg_head_t
-    extra_str = 'Head'
-
-    megcoils, megcf, compcoils, compcf = None, None, None, None
-    if nmeg > 0:
-        megcoils, megcf = _create_coils(megchs,
-                                        FIFF.FWD_COIL_ACCURACY_ACCURATE,
-                                        meg_xform, coil_type='meg',
-                                        coilset=templates)
-        if ncomp > 0:
-            compcoils, compcf = _create_coils(compchs,
-                                              FIFF.FWD_COIL_ACCURACY_NORMAL,
-                                              meg_xform, coil_type='meg',
-                                              coilset=templates)
-    eegels = None
-    if neeg > 0:
-        eegels, _ = _create_coils(eegchs, coil_type='eeg', coilset=templates)
-    logger.info('%s coordinate coil definitions created.' % extra_str)
+    megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
+        _prep_channels(info, meg, eeg, ignore_ref)
 
     # Transform the source spaces into the appropriate coordinates
     # (will either be HEAD or MRI)
@@ -411,44 +433,19 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                 % _coord_frame_name(coord_frame))
 
     # Prepare the BEM model
-    logger.info('')
-    logger.info('Setting up the BEM model using %s...\n' % bem)
-    bem_name = bem
-    bem = read_bem_solution(bem)
-    if neeg > 0 and len(bem['surfs']) == 1:
-        raise RuntimeError('Cannot use a homogeneous model in EEG '
-                           'calculations')
-    logger.info('Employing the head->MRI coordinate transform with the '
-                'BEM model.')
-    # fwd_bem_set_head_mri_t: Set the coordinate transformation
-    to, fro = mri_head_t['to'], mri_head_t['from']
-    if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
-        bem['head_mri_t'] = mri_head_t
-    elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
-        bem['head_mri_t'] = invert_transform(mri_head_t)
-    else:
-        raise RuntimeError('Improper coordinate transform')
-    logger.info('BEM model %s is now set up' % op.split(bem_name)[1])
-    logger.info('')
+    bem = _setup_bem(bem, len(eegnames), mri_head_t)
 
     # Circumvent numerical problems by excluding points too close to the skull
-    idx = np.where(np.array([s['id'] for s in bem['surfs']]) ==
-                   FIFF.FIFFV_BEM_SURF_ID_BRAIN)[0]
-    if len(idx) != 1:
-        raise RuntimeError('BEM model does not have the inner skull '
-                           'triangulation')
-    _filter_source_spaces(bem['surfs'][idx[0]], mindist, mri_head_t, src,
-                          n_jobs)
+    inner_skull = _bem_find_surface(bem, 'inner_skull')
+    _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
     logger.info('')
 
     # Time to do the heavy lifting: MEG first, then EEG
     coil_types = ['meg', 'eeg']
     coils = [megcoils, eegels]
-    cfs = [megcf, None]
     ccoils = [compcoils, None]
-    ccfs = [compcf, None]
     infos = [meg_info, None]
-    megfwd, eegfwd = _compute_forwards(src, bem, coils, cfs, ccoils, ccfs,
+    megfwd, eegfwd = _compute_forwards(src, bem, coils, ccoils,
                                        infos, coil_types, n_jobs)
 
     # merge forwards into one (creates two Forward objects)
@@ -489,17 +486,18 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
 
 def _to_forward_dict(fwd, fwd_grad, names, coord_frame, source_ori):
     """Convert forward solution matrices to dicts"""
-    if fwd is not None:
-        sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
-                   row_names=names, col_names=[])
-        fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
-                      coord_frame=coord_frame, sol_grad=None,
-                      nchan=sol['nrow'], _orig_source_ori=source_ori,
-                      _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
-        if fwd_grad is not None:
-            sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
-                            ncol=fwd_grad.shape[0], row_names=names,
-                            col_names=[])
-            fwd.update(dict(sol_grad=sol_grad),
-                       _orig_sol_grad=sol_grad['data'].copy())
+    if len(fwd) == 0:
+        return None
+    sol = dict(data=fwd.T, nrow=fwd.shape[1], ncol=fwd.shape[0],
+               row_names=names, col_names=[])
+    fwd = Forward(sol=sol, source_ori=source_ori, nsource=sol['ncol'],
+                  coord_frame=coord_frame, sol_grad=None,
+                  nchan=sol['nrow'], _orig_source_ori=source_ori,
+                  _orig_sol=sol['data'].copy(), _orig_sol_grad=None)
+    if fwd_grad is not None:
+        sol_grad = dict(data=fwd_grad.T, nrow=fwd_grad.shape[1],
+                        ncol=fwd_grad.shape[0], row_names=names,
+                        col_names=[])
+        fwd.update(dict(sol_grad=sol_grad),
+                   _orig_sol_grad=sol_grad['data'].copy())
     return fwd

@@ -2004,7 +2004,7 @@ def _add_interpolator(s, mri_name, add_interpolator):
 @verbose
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
                           verbose=None):
-    """Remove all source space points closer than a given limit"""
+    """Remove all source space points closer than a given limit (in mm)"""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
                            'coordinate transform was provided!')

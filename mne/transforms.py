@@ -43,7 +43,7 @@ def _coord_frame_name(cframe):
              FIFF.FIFFV_MNE_COORD_FS_TAL_GTZ: 'Talairach (MNI z > 0)',
              FIFF.FIFFV_MNE_COORD_FS_TAL_LTZ: 'Talairach (MNI z < 0)',
              -1: 'unknown'}
-    return types.get(cframe, 'unknown')
+    return types.get(int(cframe), 'unknown')
 
 
 def _print_coord_trans(t, prefix='Coordinate transformation: '):

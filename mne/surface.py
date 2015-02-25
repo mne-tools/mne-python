@@ -261,6 +261,31 @@ def read_bem_solution(fname, verbose=None):
     return bem
 
 
+_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+
+
+def _bem_find_surface(bem, id_):
+    """Find surface from already-loaded BEM"""
+    if isinstance(id_, string_types):
+        name = id_
+        id_ = _surf_dict[id_]
+    else:
+        name = _bem_explain_surface[id_]
+    idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
+    if len(idx) != 1:
+        raise RuntimeError('BEM model does not have the %s triangulation'
+                           % name.replace('_', ' '))
+    return bem['surfs'][idx[0]]
+
+
+def _bem_explain_surface(id_):
+    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    """Retrun a string corresponding to the given surface ID"""
+    return _rev_dict[id_]
+
+
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
@@ -292,16 +317,15 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
     if isinstance(source, string_types):
         source = [source]
+    surf = None
     for this_source in source:
         this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
                                         '%s-%s.fif' % (subject, this_source)))
         if op.exists(this_head):
             surf = read_bem_surfaces(this_head, True,
                                      FIFF.FIFFV_BEM_SURF_ID_HEAD)
-            break
         else:
             # let's do a more sophisticated search
-            this_head = None
             path = op.join(subjects_dir, subject, 'bem')
             if not op.isdir(path):
                 raise IOError('Subject bem directory "%s" does not exist'
@@ -312,12 +336,14 @@ def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
                 try:
                     surf = read_bem_surfaces(this_head, True,
                                              FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                    break
                 except ValueError:
-                    # the file does not contain a head surface
-                    this_head = None
+                    pass
+                else:
+                    break
+        if surf is not None:
+            break
 
-    if this_head is None:
+    if surf is None:
         raise IOError('No file matching "%s*%s" and containing a head '
                       'surface found' % (subject, this_source))
     return surf

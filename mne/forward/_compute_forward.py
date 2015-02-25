@@ -47,7 +47,7 @@ def _check_coil_frame(coils, coord_frame, bem):
             coils, coord_Frame = _dup_coil_set(coils, coord_frame,
                                                bem['head_mri_t'])
         else:
-            raise RuntimeError('Bad coil coordinate frame %d' % coord_frame)
+            raise RuntimeError('Bad coil coordinate frame %s' % coord_frame)
     return coils, coord_frame
 
 
@@ -84,11 +84,11 @@ def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, counts, func):
         tri_rr = rr[tri]
 
         # The following is equivalent to:
-        #for j, coil in enumerate(coils['coils']):
-        #    x = func(coil['rmag'], coil['cosmag'],
-        #             tri_rr, tri_nn, tri_area)
-        #    res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
-        #    coeff[j][tri + off] += mult * res
+        # for j, coil in enumerate(coils['coils']):
+        #     x = func(coil['rmag'], coil['cosmag'],
+        #              tri_rr, tri_nn, tri_area)
+        #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
+        #     coeff[j][tri + off] += mult * res
 
         xx = func(rmags, cosmags, tri_rr, tri_nn, tri_area)
         # only loops 3x (one per direction)
@@ -105,9 +105,9 @@ def _bem_specify_coils(bem, coils, coord_frame, n_jobs):
     coils, coord_frame = _check_coil_frame(coils, coord_frame, bem)
 
     # leaving this in in case we want to easily add in the future
-    #if method != 'simple':  # in ['ferguson', 'urankar']:
-    #    raise NotImplementedError
-    #else:
+    # if method != 'simple':  # in ['ferguson', 'urankar']:
+    #     raise NotImplementedError
+    # else:
     func = _bem_lin_field_coeffs_simple
 
     # Process each of the surfaces
@@ -178,12 +178,12 @@ def _make_ctf_comp_coils(info, coils):
     return compensator
 
 
-#def _bem_inf_pot(rd, Q, rp):
-#    """The infinite medium potential in one direction"""
-#    # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
-#    diff = rp - rd
-#    diff2 = np.sum(diff * diff, axis=1)
-#    return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
+# def _bem_inf_pot(rd, Q, rp):
+#     """The infinite medium potential in one direction"""
+#     # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
+#     diff = rp - rd
+#     diff2 = np.sum(diff * diff, axis=1)
+#     return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
 
 
 def _bem_inf_pots(rr, surf_rr, Q=None):
@@ -200,12 +200,12 @@ def _bem_inf_pots(rr, surf_rr, Q=None):
 
 
 # This function has been refactored to process all points simultaneously
-#def _bem_inf_field(rd, Q, rp, d):
-#    """Infinite-medium magnetic field"""
-#    diff = rp - rd
-#    diff2 = np.sum(diff * diff, axis=1)
-#    x = fast_cross_3d(Q[np.newaxis, :], diff)
-#    return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
+# def _bem_inf_field(rd, Q, rp, d):
+#     """Infinite-medium magnetic field"""
+#     diff = rp - rd
+#     diff2 = np.sum(diff * diff, axis=1)
+#     x = fast_cross_3d(Q[np.newaxis, :], diff)
+#     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
 
 
 def _bem_inf_fields(rr, rp, c):
@@ -269,9 +269,9 @@ def _do_prim_curr(rr, coils):
 def _do_inf_pots(rr, srr, mri_Q, sol):
     """Calculate infinite potentials using chunks"""
     # The following code is equivalent to this, but saves memory
-    #v0s = _bem_inf_pots(rr, srr, mri_Q)  # n_rr x 3 x n_surf_rr
-    #v0s.shape = (len(rr) * 3, v0s.shape[2])
-    #B = np.dot(v0s, sol)
+    # v0s = _bem_inf_pots(rr, srr, mri_Q)  # n_rr x 3 x n_surf_rr
+    # v0s.shape = (len(rr) * 3, v0s.shape[2])
+    # B = np.dot(v0s, sol)
 
     # We chunk the source rr's in order to save memory
     bounds = np.r_[np.arange(0, len(rr), 1000), len(rr)]
@@ -284,7 +284,7 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
 
 
 @verbose
-def _compute_forwards(src, bem, coils_list, cfs, ccoils_list, ccfs,
+def _compute_forwards(src, bem, coils_list, ccoils_list,
                       infos, coil_types, n_jobs, verbose=None):
     """Compute the MEG and EEG forward solutions"""
     if bem['bem_method'] != 'linear collocation':
@@ -301,11 +301,11 @@ def _compute_forwards(src, bem, coils_list, cfs, ccoils_list, ccfs,
 
     # Now, actually compute MEG and EEG solutions
     Bs = list()
-    for coil_type, coils, cf, ccoils, ccf, info in zip(coil_types, coils_list,
-                                                       cfs, ccoils_list, ccfs,
-                                                       infos):
-        if coils is None:  # nothing to do
-            Bs.append(None)
+    for coil_type, coils, ccoils, info in zip(coil_types, coils_list,
+                                              ccoils_list, infos):
+        cf = ccf = FIFF.FIFFV_COORD_HEAD
+        if len(coils) == 0:  # nothing to do
+            Bs.append([])
         else:
             if coil_type == 'meg':
                 # Compose a compensation data set if necessary
