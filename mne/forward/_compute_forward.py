@@ -18,8 +18,8 @@ from ..io.compensator import get_current_comp, make_compensator
 from ..io.pick import pick_types
 
 
-##############################################################################
-# COIL SPECIFICATION
+# #############################################################################
+# COIL SPECIFICATION AND FIELD COMPUTATION MATRIX
 
 def _dup_coil_set(coils, coord_frame, t):
     """Make a duplicate"""
@@ -151,8 +151,11 @@ def _bem_specify_els(bem, els):
     return sol
 
 
-#############################################################################
+# #############################################################################
 # FORWARD COMPUTATION
+
+_MAG_FACTOR = 1e-7  # from C code
+
 
 def _make_ctf_comp_coils(info, coils):
     """Get the correct compensator for CTF coils"""
@@ -230,6 +233,9 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, mults, coils, solution, srr,
 
     The code is very similar between EEG and MEG potentials, so we'll
     combine them.
+
+    This does the work of "fwd_comp_field" (which wraps to "fwd_bem_field") and
+    "fwd_bem_pot_els" in MNE-C.
     """
     # multiply solution by "mults" here for simplicity
     # we can do this one in-place because it's not used elsewhere
@@ -253,7 +259,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, mults, coils, solution, srr,
         pcc = np.concatenate(parallel(p_fun(rr, c)
                                       for c in nas(coils, n_jobs)), axis=1)
         B += pcc
-        B *= 1e-7  # MAG_FACTOR from C code
+        B *= _MAG_FACTOR
     return B
 
 
@@ -283,10 +289,136 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
     return B
 
 
+def _sphere_field(rd, Q, coils, sphere):
+    """This uses Jukka Sarvas' field computation
+
+    Jukka Sarvas, "Basic mathematical and electromagnetic concepts of the
+    biomagnetic inverse problem", Phys. Med. Biol. 1987, Vol. 32, 1, 11-22.
+
+    The formulas have been manipulated for efficient computation
+    by Matti Hamalainen, February 1990
+    """
+    # Shift to the sphere model coordinates
+    rd = rd - sphere['r0']
+
+    # Check for a dipole at the origin
+    B = np.zeros(len(coils))
+    if np.sqrt(np.sum(rd * rd)) <= 1e-10:
+        return B
+    v = np.cross(Q, rd)
+    for k, coil in enumerate(coils):
+        np_ = coil['np']
+        sum_ = 0.0
+
+        for j in range(np_):
+            this_pos = coil['rmag'][j] - sphere['r0']
+            this_dir = coil['cosmag'][j]
+
+            # Vector from dipole to the field point
+            a_vec = this_pos - rd
+
+            # Compute the dot products needed
+            a2 = np.dot(a_vec, a_vec)
+            a = np.sqrt(a2)
+            r2 = np.dot(this_pos, this_pos)
+            r = np.sqrt(r2)
+            rr0 = np.dot(this_pos, rd)
+            ar = r2 - rr0
+            # There is a problem on the negative 'z' axis if the dipole
+            # location and the field point are on the same line
+            if a2 > 0.0 and r2 > 0.0 and np.abs(ar / (a * r) + 1.0) > 1e-5:
+                ar0 = ar / a
+                ve = np.dot(v, this_dir)
+                vr = np.dot(v, this_pos)
+                re = np.dot(this_pos, this_dir)
+                r0e = np.dot(rd, this_dir)
+
+                # The main ingredients
+                F = a * (r * a + ar)
+                gr = a2 / r + ar0 + 2.0 * (a + r)
+                g0 = a + 2 * r + ar0
+
+                # Mix them together...
+                sum_ += coil['w'][j] * (ve * F + vr *
+                                        (g0 * r0e - gr * re)) / (F * F)
+        B[k] = sum_
+    B *= _MAG_FACTOR
+
+
+def _eeg_spherepot_coil(rd, Q, els, sphere):
+    """Calculate the EEG in the sphere model"""
+    # Shift to the sphere model coordinates
+    orig_rd = rd - sphere['r0']
+
+    # fwd_eeg_spherepot_coil
+    Vval = np.zeros(len(els))
+    for k, coil in enumerate(els):
+        # fwd_eeg_spherepot
+        # Calculate the potentials for a specific dipole direction
+        # Using acceleration with help of equivalent sources
+        # in the homogeneous sphere.
+        vval_one = np.zeros(coil['np'])
+
+        # Only process dipoles inside the innermost sphere
+        if np.sqrt(np.sum(orig_rd * orig_rd)) < sphere['layers'][0]['rad']:
+            # Make a weighted sum over the equivalence parameters
+            for eq in range(sphere['nfit']):
+                # Scale the dipole position
+                rd = sphere['mu'][eq] * orig_rd
+                rd2 = np.dot(rd, rd)
+                rd2_inv = 1.0 / rd2
+                f1 = np.dot(rd, Q)
+                # Go over all electrodes
+                for k in range(coil['np']):
+                    this_pos = coil['rmag'][k]
+                    pos = this_pos - sphere['r0']
+
+                    # Scale location onto the surface of the sphere
+                    if sphere['scale_pos']:
+                        pos_len = (sphere['layers'][-1]['rad'] /
+                                   np.sqrt(np.sum(pos * pos)))
+                        pos *= pos_len
+                    this_pos = pos
+
+                    # Vector from dipole to the field point
+                    a_vec = this_pos - rd
+
+                    # Compute the dot products needed
+                    a2 = np.dot(a_vec, a_vec)
+                    a = np.sqrt(a2)
+                    a3 = 2.0 / (a2 * a)
+                    r2 = np.dot(this_pos, this_pos)
+                    r = np.sqrt(r2)
+                    rrd = np.dot(this_pos, rd)
+                    ra = r2 - rrd
+                    rda = rrd - rd2
+
+                    # The main ingredients
+                    F = a * (r * a + ra)
+                    c1 = a3 * rda + 1.0 / a - 1.0 / r
+                    c2 = a3 + (a + r) / (r * F)
+
+                    # Mix them together and scale by lambda/(rd*rd)
+                    m1 = (c1 - c2 * rrd)
+                    m2 = c2 * rd2
+                  
+                    f2 = np.dot(this_pos, Q)
+                    vval_one[k] += m['lambda'][eq] * rd2_inv * (m1 * f1 +
+                                                                m2 * f2)
+        # compute total result
+        Vval[k] = np.dot(coil['w'], vval_one)
+    # finishing by scaling by 1/(4*M_PI)
+    Vval *= 0.25 / np.pi
+
+
 @verbose
 def _compute_forwards(src, bem, coils_list, ccoils_list,
                       infos, coil_types, n_jobs, verbose=None):
-    """Compute the MEG and EEG forward solutions"""
+    """Compute the MEG and EEG forward solutions
+
+    This effectively combines compute_forward_meg and compute_forward_eeg
+    from MNE-C.
+    """
     if bem['bem_method'] != 'linear collocation':
         raise RuntimeError('only linear collocation supported')
 
@@ -311,7 +443,7 @@ def _compute_forwards(src, bem, coils_list, ccoils_list,
                 # Compose a compensation data set if necessary
                 compensator = _make_ctf_comp_coils(info, coils)
 
-                # Field computation matrices...
+                # Field computation matrices for BEM
                 logger.info('')
                 start = 'Composing the field computation matrix'
                 logger.info(start + '...')
@@ -319,7 +451,6 @@ def _compute_forwards(src, bem, coils_list, ccoils_list,
                 if compensator is not None:
                     logger.info(start + ' (compensation coils)...')
                     csolution = _bem_specify_coils(bem, ccoils, ccf, n_jobs)
-
             elif coil_type == 'eeg':
                 solution = _bem_specify_els(bem, coils)
                 compensator = None
@@ -331,6 +462,7 @@ def _compute_forwards(src, bem, coils_list, ccoils_list,
             # Note: this function modifies "solution" in-place
             B = _bem_pot_or_field(rr, mri_rr, mri_Q, mults, coils,
                                   solution, srr, n_jobs, coil_type)
+            # fwd_eeg_spherepot_coil / fwd_comp_field -> fwd_sphere_field
 
             # Compensate if needed (only done for MEG systems w/compensation)
             if compensator is not None:
