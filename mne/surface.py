@@ -257,6 +257,7 @@ def read_bem_solution(fname, verbose=None):
     bem['solution'] = sol
     bem['nsol'] = nsol
     bem['bem_method'] = method
+    bem['is_sphere'] = False
     logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
     return bem
 

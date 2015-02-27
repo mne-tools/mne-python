@@ -166,26 +166,34 @@ def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
     return coils
 
 
-def _setup_bem(bem_name, neeg, mri_head_t):
+def _setup_bem(bem, bem_extra, neeg, mri_head_t):
     """Set up a BEM for forward computation"""
     logger.info('')
-    logger.info('Setting up the BEM model using %s...\n' % bem_name)
-    bem = read_bem_solution(bem_name)
-    if neeg > 0 and len(bem['surfs']) == 1:
-        raise RuntimeError('Cannot use a homogeneous model in EEG '
-                           'calculations')
-    logger.info('Employing the head->MRI coordinate transform with the '
-                'BEM model.')
-    # fwd_bem_set_head_mri_t: Set the coordinate transformation
-    to, fro = mri_head_t['to'], mri_head_t['from']
-    if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
-        bem['head_mri_t'] = mri_head_t
-    elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
-        bem['head_mri_t'] = invert_transform(mri_head_t)
+    if isinstance(bem, string_types):
+        logger.info('Setting up the BEM model using %s...\n' % bem_extra)
+        bem = read_bem_solution(bem)
+    if bem['is_sphere']:
+        logger.info('Using the sphere model.\n')
+        if len(bem['layers']) == 0:
+            raise RuntimeError('Spherical model has zero layers')
+        if bem['coord_frame'] != FIFF.FIFFV_COORD_HEAD:
+            raise RuntimeError('Spherical model is not in head coordinates')
     else:
-        raise RuntimeError('Improper coordinate transform')
-    logger.info('BEM model %s is now set up' % op.split(bem_name)[1])
-    logger.info('')
+        if neeg > 0 and len(bem['surfs']) == 1:
+            raise RuntimeError('Cannot use a homogeneous model in EEG '
+                               'calculations')
+        logger.info('Employing the head->MRI coordinate transform with the '
+                    'BEM model.')
+        # fwd_bem_set_head_mri_t: Set the coordinate transformation
+        to, fro = mri_head_t['to'], mri_head_t['from']
+        if fro == FIFF.FIFFV_COORD_HEAD and to == FIFF.FIFFV_COORD_MRI:
+            bem['head_mri_t'] = mri_head_t
+        elif fro == FIFF.FIFFV_COORD_MRI and to == FIFF.FIFFV_COORD_HEAD:
+            bem['head_mri_t'] = invert_transform(mri_head_t)
+        else:
+            raise RuntimeError('Improper coordinate transform')
+        logger.info('BEM model %s is now set up' % op.split(bem_extra)[1])
+        logger.info('')
     return bem
 
 
@@ -298,19 +306,19 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
-    mri : dict | str
+    mri : dict | str | None
         Either a transformation filename (usually made using mne_analyze)
         or an info dict (usually opened using read_trans()).
         If string, an ending of `.fif` or `.fif.gz` will be assumed to
         be in FIF format, any other ending will be assumed to be a text
         file with a 4x4 transformation matrix (like the `--trans` MNE-C
-        option).
+        option). Can be None to use the identity transform.
     src : str | instance of SourceSpaces
         If string, should be a source space filename. Can also be an
         instance of loaded or generated SourceSpaces.
-    bem : str
+    bem : dict | str
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
-        use.
+        use, or a loaded BEM (dict).
     fname : str | None
         Destination forward solution filename. If None, the solution
         will not be saved.
@@ -362,8 +370,12 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         src_extra = src
         if not op.isfile(src):
             raise IOError('Source space file "%s" not found' % src)
-    if not op.isfile(bem):
-        raise IOError('BEM file "%s" not found' % bem)
+    if isinstance(bem, dict):
+        bem_extra = 'dict'
+    else:
+        bem_extra = bem
+        if not op.isfile(bem):
+            raise IOError('BEM file "%s" not found' % bem)
     if fname is not None and op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, consider using overwrite=True'
                       % fname)
@@ -376,7 +388,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     else:
         info_extra = 'info dict'
         info_extra_long = info_extra
-    arg_list = [info_extra, mri, src_extra, bem, fname,  meg, eeg,
+    arg_list = [info_extra, mri, src_extra, bem_extra, fname,  meg, eeg,
                 mindist, overwrite, n_jobs, verbose]
     cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
 
@@ -387,8 +399,13 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     logger.info('Source space                 : %s' % src)
     logger.info('MRI -> head transform source : %s' % mri)
     logger.info('Measurement data             : %s' % info_extra_long)
-    logger.info('BEM model                    : %s' % bem)
-    logger.info('Accurate field computations')
+    if isinstance(bem, dict) and bem['is_sphere']:
+        logger.info('Sphere model                 : origin at %s mm'
+                    % (bem['r0'],))
+        logger.info('Standard field computations')
+    else:
+        logger.info('BEM model                    : %s' % bem_extra)
+        logger.info('Accurate field computations')
     logger.info('Do computations in %s coordinates',
                 _coord_frame_name(coord_frame))
     logger.info('Free source orientations')
@@ -433,12 +450,13 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
                 % _coord_frame_name(coord_frame))
 
     # Prepare the BEM model
-    bem = _setup_bem(bem, len(eegnames), mri_head_t)
+    bem = _setup_bem(bem, bem_extra, len(eegnames), mri_head_t)
 
     # Circumvent numerical problems by excluding points too close to the skull
-    inner_skull = _bem_find_surface(bem, 'inner_skull')
-    _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
-    logger.info('')
+    if not bem['is_sphere']:
+        inner_skull = _bem_find_surface(bem, 'inner_skull')
+        _filter_source_spaces(inner_skull, mindist, mri_head_t, src, n_jobs)
+        logger.info('')
 
     # Time to do the heavy lifting: MEG first, then EEG
     coil_types = ['meg', 'eeg']

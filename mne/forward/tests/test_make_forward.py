@@ -17,9 +17,10 @@ from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, read_trans,
                  convert_forward_solution, setup_volume_source_space,
-                 read_source_spaces)
+                 read_source_spaces, make_sphere_model,
+                 pick_types_forward)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
-                       run_tests_if_main, slow_test)
+                       run_tests_if_main, slow_test, run_subprocess)
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces, setup_source_space)
@@ -43,7 +44,8 @@ fname_bem_meg = op.join(subjects_dir, 'sample', 'bem',
 
 
 def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
-                      meg_rtol=1e-4, meg_atol=1e-9):
+                      meg_rtol=1e-4, meg_atol=1e-9,
+                      eeg_rtol=1e-3, eeg_atol=1e-3):
     """Helper to test forwards"""
     # check source spaces
     assert_equal(len(fwd['src']), len(fwd_py['src']))
@@ -66,16 +68,16 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
         assert_equal(len(fwd_py['sol']['row_names']), n_sensors)
 
         # check MEG
-        print('check MEG')
         assert_allclose(fwd['sol']['data'][:306],
                         fwd_py['sol']['data'][:306],
-                        rtol=meg_rtol, atol=meg_atol)
+                        rtol=meg_rtol, atol=meg_atol,
+                        err_msg='MEG mismatch')
         # check EEG
         if fwd['sol']['data'].shape[0] > 306:
-            print('check EEG')
             assert_allclose(fwd['sol']['data'][306:],
                             fwd_py['sol']['data'][306:],
-                            rtol=1e-3, atol=1e-3)
+                            rtol=eeg_rtol, atol=eeg_atol,
+                            err_msg='EEG mismatch')
 
 
 @testing.requires_testing_data
@@ -176,6 +178,32 @@ def test_make_forward_solution():
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
     _compare_forwards(fwd, fwd_py, 366, 1494, meg_rtol=1e-3)
+
+
+@testing.requires_testing_data
+def test_make_forward_solution_sphere():
+    temp_dir = _TempDir()
+    fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
+    src = setup_source_space('sample', fname_src_small, 'oct2',
+                             subjects_dir=subjects_dir, add_dist=False)
+    out_name = op.join(temp_dir, 'tmp-fwd.fif')
+    run_subprocess(['mne_forward_solution', '--meg', '--eeg',
+                    '--meas', fname_raw, '--src', fname_src_small,
+                    '--mri', fname_mri, '--fwd', out_name])
+    fwd = read_forward_solution(out_name)
+    sphere = make_sphere_model(verbose=True)
+    fwd_py = make_forward_solution(fname_raw, fname_mri, src, sphere,
+                                   meg=True, eeg=True, verbose=True)
+    _compare_forwards(fwd, fwd_py, 366, 108,
+                      meg_rtol=5e-1, meg_atol=1e-6,
+                      eeg_rtol=5e-1, eeg_atol=5e-1)
+    # Since the above is pretty lax, let's check a different way
+    for meg, eeg in zip([True, False], [False, True]):
+        fwd_ = pick_types_forward(fwd, meg=meg, eeg=eeg)
+        fwd_py_ = pick_types_forward(fwd, meg=meg, eeg=eeg)
+        assert_allclose(np.corrcoef(fwd_['sol']['data'].ravel(),
+                                    fwd_py_['sol']['data'].ravel())[0, 1],
+                        1.0, rtol=1e-3)
 
 
 @testing.requires_testing_data

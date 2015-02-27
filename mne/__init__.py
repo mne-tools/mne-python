@@ -76,6 +76,7 @@ from .selection import read_selection
 from .dipole import read_dip, read_dipole, Dipole
 from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
+from .bem import make_sphere_model
 
 from . import beamformer
 from . import commands

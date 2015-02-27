@@ -518,6 +518,7 @@ Functions:
    do_forward_solution
    make_forward_solution
    make_field_map
+   make_sphere_model
    read_bem_surfaces
    read_forward_solution
    read_trans

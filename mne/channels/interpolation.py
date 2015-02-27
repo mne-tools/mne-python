@@ -6,10 +6,10 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from .. utils import logger
-from .. io.pick import pick_types
-from .. surface import _normalize_vectors
-from . utils import _fit_sphere
+from ..utils import logger
+from ..io.pick import pick_types
+from ..surface import _normalize_vectors
+from ..bem import _fit_sphere
 
 
 def _calc_g(cosang, stiffness=4, num_lterms=50):
