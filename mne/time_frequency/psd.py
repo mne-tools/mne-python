@@ -72,7 +72,6 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
-    import matplotlib.pyplot as plt
     parallel, my_pwelch, n_jobs = parallel_func(_pwelch, n_jobs=n_jobs,
                                                 verbose=verbose)
 
@@ -154,7 +153,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=2048,
 
     data = epochs.get_data()[:, picks]
     if proj:
-        proj, _ = make_projector_info(raw.info)
+        proj, _ = make_projector_info(epochs.info)
         if picks is not None:
             data = np.dot(proj[picks][:, picks], data)
         else:

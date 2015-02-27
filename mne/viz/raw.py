@@ -694,9 +694,7 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     """
     import matplotlib.pyplot as plt
     fig, picks_list, titles_list, ax_list, make_label = _set_psds_plot_params(
-                                                            raw.info, proj,
-                                                            picks, ax,
-                                                            area_mode)
+        raw.info, proj, picks, ax, area_mode)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
                                                 ax_list)):
