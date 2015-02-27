@@ -618,6 +618,18 @@ Functions:
    dics_epochs
    dics_source_power
 
+:py:mod:`mne`:
+
+.. currentmodule:: mne
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fit_dipole
+
 
 Source Space Data
 =================
