@@ -11,13 +11,9 @@ distribution.
 #
 # License: BSD (3-clause)
 
-import numpy as np
-import matplotlib.pyplot as plt
-
 import mne
 from mne import io
 from mne.datasets import sample
-from mne.time_frequency import compute_epochs_psd
 
 print(__doc__)
 
@@ -45,7 +41,7 @@ n_fft = 256  # the FFT size. Ideally a power of 2
 epochs.plot_psds(fmin=2, fmax=200, n_fft=n_fft, n_jobs=2)
 
 # picks MEG gradiometers
-picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        stim=False, include=include, exclude='bads')
 
 # Now let's take a look at the spatial distributions of the psd.
