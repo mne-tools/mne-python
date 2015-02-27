@@ -181,7 +181,9 @@ def test_make_forward_solution():
 
 
 @testing.requires_testing_data
+@requires_mne
 def test_make_forward_solution_sphere():
+    """Test making a forward solution with a sphere model"""
     temp_dir = _TempDir()
     fname_src_small = op.join(temp_dir, 'sample-oct-2-src.fif')
     src = setup_source_space('sample', fname_src_small, 'oct2',

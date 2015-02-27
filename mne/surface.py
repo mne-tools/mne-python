@@ -282,8 +282,8 @@ def _bem_find_surface(bem, id_):
 
 
 def _bem_explain_surface(id_):
+    """Return a string corresponding to the given surface ID"""
     _rev_dict = dict((val, key) for key, val in _surf_dict.items())
-    """Retrun a string corresponding to the given surface ID"""
     return _rev_dict[id_]
 
 
