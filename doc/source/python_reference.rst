@@ -38,6 +38,7 @@ Classes
    VolSourceEstimate
    MixedSourceEstimate
    Covariance
+   Dipole
    Label
    BiHemiLabel
    preprocessing.ICA
@@ -139,7 +140,7 @@ Functions:
    read_bem_solution
    read_bem_surfaces
    read_cov
-   read_dipoles
+   read_dipole
    read_epochs
    read_events
    read_evokeds
@@ -157,7 +158,6 @@ Functions:
    write_labels_to_annot
    write_bem_surface
    write_cov
-   write_dipoles
    write_events
    write_evokeds
    write_forward_solution
