@@ -10,6 +10,7 @@ from scipy import linalg, optimize
 from .fixes import partial
 from .utils import verbose, logger
 from .io.constants import FIFF
+from .externals.six import string_types
 
 
 # ############################################################################
@@ -150,30 +151,50 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 
 
 @verbose
-def make_sphere_model(r0=(0., 0., 0.04), eeg_radius=0.09, verbose=None):
+def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
+                      verbose=None):
     """Create a spherical model for forward solution calculation
 
     Parameters
     ----------
-    r0 : array-like | instance of mne.io.meas_info.Info
-        Head center to use. If Info, the head center will be calculated
-        from the digitization points.
-    eeg_radius : float | None
+    r0 : array-like | str
+        Head center to use (in head coordinates). If 'auto', the head
+        center will be calculated from the digitization points in info.
+    head_radius : float | str | None
         If float, compute spherical shells for EEG using the given radius.
+        If 'auto', estimate an approriate radius from the dig points in Info,
         If None, exclude shells.
+    info : instance of mne.io.meas_info.Info | None
+        Measurement info. Only needed if ``r0`` or ``head_radius`` are
+        ``'auto'``.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
     bem : dict
         A spherical BEM.
     """
-    from .io.meas_info import Info
-    if isinstance(r0, Info):
-        r0 = fit_sphere_to_headshape(r0)[0]
+    for name in ('r0', 'head_radius'):
+        param = locals()[name]
+        if isinstance(param, string_types):
+            if param != 'auto':
+                raise ValueError('%s, if str, must be "auto" not "%s"'
+                                 % (name, param))
+
+    if (isinstance(r0, string_types) and r0 == 'auto') or \
+       (isinstance(head_radius, string_types) and head_radius == 'auto'):
+        if info is None:
+            raise ValueError('Info must not be None for auto mode')
+        head_radius_fit, r0_fit = fit_sphere_to_headshape(info)[:2]
+        if isinstance(r0, string_types):
+            r0 = r0_fit
+        if isinstance(head_radius, string_types):
+            head_radius = head_radius_fit
     sphere = dict(r0=np.array(r0), is_sphere=True,
                   coord_frame=FIFF.FIFFV_COORD_HEAD)
     sphere['layers'] = []
-    if eeg_radius is not None:
+    if head_radius is not None:
         # Eventually these could be configurable...
         rads = [0.90, 0.92, 0.97, 1.0]
         sigmas = [0.33, 1.0, 0.004, 0.33]
@@ -198,7 +219,7 @@ def make_sphere_model(r0=(0., 0., 0.04), eeg_radius=0.09, verbose=None):
 
         # Scale the relative radii
         for k in range(len(rads)):
-            layers[k]['rad'] = (eeg_radius * layers[k]['rel_rad'])
+            layers[k]['rad'] = (head_radius * layers[k]['rel_rad'])
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info('\nEquiv. model fitting -> RV = %g %%' % (100 * rv))
         for k in range(3):
@@ -206,7 +227,7 @@ def make_sphere_model(r0=(0., 0., 0.04), eeg_radius=0.09, verbose=None):
                         % (k + 1, sphere['mu'][k], k + 1,
                            layers[-1]['sigma'] * sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
-                    % (1000 * eeg_radius,))
+                    % (1000 * head_radius,))
     return sphere
 
 
@@ -259,7 +280,7 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     radius, origin_head = _fit_sphere(hsp)
     # compute origin in device coordinates
     trans = info['dev_head_t']
-    if trans['from'] != FIFF.FIFFV_COORD_DEVICE\
+    if trans['from'] != FIFF.FIFFV_COORD_DEVICE \
             or trans['to'] != FIFF.FIFFV_COORD_HEAD:
         raise RuntimeError('device to head transform not found')
 
@@ -279,8 +300,8 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
 def _fit_sphere(points, disp=True):
     """Aux function to fit points to a sphere"""
     # initial guess for center and radius
-    xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2
-    yradius = (np.max(points[:, 1]) - np.min(points[:, 1])) / 2
+    xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2.
+    yradius = (np.max(points[:, 1]) - np.min(points[:, 1])) / 2.
 
     radius_init = (xradius + yradius) / 2
     center_init = np.array([0.0, 0.0, np.max(points[:, 2]) - radius_init])
