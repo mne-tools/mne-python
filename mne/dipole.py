@@ -53,10 +53,11 @@ class Dipole(dict):
             The name of the .dip file.
         """
         fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
-        with open(fname, 'w') as fid:
-            fid.write('# CoordinateSystem "Head"\n')
+        with open(fname, 'wb') as fid:
+            fid.write('# CoordinateSystem "Head"\n'.encode('utf-8'))
             fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
-                      '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%\n')
+                      '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%\n'
+                      .encode('utf-8'))
             t = self['times'][:, np.newaxis]
             gof = self['gof'][:, np.newaxis]
             amp = self['amplitude'][:, np.newaxis]
@@ -64,7 +65,8 @@ class Dipole(dict):
                                   self['ori'], gof), axis=-1)
             np.savetxt(fid, out, fmt=fmt)
             if self.get('name') is not None:
-                fid.write('## Name "%s dipoles" Style "Dipoles"' % self['name'])
+                fid.write(('## Name "%s dipoles" Style "Dipoles"'
+                           % self['name']).encode('utf-8'))
 
 
 @deprecated("'read_dip' will be removed in version 0.10, please use "
@@ -142,5 +144,5 @@ def read_dipole(fname, verbose=None):
     ori = data[:, 6:9]
     gof = data[:, 9]
     dipole = Dipole(times=times, pos=pos, amplitude=amplitude, ori=ori,
-                     gof=gof, name=name)
+                    gof=gof, name=name)
     return dipole
