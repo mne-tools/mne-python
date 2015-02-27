@@ -1,6 +1,6 @@
 import os.path as op
 
-from nose.tools import assert_true, assert_raises
+from nose.tools import assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal
 import warnings
@@ -81,7 +81,7 @@ def test_rap_music():
         max_stc = np.abs(stc.data[idx])
         tmax = stc.times[np.argmax(max_stc)]
 
-        assert_true(0.06 < tmax < 0.105, tmax)
+        assert_true(0.06 < tmax < 0.11, tmax)
 
     n_sources = 2
 

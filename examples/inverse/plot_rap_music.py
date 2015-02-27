@@ -24,6 +24,7 @@ import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne.beamformer import rap_music
 from mne.io.pick import pick_types_evoked
+from mne.viz import plot_sparse_source_estimates
 
 
 data_path = sample.data_path()
@@ -54,7 +55,6 @@ stc, residual = rap_music(evoked, forward, noise_cov, n_sources=2,
 evoked.plot()
 residual.plot()
 
-from mne.viz import plot_sparse_source_estimates
 plot_sparse_source_estimates(forward['src'], stc, fig_name="Rap-Music",
                              bgcolor=(1, 1, 1), modes=["sphere"])
 

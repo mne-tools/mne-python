@@ -113,8 +113,8 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     if return_residual:
         explained_data = np.dot(gain[:, active_set], sol)
 
-    vertno[1] = vertno[1][active_set[active_set > vertno[0].size]
-                          - vertno[0].size]
+    vertno[1] = vertno[1][active_set[active_set > vertno[0].size] -
+                          vertno[0].size]
     vertno[0] = vertno[0][active_set[active_set <= vertno[0].size]]
 
     tstep = 1.0 / info['sfreq']
