@@ -4,7 +4,7 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_allclose
 import warnings
 
-from mne import read_dip, read_dipoles, write_dipoles
+from mne import read_dip, read_dipole, Dipole
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, _TempDir
 
@@ -31,19 +31,20 @@ def test_io_dipoles():
     out_fname = op.join(tempdir, 'temp.dip')
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        time, pos, amplitude, ori, gof = read_dip(fname_dip)
+        times, pos, amplitude, ori, gof = read_dip(fname_dip)
     assert_true(len(w) >= 1)
 
     assert_true(pos.shape[1] == 3)
     assert_true(ori.shape[1] == 3)
-    assert_true(len(time) == len(pos))
-    assert_true(len(time) == gof.size)
-    assert_true(len(time) == amplitude.size)
+    assert_true(len(times) == len(pos))
+    assert_true(len(times) == gof.size)
+    assert_true(len(times) == amplitude.size)
 
-    dipoles = dict(time=time, pos=pos, amplitude=amplitude, ori=ori, gof=gof,
-                   name='ALL')
-    write_dipoles(out_fname, dipoles)
-    dipoles_new = read_dipoles(out_fname)
-    _compare_dipoles(dipoles, dipoles_new)
+    dipole = Dipole(times=times, pos=pos, amplitude=amplitude, ori=ori,
+                    gof=gof, name='ALL')
+    print(dipole)  # test repr
+    dipole.save(out_fname)
+    dipole_new = read_dipole(out_fname)
+    _compare_dipoles(dipole, dipole_new)
 
 run_tests_if_main(False)

@@ -9,8 +9,66 @@ import re
 from .utils import logger, verbose, deprecated
 
 
+class Dipole(dict):
+    """Dipole class
+
+    Used to store positions, orientations, amplitudes, times, goodness of fit
+    of dipoles, typically obtained with Neuromag/xfit, mne_dipole_fit
+    or certain inverse solvers.
+
+    Parameters
+    ----------
+    times : array, shape (n_dipoles,)
+        The time instants at which each dipole was fitted.
+    pos : array, shape (n_dipoles, 3)
+        The dipoles positions in meters
+    amplitude : array, shape (n_dipoles,)
+        The amplitude of the dipoles in nAm
+    ori : array, shape (n_dipoles, 3)
+        The dipolar moments. Amplitude of the moment is in nAm.
+    gof : array, shape (n_dipoles,)
+        The goodness of fit
+    """
+    def __init__(self, times, pos, amplitude, ori, gof, name=None):
+        self['times'] = times
+        self['pos'] = pos
+        self['amplitude'] = amplitude
+        self['ori'] = ori
+        self['gof'] = gof
+        if name is not None:
+            self['name'] = name
+
+    def __repr__(self):
+        s = "n_times : %s" % len(self['times'])
+        s += ", tmin : %s" % np.min(self['times'])
+        s += ", tmax : %s" % np.max(self['times'])
+        return "<Dipole  |  %s>" % s
+
+    def save(self, fname):
+        """Save dipole in a .dip file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the .dip file.
+        """
+        fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
+        with open(fname, 'w') as fid:
+            fid.write('# CoordinateSystem "Head"\n')
+            fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
+                      '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%\n')
+            t = self['times'][:, np.newaxis]
+            gof = self['gof'][:, np.newaxis]
+            amp = self['amplitude'][:, np.newaxis]
+            out = np.concatenate((t, t, self['pos'] / 1e-3, amp,
+                                  self['ori'], gof), axis=-1)
+            np.savetxt(fid, out, fmt=fmt)
+            if self.get('name') is not None:
+                fid.write('## Name "%s dipoles" Style "Dipoles"' % self['name'])
+
+
 @deprecated("'read_dip' will be removed in version 0.10, please use "
-            "'read_dipoles' instead")
+            "'read_dipole' instead")
 def read_dip(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE
 
@@ -23,24 +81,24 @@ def read_dip(fname, verbose=None):
 
     Returns
     -------
-    time : array, shape=(n_dipoles,)
+    time : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted.
-    pos : array, shape=(n_dipoles, 3)
+    pos : array, shape (n_dipoles, 3)
         The dipoles positions in meters
-    amplitude : array, shape=(n_dipoles,)
+    amplitude : array, shape (n_dipoles,)
         The amplitude of the dipoles in nAm
-    ori : array, shape=(n_dipoles, 3)
+    ori : array, shape (n_dipoles, 3)
         The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape=(n_dipoles,)
+    gof : array, shape (n_dipoles,)
         The goodness of fit
     """
-    dipoles = read_dipoles(fname)
-    return (dipoles['time'], dipoles['pos'], dipoles['amplitude'],
-            dipoles['ori'], dipoles['gof'])
+    dipole = read_dipole(fname)
+    return (dipole['times'], dipole['pos'], dipole['amplitude'],
+            dipole['ori'], dipole['gof'])
 
 
 @verbose
-def read_dipoles(fname, verbose=None):
+def read_dipole(fname, verbose=None):
     """Read .dip file from Neuromag/xfit or MNE
 
     Parameters
@@ -52,15 +110,15 @@ def read_dipoles(fname, verbose=None):
 
     Returns
     -------
-    time : array, shape=(n_dipoles,)
+    time : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted.
-    pos : array, shape=(n_dipoles, 3)
+    pos : array, shape (n_dipoles, 3)
         The dipoles positions in meters
-    amplitude : array, shape=(n_dipoles,)
+    amplitude : array, shape (n_dipoles,)
         The amplitude of the dipoles in nAm
-    ori : array, shape=(n_dipoles, 3)
+    ori : array, shape (n_dipoles, 3)
         The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape=(n_dipoles,)
+    gof : array, shape (n_dipoles,)
         The goodness of fit
     """
     try:
@@ -78,36 +136,11 @@ def read_dipoles(fname, verbose=None):
     if data.ndim == 1:
         data = data[None, :]
     logger.info("%d dipole(s) found" % len(data))
-    time = data[:, 0]
+    times = data[:, 0]
     pos = 1e-3 * data[:, 2:5]  # put data in meters
     amplitude = data[:, 5]
     ori = data[:, 6:9]
     gof = data[:, 9]
-    dipoles = dict(time=time, pos=pos, amplitude=amplitude, ori=ori,
-                   gof=gof, name=name)
-    return dipoles
-
-
-def write_dipoles(fname, dipoles, verbose=None):
-    """Write a .dip file from a set of dipole definitions
-
-    Parameters
-    ----------
-    fname : str
-        The name of the .dip file.
-    dipoles : dict
-        The dipole definitions.
-    """
-    fmt = "  %7.1f %7.1f %8.2f %8.2f %8.2f %8.3f %8.3f %8.3f %8.3f %6.1f"
-    with open(fname, 'w') as fid:
-        fid.write('# CoordinateSystem "Head"\n')
-        fid.write('#   begin     end   X (mm)   Y (mm)   Z (mm)'
-                  '   Q(nAm)  Qx(nAm)  Qy(nAm)  Qz(nAm)    g/%\n')
-        t = dipoles['time'][:, np.newaxis]
-        gof = dipoles['gof'][:, np.newaxis]
-        amp = dipoles['amplitude'][:, np.newaxis]
-        out = np.concatenate((t, t, dipoles['pos'] / 1e-3, amp,
-                              dipoles['ori'], gof), axis=-1)
-        np.savetxt(fid, out, fmt=fmt)
-        if dipoles.get('name') is not None:
-            fid.write('## Name "%s dipoles" Style "Dipoles"' % dipoles['name'])
+    dipole = Dipole(times=times, pos=pos, amplitude=amplitude, ori=ori,
+                     gof=gof, name=name)
+    return dipole
