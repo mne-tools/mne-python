@@ -197,15 +197,21 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t):
     return bem
 
 
-def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
+def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
+                   accurate=True):
     """Prepare coil definitions for forward calculation"""
+    # accuracy param only affects MEG channels
+    if accurate:
+        accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
+    else:
+        accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
     info_extra = 'info'
     meg_info = None
     megnames, eegnames, megcoils, eegels, compcoils = [], [], [], [], []
     # MEG channels
     if meg:
         picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
-                           exclude=[])
+                           exclude=exclude)
         nmeg = len(picks)
         if nmeg > 0:
             megchs = pick_info(info, picks)['chs']
@@ -215,7 +221,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
 
         # comp channels
         if not ignore_ref:
-            picks = pick_types(info, meg=False, ref_meg=True, exclude=[])
+            picks = pick_types(info, meg=False, ref_meg=True, exclude=exclude)
             ncomp = len(picks)
             if (ncomp > 0):
                 compchs = pick_info(info, picks)['chs']
@@ -233,7 +239,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
             ncomp = 0
         ncomp_data = len(info['comps'])
         ref_meg = True if not ignore_ref else False
-        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=[])
+        picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
         meg_info = pick_info(info, picks)
     else:
         logger.info('MEG not requested. MEG channels omitted.')
@@ -242,7 +248,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
     # EEG channels
     if eeg:
         picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                           exclude=[])
+                           exclude=exclude)
         neeg = len(picks)
         if neeg > 0:
             eegchs = pick_info(info, picks)['chs']
@@ -262,7 +268,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False):
         logger.info('%d compensation data sets in %s'
                     % (ncomp_data, info_extra))
     if nmeg > 0:
-        megcoils = _create_coils(megchs, FIFF.FWD_COIL_ACCURACY_ACCURATE,
+        megcoils = _create_coils(megchs, accuracy,
                                  info['dev_head_t'], 'meg', templates)
         if ncomp > 0:
             compcoils = _create_coils(compchs, FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -463,7 +469,8 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
     coils = [megcoils, eegels]
     ccoils = [compcoils, None]
     infos = [meg_info, None]
-    megfwd, eegfwd = _compute_forwards(src, bem, coils, ccoils,
+    rr = np.concatenate([s['rr'][s['vertno']] for s in src])
+    megfwd, eegfwd = _compute_forwards(rr, bem, coils, ccoils,
                                        infos, coil_types, n_jobs)
 
     # merge forwards into one (creates two Forward objects)

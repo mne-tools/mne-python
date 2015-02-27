@@ -177,7 +177,8 @@ class Covariance(dict):
 ###############################################################################
 # IO
 
-def read_cov(fname):
+@verbose
+def read_cov(fname, verbose=None):
     """Read a noise covariance from a FIF file.
 
     Parameters
@@ -185,6 +186,8 @@ def read_cov(fname):
     fname : string
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1291,8 +1294,9 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     return W, ch_names
 
 
+@verbose
 def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
-                  scalings=None):
+                  scalings=None, verbose=None):
     """Whiten evoked data using given noise covariance
 
     Parameters
@@ -1319,6 +1323,9 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
 
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     evoked_white : instance of Evoked
@@ -1330,8 +1337,9 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
     return evoked
 
 
+@verbose
 def _whiten_data(data, info, noise_cov, picks=None, diag=False, rank=None,
-                 scalings=None, nave=1):
+                 scalings=None, nave=1, verbose=None):
     """Whiten a data matrix in place"""
     if picks is None:
         picks = pick_types(info, meg=True, eeg=True)

@@ -193,7 +193,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == 'bads':
         exclude = info.get('bads', [])
-    elif not isinstance(exclude, list):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError('exclude must either be "bads" or a list of strings.'
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')

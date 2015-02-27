@@ -425,16 +425,10 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # MAIN TRIAGING FUNCTION
 
 @verbose
-def _compute_forwards(src, bem, coils_list, ccoils_list,
-                      infos, coil_types, n_jobs, verbose=None):
-    """Compute the MEG and EEG forward solutions
-
-    This effectively combines compute_forward_meg and compute_forward_eeg
-    from MNE-C.
-    """
-    # Precompute some things that are used for both MEG and EEG
-    rr = np.concatenate([s['rr'][s['vertno']] for s in src])
-    srr = mults = mri_rr = mri_Q = None
+def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
+    """Precompute some things that are used for both MEG and EEG"""
+    cf = FIFF.FIFFV_COORD_HEAD
+    srr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
         if bem['bem_method'] != 'linear collocation':
             raise RuntimeError('only linear collocation supported')
@@ -443,30 +437,28 @@ def _compute_forwards(src, bem, coils_list, ccoils_list,
         srr = np.concatenate([s['rr'] for s in bem['surfs']])
 
         # The dipole location and orientation must be transformed
-        mri_rr = apply_trans(bem['head_mri_t']['trans'], rr)
+        head_mri_t = bem['head_mri_t']
         mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
 
-    # Now, actually compute MEG and EEG solutions
-    Bs = list()
-    for coil_type, coils, ccoils, info in zip(coil_types, coils_list,
-                                              ccoils_list, infos):
-        cf = FIFF.FIFFV_COORD_HEAD
-        if len(coils) == 0:  # nothing to do
-            Bs.append([])
-        else:
-            compensator = None
+    if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):
+        raise RuntimeError('Non-unique coil types found')
+    compensators, solutions, csolutions = [], [], []
+    for coil_type, coils, ccoils, info in zip(fwd_data['coil_types'],
+                                              fwd_data['coils_list'],
+                                              fwd_data['ccoils_list'],
+                                              fwd_data['infos']):
+        compensator = csolution = None
+        if len(coils) >= 0:  # nothing to do
             if coil_type == 'meg':
                 # Compose a compensation data set if necessary
                 compensator = _make_ctf_comp_coils(info, coils)
 
             if not bem['is_sphere']:
-                fwd_fun = _bem_pot_or_field
                 # multiply solution by "mults" here for simplicity
                 if coil_type == 'meg':
                     # Field computation matrices for BEM
-                    logger.info('')
                     start = 'Composing the field computation matrix'
-                    logger.info(start + '...')
+                    logger.info('\n' + start + '...')
                     solution = _bem_specify_coils(bem, coils, cf,
                                                   mults, n_jobs)
                     if compensator is not None:
@@ -476,31 +468,73 @@ def _compute_forwards(src, bem, coils_list, ccoils_list,
                 else:
                     solution = _bem_specify_els(bem, coils, mults)
             else:
-                fwd_fun = _sphere_pot_or_field
                 solution = bem
                 if coil_type == 'eeg':
                     logger.info('Using the equivalent source approach in the '
                                 'homogeneous sphere for EEG')
+        compensators.append(compensator)
+        solutions.append(solution)
+        csolutions.append(csolution)
+    fun = _sphere_pot_or_field if bem['is_sphere'] else _bem_pot_or_field
+    fwd_data.update(dict(srr=srr, mri_Q=mri_Q, head_mri_t=head_mri_t,
+                         compensators=compensators, solutions=solutions,
+                         csolutions=csolutions, fun=fun))
 
-            # Do the actual calculation
-            logger.info('Computing %s at %d source locations '
-                        '(free orientations)...'
-                        % (coil_type.upper(), len(rr)))
-            B = fwd_fun(rr, mri_rr, mri_Q, coils, solution, srr,
-                        n_jobs, coil_type)
 
-            # Compensate if needed (only done for MEG systems w/compensation)
-            if compensator is not None:
-                # Compute the field in the compensation coils
-                work = fwd_fun(rr, mri_rr, mri_Q, ccoils, csolution,
-                               srr, n_jobs, coil_type)
-                # Combine solutions so we can do the compensation
-                both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
-                picks = pick_types(info, meg=True, ref_meg=False)
-                both[:, picks] = B
-                picks = pick_types(info, meg=False, ref_meg=True)
-                both[:, picks] = work
-                B = np.dot(both, compensator.T)
-            Bs.append(B)
+@verbose
+def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
+    # Now, actually compute MEG and EEG solutions
+    Bs = list()
+    # The dipole location and orientation must be transformed
+    mri_rr = None
+    if fd['head_mri_t'] is not None:
+        mri_rr = apply_trans(fd['head_mri_t']['trans'], rr)
+    mri_Q, srr, fun = fd['mri_Q'], fd['srr'], fd['fun']
+    for ci in range(len(fd['coils_list'])):
+        coils, ccoils = fd['coils_list'][ci], fd['ccoils_list'][ci]
+        coil_type, compensator = fd['coil_types'][ci], fd['compensators'][ci]
+        solution, csolution = fd['solutions'][ci], fd['csolutions'][ci]
+        info = fd['infos'][ci]
+        if len(coils) == 0:  # nothing to do
+            Bs.append([])
+            continue
 
+        # Do the actual calculation
+        logger.info('Computing %s at %d source location%s '
+                    '(free orientations)...'
+                    % (coil_type.upper(), len(rr),
+                       '' if len(rr) == 1 else 's'))
+        B = fun(rr, mri_rr, mri_Q, coils, solution, srr,
+                n_jobs, coil_type)
+
+        # Compensate if needed (only done for MEG systems w/compensation)
+        if compensator is not None:
+            # Compute the field in the compensation coils
+            work = fun(rr, mri_rr, mri_Q, ccoils, csolution, srr,
+                       n_jobs, coil_type)
+            # Combine solutions so we can do the compensation
+            both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
+            picks = pick_types(info, meg=True, ref_meg=False)
+            both[:, picks] = B
+            picks = pick_types(info, meg=False, ref_meg=True)
+            both[:, picks] = work
+            B = np.dot(both, compensator.T)
+        Bs.append(B)
+    return Bs
+
+
+@verbose
+def _compute_forwards(rr, bem, coils_list, ccoils_list,
+                      infos, coil_types, n_jobs, verbose=None):
+    """Compute the MEG and EEG forward solutions
+
+    This effectively combines compute_forward_meg and compute_forward_eeg
+    from MNE-C.
+    """
+    # These are split into two steps to save (potentially) a lot of time
+    # when e.g. dipole fitting
+    fwd_data = dict(coils_list=coils_list, ccoils_list=ccoils_list,
+                    infos=infos, coil_types=coil_types)
+    _prep_field_computation(rr, bem, fwd_data, n_jobs)
+    Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
     return Bs
