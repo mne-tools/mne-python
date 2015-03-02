@@ -646,8 +646,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', verbose=None):
+             drop_small_buffer=False, proj=False, format=None,
+             overwrite=False, split_size='2GB', verbose=None, fmt='single'):
         """Save raw data to file
 
         Parameters
@@ -685,6 +685,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
+        format : str
+            Format to use to save raw data. Valid options are 'double',
+            'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
+            16-bit integers, respectively. It is STRONGLY recommended to use
+            'single', as this is backward-compatible, and is standard for
+            maintaining precision. Note that using 'short' or 'int' may result
+            in loss of precision, complex data cannot be saved as 'short',
+            and neither complex data types nor real data stored as 'double'
+            can be loaded with the MNE command-line tools. See raw.orig_format
+            to determine the format the original data were stored in.    
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
@@ -707,6 +717,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
         """
+        if format is not None:
+            fmt = format
+            warnings.warn("The format parameter is deprecated and will be replaced"
+                      "by fmt in version 0.11. Use fmt instead.",
+                      DeprecationWarning)
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
