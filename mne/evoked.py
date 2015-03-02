@@ -437,7 +437,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      format=None, time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None):
+                     image_interp='bilinear', average=None, fmt=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -484,6 +484,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             multiple topomaps at a time).
         format : str
             String format for colorbar values.
+        fmt : str
+            String format for colorbar values.
         time_format : str
             String format for topomap values. Defaults to "%01d ms"
         proj : bool | 'interactive'
@@ -527,18 +529,19 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Defaults to None, which means no averaging.
         """
         if format is not None:
+            fmt = format
             warnings.warn("The format parameter is deprecated and will be "
                           "replaced by fmt in version 0.11. Use fmt instead.",
                           DeprecationWarning)
         else:
-            format = "%3.1f"
+            fmt = "%3.1f"
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
                                    vmax=vmax, cmap=cmap, sensors=sensors,
                                    colorbar=colorbar, scale=scale,
                                    scale_time=scale_time,
                                    unit=unit, res=res, proj=proj, size=size,
-                                   format=format, time_format=time_format,
+                                   format=fmt, time_format=time_format,
                                    show=show, show_names=show_names,
                                    title=title, mask=mask,
                                    mask_params=mask_params,

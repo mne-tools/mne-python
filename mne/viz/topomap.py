@@ -60,7 +60,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            from ..channels.layout  import _find_topomap_coords
+            from ..channels.layout import _find_topomap_coords
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
@@ -90,7 +90,7 @@ def _plot_update_evoked_topomap(params, bools):
     data = new_evoked.data[np.ix_(params['picks'],
                                   params['time_idx'])] * params['scale']
     if params['merge_grads']:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     image_mask = params['image_mask']
 
@@ -177,7 +177,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         for l in layout:
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
-                from ..channels.layout  import _pair_grad_sensors_from_ch_names
+                from ..channels.layout import _pair_grad_sensors_from_ch_names
                 grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
                 if grad_pairs:
                     ch_names = [ch_names[i] for i in grad_pairs]
@@ -649,7 +649,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     fig.suptitle(title)
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
         ax.set_title('IC #%03d' % ii, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
@@ -681,7 +681,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2, format=None,
-                     show_names=False, title=None, axes=None, show=True):
+                     fmt=None, show_names=False, title=None,
+                     axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -749,6 +750,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         Side length per topomap in inches.
     format : str
         String format for colorbar values.
+    fmt : str
+        String format for colorbar values.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
@@ -768,11 +771,12 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The figure containing the topography.
     """
     if format is not None:
+        fmt = format
         warnings.warn("The format parameter is deprecated and will be replaced"
                       "by fmt in version 0.11. Use fmt instead.",
                       DeprecationWarning)
     else:
-        format = '%1.1e'
+        fmt = '%1.1e'
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -805,7 +809,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
@@ -845,7 +849,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
-                        res=64, size=1, format=None,
+                        res=64, size=1, format=None, fmt=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
@@ -899,6 +903,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Side length per topomap in inches.
     format : str
         String format for colorbar values.
+    fmt : str
+        String format for colorbar values.
     time_format : str
         String format for topomap values. Defaults to "%01d ms"
     proj : bool | 'interactive'
@@ -940,11 +946,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         no averaging.
     """
     if format is not None:
+        fmt = format
         warnings.warn("The format parameter is deprecated and will be replaced"
                       "by fmt in version 0.11. Use fmt instead.",
                       DeprecationWarning)
     else:
-        format = '%3.1f'
+        fmt = '%3.1f'
     import matplotlib.pyplot as plt
 
     if mask_params is None:
@@ -1052,7 +1059,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
-                     format=format)
+                     format=fmt)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
