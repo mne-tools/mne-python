@@ -599,7 +599,7 @@ except ImportError:
     assert_is_not = _assert_is_not
 
 
-def _sparse_block_diag(mats, fmt=None, dtype=None):
+def _sparse_block_diag(mats, format=None, dtype=None):
     """An implementation of scipy.sparse.block_diag since old versions of
     scipy don't have it. Forms a sparse matrix by stacking matrices in block
     diagonal form.
@@ -608,7 +608,7 @@ def _sparse_block_diag(mats, fmt=None, dtype=None):
     ----------
     mats : list of matrices
         Input matrices.
-    fmt : str, optional
+    format : str, optional
         The sparse format of the result (e.g. "csr"). If not given, the
         matrix is returned in "coo" format.
     dtype : dtype specifier, optional
@@ -625,7 +625,7 @@ def _sparse_block_diag(mats, fmt=None, dtype=None):
         row = [None] * nmat
         row[ia] = a
         rows.append(row)
-    return sparse.bmat(rows, format=fmt, dtype=dtype)
+    return sparse.bmat(rows, format=format, dtype=dtype)
 
 try:
     from scipy.sparse import block_diag as sparse_block_diag
