@@ -748,8 +748,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
-        String format for colorbar values.
     fmt : str
         String format for colorbar values.
     show_names : bool | callable
@@ -901,8 +899,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
-        String format for colorbar values.
     fmt : str
         String format for colorbar values.
     time_format : str

@@ -685,16 +685,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
             to determine the format the original data were stored in.
-        format : str
-            Format to use to save raw data. Valid options are 'double',
-            'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
-            16-bit integers, respectively. It is STRONGLY recommended to use
-            'single', as this is backward-compatible, and is standard for
-            maintaining precision. Note that using 'short' or 'int' may result
-            in loss of precision, complex data cannot be saved as 'short',
-            and neither complex data types nor real data stored as 'double'
-            can be loaded with the MNE command-line tools. See raw.orig_format
-            to determine the format the original data were stored in.
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.

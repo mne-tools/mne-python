@@ -482,8 +482,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         size : scalar
             Side length of the topomaps in inches (only applies when plotting
             multiple topomaps at a time).
-        format : str
-            String format for colorbar values.
         fmt : str
             String format for colorbar values.
         time_format : str
