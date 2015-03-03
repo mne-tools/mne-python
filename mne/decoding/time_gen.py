@@ -7,44 +7,44 @@
 import multiprocessing
 
 import numpy as np
-from scipy.stats import mode
+from scipy import stats
 
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func
 from ..utils import logger, verbose, deprecated
 from ..io.pick import channel_type, pick_types
 
-class DecodingTime(dict):
-    # XXX JRK: is this class defined in the right place?
-    # XXX JRK: Are the following comments adequate?
-    """A dictionary to configure the training times.
-        'slices' : np.ndarray, shape (n_clfs,)
-            Array of time slices (in indices) used for each classifier.
-            If not given, computed from 'start', 'stop', 'length', 'step'.
-        'start' : float
-            Time at which to start decoding (in seconds). By default,
-            min(epochs.times).
-        'stop' : float
-            Maximal time at which to stop decoding (in seconds). By default,
-            max(times).
-        'step' : float
-            Duration separating the start of subsequent classifiers (in
-            seconds). By default, equals one time sample.
-        'length' : float
-            Duration of each classifier (in seconds). By default, equals one
-            time sample.
-        If None, empty dict. Defaults to None."""
+
+class _DecodingTime(dict):
+    """A dictionary to configure the training times that has the following keys:
+
+    'slices' : np.ndarray, shape (n_clfs,)
+        Array of time slices (in indices) used for each classifier.
+        If not given, computed from 'start', 'stop', 'length', 'step'.
+    'start' : float
+        Time at which to start decoding (in seconds). By default,
+        min(epochs.times).
+    'stop' : float
+        Maximal time at which to stop decoding (in seconds). By default,
+        max(times).
+    'step' : float
+        Duration separating the start of subsequent classifiers (in
+        seconds). By default, equals one time sample.
+    'length' : float
+        Duration of each classifier (in seconds). By default, equals one
+        time sample.
+    If None, empty dict. Defaults to None."""
 
     def __repr__(self):
         s = ""
         if "start" in self:
-            s += "start: %s s" % (self["start"])
+            s += "start: %0.3f (s)" % (self["start"])
         if "stop" in self:
-            s += ", stop: %s s" % (self["stop"])
+            s += ", stop: %0.3f (s)" % (self["stop"])
         if "step" in self:
-            s += ", step: %s s" % (self["step"])
+            s += ", step: %0.3f (s)" % (self["step"])
         if "length" in self:
-            s += ", length: %s s" % (self["length"])
+            s += ", length: %0.3f (s)" % (self["length"])
         if "slices" in self:
             # identify depth: training times only contains n_time but
             # testing_times can contain n_times or n_times * m_times
@@ -53,12 +53,12 @@ class DecodingTime(dict):
                 if depth[0] == 1:  # if depth is one
                     s += ", n_time_windows: %s" % (len(depth))
                 else:
-                    s += ", n_time_windows: %s * %s" % (len(depth), depth[0])
+                    s += ", n_time_windows: %s x %s" % (len(depth), depth[0])
             else:
-                s += ", n_time_windows: %s * [%s, %s]" % \
-                (len(depth),
-                 min([len(ii) for ii in depth]),
-                 max(([len(ii) for ii in depth])))
+                s += (", n_time_windows: %s x [%s, %s]" %
+                      (len(depth),
+                       min([len(ii) for ii in depth]),
+                       max(([len(ii) for ii in depth]))))
         return "<DecodingTime | %s>" % s
 
 
@@ -145,8 +145,9 @@ class GeneralizationAcrossTime(object):
     and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
     unexpected sounds", PLOS ONE, 2013
     """
-    def __init__(self, cv=5, clf=None, train_times=None, predict_type='predict',
-                 predict_mode='cross-validation', n_jobs=1):
+    def __init__(self, cv=5, clf=None, train_times=None,
+                 predict_type='predict', predict_mode='cross-validation',
+                 n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.svm import SVC
@@ -155,8 +156,8 @@ class GeneralizationAcrossTime(object):
         # Store parameters in object
         self.cv = cv
         # Define training sliding window
-        self.train_times = DecodingTime() if train_times is None \
-                                          else DecodingTime(train_times)
+        self.train_times = (_DecodingTime() if train_times is None
+                            else _DecodingTime(train_times))
 
         # Default classification pipeline
         if clf is None:
@@ -168,37 +169,28 @@ class GeneralizationAcrossTime(object):
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
 
-
     def __repr__(self):
         s = ''
         if hasattr(self, "estimators_"):
-            # XXX JRK: Shall we print the repr from the DecodingTime() obj
-            # instead?
-            s += "fitted: from %f s. to %f s. (%f s. every %f s.)" \
-                % (self.train_times['start'],
-                  self.train_times['stop'],
-                  self.train_times['length'],
-                  self.train_times['step'])
+            s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
+                self.train_times['start'], self.train_times['stop'])
         else:
-            s += 'fitted: False'
+            s += 'no fit'
         if hasattr(self, 'y_pred_'):
-            s += ", predicted: %s trials (%s)" % (len(self.y_pred_), \
-                self.predict_type)
-            # check whether homogeneous testing time per training time
-            n = [len(self.y_pred_[T]) for T in range(len(self.y_pred_))]
-            if len(np.unique(n)) == 1:
-                s += " on %s time slice(s) each" % (len(self.y_pred_[0]))
-            else:
-                s += " on %s - %s time slice(s) each" % (min(n), max(n))
+            s += (", predict_type : '%s' on %d epochs" % (
+                self.predict_type, len(self.y_pred_)))
         else:
-            s += ", predicted: False"
+            s += ", no prediction"
+        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
+            s += ',\n '
+        else:
+            s += ', '
         if hasattr(self, 'scores_'):
-            s += ", scored: True"
-            # XXX potential Python incompatibility: no func_name attribute.
-            if hasattr(self.scorer_, "func_name") :
-                s +=" (%s)" % (self.scorer_.func_name)
+            s += "scored"
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
         else:
-            s += ", scored: False"
+            s += "no score"
 
         return "<GAT | %s>" % s
 
@@ -215,6 +207,19 @@ class GeneralizationAcrossTime(object):
         picks : np.ndarray of int, shape (n_channels,) | None
             The channels to be used. If None, defaults to meg and eeg channels.
             Defaults to None.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+
+        Notes
+        ------
+        If X and y are not C-ordered and contiguous arrays of np.float64 and
+        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
+
+        If X is a dense array, then the other methods will not support sparse
+        matrices as input.
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
@@ -234,10 +239,9 @@ class GeneralizationAcrossTime(object):
         self.y_train_ = y
 
         # Cross validation scheme
-        # XXX Cross validation should be transformed into a make_cv, and
+        # XXX Cross validation should later be transformed into a make_cv, and
         # defined in __init__
-
-        if not 'slices' in self.train_times:
+        if 'slices' not in self.train_times:
             self.train_times['slices'] = _sliding_window(
                 epochs.times, self.train_times)
 
@@ -255,14 +259,15 @@ class GeneralizationAcrossTime(object):
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
         splits = np.array_split(self.train_times['slices'], n_chunk)
 
-        f = lambda x: np.unique(np.concatenate(x))
+        def f(x):
+            return np.unique(np.concatenate(x))
 
         out = parallel(p_time_gen(clone(self.clf),
                                   X[..., f(train_slices_chunk)],
                                   y, train_slices_chunk, cv)
                        for train_slices_chunk in splits)
         # Unpack estimators into time slices X folds list of lists.
-        self.estimators_ = sum(out, [])
+        self.estimators_ = sum(out, list())
         return self
 
     def predict(self, epochs, test_times=None, picks=None):
@@ -311,7 +316,6 @@ class GeneralizationAcrossTime(object):
         n_jobs = self.n_jobs
         X, y = _check_epochs_input(epochs, None, picks)
 
-
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
             raise RuntimeError('Please fit models before trying to predict')
@@ -319,20 +323,18 @@ class GeneralizationAcrossTime(object):
 
         # Define testing sliding window
         if test_times == 'diagonal':
-            test_times_ = DecodingTime()
+            test_times_ = _DecodingTime()
             test_times_['slices'] = [[s] for s in self.train_times['slices']]
         elif test_times is None:
-            test_times_ = DecodingTime()
+            test_times_ = _DecodingTime()
         elif isinstance(test_times, dict):
-            # XXX JRK: Should this test whether test_times if a DecodingTime
-            # object or is this sufficient?
             test_times_ = test_times
         else:
             raise ValueError('`test_times` must be a dict, "diagonal" or None')
 
-        if not 'slices' in test_times_:
+        if 'slices' not in test_times_:
             # Initialize array
-            test_times_['slices_'] = []
+            test_times_['slices_'] = list()
             # Force same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
             test_times_['length'] = self.train_times['length']
@@ -439,7 +441,7 @@ class GeneralizationAcrossTime(object):
 
         # Initialize values: Note that this is not an array as the testing
         # times per training time need not be regular
-        scores = [[] for _ in range(len(self.test_times_['slices']))]
+        scores = [list() for _ in range(len(self.test_times_['slices']))]
 
         # Loop across training/testing times
         for t_train, slices in enumerate(self.test_times_['slices']):
@@ -498,7 +500,7 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         title : str | None
-        Figure title. Defaults to None.
+            Figure title. Defaults to None.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
@@ -555,15 +557,15 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
     """
-    n_trial = len(X)
+    n_epochs = len(X)
     # Loop across testing slices
-    y_pred = [[] for _ in range(len(slices))]
+    y_pred = [list() for _ in range(len(slices))]
 
     # XXX EHN: This loop should be parallelized in a similar way to fit()
     for t, indices in enumerate(slices):
         # Flatten features in case of multiple time samples
         Xtrain = X[:, :, indices].reshape(
-            n_trial, np.prod(X[:, :, indices].shape[1:]))
+            n_epochs, np.prod(X[:, :, indices].shape[1:]))
 
         # Single trial predictions
         if predict_mode == 'cross-validation':
@@ -573,9 +575,9 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
 
             # Check that training cv and predicting cv match
             if (len(estimators) != cv.n_folds) or (cv.n != Xtrain.shape[0]):
-                raise ValueError('When `predict_mode = "cross-validation"`, the'
-                                 ' training and predicting cv schemes must be '
-                                 'identical.')
+                raise ValueError(
+                    'When `predict_mode = "cross-validation"`, the training '
+                    'and predicting cv schemes must be identical.')
             for k, (train, test) in enumerate(cv):
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
@@ -583,7 +585,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
                 if k == 0:
                     y_pred_ = _predict(Xtrain[test, :],
                                        estimators[k:k + 1], predict_type)
-                    y_pred[t] = np.empty((n_trial, y_pred_.shape[1]))
+                    y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
                 y_pred[t][test, :] = _predict(Xtrain[test, :],
                                               estimators[k:k + 1],
@@ -693,7 +695,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
     from sklearn.base import clone
     # Initialize
     n_epochs = len(x_chunk)
-    estimators = []
+    estimators = list()
     # Identify the time samples of X_chunck corresponding to X
     values = np.unique(np.concatenate(slices))
     indices = range(len(values))
@@ -708,7 +710,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
         # samples.
         X = X.reshape(n_epochs, np.prod(X.shape[1:]))
         # Loop across folds
-        estimators_ = []
+        estimators_ = list()
         for fold, (train, test) in enumerate(cv):
             # Fit classifier
             clf_ = clone(clf)
@@ -747,13 +749,13 @@ def _sliding_window(times, window_params):
                 ('start', 'stop', 'step', 'length'))):
         time_pick = window_params['slices']
     else:
-        if not 'start' in window_params:
+        if 'start' not in window_params:
             window_params['start'] = times[0]
-        if not 'stop' in window_params:
+        if 'stop' not in window_params:
             window_params['stop'] = times[-1]
-        if not 'step' in window_params:
+        if 'step' not in window_params:
             window_params['step'] = freq
-        if not 'length' in window_params:
+        if 'length' not in window_params:
             window_params['length'] = freq
 
         # Convert seconds to index
@@ -805,19 +807,22 @@ def _predict(X, estimators, predict_type):
     # XXX Here I did not manage to find an efficient and generic way to guess
     # the number of output provided by predict, and could thus not initalize
     # the y_pred values.
-    n_trial = X.shape[0]
+    n_epochs = X.shape[0]
     n_clf = len(estimators)
-    n_class = 0  # initialize
+    n_class = 1  # initialize
     if predict_type == 'predict':
         n_class = 1
     elif predict_type == 'predict_proba':
-        n_class = estimators[0].predict_proba(X[0, :]).shape[1]
+        n_class = estimators[0].predict_proba(X[0, :]).shape[-1]
     elif predict_type == 'decision_function':
-        n_class = estimators[0].decision_function(X[0, :]).shape[1]
+        shape = estimators[0].decision_function(X[0, :]).shape
+        if len(shape) > 1:  # deal with sklearn APIs
+            n_class = shape[1]
+
     else:
-        raise RuntimeError('predict_type must be "predict" or "predict_proba" '
-                           'or "decision_function"')
-    y_pred = np.ones((n_trial, n_class, n_clf))
+        raise ValueError('predict_type must be "predict" or "predict_proba" '
+                         'or "decision_function"')
+    y_pred = np.ones((n_epochs, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
@@ -830,148 +835,21 @@ def _predict(X, estimators, predict_type):
             y_pred[:, :, fold] = clf.predict_proba(X)
         elif predict_type == 'decision_function':
             # continuous non-probabilistic prediction
-            y_pred[:, :, fold] = clf.decision_function(X)
+            y_ = clf.decision_function(X)
+            if y_.ndim == 1:  # new sklearn versions seem to return 1d arrays
+                y_ = y_[:, None]
+            y_pred[:, :, fold] = y_
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
         if predict_type == 'predict':
-            y_pred, _ = mode(y_pred, axis=2)
+            y_pred, _ = stats.mode(y_pred, axis=2)
         else:
             y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
-    y_pred = y_pred.reshape((n_trial, n_class))
+    y_pred = y_pred.reshape((n_epochs, n_class))
     return y_pred
-
-
-def _time_loop(clf, scorer, X, y, train, test, X_gen, y_gen, train_slice,
-               test_slices):
-    """Aux function"""
-    # Initialize results
-    scores = []  # scores
-    tested = []  # tested time points
-    scores_gen = []  # generalization score
-    # Flatten features
-    my_reshape = lambda X: X.reshape(len(X), np.prod(X.shape[1:]))
-    # Select training set
-    X_train = my_reshape(X[train, :, train_slice])
-    # Fit classifier
-    clf.fit(X_train, y[train])
-    # Test classification performance across testing time
-    for test_slice in test_slices:
-        # Select testing time slice
-        X_test = my_reshape(X[test, :, test_slice])
-        # Evaluate classifier on cross-validation set
-        # and store result in relative sampling-time
-        scores.append(scorer(clf, X_test, y[test]))
-        tested.append(True)
-        # Evaluate classifier on cross-condition generalization set
-        if X_gen is not None and y_gen is not None:
-            x_gen = my_reshape(X_gen[..., test_slice])
-            scores_gen.append(scorer(clf, x_gen, y_gen))
-
-    return scores, scores_gen, tested
-
-
-def _compress_results(scores, tested):
-    """"Aux function
-
-    Avoids returning partially empty results by removing empty lines and
-    columns (generally due to slice length > 1).
-    """
-    scores = scores[:, np.any(tested, axis=0)]
-    scores = scores[np.any(tested, axis=1), :]
-    return scores
-
-
-def _gen_type(n_samples, relative_test_slice=False, train_slices=None,
-              test_slices=None):
-    """ Creates typical temporal generalization scenarios
-
-    The function return train_slices, test_slices that indicate the time
-    samples to be used for training and testing each classifier. These
-    lists can be directly used by time_generalization_Xy()
-
-    Parameters
-    ----------
-    n_samples : int
-        Number of time samples in each trial | Last sample to on which the
-        classifier can be trained
-    relative_test_slice : bool
-        True implies that the samples indicated in test_slices are relative to
-        the samples in train_slices. False implies that the samples in
-        test_slices corresponds to the actual data samples. Defaults to False.
-    train_slices : list | callable | None
-        List of slices generated with create_slices(). By default the
-        classifiers are trained on all time points (i.e.
-        create_slices(n_time)). Defaults to None.
-    test_slices : list |  callable | None
-        List of slices generated with create_slices(). By default the
-        classifiers are tested on all time points (i.e.
-        [create_slices(n_time)] * n_time). Defaults to None.
-    """
-    from ..utils import create_slices  # To be deprecated in v0.10
-
-    # Setup train slices
-    if train_slices is None:
-        # default: train and test over all time samples
-        train_slices = create_slices(0, n_samples)
-    elif callable(train_slices):
-        # create slices once n_slices is known
-        train_slices = train_slices(0, n_samples)
-
-    # Setup test slices
-    if not relative_test_slice:
-        # Time generalization is from/to particular time samples
-        if test_slices is None:
-            # Default: testing time is identical to training time
-            test_slices = [train_slices] * len(train_slices)
-        elif callable(test_slices):
-            test_slices = [test_slices(n_samples)] * len(train_slices)
-
-    else:
-        # Time generalization is at/around the training time samples
-        if test_slices is None:
-            # Default: testing times are identical to training slices
-            # (classic decoding across time)
-            test_slices = [[s] for s in train_slices]
-        else:
-            # Update slice by combining timing of test and train slices
-            up_slice = lambda test, train: slice(test.start + train.start,
-                                                 test.stop + train.stop - 1,
-                                                 train.step)
-
-            test_slices = np.tile(
-                [test_slices], (len(train_slices), 1)).tolist()
-            for t_train in range(len(train_slices)):
-                for t_test in range(len(test_slices[t_train])):
-                    # Add start and stop of training and testing slices
-                    # to make testing timing dependent on training timing
-                    test_slices[t_train][t_test] = up_slice(
-                        test_slices[t_train][t_test],
-                        train_slices[t_train])
-
-    # Check that all time samples are in bounds
-    if any([(s.start < 0) or (s.stop > n_samples) for s in train_slices]) or \
-       any([(s.start < 0) or (s.stop > n_samples) for ss in test_slices
-            for s in ss]):
-        logger.warn('Slicing: time samples out of bound!')
-        # Shortcut to select slices that are in bounds
-        sel = lambda slices, bol: [s for s, b in zip(slices, bol) if b]
-
-        # Deal with testing slices first:
-        for t_train in range(len(test_slices)):
-            # Find testing slices that are in bounds
-            inbound = [(s.start >= 0) and (s.stop <= n_samples)
-                       for s in test_slices[t_train]]
-            test_slices[t_train] = sel(test_slices[t_train], inbound)
-
-        # Deal with training slices then:
-        inbound = [(s.start >= 0) and (s.stop <= n_samples)
-                   for s in train_slices]
-        train_slices = sel(train_slices, inbound)
-
-    return train_slices, test_slices
 
 
 def _time_gen_one_fold(clf, X, y, train, test, scoring):

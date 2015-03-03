@@ -61,7 +61,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
                    cmap=cmap)
     ax.set_xlabel('Testing Time (s)')
     ax.set_ylabel('Training Time (s)')
-    if not title is None:
+    if title is not None:
         ax.set_title(title)
     ax.axvline(0, color='k')
     ax.axhline(0, color='k')

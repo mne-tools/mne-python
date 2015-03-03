@@ -1689,6 +1689,7 @@ def _sphere_to_cartesian(theta, phi, r):
 
 def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
+
     Parameters
     ----------
     start : int

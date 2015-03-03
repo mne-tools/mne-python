@@ -10,6 +10,8 @@ from nose.tools import assert_raises
 from mne.decoding import GeneralizationAcrossTime
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, run_tests_if_main
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -20,8 +22,6 @@ event_name = op.join(data_dir, 'test-eve.fif')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 # Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
@@ -39,7 +39,7 @@ def _get_data():
     picks = picks[1:13:3]
     decim = 30
     # Test on time generalization within one condition
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
 
