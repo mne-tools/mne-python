@@ -694,7 +694,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             in loss of precision, complex data cannot be saved as 'short',
             and neither complex data types nor real data stored as 'double'
             can be loaded with the MNE command-line tools. See raw.orig_format
-            to determine the format the original data were stored in.    
+            to determine the format the original data were stored in.
         overwrite : bool
             If True, the destination file (if it exists) will be overwritten.
             If False (default), an error will be raised if the file exists.
@@ -719,9 +719,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         if format is not None:
             fmt = format
-            warnings.warn("The format parameter is deprecated and will be replaced"
-                      "by fmt in version 0.11. Use fmt instead.",
-                      DeprecationWarning)
+            warnings.warn("The format parameter is deprecated and will "
+                          "be replaced by fmt in version 0.11."
+                          "Use fmt instead.", DeprecationWarning)
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
