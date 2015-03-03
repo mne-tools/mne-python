@@ -270,7 +270,7 @@ def test_ica_additional():
               n_pca_components=4)
     assert_raises(RuntimeError, ica.save, '')
     with warnings.catch_warnings(record=True):
-        ica.fit(raw, picks=[1,2,3,4,5], start=start, stop=stop2)
+        ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
 
     # test corrmap
     ica2 = deepcopy(ica)
