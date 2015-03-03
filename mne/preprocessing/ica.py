@@ -2185,7 +2185,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
 
         am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
               for i in i_s]
-        median_corr_with_target = np.median(am)
+        median_corr_with_target = (np.median(am) if len(am)>0 else 0)
 
         polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
                       for i in i_s]
@@ -2206,7 +2206,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         except IndexError:
             return [], 0, 0, []
 
-    def _plot_corrmap(data, subjs, indices, ch_type, name):
+    def _plot_corrmap(data, subjs, indices, ch_type, ica, name):
 
         from mne.viz.utils import (_prepare_trellis, tight_layout,
                                    _setup_vmin_vmax)
@@ -2222,7 +2222,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         if len(picks) > p:  # plot components by sets of 20
             n_components = len(picks)
             figs = [_plot_corrmap(data[k:k+p], subjs[k:k+p],
-                    indices[k:k+p], ch_type)
+                    indices[k:k+p], ch_type, name)
                     for k in range(0, n_components, p)]
             return figs
         elif np.isscalar(picks):
@@ -2277,8 +2277,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
         except ValueError:
             if threshold > 1:
                 logger.info("No component detected using find_outliers."
-                            "Consider using threshold='auto'")
-                return
+                            " Consider using threshold='auto'")
+            return
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
@@ -2292,7 +2292,11 @@ def corrmap(icas, template, threshold="auto", name="bads",
             if threshold > 1:
                 logger.info("No component detected using find_outliers. "
                             "Consider using threshold='auto'")
-                return
+            return
+    elif len(threshold) > 1:
+        paths = [find_max_corrs(all_maps, nt, t) for t in threshold]
+        # find iteration with highest avg correlation with target
+        nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
     nones = list(range(len(icas)))
     new_icas, allmaps, indices, subjs = [], [], [], []
@@ -2321,11 +2325,11 @@ def corrmap(icas, template, threshold="auto", name="bads",
             new_icas.append(ica)
 
     if plot is True:
-        _plot_corrmap(allmaps, subjs, indices, ch_type, name)
+        _plot_corrmap(allmaps, subjs, indices, ch_type, ica, name)
 
     if nones:
         logger.info("No maps selected for subject(s) " +
-                    ", ".join(nones) +
+                    ", ".join([str(x) for x in nones]) +
                     ", consider a more liberal threshold.")
     else:
         logger.info("At least 1 IC detected for each subject.")
