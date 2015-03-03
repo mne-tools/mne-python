@@ -1044,9 +1044,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         C = np.diag(noise_cov.data[C_ch_idx])
 
     scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if scalings is None:
-        pass
-    elif isinstance(scalings, dict):
+    if isinstance(scalings, dict):
         scalings_.update(scalings)
 
     # Create the projection operator
@@ -1351,12 +1349,10 @@ def _whiten_data(data, info, noise_cov, picks=None, diag=False, rank=None,
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if scalings is None:
-        pass
-    elif isinstance(scalings, dict):
+    if isinstance(scalings, dict):
         scalings_.update(scalings)
 
-    W, _ = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)
+    W, _ = compute_whitener(noise_cov, info, rank=rank, scalings=scalings_)
     data[picks] = np.sqrt(nave) * np.dot(W, data[picks])
 
 
