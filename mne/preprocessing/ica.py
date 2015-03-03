@@ -2162,7 +2162,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
 
         am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
               for i in i_s]
-        median_corr_with_target = (np.median(am) if len(am)>0 else 0)
+        median_corr_with_target = (np.median(am) if len(am) > 0 else 0)
 
         polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
                       for i in i_s]
