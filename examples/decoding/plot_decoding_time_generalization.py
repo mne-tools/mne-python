@@ -76,7 +76,7 @@ gat.plot()  # plot full GAT matrix
 
 # In this case, because the test data is independent from the train data,
 # we test the classifier of each fold and average the respective prediction:
-#gat.predict_mode = 'mean-prediction'
+gat.predict_mode = 'mean-prediction'
 
 # For our left events, which ones are visual?
 viz_vs_auditory_l = (events[np.in1d(events, (1, 3))] == 3).astype(int)

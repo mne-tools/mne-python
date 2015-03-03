@@ -203,4 +203,4 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime()
     gat.fit(epochs[0:6])
     gat.predict(epochs[0:6])
-    assert_raises(ValueError, gat.predict, epochs)
+    assert_raises(ValueError, gat.predict, epochs[0:6])
