@@ -42,7 +42,7 @@ decim = 3  # decimate to make the example faster to run
 epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     picks=picks, baseline=None, preload=True,
                     reject=dict(mag=5e-12), decim=decim, verbose=False)
-epochs.equalize_event_counts(event_id, copy=False)
+#epochs.equalize_event_counts(event_id, copy=False)
 
 ###############################################################################
 # Generalization across time (GAT)
@@ -76,8 +76,7 @@ gat.plot()  # plot full GAT matrix
 
 # In this case, because the test data is independent from the train data,
 # we test the classifier of each fold and average the respective prediction:
-gat.predict_mode = 'mean-prediction'
-
+#gat.predict_mode = 'mean-prediction'
 
 # For our left events, which ones are visual?
 viz_vs_auditory_l = (events[np.in1d(events, (1, 3))] == 3).astype(int)

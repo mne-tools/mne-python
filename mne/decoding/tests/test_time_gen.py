@@ -82,6 +82,7 @@ def test_generalization_across_time():
                 "s. every 0.046619 s.), predicted: 15 trials (predict) on 15" \
                 " time slice(s) each, scored: True (accuracy_score)>" == \
                 "%s" % gat)
+
     gat.fit(epochs, y=epochs.events[:, 2])
     gat.score(epochs, y=epochs.events[:, 2])
     assert_true("accuracy_score" in '%s' % gat.scorer_)
@@ -196,3 +197,10 @@ def test_generalization_across_time():
     gat.score(epochs)
     # check that continuous prediction leads to AUC rather than accuracy
     assert_true("roc_auc_score" in '%s' % gat.scorer_)
+
+    # Test that gets error if train on one dataset, test on another, and don't
+    # specify appropriate cv:
+    gat = GeneralizationAcrossTime()
+    gat.fit(epochs[0:6])
+    gat.predict(epochs[0:6])
+    assert_raises(ValueError, gat.predict, epochs)

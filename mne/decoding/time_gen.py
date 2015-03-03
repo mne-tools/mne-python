@@ -570,6 +570,12 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
             # If predict within cross validation, only predict with
             # corresponding classifier, else predict with each fold's
             # classifier and average prediction.
+
+            # Check that training cv and predicting cv match
+            if (len(estimators) != cv.n_folds) or (cv.n != Xtrain.shape[0]):
+                raise ValueError('When `predict_mode = "cross-validation"`, the'
+                                 ' training and predicting cv schemes must be '
+                                 'identical.')
             for k, (train, test) in enumerate(cv):
                 # XXX I didn't manage to initialize correctly this array, as
                 # its size depends on the the type of predictor and the
