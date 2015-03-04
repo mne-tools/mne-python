@@ -27,8 +27,10 @@ data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
+edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -85,6 +87,19 @@ def test_edf_data():
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
+
+    # Test uneven sampling
+    raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
+    data_py, _ = raw_py[0]
+    # this .mat was generated using the EEG Lab Biosemi Reader
+    raw_eeglab = io.loadmat(edf_uneven_eeglab_path)
+    raw_eeglab = raw_eeglab['data']
+    data_eeglab = raw_eeglab[0]
+
+    # match upsampling
+    upsample = len(data_eeglab) / len(raw_py)
+    data_py = np.repeat(data_py, repeats=upsample)
+    assert_array_equal(data_py, data_eeglab)
 
 
 def test_read_segment():
