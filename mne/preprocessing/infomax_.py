@@ -62,12 +62,24 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
         The maximum number of iterations. Defaults to 200.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    random_state : None, int, str, or instance of RandomState
+        If set to 'iterative' the random state is set to a fixed seed in each
+        iteration of the algorithm. Otherwise the argument is passed to 
+        `mne.utils.check_random_state`.
 
     Returns
     -------
     unmixing_matrix : np.ndarray of float, shape (n_features, n_features)
         The linear unmixing operator.
     """
+    if random_state == 'iterative':
+        # make sure we don't change the seed on numpy's internal RNG by 
+        # setting random_state to 0. This causes `check_random_state` to
+        # return a new RandomState instance.
+        random_state = 0
+        force_reseed = True
+    else:
+        force_reseed = False
     rng = check_random_state(random_state)
 
     # define some default parameter
@@ -136,7 +148,8 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     while step < max_iter:
 
         # shuffle data at each step
-        rng.seed(step)  # --> permutation is fixed but differs at each step
+        if force_reseed:
+            rng.seed(step)  # --> permutation is fixed but differs at each step
         permute = list(range(n_samples))
         rng.shuffle(permute)
 
