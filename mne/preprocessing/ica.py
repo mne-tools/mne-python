@@ -2222,7 +2222,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         if len(picks) > p:  # plot components by sets of 20
             n_components = len(picks)
             figs = [_plot_corrmap(data[k:k+p], subjs[k:k+p],
-                    indices[k:k+p], ch_type, name)
+                    indices[k:k+p], ch_type, ica, name)
                     for k in range(0, n_components, p)]
             return figs
         elif np.isscalar(picks):
