@@ -206,6 +206,10 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
 
 def _make_volume_source_space(surf, grid, exclude, mindist, n_jobs):
     """Make a source space which covers the volume bounded by surf"""
+    # eventually this could be replaced by a call to setup_volume_source_space,
+    # but it's really convenient to have the same search grid for debugging,
+    # so we leave it for now
+
     # Figure out the grid size
     cm = np.mean(surf['rr'], axis=0)
     min_ = surf['rr'].min(axis=0)
