@@ -13,7 +13,6 @@ from ..io.pick import pick_channels_evoked
 from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _check_reference
 from ..cov import compute_whitener
-from ..source_estimate import _make_stc
 from ..utils import logger, verbose
 from ..dipole import Dipole
 from ._lcmv import _prepare_beamformer_input, _setup_picks
@@ -119,7 +118,6 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
         G_proj = np.dot(projection, G)
         phi_sig_proj = np.dot(projection, phi_sig)
 
-    subject = _subject_from_forward(forward)
     sol = linalg.lstsq(A, data)[0]
 
     active_set = np.sort(active_set)

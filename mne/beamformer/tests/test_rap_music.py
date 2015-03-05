@@ -1,7 +1,6 @@
 import os.path as op
 
 from nose.tools import assert_true
-import numpy as np
 from numpy.testing import assert_array_almost_equal
 import warnings
 

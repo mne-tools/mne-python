@@ -19,14 +19,11 @@ DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 
 import mne
 
-import matplotlib.pyplot as plt
-
 from mayavi import mlab
 
 from mne.datasets import sample
 from mne.beamformer import rap_music
 from mne.io.pick import pick_types_evoked
-from mne.viz import plot_sparse_source_estimates
 
 
 data_path = sample.data_path()
