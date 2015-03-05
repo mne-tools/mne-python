@@ -366,12 +366,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             # and it's not a band-stop filter
             if h_freq is not None:
                 if (l_freq is None or l_freq < h_freq) and \
-                   (self.info["lowpass"] is None or h_freq < self.info['lowpass']):
-                    self.info['lowpass'] = h_freq
+                   (self.info["lowpass"] is None or
+                   h_freq < self.info['lowpass']):
+                        self.info['lowpass'] = h_freq
             if l_freq is not None:
                 if (h_freq is None or l_freq < h_freq) and \
-                (self.info["highpass"] is None or l_freq > self.info['highpass']):
-                    self.info['highpass'] = l_freq
+                   (self.info["highpass"] is None or
+                   l_freq > self.info['highpass']):
+                        self.info['highpass'] = l_freq
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
             low_pass_filter(self._data, fs, h_freq,
