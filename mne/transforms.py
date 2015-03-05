@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import os
+from os import path as op
 import glob
 import numpy as np
 from numpy import sin, cos
@@ -49,9 +50,11 @@ def _coord_frame_name(cframe):
 def _print_coord_trans(t, prefix='Coordinate transformation: '):
     logger.info(prefix + '%s -> %s'
                 % (_coord_frame_name(t['from']), _coord_frame_name(t['to'])))
-    for tt in t['trans']:
-        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f mm' %
-                    (tt[0], tt[1], tt[2], 1000 * tt[3]))
+    for ti, tt in enumerate(t['trans']):
+        scale = 1000. if ti != 3 else 1.
+        text = ' mm' if ti != 3 else ''
+        logger.info('    % 8.6f % 8.6f % 8.6f    %7.2f%s' %
+                    (tt[0], tt[1], tt[2], scale * tt[3], text))
 
 
 def _find_trans(subject, subjects_dir=None):
@@ -226,14 +229,31 @@ def translation(x=0, y=0, z=0):
     return m
 
 
-def _get_mri_head_t_from_trans_file(fname):
-    """Helper to convert "-trans.txt" to "-trans.fif" mri-type equivalent"""
-    # Read a Neuromag -> FreeSurfer transformation matrix
-    t = np.genfromtxt(fname)
-    if t.ndim != 2 or t.shape != (4, 4):
-        raise RuntimeError('File "%s" did not have 4x4 entries' % fname)
-    t = {'from': FIFF.FIFFV_COORD_HEAD, 'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
-    return invert_transform(t)
+def _get_mri_head_t(mri):
+    """Get mri_head_t (from=mri, to=head) from mri filename"""
+    if isinstance(mri, string_types):
+        if not op.isfile(mri):
+            raise IOError('mri file "%s" not found' % mri)
+        if op.splitext(mri)[1] in ['.fif', '.gz']:
+            mri_head_t = read_trans(mri)
+        else:
+            # convert "-trans.txt" to "-trans.fif" mri-type equivalent
+            t = np.genfromtxt(mri)
+            if t.ndim != 2 or t.shape != (4, 4):
+                raise RuntimeError('File "%s" did not have 4x4 entries'
+                                   % mri)
+            mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
+                          'to': FIFF.FIFFV_COORD_MRI, 'trans': t}
+    else:  # dict
+        mri_head_t = mri
+        mri = 'dict'
+    # it's usually a head->MRI transform, so we probably need to invert it
+    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
+        mri_head_t = invert_transform(mri_head_t)
+    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
+            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
+        raise RuntimeError('Incorrect MRI transform provided')
+    return mri_head_t, mri
 
 
 def combine_transforms(t_first, t_second, fro, to):

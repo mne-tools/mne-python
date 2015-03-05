@@ -23,7 +23,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, read_bem_surfaces,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d)
+                      fast_cross_3d, _fast_cross_nd_sum)
 from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
@@ -31,8 +31,8 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, _get_mri_head_t_from_trans_file,
-                         read_trans, _coord_frame_name)
+                         combine_transforms, _get_mri_head_t,
+                         _coord_frame_name)
 
 
 def _get_lut():
@@ -299,23 +299,8 @@ class SourceSpaces(list):
             # modify affine if in head coordinates
             if coords == 'head':
 
-                # read transformation
-                if isinstance(trans, string_types):
-                    if not op.isfile(trans):
-                        raise IOError('trans file "%s" not found' % trans)
-                    if op.splitext(trans)[1] in ['.fif', '.gz']:
-                        mri_head_t = read_trans(trans)
-                    else:
-                        mri_head_t = _get_mri_head_t_from_trans_file(trans)
-                else:  # dict
-                    mri_head_t = trans
-
-                # make sure its an MRI to HEAD transform
-                if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-                    mri_head_t = invert_transform(mri_head_t)
-                if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-                        mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-                    raise RuntimeError('Incorrect MRI transform provided')
+                # read mri -> head transformation
+                mri_head_t = _get_mri_head_t(trans)[0]
 
                 # get the HEAD to MRI transform
                 head_mri_t = invert_transform(mri_head_t)
@@ -1443,9 +1428,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
                              'pos is a dict')
 
     if volume_label is not None:
-        if isinstance(pos, dict):
-            raise ValueError('If volume label is not none, pos must be '
-                             'float, not a dict.')
+        if mri is None:
+            raise RuntimeError('"mri" must be provided if "volume_label" is '
+                               'not None')
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
         if volume_label not in volume_labels:
@@ -2083,17 +2068,9 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
-def _fast_cross_nd_sum(a, b, c):
-    """Fast cross and sum"""
-    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
-            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
-            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
-
-
 def _get_solids(tri_rrs, fros):
     """Helper for computing _sum_solids_div total angle in chunks"""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    # tot_angle = np.zeros((len(fros)))
     # for tri_rr in tri_rrs:
     #     v1 = fros - tri_rr[0]
     #     v2 = fros - tri_rr[1]
@@ -2107,20 +2084,25 @@ def _get_solids(tri_rrs, fros):
     #          np.sum(v1 * v3, axis=1) * l2 +
     #          np.sum(v2 * v3, axis=1) * l1)
     #     tot_angle -= np.arctan2(triple, s)
-    v1 = fros[np.newaxis] - tri_rrs[:, 0, :][:, np.newaxis]
-    v2 = fros[np.newaxis] - tri_rrs[:, 1, :][:, np.newaxis]
-    v3 = fros[np.newaxis] - tri_rrs[:, 2, :][:, np.newaxis]
-    triples = _fast_cross_nd_sum(v1, v2, v3)
-    l1 = np.sqrt(np.sum(v1 * v1, axis=2))
-    l2 = np.sqrt(np.sum(v2 * v2, axis=2))
-    l3 = np.sqrt(np.sum(v3 * v3, axis=2))
-    ss = (l1 * l2 * l3 +
-          np.sum(v1 * v2, axis=2) * l3 +
-          np.sum(v1 * v3, axis=2) * l2 +
-          np.sum(v2 * v3, axis=2) * l1)
-    tot_angle = -np.sum(np.arctan2(triples, ss), axis=0)
-    return tot_angle
 
+    # This is the vectorized version, but with a slicing heuristic to
+    # prevent memory explosion
+    tot_angle = np.zeros((len(fros)))
+    slices = np.linspace(0, len(fros), len(fros) // 100 + 2, dtype=int)
+    for i1, i2 in zip(slices[:-1], slices[1:]):
+        v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
+        v2 = fros[i1:i2] - tri_rrs[:, 1, :][:, np.newaxis]
+        v3 = fros[i1:i2] - tri_rrs[:, 2, :][:, np.newaxis]
+        triples = _fast_cross_nd_sum(v1, v2, v3)
+        l1 = np.sqrt(np.sum(v1 * v1, axis=2))
+        l2 = np.sqrt(np.sum(v2 * v2, axis=2))
+        l3 = np.sqrt(np.sum(v3 * v3, axis=2))
+        ss = (l1 * l2 * l3 +
+              np.sum(v1 * v2, axis=2) * l3 +
+              np.sum(v1 * v3, axis=2) * l2 +
+              np.sum(v2 * v3, axis=2) * l1)
+        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
+    return tot_angle
 
 
 @verbose

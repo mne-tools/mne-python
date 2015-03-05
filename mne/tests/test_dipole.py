@@ -6,13 +6,13 @@ import warnings
 
 from mne import (read_dip, read_dipole, Dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
-                 SourceEstimate, write_evokeds, fit_dipole, read_trans,
-                 transform_surface_to)
+                 SourceEstimate, write_evokeds, fit_dipole,
+                 transform_surface_to, make_sphere_model)
 from mne.simulation import generate_evoked
-from mne.transforms import invert_transform, apply_trans
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
                        run_subprocess)
+from mne.proj import make_eeg_average_ref_proj
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -70,30 +70,32 @@ def test_dipole_fitting():
     fname_dtemp = op.join(tempdir, 'test.dip')
     fname_sim = op.join(tempdir, 'test-ave.fif')
     fwd = convert_forward_solution(read_forward_solution(fname_fwd),
-                                   surf_ori=True, force_fixed=True)
+                                   surf_ori=False, force_fixed=True)
     evoked = read_evokeds(fname_evo)[0]
     cov = read_cov(fname_cov)
-    n_per_hemi = 3
+    n_per_hemi = 5
     vertices = [np.sort(rng.permutation(s['vertno'])[:n_per_hemi])
                 for s in fwd['src']]
     nv = sum(len(v) for v in vertices)
     stc = SourceEstimate(amp * np.eye(nv), vertices, 0, 0.001)
     with warnings.catch_warnings(record=True):  # semi-def cov
-        evoked = generate_evoked(fwd, stc, evoked, cov, snr=10,
+        evoked = generate_evoked(fwd, stc, evoked, cov, snr=20,
                                  random_state=rng)
+    evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
     write_evokeds(fname_sim, evoked)
 
     # Run MNE-C version
     run_subprocess([
         'mne_dipole_fit', '--meas', fname_sim, '--meg', '--eeg',
-        '--bem', fname_bem, '--noise', fname_cov, '--dip', fname_dtemp,
+        '--noise', fname_cov, '--dip', fname_dtemp,
         '--mri', fname_fwd, '--reg', '0', '--tmin', '0',
     ])
     dip_c = read_dipole(fname_dtemp)
 
     # Run mne-python version
+    sphere = make_sphere_model(head_radius=0.1)
     with warnings.catch_warnings(record=True):  # proj warning
-        dip = fit_dipole(evoked, fname_cov, fname_bem, fname_fwd)
+        dip = fit_dipole(evoked, fname_cov, sphere, fname_fwd)
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])
@@ -118,11 +120,10 @@ def test_dipole_fitting():
                                                      axis=1)))]
         amp_errs += [np.sqrt(np.mean((amp - d.amplitude) ** 2))]
         gofs += [np.mean(d.gof)]
-    assert_true(dists[0] >= dists[1], 'dists')
-    assert_true(corrs[0] <= corrs[1], 'corrs')
-    assert_true(gc_dists[0] >= gc_dists[1], 'great circle dists (ori)')
-    # XXX these need to be fixed...
-    # assert_true(amp_errs[0] >= amp_errs[1], 'amplitude errors')
-    # assert_true(gofs[0] <= gofs[1], 'gof')
+    assert_true(dists[0] >= dists[1], 'dists: %s' % dists)
+    assert_true(corrs[0] <= corrs[1], 'corrs: %s' % corrs)
+    assert_true(gc_dists[0] >= gc_dists[1], 'gc-dists (ori): %s' % gc_dists)
+    assert_true(amp_errs[0] >= amp_errs[1], 'amplitude errors: %s' % amp_errs)
+    # assert_true(gofs[0] <= gofs[1], 'gof: %s' % gofs)
 
 run_tests_if_main(False)

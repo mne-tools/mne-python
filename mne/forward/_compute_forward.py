@@ -9,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
-                       _triangle_coords)
+                       _triangle_coords, _fast_cross_nd_sum)
 from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger, verbose
@@ -51,30 +51,19 @@ def _check_coil_frame(coils, coord_frame, bem):
     return coils, coord_frame
 
 
-def _bem_lin_field_coeffs_simple(dest, normal, tri_rr, tri_nn, tri_area):
-    """Simple version..."""
-    out = np.zeros((3, len(dest)))
-    for rr, o in zip(tri_rr, out):
-        diff = dest - rr
-        dl = np.sum(diff * diff, axis=1)
-        x = fast_cross_3d(diff, tri_nn[np.newaxis, :])
-        o[:] = tri_area * np.sum(x * normal, axis=1) / (3.0 * dl * np.sqrt(dl))
-    return out
-
-
-def _lin_field_coeff(s, mult, rmags, cosmags, ws, counts, func, n_jobs):
+def _lin_field_coeff(s, mult, rmags, cosmags, ws, counts, n_jobs):
     """Use the linear field approximation to get field coefficients"""
     parallel, p_fun, _ = parallel_func(_do_lin_field_coeff, n_jobs)
     nas = np.array_split
     coeffs = parallel(p_fun(s['rr'], t, tn, ta,
-                            rmags, cosmags, ws, counts, func)
+                            rmags, cosmags, ws, counts)
                       for t, tn, ta in zip(nas(s['tris'], n_jobs),
                                            nas(s['tri_nn'], n_jobs),
                                            nas(s['tri_area'], n_jobs)))
     return mult * np.sum(coeffs, axis=0)
 
 
-def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, counts, func):
+def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, counts):
     """Actually get field coefficients (parallel-friendly)"""
     coeff = np.zeros((len(counts), len(rr)))
     bins = np.repeat(np.arange(len(counts)), counts)
@@ -90,11 +79,16 @@ def _do_lin_field_coeff(rr, t, tn, ta, rmags, cosmags, ws, counts, func):
         #     res = np.sum(coil['w'][np.newaxis, :] * x, axis=1)
         #     coeff[j][tri + off] += mult * res
 
-        xx = func(rmags, cosmags, tri_rr, tri_nn, tri_area)
-        # only loops 3x (one per direction)
-        zz = np.array([np.bincount(bins, weights=x * ws,
-                                   minlength=len(counts)) for x in xx])
-        coeff[:, tri] += zz.T
+        # Simple version (bem_lin_field_coeffs_simple)
+        zz = []
+        for trr in tri_rr:
+            diff = rmags - trr
+            dl = np.sum(diff * diff, axis=1)
+            c = fast_cross_3d(diff, tri_nn[np.newaxis, :])
+            x = tri_area * np.sum(c * cosmags, axis=1) / \
+                (3.0 * dl * np.sqrt(dl))
+            zz += [np.bincount(bins, weights=x * ws, minlength=len(counts))]
+        coeff[:, tri] += np.array(zz).T
     return coeff
 
 
@@ -116,8 +110,6 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     # leaving this in in case we want to easily add in the future
     # if method != 'simple':  # in ['ferguson', 'urankar']:
     #     raise NotImplementedError
-    # else:
-    func = _bem_lin_field_coeffs_simple
 
     # Process each of the surfaces
     rmags, cosmags, ws, counts = _concatenate_coils(coils)
@@ -126,7 +118,7 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     for o1, o2, surf, mult in zip(lens[:-1], lens[1:],
                                   bem['surfs'], bem['field_mult']):
         coeff[:, o1:o2] = _lin_field_coeff(surf, mult, rmags, cosmags,
-                                           ws, counts, func, n_jobs)
+                                           ws, counts, n_jobs)
     # put through the bem
     sol = np.dot(coeff, bem['solution'])
     sol *= mults
@@ -424,7 +416,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # #############################################################################
 # MAIN TRIAGING FUNCTION
 
-@verbose
+# XXX @verbose
 def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     """Precompute some things that are used for both MEG and EEG"""
     cf = FIFF.FIFFV_COORD_HEAD
@@ -447,8 +439,8 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                                               fwd_data['coils_list'],
                                               fwd_data['ccoils_list'],
                                               fwd_data['infos']):
-        compensator = csolution = None
-        if len(coils) >= 0:  # nothing to do
+        compensator = solution = csolution = None
+        if len(coils) > 0:  # something to actually do
             if coil_type == 'meg':
                 # Compose a compensation data set if necessary
                 compensator = _make_ctf_comp_coils(info, coils)
@@ -496,7 +488,7 @@ def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
         solution, csolution = fd['solutions'][ci], fd['csolutions'][ci]
         info = fd['infos'][ci]
         if len(coils) == 0:  # nothing to do
-            Bs.append([])
+            Bs.append(np.zeros((3 * len(rr), 0)))
             continue
 
         # Do the actual calculation

@@ -420,6 +420,13 @@ def fast_cross_3d(x, y):
         return np.cross(x, y)
 
 
+def _fast_cross_nd_sum(a, b, c):
+    """Fast cross and sum"""
+    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
+            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
+            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
+
+
 def _accumulate_normals(tris, tri_nn, npts):
     """Efficiently accumulate triangle normals"""
     # this code replaces the following, but is faster (vectorized):

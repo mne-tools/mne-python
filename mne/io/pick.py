@@ -292,7 +292,7 @@ def pick_info(info, sel=[], copy=True):
         info = deepcopy(info)
 
     if len(sel) == 0:
-        raise ValueError('Warning : No channels match the selection.')
+        raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]

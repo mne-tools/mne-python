@@ -11,7 +11,9 @@ from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types
 from .io.constants import FIFF
 from .bem import _fit_sphere
-from .transforms import _print_coord_trans, _coord_frame_name
+from .transforms import (_print_coord_trans, _coord_frame_name,
+                         apply_trans, invert_transform)
+
 from .forward._make_forward import (_get_mri_head_t, _setup_bem,
                                     _prep_channels)
 from .forward._compute_forward import (_compute_forwards_meeg,
@@ -278,7 +280,7 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
                     % (_bem_explain_surface(surf['id']),
                        _coord_frame_name(surf['coord_frame'])))
     else:
-        radius = surf_or_rad
+        radius = surf_or_rad[0]
         logger.info('Making a spherical guess space with radius %7.1f mm...'
                     % (1000 * radius))
         surf = _get_ico_surface(3)
@@ -290,34 +292,21 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
     return SourceSpaces([src])
 
 
-def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None):
+def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
+              constraint=None):
     """Calculate the residual sum of squares"""
     if fwd_svd is None:
+        dist = constraint(rd)
+        if dist <= 0:
+            return 1. - 100 * dist
         r1s = rd[np.newaxis, :]
-        if isinstance(fwd_data['inner_skull'], dict):
-            surf = fwd_data['inner_skull']
-            outside = _points_outside_surface(r1s, surf, 1)[0]
-            # Push solver back inside the surface
-            if outside:
-                dist = _compute_nearest(surf['rr'], r1s,
-                                        return_dists=True)[1][0]
-                return 1. + dist * 100
-        else:
-            pass  # should eventually do this for spheres, too...
         fwd = _dipole_forwards(fwd_data, whitener, r1s)[0]
         uu, sing, vv = linalg.svd(fwd, full_matrices=False)
     else:
         uu, sing, vv = fwd_svd
     ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
     Bm2 = np.sum(np.dot(vv[:ncomp], B) ** 2)
-    return (B2 - Bm2) / B2
-
-
-def _find_best_guess(B, B2, rrs, guess_fwd_svd):
-    """Find a good starting point"""
-    goodnesses = [1.0 - _fit_eval(None, B, B2, fwd_svd)
-                  for fwd_svd in guess_fwd_svd]
-    return rrs[np.argmax(goodnesses)]
+    return 1. - Bm2 / B2
 
 
 def _fit_Q(fwd_data, whitener, B, B2, rd):
@@ -331,7 +320,8 @@ def _fit_Q(fwd_data, whitener, B, B2, rd):
                            axis=0)
     Bm2 = np.sum(one ** 2)
     residual = B2 - Bm2
-    return Q, residual
+    gof = 1. - residual / B2
+    return Q, gof
 
 
 def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener, n_jobs):
@@ -350,9 +340,34 @@ def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener, n_jobs):
 def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
     """Fit a single bit of data"""
     logger.info('---- Fitting : %7.1f ms' % (1000 * t,))
+
+    # make constraint function to keep the solver within the inner skull
+    if isinstance(fwd_data['inner_skull'], dict):  # bem
+        surf = fwd_data['inner_skull']
+
+        def constraint(rd):
+            if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
+                dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
+                                        return_dists=True)[1][0]
+                return -dist
+            else:
+                return 1.
+    else:  # sphere
+        R, r0 = fwd_data['inner_skull']
+        R_adj = R - 1e-5  # to be sure we don't hit the innermost surf
+
+        def constraint(rd):
+            return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
+
+    # Find a good starting point (find_best_guess in C)
     B2 = np.dot(B, B)
-    x0 = _find_best_guess(B, B2, rrs, guess_fwd_svd)
-    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener)
+    if B2 == 0:
+        logger.warning('Zero field found for time %s' % t)
+        return np.zeros(3), 0, np.zeros(3), 0
+    x0 = rrs[np.argmin([_fit_eval(rrs[fi][np.newaxis, :], B, B2, fwd_svd)
+                        for fi, fwd_svd in enumerate(guess_fwd_svd)])]
+    fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener,
+                  constraint=constraint)
 
     # These were tested on a grid of 26 known locations
     # Params                    corr, dist, time
@@ -386,8 +401,8 @@ def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
     # n rhobeg=1e-2, rhoend=1e-3: 0.994, 8.1, 19 sec
     # n rhobeg=1e-2, rhoend=1e-4: 0.994, 8.0, 29 sec
     # n rhobeg=1e-2, rhoend=5e-4: 0.995, 8.0, 22 sec
-    rd_final = optimize.fmin_cobyla(fun, x0, (), rhobeg=1e-2, rhoend=5e-4,
-                                    disp=False)
+    rd_final = optimize.fmin_cobyla(fun, x0, (constraint,), consargs=(),
+                                    rhobeg=5e-2, rhoend=1e-4, disp=False)
 
     # L-BFGS-B
     # c epsilon=1e-4, factr=1e12: 0.998, 4.6, 46 sec
@@ -414,8 +429,7 @@ def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
     #                              approx_grad=True)[0]
 
     # Compute the dipole moment at the final point
-    Q, residual = _fit_Q(fwd_data, whitener, B, B2, rd_final)
-    gof = 1.0 - residual / B2
+    Q, gof = _fit_Q(fwd_data, whitener, B, B2, rd_final)
     amp = np.sqrt(np.sum(Q * Q))
     norm = 1 if amp == 0 else amp
     ori = Q / norm
@@ -464,8 +478,8 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, 'inner_skull')
         inner_skull = inner_skull.copy()
-        transform_surface_to(inner_skull, 'head', mri_head_t)
         R, r0 = _fit_sphere(inner_skull['rr'], disp=False)
+        r0 = apply_trans(mri_head_t['trans'], r0[np.newaxis, :])[0]
         logger.info('Grid origin      : '
                     '%6.1f %6.1f %6.1f mm rad = %6.1f mm.'
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2], 1000 * R))
@@ -473,11 +487,17 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
         r0 = bem['r0']
         logger.info('Sphere model     : origin at (% 7.2f % 7.2f % 7.2f) mm'
                     % (1000 * r0[0], 1000 * r0[1], 1000 * r0[2]))
-        inner_skull = 0.08
+        if 'layers' in bem:
+            R = bem['layers'][0]['rad']
+        else:
+            R = np.inf
+        inner_skull = [R, r0]
+    r0_mri = apply_trans(invert_transform(mri_head_t)['trans'],
+                         r0[np.newaxis, :])[0]
 
     # Eventually these could be parameters, but they are just used for
     # the initial grid anyway
-    guess_grid = 0.01
+    guess_grid = 0.02
     guess_mindist = 0.01
     guess_exclude = 0.02
     accurate = False  # can be made an option later (shouldn't make big diff)
@@ -505,23 +525,28 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
     picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-    # from .io.pick import pick_info
-    # from .cov import prepare_noise_cov
-    # info_nb = pick_info(evoked.info, picks)
-    # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
-    # nzero = (cov['eig'] > 0)
-    # n_chan = len(info_nb['ch_names'])
-    # whitener = np.zeros((n_chan, n_chan), dtype=np.float)
-    # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
-    # whitener = np.dot(whitener, cov['eigvec'])
-    # del cov, info_nb
-    whitener = _get_whitener_data(evoked.info, cov, picks, verbose=False)
+
+    from .io.pick import pick_info
+    from .cov import prepare_noise_cov
+    info_nb = pick_info(evoked.info, picks)
+    cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
+    nzero = (cov['eig'] > 0)
+    n_chan = len(info_nb['ch_names'])
+    whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+    whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
+    whitener = np.dot(whitener, cov['eigvec'])
+    del cov, info_nb
+
+    # whitener = _get_whitener_data(evoked.info, cov, picks, verbose=False)
 
     # Proceed to computing the fits (make_guess_data)
     logger.info('\n---- Computing the forward solution for the guesses...')
-    src = _make_guesses(inner_skull, r0,
+    src = _make_guesses(inner_skull, r0_mri,
                         guess_grid, guess_exclude, guess_mindist,
                         n_jobs=n_jobs)[0]
+    if isinstance(inner_skull, dict):
+        transform_surface_to(inner_skull, 'head', mri_head_t)
+    transform_surface_to(src, 'head', mri_head_t)
 
     # C code computes guesses using a sphere model for speed, don't bother here
     logger.info('Go through all guess source locations...')
@@ -532,7 +557,6 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     guess_fwd = _dipole_forwards(fwd_data, whitener, src['rr'],
                                  n_jobs=n_jobs)[0]
     # decompose ahead of time
-    logger.info('Decompose forward solutions...')
     guess_fwd_svd = [linalg.svd(fwd, full_matrices=False)
                      for fwd in np.array_split(guess_fwd, len(src['rr']))]
     logger.info('[done %d sources]' % src['nuse'])

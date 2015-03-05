@@ -16,9 +16,9 @@ from ..io import read_info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
-from ..transforms import (invert_transform, transform_surface_to,
-                          read_trans, _get_mri_head_t_from_trans_file,
-                          apply_trans, _print_coord_trans, _coord_frame_name)
+from ..transforms import (invert_transform, transform_surface_to, apply_trans,
+                          _get_mri_head_t, _print_coord_trans,
+                          _coord_frame_name)
 from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
@@ -240,7 +240,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
         ncomp_data = len(info['comps'])
         ref_meg = True if not ignore_ref else False
         picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)
-        meg_info = pick_info(info, picks)
+        meg_info = pick_info(info, picks) if nmeg > 0 else None
     else:
         logger.info('MEG not requested. MEG channels omitted.')
         nmeg = 0
@@ -277,27 +277,6 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
         eegels = _create_coils(eegchs, coil_type='eeg', coilset=templates)
     logger.info('Head coordinate coil definitions created.')
     return megcoils, compcoils, eegels, megnames, eegnames, meg_info
-
-
-def _get_mri_head_t(mri):
-    """Get mri_head_t from mri filename"""
-    if isinstance(mri, string_types):
-        if not op.isfile(mri):
-            raise IOError('mri file "%s" not found' % mri)
-        if op.splitext(mri)[1] in ['.fif', '.gz']:
-            mri_head_t = read_trans(mri)
-        else:
-            mri_head_t = _get_mri_head_t_from_trans_file(mri)
-    else:  # dict
-        mri_head_t = mri
-        mri = 'dict'
-    # it's usually a head->MRI transform, so we probably need to invert it
-    if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-        mri_head_t = invert_transform(mri_head_t)
-    if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-            mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-        raise RuntimeError('Incorrect MRI transform provided')
-    return mri_head_t, mri
 
 
 @verbose

@@ -21,6 +21,9 @@ import mne
 
 print(__doc__)
 
+meg = True
+eeg = True
+
 data_path = mne.datasets.testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
 fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-ave.fif')
@@ -38,7 +41,7 @@ fname_src = op.join(temp_dir, 'test-src.fif')
 fname_sim = op.join(temp_dir, 'test-ave.fif')
 
 #
-# Simulate data on a 4 cm grid @ SNR=20
+# Simulate data on a 4 cm grid @ SNR=20 with random orientations
 #
 amp = 10e-9
 rng = np.random.RandomState(0)
@@ -56,7 +59,11 @@ stc = mne.VolSourceEstimate(amp * np.eye(fwd['src'][0]['nuse']),
                             fwd['src'][0]['vertno'], 0, 0.001)
 evoked = mne.simulation.generate_evoked(fwd, stc, evoked, cov, snr=20,
                                         random_state=rng)
+if eeg:
+    evoked.add_proj(mne.proj.make_eeg_average_ref_proj(evoked.info))
 mne.write_evokeds(fname_sim, evoked)
+picks = mne.pick_types(evoked.info, meg=meg, eeg=eeg)
+evoked.pick_channels([evoked.ch_names[k] for k in picks])
 
 #
 # Run MNE-C version
@@ -64,8 +71,8 @@ mne.write_evokeds(fname_sim, evoked)
 mne.utils.run_subprocess([
     'mne_dipole_fit', '--meas', fname_sim, '--meg', '--eeg',
     '--bem', fname_bem, '--noise', fname_cov, '--dip', fname_dip,
-    '--mri', fname_mri, '--reg', '0', '--tmin', '0',
-])
+    '--mri', fname_mri, '--reg', '0'] +
+    (['--meg'] if meg else []) + (['--eeg'] if eeg else []))
 dip_c = mne.read_dipole(fname_dip)
 shutil.rmtree(temp_dir)
 
@@ -80,7 +87,7 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_mri, n_jobs=2)
 trans = mne.read_trans(fname_mri)
 mne.transform_surface_to(src[0], 'head', trans)
 src_rr = src[0]['rr'][src[0]['vertno']]
-src_nn = src[0]['nn'][src[0]['vertno']]
+src_nn = fwd['source_nn']
 
 # MNE-C skips the last "time" point :(
 dip.crop(dip_c.times[0], dip_c.times[-1])
@@ -94,6 +101,9 @@ pts = ax.plot(orig[:, 0], orig[:, 1],
               color='k', markerfacecolor='none', marker='o', markersize=10,
               linestyle='none', label='True location')[0]
 algs = ['MNE-C', 'mne-python']
+gc_dist = 180 / np.pi * np.mean(np.arccos(np.sum(dip_c.ori * dip.ori,
+                                                 axis=1)))
+print('  Average orientation error: %s deg' % round(gc_dist, 1))
 for ii, (d, color, alg) in enumerate(zip((dip_c, dip), ('b', 'r'), algs)):
     new = d.pos * 1000.
     diffs = new - orig
