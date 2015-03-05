@@ -38,16 +38,16 @@ fwd = mne.read_forward_solution(fwd_fname)
 src = fwd['src']
 
 # read dipoles
-time, pos, amplitude, ori, gof = mne.read_dip(dip_fname)
+dip = mne.read_dipole(dip_fname)
 
-print("Time (ms): %s" % time)
-print("Amplitude (nAm): %s" % amplitude)
-print("GOF (%%): %s" % gof)
+print("Time (ms): %s" % dip.times)
+print("Amplitude (nAm): %s" % dip.amplitude)
+print("GOF (%%): %s" % dip.gof)
 
 # only plot those for which GOF is above 50%
-pos = pos[gof > 50.]
-ori = ori[gof > 50.]
-time = time[gof > 50.]
+pos = dip.pos[dip.gof > 50.]
+ori = dip.ori[dip.gof > 50.]
+time = dip.times[dip.gof > 50.]
 
 ###############################################################################
 # Show result on 3D source space

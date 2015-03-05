@@ -1441,12 +1441,6 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
-    elif not isinstance(pos, dict):
-        # "pos" will create a discrete src, so we don't need "mri"
-        # if "pos" is None, we must have "mri" b/c it will be vol src
-        raise RuntimeError('"mri" must be provided if "pos" is not a dict '
-                           '(i.e., if a volume instead of discrete source '
-                           'space is desired)')
 
     if volume_label is not None:
         if isinstance(pos, dict):
@@ -1553,6 +1547,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
         _add_interpolator(sp, mri, add_interpolator)
+    elif sp['type'] == 'vol':
+        # If there is no interpolator, it's actually a discrete source space
+        sp['type'] = 'discrete'
 
     if 'vol_dims' in sp:
         del sp['vol_dims']
@@ -2086,24 +2083,44 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
+def _fast_cross_nd_sum(a, b, c):
+    """Fast cross and sum"""
+    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
+            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
+            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
+
+
 def _get_solids(tri_rrs, fros):
     """Helper for computing _sum_solids_div total angle in chunks"""
     # NOTE: This incorporates the division by 4PI that used to be separate
-    tot_angle = np.zeros((len(fros)))
-    for tri_rr in tri_rrs:
-        v1 = fros - tri_rr[0]
-        v2 = fros - tri_rr[1]
-        v3 = fros - tri_rr[2]
-        triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-        l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-        l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-        l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-        s = (l1 * l2 * l3 +
-             np.sum(v1 * v2, axis=1) * l3 +
-             np.sum(v1 * v3, axis=1) * l2 +
-             np.sum(v2 * v3, axis=1) * l1)
-        tot_angle -= np.arctan2(triple, s)
+    # tot_angle = np.zeros((len(fros)))
+    # for tri_rr in tri_rrs:
+    #     v1 = fros - tri_rr[0]
+    #     v2 = fros - tri_rr[1]
+    #     v3 = fros - tri_rr[2]
+    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
+    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    #     s = (l1 * l2 * l3 +
+    #          np.sum(v1 * v2, axis=1) * l3 +
+    #          np.sum(v1 * v3, axis=1) * l2 +
+    #          np.sum(v2 * v3, axis=1) * l1)
+    #     tot_angle -= np.arctan2(triple, s)
+    v1 = fros[np.newaxis] - tri_rrs[:, 0, :][:, np.newaxis]
+    v2 = fros[np.newaxis] - tri_rrs[:, 1, :][:, np.newaxis]
+    v3 = fros[np.newaxis] - tri_rrs[:, 2, :][:, np.newaxis]
+    triples = _fast_cross_nd_sum(v1, v2, v3)
+    l1 = np.sqrt(np.sum(v1 * v1, axis=2))
+    l2 = np.sqrt(np.sum(v2 * v2, axis=2))
+    l3 = np.sqrt(np.sum(v3 * v3, axis=2))
+    ss = (l1 * l2 * l3 +
+          np.sum(v1 * v2, axis=2) * l3 +
+          np.sum(v1 * v3, axis=2) * l2 +
+          np.sum(v2 * v3, axis=2) * l1)
+    tot_angle = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
+
 
 
 @verbose
@@ -2305,7 +2322,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 assert_equal(s0[name], s1[name], name)
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
-                assert_array_equal(s0[name], s1[name])
+                assert_array_equal(s0[name], s1[name], err_msg=name)
             # these fields will exist if patch info was added, these are
             # not tested in mode == 'approx'
             for name in ['nearest', 'nearest_dist']:

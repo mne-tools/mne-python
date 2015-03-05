@@ -1079,7 +1079,10 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
                       'currents are used.' % (1e9 * max_cur))
 
     src_sel = _stc_src_sel(fwd['src'], stc)
-    n_src = sum([len(v) for v in stc.vertices])
+    if isinstance(stc, VolSourceEstimate):
+        n_src = len(stc.vertices)
+    else:
+        n_src = sum([len(v) for v in stc.vertices])
     if len(src_sel) != n_src:
         raise RuntimeError('Only %i of %i SourceEstimate vertices found in '
                            'fwd' % (len(src_sel), n_src))

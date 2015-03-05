@@ -991,8 +991,8 @@ def _unpack_epochs(epochs):
     return epochs
 
 
-@verbose
-def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
+def _get_ch_whitener(A, pca, ch_type, rank=None, verbose=None):
+    """"Get whitener params for a set of channels"""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
@@ -1084,8 +1084,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings_)
-        C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
-                                                rank_meg)
+        C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
+                                                   rank_meg)
     if has_eeg:
         C_eeg = C[np.ix_(C_eeg_idx, C_eeg_idx)]
         this_info = pick_info(info, pick_eeg)
@@ -1093,8 +1093,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings_)
-        C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
-                                                rank_eeg)
+        C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
+                                                   rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
             warnings.warn('No average EEG reference present in info["projs"], '
                           'covariance may be adversely affected. Consider '
@@ -1330,19 +1330,19 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
         The whitened evoked data.
     """
     evoked = cp.deepcopy(evoked)
-    _whiten_data(evoked.data, evoked.info, noise_cov, picks,
-                 diag, rank, scalings, evoked.nave)
+    if picks is None:
+        picks = pick_types(evoked.info, meg=True, eeg=True)
+    W = _get_whitener_data(evoked.info, noise_cov, picks,
+                           diag, rank, scalings, evoked.nave)
+    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
     return evoked
 
 
 @verbose
-def _whiten_data(data, info, noise_cov, picks=None, diag=False, rank=None,
-                 scalings=None, nave=1, verbose=None):
-    """Whiten a data matrix in place"""
-    if picks is None:
-        picks = pick_types(info, meg=True, eeg=True)
+def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
+                       scalings=None, verbose=None):
+    """Get whitening matrix for a set of data"""
     ch_names = [info['ch_names'][k] for k in picks]
-
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
@@ -1352,8 +1352,8 @@ def _whiten_data(data, info, noise_cov, picks=None, diag=False, rank=None,
     if isinstance(scalings, dict):
         scalings_.update(scalings)
 
-    W, _ = compute_whitener(noise_cov, info, rank=rank, scalings=scalings_)
-    data[picks] = np.sqrt(nave) * np.dot(W, data[picks])
+    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings_)[0]
+    return W
 
 
 @verbose
