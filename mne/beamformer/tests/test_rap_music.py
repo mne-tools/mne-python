@@ -70,29 +70,22 @@ def test_rap_music():
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
 
-    def _check_stc(stc):
-        stc.crop(0.02, None)
-        assert_true(stc.data.shape[0], n_sources)
-        assert_true(stc.vertices[0].size == 1)
-        assert_true(stc.vertices[1].size == 1)
-
-        stc_pow = np.sum(stc.data, axis=1)
-        idx = np.argmax(stc_pow)
-        max_stc = np.abs(stc.data[idx])
-        tmax = stc.times[np.argmax(max_stc)]
-
-        assert_true(0.06 < tmax < 0.11, tmax)
+    def _check_dipole(dipole):
+        assert_true(dipole['pos'].shape[0], n_sources)
+        assert_true(dipole['ori'].shape[0], n_sources)
+        assert_true(dipole['ori'].shape[1], 3 if forward['source_ori']
+                    else 1)
 
     n_sources = 2
 
-    stc = rap_music(evoked, forward, noise_cov, n_sources=n_sources)
-    _check_stc(stc)
+    dipole = rap_music(evoked, forward, noise_cov, n_sources=n_sources)
+    _check_dipole(dipole)
 
     # Test with fixed forward
-    stc_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
-                               n_sources=n_sources,
-                               return_residual=True)
-    _check_stc(stc_fixed)
+    dipole_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
+                                  n_sources=n_sources,
+                                  return_residual=True)
+    _check_dipole(dipole_fixed)
 
     # Test the residual times
     assert_array_almost_equal(evoked.times, res.times)
