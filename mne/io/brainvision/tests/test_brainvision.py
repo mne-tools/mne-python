@@ -35,6 +35,8 @@ def test_brainvision_data_filters():
                                preload=False)
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)
+    raw.info["lowpass"] = None
+    raw.filter(1, 30)
 
 
 def test_brainvision_data():
