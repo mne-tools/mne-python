@@ -2088,7 +2088,7 @@ def _get_solids(tri_rrs, fros):
     # This is the vectorized version, but with a slicing heuristic to
     # prevent memory explosion
     tot_angle = np.zeros((len(fros)))
-    slices = np.linspace(0, len(fros), len(fros) // 100 + 2, dtype=int)
+    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
     for i1, i2 in zip(slices[:-1], slices[1:]):
         v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
         v2 = fros[i1:i2] - tri_rrs[:, 1, :][:, np.newaxis]
