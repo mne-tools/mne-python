@@ -7,7 +7,7 @@ import numpy as np
 from scipy import optimize, linalg
 import re
 
-from .cov import read_cov, _get_whitener_data
+from .cov import read_cov  # , _get_whitener_data
 from .io.pick import pick_types
 from .io.constants import FIFF
 from .bem import _fit_sphere

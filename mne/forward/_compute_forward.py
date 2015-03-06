@@ -9,7 +9,7 @@ import numpy as np
 from copy import deepcopy
 
 from ..surface import (fast_cross_3d, _find_nearest_tri_pt, _get_tri_supp_geom,
-                       _triangle_coords, _fast_cross_nd_sum)
+                       _triangle_coords)
 from ..io.constants import FIFF
 from ..transforms import apply_trans
 from ..utils import logger, verbose
