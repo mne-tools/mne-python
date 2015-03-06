@@ -7,7 +7,7 @@ import numpy as np
 from scipy import optimize, linalg
 import re
 
-from .cov import read_cov  # , _get_whitener_data
+from .cov import read_cov, _get_whitener_data
 from .io.pick import pick_types
 from .io.constants import FIFF
 from .bem import _fit_sphere
@@ -23,7 +23,7 @@ from .externals.six import string_types
 from .surface import (_bem_find_surface, transform_surface_to,
                       _normalize_vectors, _get_ico_surface,
                       _bem_explain_surface, _compute_nearest)
-from .source_space import (_filter_source_spaces, SourceSpaces,
+from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
@@ -204,78 +204,6 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     return B, scales
 
 
-def _make_volume_source_space(surf, grid, exclude, mindist, n_jobs):
-    """Make a source space which covers the volume bounded by surf"""
-    # eventually this could be replaced by a call to setup_volume_source_space,
-    # but it's really convenient to have the same search grid for debugging,
-    # so we leave it for now
-
-    # Figure out the grid size
-    cm = np.mean(surf['rr'], axis=0)
-    min_ = surf['rr'].min(axis=0)
-    max_ = surf['rr'].max(axis=0)
-
-    # Define the sphere which fits the surface
-    maxdist = surf['rr'] - cm[np.newaxis, :]
-    maxdist = np.sqrt(np.sum(maxdist * maxdist, axis=1).max())
-
-    logger.info('\tSurface CM = (%6.1f %6.1f %6.1f) mm'
-                % (1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
-    logger.info('\tSurface fits inside a sphere with radius %6.1f mm'
-                % (1000 * maxdist))
-    logger.info('\tSurface extent:\n'
-                '\t\tx = %6.1f ... %6.1f mm\n'
-                '\t\ty = %6.1f ... %6.1f mm\n'
-                '\t\tz = %6.1f ... %6.1f mm'
-                % (1000 * min_[0], 1000 * max_[0],
-                   1000 * min_[1], 1000 * max_[1],
-                   1000 * min_[2], 1000 * max_[2]))
-    maxn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
-                     np.floor(np.abs(m) / grid) - 1 for m in max_], int)
-    minn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
-                     np.floor(np.abs(m) / grid) - 1 for m in min_], int)
-    logger.info('\tGrid extent:\n'
-                '\t\tx = %6.1f ... %6.1f mm\n'
-                '\t\ty = %6.1f ... %6.1f mm\n'
-                '\t\tz = %6.1f ... %6.1f mm\n'
-                % (1000 * (minn[0] * grid), 1000 * (maxn[0] * grid),
-                   1000 * (minn[1] * grid), 1000 * (maxn[1] * grid),
-                   1000 * (minn[2] * grid), 1000 * (maxn[2] * grid)))
-    # Now make the initial grid
-    npts = np.prod(maxn - minn + 1)
-    sp = dict(rr=np.zeros((npts, 3)), nn=np.zeros((npts, 3)), nuse=npts,
-              inuse=np.ones(npts, bool), coord_frame=FIFF.FIFFV_COORD_MRI)
-    sp['nn'][:, 2] = 1.0
-    # x varies fastest, then y, then z (can use unravel to do this)
-    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1) * grid,
-                     np.arange(minn[1], maxn[1] + 1) * grid,
-                     np.arange(minn[0], maxn[0] + 1) * grid, indexing='ij')
-    sp['rr'] = np.array([rr[2].ravel(), rr[1].ravel(), rr[0].ravel()]).T
-    assert sp['rr'].shape[0] == npts
-    logger.info('\t%d sources before omitting any.' % sp['nuse'])
-
-    # Exclude infeasible points
-    bad = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
-    bad = np.logical_or(bad > maxdist, bad < exclude)
-    sp['inuse'][bad] = False
-    sp['nuse'] -= np.sum(bad)
-    sp['vertno'] = np.where(sp['inuse'])[0]
-    logger.info('\t%d sources after omitting infeasible sources.' % sp['nuse'])
-
-    _filter_source_spaces(surf, 1000 * mindist, None, [sp], n_jobs=n_jobs)
-    logger.info('\t%d sources remaining after excluding the sources '
-                'outside the surface and less than %6.1f mm inside.'
-                % (sp['nuse'], 1000 * mindist))
-    sp['rr'] = sp['rr'][sp['inuse']]
-    sp['nn'] = sp['nn'][sp['inuse']]
-    sp['nuse'] = len(sp['rr'])
-    sp['vertno'] = np.arange(sp['nuse'])
-    sp['inuse'] = np.ones(sp['nuse'], bool)
-    sp.update({'type': 'discrete', 'id': -1, 'np': sp['nuse'], 'ntri': 0,
-               'use_tris': None, 'nearest': None, 'dist': None})
-    return sp
-
-
 def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
     """Make a guess space inside a sphere or BEM surface"""
     if isinstance(surf_or_rad, dict):
@@ -292,7 +220,12 @@ def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
         surf['rr'] *= radius
         surf['rr'] += r0
     logger.info('Filtering (grid = %6.f mm)...' % (1000 * grid))
-    src = _make_volume_source_space(surf, grid, exclude, mindist, n_jobs)
+    src = _make_volume_source_space(surf, grid, exclude, 1000 * mindist,
+                                    do_neighbors=False, n_jobs=n_jobs)
+    # simplify the result to make things easier later
+    src = dict(rr=src['rr'][src['vertno']], nn=src['nn'][src['vertno']],
+               nuse=src['nuse'], coord_frame=src['coord_frame'],
+               vertno=np.arange(src['nuse']))
     return SourceSpaces([src])
 
 
@@ -373,64 +306,13 @@ def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
     fun = partial(_fit_eval, B=B, B2=B2, fwd_data=fwd_data, whitener=whitener,
                   constraint=constraint)
 
-    # These were tested on a grid of 26 known locations
-    # Params                    corr, dist, time
-    # c = clean (100 snr), n = noisy (20 snr)
-
-    # Simplex (fmin)
-    # c xtol=1e-4, ftol=1e-4:     0.999, 3.1, 49 sec
-    # c xtol=1e-3, ftol=1e-3:     0.999, 3.4, 28 sec
-    # c xtol=5e-3, ftol=5e-3:     0.998, 3.8, 20 sec
-    # c xtol=1e-3, ftol=1e-2:     0.997, 5.3, 25 sec
-    # n xtol=1e-3, ftol=1e-3:     0.994, 8.4, 30 sec
-    # n xtol=5e-3, ftol=5e-3:     0.993, 9.3, 15 sec
-    # rd_final = optimize.fmin(fun, x0, xtol=5e-3, ftol=5e-3, disp=False)
-
-    # BFGS
-    # c gtol=1e-3, epsilon=1e-4:  0.997, 5.8, 101 sec
-    # c rd_final = optimize.fmin_bfgs(fun, x0, gtol=1e-3, epsilon=1e-4)
-
-    # CG
-    # c gtol=1e-3, epsilon=1e-4:  0.997, 5.8, 140 sec
-    # c rd_final = optimize.fmin_cg(fun, x0, gtol=1e-3, epsilon=1e-4)
-
-    # COBYLA
-    # c rhobeg=1e0,  rhoend=1e-4: 0.999, 3.1, 31 sec
-    # c rhobeg=1e0,  rhoend=1e-3: 0.999, 3.3, 21 sec
-    # c rhobeg=1e-2, rhoend=1e-3: 0.999, 3.3, 19 sec
-    # c rhobeg=1e-2, rhoend=5e-4: 0.999, 3.3, 23 sec
-    # c rhobeg=1e-2, rhoend=1e-4: 0.999, 3.1, 37 sec
-    # c rhobeg=5e-3, rhoend=1e-3: 0.998, 4.0, 18 sec
-    # c rhobeg=2e-2, rhoend=1e-3: 0.998, 4.1, 21 sec
-    # n rhobeg=1e-2, rhoend=1e-3: 0.994, 8.1, 19 sec
-    # n rhobeg=1e-2, rhoend=1e-4: 0.994, 8.0, 29 sec
-    # n rhobeg=1e-2, rhoend=5e-4: 0.995, 8.0, 22 sec
+    # Tested minimizers:
+    #    Simplex, BFGS, CG, COBYLA, L-BFGS-B, Powell, SLSQP, TNC
+    # Several were similar, but COBYLA won for having a handy constraint
+    # function we can use to ensure we stay inside the inner skull /
+    # smallest sphere
     rd_final = optimize.fmin_cobyla(fun, x0, (constraint,), consargs=(),
                                     rhobeg=5e-2, rhoend=1e-4, disp=False)
-
-    # L-BFGS-B
-    # c epsilon=1e-4, factr=1e12: 0.998, 4.6, 46 sec
-    # rd_final = optimize.fmin_l_bfgs_b(fun, x0, approx_grad=True,
-    #                                   epsilon=1e-4, factr=1e12)[0]
-
-    # Powell (too many function evals)
-    # c xtol=1e-4, ftol=1e-4:     0.999, 3.2, 166 sec
-    # rd_final = optimize.fmin_powell(fun, x0, xtol=1e-4, ftol=1e-4)
-
-    # SLSQP
-    # c acc=1e-5, epsilon=1e-6:   0.999, 3.4, 44 sec
-    # c acc=1e-4, epsilon=1e-6:   0.999, 3.5, 26 sec
-    # c           epsilon=1e-4:   0.999, 3.5, 26 sec
-    # c acc=1e-3, epsilon=1e-6:   0.997, 5.0, 19 sec
-    # c           epsilon=1e-4:   0.998, 4.0, 20 sec
-    # n acc=1e-4, epsilon=1e-4:   0.994, 8.2, 26 sec
-    # rd_final = optimize.fmin_slsqp(fun, x0, acc=1e-4, epsilon=1e-4,
-    #                                disp=False)
-
-    # TNC
-    # c epsilon=1e-4,ftol=1e-4,xtol=1e-4: 0.998, 4.62, 107 sec
-    # rd_final = optimize.fmin_tnc(fun, x0, epsilon=1e-4, ftol=1e-4, xtol=1e-4,
-    #                              approx_grad=True)[0]
 
     # Compute the dipole moment at the final point
     Q, gof = _fit_Q(fwd_data, whitener, B, B2, rd_final)
@@ -501,9 +383,9 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
 
     # Eventually these could be parameters, but they are just used for
     # the initial grid anyway
-    guess_grid = 0.02
-    guess_mindist = 0.01
-    guess_exclude = 0.02
+    guess_grid = 0.02  # MNE-C uses 0.01, but this is faster w/similar perf
+    guess_mindist = 0.005  # 0.01
+    guess_exclude = 0.02  # 0.02
     accurate = False  # can be made an option later (shouldn't make big diff)
 
     logger.info('Guess grid       : %6.1f mm' % (1000 * guess_grid,))
@@ -530,18 +412,17 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     logger.info('Decomposing the sensor noise covariance matrix...')
     picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
 
-    from .io.pick import pick_info
-    from .cov import prepare_noise_cov
-    info_nb = pick_info(evoked.info, picks)
-    cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
-    nzero = (cov['eig'] > 0)
-    n_chan = len(info_nb['ch_names'])
-    whitener = np.zeros((n_chan, n_chan), dtype=np.float)
-    whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
-    whitener = np.dot(whitener, cov['eigvec'])
-    del cov, info_nb
-
-    # whitener = _get_whitener_data(evoked.info, cov, picks, verbose=False)
+    # In case we want to more closely match MNE-C for debugging:
+    # from .io.pick import pick_info
+    # from .cov import prepare_noise_cov
+    # info_nb = pick_info(evoked.info, picks)
+    # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
+    # nzero = (cov['eig'] > 0)
+    # n_chan = len(info_nb['ch_names'])
+    # whitener = np.zeros((n_chan, n_chan), dtype=np.float)
+    # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
+    # whitener = np.dot(whitener, cov['eigvec'])
+    whitener = _get_whitener_data(evoked.info, cov, picks, verbose=False)
 
     # Proceed to computing the fits (make_guess_data)
     logger.info('\n---- Computing the forward solution for the guesses...')

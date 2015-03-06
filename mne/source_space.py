@@ -1599,7 +1599,8 @@ def _make_discrete_source_space(pos):
     return sp
 
 
-def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
+def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
+                              volume_label=None, do_neighbors=True, n_jobs=1):
     """Make a source space which covers the volume bounded by surf"""
 
     # Figure out the grid size in the MRI coordinate frame
@@ -1617,18 +1618,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     logger.info('Surface extent:')
     for c, mi, ma in zip('xyz', mins, maxs):
         logger.info('    %s = %6.1f ... %6.1f mm' % (c, 1000 * mi, 1000 * ma))
-    maxn = np.zeros(3, int)
-    minn = np.zeros(3, int)
-    for c in range(3):
-        if maxs[c] > 0:
-            maxn[c] = np.floor(np.abs(maxs[c]) / grid) + 1
-        else:
-            maxn[c] = -np.floor(np.abs(maxs[c]) / grid) - 1
-        if mins[c] > 0:
-            minn[c] = np.floor(np.abs(mins[c]) / grid) + 1
-        else:
-            minn[c] = -np.floor(np.abs(mins[c]) / grid) - 1
-
+    maxn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
+                     np.floor(np.abs(m) / grid) - 1 for m in maxs], int)
+    minn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
+                     np.floor(np.abs(m) / grid) - 1 for m in mins], int)
     logger.info('Grid extent:')
     for c, mi, ma in zip('xyz', minn, maxn):
         logger.info('    %s = %6.1f ... %6.1f mm'
@@ -1640,19 +1633,38 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     nrow = ns[0]
     ncol = ns[1]
     nplane = nrow * ncol
-    sp = dict(np=npts, rr=np.zeros((npts, 3)), nn=np.zeros((npts, 3)),
+    # x varies fastest, then y, then z (can use unravel to do this)
+    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1),
+                     np.arange(minn[1], maxn[1] + 1),
+                     np.arange(minn[0], maxn[0] + 1), indexing='ij')
+    x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
+    rr = np.array([x * grid, y * grid, z * grid]).T
+    sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
               inuse=np.ones(npts, int), type='vol', nuse=npts,
               coord_frame=FIFF.FIFFV_COORD_MRI, id=-1, shape=ns)
-    sp['nn'][:, 2] = 1.0  # Source orientation is immaterial
+    sp['nn'][:, 2] = 1.0
+    assert sp['rr'].shape[0] == npts
 
-    x = np.arange(minn[0], maxn[0] + 1)[np.newaxis, np.newaxis, :]
-    y = np.arange(minn[1], maxn[1] + 1)[np.newaxis, :, np.newaxis]
-    z = np.arange(minn[2], maxn[2] + 1)[:, np.newaxis, np.newaxis]
-    z = np.tile(z, (1, ns[1], ns[0])).ravel()
-    y = np.tile(y, (ns[2], 1, ns[0])).ravel()
-    x = np.tile(x, (ns[2], ns[1], 1)).ravel()
+    logger.info('%d sources before omitting any.', sp['nuse'])
+
+    # Exclude infeasible points
+    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
+    bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
+    sp['inuse'][bads] = False
+    sp['nuse'] -= len(bads)
+    logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
+
+    _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
+    logger.info('%d sources remaining after excluding the sources outside '
+                'the surface and less than %6.1f mm inside.'
+                % (sp['nuse'], mindist))
+
+    if not do_neighbors:
+        if volume_label is not None:
+            raise RuntimeError('volume_label cannot be None unless '
+                               'do_neighbors is True')
+        return sp
     k = np.arange(npts)
-    sp['rr'] = np.c_[x, y, z] * grid
     neigh = np.empty((26, npts), int)
     neigh.fill(-1)
 
@@ -1724,20 +1736,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     neigh[24, idx2] = k[idx2] - nrow + nplane
     idx3 = np.logical_and(idx2, x < maxn[0])
     neigh[25, idx3] = k[idx3] + 1 - nrow + nplane
-
-    logger.info('%d sources before omitting any.', sp['nuse'])
-
-    # Exclude infeasible points
-    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
-    bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
-    sp['inuse'][bads] = False
-    sp['nuse'] -= len(bads)
-    logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
-
-    _filter_source_spaces(surf, mindist, None, [sp])
-    logger.info('%d sources remaining after excluding the sources outside '
-                'the surface and less than %6.1f mm inside.'
-                % (sp['nuse'], mindist))
 
     # Restrict sources to volume of interest
     if volume_label is not None:

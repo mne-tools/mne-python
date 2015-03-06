@@ -1,6 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Denis A. Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: BSD (3-clause)
 
