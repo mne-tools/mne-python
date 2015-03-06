@@ -8,6 +8,7 @@ from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
+from scipy.stats import chi2
 
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -1439,3 +1440,86 @@ def compute_rank_inverse(inv):
         ncomp = make_projector(inv['projs'], inv['noise_cov']['names'])[1]
         rank = inv['noise_cov']['dim'] - ncomp
     return rank
+
+
+# #############################################################################
+# SNR Estimation
+
+@verbose
+def estimate_snr(evoked, inv, verbose=None):
+    """Estimate the SNR as a function of time for evoked data
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked instance.
+    inv : instance of InverseOperator
+        The inverse operator.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    snr_est : ndarray, shape (n_times,)
+        SNR estimates as a function of time.
+    """
+    _check_reference(evoked)
+    _check_ch_names(inv, evoked.info)
+    inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
+    sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    data_white = np.dot(inv['whitener'], np.dot(inv['proj'], evoked.data[sel]))
+    data_white_ef = np.dot(inv['eigen_fields']['data'], data_white)
+    lambda2_est = _compute_regularization(data_white, data_white_ef, inv)
+    snr_est = 1.0 / np.sqrt(lambda2_est)
+    return snr_est
+
+
+def _compute_regularization(data_white, data_white_ef, inv):
+    """Adapted from mne_analyze/regularization.c"""
+    assert data_white.ndim == 2
+    n_ch, n_times = data_white.shape
+    lambda2_est = np.zeros(n_ch)
+
+    n_zero = (inv['noise_cov']['eig'] <= 0).sum()
+    logger.info('Effective nchan = %d - %d = %d'
+                % (n_ch, n_zero, n_ch - n_zero))
+    signal = np.sum(data_white ** 2, axis=0)  # sum of squares across channels
+    noise = n_ch - n_zero
+    SNR = signal / noise
+
+    sing = inv['sing']
+    lambda2_est = np.empty_like(SNR)
+    lambda2_est.fill(100.)
+    for ti in range(n_times):
+        if SNR[ti] >= 1.:
+            lambda2_est[ti] = _noise_regularization(data_white_ef[:, ti],
+                                                    sing, n_ch - n_zero)
+    return lambda2_est
+
+
+def _noise_regularization(proj, sing, n_ch):
+    """Check the prediction errors with a chi^2 test"""
+    val = chi2.isf(1e-3, n_ch - 1)
+    lambda2 = 10.
+    lambda_mult = 0.9
+    niter = 0
+    while True:
+        # get_mne_weights (ew=error_weights)
+        ew = np.zeros(n_ch)
+        sing2 = sing * sing
+        fl = sing / (sing2 + lambda2)
+        f = sing * fl
+        f[sing == 0] = 0
+        ew = proj * (1.0 - f)
+
+        # check condition
+        err = np.dot(ew, ew)
+        if err < val or niter > 1000:
+            break
+        lambda2 *= lambda_mult
+        niter += 1
+    print(niter)
+    if niter == 1000:
+        raise RuntimeError
+    return lambda2
