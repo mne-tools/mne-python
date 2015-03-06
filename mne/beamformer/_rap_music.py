@@ -10,7 +10,6 @@ import numpy as np
 from scipy import linalg
 
 from ..io.pick import pick_channels_evoked
-from ..forward import _subject_from_forward
 from ..minimum_norm.inverse import _check_reference
 from ..cov import compute_whitener
 from ..utils import logger, verbose
