@@ -2118,8 +2118,8 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
         raise RuntimeError(err)
 
     events = epochs_list[0].events.copy()
-    all_same = np.all([events == epochs.events for epochs in epochs_list[1:]],
-                      axis=0)
+    all_same = np.all([np.array_equal(events, epochs.events)
+                       for epochs in epochs_list[1:]], axis=0)
     if not np.all(all_same):
         raise ValueError('Events must be the same.')
 
@@ -2183,7 +2183,7 @@ def concatenate_epochs(epochs_list):
     event_id = cp.deepcopy(out.event_id)
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
-        if not np.all(epochs.times == epochs_list[0].times):
+        if not np.array_equal(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
         data.append(epochs.get_data())

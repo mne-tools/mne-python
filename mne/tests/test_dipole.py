@@ -94,8 +94,12 @@ def test_dipole_fitting():
 
     # Run mne-python version
     sphere = make_sphere_model(head_radius=0.1)
-    with warnings.catch_warnings(record=True):  # proj warning
-        dip = fit_dipole(evoked, fname_cov, sphere, fname_fwd)
+    dip, residuals = fit_dipole(evoked, fname_cov, sphere, fname_fwd)
+
+    # Sanity check: do our residuals have less power than orig data?
+    data_rms = np.sqrt(np.sum(evoked.data ** 2, axis=0))
+    resi_rms = np.sqrt(np.sum(residuals ** 2, axis=0))
+    assert_true((data_rms > resi_rms).all())
 
     # Compare to original points
     transform_surface_to(fwd['src'][0], 'head', fwd['mri_head_t'])

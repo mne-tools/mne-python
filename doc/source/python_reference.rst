@@ -468,6 +468,7 @@ Covariance
 
    compute_covariance
    compute_raw_data_covariance
+   make_ad_hoc_cov
    read_cov
    write_cov
 

@@ -202,6 +202,41 @@ def read_cov(fname, verbose=None):
 ###############################################################################
 # Estimate from data
 
+def make_ad_hoc_cov(info):
+    """Create an ad hoc noise covariance
+
+    Parameters
+    ----------
+    info : instance of mne.io.meas_info.Info
+        Measurement info.
+
+    Returns
+    -------
+    cov : instance of Covariance
+        The ad hoc diagonal noise covariance for the M/EEG data channels.
+    """
+    info = pick_info(info, pick_types(info, meg=True, eeg=True))
+
+    # Standard deviations to be used
+    grad_std = 5e-13
+    mag_std = 20e-15
+    eeg_std = 0.2e-6
+    logger.info('Using standard noise values '
+                '(MEG grad : %6.1f fT/cm MEG mag : %6.1f fT EEG : %6.1f uV)'
+                % (1e13 * grad_std, 1e15 * mag_std, 1e6 * eeg_std))
+
+    data = np.zeros(len(info['ch_names']))
+    for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
+                             (grad_std, mag_std, eeg_std)):
+        data[pick_types(info, meg=meg, eeg=eeg)] = val * val
+    cov = Covariance(None)
+    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=True, dim=len(data),
+               names=info['ch_names'], data=data, projs=info['projs'],
+               bads=info['bads'], nfree=0, eig=None, eigvec=None,
+               info=info)
+    return cov
+
+
 def _check_n_samples(n_samples, n_chan):
     """Check to see if there are enough samples for reliable cov calc"""
     n_samples_min = 10 * (n_chan + 1) // 2
@@ -827,7 +862,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
         if score != -np.inf:
             scores[ii] = score
 
-        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.) and
+        if (ii >= 3 and np.all(np.diff(scores[ii - 3:ii]) < 0.) and
            stop_early is True):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
@@ -875,6 +910,7 @@ if check_sklearn_version('0.15') is True:
             cov_['nfree'] = len(self.covariance_)
             cov_['bads'] = self.info['bads']
             cov_['projs'] = self.info['projs']
+            cov_['diag'] = False
             cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
                               eeg=self.eeg, proj=False,
                               exclude='bads')  # ~proj == important!!
@@ -991,7 +1027,7 @@ def _unpack_epochs(epochs):
     return epochs
 
 
-def _get_ch_whitener(A, pca, ch_type, rank=None, verbose=None):
+def _get_ch_whitener(A, pca, ch_type, rank):
     """"Get whitener params for a set of channels"""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
@@ -1038,7 +1074,6 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if noise_cov['diag'] is False:
-
         C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
     else:
         C = np.diag(noise_cov.data[C_ch_idx])

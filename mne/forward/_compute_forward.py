@@ -416,7 +416,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # #############################################################################
 # MAIN TRIAGING FUNCTION
 
-# XXX @verbose
+@verbose
 def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
     """Precompute some things that are used for both MEG and EEG"""
     cf = FIFF.FIFFV_COORD_HEAD

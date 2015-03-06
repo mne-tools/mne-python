@@ -324,9 +324,12 @@ class SourceSpaces(list):
                     # convert to numeric indices
                     ix_orig, iy_orig, iz_orig = srf_rr.T.round().astype(int)
                     # clip indices outside of volume space
-                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
-                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
-                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2] - 1),
+                                         0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1] - 1),
+                                         0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0] - 1),
+                                         0)
                     # compare original and clipped indices
                     n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
                                        iz_orig != iz_clip)).any(0).sum()
@@ -349,9 +352,12 @@ class SourceSpaces(list):
                     # convert to numeric indices
                     ix_orig, iy_orig, iz_orig = disc_rr.T.astype(int)
                     # clip indices outside of volume space
-                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
-                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
-                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2] - 1),
+                                         0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1] - 1),
+                                         0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0] - 1),
+                                         0)
                     # compare original and clipped indices
                     n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
                                        iz_orig != iz_clip)).any(0).sum()
@@ -623,7 +629,7 @@ def _read_one_source_space(fid, this, verbose=None):
             offset = 0
             neighbors = []
             for n in nneighbors:
-                neighbors.append(tag.data[offset:offset+n])
+                neighbors.append(tag.data[offset:offset + n])
                 offset += n
             res['neighbor_vert'] = neighbors
 

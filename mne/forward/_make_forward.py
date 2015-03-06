@@ -303,7 +303,7 @@ def make_forward_solution(info, mri, src, bem, fname=None, meg=True, eeg=True,
         instance of loaded or generated SourceSpaces.
     bem : dict | str
         Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
-        use, or a loaded BEM (dict).
+        use, or a loaded sphere model (dict).
     fname : str | None
         Destination forward solution filename. If None, the solution
         will not be saved.

@@ -547,7 +547,10 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)
     res['dim'] = len(sel)
-    res['data'] = orig['data'][sel][:, sel]
+    if not res['diag']:
+        res['data'] = orig['data'][sel][:, sel]
+    else:
+        res['data'] = orig['data'][sel]
     res['names'] = [orig['names'][k] for k in sel]
     res['bads'] = [name for name in orig['bads'] if name in res['names']]
     res['eig'] = None

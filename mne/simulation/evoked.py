@@ -81,8 +81,8 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     rng = check_random_state(random_state)
     n_channels = np.zeros(noise.info['nchan'])
     n_samples = evoked.data.shape[1]
-    noise.data = rng.multivariate_normal(n_channels, noise_cov.data,
-                                         n_samples).T
+    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
     if iir_filter is not None:
         noise.data = signal.lfilter([1], iir_filter, noise.data, axis=-1)
     return noise

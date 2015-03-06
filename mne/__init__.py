@@ -31,7 +31,7 @@ from .io.base import concatenate_raws, get_chpi_positions
 from .io.meas_info import create_info
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
-                  whiten_evoked)
+                  whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)

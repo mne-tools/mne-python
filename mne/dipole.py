@@ -8,8 +8,9 @@ from scipy import optimize, linalg
 import re
 
 from .cov import read_cov, _get_whitener_data
-from .io.pick import pick_types
 from .io.constants import FIFF
+from .io.pick import pick_types
+from .io.proj import make_projector
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
@@ -192,16 +193,18 @@ def _dipole_forwards(fwd_data, whitener, rr, n_jobs=1):
     """Compute the forward solution and do other nice stuff"""
     B = _compute_forwards_meeg(rr, fwd_data, n_jobs, verbose=False)
     B = np.concatenate(B, axis=1)
+    B_orig = B.copy()
 
     # Apply projection and whiten (cov has projections already)
     B = np.dot(B, whitener.T)
 
-    # column normalization
-    S = np.sum(B * B, axis=1)  # across channels
-    scales = np.repeat(3. / np.sqrt(np.sum(np.reshape(S, (len(rr), 3)),
-                                           axis=1)), 3)
-    B *= scales[:, np.newaxis]
-    return B, scales
+    # column normalization doesn't affect our fitting, so skip for now
+    # S = np.sum(B * B, axis=1)  # across channels
+    # scales = np.repeat(3. / np.sqrt(np.sum(np.reshape(S, (len(rr), 3)),
+    #                                        axis=1)), 3)
+    # B *= scales[:, np.newaxis]
+    scales = np.ones(3)
+    return B, B_orig, scales
 
 
 def _make_guesses(surf_or_rad, r0, grid, exclude, mindist, n_jobs):
@@ -241,42 +244,52 @@ def _fit_eval(rd, B, B2, fwd_svd=None, fwd_data=None, whitener=None,
         uu, sing, vv = linalg.svd(fwd, full_matrices=False)
     else:
         uu, sing, vv = fwd_svd
-    ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
-    Bm2 = np.sum(np.dot(vv[:ncomp], B) ** 2)
-    return 1. - Bm2 / B2
+    return 1 - _dipole_gof(uu, sing, vv, B, B2)[0]
 
 
-def _fit_Q(fwd_data, whitener, B, B2, rd):
-    """Fit the dipole moment once the location is known"""
-    fwd, scales = _dipole_forwards(fwd_data, whitener, rd[np.newaxis, :])
-    uu, sing, vv = linalg.svd(fwd, full_matrices=False)
+def _dipole_gof(uu, sing, vv, B, B2):
+    """Calculate the goodness of fit from the forward SVD"""
     ncomp = 3 if sing[2] / sing[0] > 0.2 else 2
     one = np.dot(vv[:ncomp], B)
+    Bm2 = np.sum(one ** 2)
+    return Bm2 / B2, one
+
+
+def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd):
+    """Fit the dipole moment once the location is known"""
+    fwd, fwd_orig, scales = _dipole_forwards(fwd_data, whitener,
+                                             rd[np.newaxis, :])
+    uu, sing, vv = linalg.svd(fwd, full_matrices=False)
+    gof, one = _dipole_gof(uu, sing, vv, B, B2)
+    ncomp = len(one)
     # Counteract the effect of column normalization
     Q = scales[0] * np.sum(uu.T[:ncomp] * (one / sing[:ncomp])[:, np.newaxis],
                            axis=0)
-    Bm2 = np.sum(one ** 2)
-    residual = B2 - Bm2
-    gof = 1. - residual / B2
-    return Q, gof
+    # apply the projector to both elements
+    B_residual = np.dot(proj_op, B_orig) - np.dot(np.dot(Q, fwd_orig),
+                                                  proj_op.T)
+    return Q, gof, B_residual
 
 
-def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener, n_jobs):
+def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
+                 proj_op, n_jobs):
     """Fit a single dipole to the given whitened, projected data"""
     parallel, p_fun, _ = parallel_func(_fit_dipole, n_jobs)
     # parallel over time points
-    res = parallel(p_fun(B, t, rrs, guess_fwd_svd, fwd_data, whitener)
+    res = parallel(p_fun(B, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
     ori = np.array([r[2] for r in res])
     gof = np.array([r[3] for r in res]) * 100  # convert to percentage
-    return pos, amp, ori, gof
+    residual = np.array([r[4] for r in res]).T
+    return pos, amp, ori, gof, residual
 
 
-def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
+def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op):
     """Fit a single bit of data"""
     logger.info('---- Fitting : %7.1f ms' % (1000 * t,))
+    B = np.dot(whitener, B_orig)
 
     # make constraint function to keep the solver within the inner skull
     if isinstance(fwd_data['inner_skull'], dict):  # bem
@@ -315,11 +328,12 @@ def _fit_dipole(B, t, rrs, guess_fwd_svd, fwd_data, whitener):
                                     rhobeg=5e-2, rhoend=1e-4, disp=False)
 
     # Compute the dipole moment at the final point
-    Q, gof = _fit_Q(fwd_data, whitener, B, B2, rd_final)
+    Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,
+                              rd_final)
     amp = np.sqrt(np.sum(Q * Q))
     norm = 1 if amp == 0 else amp
     ori = Q / norm
-    return rd_final, amp, ori, gof
+    return rd_final, amp, ori, gof, residual
 
 
 @verbose
@@ -347,8 +361,19 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     -------
     dip : instance of Dipole
         The dipole fits.
+    residual : ndarray, shape (n_meeg_channels, n_times)
+        The good M-EEG data channels with the fitted dipolar activity
+        removed.
     """
-    neeg = len(pick_types(evoked.info, meg=False, eeg=True, exclude=[]))
+    # This could eventually be adapted to work with other inputs, these
+    # are what is needed:
+    data = evoked.data
+    info = evoked.info
+    times = evoked.times.copy()
+    comment = evoked.comment
+
+    # Figure out our inputs
+    neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
     if isinstance(bem, string_types):
         logger.info('BEM              : %s' % bem)
     if mri is not None:
@@ -401,28 +426,28 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     logger.info('')
 
     _print_coord_trans(mri_head_t)
-    _print_coord_trans(evoked.info['dev_head_t'])
-    logger.info('%d bad channels total' % len(evoked.info['bads']))
+    _print_coord_trans(info['dev_head_t'])
+    logger.info('%d bad channels total' % len(info['bads']))
 
     # Forward model setup (setup_forward_model from setup.c)
     megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
-        _prep_channels(evoked.info, exclude='bads', accurate=accurate)
+        _prep_channels(info, exclude='bads', accurate=accurate)
 
     # Whitener for the data
     logger.info('Decomposing the sensor noise covariance matrix...')
-    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
+    picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     # In case we want to more closely match MNE-C for debugging:
     # from .io.pick import pick_info
     # from .cov import prepare_noise_cov
-    # info_nb = pick_info(evoked.info, picks)
+    # info_nb = pick_info(info, picks)
     # cov = prepare_noise_cov(cov, info_nb, info_nb['ch_names'], verbose=False)
     # nzero = (cov['eig'] > 0)
     # n_chan = len(info_nb['ch_names'])
     # whitener = np.zeros((n_chan, n_chan), dtype=np.float)
     # whitener[nzero, nzero] = 1.0 / np.sqrt(cov['eig'][nzero])
     # whitener = np.dot(whitener, cov['eigvec'])
-    whitener = _get_whitener_data(evoked.info, cov, picks, verbose=False)
+    whitener = _get_whitener_data(info, cov, picks, verbose=False)
 
     # Proceed to computing the fits (make_guess_data)
     logger.info('\n---- Computing the forward solution for the guesses...')
@@ -447,11 +472,10 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     logger.info('[done %d sources]' % src['nuse'])
 
     # Do actual fits
-    picks = pick_types(evoked.info, meg=True, eeg=True, exclude='bads')
-    data = np.dot(whitener, evoked.data[picks])
-    out = _fit_dipoles(data, evoked.times, src['rr'], guess_fwd_svd, fwd_data,
-                       whitener, n_jobs)
-    dipoles = Dipole(evoked.times.copy(), out[0], out[1], out[2], out[3],
-                     evoked.comment)
+    proj_op = make_projector(info['projs'], info['ch_names'], info['bads'])[0]
+    out = _fit_dipoles(data, times, src['rr'], guess_fwd_svd, fwd_data,
+                       whitener, proj_op, n_jobs)
+    dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
+    residual = out[4]
     logger.info('%d dipoles fitted' % len(dipoles.times))
-    return dipoles
+    return dipoles, residual

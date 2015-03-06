@@ -11,7 +11,7 @@ from mne.datasets import testing
 from mne import read_cov, read_forward_solution, read_evokeds
 from mne.cov import regularize
 from mne.inverse_sparse import gamma_map
-from mne import pick_types_forward
+from mne import pick_types_forward, read_surface
 from mne.utils import run_tests_if_main, slow_test
 
 data_path = testing.data_path(download=False)
@@ -20,6 +20,7 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+subjects_dir = op.join(data_path, 'subjects')
 
 
 @slow_test

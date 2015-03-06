@@ -118,7 +118,7 @@ def test_time_frequency():
 def test_dpsswavelet():
     """Test DPSS wavelet"""
     freqs = np.arange(5, 25, 3)
-    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs/2.,
+    Ws = _dpss_wavelet(1000, freqs=freqs, n_cycles=freqs / 2.,
                        time_bandwidth=4.0, zero_mean=True)
 
     assert_true(len(Ws) == 3)  # 3 tapers expected

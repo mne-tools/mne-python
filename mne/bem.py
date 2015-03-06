@@ -57,7 +57,7 @@ def _compose_linear_fitting_data(mu, u):
     for k in range(u['nterms'] - 1):
         k1 = k + 1
         mu1n = np.power(mu[0], k1)
-        u['y'][k] = u['w'][k] * (u['fn'][k1] - mu1n*u['fn'][0])
+        u['y'][k] = u['w'][k] * (u['fn'][k1] - mu1n * u['fn'][0])
         for p in range(u['nfit'] - 1):
             u['M'][k][p] = u['w'][k] * (np.power(mu[p + 1], k1) - mu1n)
 
@@ -109,7 +109,7 @@ def _one_step(mu, u):
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters"""
     assert nfit >= 2
-    u = dict(y=np.zeros(nterms-1), resi=np.zeros(nterms-1),
+    u = dict(y=np.zeros(nterms - 1), resi=np.zeros(nterms - 1),
              nfit=nfit, nterms=nterms, M=np.zeros((nterms - 1, nfit - 1)))
 
     # (1) Calculate the coefficients of the true expansion
@@ -172,7 +172,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
 
     Returns
     -------
-    bem : dict
+    sphere : dict
         A spherical BEM.
     """
     for name in ('r0', 'head_radius'):
@@ -196,14 +196,14 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere['layers'] = []
     if head_radius is not None:
         # Eventually these could be configurable...
-        rads = [0.90, 0.92, 0.97, 1.0]
+        relative_radii = [0.90, 0.92, 0.97, 1.0]
         sigmas = [0.33, 1.0, 0.004, 0.33]
-        order = np.argsort(rads)
+        order = np.argsort(relative_radii)
         layers = sphere['layers']
-        for k in range(len(rads)):
+        for k in range(len(relative_radii)):
             # sort layers by (relative) radius, and scale radii
-            layer = dict(rad=rads[order[k]], sigma=sigmas[order[k]])
-            layer['rel_rad'] = layer['rad'] = rads[k]
+            layer = dict(rad=relative_radii[order[k]], sigma=sigmas[order[k]])
+            layer['rel_rad'] = layer['rad'] = relative_radii[k]
             layers.append(layer)
 
         # scale the radii
@@ -218,7 +218,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         #
 
         # Scale the relative radii
-        for k in range(len(rads)):
+        for k in range(len(relative_radii)):
             layers[k]['rad'] = (head_radius * layers[k]['rel_rad'])
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info('\nEquiv. model fitting -> RV = %g %%' % (100 * rv))
@@ -260,9 +260,9 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     -------
     radius : float
         Sphere radius in mm.
-    origin_head: ndarray
+    origin_head: ndarray, shape (3,)
         Head center in head coordinates (mm).
-    origin_device: ndarray
+    origin_device: ndarray, shape (3,)
         Head center in device coordinates (mm).
     """
     # get head digization points of the specified kind
@@ -303,7 +303,7 @@ def _fit_sphere(points, disp=True):
     xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2.
     yradius = (np.max(points[:, 1]) - np.min(points[:, 1])) / 2.
 
-    radius_init = (xradius + yradius) / 2
+    radius_init = (xradius + yradius) / 2.
     center_init = np.array([0.0, 0.0, np.max(points[:, 2]) - radius_init])
 
     # optimization
