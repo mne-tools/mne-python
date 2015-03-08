@@ -36,6 +36,11 @@ from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores,
                    plot_ica_sources, plot_ica_overlay)
+from ..viz.utils import (_prepare_trellis, tight_layout,
+                         _setup_vmin_vmax)
+from ..viz.topomap import (_prepare_topo_plot, _check_outlines,
+                           plot_topomap)
+
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
@@ -460,7 +465,7 @@ class ICA(ContainsMixin):
                 logger.info('Selection by number: %i components' %
                         self.n_components)
             else:  # None case
-                logger.info('Using all PCA components: %i' 
+                logger.info('Using all PCA components: %i'
                                           % len(pca.components_))
                 sel = slice(len(pca.components_))
 
@@ -2084,7 +2089,9 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 @verbose
 def corrmap(icas, template, threshold="auto", name="bads",
             plot=True, inplace=False, ch_type="eeg"):
-    """Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
+    """Find similar Independent Components across subjects by map similarity.
+
+    Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
     match to a supplied template. Typically, feed it a list of fitted ICAs and
     a template IC, for example, the blink for the first subject, to identify
     specific ICs across subjects.
@@ -2101,20 +2108,22 @@ def corrmap(icas, template, threshold="auto", name="bads",
 
     Parameters
     ----------
-    icas : list
-        A list of fitted ICAs.
-    template : (int, int) tuple
-        Index of the list member from which the template should be obtained,
-        and the index of the IC.
-    threshold : "auto" | list of floats > 0 < 1 | float > 0 < 1 | float > 1
+    icas : list of mne.preprocessing.ICA
+        A list of fitted ICA objects.
+    template : tuple
+        A tuple with two elements (int, int) representing the list indices of
+        the set from which the template should be chosen, and the template.
+    threshold : "auto" | list of float | float
+
+    "auto" | list of floats > 0 < 1 | float > 0 < 1 | float > 1
         Correlation threshold for identifying ICs
-        If "auto": search for the best map by trying all correlations between
+        If "auto", search for the best map by trying all correlations between
         0.6 and 0.95. In the original proposal, lower values are considered,
         but this is not yet implemented.
-        If list of floats: search for the best map in the specified range of
-        correlation strengths.
-        If float > 0: select ICs correlating better than this.
-        If float > 1: use find_outliers to identify ICs within subjects (not in
+        If list of floats, search for the best map in the specified range of
+        correlation strengths. As correlation values, must be between 0 and 1
+        If float > 0, select ICs correlating better than this.
+        If float > 1, use find_outliers to identify ICs within subjects (not in
         original Corrmap)
         Defaults to "auto".
     name : str
@@ -2184,12 +2193,6 @@ def corrmap(icas, template, threshold="auto", name="bads",
             return [], 0, 0, []
 
     def _plot_corrmap(data, subjs, indices, ch_type, ica, name):
-
-        from mne.viz.utils import (_prepare_trellis, tight_layout,
-                                   _setup_vmin_vmax)
-        from mne.viz.topomap import (_prepare_topo_plot, _check_outlines,
-                                     plot_topomap)
-
         import matplotlib.pyplot as plt
 
         title = 'Detected components of type ' + name
@@ -2219,7 +2222,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
         if merge_grads:
             from ..channels.layout import _merge_grad_data
         for ii, data_, ax, s, i in zip(picks, data, axes, subjs, indices):
-            ax.set_title('Subj. ' + str(s) + ', IC ' + str(i), fontsize=12)
+            ttl = 'Subj. {}, IC {}'.format(s, i)
+            ax.set_title(ttl, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
             plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
@@ -2242,7 +2246,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
     target = all_maps[template[0]][template[1]]
 
     if plot is True:
-        ttl = 'Template IC (Subj. ' + str(template[1]) + ')'
+        ttl = 'Template from subj. {}'.format(str(template[0]))
         icas[template[0]].plot_components(picks=template[1],
                                           ch_type=ch_type,
                                           title=ttl)
@@ -2269,7 +2273,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             if threshold > 1:
                 logger.info("No component detected using find_outliers. "
                             "Consider using threshold='auto'")
-            return
+            return icas
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, nt, t) for t in threshold]
         # find iteration with highest avg correlation with target
@@ -2311,7 +2315,4 @@ def corrmap(icas, template, threshold="auto", name="bads",
     else:
         logger.info("At least 1 IC detected for each subject.")
 
-    if inplace is True:
-        return
-    else:
-        return new_icas
+    return new_icas
