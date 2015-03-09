@@ -2238,7 +2238,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         if merge_grads:
             from ..channels.layout import _merge_grad_data
         for ii, data_, ax, s, i in zip(picks, data, axes, subjs, indices):
-            ttl = 'Subj. {}, IC {}'.format(s, i)
+            ttl = 'Subj. {0}, IC {1}'.format(s, i)
             ax.set_title(ttl, fontsize=12)
             data_ = _merge_grad_data(data_) if merge_grads else data_
             vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
