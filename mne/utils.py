@@ -32,6 +32,10 @@ import numpy as np
 import scipy
 from scipy import linalg, sparse
 
+try:
+    from sklearn.utils.extmath import fast_dot
+except ImportError:
+    fast_dot = np.dot
 
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
