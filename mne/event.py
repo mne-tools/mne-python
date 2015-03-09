@@ -35,8 +35,10 @@ def pick_events(events, include=None, exclude=None, step=False):
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
     step : bool
-        If True (default is False), events have a step format.
-        In this case, the two last columns are considered in inclusion/exclusion criteria.
+        If True (default is False), events have a step format according
+        to the argument output='step' in the function find_events().
+        In this case, the two last columns are considered in inclusion/
+        exclusion criteria.
 
     Returns
     -------
