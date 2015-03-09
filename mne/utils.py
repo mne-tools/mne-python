@@ -1682,9 +1682,9 @@ def _sphere_to_cartesian(theta, phi, r):
     y = rcos_phi * np.sin(theta)
     return x, y, z
 
+
 def compute_corr(x, y):
-    """Compute pearson correlations between a vector and a matrix
-    """
+    """Compute pearson correlations between a vector and a matrix"""
     X = np.array(x)
     Y = np.array(y)
     X -= X.mean(0)
