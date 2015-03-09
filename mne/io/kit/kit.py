@@ -23,7 +23,7 @@ from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
 from ..base import _BaseRaw
 from ...epochs import EpochsArray
 from ..constants import FIFF
-from ..meas_info import Info, _read_dig_points, _make_dig_points
+from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
 from .constants import KIT, KIT_NY, KIT_AD
 from .coreg import read_mrk
@@ -648,7 +648,7 @@ def get_kit_info(rawfile):
         if acq_type == 1:
             fid.read(KIT_SYS.INT)  # initialized estimate of samples
             sqd['n_samples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
-        if acq_type == 2 or acq_type == 3:
+        elif acq_type == 2 or acq_type == 3:
             sqd['frame_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
             sqd['pretrigger_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
             sqd['average_count'] = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -665,7 +665,8 @@ def get_kit_info(rawfile):
         sqd['acq_type'] = acq_type
 
         # Create raw.info dict for raw fif object with SQD data
-        info = Info()
+        info = _empty_info()
+        info['events'] = []
         info['meas_id'] = None
         info['file_id'] = None
         info['meas_date'] = int(time.time())

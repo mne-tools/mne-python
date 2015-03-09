@@ -82,7 +82,7 @@ def test_epochs():
     epochs = read_epochs_kit(epochs_path, events_path)
     data11 = epochs.get_data()
     assert_array_equal(data1, data11)
-    
+
 
 def test_read_segment():
     """Test writing raw kit files when preload is False
