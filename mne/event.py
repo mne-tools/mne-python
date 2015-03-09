@@ -4,6 +4,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Clement Moutard <clement.moutard@polytechnique.org>
 #
 # License: BSD (3-clause)
 
@@ -19,7 +20,7 @@ from .io.write import write_int, start_block, start_file, end_block, end_file
 from .io.pick import pick_channels
 
 
-def pick_events(events, include=None, exclude=None):
+def pick_events(events, include=None, exclude=None, step=False):
     """Select some events
 
     Parameters
@@ -33,6 +34,9 @@ def pick_events(events, include=None, exclude=None):
         A event id to exclude or a list of them.
         If None no event is excluded. If include is not None
         the exclude parameter is ignored.
+    step : bool
+        If True (default is False), events have a step format.
+        In this case, the two last columns are considered in inclusion/exclusion criteria.
 
     Returns
     -------
@@ -45,6 +49,8 @@ def pick_events(events, include=None, exclude=None):
         mask = np.zeros(len(events), dtype=np.bool)
         for e in include:
             mask = np.logical_or(mask, events[:, 2] == e)
+            if step:
+                mask = np.logical_or(mask, events[:, 1] == e)
         events = events[mask]
     elif exclude is not None:
         if not isinstance(exclude, list):
@@ -52,6 +58,8 @@ def pick_events(events, include=None, exclude=None):
         mask = np.ones(len(events), dtype=np.bool)
         for e in exclude:
             mask = np.logical_and(mask, events[:, 2] != e)
+            if step:
+                mask = np.logical_and(mask, events[:, 1] != e)
         events = events[mask]
     else:
         events = np.copy(events)
