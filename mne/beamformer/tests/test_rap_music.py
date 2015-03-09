@@ -70,19 +70,19 @@ def test_rap_music():
         _get_data()
 
     def _check_dipole(dipole):
-        assert_true(dipole['pos'].shape[0], n_sources)
-        assert_true(dipole['ori'].shape[0], n_sources)
+        assert_true(dipole['pos'].shape[0], n_dipoles)
+        assert_true(dipole['ori'].shape[0], n_dipoles)
         assert_true(dipole['ori'].shape[1], 3 if forward['source_ori']
                     else 1)
 
-    n_sources = 2
+    n_dipoles = 2
 
-    dipole = rap_music(evoked, forward, noise_cov, n_sources=n_sources)
+    dipole = rap_music(evoked, forward, noise_cov, n_dipoles=n_dipoles)
     _check_dipole(dipole)
 
     # Test with fixed forward
     dipole_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
-                                  n_sources=n_sources,
+                                  n_dipoles=n_dipoles,
                                   return_residual=True)
     _check_dipole(dipole_fixed)
 

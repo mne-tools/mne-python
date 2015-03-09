@@ -3,6 +3,7 @@ Signal Classification (RAP-MUSIC).
 """
 
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -19,8 +20,8 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 @verbose
 def _apply_rap_music(data, info, tmin, forward, noise_cov,
-                     signal_ndim=15, n_sources=5, picks=None,
-                     return_residual=False, verbose=None):
+                     signal_ndim=15, n_dipoles=5, picks=None,
+                     return_explained_data=False, verbose=None):
     """RAP-MUSIC for evoked data
 
     Parameters
@@ -38,30 +39,22 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     signal_ndim : int
         The dimension of the subspace spanning the signal.
         The default value is 15.
-    n_sources : int
-        The number of sources to estimate.
+    n_dipoles : int
+        The number of dipoles to estimate.
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
-    return_residual : bool
-        If True, the residual is returned as an Evoked instance.
+    return_explained_data : bool
+        If True, the explained data is returned as an array.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
-    time : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted.
-    pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
-    amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
-    ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape (n_dipoles,)
-        The goodness of fit
+    dipoles : instance of Dipole
+        The dipole fits
     explained_data : array
-        Data explained by the sources. Computed only if return_residual
+        Data explained by the dipoles. Computed only if return_residual
         is True.
     """
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
@@ -82,14 +75,14 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     phi_sig = eig_vectors[:, -signal_ndim:]
 
     n_orient = 3 if is_free_ori else 1
-    A = np.zeros((G.shape[0], n_sources))
+    A = np.zeros((G.shape[0], n_dipoles))
     active_set = []
     oris = []
 
     G_proj = G
     phi_sig_proj = phi_sig
 
-    for k in range(n_sources):
+    for k in range(n_dipoles):
         subcorr_max = -1.
         source_idx = None
         for i_source in range(G.shape[1] // n_orient):
@@ -121,7 +114,7 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
 
     active_set = np.sort(active_set)
     explained_data = None
-    if return_residual:
+    if return_explained_data:
         explained_data = np.dot(gain[:, active_set], sol)
 
     vertno[1] = vertno[1][active_set[active_set > vertno[0].size] -
@@ -171,7 +164,7 @@ def _compute_proj(A):
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_sources=5,
+def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
               return_residual=False, picks=None, verbose=None):
     """RAP-MUSIC source localization method.
 
@@ -189,8 +182,8 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_sources=5,
     signal_ndim: int
         The dimension of the subspace spanning the signal.
         The default value is 15.
-    n_sources: int
-        The number of sources to look for. Default value is 5.
+    n_dipoles: int
+        The number of dipoles to look for. Default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     picks : array-like of int | None
@@ -201,18 +194,10 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_sources=5,
 
     Returns
     -------
-    time : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted.
-    pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
-    amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
-    ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape (n_dipoles,)
-        The goodness of fit
+    dipoles : instance of Dipole
+        The dipole fits
     residual : Evoked
-        The residual a.k.a. data not explained by the sources.
+        The residual a.k.a. data not explained by the dipoles.
         Only returned if return_residual is True.
 
     Notes
@@ -235,9 +220,8 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_sources=5,
 
     dipole, explained_data = _apply_rap_music(data, info, tmin, forward,
                                               noise_cov, signal_ndim,
-                                              n_sources,
-                                              return_residual=return_residual,
-                                              picks=picks)
+                                              n_dipoles, picks,
+                                              return_residual)
 
     if return_residual:
         residual = evoked.copy()

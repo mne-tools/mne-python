@@ -19,12 +19,10 @@ DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 
 import mne
 
-from mayavi import mlab
-
 from mne.datasets import sample
 from mne.beamformer import rap_music
 from mne.io.pick import pick_types_evoked
-
+from mne.viz._3d import plot_dipoles
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -47,42 +45,10 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 # Read noise covariance matrix and regularize it
 noise_cov = mne.read_cov(cov_fname)
 
-dipole, residual = rap_music(evoked, forward, noise_cov, n_sources=2,
+dipole, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
                              return_residual=True, verbose=True)
+plot_dipoles(dipole, forward['src'])
 
 # Plot the evoked data and the residual.
 evoked.plot()
 residual.plot()
-
-src = forward['src']
-pos, ori = dipole['pos'], dipole['ori']
-# Add a viz function for dipoles instead of this
-lh_points = src[0]['rr']
-lh_faces = src[0]['use_tris']
-mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-
-# show one cortical surface
-mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                     lh_faces, color=(0.7, ) * 3)
-
-rh_points = src[1]['rr']
-rh_faces = src[1]['use_tris']
-
-# show one cortical surface
-mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                     rh_faces, color=(0.7, ) * 3)
-
-# show dipole as small cones
-mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
-              ori[:, 0], ori[:, 1], ori[:, 2],
-              opacity=1., mode='cone')
-
-# # With fixed orientation
-# forward_fixed = mne.convert_forward_solution(forward, force_fixed=True)
-# dipole_fixed, residual_fixed = rap_music(evoked, forward_fixed, noise_cov,
-#                                          n_sources=2, return_residual=True)
-
-# residual_fixed.plot()
-
-# mne.viz.tight_layout()
-# plt.show()

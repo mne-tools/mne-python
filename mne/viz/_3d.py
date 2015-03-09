@@ -782,3 +782,61 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     surface.actor.property.shading = True
 
     return surface
+
+
+def plot_dipoles(dip, src, bgcolor=(1, ) * 3, opacity=1.,
+                 brain_color=(0.7, ) * 3, fig_name=None,
+                 fig_size=(600, 600), mode='cone', verbose=None):
+    """Plot dipoles.
+
+    Parameters
+    ----------
+    dip : instance of dipole
+        The dipoles.
+    src : dict
+        The source space.
+    bgcolor : tuple of length 3
+        Background color in 3D.
+    opacity : float in [0, 1]
+        Opacity of brain mesh.
+    brain_color : tuple of length 3
+        Brain color.
+    fig_name :
+        Mayavi figure name.
+    fig_size :
+        Mayavi figure size.
+    mode :
+        Should be ``'cone'`` or ``'sphere'`` to specify how the
+        dipoles should be shown.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+
+    if mode not in ['cone', 'sphere']:
+        raise ValueError('mode must be in "cone" or "sphere"')
+
+    pos, ori = dip['pos'], dip['ori']
+
+    from mayavi import mlab
+    mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+
+    # Show 3D
+    lh_points = src[0]['rr']
+    rh_points = src[1]['rr']
+    points = np.r_[lh_points, rh_points]
+
+    lh_faces = src[0]['use_tris']
+    rh_faces = src[1]['use_tris']
+    faces = np.r_[lh_faces, lh_points.shape[0] + rh_faces]
+
+    # show cortical surfaces
+    mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                         faces, color=brain_color)
+
+    # show dipoles
+    mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
+                  ori[:, 0], ori[:, 1], ori[:, 2],
+                  opacity=opacity, mode=mode)
+
+    if fig_name is not None:
+        plt.title(fig_name)
