@@ -50,6 +50,8 @@ from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
 
+from ..utils import compute_corr
+
 try:
     from sklearn.utils.extmath import fast_dot
 except ImportError:
@@ -2142,23 +2144,15 @@ def corrmap(icas, template, threshold="auto", name="bads",
         selected maps in the field specified by the name keyword.
     """
 
-    def vcorrcoef(X, y):  # vectorised correlation, by Jon Herman
-        Xm = np.reshape(np.mean(X, axis=1), (X.shape[0], 1))
-        ym = np.mean(y)
-        r_num = np.sum((X - Xm) * (y - ym), axis=1)
-        r_den = np.sqrt(np.sum((X - Xm) ** 2, axis=1) * np.sum((y - ym) ** 2))
-        r = r_num / r_den
-        return r
-
     def get_ica_map(ica, components=None):
         if components is None:
             components = range(ica.n_components_)
         maps = fast_dot(ica.mixing_matrix_[:, components].T,
-                      ica.pca_components_[:ica.n_components_])
+                        ica.pca_components_[:ica.n_components_])
         return maps
 
     def find_max_corrs(all_maps, target, threshold):
-        all_corrs = [vcorrcoef(subj, target) for subj in all_maps]
+        all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
         abs_corrs = [np.abs(a) for a in all_corrs]
         corr_polarities = [np.sign(a) for a in all_corrs]
 
@@ -2246,7 +2240,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
     target = all_maps[template[0]][template[1]]
 
     if plot is True:
-        ttl = 'Template from subj. {}'.format(str(template[0]))
+        ttl = 'Template from subj. {0}'.format(str(template[0]))
         icas[template[0]].plot_components(picks=template[1],
                                           ch_type=ch_type,
                                           title=ttl)
@@ -2290,7 +2284,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
             ica = deepcopy(ica)
         if not hasattr(ica, 'labels'):
             ica.labels = defaultdict(lambda: [])
-        try:
+        if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
             ica.labels[name] = list(set(list(max_corr) +
@@ -2300,8 +2294,6 @@ def corrmap(icas, template, threshold="auto", name="bads",
                 subjs.extend([i] * len(max_corr))
                 indices.extend(max_corr)
             nones.remove(i)
-        except IndexError:
-            pass
         if inplace is False:
             new_icas.append(ica)
 
