@@ -54,7 +54,7 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     dipoles : instance of Dipole
         The dipole fits
     explained_data : array
-        Data explained by the dipoles. Computed only if return_residual
+        Data explained by the dipoles. Computed only if return_explained_data
         is True.
     """
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(

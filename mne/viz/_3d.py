@@ -839,4 +839,4 @@ def plot_dipoles(dip, src, bgcolor=(1, ) * 3, opacity=1.,
                   opacity=opacity, mode=mode)
 
     if fig_name is not None:
-        plt.title(fig_name)
+        mlab.title(fig_name)
