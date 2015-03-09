@@ -2116,8 +2116,6 @@ def corrmap(icas, template, threshold="auto", name="bads",
         A tuple with two elements (int, int) representing the list indices of
         the set from which the template should be chosen, and the template.
     threshold : "auto" | list of float | float
-
-    "auto" | list of floats > 0 < 1 | float > 0 < 1 | float > 1
         Correlation threshold for identifying ICs
         If "auto", search for the best map by trying all correlations between
         0.6 and 0.95. In the original proposal, lower values are considered,
@@ -2130,18 +2128,23 @@ def corrmap(icas, template, threshold="auto", name="bads",
         Defaults to "auto".
     name : str
         Categorised ICs are stored in a default dictionary "labels". This
-        parameter gives the key under which found ICs will be stored.
+        parameter gives the key under which found ICs will be stored. 
+        Preexisting entries will be appended to (excluding repeats), not 
+        overwritten.
         Defaults to "bads".
     plot : bool
         Should constructed template and selected maps be plotted?
+    inplace : bool
+        Should files be modified in place?
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
 
     Returns
     -------
     new_icas  :  list
-        Returns a list of fitted ICs, enrichened with the indices of the
-        selected maps in the field specified by the name keyword.
+        Returns a list of fitted ICA objects, enrichened with a dictionary
+        containing the indices of the selected maps under a key
+        specified by the name keyword.
     """
 
     def get_ica_map(ica, components=None):
