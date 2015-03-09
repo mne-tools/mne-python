@@ -1745,8 +1745,7 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
 
 
 def compute_corr(x, y):
-    """Compute pearson correlations between a vector and a matrix
-    """
+    """Compute pearson correlations between a vector and a matrix"""
     X = np.array(x)
     Y = np.array(y)
     X -= X.mean(0)
