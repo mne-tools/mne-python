@@ -7,7 +7,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 import warnings
 
 from mne import (read_events, write_events, make_fixed_length_events,
-                 find_events, find_stim_steps, io, pick_channels)
+                 find_events, pick_events, find_stim_steps, io, pick_channels)
 from mne.utils import _TempDir
 from mne.event import define_target_events, merge_events
 
@@ -273,6 +273,27 @@ def test_find_events():
     for s, o in zip(extra_ends, orig_envs):
         if o is not None:
             os.environ['MNE_STIM_CHANNEL%s' % s] = o
+
+
+def test_pick_events():
+    """Test pick events in a events ndarray
+    """
+    events = np.array([[1, 0, 1],
+                       [2, 1, 0],
+                       [3, 0, 4],
+                       [4, 4, 2],
+                       [5, 2, 0]])
+    assert_array_equal(pick_events(events, include=[1, 4], exclude=4),
+                       [[1, 0, 1],
+                        [3, 0, 4]])
+    assert_array_equal(pick_events(events, exclude=[0, 2]),
+                       [[1, 0, 1],
+                        [3, 0, 4]])
+    assert_array_equal(pick_events(events, include=[1, 2], step=True),
+                       [[1, 0, 1],
+                        [2, 1, 0],
+                        [4, 4, 2],
+                        [5, 2, 0]])
 
 
 def test_make_fixed_length_events():
