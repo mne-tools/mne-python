@@ -12,9 +12,8 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_equal, assert_raises
 import scipy.io
 
-from mne import pick_types, concatenate_raws
+from mne import pick_types, concatenate_raws, Epochs, read_events
 from mne.utils import _TempDir
-from mne import Epochs, pick_types, read_events
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
@@ -73,6 +72,7 @@ def test_data():
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
+
 
 def test_epochs():
     raw = read_raw_kit(sqd_path, stim=None)

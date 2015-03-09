@@ -54,7 +54,7 @@ class RawKIT(_BaseRaw):
         Neuromag-style stim channel. For '<', the largest values are assigned
         to the first channel (default). For '>', the largest values are
         assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes. If None, no synthesized channel 
+        trigger channel indexes. If None, no synthesized channel
         will be created.
     slope : '+' | '-' | None
         How to interpret values on KIT trigger channels when synthesizing a
@@ -198,7 +198,7 @@ class RawKIT(_BaseRaw):
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
             elif np.max(stim) >= self._kit_info['nchan']:
-                msg = ("Tried to set stim channel %i, but squid file only has %i"
+                msg = ("Tried to set stim channel %i, but sqd file only has %i"
                        " channels" % (np.max(stim), self._kit_info['nchan']))
                 raise ValueError(msg)
             # modify info
@@ -290,11 +290,11 @@ class RawKIT(_BaseRaw):
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._kit_info['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._kit_info['DYNAMIC_RANGE'])
-                               * sensor_gain, ndmin=2)
+                                self._kit_info['DYNAMIC_RANGE']) *
+                               sensor_gain, ndmin=2)
         data = conv_factor * data
         data = data.T
-        
+
         # Create a synthetic channel
         if self._kit_info['stim'] is not None:
             trig_chs = data[self._kit_info['stim'], :]
@@ -408,7 +408,7 @@ class EpochsKIT(EpochsArray):
                                         events=events, event_id=event_id,
                                         verbose=verbose)
 
-        logger.info('Ready.')   
+        logger.info('Ready.')
 
     def _read_data(self):
         """Read epochs data
@@ -428,7 +428,6 @@ class EpochsKIT(EpochsArray):
         with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
             # extract data
             data_offset = self._kit_info['data_offset']
-            data_length = self._kit_info['data_length']
             dtype = self._kit_info['dtype']
             fid.seek(data_offset)
             # data offset info
@@ -447,16 +446,16 @@ class EpochsKIT(EpochsArray):
                                 self._kit_info['DYNAMIC_RANGE'])
                                * sensor_gain, ndmin=2)
         data = conv_factor * data
-        # reshape 
+        # reshape
         data = data.T
         data = data.reshape((nchan, n_epochs, epoch_length))
-        data = data.transpose((1,0,2))
+        data = data.transpose((1, 0, 2))
 
         return data
 
     def __repr__(self):
         s = ('%r ' % op.basename(self._kit_info['fname']),
-             "n_epochs x n_channels x n_times : %s x %s x %s" 
+             "n_epochs x n_channels x n_times : %s x %s x %s"
              % (self._kit_info['n_epochs'], self.info['nchan'],
                 self._kit_info['frame_length']))
         return "<EpochsKIT  |  %s>" % ', '.join(s)
@@ -484,7 +483,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
     auto_decimate : bool
         Decimate hsp points for head shape files with more than 10'000
         points.
-    
+
     Returns
     -------
     dig_points : list
@@ -493,31 +492,31 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         A dictionary describe the device-head transformation.
     """
     if isinstance(hsp, string_types):
-       hsp = _read_dig_points(hsp)
+        hsp = _read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
-       hsp = _decimate_points(hsp, decim=5)
-       n_new = len(hsp)
-       msg = ("The selected head shape contained {n_in} points, which is "
-              "more than recommended ({n_rec}), and was automatically "
-              "downsampled to {n_new} points. The preferred way to "
-              "downsample is using FastScan.")
-       msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
-       logger.warning(msg)
+        hsp = _decimate_points(hsp, decim=5)
+        n_new = len(hsp)
+        msg = ("The selected head shape contained {n_in} points, which is "
+               "more than recommended ({n_rec}), and was automatically "
+               "downsampled to {n_new} points. The preferred way to "
+               "downsample is using FastScan.")
+        msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+        logger.warning(msg)
 
     if isinstance(elp, string_types):
-       elp_points = _read_dig_points(elp)
-       if len(elp_points) != 8:
-           err = ("File %r should contain 8 points; got shape "
-                  "%s." % (elp, elp_points.shape))
-           raise ValueError(err)
-       elp = elp_points
+        elp_points = _read_dig_points(elp)
+        if len(elp_points) != 8:
+            err = ("File %r should contain 8 points; got shape "
+                   "%s." % (elp, elp_points.shape))
+            raise ValueError(err)
+        elp = elp_points
 
     elif len(elp) != 8:
-       err = ("ELP should contain 8 points; got shape "
-              "%s." % (elp.shape,))
+        err = ("ELP should contain 8 points; got shape "
+               "%s." % (elp.shape,))
     if isinstance(mrk, string_types):
-       mrk = read_mrk(mrk)
+        mrk = read_mrk(mrk)
 
     hsp = apply_trans(als_ras_trans_mm, hsp)
     elp = apply_trans(als_ras_trans_mm, elp)
@@ -647,8 +646,8 @@ def get_kit_info(rawfile):
         acq_type = unpack('i', fid.read(KIT_SYS.INT))[0]
         sqd['sfreq'] = unpack('d', fid.read(KIT_SYS.DOUBLE))[0]
         if acq_type == 1:
-            _ = fid.read(KIT_SYS.INT)  # initialized estimate of samples
-            sqd['n_samples'] = unpack('i', fid.read(KIT_SYS.INT))[0] 
+            fid.read(KIT_SYS.INT)  # initialized estimate of samples
+            sqd['n_samples'] = unpack('i', fid.read(KIT_SYS.INT))[0]
         if acq_type == 2 or acq_type == 3:
             sqd['frame_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
             sqd['pretrigger_length'] = unpack('i', fid.read(KIT_SYS.INT))[0]
@@ -657,7 +656,8 @@ def get_kit_info(rawfile):
             sqd['n_samples'] = sqd['frame_length'] * sqd['n_epochs']
         else:
             err = ("Your file is neither continuous nor epoched data. "
-                   "What type of file is it?!")   
+                   "What type of file is it?!")
+            raise TypeError(err)
         sqd['n_sens'] = KIT_SYS.N_SENS
         sqd['nmegchan'] = KIT_SYS.NMEGCHAN
         sqd['nmiscchan'] = KIT_SYS.NMISCCHAN
@@ -682,7 +682,7 @@ def get_kit_info(rawfile):
         info['nchan'] = sqd['nchan']
         info['dig'] = None
         info['dev_head_t'] = None
-        
+
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
         ch_names = {}
@@ -759,9 +759,9 @@ def get_kit_info(rawfile):
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_MISC_CH
             info['chs'].append(chan_info)
-                
+
         info['ch_names'] = ch_names['MEG'] + ch_names['MISC']
-        
+
     return info, sqd
 
 
@@ -854,5 +854,5 @@ def read_epochs_kit(input_fname, events, event_id=None,
     """
     epochs = EpochsKIT(input_fname=input_fname, events=events,
                        event_id=event_id, mrk=mrk, elp=elp, hsp=hsp,
-                       verbose=verbose)    
+                       verbose=verbose)
     return epochs
