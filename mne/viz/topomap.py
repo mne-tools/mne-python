@@ -1169,30 +1169,22 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     else:
         pos = layout.pos[picks]
 
-    n_axes = len(bands)
-    fig, axes = plt.subplots(1, n_axes, figsize=(1.5 * n_axes, 2))
-    if n_axes == 1:
-        axes = [axes]
-
     psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
                                      window_size=window_size,
                                      n_overlap=n_overlap, proj=proj,
                                      n_jobs=n_jobs)
 
     psds = np.mean(psds, axis=0)
-    for (fmin, fmax, title), ax in zip(bands, axes):
+    for fmin, fmax, title in bands:
         freq_mask = (fmin < freqs) & (freqs < fmax)
         data = 10 * np.log10(agg_fun(psds[:, freq_mask], axis=1))
-        if fmax == bands[-1][1]:
-            _plot_topomap_multi_cbar(data, pos, ax, title=title,
-                                     vmin=vmin, vmax=vmax, cmap=cmap,
-                                     colorbar=True, unit='dB')
-        else:
-            _plot_topomap_multi_cbar(data, pos, ax, title=title,
-                                     vmin=vmin, vmax=vmax, cmap=cmap)
 
-    tight_layout(fig=fig)
-    fig.canvas.draw()
+        fig, ax = plt.subplots(1, 1, figsize=(2, 2))
+        _plot_topomap_multi_cbar(data, pos, ax, title=title,
+                                 vmin=vmin, vmax=vmax, cmap=cmap,
+                                 colorbar=True, unit='dB')
+        tight_layout(fig=fig)
+        fig.canvas.draw()
 
     plt.show()
     return fig
