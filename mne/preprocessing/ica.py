@@ -466,7 +466,7 @@ class ICA(ContainsMixin):
                         self.n_components)
             else:  # None case
                 logger.info('Using all PCA components: %i'
-                                          % len(pca.components_))
+                            % len(pca.components_))
                 sel = slice(len(pca.components_))
 
         # the things to store for PCA
