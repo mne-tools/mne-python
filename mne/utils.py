@@ -1738,3 +1738,17 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix
+    """
+    X = np.array(x)
+    Y = np.array(y)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a transpose / brodcasting
+    # else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
