@@ -2128,8 +2128,8 @@ def corrmap(icas, template, threshold="auto", name="bads",
         Defaults to "auto".
     name : str
         Categorised ICs are stored in a default dictionary "labels". This
-        parameter gives the key under which found ICs will be stored. 
-        Preexisting entries will be appended to (excluding repeats), not 
+        parameter gives the key under which found ICs will be stored.
+        Preexisting entries will be appended to (excluding repeats), not
         overwritten.
         Defaults to "bads".
     plot : bool
