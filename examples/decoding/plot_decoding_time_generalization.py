@@ -43,10 +43,11 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(mag=1.5e-12), decim=decim, verbose=False)
 
 # Define decoder. The decision_function is employed to use AUC for scoring
-gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1)
+gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=2)
 
 # fit and score
 gat.fit(epochs)
 gat.score(epochs)
-gat.plot(vmin=0.1, vmax=0.9, title="Generalization Across Time (faces vs. scrambled)")
+gat.plot(vmin=0.1, vmax=0.9,
+         title="Generalization Across Time (faces vs. scrambled)")
 gat.plot_diagonal()  # plot decoding across time (correspond to GAT diagonal)
