@@ -33,7 +33,6 @@ from mne.decoding import GeneralizationAcrossTime
 print(__doc__)
 
 # Preprocess data
-
 data_path = sample.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -49,10 +48,10 @@ epochs = mne.Epochs(raw, events, event_id, -0.050, 0.400, proj=True,
                     reject=dict(mag=5e-12), decim=decim, verbose=False)
 
 # We will train the classifier on all left visual vs auditory trials
-# and test on all right visual vs auditory trials
+# and test on all right visual vs auditory trials.
 
 # In this case, because the test data is independent from the train data,
-# we test the classifier of each fold and average the respective prediction.
+# we test the classifier of each fold and average the respective predictions.
 
 # Define events of interest
 triggers = epochs.events[:, 2]
@@ -72,4 +71,4 @@ gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
 viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
 
 gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
-gat.plot()
+gat.plot(title="Generalization Across Time (visual vs auditory): left to right")

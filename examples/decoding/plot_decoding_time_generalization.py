@@ -1,6 +1,6 @@
 """
 ==========================================================
-Decoding sensor space data with generalization across time
+Decoding sensor space data with Generalization Across Time
 ==========================================================
 
 This example runs the analysis computed in:
@@ -26,7 +26,6 @@ from mne.decoding import GeneralizationAcrossTime
 print(__doc__)
 
 # Preprocess data
-
 data_path = spm_face.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
@@ -44,12 +43,10 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     reject=dict(mag=1.5e-12), decim=decim, verbose=False)
 
 # Define decoder. The decision_function is employed to use AUC for scoring
-gat = GeneralizationAcrossTime(predict_mode='cross-validation',
-                               predict_type='decision_function',
-                               n_jobs=4)
+gat = GeneralizationAcrossTime(predict_mode='cross-validation', n_jobs=1)
 
 # fit and score
 gat.fit(epochs)
 gat.score(epochs)
+gat.plot(vmin=0.1, vmax=0.9, title="Generalization Across Time (faces vs. scrambled)")
 gat.plot_diagonal()  # plot decoding across time (correspond to GAT diagonal)
-gat.plot(vmin=0.1, vmax=0.9, title="Time generalization (faces vs. scrambled)")
