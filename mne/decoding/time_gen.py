@@ -98,15 +98,16 @@ class GeneralizationAcrossTime(object):
             Duration of each classifier (in seconds). By default, equals one
             time sample.
         If None, empty dict. Defaults to None.
-    predict_type : str, optional, {'predict', 'predict_proba',
-        'decision_function'}
+    predict_type : {'predict', 'predict_proba', 'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
+
             'predict_proba' : generates a probabilistic estimate of each trial.
+
             'decision_function' : generates a continuous non-probabilistic
                 estimate of each trial.
         Default: 'predict'
-    predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
+    predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
             'cross-validation' : estimates a single prediction per sample based
@@ -203,7 +204,7 @@ class GeneralizationAcrossTime(object):
             The epochs.
         y : np.ndarray of int, shape (n_samples,) | None
             To-be-fitted model values. If None, y = epochs.events[:, 2].
-            Defaults to None
+            Defaults to None.
         picks : np.ndarray of int, shape (n_channels,) | None
             The channels to be used. If None, defaults to meg and eeg channels.
             Defaults to None.
@@ -378,7 +379,7 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs
             The epochs. Can be similar to fitted epochs or not. See independent
             parameter.
-        y : list | np.ndarray, shape (n_epochs,) | None, optional
+        y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
         scorer : object
@@ -512,7 +513,7 @@ class GeneralizationAcrossTime(object):
             Defaults to None.
         show : bool
             If True, the figure will be shown. Defaults to True.
-        color : str, optional
+        color : str
             Score line color. Defaults to 'steelblue'.
 
         Returns
@@ -538,15 +539,14 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_type : str, optional, {'predict', 'predict_proba',
-                  'decision_function'}
+    predict_type : {'predict', 'predict_proba', 'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
             'predict_proba' : generates a probabilistic estimate of each trial.
             'decision_function' : generates a continuous non-probabilistic
                 estimate of each trial.
         Default: 'predict'
-    predict_mode : str, optional, {'cross-validation', 'mean-prediction'}
+    predict_mode :{'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
             'cross-validation' : estimates a single prediction per sample based
@@ -730,7 +730,7 @@ def _sliding_window(times, window_params):
     ----------
     times : np.ndarray, shape (n_times,)
         Array of times from MNE epochs.
-    window_params : dict, optional keys: ('start', 'stop', 'step', 'length')
+    window_params : dict keys: ('start', 'stop', 'step', 'length')
         Either train or test times. See GAT documentation.
 
     Returns
@@ -790,7 +790,7 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : str, optional, {'predict', 'predict_proba',
+    predict_type : str, {'predict', 'predict_proba',
                   'decision_function'}
         Indicates the type of prediction:
             'predict' : generates a categorical estimate of each trial.
@@ -892,11 +892,11 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
         A object following scikit-learn estimator API (fit & predict).
         If None the classifier will be a linear SVM (C=1.) after
         feature standardization.
-    cv : integer or cross-validation generator, optional
+    cv : integer or cross-validation generator
         If an integer is passed, it is the number of folds (default 5).
         Specific cross-validation objects can be passed, see
         sklearn.cross_validation module for the list of possible objects.
-    scoring : {string, callable, None}, optional, default: "roc_auc"
+    scoring : {string, callable, None}, default: "roc_auc"
         A string (see model evaluation documentation in scikit-learn) or
         a scorer callable object / function with signature
         ``scorer(estimator, X, y)``.
