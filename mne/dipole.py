@@ -337,7 +337,7 @@ def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op):
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
+def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     """Fit a dipole
 
     Parameters
@@ -348,7 +348,7 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
         The noise covariance.
     bem : str | dict
         The BEM filename (str) or a loaded sphere model (dict).
-    mri : str | None
+    trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
     n_jobs : int
@@ -376,15 +376,15 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
     if isinstance(bem, string_types):
         logger.info('BEM              : %s' % bem)
-    if mri is not None:
-        logger.info('MRI transform    : %s' % mri)
-        mri_head_t, mri = _get_mri_head_t(mri)
+    if trans is not None:
+        logger.info('MRI transform    : %s' % trans)
+        mri_head_t, trans = _get_mri_head_t(trans)
     else:
         mri_head_t = {'from': FIFF.FIFFV_COORD_HEAD,
                       'to': FIFF.FIFFV_COORD_MRI, 'trans': np.eye(4)}
     bem = _setup_bem(bem, bem, neeg, mri_head_t)
     if not bem['is_sphere']:
-        if mri is None:
+        if trans is None:
             raise ValueError('mri must not be None if BEM is provided')
         # Find the best-fitting sphere
         inner_skull = _bem_find_surface(bem, 'inner_skull')
@@ -472,7 +472,9 @@ def fit_dipole(evoked, cov, bem, mri=None, n_jobs=1, verbose=None):
     logger.info('[done %d sources]' % src['nuse'])
 
     # Do actual fits
-    proj_op = make_projector(info['projs'], info['ch_names'], info['bads'])[0]
+    data = data[picks]
+    ch_names = [info['ch_names'][p] for p in picks]
+    proj_op = make_projector(info['projs'], ch_names, info['bads'])[0]
     out = _fit_dipoles(data, times, src['rr'], guess_fwd_svd, fwd_data,
                        whitener, proj_op, n_jobs)
     dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
