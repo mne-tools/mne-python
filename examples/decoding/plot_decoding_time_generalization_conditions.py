@@ -13,6 +13,7 @@ http://www.ncbi.nlm.nih.gov/pubmed/24475052
 King & Dehaene (2014) 'Characterizing the dynamics of mental
 representations: the temporal generalization method', Trends In Cognitive
 Sciences, 18(4), 203-210.
+http://www.ncbi.nlm.nih.gov/pubmed/24593982
 
 The idea is to learn at one time instant and assess if the decoder
 can predict accurately over time and on a second set of conditions.
