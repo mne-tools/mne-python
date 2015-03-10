@@ -27,9 +27,8 @@ from scipy import linalg
 from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
-                       transform_surface_to)
-from ..transforms import (read_trans, _find_trans, apply_trans,
-                          combine_transforms)
+                       read_bem_surfaces)
+from ..transforms import read_trans, _find_trans, apply_trans
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -784,59 +783,89 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
-def plot_dipoles(dip, src, bgcolor=(1, ) * 3, opacity=1.,
-                 brain_color=(0.7, ) * 3, fig_name=None,
-                 fig_size=(600, 600), mode='cone', verbose=None):
+def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
+                 opacity=0.3, brain_color=(0.7, ) * 3, mesh_color=(1, 1, 0),
+                 fig_name=None, fig_size=(600, 600), mode='cone',
+                 verbose=None):
     """Plot dipoles.
 
     Parameters
     ----------
-    dip : instance of dipole
+    dipoles : list of instances of dipole
         The dipoles.
-    src : dict
-        The source space.
+    fwd : instance of forward
+        The subject forward.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
     bgcolor : tuple of length 3
         Background color in 3D.
     opacity : float in [0, 1]
         Opacity of brain mesh.
     brain_color : tuple of length 3
         Brain color.
-    fig_name :
+    mesh_color : tuple of length 3
+        Mesh color.
+    fig_name : tuple of length 2
         Mayavi figure name.
     fig_size :
         Mayavi figure size.
-    mode :
+    mode : str
         Should be ``'cone'`` or ``'sphere'`` to specify how the
         dipoles should be shown.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
     """
+    fname = subjects_dir + '/' + subject + '/bem/' + subject +\
+        '-5120-bem-sol.fif'
+    surfaces = read_bem_surfaces(fname, add_geom=True)
 
     if mode not in ['cone', 'sphere']:
         raise ValueError('mode must be in "cone" or "sphere"')
 
-    pos, ori = dip['pos'], dip['ori']
+    pos, ori = np.zeros((len(dipoles), 3)), np.zeros((len(dipoles), 3))
+    for i_dip in range(len(dipoles)):
+        pos[i_dip], ori[i_dip] = dipoles[i_dip]['pos'], dipoles[i_dip]['ori']
 
     from mayavi import mlab
-    mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
 
     # Show 3D
-    lh_points = src[0]['rr']
-    rh_points = src[1]['rr']
-    points = np.r_[lh_points, rh_points]
+    points = surfaces[0]['rr']
+    faces = surfaces[0]['tris']
 
-    lh_faces = src[0]['use_tris']
-    rh_faces = src[1]['use_tris']
-    faces = np.r_[lh_faces, lh_points.shape[0] + rh_faces]
+    coord_trans = fwd['mri_head_t']['trans']
+    points = np.dot(coord_trans[:3, :3], points.T).T + coord_trans[:3, -1]
 
-    # show cortical surfaces
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                         faces, color=brain_color)
+                         faces, color=mesh_color, opacity=opacity)
+
+    # show the left cortical surface
+    lh_points = fwd['src'][0]['rr']
+    lh_faces = fwd['src'][0]['use_tris']
+    mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
+                         lh_faces, color=brain_color)
+
+    # show the right cortical surface
+    rh_points = fwd['src'][1]['rr']
+    rh_faces = fwd['src'][1]['use_tris']
+    mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
+                         rh_faces, color=brain_color)
 
     # show dipoles
     mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
                   ori[:, 0], ori[:, 1], ori[:, 2],
-                  opacity=opacity, mode=mode)
+                  opacity=1., mode=mode)
 
     if fig_name is not None:
         mlab.title(fig_name)
+
+    return fig

@@ -21,8 +21,7 @@ import mne
 
 from mne.datasets import sample
 from mne.beamformer import rap_music
-from mne.io.pick import pick_types_evoked
-from mne.viz._3d import plot_dipoles
+from mne.viz import plot_dipoles
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -36,7 +35,7 @@ evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
-evoked = pick_types_evoked(evoked, meg=True, eeg=False)
+evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 
 # Read the forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
@@ -45,9 +44,9 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 # Read noise covariance matrix and regularize it
 noise_cov = mne.read_cov(cov_fname)
 
-dipole, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
-                             return_residual=True, verbose=True)
-plot_dipoles(dipole, forward['src'])
+dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
+                              return_residual=True, verbose=True)
+plot_dipoles(dipoles, forward, subject='sample', subjects_dir=subjects_dir)
 
 # Plot the evoked data and the residual.
 evoked.plot()

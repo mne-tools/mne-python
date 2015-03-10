@@ -1,8 +1,14 @@
+# Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 
+import warnings
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
-import warnings
+
 
 import mne
 from mne.datasets import testing
@@ -26,7 +32,7 @@ def read_forward_solution_meg(*args, **kwargs):
     return mne.pick_types_forward(fwd, meg=True, eeg=False)
 
 
-def _get_data(tmin=-0.1, tmax=0.15):
+def _get_data(tmin=-0.1, tmax=0.15, event_id=1):
     """Read in data used in tests
     """
     events = mne.read_events(fname_event)
@@ -36,8 +42,6 @@ def _get_data(tmin=-0.1, tmax=0.15):
     forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
     forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
                                               surf_ori=True)
-
-    event_id, tmin, tmax = 1, tmin, tmax
 
     # Setup for reading the raw data
     raw.info['bads'] = ['MEG 2443', 'EEG 053']  # 2 bads channels
@@ -55,8 +59,6 @@ def _get_data(tmin=-0.1, tmax=0.15):
     info = evoked.info
 
     noise_cov = mne.read_cov(fname_cov)
-    noise_cov = mne.cov.regularize(noise_cov, info, mag=0.05, grad=0.05,
-                                   eeg=0.1, proj=True)
 
     return evoked, noise_cov, forward, forward_surf_ori, forward_fixed
 
@@ -69,22 +71,21 @@ def test_rap_music():
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
 
-    def _check_dipole(dipole):
-        assert_true(dipole['pos'].shape[0], n_dipoles)
-        assert_true(dipole['ori'].shape[0], n_dipoles)
-        assert_true(dipole['ori'].shape[1], 3 if forward['source_ori']
-                    else 1)
+    def _check_dipoles(dipoles):
+        assert_true(len(dipoles), n_dipoles)
+        assert_true(len(dipoles[0]['pos']), 3)
+        assert_true(len(dipoles[0]['ori']), 3)
 
     n_dipoles = 2
 
-    dipole = rap_music(evoked, forward, noise_cov, n_dipoles=n_dipoles)
-    _check_dipole(dipole)
+    dipoles = rap_music(evoked, forward, noise_cov, n_dipoles=n_dipoles)
+    _check_dipoles(dipoles)
 
     # Test with fixed forward
-    dipole_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
-                                  n_dipoles=n_dipoles,
-                                  return_residual=True)
-    _check_dipole(dipole_fixed)
+    dipoles_fixed, res = rap_music(evoked, forward_surf_ori, noise_cov,
+                                   n_dipoles=n_dipoles,
+                                   return_residual=True)
+    _check_dipoles(dipoles_fixed)
 
     # Test the residual times
     assert_array_almost_equal(evoked.times, res.times)

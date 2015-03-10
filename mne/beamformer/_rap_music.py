@@ -51,11 +51,12 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
 
     Returns
     -------
-    dipoles : instance of Dipole
-        The dipole fits
+    dipoles : list of instances of Dipole
+        The dipole fits.
     explained_data : array
-        Data explained by the dipoles. Computed only if return_explained_data
-        is True.
+        Data explained by the dipoles using a least square fitting with the
+        selected active dipoles and their estimated orientation.
+        Computed only if return_explained_data is True.
     """
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
@@ -82,6 +83,7 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     G_proj = G
     phi_sig_proj = phi_sig
 
+    dipoles = []
     for k in range(n_dipoles):
         subcorr_max = -1.
         source_idx = None
@@ -97,6 +99,11 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
                 source_idx = i_source
                 source_ori = ori
                 A[:, k] = np.dot(Gk, ori)
+                if n_orient == 1:
+                    ori = [forward['src'][0]['nn'][vertno[0][i_source]]
+                           if i_source <= vertno[0].size else
+                           forward['src'][1]['nn'][vertno[1][i_source -
+                                                             vertno[0].size]]]
 
         active_set.append(source_idx)
         oris.append(source_ori)
@@ -129,24 +136,28 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
 
 def _make_dipoles(tmin, tstep, src, vertno, active_set, oris, sol):
     times = (np.argmax(sol, axis=1) * tstep + tmin) * 1000
-    pos = np.array((src[0]['rr'][vertno[0]][0], src[1]['rr'][vertno[1]][0]))
+    if vertno[0].size == 0:
+        pos = np.array(src[1]['rr'][vertno[1]])
+    elif vertno[1].size == 0:
+        pos = np.array(src[0]['rr'][vertno[0]])
+    else:
+        pos = np.array((src[0]['rr'][vertno[0]][0],
+                        src[1]['rr'][vertno[1]][0]))
     amplitude = np.max(sol, axis=1) * 1e09
     ori = np.array(oris)
     gof = []
 
-    return Dipole(times, pos, amplitude, ori, gof)
+    dipoles = []
+    for i_dip in range(pos.shape[0]):
+        dipoles.append(Dipole((times[i_dip], ), pos[i_dip],
+                              (amplitude[i_dip], ), ori[i_dip], ([], )))
+
+    return dipoles
 
 
 def _compute_subcorr(G, phi_sig):
     """ Compute the subspace correlation
     """
-    # XXX not sure why this is useful. Commenting for now
-    # if G.shape[1] == 1:
-    #     Gh = G.T.conjugate()
-    #     phi_sigh = phi_sig.T.conjugate()
-    #     subcorr = np.dot(np.dot(Gh, phi_sig), np.dot(phi_sigh, G))
-    #     return np.sqrt(subcorr / np.dot(Gh, G)), np.ones(1)
-    # else:
     Ug = linalg.qr(G, mode='economic')[0]
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
     subcorr = np.dot(tmp, tmp.T.conjugate()).real
@@ -194,8 +205,8 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
 
     Returns
     -------
-    dipoles : instance of Dipole
-        The dipole fits
+    dipoles : list of instance of Dipole
+        The dipole fits.
     residual : Evoked
         The residual a.k.a. data not explained by the dipoles.
         Only returned if return_residual is True.
@@ -204,7 +215,7 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
     -----
     The reference is:
     J.C. Mosher and R.M. Leahy. 1999. Source localization using recursively
-    applied and projected (RAP) MUSIC. Trans. Sig. Proc. 47, 2
+    applied and projected (RAP) MUSIC. Signal Processing, IEEE Trans. 47, 2
     (February 1999), 332-340.
     DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
     """
@@ -218,10 +229,10 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
 
     data = data[picks]
 
-    dipole, explained_data = _apply_rap_music(data, info, tmin, forward,
-                                              noise_cov, signal_ndim,
-                                              n_dipoles, picks,
-                                              return_residual)
+    dipoles, explained_data = _apply_rap_music(data, info, tmin, forward,
+                                               noise_cov, signal_ndim,
+                                               n_dipoles, picks,
+                                               return_residual)
 
     if return_residual:
         residual = evoked.copy()
@@ -233,6 +244,6 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
             p['active'] = False
         residual.add_proj(active_projs, remove_existing=True)
         residual.apply_proj()
-        return dipole, residual
+        return dipoles, residual
     else:
-        return dipole
+        return dipoles
