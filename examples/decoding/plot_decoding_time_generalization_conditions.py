@@ -71,4 +71,5 @@ gat.fit(epochs[('AudL', 'VisL')], y=viz_vs_auditory_l)
 viz_vs_auditory_r = (triggers[np.in1d(triggers, (2, 4))] == 4).astype(int)
 
 gat.score(epochs[('AudR', 'VisR')], y=viz_vs_auditory_r)
-gat.plot(title="Generalization Across Time (visual vs auditory): left to right")
+gat.plot(
+    title="Generalization Across Time (visual vs auditory): left to right")
