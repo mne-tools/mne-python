@@ -19,7 +19,7 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 
 @verbose
-def _apply_rap_music(data, info, tmin, forward, noise_cov,
+def _apply_rap_music(data, info, times, forward, noise_cov,
                      signal_ndim=15, n_dipoles=5, picks=None,
                      return_explained_data=False, verbose=None):
     """RAP-MUSIC for evoked data
@@ -30,8 +30,8 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
         Evoked data.
     info : dict
         Measurement info.
-    tmin : float
-        Time of first sample.
+    times : float
+        Times.
     forward : dict
         Forward operator.
     noise_cov : Covariance
@@ -83,7 +83,6 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
     G_proj = G
     phi_sig_proj = phi_sig
 
-    dipoles = []
     for k in range(n_dipoles):
         subcorr_max = -1.
         source_idx = None
@@ -130,12 +129,12 @@ def _apply_rap_music(data, info, tmin, forward, noise_cov,
 
     tstep = 1.0 / info['sfreq']
 
-    return _make_dipoles(tmin, tstep, forward['src'], vertno, active_set,
+    return _make_dipoles(times, tstep, forward['src'], vertno, active_set,
                          oris, sol), explained_data
 
 
-def _make_dipoles(tmin, tstep, src, vertno, active_set, oris, sol):
-    times = (np.argmax(sol, axis=1) * tstep + tmin) * 1000
+def _make_dipoles(times, tstep, src, vertno, active_set, oris, sol):
+    times *= 1000
     if vertno[0].size == 0:
         pos = np.array(src[1]['rr'][vertno[1]])
     elif vertno[1].size == 0:
@@ -143,14 +142,14 @@ def _make_dipoles(tmin, tstep, src, vertno, active_set, oris, sol):
     else:
         pos = np.array((src[0]['rr'][vertno[0]][0],
                         src[1]['rr'][vertno[1]][0]))
-    amplitude = np.max(sol, axis=1) * 1e09
+    amplitude = sol * 1e09
     ori = np.array(oris)
     gof = []
 
     dipoles = []
     for i_dip in range(pos.shape[0]):
-        dipoles.append(Dipole((times[i_dip], ), pos[i_dip],
-                              (amplitude[i_dip], ), ori[i_dip], ([], )))
+        dipoles.append(Dipole(times[i_dip], pos[i_dip], amplitude[i_dip],
+                              ori[i_dip], gof))
 
     return dipoles
 
@@ -223,13 +222,13 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
 
     info = evoked.info
     data = evoked.data
-    tmin = evoked.times[0]
+    times = evoked.times
 
     picks = _setup_picks(picks, info, forward, noise_cov)
 
     data = data[picks]
 
-    dipoles, explained_data = _apply_rap_music(data, info, tmin, forward,
+    dipoles, explained_data = _apply_rap_music(data, info, times, forward,
                                                noise_cov, signal_ndim,
                                                n_dipoles, picks,
                                                return_residual)

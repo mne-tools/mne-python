@@ -824,8 +824,8 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    fname = subjects_dir + '/' + subject + '/bem/' + subject +\
-        '-5120-bem-sol.fif'
+    fname = os.path.join(subjects_dir, subject, 'bem', subject +
+                         '-5120-bem-sol.fif')
     surfaces = read_bem_surfaces(fname, add_geom=True)
 
     if mode not in ['cone', 'sphere']:
@@ -847,18 +847,6 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
 
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
-
-    # show the left cortical surface
-    lh_points = fwd['src'][0]['rr']
-    lh_faces = fwd['src'][0]['use_tris']
-    mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
-                         lh_faces, color=brain_color)
-
-    # show the right cortical surface
-    rh_points = fwd['src'][1]['rr']
-    rh_faces = fwd['src'][1]['use_tris']
-    mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                         rh_faces, color=brain_color)
 
     # show dipoles
     mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],

@@ -56,7 +56,6 @@ def _get_data(tmin=-0.1, tmax=0.15, event_id=1):
                         reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
 
     evoked = epochs.average()
-    info = evoked.info
 
     noise_cov = mne.read_cov(fname_cov)
 
