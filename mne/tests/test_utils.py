@@ -436,6 +436,7 @@ def test_compute_corr():
     for r_v, r2_v in zip(r, r2):
         assert(r_v == r2_v)
 
+
 def test_create_slices():
     """Test checking the create of time create_slices
     """
