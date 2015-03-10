@@ -47,6 +47,7 @@ Classes
    decoding.ConcatenateChannels
    decoding.FilterEstimator
    decoding.PSDEstimator
+   decoding.GeneralizationAcrossTime
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -783,6 +784,7 @@ Classes:
    PSDEstimator
    FilterEstimator
    CSP
+   GeneralizationAcrossTime
 
 Realtime
 ========
