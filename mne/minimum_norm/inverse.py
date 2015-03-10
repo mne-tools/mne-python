@@ -1460,8 +1460,10 @@ def estimate_snr(evoked, inv, verbose=None):
 
     Returns
     -------
+    snr : ndarray, shape(n_times,)
+        The SNR estimated from the whitened data.
     snr_est : ndarray, shape (n_times,)
-        SNR estimates as a function of time.
+        The SNR estimated using the lead fields.
     """
     _check_reference(evoked)
     _check_ch_names(inv, evoked.info)
@@ -1470,56 +1472,41 @@ def estimate_snr(evoked, inv, verbose=None):
     logger.info('Picked %d channels from the data' % len(sel))
     data_white = np.dot(inv['whitener'], np.dot(inv['proj'], evoked.data[sel]))
     data_white_ef = np.dot(inv['eigen_fields']['data'], data_white)
-    lambda2_est = _compute_regularization(data_white, data_white_ef, inv)
-    snr_est = 1.0 / np.sqrt(lambda2_est)
-    return snr_est
-
-
-def _compute_regularization(data_white, data_white_ef, inv):
-    """Adapted from mne_analyze/regularization.c"""
-    assert data_white.ndim == 2
     n_ch, n_times = data_white.shape
-    lambda2_est = np.zeros(n_ch)
 
+    # Adapted from mne_analyze/regularization.c, compute_regularization
     n_zero = (inv['noise_cov']['eig'] <= 0).sum()
     logger.info('Effective nchan = %d - %d = %d'
                 % (n_ch, n_zero, n_ch - n_zero))
     signal = np.sum(data_white ** 2, axis=0)  # sum of squares across channels
     noise = n_ch - n_zero
-    SNR = signal / noise
+    snr = signal / noise
 
-    sing = inv['sing']
-    lambda2_est = np.empty_like(SNR)
-    lambda2_est.fill(100.)
-    for ti in range(n_times):
-        if SNR[ti] >= 1.:
-            lambda2_est[ti] = _noise_regularization(data_white_ef[:, ti],
-                                                    sing, n_ch - n_zero)
-    return lambda2_est
+    # Adapted from noise_regularization
+    lambda2_est = np.empty(n_times)
+    lambda2_est.fill(10.)
+    remaining = np.ones(n_times, bool)
 
+    # deal with low SNRs
+    bad = (snr <= 1)
+    lambda2_est[bad] = 100.
+    remaining[bad] = False
 
-def _noise_regularization(proj, sing, n_ch):
-    """Check the prediction errors with a chi^2 test"""
-    val = chi2.isf(1e-3, n_ch - 1)
-    lambda2 = 10.
+    # parameters
     lambda_mult = 0.9
-    niter = 0
-    while True:
+    sing2 = (inv['sing'] * inv['sing'])[:, np.newaxis]
+    val = chi2.isf(1e-3, n_ch - 1)
+    n_iter = 0
+    while n_iter < 1000 and remaining.any():
         # get_mne_weights (ew=error_weights)
-        ew = np.zeros(n_ch)
-        sing2 = sing * sing
-        fl = sing / (sing2 + lambda2)
-        f = sing * fl
-        f[sing == 0] = 0
-        ew = proj * (1.0 - f)
-
+        f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
+        f[inv['sing'] == 0] = 0
+        ew = data_white_ef[:, remaining] * (1.0 - f)
         # check condition
-        err = np.dot(ew, ew)
-        if err < val or niter > 1000:
-            break
-        lambda2 *= lambda_mult
-        niter += 1
-    print(niter)
-    if niter == 1000:
-        raise RuntimeError
-    return lambda2
+        err = np.sum(ew * ew, axis=0)
+        remaining[np.where(remaining)[0][err < val]] = False
+        lambda2_est[remaining] *= lambda_mult
+        n_iter += 1
+    snr_est = 1.0 / np.sqrt(lambda2_est)
+    snr = np.sqrt(snr)
+    return snr, snr_est

@@ -527,3 +527,35 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     if show is True:
         plt.show()
     return fig
+
+
+def plot_snr_estimate(evoked, inv, show=True):
+    """Plot a data SNR estimate
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked instance. This should probably be baseline-corrected.
+    inv : instance of InverseOperator
+        The minimum-norm inverse operator.
+    show : bool
+        Whether to show the figure or not. Defaults to True.
+    """
+    import matplotlib.pyplot as plt
+    from ..minimum_norm import estimate_snr
+    snr, snr_est = estimate_snr(evoked, inv, verbose=True)
+    ax = plt.subplot(111)
+    lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
+    ax.plot([0, 0], lims[2:], 'k:')
+    ax.plot(lims[:2], [0, 0], 'k:')
+    ax.plot(evoked.times, snr_est, color=[0, 1, 0])
+    ax.plot(evoked.times, snr, color=[1, 0, 0])
+    ax.set_xlim(lims[:2])
+    ax.set_ylim(lims[2:])
+    ax.set_ylabel('SNR')
+    ax.set_xlabel('Time (sec)')
+    if evoked.comment is not None:
+        ax.set_title(evoked.comment)
+    plt.draw()
+    if show:
+        plt.show()
