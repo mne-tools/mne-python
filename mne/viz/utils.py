@@ -386,3 +386,67 @@ def figure_nobar(*args, **kwargs):
     finally:
         mpl.rcParams['toolbar'] = old_val
     return fig
+
+from Tkinter import (Tk, Frame, SUNKEN, HORIZONTAL,
+                     Scrollbar, Canvas, BOTH, ALL)
+from tkFileDialog import askopenfilename
+import Image
+from ImageTk import PhotoImage
+import numpy as np
+import pandas as pd
+
+
+def click_image_positions(file_path):
+    """
+    Takes as input the path to a picture.  Displays the picture and lets you
+    click on it.  Stores the xy coordinates of each click, so now you can
+    superimpose something on top of it.
+
+    Inputs
+    --------
+    file_path: ndarray | string
+        The image that you wish to click on for 2-d points. If an array,
+        it is displayed. If a string, it must be the path to an image file
+        that can be read in with imread.
+
+    Returns
+    --------
+    xy : ndarray
+        The (n_clicks x 2) points corresponding to clicks on the image.
+
+    """
+
+    root = Tk()
+
+    # setting up a tkinter canvas with scrollbars
+    frame = Frame(root, bd=2, relief=SUNKEN)
+    frame.grid_rowconfigure(0, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+    xscroll = Scrollbar(frame, orient=HORIZONTAL)
+    xscroll.grid(row=1, column=0, sticky=E+W)
+    yscroll = Scrollbar(frame)
+    yscroll.grid(row=0, column=1, sticky=N+S)
+    canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set,
+                    yscrollcommand=yscroll.set)
+    canvas.grid(row=0, column=0, sticky=N+S+E+W)
+    xscroll.config(command=canvas.xview)
+    yscroll.config(command=canvas.yview)
+    frame.pack(fill=BOTH, expand=1)
+
+    # adding the image
+    File = file_path
+    img = PhotoImage(file=file_path, master=root)
+    canvas.create_image(0, 0, image=img, anchor="nw")
+    canvas.config(scrollregion=canvas.bbox(ALL))
+
+    # function to be called when mouse is clicked
+    def store_xy_coords(event):
+        xy_coords.append([event.x, event.y])
+
+    # mouseclick event
+    xy_coords = []
+    canvas.bind("<Button 1>", store_xy_coords)
+    root.mainloop()
+
+    xy = np.array(xy)
+    return xy
