@@ -348,12 +348,24 @@ def test_evoked_arithmetic():
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
     ev = ev1 - ev2
     assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_equal(ev.comment, ev1.comment + ' - ' + ev2.comment)
     assert_allclose(ev.data, np.ones_like(ev1.data))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ev = merge_evoked([ev1, ev2])
     assert_true(len(w) >= 1)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
+
+    # default comment behavior if evoked.comment is None
+    old_comment1 = ev1.comment
+    old_comment2 = ev2.comment
+    ev1.comment = None
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        ev = ev1 - ev2
+        assert_equal(ev.comment, 'unknown')
+    ev1.comment = old_comment1
+    ev2.comment = old_comment2
 
     # equal weighting
     ev = combine_evoked([ev1, ev2], weights='equal')

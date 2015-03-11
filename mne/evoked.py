@@ -759,7 +759,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         this_evoked = deepcopy(evoked)
         this_evoked.data *= -1.
         out = combine_evoked([self, this_evoked])
-        out.comment = self.comment + " - " + this_evoked.comment
+        if self.comment is None or this_evoked.comment is None:
+            warnings.warn('evoked.comment expects a string but is None')
+            out.comment = 'unknown'
+        else:
+            out.comment = self.comment + " - " + this_evoked.comment
         return out
 
     def __hash__(self):
