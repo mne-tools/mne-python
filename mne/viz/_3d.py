@@ -433,12 +433,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         How to print info about the time instant visualized.
     smoothing_steps : int
         The amount of smoothing
-    fmin : float (Deprecated)
-        The minimum value to display.
-    fmid : float (Deprecated)
-        The middle value on the colormap.
-    fmax : float (Deprecated)
-        The maximum value for the colormap.
     transparent : bool
         If True, use a linear transparency between fmin and fmid.
     alpha : float
