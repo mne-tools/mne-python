@@ -205,114 +205,56 @@ class RawEDF(_BaseRaw):
             fid.seek(data_offset + pointer)
             datas = np.empty((n_chan, buffer_size), dtype=float)
             blocks = int(ceil(float(buffer_size) / max_samp))
-            # bdf data: 24bit data
-            if subtype in ('24BIT', 'bdf'):
-                # sixteen bit trigger mask based on bdf2biosig_events from
-                # BIOSIG
-                mask = 2 ** 15 - 1
-                # loop over 10 record increments to not tax the memory
-                buffer_step = int(max_samp * 10)
-                for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
-                    step = buffer_step
-                    if block < step:
-                        step = block
-                    samp = int(step * n_chan * data_size)
-                    blocks = int(ceil(float(step) / max_samp))
-                    # complicated bdf: various sampling rates within file
-                    if len(np.unique(n_samps)) != 1:
-                        for i in range(blocks):
-                            data = np.empty((n_chan, max_samp), dtype=int)
-                            for j, samp in enumerate(n_samps):
-                                chan_data = np.fromfile(fid, dtype=np.uint8,
-                                                        count=samp*data_size)
-                                chan_data = (chan_data[0::3] +
-                                             chan_data[1::3] << 8 +
-                                             chan_data[2::3] << 16)
-                                if j == stim_channel and samp < max_samp:
-                                    warnings.warn('Interpolating stim channel.'
-                                                  ' Events may jitter.')
-                                    oldrange = np.linspace(0, 1, samp + 1,
-                                                           True)
-                                    newrange = np.linspace(0, 1, max_samp,
-                                                           False)
-                                    chan_data = interp1d(
-                                        oldrange, np.append(chan_data, 0),
-                                        kind='zero')(newrange)
-                                elif samp != max_samp:
-                                    chan_data = resample(
-                                        x=chan_data, up=max_samp, down=samp,
-                                        npad=0)
-                                data[j] = chan_data
-                            start_pt = int((max_samp * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + max_samp)
-                            datas[:, start_pt:stop_pt] = data
-                    else:
-                        # simple bdf
-                        data = np.fromfile(fid, dtype=np.uint8, count=samp)
-                        data = data.reshape(-1, 3).astype(np.int32)
-
-                        # this converts to 24-bit little endian integer
-                        # # no support in numpy
-                        data = (data[:, 0] + (data[:, 1] << 8) +
-                                (data[:, 2] << 16))
+            for i in range(blocks):
+                data = np.empty((n_chan, max_samp), dtype=np.int32)
+                for j, samp in enumerate(n_samps):
+                    # bdf data: 24bit data
+                    if subtype in ('24BIT', 'bdf'):
+                        # sixteen bit trigger mask based on bdf2biosig_events
+                        # from BIOSIG
+                        mask = 2 ** 15 - 1
+                        ch_data = np.fromfile(fid, dtype=np.uint8,
+                                              count=samp*data_size)
+                        ch_data = ch_data.reshape(-1, 3).astype(np.int32)
+                        ch_data = ((ch_data[:, 0]) +
+                                   (ch_data[:, 1] << 8) +
+                                   (ch_data[:, 2] << 16))
                         # 24th bit determines the sign
-                        data[data >= (1 << 23)] -= (1 << 24)
-
-                        data = data.reshape((int(max_samp), n_chan, blocks),
-                                            order='F')
-                        for i in range(blocks):
-                            start_pt = int((max_samp * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + max_samp)
-                            datas[:, start_pt:stop_pt] = data[:, :, i].T
-            else:
-                # eight bit trigger mask
-                mask = 2 ** 8 - 1
-                # complicated edf: various sampling rates within file
-                if len(np.unique(n_samps)) != 1:
-                    for i in range(blocks):
-                        data = np.empty((n_chan, max_samp), dtype=int)
-                        for j, samp in enumerate(n_samps):
-                            chan_data = np.fromfile(fid, dtype='<i2',
-                                                    count=samp)
-                            if j == tal_channel:
-                                # don't resample tal_channel,
-                                # pad with zeros instead.
-                                n_missing = int(max_samp - samp)
-                                chan_data = np.hstack([chan_data,
-                                                       [0] * n_missing])
-                            elif j == stim_channel and samp < max_samp:
-                                if annot and annotmap or \
-                                        tal_channel is not None:
-                                    # don't bother with resampling the stim ch
-                                    # because it gets overwritten later on.
-                                    chan_data = np.zeros(max_samp)
-                                else:
-                                    warnings.warn('Interpolating stim channel.'
-                                                  ' Events may jitter.')
-                                    oldrange = np.linspace(0, 1, samp + 1,
-                                                           True)
-                                    newrange = np.linspace(0, 1, max_samp,
-                                                           False)
-                                    chan_data = interp1d(
-                                        oldrange, np.append(chan_data, 0),
-                                        kind='zero')(newrange)
-                            elif samp != max_samp:
-                                chan_data = resample(x=chan_data, up=max_samp,
-                                                     down=samp, npad=0)
-                            data[j] = chan_data
-                        start_pt = int(max_samp * i)
-                        stop_pt = int(start_pt + max_samp)
-                        datas[:, start_pt:stop_pt] = data
-                # simple edf
-                else:
-                    data = np.fromfile(fid, dtype='<i2',
-                                       count=buffer_size * n_chan)
-                    data = data.reshape((int(max_samp), n_chan, blocks),
-                                        order='F')
-                    for i in range(blocks):
-                        start_pt = int(max_samp * i)
-                        stop_pt = int(start_pt + max_samp)
-                        datas[:, start_pt:stop_pt] = data[:, :, i].T
+                        ch_data[ch_data >= (1 << 23)] -= (1 << 24)
+                    # edf data: 16bit data
+                    else:
+                        # eight bit trigger mask
+                        mask = 2 ** 8 - 1
+                        ch_data = np.fromfile(fid, dtype='<i2', count=samp)
+                    if j == tal_channel:
+                        # don't resample tal_channel,
+                        # pad with zeros instead.
+                        n_missing = int(max_samp - samp)
+                        ch_data = np.hstack([ch_data,
+                                             [0] * n_missing])
+                    elif j == stim_channel and samp < max_samp:
+                        if annot and annotmap or \
+                                tal_channel is not None:
+                            # don't bother with resampling the stim ch
+                            # because it gets overwritten later on.
+                            ch_data = np.zeros(max_samp)
+                        else:
+                            warnings.warn('Interpolating stim channel.'
+                                          ' Events may jitter.')
+                            oldrange = np.linspace(0, 1, samp + 1,
+                                                   True)
+                            newrange = np.linspace(0, 1, max_samp,
+                                                   False)
+                            ch_data = interp1d(
+                                oldrange, np.append(ch_data, 0),
+                                kind='zero')(newrange)
+                    elif samp != max_samp:
+                        ch_data = resample(x=ch_data, up=max_samp, down=samp,
+                                           npad=0)
+                    data[j] = ch_data
+                start_pt = int(max_samp * i)
+                stop_pt = int(start_pt + max_samp)
+                datas[:, start_pt:stop_pt] = data
         datas *= gains.T
 
         if stim_channel is not None:
