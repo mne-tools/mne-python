@@ -353,6 +353,50 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     return fig
 
 
+def _percent_to_control_points(limits, stc_data, colormap):
+    """Private helper function to convert percentiles to control points.
+
+    Note: If using 'mne_analyze', generate cmap control points for a directly
+    mirrored cmap for simplicity. I.e., no normalization to account for a
+    2-tailed mne_analyze cmap is computed.
+
+    Parameters
+    ----------
+    limits : str | 3-tuple | dict
+        Desired percentages used to set cmap control points.
+
+    Returns
+    -------
+    ctrl_pts : array
+        Array of floats corresponding to values to use as cmap control points.
+    """
+
+    # Based on type of limits specified, get cmap control points
+    if limits == 'auto':
+        ctrl_pts = np.percentile(np.abs(stc_data), [97, 99.9])
+        ctrl_pts.insert(1, np.average(ctrl_pts))
+    elif isinstance(limits, tuple):
+        assert len(limits) == 3, '"limits" tuple must be length 3'
+        ctrl_pts = limits
+    elif isinstance(limits, dict):
+        # Get appropriate key for limits if it's a dict
+        limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
+        assert limit_key in limits.keys(), ('"lims" OR "pos_lims" must be '
+                                            'defined depending on colormap')
+        if limits['kind'] == 'percent':
+            ctrl_pts = np.percentile(np.abs(stc_data),
+                                     list(np.abs(limits[limit_key])))
+        elif limits['kind'] == 'value':
+            ctrl_pts = limits[limit_key]
+        else:
+            raise ValueError('If limits is a dict, limits[kind] must be '
+                             ' "value" or "percent"')
+    else:
+        raise ValueError('"limits" must be "auto", tuple, or dict')
+
+    return ctrl_pts
+
+
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=None, fmid=None, fmax=None,
@@ -416,19 +460,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
-        limits : str | 3-tuple | dict
-            Colorbar properties specification. If 'auto', set limits
-            automatically based on quartiles of data. If 3-tuple of floats,
-            set limits according to 3-tuple values. If dict, should contain:
-                kind : str
-                    Flag to specify type of limits. 'value' or 'percent'.
-                lims : length 3 list or array
-                    Left, middle, and right bound for colormap.
-                pos_lims : None or length 3 list or array
-                    Minimum, middle, and maximum positive control points for
-                    (only) 'mne_analyze' colormap must must be constructed
-                    Positive values will be mirrored during colormap
-                    construction.
+    limits : str | 3-tuple | dict
+        Colorbar properties specification. If 'auto', set limits
+        automatically based on quartiles of data. If 3-tuple of floats,
+        set limits according to 3-tuple values. If dict, should contain:
+            kind : str
+                Flag to specify type of limits. 'value' or 'percent'.
+            lims : length 3 list or array
+                Left, middle, and right bound for colormap.
+            pos_lims : None or length 3 list or array
+                Minimum, middle, and maximum positive control points for
+                (only) 'mne_analyze' colormap must must be constructed
+                Positive values will be mirrored during colormap
+                construction.
 
     Returns
     -------
@@ -485,73 +529,32 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         else:
             transparent = True
 
-    scale_pts = [fmin, fmid, fmax]
-    # Check if using old fmin/fmid/fmax behavior
+    ctrl_pts = [fmin, fmid, fmax]
+
+    # Check if using old fmin/fmid/fmax cmap behavior
     if limits is None:
-        # Throw deprecation warning (should only show up once)
+        # Throw deprecation warning
         warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
                       ' removed in v0.10. Use "limits" instead.',
                       DeprecationWarning)
-        for fi, f in enumerate(scale_pts):
+        for fi, f in enumerate(ctrl_pts):
             if f is None:
-                scale_pts[fi] = [5., 10., 15.][fi]
+                ctrl_pts[fi] = [5., 10., 15.][fi]
 
-    # Using new cmap limit behavior
+    # Otherwise, use new cmap behavior
     else:
         if any([f is not None for f in [fmin, fmid, fmax]]):
             warnings.warn('"limits" overrides fmin, fmid, fmax')
+        ctrl_pts = _percent_to_control_points(limits, stc.data, colormap)
 
-        # Colormap is 'mne_analyze'. Need to construct cmap and get scale vals
-        if colormap == 'mne_analyze':
-            if limits == 'auto':
-                ctrl_pts = np.percentile(np.abs(stc.data), [97, 98.5, 99.9])
-                colormap = mne_analyze_colormap(ctrl_pts)
-            elif isinstance(limits, tuple):
-                assert len(limits) == 3, '"limits" tuple must be length 3'
-                ctrl_pts = limits
-                colormap = mne_analyze_colormap(ctrl_pts)
-            elif isinstance(limits, dict):
-                if limits['kind'] == 'percent':
-                    ctrl_pts = np.percentile(np.abs(stc.data),
-                                             list(np.abs(limits['pos_lims'])))
-                elif limits['kind'] == 'value':
-                    ctrl_pts = limits['pos_lims']
-                else:
-                    raise ValueError('limits[kind] must be "value" or '
-                                     ' "percent"')
-                if 'lims' in limits:
-                    warnings.warn('"limits[lim]" is not used if colormap is'
-                                  ' "mne_analyze." Use "pos_lims"')
-                colormap = mne_analyze_colormap(ctrl_pts)
-            else:
-                raise ValueError('"limits" must be "auto", tuple or dict')
-
-            scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
-
-        # Standard colormap (not 'mne_analyze'). Only need to get scale vals
-        else:
-            if limits == 'auto':
-                scale_pts = np.percentile(np.abs(stc.data), [97, 98.5, 99.9])
-            elif isinstance(limits, tuple):
-                assert len(limits) == 3, '"limits" tuple must be length 3'
-                scale_pts = limits
-            elif isinstance(limits, dict):
-                if limits['kind'] == 'value':
-                    scale_pts = limits['lims']
-                elif limits['kind'] == 'percent':
-                    scale_pts = np.percentile(stc.data, list(limits['lims']))
-                else:
-                    raise ValueError('limits[kind] must be "value" or '
-                                     ' "percent"')
-
-                if 'pos_lims' in limits:
-                    warnings.warn('limits[pos_lims] not used if colormap is '
-                                  ' not mne_analyze. Use limits[lims]')
-            else:
-                raise ValueError('"limits" must be "auto", tuple or dict')
+    # Construct cmap manually if 'mne_analyze' and get cmap bounds
+    if colormap == 'mne_analyze':
+        colormap = mne_analyze_colormap(ctrl_pts)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+    else:
+        scale_pts = ctrl_pts
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-
     subject = _check_subject(stc.subject, subject, False)
     if subject is None:
         if 'SUBJECT' in os.environ:
