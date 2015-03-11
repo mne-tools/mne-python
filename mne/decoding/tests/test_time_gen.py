@@ -225,8 +225,8 @@ def test_generalization_across_time():
     n_classes = [2]  # 4 tested
     # nicely ordered labels or not
     y = epochs.events[:, 2]
-    y[int(round(len(y) / 2)):] += 2
-    ys = (y, y+1000)
+    y[len(y) // 2:] += 2
+    ys = (y, y + 1000)
     # Classifier and regressor
     svc = SVC(C=1, kernel='linear', probability=True)
     clfs = [svc]  # SVR tested

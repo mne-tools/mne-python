@@ -451,14 +451,15 @@ class GeneralizationAcrossTime(object):
 
         # Identify training classes
         training_classes = np.unique(self.y_train_)
-        # Change labels if decision_function with inadequate categorical classes
+        # Change labels if decision_function with inadequate categorical
+        # classes
         if (self.predict_type == 'decision_function' and
             not np.array_equiv(training_classes,
                                np.arange(0, len(training_classes))) and
-            is_classifier(self.clf)):
-            warnings.warn('Scoring categorical \npredictions from '
+                is_classifier(self.clf)):
+            warnings.warn('Scoring categorical predictions from '
                           '`decision_function` requires specific labeling. '
-                          'Prefer using a \npredefined label scheme with '
+                          'Prefer using a predefined label scheme with '
                           '`sklearn.preprocessing.LabelEncoder`.')
             # set sklearn Label encoder
             le = LabelEncoder()

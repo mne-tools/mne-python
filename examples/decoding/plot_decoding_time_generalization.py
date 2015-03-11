@@ -30,13 +30,16 @@ data_path = spm_face.data_path()
 # Load and filter data, set up epochs
 raw_fname = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces%d_3D_raw.fif'
 events_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
+
 raw = mne.io.Raw(raw_fname % 1, preload=True)  # Take first run
-raw.append(mne.io.Raw(raw_fname % 2, preload=True))  # Take second run too
+
 picks = mne.pick_types(raw.info, meg=True, exclude='bads')
 raw.filter(1, 45, method='iir')
+
 events = mne.find_events(raw, stim_channel='UPPT001')
 event_id = {"faces": 1, "scrambled": 2}
 tmin, tmax = -0.1, 0.5
+
 decim = 4  # decimate to make the example faster to run
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True,
@@ -44,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 
 # Define decoder. The decision_function is employed to use AUC for scoring
 gat = GeneralizationAcrossTime(predict_mode='cross-validation',
-                               predict_type='decision_function', n_jobs=1)
+                               predict_type='decision_function', n_jobs=2)
 
 # fit and score
 gat.fit(epochs)
