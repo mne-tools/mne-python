@@ -67,6 +67,8 @@ Changelog
 
    - Labels support subtraction (``label_1 - label_2``) by `Christian Brodbeck`_
 
+   - Add GeneralizationAcrossTime object with support for cross-condition generalization by `Jean-Remi King`_ and `Denis Engemann`_
+
 BUG
 ~~~
 
