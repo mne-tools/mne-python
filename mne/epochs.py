@@ -1344,6 +1344,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, index=None, scale_time=1e3,
                       scalings=None, copy=True):
         """Get the epochs as Pandas DataFrame

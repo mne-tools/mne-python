@@ -33,6 +33,7 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
+from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
