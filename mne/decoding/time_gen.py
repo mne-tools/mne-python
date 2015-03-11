@@ -7,6 +7,7 @@
 import multiprocessing
 
 import numpy as np
+import warnings
 from scipy import stats
 
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
@@ -415,7 +416,10 @@ class GeneralizationAcrossTime(object):
             need not be regular.
         """
 
-        from sklearn.metrics import roc_auc_score, accuracy_score
+        from sklearn.metrics import (roc_auc_score, accuracy_score,
+                                     mean_squared_error)
+        from sklearn.base import is_classifier
+        from sklearn.preprocessing import LabelEncoder
 
         # Run predictions
         self.predict(epochs, test_times=test_times)
@@ -432,13 +436,36 @@ class GeneralizationAcrossTime(object):
                                  'for scoring.')
         self.y_true_ = y  # true regressor to be compared with y_pred
 
-        # Setup scorer
+        # Setup default scorer
         if scorer is None:
-            if self.predict_type == 'predict':  # categorical output
-                scorer = accuracy_score
-            else:  # continuous output
-                scorer = roc_auc_score
+            if is_classifier(self.clf):  # Classification
+                if self.predict_type == 'predict':
+                    # By default, use accuracy if categorical prediction
+                    scorer = accuracy_score
+                else:
+                    # By default, use AUC for continuous output
+                    scorer = roc_auc_score
+            else:  # Regression  XXX ideally, would need an is_regresser()
+                scorer = mean_squared_error
         self.scorer_ = scorer
+
+        # Identify training classes
+        training_classes = np.unique(self.y_train_)
+        # Change labels if decision_function with inadequate categorical classes
+        if (self.predict_type == 'decision_function' and
+            not np.array_equiv(training_classes,
+                               np.arange(0, len(training_classes))) and
+            is_classifier(self.clf)):
+            warnings.warn('Scoring categorical \npredictions from '
+                          '`decision_function` requires specific labeling. '
+                          'Prefer using a \npredefined label scheme with '
+                          '`sklearn.preprocessing.LabelEncoder`.')
+            # set sklearn Label encoder
+            le = LabelEncoder()
+            le.fit(training_classes)
+            transform_classes = True
+        else:
+            transform_classes = False
 
         # Initialize values: Note that this is not an array as the testing
         # times per training time need not be regular
@@ -450,10 +477,13 @@ class GeneralizationAcrossTime(object):
             # Loop across testing times
             scores[t_train] = [0] * n_time
             for t, indices in enumerate(slices):
+                y_true = self.y_true_
+                y_pred = self.y_pred_[t_train][t]
+                # Transform labels for Sklearn API compatibility
+                if transform_classes:
+                    y_true = le.transform(y_true)
                 # Scores across trials
-                scores[t_train][t] = _score(self.y_true_,
-                                            self.y_pred_[t_train][t],
-                                            scorer)
+                scores[t_train][t] = _score(y_true, y_pred, scorer)
         self.scores_ = scores
         return scores
 
