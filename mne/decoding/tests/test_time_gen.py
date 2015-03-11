@@ -50,20 +50,19 @@ def test_time_generalization():
 def test_generalization_across_time():
     """Test time generalization decoding
     """
-    from sklearn.svm import SVC, SVR
+    from sklearn.svm import SVC
 
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
                        eog=False, exclude='bads')
-    picks = picks[1:13:3]
+    picks = picks[0:2]
     decim = 30
 
     # Test on time generalization within one condition
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
-
     # Test default running
     gat = GeneralizationAcrossTime()
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -223,17 +222,16 @@ def test_generalization_across_time():
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes
-    n_classes = [2, 4]
+    n_classes = [2]  # 4 tested
     # nicely ordered labels or not
     y = epochs.events[:, 2]
-    y[int(round(len(y)/2)):] += 2
+    y[int(round(len(y) / 2)):] += 2
     ys = (y, y+1000)
     # Classifier and regressor
     svc = SVC(C=1, kernel='linear', probability=True)
-    svr = SVR(C=1, kernel='linear')
-    clfs = [svc, svr]
-    # Continuous, discrete and probabilistic estimate
-    predict_types = ['predict', 'predict_proba', 'decision_function']
+    clfs = [svc]  # SVR tested
+    # Continuous, and probabilistic estimate
+    predict_types = ['predict_proba', 'decision_function']
     # Test all combinations
     for clf_n, clf in enumerate(clfs):
         for y in ys:
@@ -241,10 +239,7 @@ def test_generalization_across_time():
                 for pt in predict_types:
                     y_ = y % n_class
                     with warnings.catch_warnings(record=True):
-                        gat = GeneralizationAcrossTime(cv=2, clf=clf, predict_type=pt)
+                        gat = GeneralizationAcrossTime(
+                            cv=2, clf=clf, predict_type=pt)
                         gat.fit(epochs, y=y_)
-                        if (pt == 'predict_proba' and clf_n == 1):
-                            # regression cannot have a predict_proba.
-                            pass
-                        else:
-                            gat.score(epochs, y=y_)
+                        gat.score(epochs, y=y_)
