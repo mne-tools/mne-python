@@ -34,7 +34,7 @@ extensions = ['sphinx.ext.autodoc', 'sphinx.ext.autosummary',
               'gen_rst', 'numpy_ext.numpydoc']
 autosummary_generate = True
 
-autodoc_default_flags=['inherited-members']
+autodoc_default_flags = ['members', 'inherited-members']
 
 # extensions = ['sphinx.ext.autodoc',
 #               'sphinx.ext.doctest',

@@ -611,7 +611,7 @@ class Epochs(_BaseEpochs):
         Measurement info.
     event_id : dict
         Names of  of conditions corresponding to event_ids.
-    ch_names : list of string
+    <ch_names> : list of string
         List of channels' names.
     selection : array
         List of indices of selected events (not dropped or ignored etc.). For
