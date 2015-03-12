@@ -38,7 +38,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose)
+                     logger, verbose, deprecated)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -107,9 +107,14 @@ class ToDataFrameMixin(object):
         if picks is None:
             picks = list(range(self.info['nchan']))
         else:
-            if not in1d(picks, np.arange(len(self.events))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this epochs instance.')
+            if isinstance(self, (Epochs, EpochsArray)):
+                if not in1d(picks, np.arange(len(self.events))).all():
+                    raise ValueError('At least one picked channel is not present '
+                                     'in this epochs instance.')
+            if isinstance(self, (Evoked, EvokedArray)):
+                if not in1d(picks, np.arange(len(self.ch_names))).all():
+                    raise ValueError('At least one picked channel is not present '
+                                     'in this Evoked instance.')
 
         if isinstance(self, (Epochs, EpochsArray)):
             data = self.get_data()[:, picks, :]
@@ -117,14 +122,12 @@ class ToDataFrameMixin(object):
             n_epochs, n_picks, n_times = data.shape
             data = np.hstack(data).T  # (time*epochs) x signals
 
-        elif isinstance(self, (RawFIFF, RawArray)):
-            data, times = self[picks, start:stop]
-            n_picks, n_times = data.shape
-            data = data.T
-
-        elif isinstance(self, (Evoked, EvokedArray, SourceEstimate)):
-            data = self.data[picks, :]
-            times = self.times
+        else:
+            if isinstance(self, (RawFIFF, RawArray)):
+                data, times = self[picks, start:stop]
+            elif isinstance(self, (Evoked, EvokedArray, SourceEstimate)):
+                data = self.data[picks, :]
+                times = self.times
             n_picks, n_times = data.shape
             data = data.T
 
@@ -1320,6 +1323,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return deepcopy(self)
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=None, use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
