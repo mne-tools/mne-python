@@ -32,7 +32,7 @@ def test_compute_proj_ecg():
         # heart rate at least 0.5 Hz, but less than 3 Hz
         assert_true(events.shape[0] > 0.5 * dur_use and
                     events.shape[0] < 3 * dur_use)
-        #XXX: better tests
+        # XXX: better tests
 
         # without setting a bad channel, this should throw a warning
         with warnings.catch_warnings(record=True) as w:
@@ -59,7 +59,7 @@ def test_compute_proj_eog():
         assert_true(len(projs) == (7 + n_projs_init))
         assert_true(np.abs(events.shape[0] -
                     np.sum(np.less(eog_times, dur_use))) <= 1)
-        #XXX: better tests
+        # XXX: better tests
 
         # This will throw a warning b/c simplefilter('always')
         with warnings.catch_warnings(record=True) as w:

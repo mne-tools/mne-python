@@ -204,6 +204,7 @@ def test_discrete_source_space():
             os.remove(temp_name)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_volume_source_space():
     """Test setting up volume source spaces

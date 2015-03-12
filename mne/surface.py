@@ -257,26 +257,53 @@ def read_bem_solution(fname, verbose=None):
     bem['solution'] = sol
     bem['nsol'] = nsol
     bem['bem_method'] = method
+    bem['is_sphere'] = False
     logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
     return bem
+
+
+_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+
+
+def _bem_find_surface(bem, id_):
+    """Find surface from already-loaded BEM"""
+    if isinstance(id_, string_types):
+        name = id_
+        id_ = _surf_dict[id_]
+    else:
+        name = _bem_explain_surface[id_]
+    idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
+    if len(idx) != 1:
+        raise RuntimeError('BEM model does not have the %s triangulation'
+                           % name.replace('_', ' '))
+    return bem['surfs'][idx[0]]
+
+
+def _bem_explain_surface(id_):
+    """Return a string corresponding to the given surface ID"""
+    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    return _rev_dict[id_]
 
 
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-def get_head_surf(subject, source='bem', subjects_dir=None):
+def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     """Load the subject head surface
 
     Parameters
     ----------
     subject : str
         Subject name.
-    source : str
+    source : str | list of str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
         through all files matching the pattern. The head surface will be read
-        from the first file containing a head surface.
+        from the first file containing a head surface. Can also be a list
+        to try multiple strings.
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -289,31 +316,37 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
-    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
-                                    '%s-%s.fif' % (subject, source)))
-    if op.exists(this_head):
-        surf = read_bem_surfaces(this_head, True,
-                                 FIFF.FIFFV_BEM_SURF_ID_HEAD)
-    else:
-        # let's do a more sophisticated search
-        this_head = None
-        path = op.join(subjects_dir, subject, 'bem')
-        if not op.isdir(path):
-            raise IOError('Subject bem directory "%s" does not exist'
-                          % path)
-        files = sorted(glob(op.join(path, '%s*%s.fif' % (subject, source))))
-        for this_head in files:
-            try:
-                surf = read_bem_surfaces(this_head, True,
-                                         FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                break
-            except ValueError:
-                # the file does not contain a head surface
-                this_head = None
+    if isinstance(source, string_types):
+        source = [source]
+    surf = None
+    for this_source in source:
+        this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                        '%s-%s.fif' % (subject, this_source)))
+        if op.exists(this_head):
+            surf = read_bem_surfaces(this_head, True,
+                                     FIFF.FIFFV_BEM_SURF_ID_HEAD)
+        else:
+            # let's do a more sophisticated search
+            path = op.join(subjects_dir, subject, 'bem')
+            if not op.isdir(path):
+                raise IOError('Subject bem directory "%s" does not exist'
+                              % path)
+            files = sorted(glob(op.join(path, '%s*%s.fif'
+                                        % (subject, this_source))))
+            for this_head in files:
+                try:
+                    surf = read_bem_surfaces(this_head, True,
+                                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                except ValueError:
+                    pass
+                else:
+                    break
+        if surf is not None:
+            break
 
-        if this_head is None:
-            raise IOError('No file matching "%s*%s" and containing a head '
-                          'surface found' % (subject, source))
+    if surf is None:
+        raise IOError('No file matching "%s*%s" and containing a head '
+                      'surface found' % (subject, this_source))
     return surf
 
 
@@ -385,6 +418,13 @@ def fast_cross_3d(x, y):
                      x[:, 0] * y[:, 1] - x[:, 1] * y[:, 0]]
     else:
         return np.cross(x, y)
+
+
+def _fast_cross_nd_sum(a, b, c):
+    """Fast cross and sum"""
+    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
+            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
+            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
 def _accumulate_normals(tris, tri_nn, npts):

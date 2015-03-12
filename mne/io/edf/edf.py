@@ -214,7 +214,7 @@ class RawEDF(_BaseRaw):
                         # from BIOSIG
                         mask = 2 ** 15 - 1
                         ch_data = np.fromfile(fid, dtype=np.uint8,
-                                              count=samp*data_size)
+                                              count=samp * data_size)
                         ch_data = ch_data.reshape(-1, 3).astype(np.int32)
                         ch_data = ((ch_data[:, 0]) +
                                    (ch_data[:, 1] << 8) +

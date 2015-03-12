@@ -67,14 +67,14 @@ def yule_walker(X, order=1, method="unbiased", df=None, inv=False,
             return n
     if X.ndim > 1 and X.shape[1] != 1:
         raise ValueError("expecting a vector to estimate AR parameters")
-    r = np.zeros(order+1, np.float64)
-    r[0] = (X**2).sum() / denom(0)
+    r = np.zeros(order + 1, np.float64)
+    r[0] = (X ** 2).sum() / denom(0)
     for k in range(1, order + 1):
-        r[k] = (X[0:-k]*X[k:]).sum() / denom(k)
+        r[k] = (X[0:-k] * X[k:]).sum() / denom(k)
     R = toeplitz(r[:-1])
 
     rho = np.linalg.solve(R, r[1:])
-    sigmasq = r[0] - (r[1:]*rho).sum()
+    sigmasq = r[0] - (r[1:] * rho).sum()
     if inv:
         return rho, np.sqrt(sigmasq), np.linalg.inv(R)
     else:

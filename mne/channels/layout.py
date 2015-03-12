@@ -311,8 +311,8 @@ def make_grid_layout(info, picks=None, n_col=None):
     y += 0.5
 
     # calculate pos
-    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(size), height *
-                np.ones(size)]
+    pos = np.c_[x - 0.5 * width, y - 0.5 * height,
+                width * np.ones(size), height * np.ones(size)]
     box = (0, 1, 0, 1)
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)

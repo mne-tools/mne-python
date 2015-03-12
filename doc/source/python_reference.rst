@@ -468,6 +468,7 @@ Covariance
 
    compute_covariance
    compute_raw_data_covariance
+   make_ad_hoc_cov
    read_cov
    write_cov
 
@@ -518,6 +519,7 @@ Functions:
    do_forward_solution
    make_forward_solution
    make_field_map
+   make_sphere_model
    read_bem_surfaces
    read_forward_solution
    read_trans
@@ -616,6 +618,18 @@ Functions:
    dics
    dics_epochs
    dics_source_power
+
+:py:mod:`mne`:
+
+.. currentmodule:: mne
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fit_dipole
 
 
 Source Space Data

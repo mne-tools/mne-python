@@ -20,7 +20,8 @@ from mne.cov import (regularize, whiten_evoked, _estimate_rank_meeg_cov,
 from mne import (read_cov, write_cov, Epochs, merge_events,
                  find_events, compute_raw_data_covariance,
                  compute_covariance, read_evokeds, compute_proj_raw,
-                 pick_channels_cov, pick_channels, pick_types, pick_info)
+                 pick_channels_cov, pick_channels, pick_types, pick_info,
+                 make_ad_hoc_cov)
 from mne.io import Raw
 from mne.utils import _TempDir, slow_test, requires_module
 from mne.io.proc_history import _get_sss_rank
@@ -47,6 +48,17 @@ raw_fname = op.join(base_dir, 'test_raw.fif')
 ave_fname = op.join(base_dir, 'test-ave.fif')
 erm_cov_fname = op.join(base_dir, 'test_erm-cov.fif')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
+
+
+def test_ad_hoc_cov():
+    """Test ad hoc cov creation and I/O"""
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test-cov.fif')
+    evoked = read_evokeds(ave_fname)[0]
+    cov = make_ad_hoc_cov(evoked.info)
+    cov.save(out_fname)
+    cov2 = read_cov(out_fname)
+    assert_array_almost_equal(cov['data'], cov2['data'])
 
 
 def test_io_cov():

@@ -193,7 +193,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == 'bads':
         exclude = info.get('bads', [])
-    elif not isinstance(exclude, list):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError('exclude must either be "bads" or a list of strings.'
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
@@ -292,7 +292,7 @@ def pick_info(info, sel=[], copy=True):
         info = deepcopy(info)
 
     if len(sel) == 0:
-        raise ValueError('Warning : No channels match the selection.')
+        raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
@@ -547,7 +547,10 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)
     res['dim'] = len(sel)
-    res['data'] = orig['data'][sel][:, sel]
+    if not res['diag']:
+        res['data'] = orig['data'][sel][:, sel]
+    else:
+        res['data'] = orig['data'][sel]
     res['names'] = [orig['names'][k] for k in sel]
     res['bads'] = [name for name in orig['bads'] if name in res['names']]
     res['eig'] = None

@@ -19,7 +19,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, EvokedArray, merge_evoked
 from mne.epochs import EpochsArray
 
-from mne.utils import _TempDir, requires_pandas, requires_nitime
+from mne.utils import _TempDir, requires_pandas, requires_nitime, slow_test
 
 from mne.io.meas_info import create_info
 from mne.externals.six.moves import cPickle as pickle
@@ -45,6 +45,7 @@ def test_hash_evoked():
     assert_not_equal(hash(ave), hash(ave_2))
 
 
+@slow_test
 def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args
     """
