@@ -71,11 +71,18 @@ class ToDataFrameMixin(object):
             ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
+        start, stop : int | None
+            If it is a Raw object, this defines a start/stop index for creating
+            the dataframe from a slice. The times will be interpolated from the
+            index and the sampling rate of the signal.
 
         Returns
         -------
         df : instance of pandas.core.DataFrame
-            Epochs exported into tabular data structure.
+            A dataframe suitable for usage with other
+            statistical/plotting/analysis packages. Column/Index values will
+            depend on the object type being converted, but should be
+            human-readable.
         """
         from ..epochs import Epochs, EpochsArray
         from ..evoked import Evoked, EvokedArray
@@ -146,7 +153,7 @@ class ToDataFrameMixin(object):
         mindex = list()
         if isinstance(self, (RawFIFF, RawArray,
                              Evoked, EvokedArray, SourceEstimate)):
-            mindex.append(('time', times))        
+            mindex.append(('time', times))  
 
         if isinstance(self, (Epochs, EpochsArray)):
             mindex.append(('time', np.tile(times, n_epochs)))
