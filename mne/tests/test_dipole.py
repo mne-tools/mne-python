@@ -83,8 +83,8 @@ def test_dipole_fitting():
                                  random_state=rng)
     # For speed, let's use a subset of channels (strange but works)
     picks = np.sort(np.concatenate([
-        pick_types(evoked.info, meg=True, eeg=False)[::3],
-        pick_types(evoked.info, meg=False, eeg=True)[::3]]))
+        pick_types(evoked.info, meg=True, eeg=False)[::2],
+        pick_types(evoked.info, meg=False, eeg=True)[::2]]))
     evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
     write_evokeds(fname_sim, evoked)
