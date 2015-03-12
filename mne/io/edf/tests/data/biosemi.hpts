@@ -75,8 +75,8 @@ eeg O2 95 31 -3
 # 3 cardinal landmarks
 # --------------------
 # Nasion
-cardinal 2 -91 0 -42
+cardinal nasion -91 0 -42
 # Left auricular
-cardinal 1 0 -91 -42
+cardinal lpa 0 -91 -42
 # Right auricular
-cardinal 3 0 91 -42
+cardinal rpa 0 91 -42
