@@ -893,7 +893,7 @@ of commits):
 
 .. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
 
-.. _Eric Larson: http://faculty.washington.edu/larsoner/
+.. _Eric Larson: http://larsoner.com
 
 .. _Denis Engemann: https://github.com/dengemann
 

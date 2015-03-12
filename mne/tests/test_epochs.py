@@ -14,6 +14,7 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import numpy as np
 import copy as cp
 import warnings
+from scipy import fftpack
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
@@ -55,6 +56,29 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 clean_warning_registry()  # really clean warning stack
+
+
+def test_filter():
+    """Test savgol filtering
+    """
+    h_freq = 10.
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events, event_id, tmin, tmax)
+    assert_raises(RuntimeError, epochs.filter, h_freq=10.)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(fftpack.fft(epochs.get_data()))
+    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
+    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    epochs.filter(h_freq=h_freq)
+    data_filt = np.abs(fftpack.fft(epochs.get_data()))
+    # decent in pass-band
+    assert_allclose(np.mean(data[:, :, match_mask], 0),
+                    np.mean(data_filt[:, :, match_mask], 0),
+                    rtol=1e-4, atol=1e-2)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, :, mismatch_mask]) >
+                np.mean(data_filt[:, :, mismatch_mask]) * 5)
 
 
 def test_epochs_hash():

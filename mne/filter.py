@@ -13,7 +13,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared
+from .utils import logger, verbose, sum_squared, check_scipy_version
 
 
 def is_power2(num):
@@ -1389,3 +1389,62 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
         if not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be str, int, or None')
     return filter_length
+
+
+class FilterMixin(object):
+    """Object for Epoch/Evoked filtering"""
+
+    def filter(self, method='savgol', h_freq=None):
+        """Filter the data
+
+        Parameters
+        ----------
+        method : str
+            The method to use. Currently only "savgol" [1]_ is supported.
+        h_freq : float
+            High cut-off frequency in Hz. For "savgol" this
+            is used to determine the length of the window over which
+            a 5th-order polynomial smoothing is used.
+
+        Notes
+        -----
+        Data are modified in-place.
+
+        For Savitzky-Golay low-pass approximation, see:
+
+            https://gist.github.com/Eric89GXL/bbac101d50176611136b
+
+        References
+        ----------
+        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
+               Differentiation of Data by Simplified Least Squares
+               Procedures". Analytical Chemistry 36 (8): 1627-39.
+        """
+        known_methods = ['savgol']
+        if method not in known_methods:
+            raise ValueError('Method must be in %s, not %s'
+                             % (known_methods, method))
+        from .evoked import Evoked
+        from .epochs import _BaseEpochs
+        if isinstance(self, Evoked):
+            data = self.data
+            axis = 1
+        elif isinstance(self, _BaseEpochs):
+            if not self.preload:
+                raise RuntimeError('data must be preloaded to filter')
+            data = self._data
+            axis = 2
+
+        # savitzky-golay filtering
+        if not check_scipy_version('0.14'):
+            raise RuntimeError('scipy >= 0.14 must be installed for savgol')
+        from scipy.signal import savgol_filter
+        if h_freq is None:
+            return
+        h_freq = float(h_freq)
+        if h_freq >= self.info['sfreq'] / 2.:
+            raise ValueError('h_freq must be less than half the sample rate')
+        window_length = (int(np.round(self.info['sfreq'] /
+                                      h_freq)) // 2) * 2 + 1
+        data[...] = savgol_filter(data, axis=axis, polyorder=5,
+                                  window_length=window_length)
