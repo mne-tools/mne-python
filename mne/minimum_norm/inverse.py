@@ -1463,8 +1463,53 @@ def estimate_snr(evoked, inv, verbose=None):
     snr : ndarray, shape(n_times,)
         The SNR estimated from the whitened data.
     snr_est : ndarray, shape (n_times,)
-        The SNR estimated using the lead fields.
-    """
+        The SNR estimated using the mismatch between the unregularized
+        solution and the regularized solution.
+
+    Notes
+    -----
+    ``snr_est`` is estimated by using different amounts of inverse
+    regularization and checking the mismatch between predicted and
+    measured whitened data.
+
+    In more detail, given our whitened inverse obtained from SVD:
+
+    .. math::
+
+        \\tilde{M} = R^\\frac{1}{2}V\\Gamma U^T
+
+    The values in the diagonal matrix :math:`\\Gamma` are expressed in terms
+    of the chosen regularization :math:`\\lambda\\approx\\frac{1}{\\rm{SNR}^2}`
+    and singular values :math:`\\lambda_k` as:
+
+    .. math::
+
+        \\gamma_k = \\frac{1}{\\lambda_k}\\frac{\\lambda_k^2}{\\lambda_k^2 + \\lambda^2}
+
+    We also know that our predicted data is given by:
+
+    .. math::
+
+        \\hat{x}(t) = G\\hat{j}(t)=C^\\frac{1}{2}U\\Pi w(t)
+
+    And thus our predicted whitened data is just:
+
+    .. math::
+
+        \\hat{w}(t) = U\\Pi w(t)
+
+    Where :math:`\\Pi` is diagonal with entries entries:
+
+    .. math::
+
+        \\lambda_k\\gamma_k = \\frac{\\lambda_k^2}{\\lambda_k^2 + \\lambda^2}
+
+    If we use no regularization, note that :math:`\\Pi` is just the
+    identity matrix. Here we test the squared magnitude of the difference
+    between unregularized solution and regularized solutions, choosing the
+    biggest regularization that achieves a :math:`\\chi^2`-test significance
+    of 0.001.
+    """  # noqa
     _check_reference(evoked)
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
