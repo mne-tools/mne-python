@@ -11,7 +11,6 @@ This estimates the SNR as a function of time for a set of data.
 # License: BSD (3-clause)
 
 from os import path as op
-import numpy as np
 
 from mne.datasets.sample import data_path
 from mne.minimum_norm import read_inverse_operator
@@ -25,7 +24,6 @@ fname_inv = op.join(data_dir, 'sample_audvis-meg-oct-6-meg-inv.fif')
 fname_evoked = op.join(data_dir, 'sample_audvis-ave.fif')
 
 inv = read_inverse_operator(fname_inv)
-evoked = read_evokeds(fname_evoked)[0]
-evoked.data -= evoked.data[:, evoked.times <= 0].mean(1)[:, np.newaxis]
+evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
 
 plot_snr_estimate(evoked, inv)

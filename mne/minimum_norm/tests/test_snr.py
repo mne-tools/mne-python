@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+# Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
 
 import os
 from os import path as op
@@ -22,8 +26,7 @@ def test_snr():
     """Test SNR calculation"""
     tempdir = _TempDir()
     inv = read_inverse_operator(fname_inv)
-    evoked = read_evokeds(fname_evoked)[0]
-    evoked.data -= evoked.data[:, evoked.times <= 0].mean(1)[:, np.newaxis]
+    evoked = read_evokeds(fname_evoked, baseline=(None, 0))[0]
     snr = estimate_snr(evoked, inv)[0]
     orig_dir = os.getcwd()
     os.chdir(tempdir)

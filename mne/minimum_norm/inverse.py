@@ -1460,7 +1460,7 @@ def estimate_snr(evoked, inv, verbose=None):
 
     Returns
     -------
-    snr : ndarray, shape(n_times,)
+    snr : ndarray, shape (n_times,)
         The SNR estimated from the whitened data.
     snr_est : ndarray, shape (n_times,)
         The SNR estimated using the mismatch between the unregularized
@@ -1541,8 +1541,7 @@ def estimate_snr(evoked, inv, verbose=None):
     lambda_mult = 0.9
     sing2 = (inv['sing'] * inv['sing'])[:, np.newaxis]
     val = chi2.isf(1e-3, n_ch - 1)
-    n_iter = 0
-    while n_iter < 1000 and remaining.any():
+    for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
         f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
         f[inv['sing'] == 0] = 0
@@ -1550,8 +1549,11 @@ def estimate_snr(evoked, inv, verbose=None):
         # check condition
         err = np.sum(ew * ew, axis=0)
         remaining[np.where(remaining)[0][err < val]] = False
+        if not remaining.any():
+            break
         lambda2_est[remaining] *= lambda_mult
-        n_iter += 1
+    else:
+        warnings.warn('SNR estimation did not converge')
     snr_est = 1.0 / np.sqrt(lambda2_est)
     snr = np.sqrt(snr)
     return snr, snr_est

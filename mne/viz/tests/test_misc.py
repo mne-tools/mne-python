@@ -120,8 +120,7 @@ def test_plot_snr():
     """Test plotting SNR estimate
     """
     inv = read_inverse_operator(inv_fname)
-    evoked = read_evokeds(evoked_fname)[0]
-    evoked.data -= evoked.data[:, evoked.times <= 0].mean(1)[:, np.newaxis]
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
 
 

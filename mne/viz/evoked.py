@@ -544,7 +544,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
     snr, snr_est = estimate_snr(evoked, inv, verbose=True)
-    ax = plt.subplot(111)
+    fig, ax = plt.subplots(1, 1)
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.plot([0, 0], lims[2:], 'k:')
     ax.plot(lims[:2], [0, 0], 'k:')
@@ -559,3 +559,4 @@ def plot_snr_estimate(evoked, inv, show=True):
     plt.draw()
     if show:
         plt.show()
+    return fig
