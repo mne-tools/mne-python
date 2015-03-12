@@ -11,7 +11,7 @@ Changelog
 
    - Add support for single dipole fitting by `Eric Larson`_
 
-   - Add support for spherical BEM models by `Eric Larson`_
+   - Add support for spherical models in forward calculations by `Eric Larson`_
 
    - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
 
