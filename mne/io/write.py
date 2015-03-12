@@ -118,6 +118,7 @@ def write_float_matrix(fid, kind, mat):
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def write_double_matrix(fid, kind, mat):
@@ -137,6 +138,7 @@ def write_double_matrix(fid, kind, mat):
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def write_int_matrix(fid, kind, mat):
@@ -157,6 +159,7 @@ def write_int_matrix(fid, kind, mat):
     dims[1] = mat.shape[0]
     dims[2] = 2
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def get_machid():
@@ -243,6 +246,15 @@ def start_file(fname, id_=None):
     return fid
 
 
+def check_fiff_length(fid, close=True):
+    """Ensure our file hasn't grown too large to work properly"""
+    if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
+        if close:
+            fid.close()
+        raise IOError('FIFF file exceeded 2GB limit, please split file or '
+                      'save to a different format')
+
+
 def end_file(fid):
     """Writes the closing tags to a fif file and closes the file"""
     data_size = 0
@@ -250,6 +262,7 @@ def end_file(fid):
     fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFV_NEXT_NONE, dtype='>i4').tostring())
+    check_fiff_length(fid)
     fid.close()
 
 
@@ -345,6 +358,7 @@ def write_float_sparse_rcs(fid, kind, mat):
 
     dims = [nnzm, mat.shape[0], mat.shape[1], 2]
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def _generate_meas_id():
