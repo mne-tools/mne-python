@@ -102,10 +102,8 @@ def test_montage():
     idx = montage.ch_names.index('rpa')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
     pos = np.array([-95.0, -31.0, -3.0])
-    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='m')
-    assert_array_equal(montage.pos[0], pos * 1e-3)
     montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='mm')
-    assert_array_equal(montage.pos[0], pos * 1e3)
+    assert_array_equal(montage.pos[0], pos * 1e-3)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
