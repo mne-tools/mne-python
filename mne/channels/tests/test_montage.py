@@ -9,8 +9,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
-from mne.transforms import (apply_trans, als_ras_trans_mm,
-                            get_ras_to_neuromag_trans)
+from mne.transforms import (apply_trans, get_ras_to_neuromag_trans)
 
 
 def test_montage():
@@ -90,12 +89,10 @@ def test_montage():
     montage = read_montage(op.join(tempdir, 'test_fid.hpts'), transform=True)
     # check coordinate transformation
     pos = np.array([-95.0, -31.0, -3.0])
-    pos = apply_trans(als_ras_trans_mm, pos)
     nasion = np.array([-91, 0, -42])
     lpa = np.array([0, -91, -42])
     rpa = np.array([0, 91, -42])
     fids = np.vstack((nasion, lpa, rpa))
-    fids = apply_trans(als_ras_trans_mm, fids)
     trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
     pos = apply_trans(trans, pos)
     assert_array_equal(montage.pos[0], pos)
@@ -105,6 +102,11 @@ def test_montage():
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
     idx = montage.ch_names.index('rpa')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+    pos = np.array([-95.0, -31.0, -3.0])
+    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='m')
+    assert_array_equal(montage.pos[0], pos * 1e-3)
+    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='mm')
+    assert_array_equal(montage.pos[0], pos * 1e3)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
