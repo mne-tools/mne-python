@@ -24,7 +24,7 @@ from ..utils import _clean_names
 from ..externals.six.moves import map
 from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
-                          _cartesian_to_sphere, apply_trans, als_ras_trans_mm,
+                          _cartesian_to_sphere, apply_trans,
                           get_ras_to_neuromag_trans)
 
 
