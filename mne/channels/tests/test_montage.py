@@ -1,21 +1,16 @@
-import inspect
 import os.path as op
 
 from nose.tools import (assert_equal, assert_true, assert_false,
                         assert_almost_equal)
 
 import numpy as np
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose)
+from numpy.testing import assert_array_equal
 
-from mne.channels import read_montage, apply_montage, read_montage_polhemus
+from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
-
-
-dir_path = op.dirname(inspect.getfile(inspect.currentframe()))
-points_fname = op.abspath(op.join(dir_path, '..', '..', 'io', 'kit', 'tests',
-                                  'data', 'test_elp.txt'))
+from mne.transforms import (apply_trans, als_ras_trans_mm,
+                            get_ras_to_neuromag_trans)
 
 
 def test_montage():
@@ -79,6 +74,37 @@ def test_montage():
                 table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
+    # test transform
+    input_str = """
+    eeg Fp1 -95.0 -31.0 -3.0
+    eeg AF7 -81 -59 -3
+    eeg AF3 -87 -41 28
+    cardinal nasion -91 0 -42
+    cardinal lpa 0 -91 -42
+    cardinal rpa 0 91 -42
+    """
+    kind = 'test_fid.hpts'
+    fname = op.join(tempdir, kind)
+    with open(fname, 'w') as fid:
+        fid.write(input_str)
+    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), transform=True)
+    # check coordinate transformation
+    pos = np.array([-95.0, -31.0, -3.0])
+    pos = apply_trans(als_ras_trans_mm, pos)
+    nasion = np.array([-91, 0, -42])
+    lpa = np.array([0, -91, -42])
+    rpa = np.array([0, 91, -42])
+    fids = np.vstack((nasion, lpa, rpa))
+    fids = apply_trans(als_ras_trans_mm, fids)
+    trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
+    pos = apply_trans(trans, pos)
+    assert_array_equal(montage.pos[0], pos)
+    idx = montage.ch_names.index('nasion')
+    assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
+    idx = montage.ch_names.index('lpa')
+    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+    idx = montage.ch_names.index('rpa')
+    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
@@ -88,21 +114,3 @@ def test_montage():
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
-
-
-def test_read_montage_polhemus():
-    """Test read_montage_polhemus"""
-    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    kind = 'test montage'
-    m = read_montage_polhemus(points_fname, names, kind)
-    assert_equal(m.ch_names, names)
-    assert_equal(m.kind, kind)
-    # check coordinate transformation
-    assert_almost_equal(m.pos[0, 0], 0)
-    assert_almost_equal(m.pos[0, 2], 0)
-    assert_allclose(m.pos[1:3, 1:], 0, atol=1e-16)
-
-    # dropping points
-    names = ['nasion', 'lpa', 'rpa', '', '', '3', '4', '5']
-    m = read_montage_polhemus(points_fname, names)
-    assert_equal(m.ch_names, ['nasion', 'lpa', 'rpa', '3', '4', '5'])
