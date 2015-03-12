@@ -7,7 +7,7 @@ import warnings
 from mne import (read_dip, read_dipole, Dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
-                 transform_surface_to, make_sphere_model)
+                 transform_surface_to, make_sphere_model, pick_types)
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
@@ -81,6 +81,11 @@ def test_dipole_fitting():
     with warnings.catch_warnings(record=True):  # semi-def cov
         evoked = generate_evoked(fwd, stc, evoked, cov, snr=20,
                                  random_state=rng)
+    # For speed, let's use a subset of channels (strange but works)
+    picks = np.sort(np.concatenate([
+        pick_types(evoked.info, meg=True, eeg=False)[::3],
+        pick_types(evoked.info, meg=False, eeg=True)[::3]]))
+    evoked.pick_channels([evoked.ch_names[p] for p in picks])
     evoked.add_proj(make_eeg_average_ref_proj(evoked.info))
     write_evokeds(fname_sim, evoked)
 
