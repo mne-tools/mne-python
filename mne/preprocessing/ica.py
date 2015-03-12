@@ -2111,7 +2111,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", name="bads",
+def corrmap(icas, template, threshold="auto", label="bads",
             plot=True, inplace=False, ch_type="eeg"):
     """Find similar Independent Components across subjects by map similarity.
 
@@ -2148,7 +2148,7 @@ def corrmap(icas, template, threshold="auto", name="bads",
         If float > 1, use find_outliers to identify ICs within subjects (not in
         original Corrmap)
         Defaults to "auto".
-    name : str
+    label : str
         Categorised ICs are stored in a default dictionary "labels". This
         parameter gives the key under which found ICs will be stored.
         Preexisting entries will be appended to (excluding repeats), not
