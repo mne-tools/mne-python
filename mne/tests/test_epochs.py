@@ -21,7 +21,7 @@ from mne import (io, Epochs, read_events, pick_events, read_epochs,
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs)
-from mne.utils import (_TempDir, requires_pandas, requires_nitime,
+from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
                        clean_warning_registry, run_tests_if_main)
 
 from mne.io.meas_info import create_info
@@ -139,6 +139,7 @@ def test_read_epochs_bad_events():
     warnings.resetwarnings()
 
 
+@slow_test
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file
     """

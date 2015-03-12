@@ -9,7 +9,7 @@ from nose.tools import assert_equal, assert_true, assert_raises
 import numpy as np
 
 from mne import io, Epochs, read_events, pick_types
-from mne.utils import requires_sklearn
+from mne.utils import requires_sklearn, slow_test
 from mne.decoding import time_generalization
 from mne.decoding import GeneralizationAcrossTime
 
@@ -46,6 +46,7 @@ def test_time_generalization():
         assert_true(scores.min() >= 0.)
 
 
+@slow_test
 @requires_sklearn
 def test_generalization_across_time():
     """Test time generalization decoding
