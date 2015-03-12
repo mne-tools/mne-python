@@ -627,6 +627,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                sampling_rate=self.info['sfreq'])
         return evoked_ts
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
                       use_time_index=True, copy=True):
         """Get the Evoked object as a Pandas DataFrame

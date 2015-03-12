@@ -225,13 +225,13 @@ def test_evoked_to_nitime():
 
 
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test evoked Pandas exporter"""
     ave = read_evokeds(fname, 0)
-    assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
-    df = ave.as_data_frame()
+    assert_raises(ValueError, ave.to_data_frame, picks=np.arange(400))
+    df = ave.to_data_frame()
     assert_true((df.columns == ave.ch_names).all())
-    df = ave.as_data_frame(use_time_index=False)
+    df = ave.to_data_frame(index=None).reset_index('time')
     assert_true('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)

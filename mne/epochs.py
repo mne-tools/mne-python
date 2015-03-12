@@ -41,7 +41,7 @@ from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import _check_type_picks, _time_mask
+from .utils import _check_type_picks, _time_mask, deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
