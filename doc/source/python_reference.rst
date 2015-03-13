@@ -288,7 +288,7 @@ Visualization
    plot_image_epochs
    plot_projs_topomap
    plot_raw
-   plot_raw_psds
+   plot_raw_psd
    plot_events
    plot_snr_estimate
    plot_source_estimates

@@ -39,7 +39,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -1032,11 +1032,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping)
 
-    @verbose
-    def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
-                  proj=False, n_fft=2048, picks=None, ax=None,
-                  color='black', area_mode='std', area_alpha=0.33,
-                  window_size=2048, n_overlap=0, n_jobs=1, verbose=None):
+    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
+                "instead")
+    def plot_psds(self, *args, **kwargs):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1078,11 +1076,59 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        return plot_raw_psds(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
-                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
-                             color=color, area_mode=area_mode,
-                             area_alpha=area_alpha, window_size=window_size,
-                             n_overlap=n_overlap, n_jobs=n_jobs)
+        self.plot_psd(*args, **kwargs)
+
+    @verbose
+    def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                 proj=False, n_fft=2048, picks=None, ax=None,
+                 color='black', area_mode='std', area_alpha=0.33,
+                 window_size=2048, n_overlap=0, n_jobs=1, verbose=None):
+        """Plot the power spectral density across channels
+
+        Parameters
+        ----------
+        tmin : float
+            Start time for calculations.
+        tmax : float
+            End time for calculations.
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : array-like of int | None
+            List of channels to use. Cannot be None if `ax` is supplied. If
+            both `picks` and `ax` are None, separate subplots will be created
+            for each standard channel type (`mag`, `grad`, and `eeg`).
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        color : str | tuple
+            A matplotlib-compatible color to use.
+        area_mode : str | None
+            How to plot area. If 'std', the mean +/- 1 STD (across channels)
+            will be plotted. If 'range', the min and max (across channels)
+            will be plotted. Bad channels will be excluded from these
+            calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        window_size : int, optional
+            Length of each window. The default value is 2048.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 0 (no overlap).
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+        """
+        return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                            proj=proj, n_fft=n_fft, picks=picks, ax=ax,
+                            color=color, area_mode=area_mode,
+                            area_alpha=area_alpha, window_size=window_size,
+                            n_overlap=n_overlap, n_jobs=n_jobs)
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
