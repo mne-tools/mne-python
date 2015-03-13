@@ -42,9 +42,8 @@ def test_filter():
     data = np.abs(fftpack.fft(evoked.data))
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
-    assert_raises(ValueError, evoked.filter, h_freq=evoked.info['sfreq'])
-    assert_raises(ValueError, evoked.filter, method='foo')
-    evoked.filter(h_freq=h_freq)
+    assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
+    evoked.savgol_filter(h_freq)
     data_filt = np.abs(fftpack.fft(evoked.data))
     # decent in pass-band
     assert_allclose(np.mean(data[:, match_mask], 0),

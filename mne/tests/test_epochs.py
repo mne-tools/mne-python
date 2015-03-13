@@ -64,13 +64,13 @@ def test_filter():
     h_freq = 10.
     raw, events = _get_data()[:2]
     epochs = Epochs(raw, events, event_id, tmin, tmax)
-    assert_raises(RuntimeError, epochs.filter, h_freq=10.)
+    assert_raises(RuntimeError, epochs.savgol_filter, 10.)
     epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
     freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
     data = np.abs(fftpack.fft(epochs.get_data()))
     match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
     mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
-    epochs.filter(h_freq=h_freq)
+    epochs.savgol_filter(h_freq)
     data_filt = np.abs(fftpack.fft(epochs.get_data()))
     # decent in pass-band
     assert_allclose(np.mean(data[:, :, match_mask], 0),
