@@ -2458,7 +2458,7 @@ The newest versions of Neuromag software allow continuous
 acquisition of signals from the HPI coils. On the basis of these
 data the relative position of the dewar and the head can be computed
 a few times per second. The resulting location data, expressed in
-the form of unit quaternions (see http://mathworld.wolfram.com/Quaternion.html)
+the form of unit quaternions (see http://en.wikipedia.org/wiki/Quaternion)
 and a translation.
 
 The continuous HPI data can be through the File/View continuous HPI data... menu item, which pops up

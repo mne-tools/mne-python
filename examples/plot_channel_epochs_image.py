@@ -15,7 +15,7 @@ embedding as described in:
 Graph-based variability estimation in single-trial event-related neural
 responses A. Gramfort, R. Keriven, M. Clerc, 2010,
 Biomedical Engineering, IEEE Trans. on, vol. 57 (5), 1051-1061
-http://hal.inria.fr/inria-00497023
+https://hal.inria.fr/inria-00497023
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #

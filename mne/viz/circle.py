@@ -134,7 +134,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
-    http://www.loria.fr/~rougier/coding/recipes.html
+    http://www.labri.fr/perso/nrougier/coding/.
 
     Parameters
     ----------

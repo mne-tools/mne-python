@@ -11,7 +11,7 @@ see this section :ref:`detailed_notes`.
 
 New to the Python programming language?
 ---------------------------------------
-This is a very good place to get started: http://scipy-lectures.github.com.
+This is a very good place to get started: http://scipy-lectures.github.io.
 
 Installing the Python interpreter
 ---------------------------------
