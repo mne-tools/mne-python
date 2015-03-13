@@ -540,6 +540,11 @@ def plot_snr_estimate(evoked, inv, show=True):
         The minimum-norm inverse operator.
     show : bool
         Whether to show the figure or not. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure object containing the plot.
     """
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr
