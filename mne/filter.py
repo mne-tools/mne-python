@@ -1414,12 +1414,21 @@ class FilterMixin(object):
 
             https://gist.github.com/Eric89GXL/bbac101d50176611136b
 
+        Examples
+        --------
+        >>> import mne
+        >>> from os import path as op
+        >>> evoked_fname = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample', 'sample_audvis-ave.fif')  # doctest:+SKIP
+        >>> evoked = mne.read_evokeds(evoked_fname, baseline=(None, 0))[0]  # doctest:+SKIP
+        >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
+        >>> evoked.plot()  # doctest:+SKIP
+
         References
         ----------
         .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
                Differentiation of Data by Simplified Least Squares
                Procedures". Analytical Chemistry 36 (8): 1627-39.
-        """
+        """  # noqa
         from .evoked import Evoked
         from .epochs import _BaseEpochs
         if isinstance(self, Evoked):
