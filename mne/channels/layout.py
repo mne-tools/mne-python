@@ -900,7 +900,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     if unit == 'mm':
         pos /= 1e3
-    elif unit is not 'm':
+    elif unit != 'm':
         raise ValueError("'unit' should be either 'm' or 'mm'.")
     if transform is True:
         names_lower = [name.lower() for name in list(ch_names_)]
