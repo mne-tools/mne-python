@@ -4,7 +4,7 @@ Compute the power spectral density of epochs
 =============================================
 
 This script shows how to compute the power spectral density (PSD)
-of measurements on epochs. It also show how to plot its spatial
+of measurements on epochs. It also shows how to plot its spatial
 distribution.
 """
 # Authors: Denis Engemann <denis.engemann@gmail.com>
@@ -45,4 +45,4 @@ picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
                        stim=False, include=include, exclude='bads')
 
 # Now let's take a look at the spatial distributions of the psd.
-epochs.plot_psds_topomap(picks=picks, n_fft=n_fft, n_jobs=2)
+epochs.plot_psds_topomap(picks=picks, n_fft=n_fft)
