@@ -17,6 +17,8 @@ DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 #
 # License: BSD (3-clause)
 
+import matplotlib.pyplot as plt
+
 import mne
 
 from mne.datasets import sample
@@ -46,7 +48,15 @@ noise_cov = mne.read_cov(cov_fname)
 
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
                               return_residual=True, verbose=True)
-plot_dipoles(dipoles, forward, subject='sample', subjects_dir=subjects_dir)
+plot_dipoles(dipoles, forward, subject='sample', subjects_dir=subjects_dir,
+             colors=[(0., 0., 1.), (1., 0., 0.)])
+
+# Plot the time-series
+plt.figure()
+plt.plot(dipoles[0].times, dipoles[0].amplitude, 'b', linewidth=1.5)
+plt.plot(dipoles[1].times, dipoles[1].amplitude, 'r', linewidth=1.5)
+plt.ylabel('amplitude (nAm)')
+plt.xlabel('times (ms)')
 
 # Plot the evoked data and the residual.
 evoked.plot()

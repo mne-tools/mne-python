@@ -72,8 +72,12 @@ def test_rap_music():
 
     def _check_dipoles(dipoles):
         assert_true(len(dipoles), n_dipoles)
-        assert_true(len(dipoles[0]['pos']), 3)
-        assert_true(len(dipoles[0]['ori']), 3)
+        n_times = len(dipoles[0].times)
+        assert_true(dipoles[0].pos.shape[0], n_times)
+        assert_true(dipoles[0].ori.shape[0], n_times)
+
+        assert_true(dipoles[0].pos.shape[1], 3)
+        assert_true(dipoles[0].ori.shape[1], 3)
 
     n_dipoles = 2
 

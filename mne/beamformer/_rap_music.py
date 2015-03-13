@@ -95,6 +95,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
+                A[:, k] = np.dot(Gk, ori)
                 if n_orient == 1:
                     ori = [forward['src'][0]['nn'][vertno[0][i_source]]
                            if i_source <= vertno[0].size else
@@ -105,11 +106,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                                                       n_orient * i_source +
                                                       n_orient, :], ori)
 
-                if ori[-1] < 0: # make sure ori is relative to surface ori
+                if ori[-1] < 0:  # make sure ori is relative to surface ori
                     ori *= -1.
                 source_ori = ori
-                A[:, k] = np.dot(Gk, ori)
-
 
         active_set.append(source_idx)
         oris.append(source_ori)
@@ -154,8 +153,10 @@ def _make_dipoles(times, tstep, src, vertno, active_set, oris, sol):
 
     dipoles = []
     for i_dip in range(pos.shape[0]):
-        dipoles.append(Dipole(times * 1e3, pos[i_dip], amplitude[i_dip],
-                              ori[i_dip], gof))
+        i_pos = pos[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        i_ori = ori[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        dipoles.append(Dipole(times * 1e3, i_pos, amplitude[i_dip],
+                              i_ori, gof))
 
     return dipoles
 
