@@ -118,5 +118,4 @@ def test_plot_tfr_topo():
                   vmin=0., vmax=14.)
     tfr.plot([4], baseline=(None, 0), mode='ratio')
 
-
 run_tests_if_main()

@@ -8,6 +8,7 @@
 import os.path as op
 import warnings
 from collections import namedtuple
+from nose.tools import assert_raises
 
 import numpy as np
 
@@ -32,7 +33,7 @@ evoked_fname = op.join(base_dir, 'test-ave.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-event_id, tmin, tmax = 1, -0.1, 0.1
+event_id, tmin, tmax = 1, -0.1, 1.0
 n_chan = 15
 layout = read_layout('Vectorview-all')
 
@@ -119,6 +120,16 @@ def test_plot_drop_log():
         plot_drop_log([['One'], ['Two'], []])
         plot_drop_log([['One'], ['One', 'Two'], []])
     plt.close('all')
+
+
+def test_plot_psd_epochs():
+    """Test plotting epochs psd (+topomap)
+    """
+    epochs = _get_epochs()
+    epochs.plot_psd()
+    assert_raises(RuntimeError, epochs.plot_psd_topomap,
+                  bands=[(0, 0.01, 'foo')])  # no freqs in range
+    epochs.plot_psd_topomap()
 
 
 run_tests_if_main()

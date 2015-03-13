@@ -504,9 +504,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
 
-    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',
-                 area_alpha=0.33, window_size=256, n_overlap=128,
+                 area_alpha=0.33, n_overlap=0,
                  n_jobs=1, verbose=None):
         """Plot the power spectral density across epochs
 
@@ -533,11 +533,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             these calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
-        window_size : int, optional
-            Length of each window. The default value is 256.
         n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 128 (window_size // 2).
+            The number of points of overlap between blocks.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
@@ -546,13 +543,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
                                n_fft=n_fft, picks=picks, ax=ax,
                                color=color, area_mode=area_mode,
-                               area_alpha=area_alpha, window_size=window_size,
+                               area_alpha=area_alpha,
                                n_overlap=n_overlap, n_jobs=n_jobs,
                                verbose=None)
 
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         n_fft=2048, picks=None, window_size=256,
-                         n_overlap=128, layout=None, cmap='RdBu_r',
+                         n_fft=256, picks=None,
+                         n_overlap=0, layout=None, cmap='RdBu_r',
                          agg_fun=np.sum, n_jobs=1, verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
@@ -580,11 +577,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Number of points to use in Welch FFT calculations.
         picks : array-like of int | None
             List of channels to use.
-        window_size : int, optional
-            Length of each window. The default value is 256.
         n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 128 (window_size // 2).
+            The number of points of overlap between blocks.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout
@@ -604,7 +598,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return plot_epochs_psd_topomap(self, bands=bands, vmin=vmin,
                                        vmax=vmax, proj=proj, n_fft=n_fft,
-                                       picks=picks, window_size=window_size,
+                                       picks=picks,
                                        n_overlap=n_overlap, layout=layout,
                                        cmap=cmap, agg_fun=np.sum,
                                        n_jobs=n_jobs, verbose=None)

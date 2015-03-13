@@ -29,14 +29,10 @@ def test_psd():
     tmin, tmax = 0, 10  # use the first 60s of data
     fmin, fmax = 2, 70  # look at frequencies between 5 and 70Hz
 
-    # n_fft and window_size by default are 2048, if we decrease n_fft
-    # we have to also decrease window_size
-    # the FFT size (n_fft) must be greater than or equal to window_size
-    n_fft, window_size = 128, 128
+    n_fft = 128
     psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, fmin=fmin,
                                   fmax=fmax, proj=False, n_fft=n_fft,
-                                  window_size=window_size, picks=picks,
-                                  n_jobs=1)
+                                  picks=picks, n_jobs=1)
     assert_true(psds.shape == (len(picks), len(freqs)))
     assert_true(np.sum(freqs < 0) == 0)
     assert_true(np.sum(psds < 0) == 0)
