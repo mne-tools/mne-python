@@ -553,8 +553,10 @@ def plot_snr_estimate(evoked, inv, show=True):
     lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
     ax.plot([0, 0], lims[2:], 'k:')
     ax.plot(lims[:2], [0, 0], 'k:')
-    ax.plot(evoked.times, snr_est, color=[0, 1, 0])
-    ax.plot(evoked.times, snr, color=[1, 0, 0])
+    # Colors are "bluish green" and "vermillion" taken from:
+    #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
+    ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
+    ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
     ax.set_xlim(lims[:2])
     ax.set_ylim(lims[2:])
     ax.set_ylabel('SNR')
