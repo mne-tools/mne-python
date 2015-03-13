@@ -8,6 +8,7 @@ from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
+from scipy.stats import chi2
 
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -1439,3 +1440,120 @@ def compute_rank_inverse(inv):
         ncomp = make_projector(inv['projs'], inv['noise_cov']['names'])[1]
         rank = inv['noise_cov']['dim'] - ncomp
     return rank
+
+
+# #############################################################################
+# SNR Estimation
+
+@verbose
+def estimate_snr(evoked, inv, verbose=None):
+    """Estimate the SNR as a function of time for evoked data
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        Evoked instance.
+    inv : instance of InverseOperator
+        The inverse operator.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    snr : ndarray, shape (n_times,)
+        The SNR estimated from the whitened data.
+    snr_est : ndarray, shape (n_times,)
+        The SNR estimated using the mismatch between the unregularized
+        solution and the regularized solution.
+
+    Notes
+    -----
+    ``snr_est`` is estimated by using different amounts of inverse
+    regularization and checking the mismatch between predicted and
+    measured whitened data.
+
+    In more detail, given our whitened inverse obtained from SVD:
+
+    .. math::
+
+        \\tilde{M} = R^\\frac{1}{2}V\\Gamma U^T
+
+    The values in the diagonal matrix :math:`\\Gamma` are expressed in terms
+    of the chosen regularization :math:`\\lambda\\approx\\frac{1}{\\rm{SNR}^2}`
+    and singular values :math:`\\lambda_k` as:
+
+    .. math::
+
+        \\gamma_k = \\frac{1}{\\lambda_k}\\frac{\\lambda_k^2}{\\lambda_k^2 + \\lambda^2}
+
+    We also know that our predicted data is given by:
+
+    .. math::
+
+        \\hat{x}(t) = G\\hat{j}(t)=C^\\frac{1}{2}U\\Pi w(t)
+
+    And thus our predicted whitened data is just:
+
+    .. math::
+
+        \\hat{w}(t) = U\\Pi w(t)
+
+    Where :math:`\\Pi` is diagonal with entries entries:
+
+    .. math::
+
+        \\lambda_k\\gamma_k = \\frac{\\lambda_k^2}{\\lambda_k^2 + \\lambda^2}
+
+    If we use no regularization, note that :math:`\\Pi` is just the
+    identity matrix. Here we test the squared magnitude of the difference
+    between unregularized solution and regularized solutions, choosing the
+    biggest regularization that achieves a :math:`\\chi^2`-test significance
+    of 0.001.
+    """  # noqa
+    _check_reference(evoked)
+    _check_ch_names(inv, evoked.info)
+    inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')
+    sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
+    logger.info('Picked %d channels from the data' % len(sel))
+    data_white = np.dot(inv['whitener'], np.dot(inv['proj'], evoked.data[sel]))
+    data_white_ef = np.dot(inv['eigen_fields']['data'], data_white)
+    n_ch, n_times = data_white.shape
+
+    # Adapted from mne_analyze/regularization.c, compute_regularization
+    n_zero = (inv['noise_cov']['eig'] <= 0).sum()
+    logger.info('Effective nchan = %d - %d = %d'
+                % (n_ch, n_zero, n_ch - n_zero))
+    signal = np.sum(data_white ** 2, axis=0)  # sum of squares across channels
+    noise = n_ch - n_zero
+    snr = signal / noise
+
+    # Adapted from noise_regularization
+    lambda2_est = np.empty(n_times)
+    lambda2_est.fill(10.)
+    remaining = np.ones(n_times, bool)
+
+    # deal with low SNRs
+    bad = (snr <= 1)
+    lambda2_est[bad] = 100.
+    remaining[bad] = False
+
+    # parameters
+    lambda_mult = 0.9
+    sing2 = (inv['sing'] * inv['sing'])[:, np.newaxis]
+    val = chi2.isf(1e-3, n_ch - 1)
+    for n_iter in range(1000):
+        # get_mne_weights (ew=error_weights)
+        f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
+        f[inv['sing'] == 0] = 0
+        ew = data_white_ef[:, remaining] * (1.0 - f)
+        # check condition
+        err = np.sum(ew * ew, axis=0)
+        remaining[np.where(remaining)[0][err < val]] = False
+        if not remaining.any():
+            break
+        lambda2_est[remaining] *= lambda_mult
+    else:
+        warnings.warn('SNR estimation did not converge')
+    snr_est = 1.0 / np.sqrt(lambda2_est)
+    snr = np.sqrt(snr)
+    return snr, snr_est

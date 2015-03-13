@@ -289,6 +289,7 @@ Visualization
    plot_raw
    plot_raw_psds
    plot_events
+   plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
@@ -576,6 +577,7 @@ Functions:
    apply_inverse_epochs
    apply_inverse_raw
    compute_rank_inverse
+   estimate_snr
    make_inverse_operator
    read_inverse_operator
    source_band_induced_power

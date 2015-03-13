@@ -13,12 +13,12 @@ import warnings
 import numpy as np
 from numpy.testing import assert_raises
 
-from mne import io, read_events, read_cov, read_source_spaces
-from mne import SourceEstimate
+from mne import (io, read_events, read_cov, read_source_spaces, read_evokeds,
+                 SourceEstimate)
 from mne.datasets import testing
-
-from mne.viz import plot_cov, plot_bem, plot_events
-from mne.viz import plot_source_spectrogram
+from mne.minimum_norm import read_inverse_operator
+from mne.viz import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
+                     plot_snr_estimate)
 from mne.utils import requires_nibabel, run_tests_if_main
 
 # Set our plotters to test mode
@@ -28,8 +28,11 @@ import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-subjects_dir = op.join(testing.data_path(download=False), 'subjects')
-
+data_path = testing.data_path(download=False)
+subjects_dir = op.join(data_path, 'subjects')
+inv_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
+evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
@@ -110,6 +113,15 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmin=0)
     assert_raises(ValueError, plot_source_spectrogram, [stc, stc],
                   [[1, 2], [3, 4]], tmax=7)
+
+
+@testing.requires_testing_data
+def test_plot_snr():
+    """Test plotting SNR estimate
+    """
+    inv = read_inverse_operator(inv_fname)
+    evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
+    plot_snr_estimate(evoked, inv)
 
 
 run_tests_if_main()
