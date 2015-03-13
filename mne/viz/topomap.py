@@ -19,6 +19,7 @@ from matplotlib.patches import Circle
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
+from ..time_frequency import compute_epochs_psd
 from ..utils import _clean_names
 from .utils import tight_layout, _setup_vmin_vmax, DEFAULTS
 from .utils import _prepare_trellis, _check_delayed_ssp
@@ -1065,4 +1066,125 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if show:
         plt.show()
 
+    return fig
+
+
+def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
+                             vmin=None, vmax=None, cmap='RdBu_r',
+                             colorbar=False):
+    """Aux Function"""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_frame_on(False)
+    vmin = np.min(data) if vmin is None else vmin
+    vmax = np.max(data) if vmax is None else vmax
+
+    if title is not None:
+        ax.set_title(title)
+    im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
+                         cmap=cmap, image_interp='bilinear', contours=False)
+
+    if colorbar is True:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cbar = plt.colorbar(im, cax=cax, ticks=(vmin, vmax),
+                            format='%3.3f')
+        if unit is not None:
+            cbar.set_label(unit)
+        cbar.ax.tick_params(labelsize=8)
+
+
+def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
+                            proj=False, n_fft=2048, picks=None,
+                            window_size=256, n_overlap=128, layout=None,
+                            cmap='RdBu_r', agg_fun=np.sum, n_jobs=1,
+                            verbose=None):
+    """Plot the topomap of the power spectral density across epochs
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs object
+    bands : list of tuple | None
+        The lower and upper frequency and the name for that band. If None,
+        (default) expands to:
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
+    proj : bool
+        Apply projection.
+    n_fft : int
+        Number of points to use in Welch FFT calculations.
+    picks : array-like of int | None
+        List of channels to use.
+    window_size : int, optional
+        Length of each window. The default value is 256.
+    n_overlap : int
+        The number of points of overlap between blocks. The default value
+        is 128 (window_size // 2).
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout
+        file is inferred from the data; if no appropriate layout file was
+        found, the layout is automatically generated from the sensor
+        locations.
+    cmap : matplotlib colormap
+        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+        'Reds'.
+    agg_fun : callable
+        The function used to aggregate over frequencies. Defaults to np.sum.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    import matplotlib.pyplot as plt
+    if bands is None:
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    if picks is None:
+        picks = pick_types(epochs.info, meg=True, eeg=False,
+                           ref_meg=False)
+
+    if len(picks) == 0:
+        raise RuntimeError('No MEG channels found')
+
+    if layout is None:
+        from ..channels import find_layout
+        pos = find_layout(epochs.info, exclude=[]).pos[picks]
+    else:
+        pos = layout.pos[picks]
+
+    psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
+                                     window_size=window_size,
+                                     n_overlap=n_overlap, proj=proj,
+                                     n_jobs=n_jobs)
+
+    psds = np.mean(psds, axis=0)
+    for fmin, fmax, title in bands:
+        freq_mask = (fmin < freqs) & (freqs < fmax)
+        data = 10 * np.log10(agg_fun(psds[:, freq_mask], axis=1))
+
+        fig, ax = plt.subplots(1, 1, figsize=(2, 2))
+        _plot_topomap_multi_cbar(data, pos, ax, title=title,
+                                 vmin=vmin, vmax=vmax, cmap=cmap,
+                                 colorbar=True, unit='dB')
+        tight_layout(fig=fig)
+        fig.canvas.draw()
+
+    plt.show()
     return fig
