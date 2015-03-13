@@ -885,7 +885,7 @@ of commits):
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: http://www.nmr.mgh.harvard.edu/martinos/people/showPerson.php?people_id=1600
+.. _Martin Luessi: https://www.martinos.org/user/8245
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
@@ -895,7 +895,7 @@ of commits):
 
 .. _Denis Engemann: https://github.com/dengemann
 
-.. _Christian Brodbeck: https://github.com/christianmbrodbeck
+.. _Christian Brodbeck: https://github.com/christianbrodbeck
 
 .. _Simon Kornblith: http://simonster.com
 
@@ -907,7 +907,7 @@ of commits):
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
-.. _Romain Trachel: http://www-sop.inria.fr/athena/Site/RomainTrachel
+.. _Romain Trachel: http://www.lscp.net/braware/trachelBr.html
 
 .. _Christopher Dinh: https://github.com/chdinh
 
@@ -941,7 +941,7 @@ of commits):
 
 .. _Alan Leggitt: https://github.com/leggitta
 
-.. _Marijn van Vliet: http://github.com/wmvanvliet
+.. _Marijn van Vliet: https://github.com/wmvanvliet
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 

@@ -836,7 +836,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         To suppress log outputs, use set_log_level('WARN').
     output_format : str
         Format of the output messages. See the following for examples:
-            http://docs.python.org/dev/howto/logging.html
+            https://docs.python.org/dev/howto/logging.html
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
     overwrite : bool, or None
         Overwrite the log file (if it exists). Otherwise, statements
