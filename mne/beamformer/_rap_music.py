@@ -13,6 +13,7 @@ from scipy import linalg
 from ..io.pick import pick_channels_evoked
 from ..minimum_norm.inverse import _check_reference
 from ..cov import compute_whitener
+from ..forward.forward import _block_diag
 from ..utils import logger, verbose
 from ..dipole import Dipole
 from ._lcmv import _prepare_beamformer_input, _setup_picks
@@ -91,18 +92,24 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                         n_orient * i_source + n_orient]
 
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
-            if ori[-1] < 0:  # make sure ori is relative to surface ori
-                ori *= -1.
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
-                source_ori = ori
-                A[:, k] = np.dot(Gk, ori)
                 if n_orient == 1:
                     ori = [forward['src'][0]['nn'][vertno[0][i_source]]
                            if i_source <= vertno[0].size else
                            forward['src'][1]['nn'][vertno[1][i_source -
                                                              vertno[0].size]]]
+                else:
+                    ori = np.dot(forward['source_nn'][n_orient * i_source:
+                                                      n_orient * i_source +
+                                                      n_orient, :], ori)
+
+                if ori[-1] < 0: # make sure ori is relative to surface ori
+                    ori *= -1.
+                source_ori = ori
+                A[:, k] = np.dot(Gk, ori)
+
 
         active_set.append(source_idx)
         oris.append(source_ori)
@@ -134,7 +141,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
 
 
 def _make_dipoles(times, tstep, src, vertno, active_set, oris, sol):
-    times *= 1000
     if vertno[0].size == 0:
         pos = np.array(src[1]['rr'][vertno[1]])
     elif vertno[1].size == 0:
@@ -148,7 +154,7 @@ def _make_dipoles(times, tstep, src, vertno, active_set, oris, sol):
 
     dipoles = []
     for i_dip in range(pos.shape[0]):
-        dipoles.append(Dipole(times[i_dip], pos[i_dip], amplitude[i_dip],
+        dipoles.append(Dipole(times * 1e3, pos[i_dip], amplitude[i_dip],
                               ori[i_dip], gof))
 
     return dipoles
@@ -235,8 +241,10 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
 
     if return_residual:
         residual = evoked.copy()
+        selection = np.array(info['ch_names'])[picks]
+
         residual = pick_channels_evoked(residual,
-                                        include=info['ch_names'])
+                                        include=selection)
         residual.data -= explained_data
         active_projs = [p for p in residual.info['projs'] if p['active']]
         for p in active_projs:

@@ -786,7 +786,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
 def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
                  opacity=0.3, brain_color=(0.7, ) * 3, mesh_color=(1, 1, 0),
                  fig_name=None, fig_size=(600, 600), mode='cone',
-                 verbose=None):
+                 scale_factor=0.3e-1, verbose=None):
     """Plot dipoles.
 
     Parameters
@@ -816,6 +816,8 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
     mode : str
         Should be ``'cone'`` or ``'sphere'`` to specify how the
         dipoles should be shown.
+    scale_factor : 
+        The scaling applied to amplitudes for the plot.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -832,8 +834,10 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
         raise ValueError('mode must be in "cone" or "sphere"')
 
     pos, ori = np.zeros((len(dipoles), 3)), np.zeros((len(dipoles), 3))
+    amp = np.zeros((len(dipoles), len(dipoles[0]['amplitude'])))
     for i_dip in range(len(dipoles)):
         pos[i_dip], ori[i_dip] = dipoles[i_dip]['pos'], dipoles[i_dip]['ori']
+        amp[i_dip] = dipoles[i_dip]['amplitude']
 
     from mayavi import mlab
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
@@ -848,10 +852,15 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
 
-    # show dipoles
+    # Normalize the amplitude for the plot
+    mean = amp.mean(axis=1)[:, np.newaxis]
+    std = amp.std(axis=1)[:, np.newaxis]
+    amp = (amp - mean.repeat(amp.shape[1], axis=1)) / std.repeat(amp.shape[1],
+                                                                 axis=1)
     mlab.quiver3d(pos[:, 0], pos[:, 1], pos[:, 2],
                   ori[:, 0], ori[:, 1], ori[:, 2],
-                  opacity=1., mode=mode)
+                  opacity=1., mode=mode, scalars=amp.max(axis=1),
+                  scale_factor=scale_factor)
 
     if fig_name is not None:
         mlab.title(fig_name)
