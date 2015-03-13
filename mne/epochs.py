@@ -41,7 +41,7 @@ from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import _check_type_picks
+from .utils import _check_type_picks, _time_mask
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -130,12 +130,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if tmin >= tmax:
             raise ValueError('tmin has to be smaller than tmax')
         sfreq = float(self.info['sfreq'])
-        n_times_min = int(round(tmin * sfreq))
-        n_times_max = int(round(tmax * sfreq))
-        times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) / sfreq
-        self.times = times
-        self._raw_times = times  # times before decimation
-        self._epoch_stop = ep_len = len(self.times)
+        start_idx = int(round(tmin * sfreq))
+        self._raw_times = np.arange(start_idx,
+                                    int(round(tmax * sfreq)) + 1) / sfreq
+        self._epoch_stop = ep_len = len(self._raw_times)
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
@@ -147,10 +145,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                        % (lowpass, decim, new_sfreq))
                 warnings.warn(msg)
 
-            i_start = n_times_min % decim
+            i_start = start_idx % decim
             self._decim_idx = slice(i_start, ep_len, decim)
-            self.times = self.times[self._decim_idx]
+            self.times = self._raw_times[self._decim_idx]
             self.info['sfreq'] = new_sfreq
+        else:
+            self.times = self._raw_times
 
         self.preload = False
         self._data = None
@@ -1179,9 +1179,9 @@ class Epochs(_BaseEpochs):
 
         Parameters
         ----------
-        tmin : float
+        tmin : float | None
             Start time of selection in seconds.
-        tmax : float
+        tmax : float | None
             End time of selection in seconds.
         copy : bool
             If False epochs is cropped in place.
@@ -1215,7 +1215,7 @@ class Epochs(_BaseEpochs):
                           "tmax is set to epochs.tmax")
             tmax = self.tmax
 
-        tmask = (self.times >= tmin) & (self.times <= tmax)
+        tmask = _time_mask(self.times, tmin, tmax)
         tidx = np.where(tmask)[0]
 
         this_epochs = self if not copy else self.copy()

@@ -36,7 +36,7 @@ from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose)
+                     logger, verbose, _time_mask)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
@@ -624,8 +624,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin = raw.time_as_index(tmin)[0]
-        smax = raw.time_as_index(tmax)[0]
+        smin, smax = np.where(_time_mask(self.times, tmin, tmax))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
@@ -1042,6 +1041,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def ch_names(self):
         """Channel names"""
         return self.info['ch_names']
+
+    @property
+    def times(self):
+        """Time points"""
+        return np.arange(self.n_times) / float(self.info['sfreq'])
 
     @property
     def n_times(self):

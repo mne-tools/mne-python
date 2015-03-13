@@ -22,7 +22,7 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    logger, verbose)
+                    logger, verbose, _time_mask)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip
@@ -395,9 +395,9 @@ class _BaseSourceEstimate(object):
         space data corresponds to "numpy.dot(kernel, sens_data)".
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
-    tmin : scalar
+    tmin : float
         Time point of the first sample in data.
-    tstep : scalar
+    tstep : float
         Time step between successive samples in data.
     subject : str | None
         The subject name. While not necessary, it is safer to set the
@@ -488,18 +488,13 @@ class _BaseSourceEstimate(object):
 
         Parameters
         ----------
-        tmin : float or None
+        tmin : float | None
             The first time point in seconds. If None the first present is used.
-        tmax : float or None
+        tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = np.ones(len(self.times), dtype=np.bool)
-        if tmax is not None:
-            mask = mask & (self.times <= tmax)
-        if tmin is not None:
-            mask = mask & (self.times >= tmin)
-            self.tmin = tmin
-
+        mask = _time_mask(self.times, tmin, tmax)
+        self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
         else:
@@ -854,18 +849,16 @@ class _BaseSourceEstimate(object):
 
         # min and max data indices to include
         times = np.round(1000 * self.times)
-
+        t_idx = np.where(_time_mask(times, tmin, tmax))[0]
         if tmin is None:
             tmin_idx = None
         else:
-            tmin = float(tmin)
-            tmin_idx = np.where(times >= tmin)[0][0]
+            tmin_idx = t_idx[0]
 
         if tmax is None:
             tmax_idx = None
         else:
-            tmax = float(tmax)
-            tmax_idx = np.where(times <= tmax)[0][-1]
+            tmax_idx = t_idx[-1]
 
         data_t = self.transform_data(func, idx=idx, tmin_idx=tmin_idx,
                                      tmax_idx=tmax_idx)

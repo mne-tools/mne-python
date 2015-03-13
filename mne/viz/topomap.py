@@ -19,10 +19,9 @@ from matplotlib.patches import Circle
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..utils import _clean_names
-from .utils import tight_layout, _setup_vmin_vmax, DEFAULTS
-from .utils import _prepare_trellis, _check_delayed_ssp
-from .utils import _draw_proj_checkbox
+from ..utils import _clean_names, _time_mask
+from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
+                    _check_delayed_ssp, _draw_proj_checkbox)
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -781,17 +780,19 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     # crop time
     itmin, itmax = None, None
+    idx = np.where(_time_mask(tfr.times, tmin, tmax))[0]
     if tmin is not None:
-        itmin = np.where(tfr.times >= tmin)[0][0]
+        itmin = idx[0]
     if tmax is not None:
-        itmax = np.where(tfr.times <= tmax)[0][-1]
+        itmax = idx[-1] + 1
 
     # crop freqs
     ifmin, ifmax = None, None
+    idx = np.where(_time_mask(tfr.freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = np.where(tfr.freqs >= fmin)[0][0]
+        ifmin = idx[0]
     if fmax is not None:
-        ifmax = np.where(tfr.freqs <= fmax)[0][-1]
+        ifmax = idx[-1] + 1
 
     data = data[picks, ifmin:ifmax, itmin:itmax]
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
