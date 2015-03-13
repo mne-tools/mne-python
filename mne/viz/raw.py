@@ -15,10 +15,10 @@ from scipy.signal import butter, filtfilt
 from ..externals.six import string_types
 from ..io.pick import pick_types
 from ..io.proj import setup_proj
-from ..utils import set_config, get_config, verbose
+from ..utils import set_config, get_config, verbose, deprecated
 from ..time_frequency import compute_raw_psd
-from .utils import figure_nobar, _toggle_options
-from .utils import _mutable_defaults, _toggle_proj, tight_layout
+from .utils import (figure_nobar, _toggle_options, _mutable_defaults,
+                    _toggle_proj, tight_layout)
 
 
 def _plot_update_raw_proj(params, bools):
@@ -599,7 +599,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     return fig
 
 
-def _set_psds_plot_params(info, proj, picks, ax, area_mode):
+def _set_psd_plot_params(info, proj, picks, ax, area_mode):
     """Aux function"""
     import matplotlib.pyplot as plt
     if area_mode not in [None, 'std', 'range']:
@@ -645,10 +645,10 @@ def _set_psds_plot_params(info, proj, picks, ax, area_mode):
 
 
 @verbose
-def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
-                  n_fft=2048, picks=None, ax=None, color='black',
-                  area_mode='std', area_alpha=0.33, window_size=2048,
-                  n_overlap=0, n_jobs=1, verbose=None):
+def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
+                 n_fft=2048, picks=None, ax=None, color='black',
+                 area_mode='std', area_alpha=0.33, window_size=2048,
+                 n_overlap=0, n_jobs=1, verbose=None):
     """Plot the power spectral density across channels
 
     Parameters
@@ -693,7 +693,7 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         If not None, override default verbose level (see mne.verbose).
     """
     import matplotlib.pyplot as plt
-    fig, picks_list, titles_list, ax_list, make_label = _set_psds_plot_params(
+    fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
         raw.info, proj, picks, ax, area_mode)
 
     for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
@@ -730,3 +730,10 @@ def plot_raw_psds(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
     plt.show()
     return fig
+
+
+@deprecated("'plot_raw_psds' is deprecated and will be removed in v0.10, "
+            "please use 'plot_raw_psd' instead")
+def plot_raw_psds(*args, **kwargs):
+    plot_raw_psd(*args, **kwargs)
+plot_raw_psds.__doc__ = plot_raw_psd.__doc__

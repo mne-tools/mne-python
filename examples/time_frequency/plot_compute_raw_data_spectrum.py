@@ -43,7 +43,7 @@ n_fft = 2048  # the FFT size (n_fft). Ideally a power of 2
 plt.ion()
 
 # Let's first check out all channel types
-raw.plot_psds(area_mode='range', tmax=10.0)
+raw.plot_psd(area_mode='range', tmax=10.0)
 
 # Now let's focus on a smaller subset:
 # Pick MEG magnetometers in the Left-temporal region
@@ -56,17 +56,17 @@ picks = picks[:4]
 
 plt.figure()
 ax = plt.axes()
-raw.plot_psds(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
-              n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks)
+raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
+             n_jobs=1, proj=False, ax=ax, color=(0, 0, 1),  picks=picks)
 
 # And now do the same with SSP applied
-raw.plot_psds(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
-              n_jobs=1, proj=True, ax=ax, color=(0, 1, 0), picks=picks)
+raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
+             n_jobs=1, proj=True, ax=ax, color=(0, 1, 0), picks=picks)
 
 # And now do the same with SSP + notch filtering
 raw.notch_filter(np.arange(60, 241, 60), picks=picks, n_jobs=1)
-raw.plot_psds(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
-              n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks)
+raw.plot_psd(tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax, n_fft=n_fft,
+             n_jobs=1, proj=True, ax=ax, color=(1, 0, 0), picks=picks)
 
 ax.set_title('Four left-temporal magnetometers')
 plt.legend(['Without SSP', 'With SSP', 'SSP + Notch'])

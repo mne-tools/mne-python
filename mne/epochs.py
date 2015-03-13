@@ -504,10 +504,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
 
-    def plot_psds(self, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
-                  picks=None, ax=None, color='black', area_mode='std',
-                  area_alpha=0.33, window_size=256, n_overlap=128,
-                  n_jobs=1, verbose=None):
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
+                 picks=None, ax=None, color='black', area_mode='std',
+                 area_alpha=0.33, window_size=256, n_overlap=128,
+                 n_jobs=1, verbose=None):
         """Plot the power spectral density across epochs
 
         Parameters
@@ -550,10 +550,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                n_overlap=n_overlap, n_jobs=n_jobs,
                                verbose=None)
 
-    def plot_psds_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                          n_fft=2048, picks=None, window_size=256,
-                          n_overlap=128, layout=None, cmap='RdBu_r',
-                          agg_fun=np.sum, n_jobs=1, verbose=None):
+    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
+                         n_fft=2048, picks=None, window_size=256,
+                         n_overlap=128, layout=None, cmap='RdBu_r',
+                         agg_fun=np.sum, n_jobs=1, verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
