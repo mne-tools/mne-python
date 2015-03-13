@@ -123,6 +123,64 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     return inst, ref_data
 
 
+def add_eeg_reference(inst, ref_channels=None, copy):
+    """Add reference channel(s) to data
+    
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        Instance of Raw or Epochs with EEG channels and reference channel(s).
+    ref_channels : str | list of str | None
+        Name of the electrode(s) which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing.
+    copy : bool
+        Specifies whether the data will be copied (True) or modified in place
+        (False). Defaults to True.
+    
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        Data with added EEG reference channels.
+    """
+    # Check to see that data is preloaded
+    if not isinstance(inst, Evoked) and not inst.preload:
+        raise RuntimeError('Data needs to be preloaded. Use '
+                           'preload=True (or string) in the constructor.')
+    eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
+    if isinstance(ref_channels, str):
+        idx = [ref_channels]
+    
+    if copy:
+        inst = inst.copy()
+    
+    if isinstance(inst, Evoked):
+        data = inst.data
+    else:
+        data = inst._data
+    
+    data = np.vstack(data, np.zeros(len(ref_channels), data.size))
+    nchan = len(inst.info['ch_names'])
+    if ch in ref_channels:
+        chan_info = {'ch_name': ch,
+                     'coil_type': FIFF.FIFFV_COIL_EEG,
+                     'kind': FIFF.FIFFV_EEG_CH,
+                     'logno': nchan + 1,
+                     'scanno': nchan + 1,
+                     'cal': 1,
+                     'range': 1.,
+                     'unit_mul': 0.,
+                     'unit': FIFF.FIFF_UNIT_V,
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'eeg_loc': np.zeros(3),
+                     'loc': np.zeros(12)}
+        inst.info['chs'].append(chan_info)
+    inst.info['ch_names'].extend(ref_channels)
+    inst.cals.extend([1]*len(ref_channels))
+
+    return inst
+
+
 def set_eeg_reference(inst, ref_channels=None, copy=True):
     """Rereference EEG channels to new reference channel(s).
 
