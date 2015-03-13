@@ -1032,57 +1032,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                         order, show_options, title, show, block, highpass,
                         lowpass, filtorder, clipping)
 
-    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
-                "instead")
-    def plot_psds(self, *args, **kwargs):
-        """Plot the power spectral density across channels
-
-        Parameters
-        ----------
-        tmin : float
-            Start time for calculations.
-        tmax : float
-            End time for calculations.
-        fmin : float
-            Start frequency to consider.
-        fmax : float
-            End frequency to consider.
-        proj : bool
-            Apply projection.
-        n_fft : int
-            Number of points to use in Welch FFT calculations.
-        picks : array-like of int | None
-            List of channels to use. Cannot be None if `ax` is supplied. If
-            both `picks` and `ax` are None, separate subplots will be created
-            for each standard channel type (`mag`, `grad`, and `eeg`).
-        ax : instance of matplotlib Axes | None
-            Axes to plot into. If None, axes will be created.
-        color : str | tuple
-            A matplotlib-compatible color to use.
-        area_mode : str | None
-            How to plot area. If 'std', the mean +/- 1 STD (across channels)
-            will be plotted. If 'range', the min and max (across channels)
-            will be plotted. Bad channels will be excluded from these
-            calculations. If None, no area will be plotted.
-        area_alpha : float
-            Alpha for the area.
-        window_size : int, optional
-            Length of each window. The default value is 2048.
-        n_overlap : int
-            The number of points of overlap between blocks. The default value
-            is 0 (no overlap).
-        n_jobs : int
-            Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-        """
-        self.plot_psd(*args, **kwargs)
-
     @verbose
     def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 window_size=2048, n_overlap=0, n_jobs=1, verbose=None):
+                 n_overlap=0, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1114,8 +1068,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
-        window_size : int, optional
-            Length of each window. The default value is 2048.
         n_overlap : int
             The number of points of overlap between blocks. The default value
             is 0 (no overlap).
@@ -1127,8 +1079,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
-                            area_alpha=area_alpha, window_size=window_size,
+                            area_alpha=area_alpha,
                             n_overlap=n_overlap, n_jobs=n_jobs)
+
+    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
+                "instead")
+    def plot_psds(self, *args, **kwargs):
+        self.plot_psd(*args, **kwargs)
+    plot_psds.__doc__ = plot_psd.__doc__
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices

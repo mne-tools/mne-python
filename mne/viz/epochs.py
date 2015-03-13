@@ -450,9 +450,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
+def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                     picks=None, ax=None, color='black', area_mode='std',
-                    area_alpha=0.33, window_size=256, n_overlap=128,
+                    area_alpha=0.33, n_overlap=0,
                     n_jobs=1, verbose=None):
     """Plot the power spectral density across epochs
 
@@ -481,11 +481,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
         If None, no area will be plotted.
     area_alpha : float
         Alpha for the area.
-    window_size : int, optional
-        Length of each window. The default value is 256.
     n_overlap : int
-        The number of points of overlap between blocks. The default value
-        is 128 (window_size // 2).
+        The number of points of overlap between blocks.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -500,7 +497,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=2048,
                                                 ax_list)):
         psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
                                          fmax=fmax, n_fft=n_fft,
-                                         window_size=window_size,
                                          n_overlap=n_overlap, proj=proj,
                                          n_jobs=n_jobs)
 

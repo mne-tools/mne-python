@@ -1099,8 +1099,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 
 
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
-                            proj=False, n_fft=2048, picks=None,
-                            window_size=256, n_overlap=128, layout=None,
+                            proj=False, n_fft=256, picks=None,
+                            n_overlap=0, layout=None,
                             cmap='RdBu_r', agg_fun=np.sum, n_jobs=1,
                             verbose=None):
     """Plot the topomap of the power spectral density across epochs
@@ -1131,11 +1131,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Number of points to use in Welch FFT calculations.
     picks : array-like of int | None
         List of channels to use.
-    window_size : int, optional
-        Length of each window. The default value is 256.
     n_overlap : int
-        The number of points of overlap between blocks. The default value
-        is 128 (window_size // 2).
+        The number of points of overlap between blocks.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout
@@ -1171,14 +1168,19 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         pos = layout.pos[picks]
 
     psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
-                                     window_size=window_size,
                                      n_overlap=n_overlap, proj=proj,
                                      n_jobs=n_jobs)
 
     psds = np.mean(psds, axis=0)
     for fmin, fmax, title in bands:
         freq_mask = (fmin < freqs) & (freqs < fmax)
-        data = 10 * np.log10(agg_fun(psds[:, freq_mask], axis=1))
+        if freq_mask.sum() == 0:
+            raise RuntimeError('No frequencies in band "%s" (%s, %s) for '
+                               'sfreq=%s and n_fft %s'
+                               % (title, fmin, fmax,
+                                  epochs.info['sfreq'], n_fft))
+        data = agg_fun(psds[:, freq_mask], axis=1)
+        data = 10 * np.log10(data)
 
         fig, ax = plt.subplots(1, 1, figsize=(2, 2))
         _plot_topomap_multi_cbar(data, pos, ax, title=title,
