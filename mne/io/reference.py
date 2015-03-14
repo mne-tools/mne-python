@@ -9,7 +9,7 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
-from . import Raw
+from .fiff import RawFIFF as Raw
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..utils import logger
@@ -127,19 +127,19 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
 def add_eeg_reference(inst, ref_channels, copy=True):
     """Add reference channel(s) to data
-    
+
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
     ref_channels : str | list of str | None
-        Name of the electrode(s) which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing.
+        Name of the electrode(s) which served as the reference in the
+        recording. If a name is provided, a corresponding channel is added
+        and its data is set to 0. This is useful for later re-referencing.
     copy : bool
         Specifies whether the data will be copied (True) or modified in place
         (False). Defaults to True.
-    
+
     Returns
     -------
     inst : instance of Raw | Epochs | Evoked
@@ -148,7 +148,6 @@ def add_eeg_reference(inst, ref_channels, copy=True):
     # Check to see that data is preloaded
     if not isinstance(inst, Evoked) and not inst.preload:
         raise RuntimeError('Data needs to be preloaded.')
-    eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
     for ch in ref_channels:
@@ -157,7 +156,7 @@ def add_eeg_reference(inst, ref_channels, copy=True):
 
     if copy:
         inst = inst.copy()
-    
+
     if isinstance(inst, Evoked):
         data = inst.data
         refs = np.zeros(len(ref_channels), data.shape[1])
@@ -173,11 +172,11 @@ def add_eeg_reference(inst, ref_channels, copy=True):
         x, y, z = data.shape
         refs = np.zeros((x, z))
         data = np.vstack((data.reshape((x * y, z), order='F'), refs))
-        data = data.reshape(x, y + 1 ,z, order='F')
+        data = data.reshape(x, y + 1, z, order='F')
         inst._data = data
     else:
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
-                        %type(inst))
+                        % type(inst))
     nchan = len(inst.info['ch_names'])
     if ch in ref_channels:
         chan_info = {'ch_name': ch,
@@ -195,7 +194,7 @@ def add_eeg_reference(inst, ref_channels, copy=True):
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
     if isinstance(inst, Raw):
-        inst.cals = np.hstack((inst.cals, [1]*len(ref_channels)))
+        inst.cals = np.hstack((inst.cals, [1] * len(ref_channels)))
 
     return inst
 

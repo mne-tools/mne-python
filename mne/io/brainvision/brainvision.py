@@ -16,6 +16,7 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
+from ..reference import add_eeg_reference
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -39,6 +40,9 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is None.
+    reference : str | list of str
+        This argument is being deprecated. Use mne.io.add_eeg_reference.
+        Argument will be removed in 0.10.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -56,7 +60,7 @@ class RawBrainVision(_BaseRaw):
     @verbose
     def __init__(self, vhdr_fname, montage=None,
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
-                 scale=1., preload=False, verbose=None):
+                 scale=1., reference=None, preload=False, verbose=None):
 
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
@@ -99,6 +103,10 @@ class RawBrainVision(_BaseRaw):
             self.preload = preload
             logger.info('Reading raw data from %s...' % vhdr_fname)
             self._data, _ = self._read_segment()
+            if reference is not None:
+                warnings.warn(DeprecationWarning, "'reference' is deprecated. "
+                              "Please use `mne.io.add_eeg_reference`.")
+                add_eeg_reference(self, reference, copy=False)
             assert len(self._data) == self.info['nchan']
 
             # Add time info
