@@ -538,7 +538,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     times *= 1e3
     if dB:
-        data = 10 * np.log10(data * data.conj())
+        data = 10 * np.log10((data * data.conj()).real)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
