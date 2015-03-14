@@ -123,7 +123,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     return inst, ref_data
 
 
-def add_eeg_reference(inst, ref_channels=None, copy):
+def add_eeg_reference(inst, ref_channels, copy=True):
     """Add reference channel(s) to data
     
     Parameters
@@ -145,8 +145,7 @@ def add_eeg_reference(inst, ref_channels=None, copy):
     """
     # Check to see that data is preloaded
     if not isinstance(inst, Evoked) and not inst.preload:
-        raise RuntimeError('Data needs to be preloaded. Use '
-                           'preload=True (or string) in the constructor.')
+        raise RuntimeError('Data needs to be preloaded.')
     eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
     if isinstance(ref_channels, str):
         idx = [ref_channels]
@@ -156,10 +155,21 @@ def add_eeg_reference(inst, ref_channels=None, copy):
     
     if isinstance(inst, Evoked):
         data = inst.data
-    else:
+        data = np.vstack(data, np.zeros(len(ref_channels), data.shape[1]))
+        inst.data = data
+    elif isinstance(inst, Raw):
         data = inst._data
-    
-    data = np.vstack(data, np.zeros(len(ref_channels), data.size))
+        data = np.vstack(data, np.zeros((len(ref_channels), data.shape[1])))
+        inst._data = data
+    if isinstance(inst, Epochs):
+        x, y, z = data.shape
+        refs = np.zeros((x, z))
+        data = np.vstack((data.reshape((x * y, z), order='F'), refs))
+        data = data.reshape(x, y + 1 ,z, order='F')
+        inst._data = data
+    else:
+        raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
+                        %type(inst))
     nchan = len(inst.info['ch_names'])
     if ch in ref_channels:
         chan_info = {'ch_name': ch,
