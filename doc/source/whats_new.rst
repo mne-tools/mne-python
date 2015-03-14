@@ -9,10 +9,6 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Add support for single dipole fitting by `Eric Larson`_
-
-   - Add support for spherical models in forward calculations by `Eric Larson`_
-
    - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
 
    - Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_
@@ -72,6 +68,12 @@ Changelog
    - Labels support subtraction (``label_1 - label_2``) by `Christian Brodbeck`_
 
    - Add GeneralizationAcrossTime object with support for cross-condition generalization by `Jean-Remi King`_ and `Denis Engemann`_
+
+   - Add support for single dipole fitting by `Eric Larson`_
+
+   - Add support for spherical models in forward calculations by `Eric Larson`_
+
+   - Add support for SNR estimation by `Eric Larson`_
 
 BUG
 ~~~
