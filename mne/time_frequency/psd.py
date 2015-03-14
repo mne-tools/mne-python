@@ -166,7 +166,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
 
     logger.info("Effective window size : %0.3f (s)" % (n_fft / float(Fs)))
 
-    freqs = np.arange(n_fft // 2 + 1) * (Fs / n_fft)
+    freqs = np.arange(n_fft // 2 + 1, dtype=float) * (Fs / n_fft)
     freq_mask = (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freq_mask]
     psds = np.empty(data.shape[:-1] + (freqs.size,))
