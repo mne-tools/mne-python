@@ -13,7 +13,7 @@ from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
                    setup_cuda_fft_resample, fft_resample, _smart_pad)
-from .utils import logger, verbose, sum_squared
+from .utils import logger, verbose, sum_squared, check_scipy_version
 
 
 def is_power2(num):
@@ -1389,3 +1389,66 @@ def _get_filter_length(filter_length, sfreq, min_length=128, len_x=np.inf):
         if not isinstance(filter_length, integer_types):
             raise ValueError('filter_length must be str, int, or None')
     return filter_length
+
+
+class FilterMixin(object):
+    """Object for Epoch/Evoked filtering"""
+
+    def savgol_filter(self, h_freq):
+        """Filter the data using Savitzky-Golay polynomial method
+
+        Parameters
+        ----------
+        h_freq : float
+            Approximate high cut-off frequency in Hz. Note that this
+            is not an exact cutoff, since Savitzky-Golay filtering [1]_ is
+            done using polynomial fits instead of FIR/IIR filtering.
+            This parameter is thus used to determine the length of the
+            window over which a 5th-order polynomial smoothing is used.
+
+        Notes
+        -----
+        Data are modified in-place.
+
+        For Savitzky-Golay low-pass approximation, see:
+
+            https://gist.github.com/Eric89GXL/bbac101d50176611136b
+
+        Examples
+        --------
+        >>> import mne
+        >>> from os import path as op
+        >>> evoked_fname = op.join(mne.datasets.sample.data_path(), 'MEG', 'sample', 'sample_audvis-ave.fif')  # doctest:+SKIP
+        >>> evoked = mne.read_evokeds(evoked_fname, baseline=(None, 0))[0]  # doctest:+SKIP
+        >>> evoked.savgol_filter(10.)  # low-pass at around 10 Hz # doctest:+SKIP
+        >>> evoked.plot()  # doctest:+SKIP
+
+        References
+        ----------
+        .. [1] Savitzky, A., Golay, M.J.E. (1964). "Smoothing and
+               Differentiation of Data by Simplified Least Squares
+               Procedures". Analytical Chemistry 36 (8): 1627-39.
+        """  # noqa
+        from .evoked import Evoked
+        from .epochs import _BaseEpochs
+        if isinstance(self, Evoked):
+            data = self.data
+            axis = 1
+        elif isinstance(self, _BaseEpochs):
+            if not self.preload:
+                raise RuntimeError('data must be preloaded to filter')
+            data = self._data
+            axis = 2
+
+        h_freq = float(h_freq)
+        if h_freq >= self.info['sfreq'] / 2.:
+            raise ValueError('h_freq must be less than half the sample rate')
+
+        # savitzky-golay filtering
+        if not check_scipy_version('0.14'):
+            raise RuntimeError('scipy >= 0.14 must be installed for savgol')
+        from scipy.signal import savgol_filter
+        window_length = (int(np.round(self.info['sfreq'] /
+                                      h_freq)) // 2) * 2 + 1
+        data[...] = savgol_filter(data, axis=axis, polyorder=5,
+                                  window_length=window_length)

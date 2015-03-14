@@ -34,7 +34,7 @@ from .utils import (check_random_state, _check_pandas_index_arguments,
                     _check_pandas_installed, object_hash)
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
-from .filter import resample, detrend
+from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
 from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
@@ -45,7 +45,7 @@ from .utils import _check_type_picks
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-                  SetChannelsMixin, InterpolationMixin):
+                  SetChannelsMixin, InterpolationMixin, FilterMixin):
     """Abstract base class for Epochs-type classes
 
     This class provides basic functionality and should never be instantiated

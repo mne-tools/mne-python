@@ -10,6 +10,7 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
+from scipy import fftpack
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
@@ -30,6 +31,27 @@ fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                 'test-ave.fif')
 fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
+
+
+def test_filter():
+    """Test savgol filtering
+    """
+    h_freq = 10.
+    evoked = read_evokeds(fname, 0)
+    freqs = fftpack.fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
+    data = np.abs(fftpack.fft(evoked.data))
+    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
+    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
+    evoked.savgol_filter(h_freq)
+    data_filt = np.abs(fftpack.fft(evoked.data))
+    # decent in pass-band
+    assert_allclose(np.mean(data[:, match_mask], 0),
+                    np.mean(data_filt[:, match_mask], 0),
+                    rtol=1e-4, atol=1e-2)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, mismatch_mask]) >
+                np.mean(data_filt[:, mismatch_mask]) * 5)
 
 
 def test_hash_evoked():
