@@ -94,8 +94,7 @@ def test_psd_epochs():
 
 
 def test_compares_psd():
-    """Test PSD estimation on raw for the two computations:
-    plt.psd and the second using scipy.signal.welch
+    """Test PSD estimation on raw for plt.psd and scipy.signal.welch
     """
     raw = io.Raw(raw_fname)
 
