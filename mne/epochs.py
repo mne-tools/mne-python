@@ -562,8 +562,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Parameters
         ----------
-        epochs : instance of Epochs
-            The epochs object
         bands : list of tuple | None
             The lower and upper frequency and the name for that band. If None,
             (default) expands to:
