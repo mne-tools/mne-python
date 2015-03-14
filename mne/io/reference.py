@@ -1,5 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -8,6 +9,7 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
+from . import Raw
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..utils import logger
@@ -148,20 +150,26 @@ def add_eeg_reference(inst, ref_channels, copy=True):
         raise RuntimeError('Data needs to be preloaded.')
     eeg_idx = pick_types(inst.info, eeg=True, meg=False, ref_meg=False)
     if isinstance(ref_channels, str):
-        idx = [ref_channels]
-    
+        ref_channels = [ref_channels]
+    for ch in ref_channels:
+        if ch in inst.info['ch_names']:
+            raise ValueError("Channel %s already specified in inst." % ch)
+
     if copy:
         inst = inst.copy()
     
     if isinstance(inst, Evoked):
         data = inst.data
-        data = np.vstack(data, np.zeros(len(ref_channels), data.shape[1]))
+        refs = np.zeros(len(ref_channels), data.shape[1])
+        data = np.vstack((data, refs))
         inst.data = data
     elif isinstance(inst, Raw):
         data = inst._data
-        data = np.vstack(data, np.zeros((len(ref_channels), data.shape[1])))
+        refs = np.zeros((len(ref_channels), data.shape[1]))
+        data = np.vstack((data, refs))
         inst._data = data
-    if isinstance(inst, Epochs):
+    elif isinstance(inst, Epochs):
+        data = inst._data
         x, y, z = data.shape
         refs = np.zeros((x, z))
         data = np.vstack((data.reshape((x * y, z), order='F'), refs))
@@ -186,7 +194,8 @@ def add_eeg_reference(inst, ref_channels, copy=True):
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
-    inst.cals.extend([1]*len(ref_channels))
+    if isinstance(inst, Raw):
+        inst.cals = np.hstack((inst.cals, [1]*len(ref_channels)))
 
     return inst
 

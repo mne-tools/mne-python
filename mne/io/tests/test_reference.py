@@ -1,5 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -12,7 +13,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import pick_types, Evoked, Epochs, read_events
 from mne.io.constants import FIFF
-from mne.io import set_eeg_reference, set_bipolar_reference
+from mne.io import set_eeg_reference, set_bipolar_reference, add_eeg_reference
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
@@ -189,3 +190,37 @@ def test_set_bipolar_reference():
                   ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
     assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
+
+
+@testing.requires_testing_data
+def test_add_reference():
+    raw = Raw(fif_fname, preload=True)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    # check if channel already exists
+    assert_raises(ValueError, add_eeg_reference, raw, raw.info['ch_names'][0])
+    # add reference channel
+    raw_ref = add_eeg_reference(raw, 'Ref', copy=True)
+    assert_equal(len(raw_ref._data), len(raw._data) + 1)
+    assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
+
+    raw = add_eeg_reference(raw, 'Ref', copy=False)
+    assert_array_equal(raw._data, raw_ref._data)
+
+    ref_idx = raw.ch_names.index('Ref')
+    ref_data, _ = raw[ref_idx]
+    assert_array_equal(ref_data, 0)
+
+    # test add ref on epochs
+    raw = Raw(fif_fname, preload=True)
+    events = read_events(eve_fname)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True)
+    epochs_ref = add_eeg_reference(epochs, 'Ref', copy=True)
+    assert_equal(len(epochs._data), len(epochs_ref._data))
+    ref_idx = epochs_ref.ch_names.index('Ref')
+    ref_data = epochs_ref.get_data()[:, ref_idx, :]
+    assert_array_equal(ref_data, 0)
+    picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
+    assert_array_equal(epochs.get_data()[:, picks_eeg, :],
+                       epochs_ref.get_data()[:, picks_eeg, :])
