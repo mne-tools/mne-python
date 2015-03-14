@@ -648,7 +648,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
-                 n_overlap=0, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
     """Plot the power spectral density across channels
 
     Parameters
@@ -685,10 +685,17 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
+    dB : bool
+        If True, transform data to decibels.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
     fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
@@ -698,12 +705,15 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                                                 ax_list)):
         psds, freqs = compute_raw_psd(raw, tmin=tmin, tmax=tmax, picks=picks,
                                       fmin=fmin, fmax=fmax, proj=proj,
-                                      n_fft=n_fft,
-                                      n_overlap=n_overlap, n_jobs=n_jobs,
-                                      verbose=None)
+                                      n_fft=n_fft, n_overlap=n_overlap,
+                                      n_jobs=n_jobs, verbose=None)
 
         # Convert PSDs to dB
-        psds = 10 * np.log10(psds)
+        if dB:
+            psds = 10 * np.log10(psds)
+            unit = 'dB'
+        else:
+            unit = 'power'
         psd_mean = np.mean(psds, axis=0)
         if area_mode == 'std':
             psd_std = np.std(psds, axis=0)
@@ -720,8 +730,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
-            if ii == len(picks_list) / 2:
-                ax.set_ylabel('Power Spectral Density (dB/Hz)')
+            if ii == len(picks_list) // 2:
+                ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:

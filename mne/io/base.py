@@ -1036,7 +1036,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1071,16 +1071,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_overlap : int
             The number of points of overlap between blocks. The default value
             is 0 (no overlap).
+        dB : bool
+            If True, transform data to decibels.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
         """
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha,
-                            n_overlap=n_overlap, n_jobs=n_jobs)
+                            n_overlap=n_overlap, dB=dB, n_jobs=n_jobs)
 
     @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
                 "instead")

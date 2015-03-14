@@ -1101,7 +1101,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, picks=None,
                             n_overlap=0, layout=None,
-                            cmap='RdBu_r', agg_fun=np.sum, n_jobs=1,
+                            cmap='RdBu_r', agg_fun=np.sum, dB=False, n_jobs=1,
                             verbose=None):
     """Plot the topomap of the power spectral density across epochs
 
@@ -1144,10 +1144,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         'Reds'.
     agg_fun : callable
         The function used to aggregate over frequencies. Defaults to np.sum.
+    dB : bool
+        If True, transform data to decibels (with ``10 * np.log10(data)``)
+        following the application of `agg_fun`.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
     if bands is None:
@@ -1180,12 +1188,16 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                                % (title, fmin, fmax,
                                   epochs.info['sfreq'], n_fft))
         data = agg_fun(psds[:, freq_mask], axis=1)
-        data = 10 * np.log10(data)
+        if dB:
+            data = 10 * np.log10(data)
+            unit = 'dB'
+        else:
+            unit = 'power'
 
         fig, ax = plt.subplots(1, 1, figsize=(2, 2))
         _plot_topomap_multi_cbar(data, pos, ax, title=title,
                                  vmin=vmin, vmax=vmax, cmap=cmap,
-                                 colorbar=True, unit='dB')
+                                 colorbar=True, unit=unit)
         tight_layout(fig=fig)
         fig.canvas.draw()
 
