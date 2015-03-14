@@ -75,6 +75,8 @@ Changelog
 
    - Add support for SNR estimation by `Eric Larson`_
 
+   - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
+
 BUG
 ~~~
 

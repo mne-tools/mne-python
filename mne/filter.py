@@ -1440,8 +1440,6 @@ class FilterMixin(object):
             data = self._data
             axis = 2
 
-        if h_freq is None:
-            return
         h_freq = float(h_freq)
         if h_freq >= self.info['sfreq'] / 2.:
             raise ValueError('h_freq must be less than half the sample rate')
