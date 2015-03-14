@@ -234,6 +234,16 @@ def test_apply_inverse_operator():
     assert_true(stc.data.max() < 35)
     assert_true(stc.data.mean() > 0.1)
 
+    # test without using a label (so delayed computation is used)
+    label = read_label(fname_label % 'Aud-lh')
+    stc = apply_inverse(evoked, inv_op, lambda2, "MNE")
+    stc_label = apply_inverse(evoked, inv_op, lambda2, "MNE",
+                              label=label)
+    assert_true(stc_label.subject == 'sample')
+    label_stc = stc.in_label(label)
+    assert_true(label_stc.subject == 'sample')
+    assert_array_almost_equal(stc_label.data, label_stc.data)
+
     # Test we get errors when using custom ref or no average proj is present
     evoked.info['custom_ref_applied'] = True
     assert_raises(ValueError, apply_inverse, evoked, inv_op, lambda2, "MNE")
