@@ -14,7 +14,7 @@ from ..utils import logger, verbose
 @verbose
 def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
                     fmax=np.inf, n_fft=2048, n_overlap=0,
-                    n_jobs=1, plot=False, proj=False, verbose=None):
+                    proj=False, n_jobs=1, verbose=None):
     """Compute power spectral density with average periodograms.
 
     Parameters
@@ -32,14 +32,14 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
         Min frequency of interest
     fmax : float
         Max frequency of interest
-    proj : bool
-        Apply SSP projection vectors.
     n_fft : int
         The length of the tapers ie. the windows. The smaller
         it is the smoother are the PSDs.
     n_overlap : int
         The number of points of overlap between blocks. The default value
         is 0 (no overlap).
+    proj : bool
+        Apply SSP projection vectors.
     n_jobs : int
         Number of CPUs to use in the computation.
     verbose : bool, str, int, or None
@@ -88,9 +88,8 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
 
 def _pwelch(epoch, noverlap, nfft, fs, freq_mask):
     """Aux function"""
-    return [welch(channel, nperseg=nfft, noverlap=noverlap,
-                  nfft=nfft, fs=fs)[1][..., freq_mask]
-            for channel in epoch]
+    return welch(epoch, nperseg=nfft, noverlap=noverlap,
+                 nfft=nfft, fs=fs)[1][..., freq_mask]
 
 
 def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):
@@ -176,9 +175,9 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
                                                 verbose=verbose)
 
     for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
-                            parallel(my_pwelch(epoch,
-                                     noverlap=n_overlap, nfft=n_fft, fs=Fs,
-                                     freq_mask=freq_mask)
+                            parallel(my_pwelch(epoch, noverlap=n_overlap,
+                                               nfft=n_fft, fs=Fs,
+                                               freq_mask=freq_mask)
                                      for epoch in np.array_split(data,
                                                                  n_jobs))):
         for i_epoch, f_epoch in zip(idx, fepochs):
