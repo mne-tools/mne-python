@@ -15,7 +15,8 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -1036,6 +1037,8 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     return labels
 
 
+@deprecated("'label_time_courses' will be removed in version 0.10, please use "
+            "'in_label' method of SourceEstimate instead")
 def label_time_courses(labelfile, stcfile):
     """Extract the time courses corresponding to a label file from an stc file
 
