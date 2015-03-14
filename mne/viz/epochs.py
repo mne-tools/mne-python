@@ -453,7 +453,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                     picks=None, ax=None, color='black', area_mode='std',
                     area_alpha=0.33, n_overlap=0,
-                    n_jobs=1, verbose=None):
+                    dB=True, n_jobs=1, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -483,10 +483,17 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
         Alpha for the area.
     n_overlap : int
         The number of points of overlap between blocks.
+    dB : bool
+        If True, transform data to decibels.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
     from .raw import _set_psd_plot_params
@@ -501,7 +508,11 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                                          n_jobs=n_jobs)
 
         # Convert PSDs to dB
-        psds = 10 * np.log10(psds)
+        if dB:
+            psds = 10 * np.log10(psds)
+            unit = 'dB'
+        else:
+            unit = 'power'
         # mean across epochs and channels
         psd_mean = np.mean(psds, axis=0).mean(axis=0)
         if area_mode == 'std':
@@ -521,8 +532,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
         if make_label:
             if ii == len(picks_list) - 1:
                 ax.set_xlabel('Freq (Hz)')
-            if ii == len(picks_list) / 2:
-                ax.set_ylabel('Power Spectral Density (dB/Hz)')
+            if ii == len(picks_list) // 2:
+                ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
             ax.set_title(title)
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
