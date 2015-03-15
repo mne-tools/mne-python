@@ -801,10 +801,10 @@ class Report(object):
 
         Parameters
         ----------
-        fnames : list of str
-            A list of filenames from which images are read.
-        captions : list of str
-            A list of captions to the images.
+        fnames : str | list of str
+            A filename or a list of filenames from which images are read.
+        captions : str | list of str
+            A caption or a list of captions to the images.
         scale : float | None
             Scale the images maintaining the aspect ratio.
             Defaults to None. If None, no scaling will be applied.
@@ -845,10 +845,10 @@ class Report(object):
 
         Parameters
         ----------
-        htmls : list of str
-            A list of html str.
-        captions : list of str
-            A list of captions to the htmls.
+        htmls : str | list of str
+            An html str or a list of html str.
+        captions : str | list of str
+            A caption or a list of captions to the htmls.
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
@@ -862,8 +862,8 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
-    def render_bem(self, subject, subjects_dir, decim, n_jobs):
-        """Render an bem slider html str.
+    def render_bem(self, subject, decim=2, n_jobs=1, subjects_dir=None):
+        """Renders a bem slider html str.
 
         Parameters
         ----------

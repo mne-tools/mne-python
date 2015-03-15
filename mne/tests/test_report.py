@@ -196,4 +196,19 @@ def test_render_mri_without_bem():
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
+def test_add_htmls_to_section():
+    """Test adding html str to mne report.
+    """
+    tempdir = _TempDir()
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    html = Report.render_bem('sample')
+    caption, sectionvar = 'html', 'html_section'
+    report.add_htmls_to_section(html, caption, sectionvar)
+    section_name = '%s-#-%s-#-custom' % (caption, sectionvar)
+    idx = report._sectionlabels.index(section_name)
+    html_compare = report.html[idx]
+    assert_equal(html, html_compare)
+
+
 run_tests_if_main()
