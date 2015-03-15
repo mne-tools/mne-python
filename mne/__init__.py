@@ -62,9 +62,9 @@ from .source_space import (read_source_spaces, vertex_to_mni,
 from .epochs import Epochs, EpochsArray, read_epochs
 from .evoked import (Evoked, EvokedArray, read_evokeds, write_evokeds,
                      grand_average, combine_evoked)
-from .label import (label_time_courses, read_label, label_sign_flip,
-                    write_label, stc_to_label, grow_labels, Label, split_label,
-                    BiHemiLabel, read_labels_from_annot, write_labels_to_annot)
+from .label import (read_label, label_sign_flip, write_label, stc_to_label,
+                    grow_labels, Label, split_label, BiHemiLabel,
+                    read_labels_from_annot, write_labels_to_annot)
 from .misc import parse_config, read_reject_parameters
 from .coreg import (create_default_subject, scale_bem, scale_mri, scale_labels,
                     scale_source_space)

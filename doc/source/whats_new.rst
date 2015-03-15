@@ -78,6 +78,9 @@ Changelog
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
    - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
+
+   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
+
 BUG
 ~~~
 
@@ -292,7 +295,7 @@ API
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
 
-   - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
+   - Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 

@@ -73,9 +73,10 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     stc.save('lcmv-' + name)
 
     # View activation time-series
-    data, times, _ = mne.label_time_courses(fname_label, "lcmv-" + name +
-                                            "-lh.stc")
-    plt.plot(1e3 * times, np.mean(data, axis=0), color, hold=True, label=desc)
+    label = mne.read_label(fname_label, "lcmv-" + name + "-lh.stc")
+    stc_label = stc.in_label(label)
+    plt.plot(1e3 * stc_label.times, np.mean(stc_label.data, axis=0), color,
+             hold=True, label=desc)
 
 plt.xlabel('Time (ms)')
 plt.ylabel('LCMV value')
