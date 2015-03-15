@@ -202,7 +202,7 @@ def test_add_htmls_to_section():
     tempdir = _TempDir()
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    html = Report.render_bem('sample')
+    html = report.render_bem('sample')
     caption, sectionvar = 'html', 'html_section'
     report.add_htmls_to_section(html, caption, sectionvar)
     section_name = '%s-#-%s-#-custom' % (caption, sectionvar)
