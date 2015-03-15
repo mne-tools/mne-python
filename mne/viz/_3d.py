@@ -353,7 +353,7 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     return fig
 
 
-def _percent_to_control_points(limits, stc_data, colormap):
+def _percent_to_control_points(clim, stc_data, colormap):
     """Private helper function to convert percentiles to control points.
 
     Note: If using 'mne_analyze', generate cmap control points for a directly
@@ -362,7 +362,7 @@ def _percent_to_control_points(limits, stc_data, colormap):
 
     Parameters
     ----------
-    limits : str | 3-tuple | dict
+    clim : str | 3-tuple | dict
         Desired percentages used to set cmap control points.
 
     Returns
@@ -372,28 +372,28 @@ def _percent_to_control_points(limits, stc_data, colormap):
     """
 
     # Based on type of limits specified, get cmap control points
-    if limits == 'auto':
+    if clim == 'auto':
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
         ctrl_pts.insert(1, np.average(ctrl_pts))
-    elif isinstance(limits, tuple):
-        assert len(limits) == 3, '"limits" tuple must be length 3'
-        ctrl_pts = limits
-    elif isinstance(limits, dict):
-        # Get appropriate key for limits if it's a dict
+    elif isinstance(clim, tuple):
+        assert len(clim) == 3, '"clim" tuple must be length 3'
+        ctrl_pts = clim
+    elif isinstance(clim, dict):
+        # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
-        if limit_key not in limits.keys():
+        if limit_key not in clim.keys():
             raise KeyError('lims" OR "pos_lims" must be defined depending on'
                            ' if colormap is "mne_analyze"')
-        if limits['kind'] == 'percent':
+        if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
-                                     list(np.abs(limits[limit_key])))
-        elif limits['kind'] == 'value':
-            ctrl_pts = limits[limit_key]
+                                     list(np.abs(clim[limit_key])))
+        elif clim['kind'] == 'value':
+            ctrl_pts = clim[limit_key]
         else:
-            raise ValueError('If limits is a dict, limits[kind] must be '
+            raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
     else:
-        raise ValueError('"limits" must be "auto", tuple, or dict')
+        raise ValueError('"clim" must be "auto", tuple, or dict')
 
     return ctrl_pts
 
@@ -403,7 +403,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           smoothing_steps=10, fmin=None, fmid=None, fmax=None,
                           transparent=None, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True, limits=None):
+                          views='lat', colorbar=True, clim=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -455,10 +455,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
-    limits : str | 3-tuple | dict
-        Colorbar properties specification. If 'auto', set limits
+    clim : str | 3-tuple | dict
+        Colorbar properties specification. If 'auto', set clim
         automatically based on percentiles of the data. If 3-tuple of floats,
-        set limits according to 3-tuple values. If dict, should contain:
+        set clim according to 3-tuple values. If dict, should contain:
             kind : str
                 Flag to specify type of limits. 'value' or 'percent'.
             lims : length 3 list or array
@@ -527,10 +527,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     ctrl_pts = [fmin, fmid, fmax]
 
     # Check if using old fmin/fmid/fmax cmap behavior
-    if limits is None:
+    if clim is None:
         # Throw deprecation warning
         warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                      ' removed in v0.10. Use "limits" instead.',
+                      ' removed in v0.10. Use "clim" instead.',
                       DeprecationWarning)
         # Fill in any missing flim values
         for fi, f in enumerate(ctrl_pts):
@@ -540,8 +540,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # Otherwise, use new cmap behavior
     else:
         if any([f is not None for f in [fmin, fmid, fmax]]):
-            warnings.warn('"limits" overrides fmin, fmid, fmax')
-        ctrl_pts = _percent_to_control_points(limits, stc.data, colormap)
+            warnings.warn('"clim" overrides fmin, fmid, fmax')
+        ctrl_pts = _percent_to_control_points(clim, stc.data, colormap)
 
     # Construct cmap manually if 'mne_analyze' and get cmap bounds
     if colormap == 'mne_analyze':

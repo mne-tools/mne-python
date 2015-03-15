@@ -1352,7 +1352,7 @@ class SourceEstimate(_BaseSourceEstimate):
              smoothing_steps=10, fmin=None, fmid=None, fmax=None,
              transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
-             views='lat', colorbar=True, limits=None):
+             views='lat', colorbar=True, clim=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1399,10 +1399,10 @@ class SourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
-        limits : str | 3-tuple | dict
-            Colorbar properties specification. If 'auto', set limits
+        clim : str | 3-tuple | dict
+            Colorbar properties specification. If 'auto', set clim
             automatically based on quartiles of data. If 3-tuple of floats,
-            set limits according to 3-tuple values. If dict, should contain:
+            set clim according to 3-tuple values. If dict, should contain:
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
                 lims : length 3 list or array
@@ -1428,7 +1428,7 @@ class SourceEstimate(_BaseSourceEstimate):
                                       config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
                                       views=views, colorbar=colorbar,
-                                      limits=limits)
+                                      clim=clim)
         return brain
 
     @verbose
