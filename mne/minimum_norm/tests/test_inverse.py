@@ -239,7 +239,7 @@ def test_apply_inverse_operator():
     stc = apply_inverse(evoked, inv_op, lambda2, "MNE")
     stc_label = apply_inverse(evoked, inv_op, lambda2, "MNE",
                               label=label)
-    assert_true(stc_label.subject == 'sample')
+    assert_equal(stc_label.subject, 'sample')
     label_stc = stc.in_label(label)
     assert_true(label_stc.subject == 'sample')
     assert_array_almost_equal(stc_label.data, label_stc.data)
