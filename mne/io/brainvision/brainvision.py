@@ -16,7 +16,7 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
-from ..reference import add_eeg_reference
+from ..reference import add_reference_channels
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -40,9 +40,11 @@ class RawBrainVision(_BaseRaw):
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is None.
-    reference : str | list of str
-        This argument is being deprecated. Use mne.io.add_eeg_reference.
-        Argument will be removed in 0.10.
+    reference : None | str
+        Name of the electrode which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing. The name should
+        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -59,9 +61,12 @@ class RawBrainVision(_BaseRaw):
     """
     @verbose
     def __init__(self, vhdr_fname, montage=None,
-                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
-                 scale=1., reference=None, preload=False, verbose=None):
+                 eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
+                 scale=1., preload=False, verbose=None):
 
+        if reference is not None and preload is False:
+            raise ValueError("Preload must be set to True if reference is "
+                             "specified.")
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
         self.preload = False
@@ -104,9 +109,7 @@ class RawBrainVision(_BaseRaw):
             logger.info('Reading raw data from %s...' % vhdr_fname)
             self._data, _ = self._read_segment()
             if reference is not None:
-                warnings.warn(DeprecationWarning, "'reference' is deprecated. "
-                              "Please use `mne.io.add_eeg_reference`.")
-                add_eeg_reference(self, reference, copy=False)
+                add_reference_channels(self, reference, copy=False)
             assert len(self._data) == self.info['nchan']
 
             # Add time info
@@ -583,7 +586,8 @@ def _get_eeg_info(vhdr_fname, eog, misc):
 
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
-                         scale=1., preload=False, verbose=None):
+                         reference=None, scale=1., preload=False,
+                         verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -601,6 +605,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Names of channels or list of indices that should be designated
         MISC channels. Values should correspond to the electrodes
         in the vhdr file. Default is None.
+    reference : None | str
+        Name of the electrode which served as the reference in the recording.
+        If a name is provided, a corresponding channel is added and its data
+        is set to 0. This is useful for later re-referencing. The name should
+        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -616,6 +625,6 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     mne.io.Raw : Documentation of attribute and methods.
     """
     raw = RawBrainVision(vhdr_fname=vhdr_fname, montage=montage, eog=eog,
-                         misc=misc, scale=scale, preload=preload,
-                         verbose=verbose)
+                         misc=misc, reference=reference, scale=scale,
+                         preload=preload, verbose=verbose)
     return raw

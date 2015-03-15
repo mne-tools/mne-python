@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import pick_types, Evoked, Epochs, read_events
 from mne.io.constants import FIFF
-from mne.io import set_eeg_reference, set_bipolar_reference, add_eeg_reference
+from mne.io import set_eeg_reference, set_bipolar_reference, add_ref_channels
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
@@ -197,17 +197,30 @@ def test_add_reference():
     raw = Raw(fif_fname, preload=True)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # check if channel already exists
-    assert_raises(ValueError, add_eeg_reference, raw, raw.info['ch_names'][0])
+    assert_raises(ValueError, add_ref_channels, raw, raw.info['ch_names'][0])
     # add reference channel
-    raw_ref = add_eeg_reference(raw, 'Ref', copy=True)
+    raw_ref = add_ref_channels(raw, 'Ref', copy=True)
     assert_equal(len(raw_ref._data), len(raw._data) + 1)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
 
-    raw = add_eeg_reference(raw, 'Ref', copy=False)
-    assert_array_equal(raw._data, raw_ref._data)
+    raw = add_ref_channels(raw, 'Ref', copy=False)
+    assert_array_equal(raw._data, raw_ref._data)    
 
     ref_idx = raw.ch_names.index('Ref')
     ref_data, _ = raw[ref_idx]
+    assert_array_equal(ref_data, 0)
+
+    raw = Raw(fif_fname, preload=True)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    assert_raises(ValueError, add_ref_channels, raw, raw.info['ch_names'][0])
+    raw_ref = add_ref_channels(raw, ['M1', 'M2'], copy=True)
+    assert_equal(len(raw_ref._data), len(raw._data) + 2)
+    assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
+
+    raw = add_ref_channels(raw, ['M1', 'M2'], copy=False)
+    ref_idx = raw.ch_names.index('M1')
+    ref_idy = raw.ch_names.index('M2')
+    ref_data, _ = raw[[ref_idx, ref_idy]]
     assert_array_equal(ref_data, 0)
 
     # test add ref on epochs
@@ -216,7 +229,7 @@ def test_add_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
-    epochs_ref = add_eeg_reference(epochs, 'Ref', copy=True)
+    epochs_ref = add_ref_channels(epochs, 'Ref', copy=True)
     assert_equal(len(epochs._data), len(epochs_ref._data))
     ref_idx = epochs_ref.ch_names.index('Ref')
     ref_data = epochs_ref.get_data()[:, ref_idx, :]

@@ -125,14 +125,14 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
     return inst, ref_data
 
 
-def add_eeg_reference(inst, ref_channels, copy=True):
-    """Add reference channel(s) to data
+def add_reference_channels(inst, ref_channels, copy=True):
+    """Add reference channels to data that consists of all zeros.
 
     Parameters
     ----------
     inst : instance of Raw | Epochs | Evoked
         Instance of Raw or Epochs with EEG channels and reference channel(s).
-    ref_channels : str | list of str | None
+    ref_channels : str | list of str
         Name of the electrode(s) which served as the reference in the
         recording. If a name is provided, a corresponding channel is added
         and its data is set to 0. This is useful for later re-referencing.
@@ -150,6 +150,9 @@ def add_eeg_reference(inst, ref_channels, copy=True):
         raise RuntimeError('Data needs to be preloaded.')
     if isinstance(ref_channels, str):
         ref_channels = [ref_channels]
+    elif not isinstance(ref_channels, list):
+        raise ValueError("`ref_channels` should be either str or list of str. "
+                         "%s was provided." % type(ref_channels))
     for ch in ref_channels:
         if ch in inst.info['ch_names']:
             raise ValueError("Channel %s already specified in inst." % ch)
