@@ -1,5 +1,6 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -736,7 +737,7 @@ def _subject_from_inverse(inverse_operator):
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
                   pick_ori=None, pick_normal=None, prepared=False,
-                  verbose=None):
+                  label=None, verbose=None):
     """Apply inverse operator to evoked data
 
     Parameters
@@ -756,6 +757,9 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
         when working with loose orientations.
     prepared : bool
         If True, do not call `prepare_inverse_operator`.
+    label : Label | None
+        Restricts the source estimates to a given label. If None,
+        source estimates will be computed for the entire source space.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -784,7 +788,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, _ = _assemble_kernel(inv, None, method, pick_ori)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] ==
@@ -800,7 +804,6 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
-    vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
 
     stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
