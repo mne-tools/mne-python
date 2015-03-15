@@ -46,6 +46,15 @@ from ..event import concatenate_events
 
 class ToDataFrameMixin(object):
     '''Class to add to_data_frame capabilities to certain classes.'''
+    def _get_check_picks(self, picks, picks_check):
+        if picks is None:
+            picks = list(range(self.info['nchan']))
+        else:
+            if not in1d(picks, np.arange(len(picks_check))).all():
+                raise ValueError('At least one picked channel is not present '
+                                 'in this object instance.')
+        return picks
+
     def to_data_frame(self, picks=None, index=None, scale_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
@@ -91,40 +100,36 @@ class ToDataFrameMixin(object):
         from ..source_estimate import SourceEstimate
 
         pd = _check_pandas_installed()
-
+        picks = self._get_check_picks(picks, self.ch_names)
+        mindex = list()
         if isinstance(self, _BaseEpochs):
             default_index = ['condition', 'epoch', 'time']
-            picks_check = self.events
-        elif isinstance(self, (RawFIFF, RawArray, Evoked, SourceEstimate)):
-            default_index = ['time']
-            picks_check = self.ch_names
-
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not in1d(picks, np.arange(len(picks_check))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this object instance.')
-
-        if isinstance(self, _BaseEpochs):
             data = self.get_data()[:, picks, :]
             times = self.times
             n_epochs, n_picks, n_times = data.shape
             data = np.hstack(data).T  # (time*epochs) x signals
 
-        else:
+            # Multi-index creation
+            mindex.append(('time', np.tile(times, n_epochs)))
+            id_swapped = dict((v, k) for k, v in self.event_id.items())
+            names = [id_swapped[k] for k in self.events[:, 2]]
+            mindex.append(('condition', np.repeat(names, n_times)))
+            mindex.append(('epoch', np.repeat(np.arange(n_epochs), n_times)))
+        elif isinstance(self, (RawFIFF, RawArray, Evoked, SourceEstimate)):
+            default_index = ['time']
             if isinstance(self, (RawFIFF, RawArray)):
                 data, times = self[picks, start:stop]
             elif isinstance(self, (Evoked, SourceEstimate)):
                 data = self.data[picks, :]
                 times = self.times
-            n_picks, n_times = data.shape
-            data = data.T
+                n_picks, n_times = data.shape
+                data = data.T
+            mindex.append(('time', times))
+
+        if index is not None:
+            _check_pandas_index_arguments(index, default_index)
+        else:
+            index = default_index
 
         if copy is True:
             data = data.copy()
@@ -147,31 +152,17 @@ class ToDataFrameMixin(object):
             if len(idx) > 0:
                 data[:, idx] *= scaling
 
-        # Switch for object-specific indices
-        mindex = list()
-        if isinstance(self, (RawFIFF, RawArray,
-                             Evoked, SourceEstimate)):
-            mindex.append(('time', times))  
-
-        if isinstance(self, _BaseEpochs):
-            mindex.append(('time', np.tile(times, n_epochs)))
-            id_swapped = dict((v, k) for k, v in self.event_id.items())
-            names = [id_swapped[k] for k in self.events[:, 2]]
-            mindex.append(('condition', np.repeat(names, n_times)))
-            mindex.append(('epoch', np.repeat(np.arange(n_epochs),
-                          n_times)))
-
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
         col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data, columns=col_names)
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
         if index is not None:
-            with warnings.catch_warnings(record=True):
-                if 'time' in index:
-                    df['time'] = df['time'].astype(np.int64)
-                df.set_index(index, inplace=True)
-        if index is default_index:
+            if 'time' in index:
+                print('Converting time column to int64...')
+                df['time'] = df['time'].astype(np.int64)
+            df.set_index(index, inplace=True)
+        if all([i in default_index for i in index]):
             df.columns.name = 'signal'
         return df
 
