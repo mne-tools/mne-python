@@ -266,9 +266,12 @@ def test_label_in_src():
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    assert_true(len(times) == values.shape[1])
-    assert_true(len(vertices) == values.shape[0])
+    stc = read_source_estimate(stc_fname)
+    label = mne.read_label(real_label_fname)
+    stc_label = stc.in_label(label)
+    
+    assert_true(len(stc_label.times) == values.shape[1])
+    assert_true(len(stc_label.vertices) == values.shape[0])
 
 
 @testing.requires_testing_data
