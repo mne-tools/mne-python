@@ -13,7 +13,8 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import pick_types, Evoked, Epochs, read_events
 from mne.io.constants import FIFF
-from mne.io import set_eeg_reference, set_bipolar_reference, add_ref_channels
+from mne.io import (set_eeg_reference, set_bipolar_reference,
+                    add_reference_channels)
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
@@ -197,14 +198,15 @@ def test_add_reference():
     raw = Raw(fif_fname, preload=True)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     # check if channel already exists
-    assert_raises(ValueError, add_ref_channels, raw, raw.info['ch_names'][0])
+    assert_raises(ValueError, add_reference_channels,
+                  raw, raw.info['ch_names'][0])
     # add reference channel to Raw
-    raw_ref = add_ref_channels(raw, 'Ref', copy=True)
+    raw_ref = add_reference_channels(raw, 'Ref', copy=True)
     assert_equal(len(raw_ref._data), len(raw._data) + 1)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
 
-    raw = add_ref_channels(raw, 'Ref', copy=False)
-    assert_array_equal(raw._data, raw_ref._data)    
+    raw = add_reference_channels(raw, 'Ref', copy=False)
+    assert_array_equal(raw._data, raw_ref._data)
 
     ref_idx = raw.ch_names.index('Ref')
     ref_data, _ = raw[ref_idx]
@@ -213,12 +215,13 @@ def test_add_reference():
     # add two reference channels to Raw
     raw = Raw(fif_fname, preload=True)
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
-    assert_raises(ValueError, add_ref_channels, raw, raw.info['ch_names'][0])
-    raw_ref = add_ref_channels(raw, ['M1', 'M2'], copy=True)
+    assert_raises(ValueError, add_reference_channels, raw,
+                  raw.info['ch_names'][0])
+    raw_ref = add_reference_channels(raw, ['M1', 'M2'], copy=True)
     assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 2)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
 
-    raw = add_ref_channels(raw, ['M1', 'M2'], copy=False)
+    raw = add_reference_channels(raw, ['M1', 'M2'], copy=False)
     ref_idx = raw.ch_names.index('M1')
     ref_idy = raw.ch_names.index('M2')
     ref_data, _ = raw[[ref_idx, ref_idy]]
@@ -230,7 +233,7 @@ def test_add_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
-    epochs_ref = add_ref_channels(epochs, 'Ref', copy=True)
+    epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
     assert_equal(epochs._data[1].shape, epochs_ref._data.shape[1] + 1)
     ref_idx = epochs_ref.ch_names.index('Ref')
     ref_data = epochs_ref.get_data()[:, ref_idx, :]
@@ -245,7 +248,7 @@ def test_add_reference():
     picks_eeg = pick_types(raw.info, meg=False, eeg=True)
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
-    epochs_ref = add_ref_channels(epochs, ['M1', 'M2'], copy=True)
+    epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
     assert_equal(epochs._data[1].shape, epochs_ref._data.shape[1] + 2)
     ref_idx = epochs_ref.ch_names.index('M1')
     ref_idy = epochs_ref.ch_names.index('M2')
@@ -262,7 +265,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
     evoked = epochs.average()
-    evoked_ref = add_ref_channels(evoked, 'Ref', copy=True)
+    evoked_ref = add_reference_channels(evoked, 'Ref', copy=True)
     assert_equal(evoked.data[1].shape, epochs_ref.data.shape[1] + 1)
     ref_idx = evoked_ref.ch_names.index('Ref')
     ref_data = evoked_ref.get_data()[:, ref_idx, :]
@@ -278,7 +281,7 @@ def test_add_reference():
     epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
                     picks=picks_eeg, preload=True)
     evoked = epochs.average()
-    evoked_ref = add_ref_channels(evoked, ['M1', 'M2'], copy=True)
+    evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
     assert_equal(evoked.data[1].shape, evoked_ref.data.shape[1] + 2)
     ref_idx = evoked_ref.ch_names.index('M1')
     ref_idy = evoked_ref.ch_names.index('M2')
