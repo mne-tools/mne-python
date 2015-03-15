@@ -1,4 +1,5 @@
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Authors: Mainak Jas <mainak@neuro.hut.fi>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 import os
@@ -196,10 +197,10 @@ def test_render_mri_without_bem():
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
+@requires_nibabel()
 def test_add_htmls_to_section():
     """Test adding html str to mne report.
     """
-    tempdir = _TempDir()
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
     html = report.render_bem('sample')
