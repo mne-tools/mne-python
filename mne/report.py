@@ -883,7 +883,8 @@ class Report(object):
         html : str
             An html str that can be added to the report.
         """
-        return self._render_bem(self, subject, subjects_dir, decim, n_jobs)
+        return self._render_bem(subject=subject, subjects_dir=subjects_dir,
+                                decim=decim, n_jobs=n_jobs)
 
     ###########################################################################
     # HTML rendering
