@@ -780,9 +780,9 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
-    unit : 'm' | 'mm'
-        If 'mm', points will be rescaled to 'm'.
-        Default is 'm'.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the input file. If not 'm', coordinates will be rescaled
+        to 'm'.
     transform : bool
         If True, points will be transformed to Neuromag space.
         The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
@@ -900,8 +900,10 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 
     if unit == 'mm':
         pos /= 1e3
+    elif unit == 'cm':
+        pos /= 1e2
     elif unit != 'm':
-        raise ValueError("'unit' should be either 'm' or 'mm'.")
+        raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
     if transform is True:
         names_lower = [name.lower() for name in list(ch_names_)]
         fids = ('nasion', 'lpa', 'rpa')
