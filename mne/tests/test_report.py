@@ -204,7 +204,7 @@ def test_add_htmls_to_section():
     """
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    html = report.render_bem('sample')
+    html = report.render_bem('sample', subjects_dir=subjects_dir)
     caption, section = 'html', 'html_section'
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index(section)
