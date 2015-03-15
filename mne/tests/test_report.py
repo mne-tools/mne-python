@@ -197,6 +197,7 @@ def test_render_mri_without_bem():
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
 
 
+@testing.requires_testing_data
 @requires_nibabel()
 def test_add_htmls_to_section():
     """Test adding html str to mne report.
