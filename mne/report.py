@@ -869,14 +869,14 @@ class Report(object):
         ----------
         subject : str
             Subject name.
-        subjects_dir : str | None
-            Path to the SUBJECTS_DIR. If None, the path is obtained by using
-            the environment variable SUBJECTS_DIR.
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
         n_jobs : int
           Number of jobs to run in parallel.
+        subjects_dir : str | None
+            Path to the SUBJECTS_DIR. If None, the path is obtained by using
+            the environment variable SUBJECTS_DIR.
 
         Returns
         -------
