@@ -270,8 +270,8 @@ def test_label_io_and_time_course_estimates():
     label = read_label(real_label_fname)
     stc_label = stc.in_label(label)
     
-    assert_true(len(stc_label.times) == values.shape[1])
-    assert_true(len(stc_label.vertices) == values.shape[0])
+    assert_true(len(stc_label.times) == stc_label.values.shape[1])
+    assert_true(len(stc_label.vertices) == stc_label.values.shape[0])
 
 
 @testing.requires_testing_data
