@@ -268,11 +268,11 @@ def test_add_reference():
     evoked_ref = add_reference_channels(evoked, 'Ref', copy=True)
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 1)
     ref_idx = evoked_ref.ch_names.index('Ref')
-    ref_data = evoked_ref.get_data()[:, ref_idx, :]
+    ref_data = evoked_ref.data[ref_idx, :]
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(evoked.info, meg=False, eeg=True)
     assert_array_equal(evoked.data[picks_eeg, :],
-                       evoked_ref._data[picks_eeg, :])
+                       evoked_ref.data[picks_eeg, :])
 
     # add two reference channels to evoked
     raw = Raw(fif_fname, preload=True)
@@ -285,8 +285,8 @@ def test_add_reference():
     assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
     ref_idx = evoked_ref.ch_names.index('M1')
     ref_idy = evoked_ref.ch_names.index('M2')
-    ref_data = evoked_ref._data[[ref_idx, ref_idy], :]
+    ref_data = evoked_ref.data[[ref_idx, ref_idy], :]
     assert_array_equal(ref_data, 0)
     picks_eeg = pick_types(evoked.info, meg=False, eeg=True)
-    assert_array_equal(evoked._data()[picks_eeg, :],
-                       evoked_ref._data()[picks_eeg, :])
+    assert_array_equal(evoked.data[picks_eeg, :],
+                       evoked_ref.data[picks_eeg, :])

@@ -127,7 +127,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
 def add_reference_channels(inst, ref_channels, copy=True):
     """Add reference channels to data that consists of all zeros.
-    
+
     Adds reference channels to data that were not included during recording.
     This is useful when you need to re-reference your data to different
     channel. These added channels will consist of all zeros.
@@ -166,7 +166,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
 
     if isinstance(inst, Evoked):
         data = inst.data
-        refs = np.zeros(len(ref_channels), data.shape[1])
+        refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst.data = data
     elif isinstance(inst, Raw):
@@ -177,9 +177,9 @@ def add_reference_channels(inst, ref_channels, copy=True):
     elif isinstance(inst, Epochs):
         data = inst._data
         x, y, z = data.shape
-        refs = np.zeros((x, z))
+        refs = np.zeros((x * len(ref_channels), z))
         data = np.vstack((data.reshape((x * y, z), order='F'), refs))
-        data = data.reshape(x, y + 1, z, order='F')
+        data = data.reshape(x, y + len(ref_channels), z, order='F')
         inst._data = data
     else:
         raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
