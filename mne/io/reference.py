@@ -127,6 +127,10 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
 def add_reference_channels(inst, ref_channels, copy=True):
     """Add reference channels to data that consists of all zeros.
+    
+    Adds reference channels to data that were not included during recording.
+    This is useful when you need to re-reference your data to different
+    channel. These added channels will consist of all zeros.
 
     Parameters
     ----------
