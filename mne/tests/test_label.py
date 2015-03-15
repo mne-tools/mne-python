@@ -267,7 +267,7 @@ def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
     stc = read_source_estimate(stc_fname)
-    label = mne.read_label(real_label_fname)
+    label = read_label(real_label_fname)
     stc_label = stc.in_label(label)
     
     assert_true(len(stc_label.times) == values.shape[1])
