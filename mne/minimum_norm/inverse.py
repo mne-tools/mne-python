@@ -788,7 +788,7 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
     sel = _pick_channels_inverse_operator(evoked.ch_names, inv)
     logger.info('Picked %d channels from the data' % len(sel))
     logger.info('Computing inverse...')
-    K, noise_norm, _ = _assemble_kernel(inv, label, method, pick_ori)
+    K, noise_norm, vertno = _assemble_kernel(inv, label, method, pick_ori)
     sol = np.dot(K, evoked.data[sel])  # apply imaging kernel
 
     is_free_ori = (inverse_operator['source_ori'] ==
@@ -804,7 +804,6 @@ def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
 
     tstep = 1.0 / evoked.info['sfreq']
     tmin = float(evoked.times[0])
-    vertno = _get_vertno(inv['src'])
     subject = _subject_from_inverse(inverse_operator)
 
     stc = _make_stc(sol, vertices=vertno, tmin=tmin, tstep=tstep,
