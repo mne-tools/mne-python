@@ -840,7 +840,7 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
-    def add_htmls_to_section(self, htmls, captions, section):
+    def add_htmls_to_section(self, htmls, captions, section='custom'):
         """Append htmls to the report.
 
         Parameters

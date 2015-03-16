@@ -204,7 +204,7 @@ def test_add_htmls_to_section():
     """
     report = Report(info_fname=raw_fname,
                     subject='sample', subjects_dir=subjects_dir)
-    html = '<b>MNE-Python is AWESOME<\b>'
+    html = '<b>MNE-Python is AWESOME</b>'
     caption, section = 'html', 'html_section'
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index(section)
