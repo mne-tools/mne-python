@@ -173,6 +173,42 @@ class Covariance(dict):
 
         return self
 
+    @verbose
+    def plot(self, info, exclude=[], colorbar=True, proj=False, show_svd=True,
+             show=True, verbose=None):
+        """Plot Covariance data
+
+        Parameters
+        ----------
+        cov : instance of Covariance
+            The covariance matrix.
+        info: dict
+            Measurement info.
+        exclude : list of string | str
+            List of channels to exclude. If empty do not exclude any channel.
+            If 'bads', exclude info['bads'].
+        colorbar : bool
+            Show colorbar or not.
+        proj : bool
+            Apply projections or not.
+        show : bool
+            Call pyplot.show() as the end or not.
+        show_svd : bool
+            Plot also singular values of the noise covariance for each sensor
+            type. We show square roots ie. standard deviations.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig_cov : instance of matplotlib.pyplot.Figure
+            The covariance plot.
+        fig_svd : instance of matplotlib.pyplot.Figure | None
+            The SVD spectra plot of the covariance.
+        """
+        from .viz.misc import plot_cov
+        return plot_cov(self, info, exclude, colorbar, proj, show_svd, show)
+
 
 ###############################################################################
 # IO

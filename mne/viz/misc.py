@@ -48,8 +48,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     show : bool
         Call pyplot.show() as the end or not.
     show_svd : bool
-        Plot also singular values of the noise covariance for each sensor type.
-        We show square roots ie. standard deviations.
+        Plot also singular values of the noise covariance for each sensor
+        type. We show square roots ie. standard deviations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
