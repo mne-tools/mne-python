@@ -56,11 +56,7 @@ def test_interplation():
 
     epochs.info['bads'] = []
     assert_raises(ValueError, epochs.interpolate_bads_eeg)
-
     epochs.info['bads'] = ['EEG 012']
-    epochs.preload = False
-    assert_raises(ValueError,  epochs.interpolate_bads_eeg)
-    epochs.preload = True
 
     epochs2.info['bads'] = ['EEG 012', 'MEG 1711']
 
@@ -79,6 +75,7 @@ def test_interplation():
     evoked.interpolate_bads_eeg()
     assert_array_equal(ave_after, evoked.data[bads_idx])
 
+    # make sure error is raised when preload is False
     for inst in [raw, epochs]:
         assert hasattr(inst, 'preload')
         inst.preload = False
