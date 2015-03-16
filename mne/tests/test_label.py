@@ -12,10 +12,10 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from nose.tools import assert_equal, assert_true, assert_false, assert_raises
 
 from mne.datasets import testing
-from mne import (label_time_courses, read_label, stc_to_label,
-                 read_source_estimate, read_source_spaces, grow_labels,
-                 read_labels_from_annot, write_labels_to_annot, split_label,
-                 spatial_tris_connectivity, read_surface)
+from mne import (read_label, stc_to_label, read_source_estimate,
+                 read_source_spaces, grow_labels, read_labels_from_annot,
+                 write_labels_to_annot, split_label, spatial_tris_connectivity,
+                 read_surface)
 from mne.label import Label, _blend_colors
 from mne.utils import (_TempDir, requires_sklearn, get_subjects_dir,
                        run_tests_if_main, slow_test)
@@ -266,9 +266,12 @@ def test_label_in_src():
 def test_label_io_and_time_course_estimates():
     """Test IO for label + stc files
     """
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    assert_true(len(times) == values.shape[1])
-    assert_true(len(vertices) == values.shape[0])
+    stc = read_source_estimate(stc_fname)
+    label = read_label(real_label_fname)
+    stc_label = stc.in_label(label)
+
+    assert_true(len(stc_label.times) == stc_label.data.shape[1])
+    assert_true(len(stc_label.vertices[0]) == stc_label.data.shape[0])
 
 
 @testing.requires_testing_data
@@ -683,28 +686,6 @@ def test_grow_labels():
     l0 = l01 + l02
     l1 = l11 + l12
     assert_array_equal(l1.vertices, l0.vertices)
-
-
-@testing.requires_testing_data
-def test_label_time_course():
-    """Test extracting label data from SourceEstimate"""
-    values, times, vertices = label_time_courses(real_label_fname, stc_fname)
-    stc = read_source_estimate(stc_fname)
-    label_lh = read_label(real_label_fname)
-    stc_lh = stc.in_label(label_lh)
-    assert_array_almost_equal(stc_lh.data, values)
-    assert_array_almost_equal(stc_lh.times, times)
-    assert_array_almost_equal(stc_lh.vertices[0], vertices)
-
-    label_rh = read_label(real_label_rh_fname)
-    stc_rh = stc.in_label(label_rh)
-    label_bh = label_rh + label_lh
-    label_bh_2 = label_lh + label_rh
-    label_bh_3 = label_bh + label_bh_2
-    assert_true(repr(label_bh))  # test __repr__
-    for check in (label_bh, label_bh_2, label_bh_3):
-        stc_bh = stc.in_label(check)
-        assert_array_equal(stc_bh.data, np.vstack((stc_lh.data, stc_rh.data)))
 
 
 run_tests_if_main()
