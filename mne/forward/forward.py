@@ -441,7 +441,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             raise ValueError('No parent MRI information in %s' % fname)
         parent_mri = parent_mri[0]
 
-        src = _read_source_spaces_from_tree(fid, tree, path_stats=False)
+        src = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
         for s in src:
             s['id'] = find_source_space_hemi(s)
 
