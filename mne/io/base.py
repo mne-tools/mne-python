@@ -123,7 +123,7 @@ class ToDataFrameMixin(object):
                 data = self.data[picks, :]
                 times = self.times
                 n_picks, n_times = data.shape
-                data = data.T
+            data = data.T
             mindex.append(('time', times))
 
         if index is not None:
