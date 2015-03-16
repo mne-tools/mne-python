@@ -120,7 +120,7 @@ def _make_interpolator(inst, bad_channels):
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    if len(bads_idx) != len(bad_channels):
+    if bads_idx.sum() != len(bad_channels):
         logger.warning('Channel interpolation is currently only implemented '
                        'for EEG. The MEG channels marked as bad will remain '
                        'untouched.')
