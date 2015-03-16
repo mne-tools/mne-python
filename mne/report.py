@@ -3,6 +3,7 @@
 
 # Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -800,10 +801,10 @@ class Report(object):
 
         Parameters
         ----------
-        fnames : list of str
-            A list of filenames from which images are read.
-        captions : list of str
-            A list of captions to the images.
+        fnames : str | list of str
+            A filename or a list of filenames from which images are read.
+        captions : str | list of str
+            A caption or a list of captions to the images.
         scale : float | None
             Scale the images maintaining the aspect ratio.
             Defaults to None. If None, no scaling will be applied.
@@ -838,6 +839,52 @@ class Report(object):
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
+
+    def add_htmls_to_section(self, htmls, captions, section):
+        """Append htmls to the report.
+
+        Parameters
+        ----------
+        htmls : str | list of str
+            An html str or a list of html str.
+        captions : str | list of str
+            A caption or a list of captions to the htmls.
+        section : str
+            Name of the section. If section already exists, the images
+            will be appended to the end of the section.
+        """
+        htmls, captions = self._validate_input(htmls, captions, section)
+        for html, caption in zip(htmls, captions):
+            caption = 'custom plot' if caption == '' else caption
+            sectionvar = self._sectionvars[section]
+
+            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
+            self._sectionlabels.append(sectionvar)
+            self.html.append(html)
+
+    def render_bem(self, subject, decim=2, n_jobs=1, subjects_dir=None):
+        """Renders a bem slider html str.
+
+        Parameters
+        ----------
+        subject : str
+            Subject name.
+        decim : int
+            Use this decimation factor for generating MRI/BEM images
+            (since it can be time consuming).
+        n_jobs : int
+          Number of jobs to run in parallel.
+        subjects_dir : str | None
+            Path to the SUBJECTS_DIR. If None, the path is obtained by using
+            the environment variable SUBJECTS_DIR.
+
+        Returns
+        -------
+        html : str
+            An html str that can be added to the report.
+        """
+        return self._render_bem(subject=subject, subjects_dir=subjects_dir,
+                                decim=decim, n_jobs=n_jobs)
 
     ###########################################################################
     # HTML rendering

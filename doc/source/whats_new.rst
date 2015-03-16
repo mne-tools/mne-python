@@ -77,6 +77,7 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
+   - Add `render_bem`, add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
 BUG
 ~~~
 
@@ -133,7 +134,9 @@ API
 
    - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann`_ and `Eric Larson`_ and `Alex Gramfort`_
 
-   - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``.
+   - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``
+
+   - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
 
 .. _changes_0_8:
 
