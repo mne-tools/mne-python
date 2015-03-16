@@ -27,8 +27,9 @@ from scipy import linalg
 from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
-                       read_bem_surfaces)
-from ..transforms import read_trans, _find_trans, apply_trans
+                       transform_surface_to)
+from ..transforms import (read_trans, _find_trans, apply_trans,
+                          combine_transforms)
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -783,18 +784,18 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
-def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
-                 opacity=0.3, brain_color=(0.7, ) * 3, mesh_color=(1, 1, 0),
-                 fig_name=None, fig_size=(600, 600), mode='cone',
-                 scale_factor=0.3e-1, colors=None, verbose=None):
+def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
+                 bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
+                 mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
+                 mode='cone', scale_factor=0.3e-1, colors=None, verbose=None):
     """Plot dipoles.
 
     Parameters
     ----------
     dipoles : list of instances of dipole
         The dipoles.
-    fwd : instance of forward
-        The subject forward.
+    coord_trans : array
+        The coordinate transformation array 4x4.
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -816,7 +817,7 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
     mode : str
         Should be ``'cone'`` or ``'sphere'`` to specify how the
         dipoles should be shown.
-    scale_factor : 
+    scale_factor :
         The scaling applied to amplitudes for the plot.
     colors: list of colors
         color to plot with each dipole.
@@ -828,31 +829,35 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    fname = os.path.join(subjects_dir, subject, 'bem', subject +
-                         '-5120-bem-sol.fif')
-    surfaces = read_bem_surfaces(fname, add_geom=True)
+    fname = os.path.join(subjects_dir, subject, 'bem',
+                         'inner_skull.surf')
+
+    from .. import Dipole
+    if isinstance(dipoles, Dipole):
+        dipoles = [dipoles]
+    n_dipoles, n_times = len(dipoles), len(dipoles[0].times)
 
     if mode not in ['cone', 'sphere']:
         raise ValueError('mode must be in "cone" or "sphere"')
 
     if colors is None:
         colors = [None] * len(dipoles)
- 
-    pos = np.zeros((len(dipoles), len(dipoles[0].amplitude), 3))
-    ori = np.zeros((len(dipoles), len(dipoles[0].amplitude), 3))
-    amp = np.zeros((len(dipoles), len(dipoles[0].amplitude)))
-    for i_dip in range(len(dipoles)):
+
+    surfaces = read_surface(fname)
+
+    pos = np.zeros((n_dipoles, n_times, 3))
+    ori = np.zeros((n_dipoles, n_times, 3))
+    amp = np.zeros((n_dipoles, n_times))
+    for i_dip in range(n_dipoles):
         pos[i_dip], ori[i_dip] = dipoles[i_dip].pos, dipoles[i_dip].ori
         amp[i_dip] = dipoles[i_dip].amplitude
 
     from mayavi import mlab
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
 
-    # Show 3D
-    points = surfaces[0]['rr']
-    faces = surfaces[0]['tris']
+    points = surfaces[0] * 1e-03
+    faces = surfaces[1]
 
-    coord_trans = fwd['mri_head_t']['trans']
     points = np.dot(coord_trans[:3, :3], points.T).T + coord_trans[:3, -1]
 
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
@@ -867,7 +872,7 @@ def plot_dipoles(dipoles, fwd, subject, subjects_dir, bgcolor=(1, ) * 3,
         mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],
                       ori[i_dip, 0, 0], ori[i_dip, 0, 1], ori[i_dip, 0, 2],
                       opacity=1., mode=mode, color=colors[i_dip],
-                      scalars=dipoles[0].amplitude.max(),
+                      scalars=dipoles[i_dip].amplitude.max(),
                       scale_factor=scale_factor)
 
     if fig_name is not None:

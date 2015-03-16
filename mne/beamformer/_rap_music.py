@@ -13,7 +13,6 @@ from scipy import linalg
 from ..io.pick import pick_channels_evoked
 from ..minimum_norm.inverse import _check_reference
 from ..cov import compute_whitener
-from ..forward.forward import _block_diag
 from ..utils import logger, verbose
 from ..dipole import Dipole
 from ._lcmv import _prepare_beamformer_input, _setup_picks

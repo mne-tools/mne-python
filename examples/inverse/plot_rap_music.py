@@ -48,8 +48,9 @@ noise_cov = mne.read_cov(cov_fname)
 
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
                               return_residual=True, verbose=True)
-plot_dipoles(dipoles, forward, subject='sample', subjects_dir=subjects_dir,
-             colors=[(0., 0., 1.), (1., 0., 0.)])
+coord_trans = forward['mri_head_t']['trans']
+plot_dipoles(dipoles, coord_trans, subject='sample',
+             subjects_dir=subjects_dir, colors=[(0., 0., 1.), (1., 0., 0.)])
 
 # Plot the time-series
 plt.figure()
