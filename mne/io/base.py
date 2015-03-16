@@ -97,34 +97,78 @@ class ToDataFrameMixin(object):
         from ..evoked import Evoked
         from .fiff import RawFIFF
         from .array import RawArray
-        from ..source_estimate import SourceEstimate
+        from ..source_estimate import _BaseSourceEstimate
 
         pd = _check_pandas_installed()
-        picks = self._get_check_picks(picks, self.ch_names)
         mindex = list()
-        if isinstance(self, _BaseEpochs):
-            default_index = ['condition', 'epoch', 'time']
-            data = self.get_data()[:, picks, :]
+        # Treat SourceEstimates special because they don't have the same info
+        if isinstance(self, _BaseSourceEstimate):
+            if self.subject is None:
+                default_index = ['time']
+            else:
+                default_index = ['subject', 'time']
+            data = self.data.T
             times = self.times
-            n_epochs, n_picks, n_times = data.shape
-            data = np.hstack(data).T  # (time*epochs) x signals
+            shape = data.shape
+            mindex.append(('time', self.times * scale_time))
+            mindex.append(('subject', np.repeat(self.subject, shape[0])))
 
-            # Multi-index creation
-            mindex.append(('time', np.tile(times, n_epochs)))
-            id_swapped = dict((v, k) for k, v in self.event_id.items())
-            names = [id_swapped[k] for k in self.events[:, 2]]
-            mindex.append(('condition', np.repeat(names, n_times)))
-            mindex.append(('epoch', np.repeat(np.arange(n_epochs), n_times)))
-        elif isinstance(self, (RawFIFF, RawArray, Evoked, SourceEstimate)):
-            default_index = ['time']
-            if isinstance(self, (RawFIFF, RawArray)):
-                data, times = self[picks, start:stop]
-            elif isinstance(self, (Evoked, SourceEstimate)):
-                data = self.data[picks, :]
+            if isinstance(self.vertices, list):
+                # surface source estimates
+                col_names = [i for e in [['{0} {1}'.format(
+                                         'LH' if ii < 1 else 'RH', vert)
+                                          for vert in vertno]
+                                         for ii, vertno in
+                                         enumerate(self.vertices)]
+                             for i in e]
+            else:
+                # volume source estimates
+                col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
+        else:
+            if isinstance(self, _BaseEpochs):
+                picks = self._get_check_picks(picks, self.ch_names)
+                default_index = ['condition', 'epoch', 'time']
+                data = self.get_data()[:, picks, :]
                 times = self.times
-                n_picks, n_times = data.shape
-            data = data.T
-            mindex.append(('time', times))
+                n_epochs, n_picks, n_times = data.shape
+                data = np.hstack(data).T  # (time*epochs) x signals
+
+                # Multi-index creation
+                mindex.append(('time', np.tile(times, n_epochs)))
+                id_swapped = dict((v, k) for k, v in self.event_id.items())
+                names = [id_swapped[k] for k in self.events[:, 2]]
+                mindex.append(('condition', np.repeat(names, n_times)))
+                mindex.append(('epoch', np.repeat(np.arange(n_epochs), n_times)))
+                col_names = [self.ch_names[k] for k in picks]
+
+            elif isinstance(self, (RawFIFF, RawArray, Evoked)):
+                picks = self._get_check_picks(picks, self.ch_names)
+                default_index = ['time']
+                if isinstance(self, (RawFIFF, RawArray)):
+                    data, times = self[picks, start:stop]
+                elif isinstance(self, (Evoked)):
+                    data = self.data[picks, :]
+                    times = self.times
+                    n_picks, n_times = data.shape
+                data = data.T
+                mindex.append(('time', times))
+                col_names = [self.ch_names[k] for k in picks]
+
+            types = [channel_type(self.info, idx) for idx in picks]
+            n_channel_types = 0
+            ch_types_used = []
+
+            scalings = _mutable_defaults(('scalings', scalings))[0]
+            for t in scalings.keys():
+                if t in types:
+                    n_channel_types += 1
+                    ch_types_used.append(t)
+
+            for t in ch_types_used:
+                scaling = scalings[t]
+                idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+                if len(idx) > 0:
+                    data[:, idx] *= scaling
 
         if index is not None:
             _check_pandas_index_arguments(index, default_index)
@@ -136,24 +180,7 @@ class ToDataFrameMixin(object):
 
         times = np.round(times * scale_time)
 
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _mutable_defaults(('scalings', scalings))[0]
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[:, idx] *= scaling
-
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-        col_names = [self.ch_names[k] for k in picks]
 
         df = pd.DataFrame(data, columns=col_names)
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]

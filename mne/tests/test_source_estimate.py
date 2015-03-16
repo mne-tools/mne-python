@@ -574,7 +574,7 @@ def test_spatio_temporal_src_connectivity():
 
 
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test stc Pandas exporter"""
     n_vert, n_times = 10, 5
     vertices = [np.arange(n_vert, dtype=np.int), np.empty(0, dtype=np.int)]
@@ -584,9 +584,9 @@ def test_as_data_frame():
     stc_vol = VolSourceEstimate(data, vertices=vertices[0], tmin=0, tstep=1,
                                 subject='sample')
     for stc in [stc_surf, stc_vol]:
-        assert_raises(ValueError, stc.as_data_frame, index=['foo', 'bar'])
+        assert_raises(ValueError, stc.to_data_frame, index=['foo', 'bar'])
         for ncat, ind in zip([1, 0], ['time', ['subject', 'time']]):
-            df = stc.as_data_frame(index=ind)
+            df = stc.to_data_frame(index=ind)
             assert_true(df.index.names == ind
                         if isinstance(ind, list) else [ind])
             assert_array_equal(df.values.T[ncat:], stc.data)
