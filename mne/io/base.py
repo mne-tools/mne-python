@@ -80,8 +80,12 @@ class ToDataFrameMixin(object):
             ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
-        start, stop : int | None
-            If it is a Raw object, this defines a start/stop index for creating
+        start : int | None
+            If it is a Raw object, this defines a starting index for creating
+            the dataframe from a slice. The times will be interpolated from the
+            index and the sampling rate of the signal.
+        stop : int | None
+            If it is a Raw object, this defines a stop index for creating
             the dataframe from a slice. The times will be interpolated from the
             index and the sampling rate of the signal.
 
