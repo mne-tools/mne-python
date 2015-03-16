@@ -180,8 +180,6 @@ class Covariance(dict):
 
         Parameters
         ----------
-        cov : instance of Covariance
-            The covariance matrix.
         info: dict
             Measurement info.
         exclude : list of string | str
