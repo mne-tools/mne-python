@@ -104,36 +104,23 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     return interpolation
 
 
-def _interpolate_bads_eeg(inst):
-    """Interpolate bad channels
-
-    Operates in place.
+def _make_interpolator(inst, bad_channels):
+    """Find indexes and interpolation matrix to interpolate bad channels
 
     Parameters
     ----------
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
-
-    if 'eeg' not in inst:
-        raise ValueError('This interpolation function requires EEG channels.')
-    if len(inst.info['bads']) == 0:
-        raise ValueError('No bad channels to interpolate.')
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded.')
-
     bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
-    bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
+    bads_idx[picks] = [inst.ch_names[ch] in bad_channels for ch in picks]
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    if len(bads_idx) != len(inst.info['bads']):
+    if len(bads_idx) != len(bad_channels):
         logger.warning('Channel interpolation is currently only implemented '
                        'for EEG. The MEG channels marked as bad will remain '
                        'untouched.')
@@ -160,7 +147,34 @@ def _interpolate_bads_eeg(inst):
 
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
-    logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
+    return goods_idx, bads_idx, interpolation
+
+
+def _interpolate_bads_eeg(inst):
+    """Interpolate bad channels
+
+    Operates in place.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    """
+    from mne.io.base import _BaseRaw
+    from mne.epochs import _BaseEpochs
+    from mne.evoked import Evoked
+
+    if 'eeg' not in inst:
+        raise ValueError('This interpolation function requires EEG channels.')
+    if len(inst.info['bads']) == 0:
+        raise ValueError('No bad channels to interpolate.')
+    if getattr(inst, 'preload', None) is False:
+        raise ValueError('Data must be preloaded.')
+
+    goods_idx, bads_idx, interpolation = _make_interpolator(inst,
+                                                            inst.info['bads'])
+
+    logger.info('Interpolating {0} sensors'.format(bads_idx.sum()))
     if getattr(inst, 'preload', None) is False:
         raise ValueError('Data must be preloaded')
 
@@ -180,3 +194,38 @@ def _interpolate_bads_eeg(inst):
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))
     return inst
+
+
+def _interpolate_bads_eeg_epochs(epochs, bad_channels_by_epoch=None):
+    """Interpolate bad channels per epoch
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    bad_channels_by_epoch : list of list of str
+        Bad channel names specified for each epoch. For example, for an Epochs
+        instance containing 3 epochs: ``[['F1'], [], ['F3', 'FZ']]``
+    """
+    if len(bad_channels_by_epoch) != len(epochs):
+        raise ValueError("Unequal length of epochs (%i) and "
+                         "bad_channels_by_epoch (%i)"
+                         % (len(epochs), len(bad_channels_by_epoch)))
+
+    interp_cache = {}
+    for i, bad_channels in enumerate(bad_channels_by_epoch):
+        if not bad_channels:
+            continue
+
+        # find interpolation matrix
+        key = tuple(sorted(bad_channels))
+        if key in interp_cache:
+            goods_idx, bads_idx, interpolation = interp_cache[key]
+        else:
+            goods_idx, bads_idx, interpolation = interp_cache[key] \
+                                = _make_interpolator(epochs, key)
+
+        # apply interpolation
+        logger.info('Interpolating %i sensors on epoch %i', bads_idx.sum(), i)
+        epochs._data[i, bads_idx, :] = np.dot(interpolation,
+                                              epochs._data[i, goods_idx, :])

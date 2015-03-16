@@ -5,7 +5,8 @@ from numpy.testing import (assert_array_almost_equal, assert_allclose,
 from nose.tools import assert_raises, assert_equal
 
 from mne import io, pick_types, read_events, Epochs
-from mne.channels.interpolation import _make_interpolation_matrix
+from mne.channels.interpolation import (_make_interpolation_matrix,
+                                        _interpolate_bads_eeg_epochs)
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -33,6 +34,8 @@ epochs2 = Epochs(raw, events[epochs.selection], event_id, tmin, tmax,
 
 def test_interplation():
     """Test interpolation"""
+    epochs_orig = epochs.copy()
+
     epochs.info['bads'] = []
     goods_idx = np.ones(len(epochs.ch_names), dtype=bool)
     goods_idx[epochs.ch_names.index('EEG 012')] = False
@@ -81,3 +84,20 @@ def test_interplation():
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads_eeg)
+
+    # test interpolating different channels per epoch
+    epochsi = epochs_orig.copy()
+    epochs_12 = epochs_orig.copy()
+    epochs_12.info['bads'] = ['EEG 012']
+    epochs_12.interpolate_bads_eeg()
+    epochs_12_17 = epochs_orig.copy()
+    epochs_12_17.info['bads'] = ['EEG 012', 'EEG 017']
+    epochs_12_17.interpolate_bads_eeg()
+    _interpolate_bads_eeg_epochs(epochsi, [['EEG 012'], [],
+                                           ['EEG 012', 'EEG 017'], ['EEG 012'],
+                                           [], [], []])
+    assert_array_equal(epochsi._data[0], epochs_12._data[0])
+    assert_array_equal(epochsi._data[1], epochs_orig._data[1])
+    assert_array_equal(epochsi._data[2], epochs_12_17._data[2])
+    assert_array_equal(epochsi._data[3], epochs_12._data[4])
+    assert_array_equal(epochsi._data[4:], epochs_orig._data[4:])
