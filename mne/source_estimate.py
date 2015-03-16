@@ -22,10 +22,11 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    logger, verbose, _time_mask)
+                    logger, verbose, _time_mask, deprecated)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip
+from .io.base import ToDataFrameMixin
 
 
 def _read_stc(filename):
@@ -383,7 +384,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(object):
+class _BaseSourceEstimate(ToDataFrameMixin, object):
     """Abstract base class for source estimates
 
     Parameters
@@ -899,6 +900,8 @@ class _BaseSourceEstimate(object):
 
         return stcs
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
         """Represent source estimates as Pandas DataFrame
 
