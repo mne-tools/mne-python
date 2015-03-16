@@ -77,7 +77,7 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
-   - Add `render_bem`, add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
+   - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
 BUG
 ~~~
 
