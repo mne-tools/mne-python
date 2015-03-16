@@ -96,8 +96,8 @@ def test_interplation():
     _interpolate_bads_eeg_epochs(epochsi, [['EEG 012'], [],
                                            ['EEG 012', 'EEG 017'], ['EEG 012'],
                                            [], [], []])
-    assert_array_equal(epochsi._data[0], epochs_12._data[0])
+    assert_allclose(epochsi._data[0], epochs_12._data[0])
     assert_array_equal(epochsi._data[1], epochs_orig._data[1])
-    assert_array_equal(epochsi._data[2], epochs_12_17._data[2])
-    assert_array_equal(epochsi._data[3], epochs_12._data[4])
+    assert_allclose(epochsi._data[2], epochs_12_17._data[2])
+    assert_allclose(epochsi._data[3], epochs_12._data[3])
     assert_array_equal(epochsi._data[4:], epochs_orig._data[4:])
