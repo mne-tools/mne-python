@@ -452,7 +452,7 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -461,8 +461,8 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
         An open file descriptor.
     tree : dict
         The FIF tree structure if source is a file id.
-    add_geom : bool, optional (default False)
-        Add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -481,7 +481,7 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
         logger.info('    Reading a source space...')
         this = _read_one_source_space(fid, s)
         logger.info('    [done]')
-        if add_geom:
+        if patch_stats:
             _complete_source_space_info(this)
 
         src.append(this)
@@ -493,7 +493,7 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
 
 
 @verbose
-def read_source_spaces(fname, add_geom=False, verbose=None):
+def read_source_spaces(fname, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -501,8 +501,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     fname : str
         The name of the file, which should end with -src.fif or
         -src.fif.gz.
-    add_geom : bool, optional (default False)
-        Add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -518,7 +518,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        src = _read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+        src = _read_source_spaces_from_tree(fid, tree, patch_stats=patch_stats,
                                             verbose=verbose)
         src.info['fname'] = fname
         node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
