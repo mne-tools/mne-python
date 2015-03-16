@@ -17,7 +17,7 @@ from mne import (io, read_events, read_cov, read_source_spaces, read_evokeds,
                  SourceEstimate)
 from mne.datasets import testing
 from mne.minimum_norm import read_inverse_operator
-from mne.viz import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
+from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate)
 from mne.utils import requires_nibabel, run_tests_if_main
 
@@ -52,7 +52,7 @@ def test_plot_cov():
     """
     raw = _get_raw()
     cov = read_cov(cov_fname)
-    fig1, fig2 = plot_cov(cov, raw.info, proj=True, exclude=raw.ch_names[6:])
+    fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
     plt.close('all')
 
 
