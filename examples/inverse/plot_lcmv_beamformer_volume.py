@@ -20,6 +20,9 @@ from mne.datasets import sample
 from mne.io import Raw
 from mne.beamformer import lcmv
 
+from nilearn.plotting import plot_stat_map
+from nilearn.image import index_img
+
 print(__doc__)
 
 data_path = sample.data_path()
@@ -70,17 +73,11 @@ stc.crop(0.0, 0.2)
 img = mne.save_stc_as_volume('lcmv_inverse.nii.gz', stc,
                              forward['src'], mri_resolution=False)
 
-# plot result (one slice)
-plt.close('all')
-data = img.get_data()
-coronal_slice = data[:, 10, :, 60]
-plt.figure()
-plt.imshow(np.ma.masked_less(coronal_slice, 1), cmap=plt.cm.Reds,
-           interpolation='nearest')
-plt.colorbar()
-plt.contour(coronal_slice != 0, 1, colors=['black'])
-plt.xticks([])
-plt.yticks([])
+t1_fname = data_path + '/subjects/sample/mri/T1.mgz'
+
+# Plotting with nilearn ######################################################
+plot_stat_map(index_img(img, 61), t1_fname, threshold=0.8,
+              title='LCMV (t=%.1f s.)' % stc.times[61])
 
 # plot source time courses with the maximum peak amplitudes
 plt.figure()
