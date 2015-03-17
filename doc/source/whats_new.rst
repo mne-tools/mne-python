@@ -79,8 +79,6 @@ Changelog
 
    - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
 
-   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
-
    - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
 BUG
@@ -142,6 +140,10 @@ API
    - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``
 
    - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
+
+   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
+
+   - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
 
 .. _changes_0_8:
 
@@ -960,3 +962,5 @@ of commits):
 .. _Jona Sassenhagen: https://github.com/jona-sassenhagen
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
+
+.. _Chris Holdgraf: http://chrisholdgraf.com
