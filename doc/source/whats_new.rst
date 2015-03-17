@@ -145,6 +145,8 @@ API
 
    - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
 
+   - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
+
 .. _changes_0_8:
 
 Version 0.8

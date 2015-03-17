@@ -769,6 +769,8 @@ class Montage(object):
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read montage from a file
 
+    Note: built-in montages are not scaled or transformed by default.
+
     Parameters
     ----------
     kind : str
@@ -788,7 +790,6 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
         the montage file. Useful for points captured using Polhemus FastSCAN.
         Default is False.
-
 
     Returns
     -------
