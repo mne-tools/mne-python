@@ -119,12 +119,11 @@ class ToDataFrameMixin(object):
 
             if isinstance(self.vertices, list):
                 # surface source estimates
-                col_names = [i for e in [['{0} {1}'.format(
-                                         'LH' if ii < 1 else 'RH', vert)
-                                          for vert in vertno]
-                                         for ii, vertno in
-                                         enumerate(self.vertices)]
-                             for i in e]
+                col_names = [i for e in [
+                    ['{0} {1}'.format('LH' if ii < 1 else 'RH', vert)
+                     for vert in vertno]
+                    for ii, vertno in enumerate(self.vertices)]
+                    for i in e]
             else:
                 # volume source estimates
                 col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
@@ -142,7 +141,8 @@ class ToDataFrameMixin(object):
                 id_swapped = dict((v, k) for k, v in self.event_id.items())
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
-                mindex.append(('epoch', np.repeat(np.arange(n_epochs), n_times)))
+                mindex.append(('epoch',
+                              np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
             elif isinstance(self, (RawFIFF, RawArray, Evoked)):
