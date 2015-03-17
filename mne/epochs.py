@@ -25,7 +25,7 @@ from .io.tree import dir_tree_find
 from .io.tag import read_tag
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
-                      pick_channels, pick_info)
+                      pick_channels)
 from .io.proj import setup_proj, ProjMixin, proj_equal
 from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
