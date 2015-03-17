@@ -257,6 +257,10 @@ class GeneralizationAcrossTime(object):
         else:
             n_chunk = multiprocessing.cpu_count()
 
+        # Avoid splitting the data in more time chunk than there is time points
+        if n_chunk > X.shape[2]:
+            n_chunk = X.shape[2]
+
         # Parallel across training time
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
         splits = np.array_split(self.train_times['slices'], n_chunk)
