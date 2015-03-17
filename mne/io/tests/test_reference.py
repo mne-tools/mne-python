@@ -1,5 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -12,7 +13,8 @@ from numpy.testing import assert_array_equal, assert_allclose
 
 from mne import pick_types, Evoked, Epochs, read_events
 from mne.io.constants import FIFF
-from mne.io import set_eeg_reference, set_bipolar_reference
+from mne.io import (set_eeg_reference, set_bipolar_reference,
+                    add_reference_channels)
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.io.reference import _apply_reference
 from mne.datasets import testing
@@ -189,3 +191,102 @@ def test_set_bipolar_reference():
                   ch_info=[{'foo': 'bar'}, {'foo': 'bar'}])
     assert_raises(ValueError, set_bipolar_reference, raw,
                   'EEG 001', 'EEG 002', ch_name='EEG 003')
+
+
+@testing.requires_testing_data
+def test_add_reference():
+    raw = Raw(fif_fname, preload=True)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    # check if channel already exists
+    assert_raises(ValueError, add_reference_channels,
+                  raw, raw.info['ch_names'][0])
+    # add reference channel to Raw
+    raw_ref = add_reference_channels(raw, 'Ref', copy=True)
+    assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 1)
+    assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
+
+    raw = add_reference_channels(raw, 'Ref', copy=False)
+    assert_array_equal(raw._data, raw_ref._data)
+
+    ref_idx = raw.ch_names.index('Ref')
+    ref_data, _ = raw[ref_idx]
+    assert_array_equal(ref_data, 0)
+
+    # add two reference channels to Raw
+    raw = Raw(fif_fname, preload=True)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    assert_raises(ValueError, add_reference_channels, raw,
+                  raw.info['ch_names'][0])
+    raw_ref = add_reference_channels(raw, ['M1', 'M2'], copy=True)
+    assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 2)
+    assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
+
+    raw = add_reference_channels(raw, ['M1', 'M2'], copy=False)
+    ref_idx = raw.ch_names.index('M1')
+    ref_idy = raw.ch_names.index('M2')
+    ref_data, _ = raw[[ref_idx, ref_idy]]
+    assert_array_equal(ref_data, 0)
+
+    # add reference channel to epochs
+    raw = Raw(fif_fname, preload=True)
+    events = read_events(eve_fname)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True)
+    epochs_ref = add_reference_channels(epochs, 'Ref', copy=True)
+    assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 1)
+    ref_idx = epochs_ref.ch_names.index('Ref')
+    ref_data = epochs_ref.get_data()[:, ref_idx, :]
+    assert_array_equal(ref_data, 0)
+    picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
+    assert_array_equal(epochs.get_data()[:, picks_eeg, :],
+                       epochs_ref.get_data()[:, picks_eeg, :])
+
+    # add two reference channels to epochs
+    raw = Raw(fif_fname, preload=True)
+    events = read_events(eve_fname)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True)
+    epochs_ref = add_reference_channels(epochs, ['M1', 'M2'], copy=True)
+    assert_equal(epochs_ref._data.shape[1], epochs._data.shape[1] + 2)
+    ref_idx = epochs_ref.ch_names.index('M1')
+    ref_idy = epochs_ref.ch_names.index('M2')
+    ref_data = epochs_ref.get_data()[:, [ref_idx, ref_idy], :]
+    assert_array_equal(ref_data, 0)
+    picks_eeg = pick_types(epochs.info, meg=False, eeg=True)
+    assert_array_equal(epochs.get_data()[:, picks_eeg, :],
+                       epochs_ref.get_data()[:, picks_eeg, :])
+
+    # add reference channel to evoked
+    raw = Raw(fif_fname, preload=True)
+    events = read_events(eve_fname)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True)
+    evoked = epochs.average()
+    evoked_ref = add_reference_channels(evoked, 'Ref', copy=True)
+    assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 1)
+    ref_idx = evoked_ref.ch_names.index('Ref')
+    ref_data = evoked_ref.data[ref_idx, :]
+    assert_array_equal(ref_data, 0)
+    picks_eeg = pick_types(evoked.info, meg=False, eeg=True)
+    assert_array_equal(evoked.data[picks_eeg, :],
+                       evoked_ref.data[picks_eeg, :])
+
+    # add two reference channels to evoked
+    raw = Raw(fif_fname, preload=True)
+    events = read_events(eve_fname)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True)
+    epochs = Epochs(raw, events=events, event_id=1, tmin=-0.2, tmax=0.5,
+                    picks=picks_eeg, preload=True)
+    evoked = epochs.average()
+    evoked_ref = add_reference_channels(evoked, ['M1', 'M2'], copy=True)
+    assert_equal(evoked_ref.data.shape[0], evoked.data.shape[0] + 2)
+    ref_idx = evoked_ref.ch_names.index('M1')
+    ref_idy = evoked_ref.ch_names.index('M2')
+    ref_data = evoked_ref.data[[ref_idx, ref_idy], :]
+    assert_array_equal(ref_data, 0)
+    picks_eeg = pick_types(evoked.info, meg=False, eeg=True)
+    assert_array_equal(evoked.data[picks_eeg, :],
+                       evoked_ref.data[picks_eeg, :])

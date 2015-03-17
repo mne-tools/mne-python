@@ -81,6 +81,8 @@ Changelog
 
    - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
 
+   - Add support for adding an empty reference channel to data by `Teon Brooks`_
+
 BUG
 ~~~
 

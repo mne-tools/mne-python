@@ -159,13 +159,3 @@ def test_read_segment():
     raw3.save(raw3_file, buffer_size_sec=2)
     raw3 = Raw(raw3_file, preload=True)
     assert_array_equal(raw3._data, raw1._data)
-
-    # add reference channel
-    raw4_file = op.join(tempdir, 'test4-raw.fif')
-    raw4 = read_raw_brainvision(vhdr_path, eog=eog, reference='A1')
-    raw4.save(raw4_file, buffer_size_sec=2)
-    raw4 = Raw(raw4_file, preload=True)
-    ref_idx = raw4.ch_names.index('A1')
-    assert_equal(len(raw4._data), len(raw1._data) + 1)
-    ref_data, _ = raw4[ref_idx]
-    assert_array_equal(ref_data, 0)
