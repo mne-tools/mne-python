@@ -1971,7 +1971,7 @@ def _check_update_montage(info, montage):
             raise TypeError(err)
         if montage is not None:
             if isinstance(montage, str):
-                montage = read_montage(montage, scale=False)
+                montage = read_montage(montage)
             apply_montage(info, montage)
 
             missing_positions = []

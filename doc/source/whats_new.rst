@@ -143,6 +143,8 @@ API
 
    - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
 
+   - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
+
 .. _changes_0_8:
 
 Version 0.8
