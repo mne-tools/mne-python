@@ -58,6 +58,7 @@ class ToDataFrameMixin(object):
     def to_data_frame(self, picks=None, index=None, scale_time=1e3,
                       scalings=None, copy=True, start=None, stop=None):
         """Export data in tabular structure as a pandas DataFrame.
+
         Columns and indices will depend on the object being converted.
         Generally this will include as much relevant information as
         possible for the data type being converted. This makes it easy
@@ -190,7 +191,7 @@ class ToDataFrameMixin(object):
         [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
         if index is not None:
             if 'time' in index:
-                print('Converting time column to int64...')
+                logger.info('Converting time column to int64...')
                 df['time'] = df['time'].astype(np.int64)
             df.set_index(index, inplace=True)
         if all([i in default_index for i in index]):
