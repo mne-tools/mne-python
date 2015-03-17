@@ -454,7 +454,7 @@ def _add_patch_info(s):
 
 @verbose
 def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None,
-                                  add_geom=None):
+                                  ):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -473,10 +473,6 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None,
     src : SourceSpaces
         The source spaces.
     """
-    if add_geom is not None:
-        patch_stats = add_geom
-        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
-                      "Use `patch_stats instead.", DeprecationWarning)
     #   Find all source spaces
     spaces = dir_tree_find(tree, FIFF.FIFFB_MNE_SOURCE_SPACE)
     if len(spaces) == 0:
@@ -499,7 +495,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None,
 
 
 @verbose
-def read_source_spaces(fname, patch_stats=False, verbose=None):
+def read_source_spaces(fname, patch_stats=False, verbose=None, add_geom=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -517,6 +513,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
+    if add_geom is not None:
+        patch_stats = add_geom
+        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
+                      "Use `patch_stats` instead.", DeprecationWarning)
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
