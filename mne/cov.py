@@ -29,7 +29,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_sklearn_version)
+                    _compute_row_norms, check_sklearn_version, _time_mask)
 
 from .externals.six.moves import zip
 
@@ -48,10 +48,9 @@ def _check_covs_algebra(cov1, cov2):
 def _get_tslice(epochs, tmin, tmax):
     """get the slice"""
     tstart, tend = None, None
-    if tmin is not None:
-        tstart = np.where(epochs.times >= tmin)[0][0]
-    if tmax is not None:
-        tend = np.where(epochs.times <= tmax)[0][-1] + 1
+    mask = _time_mask(epochs.times, tmin, tmax)
+    tstart = np.where(mask)[0][0] if tmin is not None else None
+    tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
     tslice = slice(tstart, tend, None)
     return tslice
 

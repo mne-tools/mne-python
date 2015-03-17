@@ -1716,3 +1716,15 @@ def create_slices(start, stop, step=None, length=1):
     slices = [slice(t, t + length, 1) for t in
               range(start, stop - length + 1, step)]
     return slices
+
+
+def _time_mask(times, tmin=None, tmax=None, strict=False):
+    """Helper to safely find sample boundaries"""
+    tmin = -np.inf if tmin is None else tmin
+    tmax = np.inf if tmax is None else tmax
+    mask = (times >= tmin)
+    mask &= (times <= tmax)
+    if not strict:
+        mask |= np.isclose(times, tmin)
+        mask |= np.isclose(times, tmax)
+    return mask

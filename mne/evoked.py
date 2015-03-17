@@ -17,7 +17,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, deprecated)
+                    object_hash, deprecated, _time_mask)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -296,14 +296,16 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
         """
-        times = self.times
-        mask = np.ones(len(times), dtype=np.bool)
-        if tmin is not None:
-            mask = mask & (times >= tmin)
-        if tmax is not None:
-            mask = mask & (times <= tmax)
-        self.times = times[mask]
+        mask = _time_mask(self.times, tmin, tmax)
+        self.times = self.times[mask]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
