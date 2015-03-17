@@ -27,7 +27,7 @@ from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels)
 from .io.proj import setup_proj, ProjMixin, proj_equal
-from .io.base import _BaseRaw, _time_as_index, _index_as_time
+from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
@@ -41,7 +41,7 @@ from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import _check_type_picks
+from .utils import _check_type_picks, deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -504,7 +504,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            show=show, block=block)
 
 
-class Epochs(_BaseEpochs):
+class Epochs(_BaseEpochs, ToDataFrameMixin):
     """List of Epochs
 
     Parameters
@@ -1344,6 +1344,8 @@ class Epochs(_BaseEpochs):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, index=None, scale_time=1e3,
                       scalings=None, copy=True):
         """Get the epochs as Pandas DataFrame

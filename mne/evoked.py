@@ -34,6 +34,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
+from .io.base import ToDataFrameMixin
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -42,7 +43,8 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin):
+             SetChannelsMixin, InterpolationMixin, FilterMixin,
+             ToDataFrameMixin):
     """Evoked data
 
     Parameters
@@ -623,6 +625,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                sampling_rate=self.info['sfreq'])
         return evoked_ts
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
                       use_time_index=True, copy=True):
         """Get the Evoked object as a Pandas DataFrame
