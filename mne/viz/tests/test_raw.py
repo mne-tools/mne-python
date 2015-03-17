@@ -105,20 +105,20 @@ def test_plot_raw_filtered():
     raw.plot(highpass=1, lowpass=2)
 
 
-def test_plot_raw_psds():
+def test_plot_raw_psd():
     """Test plotting of raw psds
     """
     import matplotlib.pyplot as plt
     raw = _get_raw()
     # normal mode
-    raw.plot_psds(tmax=2.0)
+    raw.plot_psd(tmax=2.0)
     # specific mode
     picks = pick_types(raw.info, meg='mag', eeg=False)[:4]
-    raw.plot_psds(picks=picks, area_mode='range')
+    raw.plot_psd(picks=picks, area_mode='range')
     ax = plt.axes()
     # if ax is supplied, picks must be, too:
-    assert_raises(ValueError, raw.plot_psds, ax=ax)
-    raw.plot_psds(picks=picks, ax=ax)
+    assert_raises(ValueError, raw.plot_psd, ax=ax)
+    raw.plot_psd(picks=picks, ax=ax)
     plt.close('all')
 
 

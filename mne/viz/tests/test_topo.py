@@ -112,11 +112,11 @@ def test_plot_tfr_topo():
     epochs = _get_epochs()
     n_freqs = 3
     nave = 1
-    data = np.random.randn(len(epochs.ch_names), n_freqs, len(epochs.times))
+    data = np.random.RandomState(0).randn(len(epochs.ch_names),
+                                          n_freqs, len(epochs.times))
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
-                  vmin=0., vmax=14.)
-    tfr.plot([4], baseline=(None, 0), mode='ratio')
-
+                  vmin=0., vmax=14., show=False)
+    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False)
 
 run_tests_if_main()

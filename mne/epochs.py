@@ -37,7 +37,8 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
+from .viz import (_mutable_defaults, plot_epochs, _drop_log_stats,
+                  plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
@@ -502,6 +503,120 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_epochs(self, epoch_idx=epoch_idx, picks=picks,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
+
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+                 picks=None, ax=None, color='black', area_mode='std',
+                 area_alpha=0.33, n_overlap=0, dB=True,
+                 n_jobs=1, verbose=None):
+        """Plot the power spectral density across epochs
+
+        Parameters
+        ----------
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : array-like of int | None
+            List of channels to use.
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        color : str | tuple
+            A matplotlib-compatible color to use.
+        area_mode : str | None
+            Mode for plotting area. If 'std', the mean +/- 1 STD (across
+            channels) will be plotted. If 'range', the min and max (across
+            channels) will be plotted. Bad channels will be excluded from
+            these calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        n_overlap : int
+            The number of points of overlap between blocks.
+        dB : bool
+            If True, transform data to decibels.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
+                               n_fft=n_fft, picks=picks, ax=ax,
+                               color=color, area_mode=area_mode,
+                               area_alpha=area_alpha,
+                               n_overlap=n_overlap, dB=dB, n_jobs=n_jobs,
+                               verbose=None)
+
+    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
+                         n_fft=256, picks=None,
+                         n_overlap=0, layout=None, cmap='RdBu_r',
+                         agg_fun=np.sum, dB=True, n_jobs=1, verbose=None):
+        """Plot the topomap of the power spectral density across epochs
+
+        Parameters
+        ----------
+        bands : list of tuple | None
+            The lower and upper frequency and the name for that band. If None,
+            (default) expands to:
+
+            bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : array-like of int | None
+            List of channels to use.
+        n_overlap : int
+            The number of points of overlap between blocks.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout
+            file is inferred from the data; if no appropriate layout file was
+            found, the layout is automatically generated from the sensor
+            locations.
+        cmap : matplotlib colormap
+            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+            'Reds'.
+        agg_fun : callable
+            The function used to aggregate over frequencies.
+            Defaults to np.sum.
+        dB : bool
+            If True, transform data to decibels (with ``10 * np.log10(data)``)
+            following the application of `agg_fun`.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_epochs_psd_topomap(self, bands=bands, vmin=vmin,
+                                       vmax=vmax, proj=proj, n_fft=n_fft,
+                                       picks=picks,
+                                       n_overlap=n_overlap, layout=layout,
+                                       cmap=cmap, agg_fun=np.sum, dB=dB,
+                                       n_jobs=n_jobs, verbose=None)
 
 
 class Epochs(_BaseEpochs):

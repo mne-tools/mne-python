@@ -19,6 +19,7 @@ from scipy import ndimage
 from ..utils import create_chunks
 from ..io.pick import pick_types, channel_type
 from ..fixes import Counter
+from ..time_frequency import compute_epochs_psd
 from .utils import _mutable_defaults, tight_layout, _prepare_trellis
 from .utils import figure_nobar
 
@@ -446,4 +447,97 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
                                           params=params))
     if show is True:
         plt.show(block=block)
+    return fig
+
+
+def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+                    picks=None, ax=None, color='black', area_mode='std',
+                    area_alpha=0.33, n_overlap=0,
+                    dB=True, n_jobs=1, verbose=None):
+    """Plot the power spectral density across epochs
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs object
+    fmin : float
+        Start frequency to consider.
+    fmax : float
+        End frequency to consider.
+    proj : bool
+        Apply projection.
+    n_fft : int
+        Number of points to use in Welch FFT calculations.
+    picks : array-like of int | None
+        List of channels to use.
+    ax : instance of matplotlib Axes | None
+        Axes to plot into. If None, axes will be created.
+    color : str | tuple
+        A matplotlib-compatible color to use.
+    area_mode : str | None
+        Mode for plotting area. If 'std', the mean +/- 1 STD (across channels)
+        will be plotted. If 'range', the min and max (across channels) will be
+        plotted. Bad channels will be excluded from these calculations.
+        If None, no area will be plotted.
+    area_alpha : float
+        Alpha for the area.
+    n_overlap : int
+        The number of points of overlap between blocks.
+    dB : bool
+        If True, transform data to decibels.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    import matplotlib.pyplot as plt
+    from .raw import _set_psd_plot_params
+    fig, picks_list, titles_list, ax_list, make_label = _set_psd_plot_params(
+        epochs.info, proj, picks, ax, area_mode)
+
+    for ii, (picks, title, ax) in enumerate(zip(picks_list, titles_list,
+                                                ax_list)):
+        psds, freqs = compute_epochs_psd(epochs, picks=picks, fmin=fmin,
+                                         fmax=fmax, n_fft=n_fft,
+                                         n_overlap=n_overlap, proj=proj,
+                                         n_jobs=n_jobs)
+
+        # Convert PSDs to dB
+        if dB:
+            psds = 10 * np.log10(psds)
+            unit = 'dB'
+        else:
+            unit = 'power'
+        # mean across epochs and channels
+        psd_mean = np.mean(psds, axis=0).mean(axis=0)
+        if area_mode == 'std':
+            # std across channels
+            psd_std = np.std(np.mean(psds, axis=0), axis=0)
+            hyp_limits = (psd_mean - psd_std, psd_mean + psd_std)
+        elif area_mode == 'range':
+            hyp_limits = (np.min(np.mean(psds, axis=0), axis=0),
+                          np.max(np.mean(psds, axis=0), axis=0))
+        else:  # area_mode is None
+            hyp_limits = None
+
+        ax.plot(freqs, psd_mean, color=color)
+        if hyp_limits is not None:
+            ax.fill_between(freqs, hyp_limits[0], y2=hyp_limits[1],
+                            color=color, alpha=area_alpha)
+        if make_label:
+            if ii == len(picks_list) - 1:
+                ax.set_xlabel('Freq (Hz)')
+            if ii == len(picks_list) // 2:
+                ax.set_ylabel('Power Spectral Density (%s/Hz)' % unit)
+            ax.set_title(title)
+            ax.set_xlim(freqs[0], freqs[-1])
+    if make_label:
+        tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
+
+    plt.show()
     return fig

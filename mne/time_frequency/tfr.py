@@ -538,7 +538,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     times *= 1e3
     if dB:
-        data = 20 * np.log10(data)
+        data = 10 * np.log10((data * data.conj()).real)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
@@ -604,7 +604,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True,
+             cmap='RdBu_r', dB=True, colorbar=True, show=True,
              title=None, verbose=None):
         """Plot TFRs in a topography with images
 
@@ -656,6 +656,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
@@ -669,19 +674,19 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         tmin, tmax = times[0], times[-1]
 
         for k, p in zip(range(len(data)), picks):
-            plt.figure()
+            fig = plt.figure()
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
                         picker=False, cmap=cmap, title=title)
 
         if show:
-            plt.show()
-        return
+            fig.show()
+        return fig
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-                  layout=None, cmap='RdBu_r', title=None, dB=False,
+                  layout=None, cmap='RdBu_r', title=None, dB=True,
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', font_color='w'):
         """Plot TFRs in a topography with images
@@ -745,6 +750,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The figure face color. Defaults to black.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
         times = self.times.copy()
@@ -775,8 +785,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          font_color=font_color)
 
         if show:
-            import matplotlib.pyplot as plt
-            plt.show()
+            fig.show()
 
         return fig
 
