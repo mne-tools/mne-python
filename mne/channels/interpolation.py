@@ -223,7 +223,7 @@ def _interpolate_bads_eeg_epochs(epochs, bad_channels_by_epoch=None):
             goods_idx, bads_idx, interpolation = interp_cache[key]
         else:
             goods_idx, bads_idx, interpolation = interp_cache[key] \
-                                = _make_interpolator(epochs, key)
+                = _make_interpolator(epochs, key)
 
         # apply interpolation
         logger.info('Interpolating %i sensors on epoch %i', bads_idx.sum(), i)
