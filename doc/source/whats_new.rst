@@ -117,6 +117,8 @@ BUG
 
    - Fix beamformer code LCMV/DICS for CTF data with reference channels by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Fix scalings for bad EEG channels in `mne.viz.plot_topo` by `Marijn van Vliet`_
+
 API
 ~~~
 
