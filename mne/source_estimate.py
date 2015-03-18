@@ -1399,19 +1399,20 @@ class SourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
-        clim : str | 3-tuple | dict
+        clim : str | dict
             Colorbar properties specification. If 'auto', set clim
-            automatically based on quartiles of data. If 3-tuple of floats,
-            set clim according to 3-tuple values. If dict, should contain:
+            automatically based on data percentiles. If dict, should contain:
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
-                lims : length 3 list or array
+                lims : length 3 list, array, or tuple
+                    Note: Only if use this if 'colormap' is not 'mne_analyze'.
                     Left, middle, and right bound for colormap.
-                pos_lims : None or length 3 list or array
-                    Minimum, middle, and maximum positive control points for
-                    (only) 'mne_analyze' colormap must must be constructed
-                    Positive values will be mirrored during colormap
-                    construction.
+                pos_lims : length 3 list, array, or tuple
+                    Note: Only if use this if 'colormap' is 'mne_analyze'.
+                    Left, middle, and right bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
 
         Returns
         -------
