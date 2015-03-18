@@ -235,13 +235,16 @@ def read_cov(fname, verbose=None):
 ###############################################################################
 # Estimate from data
 
-def make_ad_hoc_cov(info):
+@verbose
+def make_ad_hoc_cov(info, verbose=None):
     """Create an ad hoc noise covariance
 
     Parameters
     ----------
     info : instance of mne.io.meas_info.Info
         Measurement info.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -1413,6 +1416,7 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
     """Get whitening matrix for a set of data"""
     ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
+    info = pick_info(info, picks)
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))

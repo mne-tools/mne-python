@@ -27,7 +27,8 @@ from .io.pick import (pick_types, pick_channels, pick_types_evoked,
                       pick_channels_regexp, pick_channels_forward,
                       pick_types_forward, pick_channels_cov,
                       pick_channels_evoked, pick_info)
-from .io.base import concatenate_raws, get_chpi_positions
+from .io.base import concatenate_raws
+from .io.chpi import get_chpi_positions
 from .io.meas_info import create_info
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
