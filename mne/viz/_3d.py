@@ -362,7 +362,7 @@ def _percent_to_control_points(clim, stc_data, colormap):
 
     Parameters
     ----------
-    clim : str | 3-tuple | dict
+    clim : str | dict
         Desired percentages used to set cmap control points.
 
     Returns
@@ -373,11 +373,9 @@ def _percent_to_control_points(clim, stc_data, colormap):
 
     # Based on type of limits specified, get cmap control points
     if clim == 'auto':
+        # Set upper and lower bound based on percent, and get average between
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
         ctrl_pts.insert(1, np.average(ctrl_pts))
-    elif isinstance(clim, tuple):
-        assert len(clim) == 3, '"clim" tuple must be length 3'
-        ctrl_pts = clim
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
@@ -388,7 +386,7 @@ def _percent_to_control_points(clim, stc_data, colormap):
             ctrl_pts = np.percentile(np.abs(stc_data),
                                      list(np.abs(clim[limit_key])))
         elif clim['kind'] == 'value':
-            ctrl_pts = clim[limit_key]
+            ctrl_pts = list(clim[limit_key])
         else:
             raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
@@ -455,19 +453,20 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
-    clim : str | 3-tuple | dict
-        Colorbar properties specification. If 'auto', set clim
-        automatically based on percentiles of the data. If 3-tuple of floats,
-        set clim according to 3-tuple values. If dict, should contain:
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
             kind : str
                 Flag to specify type of limits. 'value' or 'percent'.
-            lims : length 3 list or array
+            lims : length 3 list, array, or tuple
+                Note: Only if use this if 'colormap' is not 'mne_analyze'.
                 Left, middle, and right bound for colormap.
-            pos_lims : None or length 3 list or array
-                Minimum, middle, and maximum positive control points for
-                (only) 'mne_analyze' colormap must must be constructed
-                Positive values will be mirrored during colormap
-                construction.
+            pos_lims : length 3 list, array, or tuple
+                Note: Only if use this if 'colormap' is 'mne_analyze'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
 
     Returns
     -------
