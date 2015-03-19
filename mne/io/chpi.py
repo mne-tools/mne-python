@@ -12,7 +12,7 @@ from .constants import FIFF
 from .base import _BaseRaw
 from ..cov import make_ad_hoc_cov, _get_whitener_data
 from ..utils import verbose, logger
-from ..transforms import apply_trans, invert_transform
+from ..transforms import apply_trans
 from ..externals.six import string_types
 
 
@@ -29,26 +29,27 @@ def _fit_mag_dipole(B_orig, w, coils, x0):
         Bm2 = np.sum(one * one)
         return 1 - Bm2 / B2
 
-    x = optimize.fmin_cobyla(fun, x0, (), rhobeg=1e-3, rhoend=1e-5, disp=False)
+    x = optimize.fmin_cobyla(fun, x0, (), rhobeg=1e-3, rhoend=1e-6, disp=False)
     return x
 
 
 def _fit_chpi_pos(chpi_pos_head, chpi_pos_dev, x0):
     """Fit rotation and translation parameters for cHPI coils"""
 
+    denom = np.sum((chpi_pos_dev - np.mean(chpi_pos_dev, axis=0)) ** 2)
+
     def fun(x):
-        trans = x[3:, np.newaxis]
-        diff = (np.dot(_quat_to_rot(x[:3]), chpi_pos_head.T) + trans -
-                chpi_pos_dev.T)
-        return np.sum(diff * diff)
+        diff = (np.dot(_quat_to_rot(x[:3]), chpi_pos_head.T) +
+                x[3:, np.newaxis] - chpi_pos_dev.T)
+        return np.sum(diff * diff) / denom
 
     x = optimize.fmin_cobyla(fun, x0, (), rhobeg=1e-3, rhoend=1e-8, disp=False)
-    return x, np.sqrt(fun(x))
+    return x, fun(x)
 
 
 @verbose
 def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
-                             verbose=None):
+                             dist_limit=0.005, gof_limit=0.98, verbose=None):
     """Calculate head positions using cHPI coils
 
     Parameters
@@ -64,6 +65,10 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
         Time window to use to estimate the head positions.
     max_step : float
         Maximum time step to go between estimations.
+    dist_limit : float
+        Minimum distance (m) to accept for coil position fitting.
+    gof_limit : float
+        Minimum goodness of fit to accept.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -108,14 +113,13 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
     chpi_pos = np.array([d['r'] for d in raw.info['dig']
                          if d['kind'] == FIFF.FIFFV_POINT_HPI],
                         float)[dig_reorder]
-    chpi_pos_dev = apply_trans(invert_transform(
-        raw.info['dev_head_t'])['trans'], chpi_pos)
+    chpi_pos_dev = apply_trans(raw.info['dev_head_t']['trans'], chpi_pos)
     trans = raw.info['hpi_results'][0]['coord_trans']['trans']
     quat_trans = np.concatenate([_rot_to_quat(trans[:3, :3]), trans[:3, 3]])
     orig_dists = cdist(chpi_pos, chpi_pos)
-    dist_limit = 0.005
     last_fit = None  # this indicates it's the first run
     last_time = 0
+    corr_limit = 0.98
     quats = []
     for fi, (start, t) in enumerate(zip(fit_starts, fit_times)):
         #
@@ -131,8 +135,8 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
         # check to see if we need to continue
         if t - last_time >= t_step_max - 1e-7 or last_fit is None:
             reason = ''
-        elif corr < 0.99:
-            reason = 'low correlation = %0.4f' % corr
+        elif corr < 0.98:
+            reason = 'correlation %0.3f < %0.3f' % (corr, corr_limit)
         else:
             continue  # don't need to re-fit data
         last_fit = s_fit.copy()  # save *before* inplace sign transform
@@ -142,10 +146,9 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
             fit *= np.sign(linalg.svd([x, y], full_matrices=False)[2][0])
 
         data_model = np.dot(model, X).T
-        g = (1 - np.sqrt(np.sum((data_model - this_data) ** 2)) /
-             np.sqrt(np.sum(this_data ** 2)))
-        logger.info('    Initial sinusoidal GOF: %s%%'
-                    % round(100 * g, 1))
+        g_sin = (1 - np.sqrt(np.sum((data_model - this_data) ** 2)) /
+                 np.sqrt(np.sum(this_data ** 2)))
+        logger.info('    Initial sinusoidal GOF:        %0.3f' % g_sin)
 
         #
         # 2. Fit magnetic dipole for each coil to obtain coil positions
@@ -155,7 +158,9 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
         these_dists = cdist(chpi_pos, chpi_pos)
         these_differences = np.abs(orig_dists - these_dists)
         if np.any(these_differences > dist_limit):
-            raise RuntimeError('Bad fit')
+            logger.info('    Bad coil positions for %s, using last position'
+                        % t)
+            continue
 
         #
         # 3. Fit the head translation and rotation params (minimize error
@@ -163,6 +168,12 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
         #
         last_pos = quat_trans[3:]
         quat_trans, err = _fit_chpi_pos(chpi_pos, chpi_pos_dev, quat_trans)
+        g = 1 - err
+        if g < gof_limit:
+            logger.info('    Bad coil fit for %s, using last position' % t)
+            continue
+        else:
+            logger.info('    Coil position goodness of fit: %0.3f' % g)
         velocity = (np.sqrt(np.sum(last_pos - quat_trans[3:]) ** 2) /
                     (t - last_time))
         quats.append(np.concatenate(([t], quat_trans, [g], [err], [velocity])))
