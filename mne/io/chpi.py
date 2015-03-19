@@ -47,17 +47,23 @@ def _fit_chpi_pos(chpi_pos_head, chpi_pos_dev, x0):
 
 
 @verbose
-def calculate_chpi_positions(raw, t_step=0.1, t_window=0.2, verbose=None):
+def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
+                             verbose=None):
     """Calculate head positions using cHPI coils
 
     Parameters
     ----------
     raw : instance of Raw
         Raw data with cHPI information.
-    t_step : float
-        Time increments to calculate head positions for, if necessary.
+    t_step_min : float
+        Minimum time step to use. If correlations are sufficiently high,
+        t_step_max will be used.
+    t_step_max : float
+        Maximum time step to use.
     t_window : float
         Time window to use to estimate the head positions.
+    max_step : float
+        Maximum time step to go between estimations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -71,7 +77,8 @@ def calculate_chpi_positions(raw, t_step=0.1, t_window=0.2, verbose=None):
     from ..forward._make_forward import _prep_channels
     n_window = int(round(t_window * raw.info['sfreq']))
     fit_starts = np.round(np.arange(0, raw.last_samp / raw.info['sfreq'],
-                                    t_step) * raw.info['sfreq']).astype(int)
+                                    t_step_min) *
+                          raw.info['sfreq']).astype(int)
     fit_starts = fit_starts[fit_starts < raw.n_times - n_window]
     fit_times = (fit_starts + (n_window + 1) // 2) / raw.info['sfreq']
     dig_order = raw.info['hpi_results'][0]['order'].astype(int)
@@ -122,7 +129,7 @@ def calculate_chpi_positions(raw, t_step=0.1, t_window=0.2, verbose=None):
             corr = np.corrcoef(s_fit.ravel(), last_fit.ravel())[0, 1]
 
         # check to see if we need to continue
-        if t - last_time >= 1. - 1e-5 or last_fit is None:
+        if t - last_time >= t_step_max - 1e-7 or last_fit is None:
             reason = ''
         elif corr < 0.99:
             reason = 'low correlation = %0.4f' % corr
