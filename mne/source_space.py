@@ -453,8 +453,8 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, patch_stats=False, verbose=None,
-                                  ):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
+                                  verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
