@@ -141,9 +141,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Parameters
     ----------
-    limits : list (or array) of length 3 or length 6
+    limits : list (or array) of length 3 or 6
         Bounds for the colormap, which will be mirrored across zero if length
-        3, or completely specified (and potentially nonsymmetric) if length 6.
+        3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
         matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
@@ -210,7 +210,7 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
             limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
                 limits[-1]
         else:
-            limits = [limits[:3], [0], limits[3:]]
+            limits = np.concatenate((limits[:3], [0], limits[3:]))
             limits /= np.max(np.abs(limits))
         r = np.array([0, 0, 0, 0, 1, 1, 1])
         g = np.array([1, 0, 0, 0, 0, 0, 1])
