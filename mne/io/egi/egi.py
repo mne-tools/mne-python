@@ -254,7 +254,7 @@ class _RawEGI(_BaseRaw):
                                       include_names], event_ids))
         else:
             # No events
-            self.event_id = dict()  # Should be None?
+            self.event_id = None
             new_trigger = None
         self._data = data
         self.verbose = verbose
