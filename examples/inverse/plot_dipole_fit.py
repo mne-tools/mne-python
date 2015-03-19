@@ -57,7 +57,7 @@ rh_points = mne.transforms.apply_trans(coord_trans, rh_points)
 mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
 
 # show brain surface after proper coordinate system transformation
-brain_surface = mne.read_bem_surfaces(fname_bem, add_geom=True)[0]
+brain_surface = mne.read_bem_surfaces(fname_bem, patch_stats=True)[0]
 points = brain_surface['rr']
 faces = brain_surface['tris']
 points = mne.transforms.apply_trans(coord_trans, points)

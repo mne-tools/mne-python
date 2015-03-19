@@ -20,8 +20,8 @@ print(__doc__)
 data_path = sample.data_path()
 fname = op.join(data_path, 'subjects', 'sample', 'bem', 'sample-oct-6-src.fif')
 
-add_geom = True  # include high resolution source space
-src = mne.read_source_spaces(fname, add_geom=add_geom)
+patch_stats = True  # include high resolution source space
+src = mne.read_source_spaces(fname, patch_stats=patch_stats)
 
 # 3D source space (high sampling)
 lh_points = src[0]['rr']

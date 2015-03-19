@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 from .externals.six import string_types
 import os
 from os import path as op
@@ -32,15 +33,16 @@ from .utils import logger, verbose, get_subjects_dir
 # BEM
 
 @verbose
-def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None,
+                      add_geom=None):
     """Read the BEM surfaces from a FIF file
 
     Parameters
     ----------
     fname : string
         The name of the file containing the surfaces.
-    add_geom : bool, optional (default False)
-        If True add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
@@ -54,6 +56,10 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
     """
+    if add_geom is not None:
+        patch_stats = add_geom
+        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
+                      "Use `patch_stats instead.", DeprecationWarning)
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -89,7 +95,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
             logger.info('    Reading a surface...')
             this = _read_bem_surface(fid, bsurf, coord_frame)
             logger.info('[done]')
-            if add_geom:
+            if patch_stats:
                 _complete_surface_info(this)
             surf.append(this)
 
@@ -184,7 +190,7 @@ def read_bem_solution(fname, verbose=None):
         The BEM solution.
     """
     logger.info('Loading surfaces...')
-    bem_surfs = read_bem_surfaces(fname, add_geom=True, verbose=False)
+    bem_surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
     if len(bem_surfs) == 3:
         logger.info('Three-layer model surfaces loaded.')
         needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
@@ -713,7 +719,7 @@ def read_surface(fname, verbose=None):
 
 
 @verbose
-def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
+def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     if isinstance(fname, string_types):
@@ -726,7 +732,7 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
         s = fname
     else:
         raise RuntimeError('fname cannot be understood as str or dict')
-    if add_geom is True:
+    if patch_stats is True:
         s = _complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
@@ -853,7 +859,8 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
         # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
+        from_surf = _read_surface_geom(surf_name, norm_rr=True,
+                                       patch_stats=False)
         if not len(from_surf['rr']) == surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '
                                'possible parcellation error?')
