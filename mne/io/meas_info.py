@@ -27,7 +27,7 @@ from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
-from ..externals.six import b, BytesIO, string_types
+from ..externals.six import b, BytesIO, string_types, text_type
 
 
 _kind_dict = dict(
@@ -595,7 +595,7 @@ def read_meas_info(fid, tree, verbose=None):
             kind = hpi_meas['directory'][k].kind
             pos = hpi_meas['directory'][k].pos
             if kind == FIFF.FIFF_CREATOR:
-                hm['creator'] = str(read_tag(fid, pos).data)
+                hm['creator'] = text_type(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_SFREQ:
                 hm['sfreq'] = float(read_tag(fid, pos).data)
             elif kind == FIFF.FIFF_NCHAN:
@@ -643,16 +643,16 @@ def read_meas_info(fid, tree, verbose=None):
                 si['id'] = int(tag.data)
             elif kind == FIFF.FIFF_SUBJ_HIS_ID:
                 tag = read_tag(fid, pos)
-                si['his_id'] = str(tag.data)
+                si['his_id'] = text_type(tag.data)
             elif kind == FIFF.FIFF_SUBJ_LAST_NAME:
                 tag = read_tag(fid, pos)
-                si['last_name'] = str(tag.data)
+                si['last_name'] = text_type(tag.data)
             elif kind == FIFF.FIFF_SUBJ_FIRST_NAME:
                 tag = read_tag(fid, pos)
-                si['first_name'] = str(tag.data)
+                si['first_name'] = text_type(tag.data)
             elif kind == FIFF.FIFF_SUBJ_MIDDLE_NAME:
                 tag = read_tag(fid, pos)
-                si['middle_name'] = str(tag.data)
+                si['middle_name'] = text_type(tag.data)
             elif kind == FIFF.FIFF_SUBJ_BIRTH_DAY:
                 tag = read_tag(fid, pos)
                 si['birthday'] = tag.data
@@ -677,7 +677,7 @@ def read_meas_info(fid, tree, verbose=None):
                 hs['ncoil'] = int(tag.data)
             elif kind == FIFF.FIFF_EVENT_CHANNEL:
                 tag = read_tag(fid, pos)
-                hs['event_channel'] = str(tag.data)
+                hs['event_channel'] = text_type(tag.data)
             hpi_coils = dir_tree_find(hpi_subsystem, FIFF.FIFFB_HPI_COIL)
             hc = []
             for coil in hpi_coils:
