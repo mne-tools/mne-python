@@ -1407,10 +1407,10 @@ class SourceEstimate(_BaseSourceEstimate):
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
                 lims : length 3 list, array, or tuple
-                    Note: Only if use this if 'colormap' is not 'mne_analyze'.
+                    Note: Only use this if 'colormap' is not 'mne_analyze'.
                     Left, middle, and right bound for colormap.
                 pos_lims : length 3 list, array, or tuple
-                    Note: Only if use this if 'colormap' is 'mne_analyze'.
+                    Note: Only use this if 'colormap' is 'mne_analyze'.
                     Left, middle, and right bound for colormap. Positive values
                     will be mirrored directly across zero during colormap
                     construction to obtain negative control points.

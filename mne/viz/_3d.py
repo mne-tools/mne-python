@@ -391,7 +391,7 @@ def _percent_to_control_points(clim, stc_data, colormap):
             raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
     else:
-        raise ValueError('"clim" must be "auto", tuple, or dict')
+        raise ValueError('"clim" must be "auto" or dict')
 
     return ctrl_pts
 
@@ -459,10 +459,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             kind : str
                 Flag to specify type of limits. 'value' or 'percent'.
             lims : length 3 list, array, or tuple
-                Note: Only if use this if 'colormap' is not 'mne_analyze'.
+                Note: Only use this if 'colormap' is not 'mne_analyze'.
                 Left, middle, and right bound for colormap.
             pos_lims : length 3 list, array, or tuple
-                Note: Only if use this if 'colormap' is 'mne_analyze'.
+                Note: Only use this if 'colormap' is 'mne_analyze'.
                 Left, middle, and right bound for colormap. Positive values
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
