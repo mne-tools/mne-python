@@ -225,7 +225,8 @@ class _RawEGI(_BaseRaw):
                 include_names = [k for i, k in enumerate(event_codes)
                                  if i in include_]
             else:
-                include_ = [i for i, k in enumerate(event_codes) if k in include]
+                include_ = [i for i, k in enumerate(event_codes)
+                            if k in include]
                 include_names = include
 
             for kk, v in [('include', include_names), ('exclude', exclude)]:
@@ -246,8 +247,8 @@ class _RawEGI(_BaseRaw):
                                                 remapping=event_ids)
                 data = np.concatenate([data, new_trigger])
             except RuntimeError:
-                logger.info('    Found multiple events at the same time sample.'
-                            ' Could not create trigger channel.')
+                logger.info('    Found multiple events at the same time '
+                            'sample. Could not create trigger channel.')
                 new_trigger = None
 
             self.event_id = dict(zip([e for e in event_codes if e in
