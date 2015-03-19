@@ -37,7 +37,7 @@ def _fit_chpi_pos(chpi_pos_head, chpi_pos_dev, x0):
     """Fit rotation and translation parameters for cHPI coils"""
 
     def fun(x):
-        trans = x[:3, np.newaxis]
+        trans = x[3:, np.newaxis]
         diff = (np.dot(_quat_to_rot(x[:3]), chpi_pos_head.T) + trans -
                 chpi_pos_dev.T)
         return np.sum(diff * diff)
