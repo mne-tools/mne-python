@@ -59,7 +59,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None,
     if add_geom is not None:
         patch_stats = add_geom
         warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
-                     "Use `patch_stats instead.", DeprecationWarning)
+                      "Use `patch_stats instead.", DeprecationWarning)
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
