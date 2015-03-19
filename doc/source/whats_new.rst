@@ -119,6 +119,8 @@ BUG
 
    - Fix scalings for bad EEG channels in `mne.viz.plot_topo` by `Marijn van Vliet`_
 
+   - Fix EGI reading when no events are present by `Federico Raimondo`_
+
 API
 ~~~
 
@@ -143,7 +145,7 @@ API
 
    - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
 
-   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
+   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_
 
    - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
 
