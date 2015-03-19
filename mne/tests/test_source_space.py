@@ -383,7 +383,8 @@ def test_write_source_space():
     tempdir = _TempDir()
     src0 = read_source_spaces(fname, patch_stats=False)
     write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'), patch_stats=False)
+    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'),
+                              patch_stats=False)
     _compare_source_spaces(src0, src1)
 
     # test warnings on bad filenames
