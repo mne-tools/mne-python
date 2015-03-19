@@ -83,6 +83,8 @@ Changelog
 
    - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
+   - Add reader function for Raw FIF files by `Teon Brooks`_
+
 BUG
 ~~~
 

@@ -2,6 +2,7 @@
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -621,3 +622,61 @@ def _check_raw_compatibility(raw):
                       'could result in precision mismatch. Setting '
                       'raw.orig_format="unknown"')
         raw[0].orig_format = 'unknown'
+
+
+def read_raw_fif(fnames, allow_maxshield=False, preload=False,
+                 proj=False, compensation=None, add_eeg_ref=True,
+                 verbose=None):
+    """Reader function for Raw FIF data
+
+    Parameters
+    ----------
+    fnames : list, or string
+        A list of the raw files to treat as a Raw instance, or a single
+        raw file. For files that have automatically been split, only the
+        name of the first file has to be specified. Filenames should end
+        with raw.fif, raw.fif.gz, raw_sss.fif, raw_sss.fif.gz,
+        raw_tsss.fif or raw_tsss.fif.gz.
+    allow_maxshield : bool, (default False)
+        allow_maxshield if True, allow loading of data that has been
+        processed with Maxshield. Maxshield-processed data should generally
+        not be loaded directly, but should be processed using SSS first.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+    proj : bool
+        Apply the signal space projection (SSP) operators present in
+        the file to the data. Note: Once the projectors have been
+        applied, they can no longer be removed. It is usually not
+        recommended to apply the projectors at this point as they are
+        applied automatically later on (e.g. when computing inverse
+        solutions).
+    compensation : None | int
+        If None the compensation in the data is not modified.
+        If set to n, e.g. 3, apply gradient compensation of grade n as
+        for CTF systems.
+    add_eeg_ref : bool
+        If True, add average EEG reference projector (if it's not already
+        present).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Attributes
+    ----------
+    info : dict
+        Measurement info.
+    ch_names : list of string
+        List of channels' names.
+    n_times : int
+        Total number of time points in the raw file.
+    preload : bool
+        Indicates whether raw data are in memory.
+    verbose : bool, str, int, or None
+        See above.
+    """
+    return RawFIFF(fnames=fnames, allow_maxshield=allow_maxshield,
+                   preload=preload, proj=proj, compensation=compensation,
+                   add_eeg_ref=add_eeg_ref, verbose=verbose)
