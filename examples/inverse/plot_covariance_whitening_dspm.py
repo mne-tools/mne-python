@@ -72,8 +72,8 @@ conditions = 'faces', 'scrambled'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
-fmin, fmid, fmax, transp = 0, 2.5, 5, True
-
+transp = True
+clim = dict(kind='value', lims=[0, 2.5, 5])
 ###############################################################################
 # Estimate covariance and show resulting source estimates
 
@@ -123,8 +123,7 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
         brain = stc.plot(subjects_dir=subjects_dir, hemi='both',
-                         colormap='hot')
-        brain.scale_data_colormap(fmin, fmid, fmax, transp)
+                         colormap='hot', transparent=transp, clim=clim)
         brain.set_time(175)
 
         im = brain_to_mpl(brain)

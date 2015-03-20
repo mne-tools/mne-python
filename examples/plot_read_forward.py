@@ -31,7 +31,7 @@ import matplotlib.pyplot as plt
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
 picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 
-fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)  
+fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
 fig.suptitle('Lead field matrix (500 dipoles only)', fontsize=14)
 
 for ax, picks, ch_type in zip(axes, [picks_meg, picks_eeg], ['meg', 'eeg']):
@@ -60,7 +60,7 @@ plt.ylabel('count')
 plt.legend()
 
 # Cautious smoothing to see actual dipoles
-args = dict(fmin=-0.1, fmid=0.5, fmax=1.1, smoothing_steps=3)
+args = dict(clim=dict(kind='percent', lims=[0, 50, 100]), smoothing_steps=3)
 grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
               subjects_dir=subjects_dir, **args)
 

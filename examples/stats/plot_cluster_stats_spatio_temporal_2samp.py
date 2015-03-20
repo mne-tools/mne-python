@@ -100,8 +100,7 @@ subjects_dir = op.join(data_path, 'subjects')
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both',
                                  subjects_dir=subjects_dir,
                                  time_label='Duration significant (ms)',
-                                 fmin=0, fmid=25, fmax=50)
+                                 clim='auto', transparent=True)
 brain.set_data_time_index(0)
-brain.scale_data_colormap(fmin=0, fmid=25, fmax=50, transparent=True)
 brain.show_view('lateral')
 brain.save_image('clusters.png')

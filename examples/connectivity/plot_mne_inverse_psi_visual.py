@@ -106,10 +106,12 @@ psi_stc = mne.SourceEstimate(psi, vertices=vertices, tmin=0, tstep=1,
 # Now we can visualize the PSI using the plot method. We use a custom colormap
 # to show signed values
 v_max = np.max(np.abs(psi))
-colormap = mne_analyze_colormap(limits=[0, v_max / 3, v_max])
+#colormap = mne_analyze_colormap(limits=[0, v_max / 3, v_max])
+colormap = 'mne_analyze'
 brain = psi_stc.plot(surface='inflated', hemi='lh',
                      time_label='Phase Slope Index (PSI)',
-                     subjects_dir=subjects_dir, colormap=colormap)
-brain.scale_data_colormap(fmin=-v_max, fmid=0., fmax=v_max, transparent=False)
+                     subjects_dir=subjects_dir, colormap=colormap,
+                     clim='auto')
+#brain.scale_data_colormap(fmin=-v_max, fmid=0., fmax=v_max, transparent=False)
 brain.show_view('medial')
 brain.add_label(fname_label, color='green', alpha=0.7)

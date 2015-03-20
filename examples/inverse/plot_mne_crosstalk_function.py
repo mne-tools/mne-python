@@ -23,7 +23,7 @@ from mne.minimum_norm import cross_talk_function, read_inverse_operator
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
+fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
@@ -59,23 +59,17 @@ stc_ctf_dspm = cross_talk_function(inverse_operator, forward, labels,
                                    n_svd_comp=n_svd_comp)
 
 from mayavi import mlab
-fmin = 0.
 time_label = "MNE %d"
-fmax = stc_ctf_mne.data[:, 0].max()
-fmid = fmax / 2.
+clim = dict(kind='percent', lims=[95, 99.75, 100])
 brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
                              subjects_dir=subjects_dir,
-                             time_label=time_label, fmin=fmin,
-                             fmid=fmid, fmax=fmax,
+                             time_label=time_label, clim=clim,
                              figure=mlab.figure(size=(500, 500)))
 
 time_label = "dSPM %d"
-fmax = stc_ctf_dspm.data[:, 0].max()
-fmid = fmax / 2.
 brain_dspm = stc_ctf_dspm.plot(surface='inflated', hemi='rh',
                                subjects_dir=subjects_dir,
-                               time_label=time_label, fmin=fmin,
-                               fmid=fmid, fmax=fmax,
+                               time_label=time_label, clim=clim,
                                figure=mlab.figure(size=(500, 500)))
 
 # Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes
