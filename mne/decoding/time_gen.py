@@ -493,7 +493,8 @@ class GeneralizationAcrossTime(object):
         return scores
 
     def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
-             cmap='RdBu_r', show=True, colorbar=True):
+             cmap='RdBu_r', show=True, colorbar=True, 
+             xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -518,6 +519,10 @@ class GeneralizationAcrossTime(object):
             If True, the figure will be shown. Defaults to True.
 	colorbar : bool
 	    If True, the colorbar of the figure is displayed. Defaults to True.
+	xlabel : bool
+	    If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+	    If True, the ylabel is displayed. Defaults to True.
 
         Returns
         -------
@@ -528,7 +533,7 @@ class GeneralizationAcrossTime(object):
                                tlim=tlim, ax=ax, cmap=cmap, show=show, colorbar=colorbar)
 
     def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='steelblue'):
+                      color='steelblue', xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -552,6 +557,10 @@ class GeneralizationAcrossTime(object):
             If True, the figure will be shown. Defaults to True.
         color : str
             Score line color. Defaults to 'steelblue'.
+	xlabel : bool
+	    If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+	    If True, the ylabel is displayed. Defaults to True.
 
         Returns
         -------
