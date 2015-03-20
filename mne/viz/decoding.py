@@ -82,7 +82,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
 
 
 def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='b'):
+                      color='b', xlabel=True, ylabel=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -105,6 +105,10 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
         If True, the figure will be shown. Defaults to True.
     color : str
         Score line color. Defaults to 'steelblue'.
+    xlabel : bool
+	If True, the xlabel is displayed. Defaults to True.
+    ylabel : bool
+	If True, the ylabel is displayed. Defaults to True.
 
     Returns
     -------
@@ -126,10 +130,12 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
     ax.set_ylim(ymin, ymax)
-    ax.set_xlabel('Time (s)')
-    ax.set_ylabel('Classif. score ({0})'.format(
-        'AUC' if 'roc' in repr(gat.scorer_) else r'%'
-    ))
+    if xlabel:
+        ax.set_xlabel('Time (s)')
+    if ylabel:
+	ax.set_ylabel('Classif. score ({0})'.format(
+            'AUC' if 'roc' in repr(gat.scorer_) else r'%'
+        ))
     ax.legend(loc='best')
     if show:
         plt.show()
