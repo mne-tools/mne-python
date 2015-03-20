@@ -1208,14 +1208,23 @@ def read_raw_bti(pdf_fname, config_fname='config',
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
-    ecg_ch: str | None
+    ecg_ch : str | None
       The 4D name of the ECG channel. If None, the channel will be treated
       as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : Instance of RawBTi
+        A Raw object containing BTI data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,

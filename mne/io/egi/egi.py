@@ -167,8 +167,12 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
 
     Returns
     -------
-    raw : instance of mne.io.Raw
-        A raw object containing EGI data.
+    raw : Instance of RawEGI
+        A Raw object containing EGI data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     return _RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
 

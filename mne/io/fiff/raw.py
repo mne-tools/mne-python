@@ -664,18 +664,10 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
-    Attributes
-    ----------
-    info : dict
-        Measurement info.
-    ch_names : list of string
-        List of channels' names.
-    n_times : int
-        Total number of time points in the raw file.
-    preload : bool
-        Indicates whether raw data are in memory.
-    verbose : bool, str, int, or None
-        See above.
+    Returns
+    -------
+    raw : Instance of RawFIFF
+        A Raw object containing FIF data.
     """
     return RawFIFF(fnames=fnames, allow_maxshield=allow_maxshield,
                    preload=preload, proj=proj, compensation=compensation,

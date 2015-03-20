@@ -653,6 +653,15 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
         If False, data are not read until save.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : Instance of RawKIT
+        A Raw object containing KIT data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     return RawKIT(input_fname=input_fname, mrk=mrk, elp=elp, hsp=hsp,
                   stim=stim, slope=slope, stimthresh=stimthresh,
