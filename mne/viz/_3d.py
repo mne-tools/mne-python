@@ -392,6 +392,9 @@ def _percent_to_control_points(clim, stc_data, colormap):
                              ' "value" or "percent"')
     else:
         raise ValueError('"clim" must be "auto" or dict')
+    if len(ctrl_pts) != 3:
+        raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
+                         ' 3' % len(ctrl_pts))
 
     return ctrl_pts
 
