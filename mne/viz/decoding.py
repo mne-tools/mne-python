@@ -10,7 +10,8 @@ import numpy as np
 
 
 def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
-                    ax=None, cmap='RdBu_r', show=True, colorbar=True):
+                    ax=None, cmap='RdBu_r', show=True, colorbar=True,
+		    xlabel=True, ylabel=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -39,6 +40,10 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         If True, the figure will be shown. Defaults to True.
     colorbar : bool
 	If True, the colorbar of the figure is displayed. Defaults to True.
+    xlabel : bool
+	If True, the xlabel is displayed. Defaults to True.
+    ylabel : bool
+	If True, the ylabel is displayed. Defaults to True.
 
     Returns
     -------
@@ -61,8 +66,10 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',
                    extent=tlim, vmin=vmin, vmax=vmax,
                    cmap=cmap)
-    ax.set_xlabel('Testing Time (s)')
-    ax.set_ylabel('Training Time (s)')
+    if xlabel:
+	ax.set_xlabel('Testing Time (s)')
+    if ylabel:
+	ax.set_ylabel('Training Time (s)')
     if title is not None:
         ax.set_title(title)
     ax.axvline(0, color='k')
