@@ -531,7 +531,7 @@ class GeneralizationAcrossTime(object):
         """
         return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
                                tlim=tlim, ax=ax, cmap=cmap, show=show,
-                               colorbar=colorbar, xlabel, ylabel)
+                               colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
     def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
                       color='steelblue', xlabel=True, ylabel=True):
@@ -569,7 +569,8 @@ class GeneralizationAcrossTime(object):
             The figure.
         """
         return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
-                                 ax=ax, show=show, color=color, xlabel, ylabel)
+                                 ax=ax, show=show, color=color,
+                                 xlabel=xlabel, ylabel=ylabel)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
