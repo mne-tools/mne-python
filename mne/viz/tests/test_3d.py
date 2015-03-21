@@ -16,6 +16,7 @@ from mne import SourceEstimate
 from mne import make_field_map, pick_channels_evoked, read_evokeds
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans, mne_analyze_colormap)
+from mne.viz._3d import _limits_to_control_points
 from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -102,3 +103,36 @@ def test_plot_trans():
     assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
+
+
+def test_limits_to_control_points():
+    """Test helper function for determining control points from value or
+    percentages
+    """
+    n_time = 5
+    n_verts = 25
+    stc_data = np.zeros((n_verts * n_time))
+    stc_data[(np.random.rand(20) * n_verts * n_time).astype(int)] = 1
+    stc_data.shape = (n_verts, n_time)
+
+    # Test both types of incorrect limits key (lims/pos_lims)
+    clim = dict(kind='value', lims=(5, 10, 15))
+    colormap = 'mne_analyze'
+    assert_raises(KeyError, _limits_to_control_points, clim, stc_data,
+                  colormap)
+    clim = dict(kind='value', pos_lims=(5, 10, 15))
+    colormap = 'hot'
+    assert_raises(KeyError, _limits_to_control_points, clim, stc_data,
+                  colormap)
+
+    # Test for correct clim values
+    clim['pos_lims'] = (5, 10, 15, 20)
+    colormap = 'mne_analyze'
+    assert_raises(ValueError, _limits_to_control_points, clim, stc_data,
+                  colormap)
+    clim = 'foo'
+    assert_raises(ValueError, _limits_to_control_points, clim, stc_data,
+                  colormap)
+    clim = (5, 10, 15)
+    assert_raises(ValueError, _limits_to_control_points, clim, stc_data,
+                  colormap)
