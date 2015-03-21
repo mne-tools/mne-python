@@ -1690,6 +1690,7 @@ def _sphere_to_cartesian(theta, phi, r):
     y = rcos_phi * np.sin(theta)
     return x, y, z
 
+
 def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
 
