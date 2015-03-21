@@ -414,6 +414,7 @@ def test_check_type_picks():
     picks = 'b'
     assert_raises(ValueError, _check_type_picks, picks)
 
+
 def test_compute_corr():
     """Anscombe's Quartett
     """
@@ -434,6 +435,7 @@ def test_compute_corr():
     assert(r[3] != r[0] == r[1] == r[2] != r[4])
     for r_v, r2_v in zip(r, r2):
         assert(r_v == r2_v)
+
 
 def test_create_slices():
     """Test checking the create of time create_slices
