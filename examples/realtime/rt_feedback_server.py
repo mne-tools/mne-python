@@ -24,29 +24,28 @@ to test. However, it should be possible to adapt this script
 for a real experiment.
 
 """
-
-print(__doc__)
-
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
 import time
-import mne
 
 import numpy as np
 import matplotlib.pyplot as plt
-
-from mne.datasets import sample
-from mne.realtime import StimServer
-from mne.realtime import MockRtClient
-from mne.decoding import ConcatenateChannels, FilterEstimator
 
 from sklearn import preprocessing
 from sklearn.svm import SVC
 from sklearn.pipeline import Pipeline
 from sklearn.cross_validation import train_test_split
 from sklearn.metrics import confusion_matrix
+
+import mne
+from mne.datasets import sample
+from mne.realtime import StimServer
+from mne.realtime import MockRtClient
+from mne.decoding import ConcatenateChannels, FilterEstimator
+
+print(__doc__)
 
 # Load fiff file to simulate data
 data_path = sample.data_path()

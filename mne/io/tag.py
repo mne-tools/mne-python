@@ -302,10 +302,19 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                 shape = (dims[1], dims[2])
                 if matrix_coding == matrix_coding_CCS:
                     #    CCS
-                    sparse_indices = np.fromstring(fid.read(4 * nnz),
-                                                   dtype='>i4')
-                    sparse_ptrs = np.fromstring(fid.read(4 * (ncol + 1)),
-                                                dtype='>i4')
+                    tmp_indices = fid.read(4 * nnz)
+                    sparse_indices = np.fromstring(tmp_indices, dtype='>i4')
+                    tmp_ptrs = fid.read(4 * (ncol + 1))
+                    sparse_ptrs = np.fromstring(tmp_ptrs, dtype='>i4')
+                    if sparse_ptrs[-1] > len(sparse_indices):
+                        # There was a bug in MNE-C that caused some data to be
+                        # stored without byte swapping
+                        sparse_indices = np.concatenate(
+                            (np.fromstring(tmp_indices[:4 * (nrow + 1)],
+                                           dtype='>i4'),
+                             np.fromstring(tmp_indices[4 * (nrow + 1):],
+                                           dtype='<i4')))
+                        sparse_ptrs = np.fromstring(tmp_ptrs, dtype='<i4')
                     tag.data = sparse.csc_matrix((sparse_data, sparse_indices,
                                                  sparse_ptrs), shape=shape)
                 else:

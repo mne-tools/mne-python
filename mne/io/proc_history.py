@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: Simplified BSD
@@ -12,6 +13,7 @@ from .write import (start_block, end_block, write_int, write_float,
                     write_string, write_float_matrix, write_int_matrix,
                     write_float_sparse_rcs, write_id)
 from .constants import FIFF
+from ..externals.six import text_type
 
 
 _proc_keys = ['parent_file_id', 'block_id', 'parent_block_id',
@@ -25,7 +27,7 @@ _proc_ids = [FIFF.FIFF_PARENT_FILE_ID,
 _proc_writers = [write_id, write_id, write_id,
                  write_int, write_string, write_string]
 _proc_casters = [dict, dict, dict,
-                 np.array, str, str]
+                 np.array, text_type, text_type]
 
 
 def _read_proc_history(fid, tree, info):
@@ -162,7 +164,7 @@ _sss_ctc_ids = (FIFF.FIFF_PARENT_FILE_ID,
 _sss_ctc_writers = (write_id, write_id, write_id,
                     write_int, write_string, write_float_sparse_rcs)
 _sss_ctc_casters = (dict, dict, dict,
-                    np.array, str, csc_matrix)
+                    np.array, text_type, csc_matrix)
 
 _sss_cal_keys = ('cal_chans', 'cal_corrs')
 _sss_cal_ids = (FIFF.FIFF_SSS_CAL_CHANS, FIFF.FIFF_SSS_CAL_CORRS)
@@ -283,6 +285,6 @@ def _get_sss_rank(sss):
     """Get SSS rank"""
     inside = sss['sss_info']['in_order']
     nfree = (inside + 1) ** 2 - 1
-    nfree -= (len(sss['sss_info']['components'][:nfree])
-              - sss['sss_info']['components'][:nfree].sum())
+    nfree -= (len(sss['sss_info']['components'][:nfree]) -
+              sss['sss_info']['components'][:nfree].sum())
     return nfree

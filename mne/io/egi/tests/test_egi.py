@@ -26,7 +26,7 @@ def test_io_egi():
     tempdir = _TempDir()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
-        _ = read_raw_egi(egi_fname, include=None)
+        read_raw_egi(egi_fname, include=None)
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
@@ -34,8 +34,8 @@ def test_io_egi():
 
     include = ['TRSP', 'XXX1']
     raw = read_raw_egi(egi_fname, include=include)
-    _ = repr(raw)
-    _ = repr(raw.info)  # analysis:ignore, noqa
+    repr(raw)
+    repr(raw.info)
 
     assert_equal('eeg' in raw, True)
     out_fname = op.join(tempdir, 'test_egi_raw.fif')

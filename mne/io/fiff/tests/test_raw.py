@@ -20,7 +20,8 @@ from nose.tools import (assert_true, assert_raises, assert_equal,
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import Raw, concatenate_raws, get_chpi_positions
+from mne.io import (Raw, concatenate_raws, get_chpi_positions,
+                    read_raw_fif)
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
@@ -51,7 +52,7 @@ hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 def test_hash_raw():
     """Test hashing raw objects
     """
-    raw = Raw(fif_fname)
+    raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
     raw = Raw(fif_fname, preload=True).crop(0, 0.5)
     raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
@@ -882,17 +883,16 @@ def test_raw_to_nitime():
     assert_true(raw_ts.data.shape[0] == len(picks))
 
 
-@testing.requires_testing_data
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test raw Pandas exporter"""
-    raw = Raw(fif_fname, preload=True)
-    df = raw.as_data_frame()
+    raw = Raw(test_fif_fname, preload=True)
+    df = raw.to_data_frame()
     assert_true((df.columns == raw.ch_names).all())
-    df = raw.as_data_frame(use_time_index=False)
-    assert_true('time' in df.columns)
-    assert_array_equal(df.values[:, 1], raw._data[0] * 1e13)
-    assert_array_equal(df.values[:, 3], raw._data[2] * 1e15)
+    df = raw.to_data_frame(index=None)
+    assert_true('time' in df.index.names)
+    assert_array_equal(df.values[:, 0], raw._data[0] * 1e13)
+    assert_array_equal(df.values[:, 2], raw._data[2] * 1e15)
 
 
 @testing.requires_testing_data

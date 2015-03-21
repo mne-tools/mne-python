@@ -19,8 +19,8 @@ event_name = op.join(data_dir, 'test-eve.fif')
 
 tmin, tmax = -0.2, 0.5
 event_id = dict(aud_l=1, vis_l=3)
-start, stop = 0, 8  # if stop is too small pca may fail in some cases, but
-                    # we're okay on this file
+# if stop is too small pca may fail in some cases, but we're okay on this file
+start, stop = 0, 8
 
 
 def test_csp():

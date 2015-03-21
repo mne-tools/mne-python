@@ -7,8 +7,6 @@ This examples demonstrates on simulated data the different time-frequency
 estimation methods. It shows the time-frequency resolution trade-off
 and the problem of estimation variance.
 """
-print(__doc__)
-
 # Authors: Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -18,6 +16,8 @@ import numpy as np
 
 from mne import create_info, EpochsArray
 from mne.time_frequency import tfr_multitaper, tfr_stockwell, tfr_morlet
+
+print(__doc__)
 
 ###############################################################################
 # Simulate data
@@ -88,7 +88,7 @@ power = tfr_multitaper(epochs, freqs=freqs, n_cycles=n_cycles,
 power.plot([0], baseline=(0., 0.1), mode='mean', vmin=-1., vmax=3.,
            title='Sim: Less time smoothing, more frequency smoothing')
 
-################################################################################
+# #############################################################################
 # Stockwell (S) transform
 
 # S uses a Gaussian window to balance temporal and spectral resolution
@@ -103,7 +103,7 @@ for width in (0.7, 3.0):
                title='Sim: Using S transform, width '
                      '= {:0.1f}'.format(width), show=True)
 
-################################################################################
+# #############################################################################
 # Finally, compare to morlet wavelet
 
 n_cycles = freqs / 2.

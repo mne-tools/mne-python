@@ -17,7 +17,7 @@ from mne.surface import (read_morph_map, _compute_nearest,
                          get_meg_helmet_surf)
 from mne.utils import _TempDir, requires_tvtk, run_tests_if_main, slow_test
 from mne.io import read_info
-from mne.transforms import _get_mri_head_t_from_trans_file
+from mne.transforms import _get_mri_head_t
 
 data_path = testing.data_path(download=False)
 subjects_dir = op.join(data_path, 'subjects')
@@ -39,7 +39,7 @@ def test_helmet():
     fname_ctf_raw = op.join(base_dir, 'tests', 'data', 'test_ctf_raw.fif')
     fname_trans = op.join(base_dir, 'tests', 'data',
                           'sample-audvis-raw-trans.txt')
-    trans = _get_mri_head_t_from_trans_file(fname_trans)
+    trans = _get_mri_head_t(fname_trans)[0]
     for fname in [fname_raw, fname_kit_raw, fname_bti_raw, fname_ctf_raw]:
         helmet = get_meg_helmet_surf(read_info(fname), trans)
         assert_equal(len(helmet['rr']), 304)  # they all have 304 verts
@@ -122,13 +122,13 @@ def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
     tempdir = _TempDir()
-    surf = read_bem_surfaces(fname, add_geom=True)
-    surf = read_bem_surfaces(fname, add_geom=False)
+    surf = read_bem_surfaces(fname, patch_stats=True)
+    surf = read_bem_surfaces(fname, patch_stats=False)
     print("Number of surfaces : %d" % len(surf))
 
     write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
     surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  add_geom=False)
+                                  patch_stats=False)
 
     for key in surf[0].keys():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])

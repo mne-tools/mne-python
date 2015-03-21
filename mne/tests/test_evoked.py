@@ -10,6 +10,7 @@ from copy import deepcopy
 import warnings
 
 import numpy as np
+from scipy import fftpack
 from numpy.testing import (assert_array_almost_equal, assert_equal,
                            assert_array_equal, assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_not_equal
@@ -19,7 +20,7 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, EvokedArray, merge_evoked
 from mne.epochs import EpochsArray
 
-from mne.utils import _TempDir, requires_pandas, requires_nitime
+from mne.utils import _TempDir, requires_pandas, requires_nitime, slow_test
 
 from mne.io.meas_info import create_info
 from mne.externals.six.moves import cPickle as pickle
@@ -30,6 +31,27 @@ fname = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                 'test-ave.fif')
 fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
+
+
+def test_filter():
+    """Test savgol filtering
+    """
+    h_freq = 10.
+    evoked = read_evokeds(fname, 0)
+    freqs = fftpack.fftfreq(len(evoked.times), 1. / evoked.info['sfreq'])
+    data = np.abs(fftpack.fft(evoked.data))
+    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
+    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    assert_raises(ValueError, evoked.savgol_filter, evoked.info['sfreq'])
+    evoked.savgol_filter(h_freq)
+    data_filt = np.abs(fftpack.fft(evoked.data))
+    # decent in pass-band
+    assert_allclose(np.mean(data[:, match_mask], 0),
+                    np.mean(data_filt[:, match_mask], 0),
+                    rtol=1e-4, atol=1e-2)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, mismatch_mask]) >
+                np.mean(data_filt[:, mismatch_mask]) * 5)
 
 
 def test_hash_evoked():
@@ -45,6 +67,7 @@ def test_hash_evoked():
     assert_not_equal(hash(ave), hash(ave_2))
 
 
+@slow_test
 def test_io_evoked():
     """Test IO for evoked data (fif + gz) with integer and str args
     """
@@ -202,13 +225,13 @@ def test_evoked_to_nitime():
 
 
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test evoked Pandas exporter"""
     ave = read_evokeds(fname, 0)
-    assert_raises(ValueError, ave.as_data_frame, picks=np.arange(400))
-    df = ave.as_data_frame()
+    assert_raises(ValueError, ave.to_data_frame, picks=np.arange(400))
+    df = ave.to_data_frame()
     assert_true((df.columns == ave.ch_names).all())
-    df = ave.as_data_frame(use_time_index=False)
+    df = ave.to_data_frame(index=None).reset_index('time')
     assert_true('time' in df.columns)
     assert_array_equal(df.values[:, 1], ave.data[0] * 1e13)
     assert_array_equal(df.values[:, 3], ave.data[2] * 1e15)
@@ -339,7 +362,7 @@ def test_evoked_arithmetic():
     ev = read_evokeds(fname, condition=0)
     ev1 = EvokedArray(np.ones_like(ev.data), ev.info, ev.times[0], nave=20)
     ev2 = EvokedArray(-np.ones_like(ev.data), ev.info, ev.times[0], nave=10)
-    
+
     # combine_evoked([ev1, ev2]) should be the same as ev1 + ev2:
     # data should be added according to their `nave` weights
     # nave = ev1.nave + ev2.nave
@@ -348,12 +371,24 @@ def test_evoked_arithmetic():
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
     ev = ev1 - ev2
     assert_equal(ev.nave, ev1.nave + ev2.nave)
+    assert_equal(ev.comment, ev1.comment + ' - ' + ev2.comment)
     assert_allclose(ev.data, np.ones_like(ev1.data))
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         ev = merge_evoked([ev1, ev2])
     assert_true(len(w) >= 1)
     assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
+
+    # default comment behavior if evoked.comment is None
+    old_comment1 = ev1.comment
+    old_comment2 = ev2.comment
+    ev1.comment = None
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        ev = ev1 - ev2
+        assert_equal(ev.comment, 'unknown')
+    ev1.comment = old_comment1
+    ev2.comment = old_comment2
 
     # equal weighting
     ev = combine_evoked([ev1, ev2], weights='equal')

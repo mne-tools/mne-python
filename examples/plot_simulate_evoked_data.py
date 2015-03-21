@@ -9,8 +9,6 @@ Generate simulated evoked data
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -22,6 +20,8 @@ from mne.datasets import sample
 from mne.time_frequency import iir_filter_raw, morlet
 from mne.viz import plot_sparse_source_estimates
 from mne.simulation import generate_sparse_stc, generate_evoked
+
+print(__doc__)
 
 ###############################################################################
 # Load real data as templates

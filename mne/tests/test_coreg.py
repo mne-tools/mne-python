@@ -1,10 +1,9 @@
 from glob import glob
 import os
 
-from nose.tools import assert_raises, assert_true, assert_equal
+from nose.tools import assert_raises, assert_true
 import numpy as np
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_array_less)
+from numpy.testing import assert_array_almost_equal, assert_array_less
 
 import mne
 from mne.transforms import apply_trans, rotation, translation, scaling

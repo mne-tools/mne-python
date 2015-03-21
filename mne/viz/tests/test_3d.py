@@ -20,6 +20,10 @@ from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 trans_fname = op.join(data_dir, 'MEG', 'sample',
@@ -31,10 +35,6 @@ base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 
 @testing.requires_testing_data

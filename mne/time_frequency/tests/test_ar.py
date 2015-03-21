@@ -11,6 +11,7 @@ from mne.utils import requires_statsmodels, requires_patsy
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 
+
 @requires_patsy
 @requires_statsmodels
 def test_yule_walker():

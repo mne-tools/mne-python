@@ -13,16 +13,19 @@ from collections import defaultdict
 from itertools import combinations
 import os
 import os.path as op
+
 import numpy as np
 from scipy.spatial.distance import pdist
+
+from .channels import _contains_ch_type
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names
 from ..externals.six.moves import map
-from .channels import _contains_ch_type
 from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
-                          _cartesian_to_sphere)
+                          _cartesian_to_sphere, apply_trans,
+                          get_ras_to_neuromag_trans)
 
 
 class Layout(object):
@@ -311,8 +314,8 @@ def make_grid_layout(info, picks=None, n_col=None):
     y += 0.5
 
     # calculate pos
-    pos = np.c_[x - 0.5*width, y - 0.5*height, width * np.ones(size), height *
-                np.ones(size)]
+    pos = np.c_[x - 0.5 * width, y - 0.5 * height,
+                width * np.ones(size), height * np.ones(size)]
     box = (0, 1, 0, 1)
 
     layout = Layout(box=box, pos=pos, names=names, kind='grid-misc', ids=ids)
@@ -441,8 +444,11 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
-    xdiff = lambda a, b: np.abs(a[0] - b[0])
-    ydiff = lambda a, b: np.abs(a[1] - b[1])
+    def xdiff(a, b):
+        return np.abs(a[0] - b[0])
+
+    def ydiff(a, b):
+        return np.abs(a[1] - b[1])
 
     points = np.asarray(points)
     all_combinations = list(combinations(points, 2))
@@ -760,8 +766,10 @@ class Montage(object):
                             show_names=show_names)
 
 
-def read_montage(kind, ch_names=None, path=None, scale=True):
+def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read montage from a file
+
+    Note: built-in montages are not scaled or transformed by default.
 
     Parameters
     ----------
@@ -774,9 +782,14 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
     path : str | None
         The path of the folder containing the montage file. Defaults to the
         mne/channels/data/montages folder in your mne-python installation.
-    scale : bool
-        Apply useful scaling for out the box plotting using montage.pos.
-        Defaults to True.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the input file. If not 'm', coordinates will be rescaled
+        to 'm'.
+    transform : bool
+        If True, points will be transformed to Neuromag space.
+        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
+        the montage file. Useful for points captured using Polhemus FastSCAN.
+        Default is False.
 
     Returns
     -------
@@ -879,13 +892,37 @@ def read_montage(kind, ch_names=None, path=None, scale=True):
         dtype = [('type', 'S8'), ('name', 'S8'),
                  ('x', 'f8'), ('y', 'f8'), ('z', 'f8')]
         data = np.loadtxt(fname, dtype=dtype)
-        pos_ = data[data['type'].astype(np.str) == 'eeg']
-        pos = np.vstack((pos_['x'], pos_['y'], pos_['z'])).T
-        ch_names_ = pos_['name'].astype(np.str)
+        pos = np.vstack((data['x'], data['y'], data['z'])).T
+        ch_names_ = data['name'].astype(np.str)
     else:
         raise ValueError('Currently the "%s" template is not supported.' %
                          kind)
     selection = np.arange(len(pos))
+
+    if unit == 'mm':
+        pos /= 1e3
+    elif unit == 'cm':
+        pos /= 1e2
+    elif unit != 'm':
+        raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
+    if transform is True:
+        names_lower = [name.lower() for name in list(ch_names_)]
+        fids = ('nasion', 'lpa', 'rpa')
+        # check that all needed points are present
+        missing = [name for name in fids
+                   if name not in names_lower]
+        if missing:
+            raise ValueError("The points %s are missing, but are needed "
+                             "to transform the points to the MNE coordinate "
+                             "system. Either add the points, or read the "
+                             "montage with scale as bool." % missing)
+
+        nasion = pos[names_lower.index('nasion')]
+        lpa = pos[names_lower.index('lpa')]
+        rpa = pos[names_lower.index('rpa')]
+        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+        pos = apply_trans(neuromag_trans, pos)
+
     if ch_names is not None:
         sel, ch_names_ = zip(*[(i, e) for i, e in enumerate(ch_names_)
                              if e in ch_names])

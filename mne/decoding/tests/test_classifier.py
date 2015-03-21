@@ -30,7 +30,7 @@ def test_scaler():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
 
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -58,17 +58,33 @@ def test_filterestimator():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
-    filt = FilterEstimator(epochs.info, 1, 40)
+
+    # Add tests for different combinations of l_freq and h_freq
+    filt = FilterEstimator(epochs.info, l_freq=1, h_freq=40)
     y = epochs.events[:, -1]
     with warnings.catch_warnings(record=True):  # stop freq attenuation warning
         X = filt.fit_transform(epochs_data, y)
         assert_true(X.shape == epochs_data.shape)
         assert_array_equal(filt.fit(epochs_data, y).transform(epochs_data), X)
+
+    filt = FilterEstimator(epochs.info, l_freq=0, h_freq=40)
+    y = epochs.events[:, -1]
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        X = filt.fit_transform(epochs_data, y)
+
+    filt = FilterEstimator(epochs.info, l_freq=1, h_freq=1)
+    y = epochs.events[:, -1]
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        assert_raises(ValueError, filt.fit_transform, epochs_data, y)
+
+    filt = FilterEstimator(epochs.info, l_freq=1, h_freq=None)
+    with warnings.catch_warnings(record=True):  # stop freq attenuation warning
+        X = filt.fit_transform(epochs_data, y)
 
     # Test init exception
     assert_raises(ValueError, filt.fit, epochs, y)
@@ -81,7 +97,7 @@ def test_psdestimator():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
@@ -104,9 +120,9 @@ def test_concatenatechannels():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                            eog=False, exclude='bads')
+                       eog=False, exclude='bads')
     picks = picks[1:13:3]
-    with warnings.catch_warnings(record=True) as w:
+    with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()

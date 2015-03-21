@@ -95,7 +95,6 @@ class RawEDF(_BaseRaw):
         self.first_samp = 0
         self.last_samp = self._edf_info['nsamples'] - 1
         self.comp = None  # no compensation for EDF
-        self.proj = False
         self._first_samps = np.array([self.first_samp])
         self._last_samps = np.array([self.last_samp])
         self._raw_lengths = np.array([self._edf_info['nsamples']])
@@ -206,108 +205,56 @@ class RawEDF(_BaseRaw):
             fid.seek(data_offset + pointer)
             datas = np.empty((n_chan, buffer_size), dtype=float)
             blocks = int(ceil(float(buffer_size) / max_samp))
-            # bdf data: 24bit data
-            if subtype in ('24BIT', 'bdf'):
-                # sixteen bit trigger mask based on bdf2biosig_events from BIOSIG
-                mask = 2 ** 15 - 1
-                # loop over 10 record increments to not tax the memory
-                buffer_step = int(max_samp * 10)
-                for k, block in enumerate(range(buffer_size, 0, -buffer_step)):
-                    step = buffer_step
-                    if block < step:
-                        step = block
-                    samp = int(step * n_chan * data_size)
-                    blocks = int(ceil(float(step) / max_samp))
-                    # complicated bdf: various sampling rates within file
-                    if len(np.unique(n_samps)) != 1:
-                        for i in range(blocks):
-                            data = np.empty((n_chan, max_samp), dtype=int)
-                            for j, samp in enumerate(n_samps):
-                                chan_data = np.fromfile(fid, dtype=np.uint8,
-                                                        count=samp*data_size)
-                                chan_data = (chan_data[0::3] +
-                                             chan_data[1::3] << 8 +
-                                             chan_data[2::3] << 16)
-                                if j == stim_channel and samp < max_samp:
-                                    warnings.warn('Interpolating stim channel. '
-                                                  'Events may jitter.')
-                                    oldrange = np.linspace(0, 1, samp + 1,
-                                                           True)
-                                    newrange = np.linspace(0, 1, max_samp, False)
-                                    chan_data = interp1d(oldrange,
-                                                         np.append(chan_data, 0),
-                                                         kind='zero')(newrange)
-                                elif samp != max_samp:
-                                    chan_data = resample(x=chan_data, up=max_samp,
-                                                         down=samp, npad=0)
-                                data[j] = chan_data
-                            start_pt = int((max_samp * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + max_samp)
-                            datas[:, start_pt:stop_pt] = data
-                    else:
-                        # simple bdf                    
-                        data = np.fromfile(fid, dtype=np.uint8, count=samp)
-                        data = data.reshape(-1, 3).astype(np.int32)
-                        
-                        # this converts to 24-bit little endian integer
-                        # # no support in numpy
-                        data = (data[:, 0] + (data[:, 1] << 8) +
-                                (data[:, 2] << 16))
+            for i in range(blocks):
+                data = np.empty((n_chan, max_samp), dtype=np.int32)
+                for j, samp in enumerate(n_samps):
+                    # bdf data: 24bit data
+                    if subtype in ('24BIT', 'bdf'):
+                        # sixteen bit trigger mask based on bdf2biosig_events
+                        # from BIOSIG
+                        mask = 2 ** 15 - 1
+                        ch_data = np.fromfile(fid, dtype=np.uint8,
+                                              count=samp * data_size)
+                        ch_data = ch_data.reshape(-1, 3).astype(np.int32)
+                        ch_data = ((ch_data[:, 0]) +
+                                   (ch_data[:, 1] << 8) +
+                                   (ch_data[:, 2] << 16))
                         # 24th bit determines the sign
-                        data[data >= (1 << 23)] -= (1 << 24)
-
-                        data = data.reshape((int(max_samp), n_chan, blocks),
-                                            order='F')
-                        for i in range(blocks):
-                            start_pt = int((max_samp * i) + (k * buffer_step))
-                            stop_pt = int(start_pt + max_samp)
-                            datas[:, start_pt:stop_pt] = data[:, :, i].T
-            else:
-                # eight bit trigger mask
-                mask = 2 ** 8 - 1
-                # complicated edf: various sampling rates within file
-                if len(np.unique(n_samps)) != 1:
-                    for i in range(blocks):
-                        data = np.empty((n_chan, max_samp), dtype=int)
-                        for j, samp in enumerate(n_samps):
-                            chan_data = np.fromfile(fid, dtype='<i2',
-                                                    count=samp)
-                            if j == tal_channel:
-                                # don't resample tal_channel,
-                                # pad with zeros instead.
-                                n_missing = int(max_samp - samp) * blocks
-                                chan_data = np.hstack([chan_data, [0] * n_missing])
-                            elif j == stim_channel and samp < max_samp:
-                                if annot and annotmap or tal_channel is not None:
-                                    # don't bother with resampling the stim channel
-                                    # because it gets overwritten later on.
-                                    chan_data = np.zeros(max_samp)
-                                else:
-                                    warnings.warn('Interpolating stim channel. '
-                                                  'Events may jitter.')
-                                    oldrange = np.linspace(0, 1, samp + 1,
-                                                           True)
-                                    newrange = np.linspace(0, 1, max_samp, False)
-                                    chan_data = interp1d(oldrange,
-                                                         np.append(chan_data, 0),
-                                                         kind='zero')(newrange)
-                            elif samp != max_samp:
-                                chan_data = resample(x=chan_data, up=max_samp,
-                                                     down=samp, npad=0)
-                            data[j] = chan_data
-                        start_pt = int(max_samp * i)
-                        stop_pt = int(start_pt + max_samp)
-                        datas[:, start_pt:stop_pt] = data
-                # simple edf
-                else:
-                    data = np.fromfile(fid, dtype='<i2',
-                                       count=buffer_size * n_chan)
-                    data = data.reshape((int(max_samp), n_chan, blocks),
-                                        order='F')
-                    for i in range(blocks):
-                        start_pt = int(max_samp * i)
-                        stop_pt = int(start_pt + max_samp)
-                        datas[:, start_pt:stop_pt] = data[:, :, i].T
+                        ch_data[ch_data >= (1 << 23)] -= (1 << 24)
+                    # edf data: 16bit data
+                    else:
+                        # eight bit trigger mask
+                        mask = 2 ** 8 - 1
+                        ch_data = np.fromfile(fid, dtype='<i2', count=samp)
+                    if j == tal_channel:
+                        # don't resample tal_channel,
+                        # pad with zeros instead.
+                        n_missing = int(max_samp - samp)
+                        ch_data = np.hstack([ch_data,
+                                             [0] * n_missing])
+                    elif j == stim_channel and samp < max_samp:
+                        if annot and annotmap or \
+                                tal_channel is not None:
+                            # don't bother with resampling the stim ch
+                            # because it gets overwritten later on.
+                            ch_data = np.zeros(max_samp)
+                        else:
+                            warnings.warn('Interpolating stim channel.'
+                                          ' Events may jitter.')
+                            oldrange = np.linspace(0, 1, samp + 1,
+                                                   True)
+                            newrange = np.linspace(0, 1, max_samp,
+                                                   False)
+                            ch_data = interp1d(
+                                oldrange, np.append(ch_data, 0),
+                                kind='zero')(newrange)
+                    elif samp != max_samp:
+                        ch_data = resample(x=ch_data, up=max_samp, down=samp,
+                                           npad=0)
+                    data[j] = ch_data
+                start_pt = int(max_samp * i)
+                stop_pt = int(start_pt + max_samp)
+                datas[:, start_pt:stop_pt] = data
         datas *= gains.T
 
         if stim_channel is not None:
@@ -456,8 +403,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         assert(fid.tell() == 0)
         fid.seek(8)
 
-        _ = fid.read(80).strip().decode()  # subject id
-        _ = fid.read(80).strip().decode()  # recording id
+        fid.read(80).strip().decode()  # subject id
+        fid.read(80).strip().decode()  # recording id
         day, month, year = [int(x) for x in re.findall('(\d+)',
                                                        fid.read(8).decode())]
         hour, minute, sec = [int(x) for x in re.findall('(\d+)',
@@ -474,12 +421,18 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
 
         edf_info['n_records'] = n_records = int(fid.read(8).decode())
         # record length in seconds
-        edf_info['record_length'] = record_length = float(fid.read(8).decode())
+        record_length = float(fid.read(8).decode())
+        if record_length == 0:
+            edf_info['record_length'] = record_length = 1.
+            warnings.warn('Header information is incorrect for record length. '
+                          'Default record length set to 1.')
+        else:
+            edf_info['record_length'] = record_length
         info['nchan'] = nchan = int(fid.read(4).decode())
         channels = list(range(info['nchan']))
-        ch_names = [fid.read(16).strip().decode() for _ in channels]
-        _ = [fid.read(80).strip().decode() for _ in channels]  # transducer
-        units = [fid.read(8).strip().decode() for _ in channels]
+        ch_names = [fid.read(16).strip().decode() for ch in channels]
+        [fid.read(80).strip().decode() for ch in channels]  # transducer
+        units = [fid.read(8).strip().decode() for ch in channels]
         for i, unit in enumerate(units):
             if unit == 'uV':
                 units[i] = 1e-6
@@ -487,14 +440,14 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 units[i] = 1
         edf_info['units'] = units
         physical_min = np.array([float(fid.read(8).decode())
-                                 for _ in channels])
+                                 for ch in channels])
         physical_max = np.array([float(fid.read(8).decode())
-                                 for _ in channels])
+                                 for ch in channels])
         digital_min = np.array([float(fid.read(8).decode())
-                                for _ in channels])
+                                for ch in channels])
         digital_max = np.array([float(fid.read(8).decode())
-                                for _ in channels])
-        prefiltering = [fid.read(80).strip().decode() for _ in channels][:-1]
+                                for ch in channels])
+        prefiltering = [fid.read(80).strip().decode() for ch in channels][:-1]
         highpass = np.ravel([re.findall('HP:\s+(\w+)', filt)
                              for filt in prefiltering])
         lowpass = np.ravel([re.findall('LP:\s+(\w+)', filt)
@@ -512,9 +465,8 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                 info['highpass'] = float(highpass[0])
         else:
             info['highpass'] = float(np.min(highpass))
-            warnings.warn('%s' % ('Channels contain different highpass'
-                                  + 'filters. Highest filter setting will'
-                                  + 'be stored.'))
+            warnings.warn('Channels contain different highpass filters. '
+                          'Highest filter setting will be stored.')
 
         if lowpass.size == 0:
             info['lowpass'] = None
@@ -528,7 +480,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
         # number of samples per record
-        n_samps = np.array([int(fid.read(8).decode()) for _ in channels])
+        n_samps = np.array([int(fid.read(8).decode()) for ch in channels])
         edf_info['n_samps'] = n_samps
 
         fid.read(32 * info['nchan']).decode()  # reserved
@@ -550,6 +502,17 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     logger.info('Setting channel info structure...')
     info['chs'] = []
     info['ch_names'] = ch_names
+    tal_ch_name = 'EDF Annotations'
+    # TODO: keyword argument for TAL is deprecated
+    if tal_channel == -1:
+        tal_channel = info['nchan'] - 1
+    elif tal_ch_name in ch_names:
+        tal_channel = ch_names.index(tal_ch_name)
+    edf_info['tal_channel'] = tal_channel
+    if tal_channel is not None and stim_channel is not None and not preload:
+        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
+                                   ' parsed completely on loading.'
+                                   ' You must set preload parameter to True.'))
     if stim_channel == -1:
         stim_channel = info['nchan'] - 1
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
@@ -587,28 +550,26 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             info['ch_names'][idx] = chan_info['ch_name']
             if isinstance(stim_channel, str):
                 stim_channel = idx
+        if tal_channel == idx:
+            chan_info['range'] = 1
+            chan_info['cal'] = 1
+            chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
+            chan_info['unit'] = FIFF.FIFF_UNIT_NONE
+            chan_info['kind'] = FIFF.FIFFV_MISC_CH
         info['chs'].append(chan_info)
     edf_info['stim_channel'] = stim_channel
 
     # sfreq defined as the max sampling rate of eeg
     picks = pick_types(info, meg=False, eeg=True)
-    edf_info['max_samp'] = max_samp = n_samps[picks].max()
-    info['sfreq'] = max_samp / float(record_length)
+    if len(picks) == 0:
+        edf_info['max_samp'] = max_samp = n_samps.max()
+    else:
+        edf_info['max_samp'] = max_samp = n_samps[picks].max()
+    info['sfreq'] = max_samp / record_length
     edf_info['nsamples'] = int(n_records * max_samp)
 
     if info['lowpass'] is None:
         info['lowpass'] = info['sfreq'] / 2.
-
-    # TODO: automatic detection of the tal_channel?
-    if tal_channel == -1:
-        edf_info['tal_channel'] = info['nchan'] - 1
-    else:
-        edf_info['tal_channel'] = tal_channel
-
-    if tal_channel and not preload:
-        raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
-                                   ' parsed completely on loading.'
-                                   'Must set preload=True'))
 
     return info, edf_info
 
@@ -696,10 +657,19 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    Returns
+    -------
+    raw : Instance of RawEDF
+        A Raw object containing EDF data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+    if tal_channel is not None:
+        warnings.warn("`tal_channel` arg is deprecated and will be removed in "
+                      "0.10. This channel will be automatically detected.",
+                      category=DeprecationWarning)
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
                   tal_channel=tal_channel, preload=preload, verbose=verbose)

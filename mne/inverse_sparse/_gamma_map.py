@@ -84,7 +84,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         denom_fun = np.sqrt
     else:
         # do nothing
-        denom_fun = lambda x: x
+        def denom_fun(x):
+            return x
 
     for itno in np.arange(maxit):
         gammas[np.isnan(gammas)] = 0.0
@@ -138,8 +139,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         gammas_full = np.zeros(n_sources, dtype=np.float)
         gammas_full[active_set] = gammas
 
-        err = (np.sum(np.abs(gammas_full - gammas_full_old))
-               / np.sum(np.abs(gammas_full_old)))
+        err = (np.sum(np.abs(gammas_full - gammas_full_old)) /
+               np.sum(np.abs(gammas_full_old)))
 
         gammas_full_old = gammas_full
 

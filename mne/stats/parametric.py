@@ -1,11 +1,10 @@
 import numpy as np
 from scipy import stats
 from scipy.stats import f
-fprob = f.sf  # stats.fprob is deprecated
 from scipy.signal import detrend
 from ..fixes import matrix_rank
 from functools import reduce
-from ..externals.six.moves import map  # analysis:ignore
+fprob = f.sf  # stats.fprob is deprecated
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -20,9 +19,9 @@ defaults_twoway_rm = {
         'A+B': [0, 1],
         'A:B': [2],
         'A*B': [0, 1, 2]
-        },
+    },
     'iter_contrasts': np.array([(1, 0, 1), (0, 1, 1), (1, 1, 1)])
-    }
+}
 
 
 # The following function is a rewriting of scipy.stats.f_oneway
@@ -265,4 +264,4 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
         pvalues.append(pvals)
 
     # handle single effect returns
-    return [np.squeeze(np.asarray(v)) for v in (fvalues, pvalues)]
+    return [np.squeeze(np.asarray(vv)) for vv in (fvalues, pvalues)]

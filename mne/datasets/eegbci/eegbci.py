@@ -5,7 +5,8 @@ import os
 from os import path as op
 from ...externals.six import string_types
 from ...externals.six.moves import input
-from ...utils import _fetch_file, get_config, set_config, _url_to_local_path
+from ...utils import (_fetch_file, get_config, set_config, _url_to_local_path,
+                      logger)
 
 
 EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
@@ -62,7 +63,7 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Mietus JE, Moody GB, Peng C-K, Stanley HE. (2000) PhysioBank,
         PhysioToolkit, and PhysioNet: Components of a New Research Resource for
         Complex Physiologic Signals. Circulation 101(23):e215-e220
-    """
+    """  # noqa
 
     if path is None:
         # use an intelligent guess if it's not defined
@@ -90,9 +91,9 @@ def data_path(url, path=None, force_update=False, update_path=None):
                         os.mkdir(path)
                 except OSError:
                     raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument "
-                                  "to data_path() where user has write "
-                                  "permissions, for ex:data_path"
+                                  "at '%s', try giving the path as an "
+                                  "argument  to data_path() where user has "
+                                  "write permissions, for ex:data_path"
                                   "('/home/xyz/me2/')" % (path))
 
     if not isinstance(path, string_types):

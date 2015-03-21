@@ -1337,7 +1337,7 @@ the following command-line options:
 **\---smfout <*name*>**
 
     Specifies a smf (Simple Model Format) output file. For details of this
-    format, see http://people.scs.fsu.edu/~burkardt/data/smf.txt.
+    format, see http://people.sc.fsu.edu/~jburkardt/data/smf/smf.txt.
 
 .. note:: Multiple output options can be specified to    produce outputs in several different formats with a single invocation    of mne_convert_surface .
 
@@ -1984,7 +1984,7 @@ is provided in :ref:`BEHJEIHJ`.
     +-----------------------+-----------------+------------------------------------------------------------+
     | ch_lognos             | nchan x 1       | Logical channel numbers as listed in the fiff file         |
     +-----------------------+-----------------+------------------------------------------------------------+
-    | ch_units              | nchan x 2       | Units and unit multipliers as listed in the fif file.      |
+    | ch_units              | nchan x 2       | Units and unit multipliers as listed in the fif file.      |
     |                       |                 | The unit of the data is listed in the first column         |
     |                       |                 | (T = 112, T/m = 201, V = 107). At present, the second      |
     |                       |                 | column will be always zero, *i.e.*, no unit multiplier.    |
@@ -2017,7 +2017,7 @@ is provided in :ref:`BEHJEIHJ`.
 .. table:: The bufs member of the raw data info structure.
 
     +-----------------------+-------------------------------------------------------------------------+
-    | Column                | Contents                                                                |
+    | Column                | Contents                                                                |
     +-----------------------+-------------------------------------------------------------------------+
     | 1                     | The raw data type (2 or 16 = 2-byte signed integer, 3 = 4-byte signed   |
     |                       | integer, 4 = single-precision float). All data in the fif file are      |

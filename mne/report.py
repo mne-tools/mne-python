@@ -3,6 +3,7 @@
 
 # Authors: Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -228,13 +229,13 @@ def _iterate_files(report, fnames, info, sfreq):
                 html = report._render_epochs(fname)
                 report_fname = fname
                 report_sectionlabel = 'epochs'
-            elif (fname.endswith(('-cov.fif', '-cov.fif.gz'))
-                  and report.info_fname is not None):
+            elif (fname.endswith(('-cov.fif', '-cov.fif.gz')) and
+                  report.info_fname is not None):
                 html = report._render_cov(fname, info)
                 report_fname = fname
                 report_sectionlabel = 'covariance'
-            elif (fname.endswith(('-trans.fif', '-trans.fif.gz'))
-                  and report.info_fname is not None and report.subjects_dir
+            elif (fname.endswith(('-trans.fif', '-trans.fif.gz')) and
+                  report.info_fname is not None and report.subjects_dir
                   is not None and report.subject is not None):
                 html = report._render_trans(fname, report.data_path, info,
                                             report.subject,
@@ -705,7 +706,7 @@ class Report(object):
         import matplotlib.pyplot as plt
         try:
             # on some version mayavi.core won't be exposed unless ...
-            from mayavi import mlab  # noqa, analysis:ignore... mlab imported
+            from mayavi import mlab  # noqa, mlab imported
             import mayavi
         except ImportError:
             warnings.warn('Could not import mayavi. Trying to render '
@@ -800,10 +801,10 @@ class Report(object):
 
         Parameters
         ----------
-        fnames : list of str
-            A list of filenames from which images are read.
-        captions : list of str
-            A list of captions to the images.
+        fnames : str | list of str
+            A filename or a list of filenames from which images are read.
+        captions : str | list of str
+            A caption or a list of captions to the images.
         scale : float | None
             Scale the images maintaining the aspect ratio.
             Defaults to None. If None, no scaling will be applied.
@@ -838,6 +839,52 @@ class Report(object):
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
+
+    def add_htmls_to_section(self, htmls, captions, section='custom'):
+        """Append htmls to the report.
+
+        Parameters
+        ----------
+        htmls : str | list of str
+            An html str or a list of html str.
+        captions : str | list of str
+            A caption or a list of captions to the htmls.
+        section : str
+            Name of the section. If section already exists, the images
+            will be appended to the end of the section.
+        """
+        htmls, captions = self._validate_input(htmls, captions, section)
+        for html, caption in zip(htmls, captions):
+            caption = 'custom plot' if caption == '' else caption
+            sectionvar = self._sectionvars[section]
+
+            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
+            self._sectionlabels.append(sectionvar)
+            self.html.append(html)
+
+    def render_bem(self, subject, decim=2, n_jobs=1, subjects_dir=None):
+        """Renders a bem slider html str.
+
+        Parameters
+        ----------
+        subject : str
+            Subject name.
+        decim : int
+            Use this decimation factor for generating MRI/BEM images
+            (since it can be time consuming).
+        n_jobs : int
+          Number of jobs to run in parallel.
+        subjects_dir : str | None
+            Path to the SUBJECTS_DIR. If None, the path is obtained by using
+            the environment variable SUBJECTS_DIR.
+
+        Returns
+        -------
+        html : str
+            An html str that can be added to the report.
+        """
+        return self._render_bem(subject=subject, subjects_dir=subjects_dir,
+                                decim=decim, n_jobs=n_jobs)
 
     ###########################################################################
     # HTML rendering
@@ -885,11 +932,11 @@ class Report(object):
             f = open(op.join(op.dirname(__file__), 'html', inc_fname),
                      'r')
             if inc_fname.endswith('.js'):
-                include.append(u'<script type="text/javascript">'
-                               + f.read() + u'</script>')
+                include.append(u'<script type="text/javascript">' +
+                               f.read() + u'</script>')
             elif inc_fname.endswith('.css'):
-                include.append(u'<style type="text/css">'
-                               + f.read() + u'</style>')
+                include.append(u'<style type="text/css">' +
+                               f.read() + u'</style>')
             f.close()
 
         self.include = ''.join(include)
@@ -1058,24 +1105,18 @@ class Report(object):
 
                     # loop through conditions for evoked
                     if fname.endswith(('-ave.fif', '-ave.fif.gz')):
-                       # XXX: remove redundant read_evokeds
+                        # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
-                        html_toc += toc_list.substitute(div_klass=div_klass,
-                                                        id=None, tooltip=fname,
-                                                        color='#428bca',
-                                                        text=
-                                                        os.path.basename(fname)
-                                                        )
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=None, tooltip=fname,
+                            color='#428bca', text=os.path.basename(fname))
 
                         html_toc += u'<li class="evoked"><ul>'
                         for ev in evokeds:
-                            html_toc += toc_list.substitute(div_klass=
-                                                            div_klass,
-                                                            id=global_id,
-                                                            tooltip=fname,
-                                                            color=color,
-                                                            text=ev.comment)
+                            html_toc += toc_list.substitute(
+                                div_klass=div_klass, id=global_id,
+                                tooltip=fname, color=color, text=ev.comment)
                             global_id += 1
                         html_toc += u'</ul></li>'
 

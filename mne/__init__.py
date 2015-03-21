@@ -14,10 +14,10 @@
 #   X.YrcN  # Release Candidate
 #   X.Y     # Final release
 #
-# Dev branch marker is: 'X.Y.dev' or 'X.Y.devN' where N is an integer.
+# Dev branch marker is: 'X.Y.devN' where N is an integer.
 #
 
-__version__ = '0.9.dev'
+__version__ = '0.9.dev0'
 
 # have to import verbose first since it's needed by many things
 from .utils import (set_log_level, set_log_file, verbose, set_config,
@@ -31,7 +31,7 @@ from .io.base import concatenate_raws, get_chpi_positions
 from .io.meas_info import create_info
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
-                  whiten_evoked)
+                  whiten_evoked, make_ad_hoc_cov)
 from .event import (read_events, write_events, find_events, merge_events,
                     pick_events, make_fixed_length_events, concatenate_events,
                     find_stim_steps)
@@ -73,9 +73,10 @@ from .transforms import (transform_coordinates, read_trans, write_trans,
 from .proj import (read_proj, write_proj, compute_proj_epochs,
                    compute_proj_evoked, compute_proj_raw, sensitivity_map)
 from .selection import read_selection
-from .dipole import read_dip
+from .dipole import read_dip, read_dipole, Dipole, fit_dipole
 from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
+from .bem import make_sphere_model
 
 from . import beamformer
 from . import commands

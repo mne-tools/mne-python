@@ -17,6 +17,8 @@ BEM segmentations which are required for computing the forward solution.
 from mne.viz import plot_bem
 from mne.datasets import sample
 
+print(__doc__)
+
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 

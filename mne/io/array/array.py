@@ -7,11 +7,8 @@
 
 import numpy as np
 
-from ..constants import FIFF
-from ..meas_info import Info
 from ..base import _BaseRaw
 from ...utils import verbose, logger
-from ...externals.six import string_types
 
 
 class RawArray(_BaseRaw):
@@ -49,7 +46,6 @@ class RawArray(_BaseRaw):
         self.cals = cals
         self.orig_format = 'double'
         self.rawdirs = list()
-        self.proj = None
         self.comp = None
         self._filenames = list()
         self.preload = True

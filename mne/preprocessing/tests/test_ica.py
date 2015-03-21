@@ -35,9 +35,8 @@ evoked_nf_name = op.join(data_dir, 'test-nf-ave.fif')
 test_cov_name = op.join(data_dir, 'test-cov.fif')
 
 event_id, tmin, tmax = 1, -0.2, 0.2
-start, stop = 0, 6  # if stop is too small pca may fail in some cases, but
-                    # we're okay on this file
-
+# if stop is too small pca may fail in some cases, but we're okay on this file
+start, stop = 0, 6
 score_funcs_unsuited = ['pointbiserialr', 'ansari']
 try:
     from sklearn.utils.validation import NonBLASDotWarning
@@ -159,7 +158,7 @@ def test_ica_core():
 
     # test essential core functionality
     for n_cov, n_comp, max_n, pcks, method in iter_ica_params:
-      # Test ICA raw
+        # Test ICA raw
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0, method=method, max_iter=1)
@@ -248,9 +247,9 @@ def test_ica_additional():
     # test if n_components=None works
     with warnings.catch_warnings(record=True):
         ica = ICA(n_components=None,
-                   max_pca_components=None,
-                   n_pca_components=None, random_state=0)
-        ica.fit(epochs, picks=picks, decim=3)                    
+                  max_pca_components=None,
+                  n_pca_components=None, random_state=0)
+        ica.fit(epochs, picks=picks, decim=3)
     # for testing eog functionality
     picks2 = pick_types(raw.info, meg=True, stim=False, ecg=False,
                         eog=True, exclude='bads')
@@ -355,7 +354,10 @@ def test_ica_additional():
         # check type consistency
         attrs = ('mixing_matrix_ unmixing_matrix_ pca_components_ '
                  'pca_explained_variance_ _pre_whitener')
-        f = lambda x, y: getattr(x, y).dtype
+
+        def f(x, y):
+            return getattr(x, y).dtype
+
         for attr in attrs.split():
             assert_equal(f(ica_read, attr), f(ica, attr))
 

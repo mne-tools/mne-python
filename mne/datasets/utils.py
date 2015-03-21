@@ -9,6 +9,7 @@ import os.path as op
 import shutil
 import tarfile
 from warnings import warn
+import stat
 
 from .. import __version__ as mne_version
 from ..utils import get_config, set_config, _fetch_file, logger
@@ -104,6 +105,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
 
     if not isinstance(path, string_types):
         raise ValueError('path must be a string or None')
+    folder_orig = None
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
         folder_name = "MNE-sample-data"
@@ -120,10 +122,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
         hash_ = 'f3e3a8441477bb5bacae1d0c6e0964fb'
     elif name == 'testing':
-        archive_name = 'MNE-testing-data.tar.gz'
+        archive_name = 'mne-testing-data-master.tar.gz'
+        folder_orig = 'mne-testing-data-master'  # comes out of archive as this
         folder_name = 'MNE-testing-data'
-        url = 'http://lester.ilabs.uw.edu/files/' + archive_name
-        hash_ = 'f66d60852e5f42a4940fb22bc1e92dc2'
+        url = ('https://github.com/mne-tools/mne-testing-data/archive/'
+               'master.tar.gz')
+        # github changes the hash on us :(
+        # but this is https so hopefully it's okay
+        hash_ = None
     else:
         raise ValueError('Sorry, the dataset "%s" is not known.' % name)
     folder_path = op.join(path, folder_name)
@@ -158,7 +164,24 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                             hash_=hash_)
 
         if op.exists(folder_path):
-            shutil.rmtree(folder_path)
+            def onerror(func, path, exc_info):
+                """Deal with access errors (e.g. testing dataset read-only)"""
+                # Is the error an access error ?
+                do = False
+                if not os.access(path, os.W_OK):
+                    perm = os.stat(path).st_mode | stat.S_IWUSR
+                    os.chmod(path, perm)
+                    do = True
+                if not os.access(op.dirname(path), os.W_OK):
+                    dir_perm = (os.stat(op.dirname(path)).st_mode |
+                                stat.S_IWUSR)
+                    os.chmod(op.dirname(path), dir_perm)
+                    do = True
+                if do:
+                    func(path)
+                else:
+                    raise
+            shutil.rmtree(folder_path, onerror=onerror)
 
         logger.info('Decompressing the archive: %s' % archive_name)
         logger.info('(please be patient, this can take some time)')
@@ -168,6 +191,8 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                 break
             except tarfile.ReadError as err:
                 logger.info('%s is %s trying "bz2"' % (archive_name, err))
+        if folder_orig is not None:
+            shutil.move(op.join(path, folder_orig), folder_path)
 
         if rm_archive:
             os.remove(archive_name)

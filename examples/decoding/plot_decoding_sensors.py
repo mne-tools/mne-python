@@ -11,13 +11,14 @@ point.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 import matplotlib.pyplot as plt
 import numpy as np
 
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 
@@ -62,8 +63,8 @@ y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
 X = np.concatenate(X)
 y = np.concatenate(y)
 
-from sklearn.svm import SVC
-from sklearn.cross_validation import cross_val_score, ShuffleSplit
+from sklearn.svm import SVC  # noqa
+from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
 
 clf = SVC(C=1, kernel='linear')
 # Define a monte-carlo cross-validation generator (reduce variance):
@@ -72,7 +73,7 @@ cv = ShuffleSplit(len(X), 10, test_size=0.2)
 scores = np.empty(n_times)
 std_scores = np.empty(n_times)
 
-for t in xrange(n_times):
+for t in range(n_times):
     Xt = X[:, :, t]
     # Standardize features
     Xt -= Xt.mean(axis=0)

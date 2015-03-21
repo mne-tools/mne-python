@@ -12,14 +12,14 @@ to the data to reduce ECG and EOG artifacts.
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
 
 import mne
 from mne import io, read_proj, read_selection
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -49,7 +49,7 @@ raw.plot_psds(area_mode='range', tmax=10.0)
 # Pick MEG magnetometers in the Left-temporal region
 selection = read_selection('Left-temporal')
 picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
-                        stim=False, exclude='bads', selection=selection)
+                       stim=False, exclude='bads', selection=selection)
 
 # Let's just look at the first few channels for demonstration purposes
 picks = picks[:4]

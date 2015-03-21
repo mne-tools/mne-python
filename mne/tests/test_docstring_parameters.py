@@ -30,7 +30,7 @@ public_modules = [
     'mne.stats',
     'mne.time_frequency',
     'mne.viz',
-    ]
+]
 
 docscrape_path = op.join(op.dirname(__file__), '..', '..', 'doc', 'sphinxext',
                          'numpy_ext', 'docscrape.py')

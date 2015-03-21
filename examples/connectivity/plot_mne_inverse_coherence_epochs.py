@@ -8,14 +8,12 @@ auditory cortex and the rest of the brain based on single-trial
 MNE-dSPM inverse soltions.
 
 """
-
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+
 import mne
 from mne.datasets import sample
 from mne.io import Raw
@@ -23,6 +21,7 @@ from mne.minimum_norm import (apply_inverse, apply_inverse_epochs,
                               read_inverse_operator)
 from mne.connectivity import seed_target_indices, spectral_connectivity
 
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -67,7 +66,7 @@ stc_label = stc.in_label(label_lh)
 # Find number and index of vertex with most power
 src_pow = np.sum(stc_label.data ** 2, axis=1)
 seed_vertno = stc_label.vertices[0][np.argmax(src_pow)]
-seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in original stc
+seed_idx = np.searchsorted(stc.vertices[0], seed_vertno)  # index in orig stc
 
 # Generate index parameter for seed-based connectivity analysis
 n_sources = stc.data.shape[0]
@@ -94,8 +93,8 @@ sfreq = raw.info['sfreq']  # the sampling frequency
 # lower variance but is slower). By using faverage=True, we directly
 # average the coherence in the alpha and beta band, i.e., we will only
 # get 2 frequency bins
-coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(stcs,
-    method='coh', mode='fourier', indices=indices,
+coh, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    stcs, method='coh', mode='fourier', indices=indices,
     sfreq=sfreq, fmin=fmin, fmax=fmax, faverage=True, n_jobs=2)
 
 print('Frequencies in Hz over which coherence was averaged for alpha: ')

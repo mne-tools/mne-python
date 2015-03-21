@@ -9,23 +9,21 @@ Plot a noise covariance matrix.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
+from os import path as op
 import mne
 from mne.datasets import sample
 
-data_path = sample.data_path()
-fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+print(__doc__)
 
-cov = mne.Covariance(fname)
+data_path = sample.data_path()
+fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+
+cov = mne.read_cov(fname_cov)
 print(cov)
+evoked = mne.read_evokeds(fname_evo)[0]
 
 ###############################################################################
 # Show covariance
 
-# Note: if you have the measurement info you can use mne.viz.plot_cov
-
-import matplotlib.pyplot as plt
-plt.matshow(cov.data, cmap='RdBu_r')
-plt.title('Noise covariance matrix (%d channels)' % cov.data.shape[0])
-plt.show()
+cov.plot(evoked.info, exclude='bads', show_svd=False)

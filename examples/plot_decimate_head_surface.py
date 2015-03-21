@@ -8,8 +8,6 @@ using a cloud of digitization points for coordinate alignment
 instead of e.g. EEG-cap positions.
 
 """
-print(__doc__)
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -17,6 +15,8 @@ print(__doc__)
 
 import mne
 from mne.surface import decimate_surface
+
+print(__doc__)
 
 path = mne.datasets.sample.data_path()
 surf = mne.read_bem_surfaces(path + '/subjects/sample/bem/sample-head.fif')[0]

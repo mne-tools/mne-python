@@ -19,10 +19,9 @@ from matplotlib.patches import Circle
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..utils import _clean_names
-from .utils import tight_layout, _setup_vmin_vmax, DEFAULTS
-from .utils import _prepare_trellis, _check_delayed_ssp
-from .utils import _draw_proj_checkbox
+from ..utils import _clean_names, _time_mask
+from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
+                    _check_delayed_ssp, _draw_proj_checkbox)
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -58,7 +57,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
             raise ValueError("No channels of type %r" % ch_type)
 
         if layout is None:
-            from ..channels.layout  import _find_topomap_coords
+            from ..channels.layout import _find_topomap_coords
             pos = _find_topomap_coords(info, picks)
         else:
             names = [n.upper() for n in layout.names]
@@ -88,7 +87,7 @@ def _plot_update_evoked_topomap(params, bools):
     data = new_evoked.data[np.ix_(params['picks'],
                                   params['time_idx'])] * params['scale']
     if params['merge_grads']:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
     image_mask = params['image_mask']
 
@@ -175,7 +174,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         for l in layout:
             is_vv = l.kind.startswith('Vectorview')
             if is_vv:
-                from ..channels.layout  import _pair_grad_sensors_from_ch_names
+                from ..channels.layout import _pair_grad_sensors_from_ch_names
                 grad_pairs = _pair_grad_sensors_from_ch_names(ch_names)
                 if grad_pairs:
                     ch_names = [ch_names[i] for i in grad_pairs]
@@ -499,7 +498,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
 
     if show_names:
         if show_names is True:
-            show_names = lambda x: x
+            def show_names(x):
+                return x
         show_idx = np.arange(len(names)) if mask is None else np.where(mask)[0]
         for ii, (p, ch_id) in enumerate(zip(pos, names)):
             if ii not in show_idx:
@@ -647,7 +647,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     fig.suptitle(title)
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
     for ii, data_, ax in zip(picks, data, axes):
         ax.set_title('IC #%03d' % ii, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
@@ -780,23 +780,25 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     # crop time
     itmin, itmax = None, None
+    idx = np.where(_time_mask(tfr.times, tmin, tmax))[0]
     if tmin is not None:
-        itmin = np.where(tfr.times >= tmin)[0][0]
+        itmin = idx[0]
     if tmax is not None:
-        itmax = np.where(tfr.times <= tmax)[0][-1]
+        itmax = idx[-1] + 1
 
     # crop freqs
     ifmin, ifmax = None, None
+    idx = np.where(_time_mask(tfr.freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = np.where(tfr.freqs >= fmin)[0][0]
+        ifmin = idx[0]
     if fmax is not None:
-        ifmax = np.where(tfr.freqs <= fmax)[0][-1]
+        ifmax = idx[-1] + 1
 
     data = data[picks, ifmin:ifmax, itmin:itmax]
     data = np.mean(np.mean(data, axis=2), axis=1)[:, np.newaxis]
 
     if merge_grads:
-        from ..channels.layout  import _merge_grad_data
+        from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)

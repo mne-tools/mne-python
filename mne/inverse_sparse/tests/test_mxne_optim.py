@@ -40,54 +40,39 @@ def test_l21_mxne():
     X[4] = -2
     M = np.dot(G, X)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=None, debias=True,
-                            solver='prox')
+    args = (M, G, alpha, 1000, 1e-8)
+    X_hat_prox, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=None, debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=None, debias=True,
-                            solver='cd')
+    X_hat_cd, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=None, debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            solver='prox')
+    X_hat_prox, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=2, debias=True, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 4])
-    X_hat_cd, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            solver='cd')
+    X_hat_cd, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=2, debias=True, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 4])
     assert_array_almost_equal(X_hat_prox, X_hat_cd, 5)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            n_orient=2, solver='prox')
+    X_hat_prox, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=2, debias=True, n_orient=2, solver='prox')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     # suppress a coordinate-descent warning here
     with warnings.catch_warnings(record=True):
-        X_hat_cd, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            n_orient=2, solver='cd')
+        X_hat_cd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=2, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 4, 5])
     assert_array_equal(X_hat_prox, X_hat_cd)
 
-    X_hat_prox, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            n_orient=5)
+    X_hat_prox, active_set, _ = mixed_norm_solver(
+        *args, active_set_size=2, debias=True, n_orient=5)
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
     with warnings.catch_warnings(record=True):  # coordinate-ascent warning
-        X_hat_cd, active_set, _ = mixed_norm_solver(M,
-                            G, alpha, maxit=1000, tol=1e-8,
-                            active_set_size=2, debias=True,
-                            n_orient=5, solver='cd')
+        X_hat_cd, active_set, _ = mixed_norm_solver(
+            *args, active_set_size=2, debias=True, n_orient=5, solver='cd')
     assert_array_equal(np.where(active_set)[0], [0, 1, 2, 3, 4])
 
 
@@ -98,10 +83,9 @@ def test_tf_mxne():
 
     M, G, active_set = _generate_tf_data()
 
-    X_hat, active_set_hat, E = tf_mixed_norm_solver(M, G,
-                                alpha_space, alpha_time, maxit=200,
-                                tol=1e-8, verbose=True,
-                                n_orient=1, tstep=4, wsize=32)
+    X_hat, active_set_hat, E = tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+        n_orient=1, tstep=4, wsize=32)
 
     assert_array_equal(np.where(active_set_hat)[0], active_set)
 
@@ -113,13 +97,12 @@ def test_tf_mxne_vs_mxne():
 
     M, G, active_set = _generate_tf_data()
 
-    X_hat, active_set_hat, E = tf_mixed_norm_solver(M, G,
-                                alpha_space, alpha_time, maxit=200,
-                                tol=1e-8, verbose=True, debias=False,
-                                n_orient=1, tstep=4, wsize=32)
+    X_hat, active_set_hat, E = tf_mixed_norm_solver(
+        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+        debias=False, n_orient=1, tstep=4, wsize=32)
 
     # Also run L21 and check that we get the same
-    X_hat_l21, _, _ = mixed_norm_solver(M, G, alpha_space, maxit=200,
-                            tol=1e-8, verbose=False, n_orient=1,
-                            active_set_size=None, debias=False)
+    X_hat_l21, _, _ = mixed_norm_solver(
+        M, G, alpha_space, maxit=200, tol=1e-8, verbose=False, n_orient=1,
+        active_set_size=None, debias=False)
     assert_array_almost_equal(X_hat, X_hat_l21, decimal=2)

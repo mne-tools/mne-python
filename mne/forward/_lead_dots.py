@@ -80,8 +80,8 @@ def _get_legen_table(ch_type, volume_integral=False, n_coeff=100,
     if ch_type == 'meg':
         n_facts = list()  # multn, then mult, then multn * (n + 1)
         if volume_integral:
-            n_facts.append(n_fact / ((2.0 * n_fact + 1.0)
-                                     * (2.0 * n_fact + 3.0)))
+            n_facts.append(n_fact / ((2.0 * n_fact + 1.0) *
+                                     (2.0 * n_fact + 3.0)))
         else:
             n_facts.append(n_fact / (2.0 * n_fact + 1.0))
         n_facts.append(n_facts[0] / (n_fact + 1.0))
@@ -177,13 +177,13 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
         sums.shape = (4,) + beta.shape
 
         # Accumulate the result, a little bit streamlined version
-        #cosmags1 = cosmags1[:, np.newaxis, :]
-        #cosmags2 = cosmags2[np.newaxis, :, :]
-        #n1c1 = np.sum(cosmags1 * rr1, axis=2)
-        #n1c2 = np.sum(cosmags1 * rr2, axis=2)
-        #n2c1 = np.sum(cosmags2 * rr1, axis=2)
-        #n2c2 = np.sum(cosmags2 * rr2, axis=2)
-        #n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
+        # cosmags1 = cosmags1[:, np.newaxis, :]
+        # cosmags2 = cosmags2[np.newaxis, :, :]
+        # n1c1 = np.sum(cosmags1 * rr1, axis=2)
+        # n1c2 = np.sum(cosmags1 * rr2, axis=2)
+        # n2c1 = np.sum(cosmags2 * rr1, axis=2)
+        # n2c2 = np.sum(cosmags2 * rr2, axis=2)
+        # n1n2 = np.sum(cosmags1 * cosmags2, axis=2)
         n1c1 = np.einsum('ik,ijk->ij', cosmags1, rr1)
         n1c2 = np.einsum('ik,ijk->ij', cosmags1, rr2)
         n2c1 = np.einsum('jk,ijk->ij', cosmags2, rr1)
@@ -211,10 +211,10 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
         result = eeg_const * sums / lr1lr2
     # new we add them all up with weights
     if w1 is None:  # operating on surface, treat independently
-        #result = np.sum(w2[np.newaxis, :] * result, axis=1)
+        # result = np.sum(w2[np.newaxis, :] * result, axis=1)
         result = np.dot(result, w2)
     else:
-        #result = np.sum((w1[:, np.newaxis] * w2[np.newaxis, :]) * result)
+        # result = np.sum((w1[:, np.newaxis] * w2[np.newaxis, :]) * result)
         result = np.einsum('i,j,ij', w1, w2, result)
     return result
 

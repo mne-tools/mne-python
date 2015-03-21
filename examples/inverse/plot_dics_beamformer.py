@@ -11,12 +11,9 @@ The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
 in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 
@@ -27,6 +24,8 @@ from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -86,4 +85,4 @@ brain.scale_data_colormap(fmin=4, fmid=6, fmax=8, transparent=True)
 brain.show_view('lateral')
 
 # Uncomment to save image
-#brain.save_image('DICS_map.png')
+# brain.save_image('DICS_map.png')

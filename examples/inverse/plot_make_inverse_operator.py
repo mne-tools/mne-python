@@ -8,18 +8,18 @@ inverse solution on MNE evoked dataset and stores the solution
 in stc files for visualisation.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import matplotlib.pyplot as plt
+
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import (make_inverse_operator, apply_inverse,
                               write_inverse_operator)
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname_fwd_meeg = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'

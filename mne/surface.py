@@ -4,6 +4,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 from .externals.six import string_types
 import os
 from os import path as op
@@ -32,15 +33,16 @@ from .utils import logger, verbose, get_subjects_dir
 # BEM
 
 @verbose
-def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None,
+                      add_geom=None):
     """Read the BEM surfaces from a FIF file
 
     Parameters
     ----------
     fname : string
         The name of the file containing the surfaces.
-    add_geom : bool, optional (default False)
-        If True add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     s_id : int | None
         If int, only read and return the surface with the given s_id.
         An error will be raised if it doesn't exist. If None, all
@@ -54,6 +56,10 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
     """
+    if add_geom is not None:
+        patch_stats = add_geom
+        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
+                      "Use `patch_stats instead.", DeprecationWarning)
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
@@ -89,7 +95,7 @@ def read_bem_surfaces(fname, add_geom=False, s_id=None, verbose=None):
             logger.info('    Reading a surface...')
             this = _read_bem_surface(fid, bsurf, coord_frame)
             logger.info('[done]')
-            if add_geom:
+            if patch_stats:
                 _complete_surface_info(this)
             surf.append(this)
 
@@ -184,7 +190,7 @@ def read_bem_solution(fname, verbose=None):
         The BEM solution.
     """
     logger.info('Loading surfaces...')
-    bem_surfs = read_bem_surfaces(fname, add_geom=True, verbose=False)
+    bem_surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
     if len(bem_surfs) == 3:
         logger.info('Three-layer model surfaces loaded.')
         needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
@@ -257,26 +263,53 @@ def read_bem_solution(fname, verbose=None):
     bem['solution'] = sol
     bem['nsol'] = nsol
     bem['bem_method'] = method
+    bem['is_sphere'] = False
     logger.info('Loaded %s BEM solution from %s', bem['bem_method'], fname)
     return bem
+
+
+_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+
+
+def _bem_find_surface(bem, id_):
+    """Find surface from already-loaded BEM"""
+    if isinstance(id_, string_types):
+        name = id_
+        id_ = _surf_dict[id_]
+    else:
+        name = _bem_explain_surface[id_]
+    idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
+    if len(idx) != 1:
+        raise RuntimeError('BEM model does not have the %s triangulation'
+                           % name.replace('_', ' '))
+    return bem['surfs'][idx[0]]
+
+
+def _bem_explain_surface(id_):
+    """Return a string corresponding to the given surface ID"""
+    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    return _rev_dict[id_]
 
 
 ###############################################################################
 # AUTOMATED SURFACE FINDING
 
-def get_head_surf(subject, source='bem', subjects_dir=None):
+def get_head_surf(subject, source=('bem', 'head'), subjects_dir=None):
     """Load the subject head surface
 
     Parameters
     ----------
     subject : str
         Subject name.
-    source : str
+    source : str | list of str
         Type to load. Common choices would be `'bem'` or `'head'`. We first
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory by going
         through all files matching the pattern. The head surface will be read
-        from the first file containing a head surface.
+        from the first file containing a head surface. Can also be a list
+        to try multiple strings.
     subjects_dir : str, or None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -289,31 +322,37 @@ def get_head_surf(subject, source='bem', subjects_dir=None):
     # Load the head surface from the BEM
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     # use realpath to allow for linked surfaces (c.f. MNE manual 196-197)
-    this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
-                                    '%s-%s.fif' % (subject, source)))
-    if op.exists(this_head):
-        surf = read_bem_surfaces(this_head, True,
-                                 FIFF.FIFFV_BEM_SURF_ID_HEAD)
-    else:
-        # let's do a more sophisticated search
-        this_head = None
-        path = op.join(subjects_dir, subject, 'bem')
-        if not op.isdir(path):
-            raise IOError('Subject bem directory "%s" does not exist'
-                          % path)
-        files = sorted(glob(op.join(path, '%s*%s.fif' % (subject, source))))
-        for this_head in files:
-            try:
-                surf = read_bem_surfaces(this_head, True,
-                                         FIFF.FIFFV_BEM_SURF_ID_HEAD)
-                break
-            except ValueError:
-                # the file does not contain a head surface
-                this_head = None
+    if isinstance(source, string_types):
+        source = [source]
+    surf = None
+    for this_source in source:
+        this_head = op.realpath(op.join(subjects_dir, subject, 'bem',
+                                        '%s-%s.fif' % (subject, this_source)))
+        if op.exists(this_head):
+            surf = read_bem_surfaces(this_head, True,
+                                     FIFF.FIFFV_BEM_SURF_ID_HEAD)
+        else:
+            # let's do a more sophisticated search
+            path = op.join(subjects_dir, subject, 'bem')
+            if not op.isdir(path):
+                raise IOError('Subject bem directory "%s" does not exist'
+                              % path)
+            files = sorted(glob(op.join(path, '%s*%s.fif'
+                                        % (subject, this_source))))
+            for this_head in files:
+                try:
+                    surf = read_bem_surfaces(this_head, True,
+                                             FIFF.FIFFV_BEM_SURF_ID_HEAD)
+                except ValueError:
+                    pass
+                else:
+                    break
+        if surf is not None:
+            break
 
-        if this_head is None:
-            raise IOError('No file matching "%s*%s" and containing a head '
-                          'surface found' % (subject, source))
+    if surf is None:
+        raise IOError('No file matching "%s*%s" and containing a head '
+                      'surface found' % (subject, this_source))
     return surf
 
 
@@ -385,6 +424,13 @@ def fast_cross_3d(x, y):
                      x[:, 0] * y[:, 1] - x[:, 1] * y[:, 0]]
     else:
         return np.cross(x, y)
+
+
+def _fast_cross_nd_sum(a, b, c):
+    """Fast cross and sum"""
+    return ((a[..., 1] * b[..., 2] - a[..., 2] * b[..., 1]) * c[..., 0] +
+            (a[..., 2] * b[..., 0] - a[..., 0] * b[..., 2]) * c[..., 1] +
+            (a[..., 0] * b[..., 1] - a[..., 1] * b[..., 0]) * c[..., 2])
 
 
 def _accumulate_normals(tris, tri_nn, npts):
@@ -657,7 +703,7 @@ def read_surface(fname, verbose=None):
                 nface += 2
         elif magic == TRIANGLE_MAGIC:  # Triangle file
             create_stamp = fobj.readline()
-            _ = fobj.readline()  # analysis:ignore
+            fobj.readline()
             vnum = np.fromfile(fobj, ">i4", 1)[0]
             fnum = np.fromfile(fobj, ">i4", 1)[0]
             coords = np.fromfile(fobj, ">f4", vnum * 3).reshape(vnum, 3)
@@ -673,7 +719,7 @@ def read_surface(fname, verbose=None):
 
 
 @verbose
-def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
+def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
     """Load the surface as dict, optionally add the geometry information"""
     # based on mne_load_surface_geom() in mne_surface_io.c
     if isinstance(fname, string_types):
@@ -686,7 +732,7 @@ def _read_surface_geom(fname, add_geom=True, norm_rr=False, verbose=None):
         s = fname
     else:
         raise RuntimeError('fname cannot be understood as str or dict')
-    if add_geom is True:
+    if patch_stats is True:
         s = _complete_surface_info(s)
     if norm_rr is True:
         _normalize_vectors(s['rr'])
@@ -810,10 +856,11 @@ def _create_surf_spacing(surf, hemi, subject, stype, sval, ico_surf,
     surf = _read_surface_geom(surf)
 
     if stype in ['ico', 'oct']:
-        ### from mne_ico_downsample.c ###
+        # ## from mne_ico_downsample.c ## #
         surf_name = op.join(subjects_dir, subject, 'surf', hemi + '.sphere')
         logger.info('Loading geometry from %s...' % surf_name)
-        from_surf = _read_surface_geom(surf_name, norm_rr=True, add_geom=False)
+        from_surf = _read_surface_geom(surf_name, norm_rr=True,
+                                       patch_stats=False)
         if not len(from_surf['rr']) == surf['np']:
             raise RuntimeError('Mismatch between number of surface vertices, '
                                'possible parcellation error?')
@@ -1269,14 +1316,13 @@ def _nearest_tri_edge(pt_tris, to_pt, pqs, dist, tri_geom):
                                0.0), 1.0)
     q0 = np.zeros_like(p0)
     #   Side 2 -> 3
-    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp)
-                 + (2.0 * bb - cc) * qq) / (aa + bb - cc))
+    t1 = (0.5 * ((2.0 * aa - cc) * (1.0 - pp) +
+                 (2.0 * bb - cc) * qq) / (aa + bb - cc))
     t1 = np.minimum(np.maximum(t1, 0.0), 1.0)
     p1 = 1.0 - t1
     q1 = t1
     #   Side 1 -> 3
-    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc)
-                               / bb, 0.0), 1.0)
+    q2 = np.minimum(np.maximum(qq + 0.5 * (pp * cc) / bb, 0.0), 1.0)
     p2 = np.zeros_like(q2)
 
     # figure out which one had the lowest distance

@@ -9,17 +9,19 @@ The sources matching the ECG are automatically found and displayed.
 Subsequently, artefact detection and rejection quality are assessed.
 Finally, the impact on the evoked ERF is visualized.
 """
-print(__doc__)
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+
 import mne
 from mne.io import Raw
 from mne.preprocessing import ICA, create_ecg_epochs
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Setup paths and prepare epochs data

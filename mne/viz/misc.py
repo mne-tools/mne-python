@@ -48,8 +48,8 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     show : bool
         Call pyplot.show() as the end or not.
     show_svd : bool
-        Plot also singular values of the noise covariance for each sensor type.
-        We show square roots ie. standard deviations.
+        Plot also singular values of the noise covariance for each sensor
+        type. We show square roots ie. standard deviations.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -176,13 +176,13 @@ def plot_source_spectrogram(stcs, freq_bins, tmin=None, tmax=None,
     freq_bounds = sorted(set(np.ravel(freq_bins)))
     freq_ticks = copy.deepcopy(freq_bounds)
 
-    # Rejecting time points that will not be plotted
+    # Reject time points that will not be plotted and gather results
+    source_power = []
     for stc in stcs:
-        # Using 1e-10 to improve numerical stability
-        stc.crop(tmin - 1e-10, tmax - stc.tstep + 1e-10)
-
-    # Gathering results for each time window
-    source_power = np.array([stc.data for stc in stcs])
+        stc = stc.copy()  # copy since crop modifies inplace
+        stc.crop(tmin, tmax - stc.tstep)
+        source_power.append(stc.data)
+    source_power = np.array(source_power)
 
     # Finding the source with maximum source power
     if source_index is None:

@@ -44,9 +44,6 @@ def test_rename_channels():
     # Test improper mapping configuration
     mapping = {'MEG 2641': 1.0}
     assert_raises(ValueError, rename_channels, info, mapping)
-    # Test duplicate named channels
-    mapping = {'EEG 060': 'EOG 061'}
-    assert_raises(ValueError, rename_channels, info, mapping)
     # Test successful changes
     # Test ch_name and ch_names are changed
     info2 = deepcopy(info)  # for consistency at the start of each test
@@ -68,15 +65,20 @@ def test_rename_channels():
     assert_true(info2['chs'][374]['ch_name'] == 'EOG 060')
     assert_true(info2['ch_names'][374] == 'EOG 060')
     assert_true('EOG 060' in info2['bads'])
-    assert_true(info2['chs'][374]['kind'] is FIFF.FIFFV_EOG_CH)
+    assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
     assert_true(info2['chs'][373]['ch_name'] == 'EOG 059')
     assert_true(info2['ch_names'][373] == 'EOG 059')
     assert_true('EOG 059' in info2['bads'])
-    assert_true(info2['chs'][373]['kind'] is FIFF.FIFFV_EOG_CH)
+    assert_true(info2['chs'][373]['kind'] == FIFF.FIFFV_EOG_CH)
     assert_true(info2['chs'][375]['ch_name'] == "OT'7")
     assert_true(info2['ch_names'][375] == "OT'7")
     assert_true("OT'7" in info2['bads'])
-    assert_true(info2['chs'][375]['kind'] is FIFF.FIFFV_SEEG_CH)
+    assert_true(info2['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)
+    # Test change of type without change of name
+    mapping = {'EEG 060': ('EEG 060', 'seeg')}
+    info2 = deepcopy(info)
+    rename_channels(info2, mapping)
+    assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_SEEG_CH)
 
 
 def test_read_ch_connectivity():

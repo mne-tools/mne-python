@@ -3,7 +3,9 @@
 
 You can do for example:
 
-$ mne browse_raw --raw sample_audvis_raw.fif --proj sample_audvis_ecg_proj.fif --eve sample_audvis_raw-eve.fif
+$ mne browse_raw --raw sample_audvis_raw.fif \
+                 --proj sample_audvis_ecg_proj.fif \
+                 --eve sample_audvis_raw-eve.fif
 """
 
 # Authors : Eric Larson, PhD

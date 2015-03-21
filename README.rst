@@ -49,7 +49,7 @@ To get the latest code using git, simply type::
     git clone git://github.com/mne-tools/mne-python.git
 
 If you don't have git installed, you can download a zip or tarball
-of the latest code: http://github.com/mne-tools/mne-python/archives/master
+of the latest code: https://github.com/mne-tools/mne-python/archives/master
 
 Install mne-python
 ^^^^^^^^^^^^^^^^^^

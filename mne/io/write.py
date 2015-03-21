@@ -118,6 +118,7 @@ def write_float_matrix(fid, kind, mat):
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def write_double_matrix(fid, kind, mat):
@@ -137,6 +138,7 @@ def write_double_matrix(fid, kind, mat):
     dims[:mat.ndim] = mat.shape[::-1]
     dims[-1] = mat.ndim
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def write_int_matrix(fid, kind, mat):
@@ -157,6 +159,7 @@ def write_int_matrix(fid, kind, mat):
     dims[1] = mat.shape[0]
     dims[2] = 2
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def get_machid():
@@ -167,8 +170,8 @@ def get_machid():
     ids : array (length 2, int32)
         The machine identifier used in MNE.
     """
-    mac = b('%012x' %uuid.getnode()) # byte conversion for Py3
-    mac = re.findall(b'..', mac) # split string
+    mac = b('%012x' % uuid.getnode())  # byte conversion for Py3
+    mac = re.findall(b'..', mac)  # split string
     mac += [b'00', b'00']  # add two more fields
 
     # Convert to integer in reverse-order (for some reason)
@@ -243,6 +246,15 @@ def start_file(fname, id_=None):
     return fid
 
 
+def check_fiff_length(fid, close=True):
+    """Ensure our file hasn't grown too large to work properly"""
+    if fid.tell() > 2147483648:  # 2 ** 31, FIFF uses signed 32-bit locations
+        if close:
+            fid.close()
+        raise IOError('FIFF file exceeded 2GB limit, please split file or '
+                      'save to a different format')
+
+
 def end_file(fid):
     """Writes the closing tags to a fif file and closes the file"""
     data_size = 0
@@ -250,21 +262,12 @@ def end_file(fid):
     fid.write(np.array(FIFF.FIFFT_VOID, dtype='>i4').tostring())
     fid.write(np.array(data_size, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFV_NEXT_NONE, dtype='>i4').tostring())
+    check_fiff_length(fid)
     fid.close()
 
 
 def write_coord_trans(fid, trans):
     """Writes a coordinate transformation structure"""
-
-    #?typedef struct _fiffCoordTransRec {
-    #  fiff_int_t   from;                          /*!< Source coordinate system. */
-    #  fiff_int_t   to;                        /*!< Destination coordinate system. */
-    #  fiff_float_t rot[3][3];             /*!< The forward transform (rotation part) */
-    #  fiff_float_t move[3];                   /*!< The forward transform (translation part) */
-    #  fiff_float_t invrot[3][3];              /*!< The inverse transform (rotation part) */
-    #  fiff_float_t invmove[3];            /*!< The inverse transform (translation part) */
-    #} *fiffCoordTrans, fiffCoordTransRec; /*!< Coordinate transformation descriptor */
-
     data_size = 4 * 2 * 12 + 4 * 2
     fid.write(np.array(FIFF.FIFF_COORD_TRANS, dtype='>i4').tostring())
     fid.write(np.array(FIFF.FIFFT_COORD_TRANS_STRUCT, dtype='>i4').tostring())
@@ -289,27 +292,6 @@ def write_coord_trans(fid, trans):
 
 def write_ch_info(fid, ch):
     """Writes a channel information record to a fif file"""
-
-    #typedef struct _fiffChPosRec {
-    #  fiff_int_t   coil_type;      /*!< What kind of coil. */
-    #  fiff_float_t r0[3];          /*!< Coil coordinate system origin */
-    #  fiff_float_t ex[3];          /*!< Coil coordinate system x-axis unit vector */
-    #  fiff_float_t ey[3];          /*!< Coil coordinate system y-axis unit vector */
-    #  fiff_float_t ez[3];                   /*!< Coil coordinate system z-axis unit vector */
-    #} fiffChPosRec,*fiffChPos;                /*!< Measurement channel position and coil type */
-
-    #typedef struct _fiffChInfoRec {
-    #  fiff_int_t    scanNo;    /*!< Scanning order # */
-    #  fiff_int_t    logNo;     /*!< Logical channel # */
-    #  fiff_int_t    kind;      /*!< Kind of channel */
-    #  fiff_float_t  range;     /*!< Voltmeter range (only applies to raw data ) */
-    #  fiff_float_t  cal;       /*!< Calibration from volts to... */
-    #  fiff_ch_pos_t chpos;     /*!< Channel location */
-    #  fiff_int_t    unit;      /*!< Unit of measurement */
-    #  fiff_int_t    unit_mul;  /*!< Unit multiplier exponent */
-    #  fiff_char_t   ch_name[16];   /*!< Descriptive name for the channel */
-    #} fiffChInfoRec,*fiffChInfo;   /*!< Description of one channel */
-
     data_size = 4 * 13 + 4 * 7 + 16
 
     fid.write(np.array(FIFF.FIFF_CH_INFO, dtype='>i4').tostring())
@@ -343,14 +325,6 @@ def write_ch_info(fid, ch):
 
 def write_dig_point(fid, dig):
     """Writes a digitizer data point into a fif file"""
-    #?typedef struct _fiffDigPointRec {
-    #  fiff_int_t kind;               /*!< FIFF_POINT_CARDINAL,
-    #                                  *   FIFF_POINT_HPI, or
-    #                                  *   FIFF_POINT_EEG */
-    #  fiff_int_t ident;              /*!< Number identifying this point */
-    #  fiff_float_t r[3];             /*!< Point location */
-    #} *fiffDigPoint,fiffDigPointRec; /*!< Digitization point description */
-
     data_size = 5 * 4
 
     fid.write(np.array(FIFF.FIFF_DIG_POINT, dtype='>i4').tostring())
@@ -384,6 +358,7 @@ def write_float_sparse_rcs(fid, kind, mat):
 
     dims = [nnzm, mat.shape[0], mat.shape[1], 2]
     fid.write(np.array(dims, dtype='>i4').tostring())
+    check_fiff_length(fid)
 
 
 def _generate_meas_id():

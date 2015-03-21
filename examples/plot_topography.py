@@ -4,18 +4,18 @@ Plot topographies for MEG sensors
 =================================
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import matplotlib.pyplot as plt
 
 from mne import read_evokeds
 from mne.viz import plot_topo
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 fname = data_path + '/MEG/sample/sample_audvis-ave.fif'

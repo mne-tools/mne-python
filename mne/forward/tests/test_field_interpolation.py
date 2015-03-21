@@ -55,8 +55,8 @@ def test_legendre_val():
         # compare to numpy
         n = np.arange(1, n_terms, dtype=float)[:, np.newaxis, np.newaxis]
         coeffs = np.zeros((n_terms,) + beta.shape)
-        coeffs[1:] = (np.cumprod([beta] * (n_terms - 1), axis=0)
-                      * (2.0 * n + 1.0) * (2.0 * n + 1.0) / n)
+        coeffs[1:] = (np.cumprod([beta] * (n_terms - 1), axis=0) *
+                      (2.0 * n + 1.0) * (2.0 * n + 1.0) / n)
         # can't use tensor=False here b/c it isn't in old numpy
         c2 = np.empty((20, 30))
         for ci1 in range(20):

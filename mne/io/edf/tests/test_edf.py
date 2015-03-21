@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import os.path as op
 import inspect
+import warnings
 
 from nose.tools import assert_equal, assert_true
 from numpy.testing import assert_array_almost_equal, assert_array_equal
@@ -22,13 +23,17 @@ from mne.io import Raw, read_raw_edf
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
+warnings.simplefilter('always')
+
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 montage_path = op.join(data_dir, 'biosemi.hpts')
 bdf_path = op.join(data_dir, 'test.bdf')
 edf_path = op.join(data_dir, 'test.edf')
+edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
+edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -86,11 +91,25 @@ def test_edf_data():
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
     assert_equal(raw_concat.n_times, 2 * raw_py.n_times)
 
+    # Test uneven sampling
+    raw_py = read_raw_edf(edf_uneven_path, stim_channel=None)
+    data_py, _ = raw_py[0]
+    # this .mat was generated using the EEG Lab Biosemi Reader
+    raw_eeglab = io.loadmat(edf_uneven_eeglab_path)
+    raw_eeglab = raw_eeglab['data']
+    data_eeglab = raw_eeglab[0]
+
+    # match upsampling
+    upsample = len(data_eeglab) / len(raw_py)
+    data_py = np.repeat(data_py, repeats=upsample)
+    assert_array_equal(data_py, data_eeglab)
+
+
 def test_read_segment():
     """Test writing raw edf files when preload is False
     """
     tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, stim_channel=139, preload=False)
+    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
@@ -100,7 +119,7 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_edf(edf_path, stim_channel=139, preload=True)
+    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
     raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, overwrite=True)
     data2, times2 = raw2[:139, :]
@@ -112,8 +131,8 @@ def test_read_segment():
     assert_array_equal(raw1._data, raw2._data)
 
     # test the _read_segment function by only loading some of the data
-    raw1 = read_raw_edf(edf_path, preload=False)
-    raw2 = read_raw_edf(edf_path, preload=True)
+    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
+    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
 
     # select some random range of data to compare
     data1, times1 = raw1[:, 345:417]
@@ -161,7 +180,9 @@ def test_edf_annotations():
     """
 
     # test an actual file
-    raw = read_raw_edf(edf_path, tal_channel=-1, preload=True)
+    with warnings.catch_warnings(record=True):  # tal_channel dep
+        warnings.simplefilter('always')
+        raw = read_raw_edf(edf_path, tal_channel=-1, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
@@ -191,7 +212,9 @@ def test_write_annotations():
     """Test writing raw files when annotations were parsed.
     """
     tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
+    with warnings.catch_warnings(record=True):  # tal_channel dep
+        warnings.simplefilter('always')
+        raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
@@ -202,5 +225,7 @@ def test_write_annotations():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    assert_raises(RuntimeError, read_raw_edf,
-                  edf_path, tal_channel=-1, preload=False)
+    with warnings.catch_warnings(record=True):  # tal_channel dep
+        warnings.simplefilter('always')
+        assert_raises(RuntimeError, read_raw_edf,
+                      edf_path, tal_channel=-1, preload=False)

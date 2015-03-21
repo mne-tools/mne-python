@@ -23,7 +23,7 @@ def _get_data():
 
     # Set picks
     picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
-                                stim=False, exclude='bads')
+                           stim=False, exclude='bads')
 
     # Read several epochs
     event_id, tmin, tmax = 1, -0.2, 0.5
@@ -38,8 +38,8 @@ def _get_data():
                             picks=[0], baseline=(None, 0), preload=True,
                             reject=dict(grad=4000e-13))
     freq = 10
-    epochs_sin._data = np.sin(2 * np.pi * freq
-                              * epochs_sin.times)[None, None, :]
+    epochs_sin._data = np.sin(2 * np.pi * freq *
+                              epochs_sin.times)[None, None, :]
     return epochs, epochs_sin
 
 
@@ -159,5 +159,5 @@ def test_compute_epochs_csd_on_artificial_data():
                     delta = 0.05
                 else:
                     delta = 0.004
-                assert_true(abs(signal_power_per_sample - mt_power_per_sample)
-                            < delta)
+                assert_true(abs(signal_power_per_sample -
+                                mt_power_per_sample) < delta)

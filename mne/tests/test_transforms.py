@@ -11,7 +11,7 @@ from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne import read_trans, write_trans
 from mne.utils import _TempDir, run_tests_if_main
-from mne.transforms import (_get_mri_head_t_from_trans_file, invert_transform,
+from mne.transforms import (invert_transform, _get_mri_head_t,
                             rotation, rotation3d, rotation_angles, _find_trans,
                             combine_transforms, transform_coordinates,
                             collect_transforms, apply_trans, translation,
@@ -33,7 +33,7 @@ def test_get_mri_head_t():
     """Test converting '-trans.txt' to '-trans.fif'"""
     trans = read_trans(fname)
     trans = invert_transform(trans)  # starts out as head->MRI, so invert
-    trans_2 = _get_mri_head_t_from_trans_file(fname_trans)
+    trans_2 = _get_mri_head_t(fname_trans)[0]
     assert_equal(trans['from'], trans_2['from'])
     assert_equal(trans['to'], trans_2['to'])
     assert_allclose(trans['trans'], trans_2['trans'], rtol=1e-5, atol=1e-5)

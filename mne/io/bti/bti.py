@@ -475,9 +475,9 @@ def _read_config(fname):
         cfg['chs'] = list()
 
         # prepare reading channels
-        dev_header = lambda x: {'size': read_int32(x),
-                                'checksum': read_int32(x),
-                                'reserved': read_str(x, 32)}
+        def dev_header(x):
+            return dict(size=read_int32(x), checksum=read_int32(x),
+                        reserved=read_str(x, 32))
 
         for channel in range(cfg['hdr']['total_chans']):
             ch = {'name': read_str(fid, 16),
@@ -1108,7 +1108,9 @@ class RawBTi(_BaseRaw):
             # include digital weights from reference channel
             comps = info['comps'] = list()
             weights = bti_info['weights']
-            by_name = lambda x: x[1]
+
+            def by_name(x):
+                return x[1]
             chn = dict(ch_mapping)
             columns = [chn[k] for k in weights['dsp_ch_names']]
             rows = [chn[k] for k in weights['ch_names']]
@@ -1147,7 +1149,6 @@ class RawBTi(_BaseRaw):
         self.cals = cals
         self.rawdirs = list()
         self.orig_format = 'double'
-        self.proj = None
         self.comp = None
         self._filenames = list()
         self.preload = True
@@ -1207,14 +1208,23 @@ def read_raw_bti(pdf_fname, config_fname='config',
     translation : array-like
         The translation to place the origin of coordinate system
         to the center of the head.
-    ecg_ch: str | None
+    ecg_ch : str | None
       The 4D name of the ECG channel. If None, the channel will be treated
       as regular EEG channel.
-    eog_ch: tuple of str | None
+    eog_ch : tuple of str | None
       The 4D names of the EOG channels. If None, the channels will be treated
       as regular EEG channels.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : Instance of RawBTi
+        A Raw object containing BTI data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,

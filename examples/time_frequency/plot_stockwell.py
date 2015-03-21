@@ -17,6 +17,8 @@ from mne import io
 from mne.time_frequency import tfr_stockwell
 from mne.datasets import somato
 
+print(__doc__)
+
 ###############################################################################
 # Set parameters
 data_path = somato.data_path()

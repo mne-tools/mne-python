@@ -10,10 +10,13 @@ similar to the first SSP vector correcting for ECG.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 from mne import read_forward_solution, read_proj, sensitivity_map
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 subjects_dir = data_path + '/subjects'
@@ -30,7 +33,6 @@ ssp_ecg_map = sensitivity_map(fwd, ch_type='grad', projs=projs, mode='angle')
 ###############################################################################
 # Show sensitivity map
 
-import matplotlib.pyplot as plt
 plt.hist(ssp_ecg_map.data.ravel())
 plt.show()
 

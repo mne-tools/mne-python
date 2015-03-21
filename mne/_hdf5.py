@@ -6,7 +6,6 @@
 import numpy as np
 from scipy import sparse
 from os import path as op
-from copy import deepcopy
 
 from .externals.six import string_types, text_type
 

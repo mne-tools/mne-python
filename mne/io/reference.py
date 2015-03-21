@@ -1,5 +1,6 @@
 # Authors: Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -8,6 +9,7 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
+from .fiff import RawFIFF as Raw
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..utils import logger
@@ -121,6 +123,87 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
         inst.info['custom_ref_applied'] = True
 
     return inst, ref_data
+
+
+def add_reference_channels(inst, ref_channels, copy=True):
+    """Add reference channels to data that consists of all zeros.
+
+    Adds reference channels to data that were not included during recording.
+    This is useful when you need to re-reference your data to different
+    channel. These added channels will consist of all zeros.
+
+    Parameters
+    ----------
+    inst : instance of Raw | Epochs | Evoked
+        Instance of Raw or Epochs with EEG channels and reference channel(s).
+    ref_channels : str | list of str
+        Name of the electrode(s) which served as the reference in the
+        recording. If a name is provided, a corresponding channel is added
+        and its data is set to 0. This is useful for later re-referencing.
+    copy : bool
+        Specifies whether the data will be copied (True) or modified in place
+        (False). Defaults to True.
+
+    Returns
+    -------
+    inst : instance of Raw | Epochs | Evoked
+        Data with added EEG reference channels.
+    """
+    # Check to see that data is preloaded
+    if not isinstance(inst, Evoked) and not inst.preload:
+        raise RuntimeError('Data needs to be preloaded.')
+    if isinstance(ref_channels, str):
+        ref_channels = [ref_channels]
+    elif not isinstance(ref_channels, list):
+        raise ValueError("`ref_channels` should be either str or list of str. "
+                         "%s was provided." % type(ref_channels))
+    for ch in ref_channels:
+        if ch in inst.info['ch_names']:
+            raise ValueError("Channel %s already specified in inst." % ch)
+
+    if copy:
+        inst = inst.copy()
+
+    if isinstance(inst, Evoked):
+        data = inst.data
+        refs = np.zeros((len(ref_channels), data.shape[1]))
+        data = np.vstack((data, refs))
+        inst.data = data
+    elif isinstance(inst, Raw):
+        data = inst._data
+        refs = np.zeros((len(ref_channels), data.shape[1]))
+        data = np.vstack((data, refs))
+        inst._data = data
+    elif isinstance(inst, Epochs):
+        data = inst._data
+        x, y, z = data.shape
+        refs = np.zeros((x * len(ref_channels), z))
+        data = np.vstack((data.reshape((x * y, z), order='F'), refs))
+        data = data.reshape(x, y + len(ref_channels), z, order='F')
+        inst._data = data
+    else:
+        raise TypeError("inst should be Raw, Epochs, or Evoked instead of %s."
+                        % type(inst))
+    nchan = len(inst.info['ch_names'])
+    if ch in ref_channels:
+        chan_info = {'ch_name': ch,
+                     'coil_type': FIFF.FIFFV_COIL_EEG,
+                     'kind': FIFF.FIFFV_EEG_CH,
+                     'logno': nchan + 1,
+                     'scanno': nchan + 1,
+                     'cal': 1,
+                     'range': 1.,
+                     'unit_mul': 0.,
+                     'unit': FIFF.FIFF_UNIT_V,
+                     'coord_frame': FIFF.FIFFV_COORD_HEAD,
+                     'eeg_loc': np.zeros(3),
+                     'loc': np.zeros(12)}
+        inst.info['chs'].append(chan_info)
+    inst.info['ch_names'].extend(ref_channels)
+    if isinstance(inst, Raw):
+        inst.cals = np.hstack((inst.cals, [1] * len(ref_channels)))
+
+    return inst
 
 
 def set_eeg_reference(inst, ref_channels=None, copy=True):
