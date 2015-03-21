@@ -10,18 +10,21 @@ the adjacency between sensors. This serves as a spatial prior
 to the clustering. Significant spatiotemporal clusters will then
 be visualized using custom matplotlib code.
 """
-
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+from mne.viz import plot_topomap
 
 import mne
 from mne.stats import spatio_temporal_cluster_test
 from mne.datasets import sample
+from mne.channels import read_ch_connectivity
+
+print(__doc__)
 
 ###############################################################################
 
@@ -56,7 +59,6 @@ X = [np.transpose(x, (0, 2, 1)) for x in X]  # transpose for clustering
 
 
 # load FieldTrip neighbor definition to setup sensor connectivity
-from mne.channels import read_ch_connectivity
 connectivity, ch_names = read_ch_connectivity('neuromag306mag')
 
 ###############################################################################
@@ -77,11 +79,6 @@ good_cluster_inds = np.where(p_values < p_accept)[0]
 
 ###############################################################################
 # Visualize clusters
-
-# load viz functionality
-import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import make_axes_locatable
-from mne.viz import plot_topomap
 
 # configure variables for visualization
 times = epochs.times * 1e3

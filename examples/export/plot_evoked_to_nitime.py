@@ -9,13 +9,14 @@ Export evoked data to Nitime
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+
+import matplotlib.pyplot as plt
+from nitime.viz import plot_tseries
 
 import mne
 from mne.datasets import sample
-from nitime.viz import plot_tseries
-import matplotlib.pyplot as plt
 
+print(__doc__)
 
 data_path = sample.data_path()
 

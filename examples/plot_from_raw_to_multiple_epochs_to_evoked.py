@@ -14,12 +14,14 @@ evoked data and then saved to disk.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne import io
 from mne.datasets import sample
 from mne.epochs import combine_event_ids
+import matplotlib.pyplot as plt
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -58,7 +60,6 @@ mne.write_evokeds('sample_auditory_and_visual_eeg-ave.fif', evokeds)
 
 ###############################################################################
 # View evoked response
-import matplotlib.pyplot as plt
 plt.clf()
 ax = plt.subplot(2, 1, 1)
 evokeds[0].plot(axes=ax)

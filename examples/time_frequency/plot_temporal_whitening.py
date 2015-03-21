@@ -11,8 +11,6 @@ to temporally whiten the signals.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import signal
 import matplotlib.pyplot as plt
@@ -20,6 +18,9 @@ import matplotlib.pyplot as plt
 import mne
 from mne.time_frequency import ar_raw
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

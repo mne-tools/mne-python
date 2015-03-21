@@ -14,18 +14,18 @@ layout.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import numpy as np
-import mne
+import matplotlib.pyplot as plt
 
+import mne
 from mne.viz import iter_topography
 from mne import io
 from mne.time_frequency import compute_raw_psd
-
-import matplotlib.pyplot as plt
-
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 

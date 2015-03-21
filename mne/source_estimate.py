@@ -22,10 +22,11 @@ from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
 from .utils import (get_subjects_dir, _check_subject,
                     _check_pandas_index_arguments, _check_pandas_installed,
-                    logger, verbose)
+                    logger, verbose, _time_mask, deprecated)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip
+from .io.base import ToDataFrameMixin
 
 
 def _read_stc(filename):
@@ -383,7 +384,7 @@ def _verify_source_estimate_compat(a, b):
                          'names, %r and %r' % (a.subject, b.subject))
 
 
-class _BaseSourceEstimate(object):
+class _BaseSourceEstimate(ToDataFrameMixin, object):
     """Abstract base class for source estimates
 
     Parameters
@@ -395,9 +396,9 @@ class _BaseSourceEstimate(object):
         space data corresponds to "numpy.dot(kernel, sens_data)".
     vertices : array | list of two arrays
         Vertex numbers corresponding to the data.
-    tmin : scalar
+    tmin : float
         Time point of the first sample in data.
-    tstep : scalar
+    tstep : float
         Time step between successive samples in data.
     subject : str | None
         The subject name. While not necessary, it is safer to set the
@@ -488,18 +489,13 @@ class _BaseSourceEstimate(object):
 
         Parameters
         ----------
-        tmin : float or None
+        tmin : float | None
             The first time point in seconds. If None the first present is used.
-        tmax : float or None
+        tmax : float | None
             The last time point in seconds. If None the last present is used.
         """
-        mask = np.ones(len(self.times), dtype=np.bool)
-        if tmax is not None:
-            mask = mask & (self.times <= tmax)
-        if tmin is not None:
-            mask = mask & (self.times >= tmin)
-            self.tmin = tmin
-
+        mask = _time_mask(self.times, tmin, tmax)
+        self.tmin = self.times[np.where(mask)[0][0]]
         if self._kernel is not None and self._sens_data is not None:
             self._sens_data = self._sens_data[:, mask]
         else:
@@ -854,18 +850,16 @@ class _BaseSourceEstimate(object):
 
         # min and max data indices to include
         times = np.round(1000 * self.times)
-
+        t_idx = np.where(_time_mask(times, tmin, tmax))[0]
         if tmin is None:
             tmin_idx = None
         else:
-            tmin = float(tmin)
-            tmin_idx = np.where(times >= tmin)[0][0]
+            tmin_idx = t_idx[0]
 
         if tmax is None:
             tmax_idx = None
         else:
-            tmax = float(tmax)
-            tmax_idx = np.where(times <= tmax)[0][-1]
+            tmax_idx = t_idx[-1]
 
         data_t = self.transform_data(func, idx=idx, tmin_idx=tmin_idx,
                                      tmax_idx=tmax_idx)
@@ -906,6 +900,8 @@ class _BaseSourceEstimate(object):
 
         return stcs
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, index=None, scale_time=1e3, copy=True):
         """Represent source estimates as Pandas DataFrame
 
@@ -1595,8 +1591,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
                  subject=None, verbose=None):
 
-        if not (isinstance(vertices, np.ndarray) or isinstance(vertices, list)
-                and len(vertices) == 1):
+        if not (isinstance(vertices, np.ndarray) or
+                isinstance(vertices, list) and len(vertices) == 1):
             raise ValueError('Vertices must be a numpy array or a list with '
                              'one array')
 
@@ -1625,15 +1621,13 @@ class VolSourceEstimate(_BaseSourceEstimate):
 
         if ftype == 'stc':
             logger.info('Writing STC to disk...')
-            if not (fname.endswith('-vl.stc')
-                    or fname.endswith('-vol.stc')):
+            if not (fname.endswith('-vl.stc') or fname.endswith('-vol.stc')):
                 fname += '-vl.stc'
             _write_stc(fname, tmin=self.tmin, tstep=self.tstep,
                        vertices=self.vertices, data=self.data)
         elif ftype == 'w':
             logger.info('Writing STC to disk (w format)...')
-            if not (fname.endswith('-vl.w')
-                    or fname.endswith('-vol.w')):
+            if not (fname.endswith('-vl.w') or fname.endswith('-vol.w')):
                 fname += '-vl.w'
             _write_w(fname, vertices=self.vertices, data=self.data)
 
@@ -2616,10 +2610,10 @@ def _get_connectivity_from_edges(edges, n_times, verbose=None):
     col = (edges.col[None, :] + aux).ravel()
     row = (edges.row[None, :] + aux).ravel()
     if n_times > 1:  # add temporal edges
-        o = (n_vertices * np.arange(n_times - 1)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
-        d = (n_vertices * np.arange(1, n_times)[:, None]
-             + np.arange(n_vertices)[None, :]).ravel()
+        o = (n_vertices * np.arange(n_times - 1)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
+        d = (n_vertices * np.arange(1, n_times)[:, None] +
+             np.arange(n_vertices)[None, :]).ravel()
         row = np.concatenate((row, o, d))
         col = np.concatenate((col, d, o))
     data = np.ones(edges.data.size * n_times + 2 * n_vertices * (n_times - 1),

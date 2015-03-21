@@ -13,15 +13,15 @@ import warnings
 import numpy as np
 from numpy.testing import assert_raises
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs, pick_types, read_cov
 from mne.utils import slow_test
 from mne.channels import read_layout
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

@@ -16,7 +16,6 @@ evoked responses.
 
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import matplotlib.pyplot as plt
 import mne
@@ -24,6 +23,9 @@ import mne
 from mne.io import Raw
 from mne.viz import plot_topo
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -54,7 +56,7 @@ epochs = mne.Epochs(raw, events, dict(audio_l=1, visual_r=3), tmin, tmax,
                     picks=picks, baseline=(None, 0), reject=reject)
 
 # Generate list of evoked objects from conditions names
-evokeds = [epochs[name].average() for name in 'audio_l', 'visual_r']
+evokeds = [epochs[name].average() for name in ('audio_l', 'visual_r')]
 
 ###############################################################################
 # Show topography for two different conditions

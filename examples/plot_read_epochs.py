@@ -13,11 +13,12 @@ for both MEG and EEG data by averaging all the epochs.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne import io
 from mne.datasets import sample
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 ###############################################################################
@@ -39,6 +40,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, eog=True,
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=(None, 0), preload=True,
                     reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
+
 evoked = epochs.average()  # average epochs to get the evoked response
 
 ###############################################################################

@@ -3,6 +3,7 @@
 #
 # License: BSD (3-clause)
 
+import warnings
 from .externals.six import string_types
 import numpy as np
 import os
@@ -23,7 +24,7 @@ from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
                       _tessellate_sphere_surf, read_bem_surfaces,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
-                      fast_cross_3d)
+                      fast_cross_3d, _fast_cross_nd_sum)
 from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
@@ -31,8 +32,8 @@ from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
 from .fixes import in1d, partial, gzip_open
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
-                         combine_transforms, _get_mri_head_t_from_trans_file,
-                         read_trans, _coord_frame_name)
+                         combine_transforms, _get_mri_head_t,
+                         _coord_frame_name)
 
 
 def _get_lut():
@@ -299,23 +300,8 @@ class SourceSpaces(list):
             # modify affine if in head coordinates
             if coords == 'head':
 
-                # read transformation
-                if isinstance(trans, string_types):
-                    if not op.isfile(trans):
-                        raise IOError('trans file "%s" not found' % trans)
-                    if op.splitext(trans)[1] in ['.fif', '.gz']:
-                        mri_head_t = read_trans(trans)
-                    else:
-                        mri_head_t = _get_mri_head_t_from_trans_file(trans)
-                else:  # dict
-                    mri_head_t = trans
-
-                # make sure its an MRI to HEAD transform
-                if mri_head_t['from'] == FIFF.FIFFV_COORD_HEAD:
-                    mri_head_t = invert_transform(mri_head_t)
-                if not (mri_head_t['from'] == FIFF.FIFFV_COORD_MRI and
-                        mri_head_t['to'] == FIFF.FIFFV_COORD_HEAD):
-                    raise RuntimeError('Incorrect MRI transform provided')
+                # read mri -> head transformation
+                mri_head_t = _get_mri_head_t(trans)[0]
 
                 # get the HEAD to MRI transform
                 head_mri_t = invert_transform(mri_head_t)
@@ -339,9 +325,12 @@ class SourceSpaces(list):
                     # convert to numeric indices
                     ix_orig, iy_orig, iz_orig = srf_rr.T.round().astype(int)
                     # clip indices outside of volume space
-                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
-                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
-                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2] - 1),
+                                         0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1] - 1),
+                                         0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0] - 1),
+                                         0)
                     # compare original and clipped indices
                     n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
                                        iz_orig != iz_clip)).any(0).sum()
@@ -364,9 +353,12 @@ class SourceSpaces(list):
                     # convert to numeric indices
                     ix_orig, iy_orig, iz_orig = disc_rr.T.astype(int)
                     # clip indices outside of volume space
-                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2]-1), 0)
-                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1]-1), 0)
-                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0]-1), 0)
+                    ix_clip = np.maximum(np.minimum(ix_orig, shape3d[2] - 1),
+                                         0)
+                    iy_clip = np.maximum(np.minimum(iy_orig, shape3d[1] - 1),
+                                         0)
+                    iz_clip = np.maximum(np.minimum(iz_orig, shape3d[0] - 1),
+                                         0)
                     # compare original and clipped indices
                     n_diff = np.array((ix_orig != ix_clip, iy_orig != iy_clip,
                                        iz_orig != iz_clip)).any(0).sum()
@@ -461,7 +453,8 @@ def _add_patch_info(s):
 
 
 @verbose
-def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
+def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
+                                  verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -470,8 +463,8 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
         An open file descriptor.
     tree : dict
         The FIF tree structure if source is a file id.
-    add_geom : bool, optional (default False)
-        Add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -490,7 +483,7 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
         logger.info('    Reading a source space...')
         this = _read_one_source_space(fid, s)
         logger.info('    [done]')
-        if add_geom:
+        if patch_stats:
             _complete_source_space_info(this)
 
         src.append(this)
@@ -502,7 +495,7 @@ def _read_source_spaces_from_tree(fid, tree, add_geom=False, verbose=None):
 
 
 @verbose
-def read_source_spaces(fname, add_geom=False, verbose=None):
+def read_source_spaces(fname, patch_stats=False, verbose=None, add_geom=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -510,8 +503,8 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     fname : str
         The name of the file, which should end with -src.fif or
         -src.fif.gz.
-    add_geom : bool, optional (default False)
-        Add geometry information to the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -520,6 +513,10 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
     src : SourceSpaces
         The source spaces.
     """
+    if add_geom is not None:
+        patch_stats = add_geom
+        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
+                      "Use `patch_stats` instead.", DeprecationWarning)
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -527,7 +524,7 @@ def read_source_spaces(fname, add_geom=False, verbose=None):
 
     ff, tree, _ = fiff_open(fname)
     with ff as fid:
-        src = _read_source_spaces_from_tree(fid, tree, add_geom=add_geom,
+        src = _read_source_spaces_from_tree(fid, tree, patch_stats=patch_stats,
                                             verbose=verbose)
         src.info['fname'] = fname
         node = dir_tree_find(tree, FIFF.FIFFB_MNE_ENV)
@@ -638,7 +635,7 @@ def _read_one_source_space(fid, this, verbose=None):
             offset = 0
             neighbors = []
             for n in nneighbors:
-                neighbors.append(tag.data[offset:offset+n])
+                neighbors.append(tag.data[offset:offset + n])
                 offset += n
             res['neighbor_vert'] = neighbors
 
@@ -1441,17 +1438,11 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
             raise ValueError('Cannot create interpolation matrix for '
                              'discrete source space, mri must be None if '
                              'pos is a dict')
-    elif not isinstance(pos, dict):
-        # "pos" will create a discrete src, so we don't need "mri"
-        # if "pos" is None, we must have "mri" b/c it will be vol src
-        raise RuntimeError('"mri" must be provided if "pos" is not a dict '
-                           '(i.e., if a volume instead of discrete source '
-                           'space is desired)')
 
     if volume_label is not None:
-        if isinstance(pos, dict):
-            raise ValueError('If volume label is not none, pos must be '
-                             'float, not a dict.')
+        if mri is None:
+            raise RuntimeError('"mri" must be provided if "volume_label" is '
+                               'not None')
         # Check that volume label is found in .mgz file
         volume_labels = get_volume_labels_from_aseg(mri)
         if volume_label not in volume_labels:
@@ -1553,6 +1544,9 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
     # Compute an interpolation matrix to show data in MRI_VOXEL coord frame
     if mri is not None:
         _add_interpolator(sp, mri, add_interpolator)
+    elif sp['type'] == 'vol':
+        # If there is no interpolator, it's actually a discrete source space
+        sp['type'] = 'discrete'
 
     if 'vol_dims' in sp:
         del sp['vol_dims']
@@ -1617,7 +1611,8 @@ def _make_discrete_source_space(pos):
     return sp
 
 
-def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
+def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
+                              volume_label=None, do_neighbors=True, n_jobs=1):
     """Make a source space which covers the volume bounded by surf"""
 
     # Figure out the grid size in the MRI coordinate frame
@@ -1635,18 +1630,10 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     logger.info('Surface extent:')
     for c, mi, ma in zip('xyz', mins, maxs):
         logger.info('    %s = %6.1f ... %6.1f mm' % (c, 1000 * mi, 1000 * ma))
-    maxn = np.zeros(3, int)
-    minn = np.zeros(3, int)
-    for c in range(3):
-        if maxs[c] > 0:
-            maxn[c] = np.floor(np.abs(maxs[c]) / grid) + 1
-        else:
-            maxn[c] = -np.floor(np.abs(maxs[c]) / grid) - 1
-        if mins[c] > 0:
-            minn[c] = np.floor(np.abs(mins[c]) / grid) + 1
-        else:
-            minn[c] = -np.floor(np.abs(mins[c]) / grid) - 1
-
+    maxn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
+                     np.floor(np.abs(m) / grid) - 1 for m in maxs], int)
+    minn = np.array([np.floor(np.abs(m) / grid) + 1 if m > 0 else -
+                     np.floor(np.abs(m) / grid) - 1 for m in mins], int)
     logger.info('Grid extent:')
     for c, mi, ma in zip('xyz', minn, maxn):
         logger.info('    %s = %6.1f ... %6.1f mm'
@@ -1658,19 +1645,38 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     nrow = ns[0]
     ncol = ns[1]
     nplane = nrow * ncol
-    sp = dict(np=npts, rr=np.zeros((npts, 3)), nn=np.zeros((npts, 3)),
+    # x varies fastest, then y, then z (can use unravel to do this)
+    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1),
+                     np.arange(minn[1], maxn[1] + 1),
+                     np.arange(minn[0], maxn[0] + 1), indexing='ij')
+    x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
+    rr = np.array([x * grid, y * grid, z * grid]).T
+    sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
               inuse=np.ones(npts, int), type='vol', nuse=npts,
               coord_frame=FIFF.FIFFV_COORD_MRI, id=-1, shape=ns)
-    sp['nn'][:, 2] = 1.0  # Source orientation is immaterial
+    sp['nn'][:, 2] = 1.0
+    assert sp['rr'].shape[0] == npts
 
-    x = np.arange(minn[0], maxn[0] + 1)[np.newaxis, np.newaxis, :]
-    y = np.arange(minn[1], maxn[1] + 1)[np.newaxis, :, np.newaxis]
-    z = np.arange(minn[2], maxn[2] + 1)[:, np.newaxis, np.newaxis]
-    z = np.tile(z, (1, ns[1], ns[0])).ravel()
-    y = np.tile(y, (ns[2], 1, ns[0])).ravel()
-    x = np.tile(x, (ns[2], ns[1], 1)).ravel()
+    logger.info('%d sources before omitting any.', sp['nuse'])
+
+    # Exclude infeasible points
+    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
+    bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
+    sp['inuse'][bads] = False
+    sp['nuse'] -= len(bads)
+    logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
+
+    _filter_source_spaces(surf, mindist, None, [sp], n_jobs)
+    logger.info('%d sources remaining after excluding the sources outside '
+                'the surface and less than %6.1f mm inside.'
+                % (sp['nuse'], mindist))
+
+    if not do_neighbors:
+        if volume_label is not None:
+            raise RuntimeError('volume_label cannot be None unless '
+                               'do_neighbors is True')
+        return sp
     k = np.arange(npts)
-    sp['rr'] = np.c_[x, y, z] * grid
     neigh = np.empty((26, npts), int)
     neigh.fill(-1)
 
@@ -1742,20 +1748,6 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri, volume_label):
     neigh[24, idx2] = k[idx2] - nrow + nplane
     idx3 = np.logical_and(idx2, x < maxn[0])
     neigh[25, idx3] = k[idx3] + 1 - nrow + nplane
-
-    logger.info('%d sources before omitting any.', sp['nuse'])
-
-    # Exclude infeasible points
-    dists = np.sqrt(np.sum((sp['rr'] - cm) ** 2, axis=1))
-    bads = np.where(np.logical_or(dists < exclude, dists > maxdist))[0]
-    sp['inuse'][bads] = False
-    sp['nuse'] -= len(bads)
-    logger.info('%d sources after omitting infeasible sources.', sp['nuse'])
-
-    _filter_source_spaces(surf, mindist, None, [sp])
-    logger.info('%d sources remaining after excluding the sources outside '
-                'the surface and less than %6.1f mm inside.'
-                % (sp['nuse'], mindist))
 
     # Restrict sources to volume of interest
     if volume_label is not None:
@@ -2004,7 +1996,7 @@ def _add_interpolator(s, mri_name, add_interpolator):
 @verbose
 def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
                           verbose=None):
-    """Remove all source space points closer than a given limit"""
+    """Remove all source space points closer than a given limit (in mm)"""
     if src[0]['coord_frame'] == FIFF.FIFFV_COORD_HEAD and mri_head_t is None:
         raise RuntimeError('Source spaces are in head coordinates and no '
                            'coordinate transform was provided!')
@@ -2033,8 +2025,7 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
             r1s = apply_trans(inv_trans['trans'], r1s)
 
         # Check that the source is inside surface (often the inner skull)
-        x = _sum_solids_div(r1s, surf, n_jobs)
-        outside = np.abs(x - 1.0) > 1e-5
+        outside = _points_outside_surface(r1s, surf, n_jobs)
         omit_outside = np.sum(outside)
 
         # vectorized nearest using BallTree (or cdist)
@@ -2063,31 +2054,64 @@ def _filter_source_spaces(surf, limit, mri_head_t, src, n_jobs=1,
     logger.info('Thank you for waiting.')
 
 
-def _sum_solids_div(fros, surf, n_jobs):
-    """Compute sum of solid angles according to van Oosterom for all tris"""
+@verbose
+def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
+    """Check whether points are outside a surface
+
+    Parameters
+    ----------
+    rr : ndarray
+        Nx3 array of points to check.
+    surf : dict
+        Surface with entries "rr" and "tris".
+
+    Returns
+    -------
+    outside : ndarray
+        1D logical array of size N for which points are outside the surface.
+    """
+    rr = np.atleast_2d(rr)
+    assert rr.shape[1] == 3
     parallel, p_fun, _ = parallel_func(_get_solids, n_jobs)
-    tot_angles = parallel(p_fun(surf['rr'][tris], fros)
+    tot_angles = parallel(p_fun(surf['rr'][tris], rr)
                           for tris in np.array_split(surf['tris'], n_jobs))
-    return np.sum(tot_angles, axis=0) / (2 * np.pi)
+    return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
 def _get_solids(tri_rrs, fros):
     """Helper for computing _sum_solids_div total angle in chunks"""
     # NOTE: This incorporates the division by 4PI that used to be separate
+    # for tri_rr in tri_rrs:
+    #     v1 = fros - tri_rr[0]
+    #     v2 = fros - tri_rr[1]
+    #     v3 = fros - tri_rr[2]
+    #     triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
+    #     l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    #     l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    #     l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    #     s = (l1 * l2 * l3 +
+    #          np.sum(v1 * v2, axis=1) * l3 +
+    #          np.sum(v1 * v3, axis=1) * l2 +
+    #          np.sum(v2 * v3, axis=1) * l1)
+    #     tot_angle -= np.arctan2(triple, s)
+
+    # This is the vectorized version, but with a slicing heuristic to
+    # prevent memory explosion
     tot_angle = np.zeros((len(fros)))
-    for tri_rr in tri_rrs:
-        v1 = fros - tri_rr[0]
-        v2 = fros - tri_rr[1]
-        v3 = fros - tri_rr[2]
-        triple = np.sum(fast_cross_3d(v1, v2) * v3, axis=1)
-        l1 = np.sqrt(np.sum(v1 * v1, axis=1))
-        l2 = np.sqrt(np.sum(v2 * v2, axis=1))
-        l3 = np.sqrt(np.sum(v3 * v3, axis=1))
-        s = (l1 * l2 * l3 +
-             np.sum(v1 * v2, axis=1) * l3 +
-             np.sum(v1 * v3, axis=1) * l2 +
-             np.sum(v2 * v3, axis=1) * l1)
-        tot_angle -= np.arctan2(triple, s)
+    slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
+    for i1, i2 in zip(slices[:-1], slices[1:]):
+        v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
+        v2 = fros[i1:i2] - tri_rrs[:, 1, :][:, np.newaxis]
+        v3 = fros[i1:i2] - tri_rrs[:, 2, :][:, np.newaxis]
+        triples = _fast_cross_nd_sum(v1, v2, v3)
+        l1 = np.sqrt(np.sum(v1 * v1, axis=2))
+        l2 = np.sqrt(np.sum(v2 * v2, axis=2))
+        l3 = np.sqrt(np.sum(v3 * v3, axis=2))
+        ss = (l1 * l2 * l3 +
+              np.sum(v1 * v2, axis=2) * l3 +
+              np.sum(v1 * v3, axis=2) * l2 +
+              np.sum(v2 * v3, axis=2) * l1)
+        tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
     return tot_angle
 
 
@@ -2290,7 +2314,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
                 assert_equal(s0[name], s1[name], name)
         if mode == 'exact':
             for name in ['inuse', 'vertno', 'use_tris']:
-                assert_array_equal(s0[name], s1[name])
+                assert_array_equal(s0[name], s1[name], err_msg=name)
             # these fields will exist if patch info was added, these are
             # not tested in mode == 'approx'
             for name in ['nearest', 'nearest_dist']:

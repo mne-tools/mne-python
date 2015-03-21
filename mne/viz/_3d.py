@@ -23,9 +23,12 @@ import base64
 import numpy as np
 from scipy import linalg
 
+from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..surface import get_head_surf, get_meg_helmet_surf, read_surface
-from ..transforms import read_trans, _find_trans, apply_trans
+from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
+                       transform_surface_to)
+from ..transforms import (read_trans, _find_trans, apply_trans,
+                          combine_transforms)
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -264,7 +267,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
-               ch_type=None, source='bem'):
+               ch_type=None, source=('bem', 'head'), coord_frame='head'):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
@@ -295,7 +298,8 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-
+    if coord_frame not in ['head', 'meg']:
+        raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
@@ -309,6 +313,12 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':
         surfs.append(get_meg_helmet_surf(info, trans))
+    if coord_frame == 'meg':
+        meg_trans = combine_transforms(info['dev_head_t'], trans,
+                                       FIFF.FIFFV_COORD_DEVICE,
+                                       FIFF.FIFFV_COORD_MRI)
+        surfs = [transform_surface_to(surf, 'meg', meg_trans)
+                 for surf in surfs]
 
     # Plot them
     from mayavi import mlab
@@ -738,8 +748,8 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         mode = modes[1] if is_common else modes[0]
         scale_factor = scale_factors[1] if is_common else scale_factors[0]
 
-        if (isinstance(scale_factor, (np.ndarray, list, tuple))
-                and len(unique_vertnos) == len(scale_factor)):
+        if (isinstance(scale_factor, (np.ndarray, list, tuple)) and
+                len(unique_vertnos) == len(scale_factor)):
             scale_factor = scale_factor[idx]
 
         x, y, z = points[v]

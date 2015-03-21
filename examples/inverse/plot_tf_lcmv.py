@@ -10,12 +10,9 @@ The original reference is:
 Dalal et al. Five-dimensional neuroimaging: Localization of the time-frequency
 dynamics of cortical activity. NeuroImage (2008) vol. 40 (4) pp. 1686-1700
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import mne
 from mne import compute_covariance
@@ -25,6 +22,7 @@ from mne.event import make_fixed_length_events
 from mne.beamformer import tf_lcmv
 from mne.viz import plot_source_spectrogram
 
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'

@@ -20,7 +20,7 @@ test_external = {
 
 #  generated using this expression: `np.random.RandomState(42).randn(20, 6)`
 test_data = np.array(
-[[0.49671415, -0.1382643, 0.64768854, 1.52302986, -0.23415337, -0.23413696],
+[[0.49671415, -0.1382643, 0.64768854, 1.52302986, -0.23415337, -0.23413696],  # noqa
  [1.57921282, 0.76743473, -0.46947439, 0.54256004, -0.46341769, -0.46572975],
  [0.24196227, -1.91328024, -1.72491783, -0.56228753, -1.01283112, 0.31424733],
  [-0.90802408, -1.4123037, 1.46564877, -0.2257763, 0.0675282, -1.42474819],
@@ -45,7 +45,7 @@ test_data = np.array(
 def test_f_twoway_rm():
     """ Test 2-way anova """
     iter_params = product([4, 10], [2, 15], [4, 6, 8], ['A', 'B', 'A:B'],
-        [False, True])
+                          [False, True])
     for params in iter_params:
         n_subj, n_obs, n_levels, picks, correction = params
         data = np.random.random([n_subj, n_levels, n_obs])
@@ -55,7 +55,7 @@ def test_f_twoway_rm():
             8: [2, 4]
         }
         fvals, pvals = f_twoway_rm(data, effects[n_levels], picks,
-                                      correction=correction)
+                                   correction=correction)
         assert_true((fvals >= 0).all())
         if pvals.any():
             assert_true(((0 <= pvals) & (1 >= pvals)).all())
@@ -78,14 +78,11 @@ def test_f_twoway_rm():
     # now check against external software results
     fvals, pvals = f_twoway_rm(test_data, [2, 3])
 
-    assert_array_almost_equal(fvals,
-        test_external['spss_fvals'], 3)
-    assert_array_almost_equal(pvals,
-        test_external['spss_pvals_uncorrected'], 3)
-    assert_array_almost_equal(fvals,
-        test_external['r_fvals'], 4)
-    assert_array_almost_equal(pvals,
-        test_external['r_pvals_uncorrected'], 3)
+    assert_array_almost_equal(fvals, test_external['spss_fvals'], 3)
+    assert_array_almost_equal(pvals, test_external['spss_pvals_uncorrected'],
+                              3)
+    assert_array_almost_equal(fvals, test_external['r_fvals'], 4)
+    assert_array_almost_equal(pvals, test_external['r_pvals_uncorrected'], 3)
 
     _, pvals = f_twoway_rm(test_data, [2, 3], correction=True)
     assert_array_almost_equal(pvals, test_external['spss_pvals_corrected'], 3)

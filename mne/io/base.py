@@ -33,17 +33,174 @@ from .write import (start_file, end_file, start_block, end_block,
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
                       notch_filter, band_stop_filter, resample)
+from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
+                     _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose)
+                     logger, verbose, _time_mask, deprecated)
 from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
 
 
+class ToDataFrameMixin(object):
+    '''Class to add to_data_frame capabilities to certain classes.'''
+    def _get_check_picks(self, picks, picks_check):
+        if picks is None:
+            picks = list(range(self.info['nchan']))
+        else:
+            if not in1d(picks, np.arange(len(picks_check))).all():
+                raise ValueError('At least one picked channel is not present '
+                                 'in this object instance.')
+        return picks
+
+    def to_data_frame(self, picks=None, index=None, scale_time=1e3,
+                      scalings=None, copy=True, start=None, stop=None):
+        """Export data in tabular structure as a pandas DataFrame.
+
+        Columns and indices will depend on the object being converted.
+        Generally this will include as much relevant information as
+        possible for the data type being converted. This makes it easy
+        to convert data for use in packages that utilize dataframes,
+        such as statsmodels or seaborn.
+
+        Parameters
+        ----------
+        picks : array-like of int | None
+            If None only MEG and EEG channels are kept
+            otherwise the channels indices in picks are kept.
+        index : tuple of str | None
+            Column to be used as index for the data. Valid string options
+            are 'epoch', 'time' and 'condition'. If None, all three info
+            columns will be included in the table as categorial data.
+        scale_time : float
+            Scaling to be applied to time units.
+        scalings : dict | None
+            Scaling to be applied to the channels picked. If None, defaults to
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+        copy : bool
+            If true, data will be copied. Else data may be modified in place.
+        start : int | None
+            If it is a Raw object, this defines a starting index for creating
+            the dataframe from a slice. The times will be interpolated from the
+            index and the sampling rate of the signal.
+        stop : int | None
+            If it is a Raw object, this defines a stop index for creating
+            the dataframe from a slice. The times will be interpolated from the
+            index and the sampling rate of the signal.
+
+        Returns
+        -------
+        df : instance of pandas.core.DataFrame
+            A dataframe suitable for usage with other
+            statistical/plotting/analysis packages. Column/Index values will
+            depend on the object type being converted, but should be
+            human-readable.
+        """
+        from ..epochs import _BaseEpochs
+        from ..evoked import Evoked
+        from .fiff import RawFIFF
+        from .array import RawArray
+        from ..source_estimate import _BaseSourceEstimate
+
+        pd = _check_pandas_installed()
+        mindex = list()
+        # Treat SourceEstimates special because they don't have the same info
+        if isinstance(self, _BaseSourceEstimate):
+            if self.subject is None:
+                default_index = ['time']
+            else:
+                default_index = ['subject', 'time']
+            data = self.data.T
+            times = self.times
+            shape = data.shape
+            mindex.append(('time', self.times * scale_time))
+            mindex.append(('subject', np.repeat(self.subject, shape[0])))
+
+            if isinstance(self.vertices, list):
+                # surface source estimates
+                col_names = [i for e in [
+                    ['{0} {1}'.format('LH' if ii < 1 else 'RH', vert)
+                     for vert in vertno]
+                    for ii, vertno in enumerate(self.vertices)]
+                    for i in e]
+            else:
+                # volume source estimates
+                col_names = ['VOL {0}'.format(vert) for vert in self.vertices]
+        else:
+            if isinstance(self, _BaseEpochs):
+                picks = self._get_check_picks(picks, self.ch_names)
+                default_index = ['condition', 'epoch', 'time']
+                data = self.get_data()[:, picks, :]
+                times = self.times
+                n_epochs, n_picks, n_times = data.shape
+                data = np.hstack(data).T  # (time*epochs) x signals
+
+                # Multi-index creation
+                mindex.append(('time', np.tile(times, n_epochs)))
+                id_swapped = dict((v, k) for k, v in self.event_id.items())
+                names = [id_swapped[k] for k in self.events[:, 2]]
+                mindex.append(('condition', np.repeat(names, n_times)))
+                mindex.append(('epoch',
+                              np.repeat(np.arange(n_epochs), n_times)))
+                col_names = [self.ch_names[k] for k in picks]
+
+            elif isinstance(self, (RawFIFF, RawArray, Evoked)):
+                picks = self._get_check_picks(picks, self.ch_names)
+                default_index = ['time']
+                if isinstance(self, (RawFIFF, RawArray)):
+                    data, times = self[picks, start:stop]
+                elif isinstance(self, (Evoked)):
+                    data = self.data[picks, :]
+                    times = self.times
+                    n_picks, n_times = data.shape
+                data = data.T
+                mindex.append(('time', times))
+                col_names = [self.ch_names[k] for k in picks]
+
+            types = [channel_type(self.info, idx) for idx in picks]
+            n_channel_types = 0
+            ch_types_used = []
+
+            scalings = _mutable_defaults(('scalings', scalings))[0]
+            for t in scalings.keys():
+                if t in types:
+                    n_channel_types += 1
+                    ch_types_used.append(t)
+
+            for t in ch_types_used:
+                scaling = scalings[t]
+                idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+                if len(idx) > 0:
+                    data[:, idx] *= scaling
+
+        if index is not None:
+            _check_pandas_index_arguments(index, default_index)
+        else:
+            index = default_index
+
+        if copy is True:
+            data = data.copy()
+
+        times = np.round(times * scale_time)
+
+        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
+
+        df = pd.DataFrame(data, columns=col_names)
+        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
+        if index is not None:
+            if 'time' in index:
+                logger.info('Converting time column to int64...')
+                df['time'] = df['time'].astype(np.int64)
+            df.set_index(index, inplace=True)
+        if all([i in default_index for i in index]):
+            df.columns.name = 'signal'
+        return df
+
+
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-               SetChannelsMixin, InterpolationMixin):
+               SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
     """Base class for Raw data"""
     @verbose
     def __init__(self, *args, **kwargs):
@@ -364,12 +521,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # update info if filter is applied to all data channels,
             # and it's not a band-stop filter
-            if h_freq is not None and (l_freq is None or l_freq < h_freq) and \
-                    h_freq < self.info['lowpass']:
-                self.info['lowpass'] = h_freq
-            if l_freq is not None and (h_freq is None or l_freq < h_freq) and \
-                    l_freq > self.info['highpass']:
-                self.info['highpass'] = l_freq
+            if h_freq is not None:
+                if (l_freq is None or l_freq < h_freq) and \
+                   (self.info["lowpass"] is None or
+                   h_freq < self.info['lowpass']):
+                        self.info['lowpass'] = h_freq
+            if l_freq is not None:
+                if (h_freq is None or l_freq < h_freq) and \
+                   (self.info["highpass"] is None or
+                   l_freq > self.info['highpass']):
+                        self.info['highpass'] = l_freq
         if l_freq is None and h_freq is not None:
             logger.info('Low-pass filtering at %0.2g Hz' % h_freq)
             low_pass_filter(self._data, fs, h_freq,
@@ -566,8 +727,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             # figure out which points in old data to subsample
             # protect against out-of-bounds, which can happen (having
             # one sample more than expected) due to padding
-            stim_inds = np.minimum(np.floor(np.arange(new_ntimes)
-                                            / ratio).astype(int),
+            stim_inds = np.minimum(np.floor(np.arange(new_ntimes) /
+                                            ratio).astype(int),
                                    data_chunk.shape[1] - 1)
             for sp in stim_picks:
                 new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
@@ -581,8 +742,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.first_samp = self._first_samps[0]
         self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
-        self._times = (np.arange(self.n_times, dtype=np.float64)
-                       / self.info['sfreq'])
+        self._times = (np.arange(self.n_times, dtype=np.float64) /
+                       self.info['sfreq'])
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -620,8 +781,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise ValueError('tmax must be less than or equal to the max raw '
                              'time (%0.4f sec)' % max_time)
 
-        smin = raw.time_as_index(tmin)[0]
-        smax = raw.time_as_index(tmax)[0]
+        smin, smax = np.where(_time_mask(self.times, tmin, tmax))[0][[0, -1]]
         cumul_lens = np.concatenate(([0], np.array(raw._raw_lengths,
                                                    dtype='int')))
         cumul_lens = np.cumsum(cumul_lens)
@@ -1040,6 +1200,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return self.info['ch_names']
 
     @property
+    def times(self):
+        """Time points"""
+        return np.arange(self.n_times) / float(self.info['sfreq'])
+
+    @property
     def n_times(self):
         """Number of time points"""
         return self.last_samp - self.first_samp + 1
@@ -1180,6 +1345,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return deepcopy(self)
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
                       scalings=None, use_time_index=True, copy=True):
         """Get the epochs as Pandas DataFrame
@@ -1461,8 +1628,8 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         if projector is not None:
             data = np.dot(projector, data)
 
-        if ((drop_small_buffer and (first > start)
-             and (len(times) < buffer_size))):
+        if ((drop_small_buffer and (first > start) and
+             (len(times) < buffer_size))):
             logger.info('Skipping data chunk due to small buffer ... '
                         '[done]')
             break
@@ -1755,8 +1922,8 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
                            chpi=True, exclude=[])
         if len(picks) == 0:
             raise RuntimeError('raw file has no CHPI channels')
-        time_idx = raw.time_as_index(np.arange(0, raw.n_times
-                                               / raw.info['sfreq'], t_step))
+        time_idx = raw.time_as_index(np.arange(0, raw.n_times /
+                                               raw.info['sfreq'], t_step))
         data = [raw[picks, ti] for ti in time_idx]
         t = np.array([d[1] for d in data])
         data = np.array([d[0][:, 0] for d in data])
@@ -1804,7 +1971,7 @@ def _check_update_montage(info, montage):
             raise TypeError(err)
         if montage is not None:
             if isinstance(montage, str):
-                montage = read_montage(montage, scale=False)
+                montage = read_montage(montage)
             apply_montage(info, montage)
 
             missing_positions = []

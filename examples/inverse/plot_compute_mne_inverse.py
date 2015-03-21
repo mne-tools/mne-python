@@ -7,18 +7,16 @@ Compute dSPM inverse solution on MNE evoked dataset
 and stores the solution in stc files for visualisation.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import matplotlib.pyplot as plt
 from mne.datasets import sample
 from mne import read_evokeds
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 
+print(__doc__)
 
 data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'

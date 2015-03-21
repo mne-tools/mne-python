@@ -28,8 +28,8 @@ class _ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     def __init__(self, server_address, request_handler_class,
                  stim_server):
 
-    # Basically, this server is the same as a normal TCPServer class
-    # except that it has an additional attribute stim_server
+        # Basically, this server is the same as a normal TCPServer class
+        # except that it has an additional attribute stim_server
 
         # Create the server and bind it to the desired server address
         socketserver.TCPServer.__init__(self, server_address,
@@ -260,6 +260,7 @@ class StimClient(object):
                                'computer connection (host: %s '
                                'port: %d) failed. Make sure StimServer '
                                'is running.' % (host, port))
+
     def close(self):
         """Close the socket object"""
         self._sock.close()

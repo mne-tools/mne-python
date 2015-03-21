@@ -6,10 +6,10 @@ import numpy as np
 from numpy.polynomial.legendre import legval
 from scipy import linalg
 
-from .. utils import logger
-from .. io.pick import pick_types
-from .. surface import _normalize_vectors
-from . utils import _fit_sphere
+from ..utils import logger
+from ..io.pick import pick_types
+from ..surface import _normalize_vectors
+from ..bem import _fit_sphere
 
 
 def _calc_g(cosang, stiffness=4, num_lterms=50):
@@ -30,8 +30,8 @@ def _calc_g(cosang, stiffness=4, num_lterms=50):
     G : np.ndrarray of float, shape(n_channels, n_channels)
         The G matrix.
     """
-    factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness * 4 * np.pi)
-               for n in range(1, num_lterms + 1)]
+    factors = [(2 * n + 1) / (n ** stiffness * (n + 1) ** stiffness *
+                              4 * np.pi) for n in range(1, num_lterms + 1)]
     return legval(cosang, [0] + factors)
 
 

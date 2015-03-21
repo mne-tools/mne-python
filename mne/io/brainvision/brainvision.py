@@ -16,6 +16,7 @@ from ...utils import verbose, logger
 from ..constants import FIFF
 from ..meas_info import _empty_info
 from ..base import _BaseRaw, _check_update_montage
+from ..reference import add_reference_channels
 
 from ...externals.six import StringIO, u
 from ...externals.six.moves import configparser
@@ -43,7 +44,7 @@ class RawBrainVision(_BaseRaw):
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
+        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is
@@ -63,6 +64,9 @@ class RawBrainVision(_BaseRaw):
                  eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None, reference=None,
                  scale=1., preload=False, verbose=None):
 
+        if reference is not None and preload is False:
+            raise ValueError("Preload must be set to True if reference is "
+                             "specified.")
         # Preliminary Raw attributes
         self._events = np.empty((0, 3))
         self.preload = False
@@ -74,8 +78,7 @@ class RawBrainVision(_BaseRaw):
             raise TypeError('Scale factor must be an int or float. '
                             '%s provided' % type(scale))
         self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
-                                                          reference, eog,
-                                                          misc)
+                                                          eog, misc)
         self._eeg_info['scale'] = float(scale)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(self.info, montage)
@@ -89,15 +92,14 @@ class RawBrainVision(_BaseRaw):
         self.orig_format = 'double'
         self._projector = None
         self.comp = None  # no compensation for EEG
-        self.proj = False
         self.first_samp = 0
         with open(self.info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
-        n_chan = self.info['nchan']
-        self.last_samp = (n_samples // (dtype * (n_chan - 1))) - 1
-        self._reference = reference
+        # n_chan = self.info['nchan']
+        self.last_samp = (n_samples //
+                          (dtype * self._eeg_info['n_eeg_chan'])) - 1
         self._raw_lengths = np.array([self.n_times])
         self._first_samps = np.array([self.first_samp])
         self._last_samps = np.array([self.last_samp])
@@ -106,6 +108,8 @@ class RawBrainVision(_BaseRaw):
             self.preload = preload
             logger.info('Reading raw data from %s...' % vhdr_fname)
             self._data, _ = self._read_segment()
+            if reference is not None:
+                add_reference_channels(self, reference, copy=False)
             assert len(self._data) == self.info['nchan']
 
             # Add time info
@@ -172,9 +176,6 @@ class RawBrainVision(_BaseRaw):
         sfreq = self.info['sfreq']
         chs = self.info['chs']
         units = eeg_info['units']
-        if self._reference:
-            chs = chs[:-1]
-            units = units[:-1]
         if len(self._events):
             chs = chs[:-1]
         n_eeg = len(chs)
@@ -202,7 +203,6 @@ class RawBrainVision(_BaseRaw):
 
         n_channels, n_times = data_buffer.shape
         # Total number of channels
-        n_channels += int(self._reference is not None)
         n_channels += int(len(self._events) > 0)
 
         # Preallocate data array
@@ -212,10 +212,7 @@ class RawBrainVision(_BaseRaw):
         ch_idx = len(data_buffer)
         del data_buffer
 
-        # add reference channel and stim channel (if applicable)
-        if self._reference:
-            data[ch_idx] = 0.
-            ch_idx += 1
+        # stim channel (if applicable)
         if len(self._events):
             data[ch_idx] = _synthesize_stim_channel(self._events, start, stop)
             ch_idx += 1
@@ -340,7 +337,7 @@ def _read_vmrk_events(fname):
         except IndexError:
             pass
 
-    events = np.array(events)
+    events = np.array(events).reshape(-1, 3)
     return events
 
 
@@ -383,18 +380,13 @@ def _synthesize_stim_channel(events, start, stop):
     return stim_channel
 
 
-def _get_eeg_info(vhdr_fname, reference, eog, misc):
+def _get_eeg_info(vhdr_fname, eog, misc):
     """Extracts all the information from the header file.
 
     Parameters
     ----------
     vhdr_fname : str
         Raw EEG header to be read.
-    reference : None | str
-        Name of the electrode which served as the reference in the recording.
-        If a name is provided, a corresponding channel is added and its data
-        is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in elp_names.
     eog : list of str
         Names of channels that should be designated EOG channels. Names should
         correspond to the vhdr file.
@@ -441,8 +433,8 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
     # Sampling interval is given in microsec
     sfreq = 1e6 / cfg.getfloat('Common Infos', 'SamplingInterval')
     sfreq = int(sfreq)
-    n_data_chan = cfg.getint('Common Infos', 'NumberOfChannels')
-    n_eeg_chan = n_data_chan + bool(reference)
+    eeg_info['n_eeg_chan'] = n_eeg_chan = cfg.getint('Common Infos',
+                                                     'NumberOfChannels')
 
     # check binary format
     assert cfg.get('Common Infos', 'DataFormat') == 'BINARY'
@@ -486,11 +478,6 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
         else:
             units[n - 1] = unit
 
-    # add reference channel info
-    if reference:
-        ch_names[-1] = reference
-        cals[-1] = cals[-2]
-        units[-1] = units[-2]
     eeg_info['units'] = np.asarray(units, dtype=float)
 
     # Attempts to extract filtering info from header. If not found, both are
@@ -510,8 +497,6 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
         lowpass = []
         highpass = []
         for i, ch in enumerate(ch_names, 1):
-            if ch == reference:
-                continue
             line = settings[idx + i].split()
             assert ch in line
             highpass.append(line[5])
@@ -601,8 +586,8 @@ def _get_eeg_info(vhdr_fname, reference, eog, misc):
 
 def read_raw_brainvision(vhdr_fname, montage=None,
                          eog=('HEOGL', 'HEOGR', 'VEOGb'), misc=None,
-                         reference=None, scale=1.,
-                         preload=False, verbose=None):
+                         reference=None, scale=1., preload=False,
+                         verbose=None):
     """Reader for Brain Vision EEG file
 
     Parameters
@@ -613,7 +598,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
     eog : list or tuple of str
-        Names of channels or list of indices that should be designated 
+        Names of channels or list of indices that should be designated
         EOG channels. Values should correspond to the vhdr file
         Default is ('HEOGL', 'HEOGR', 'VEOGb').
     misc : list or tuple of str
@@ -624,7 +609,7 @@ def read_raw_brainvision(vhdr_fname, montage=None,
         Name of the electrode which served as the reference in the recording.
         If a name is provided, a corresponding channel is added and its data
         is set to 0. This is useful for later re-referencing. The name should
-        correspond to a name in the montage.
+        correspond to a name in elp_names. Data must be preloaded.
     scale : float
         The scaling factor for EEG data. Units are in volts. Default scale
         factor is 1. For microvolts, the scale factor would be 1e-6. This is

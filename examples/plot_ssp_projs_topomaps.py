@@ -12,11 +12,11 @@ The projections used are the ones correcting for ECG artifacts.
 
 # License: BSD (3-clause)
 
+from mne import read_proj, read_evokeds
+from mne.datasets import sample
+
 print(__doc__)
 
-from mne import read_proj, find_layout, read_evokeds
-from mne.datasets import sample
-from mne import viz
 data_path = sample.data_path()
 
 ecg_fname = data_path + '/MEG/sample/sample_audvis_ecg_proj.fif'

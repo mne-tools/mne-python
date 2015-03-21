@@ -7,18 +7,19 @@ Compute dSPM inverse solution on MNE evoked dataset in a volume source
 space and stores the solution in a nifti file for visualisation.
 
 """
-
 # Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 import matplotlib.pyplot as plt
+import nibabel as nib
+
 from mne.datasets import sample
 from mne import read_evokeds
 from mne.minimum_norm import apply_inverse, read_inverse_operator
+
+print(__doc__)
 
 data_path = sample.data_path()
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-vol-7-meg-inv.fif'
@@ -42,7 +43,6 @@ img = stc.as_volume(src,
                     mri_resolution=False)  # set True for full MRI resolution
 
 # Save it as a nifti file
-import nibabel as nib
 nib.save(img, 'mne_%s_inverse.nii.gz' % method)
 
 data = img.get_data()

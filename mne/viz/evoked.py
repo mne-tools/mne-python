@@ -58,8 +58,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     if len(exclude) > 0:
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
-        elif (isinstance(exclude, list)
-              and all([isinstance(ch, string_types) for ch in exclude])):
+        elif (isinstance(exclude, list) and
+              all([isinstance(ch, string_types) for ch in exclude])):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
@@ -329,9 +329,9 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
     References
     ----------
-    [1] Engemann D. and Gramfort A (in press). Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals.
-        NeuroImage.
+    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals,
+        vol. 108, 328-342, NeuroImage.
     """
     return _plot_evoked_white(evoked=evoked, noise_cov=noise_cov,
                               scalings=None, rank=None, show=show)
@@ -384,7 +384,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                     'whitening jointly.')
 
     evoked = evoked.copy()  # handle ref meg
-    evoked.info['projs'] = []  # either applied already or not-- otherwise issue
+    evoked.info['projs'] = []  # either applied already or not-- else issue
 
     picks = pick_types(evoked.info, meg=True, eeg=True, ref_meg=False,
                        exclude='bads')
@@ -415,7 +415,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             for ch_type, this_picks in picks_list2:
                 this_info = pick_info(evoked.info, this_picks)
                 idx = np.ix_(this_picks, this_picks)
-                this_rank = _estimate_rank_meeg_cov(C[idx], this_info, scalings)
+                this_rank = _estimate_rank_meeg_cov(C[idx], this_info,
+                                                    scalings)
                 rank_[ch_type] = this_rank
         if rank is not None:
             rank_.update(rank)
@@ -475,7 +476,8 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     iter_gfp = zip(evokeds_white, noise_cov, rank_list, colors)
 
     if not has_sss:
-        evokeds_white[0].plot(unit=False, axes=axes_evoked, hline=[-1.96, 1.96])
+        evokeds_white[0].plot(unit=False, axes=axes_evoked,
+                              hline=[-1.96, 1.96])
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
@@ -523,5 +525,45 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
     fig.canvas.draw()
 
     if show is True:
+        plt.show()
+    return fig
+
+
+def plot_snr_estimate(evoked, inv, show=True):
+    """Plot a data SNR estimate
+
+    Parameters
+    ----------
+    evoked : instance of Evoked
+        The evoked instance. This should probably be baseline-corrected.
+    inv : instance of InverseOperator
+        The minimum-norm inverse operator.
+    show : bool
+        Whether to show the figure or not. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure object containing the plot.
+    """
+    import matplotlib.pyplot as plt
+    from ..minimum_norm import estimate_snr
+    snr, snr_est = estimate_snr(evoked, inv, verbose=True)
+    fig, ax = plt.subplots(1, 1)
+    lims = np.concatenate([evoked.times[[0, -1]], [-1, snr_est.max()]])
+    ax.plot([0, 0], lims[2:], 'k:')
+    ax.plot(lims[:2], [0, 0], 'k:')
+    # Colors are "bluish green" and "vermillion" taken from:
+    #  http://bconnelly.net/2013/10/creating-colorblind-friendly-figures/
+    ax.plot(evoked.times, snr_est, color=[0.0, 0.6, 0.5])
+    ax.plot(evoked.times, snr, color=[0.8, 0.4, 0.0])
+    ax.set_xlim(lims[:2])
+    ax.set_ylim(lims[2:])
+    ax.set_ylabel('SNR')
+    ax.set_xlabel('Time (sec)')
+    if evoked.comment is not None:
+        ax.set_title(evoked.comment)
+    plt.draw()
+    if show:
         plt.show()
     return fig

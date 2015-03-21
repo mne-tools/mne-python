@@ -6,18 +6,19 @@ Compute full spectrum source space connectivity between labels
 The connectivity is computed between 4 labels across the spectrum
 between 5 and 40 Hz.
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import apply_inverse_epochs, read_inverse_operator
 from mne.connectivity import spectral_connectivity
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -65,11 +66,10 @@ label_ts = mne.extract_label_time_course(stcs, labels, src, mode='mean_flip',
 fmin, fmax = 5., 40.
 sfreq = raw.info['sfreq']  # the sampling frequency
 
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(label_ts,
-        method='wpli2_debiased', mode='multitaper', sfreq=sfreq, fmin=fmin,
-        fmax=fmax, mt_adaptive=True, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    label_ts, method='wpli2_debiased', mode='multitaper', sfreq=sfreq,
+    fmin=fmin, fmax=fmax, mt_adaptive=True, n_jobs=2)
 
-import matplotlib.pyplot as plt
 n_rows, n_cols = con.shape[:2]
 fig, axes = plt.subplots(n_rows, n_cols, sharex=True, sharey=True)
 plt.suptitle('Between labels connectivity')

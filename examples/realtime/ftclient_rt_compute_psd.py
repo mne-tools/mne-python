@@ -11,20 +11,18 @@ computation of power spectra in real-time using the
 get_data_as_epoch function.
 
 """
-
-print(__doc__)
-
 # Author: Mainak Jas <mainak@neuro.hut.fi>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import FieldTripClient
 from mne.time_frequency import compute_epochs_psd
 
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # user must provide list of bad channels because
 # FieldTrip header object does not provide that

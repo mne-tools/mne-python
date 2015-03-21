@@ -14,11 +14,13 @@ also using a sign flip.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import matplotlib.pyplot as plt
 
 import mne
 from mne.datasets import sample
 from mne.minimum_norm import read_inverse_operator, apply_inverse
+
+print(__doc__)
 
 data_path = sample.data_path()
 label = 'Aud-lh'
@@ -50,7 +52,6 @@ pca = stc.extract_label_time_course(label, src, mode='pca_flip')
 print("Number of vertices : %d" % len(stc_label.data))
 
 # View source activations
-import matplotlib.pyplot as plt
 plt.figure()
 plt.plot(1e3 * stc_label.times, stc_label.data.T, 'k', linewidth=0.5)
 h0, = plt.plot(1e3 * stc_label.times, mean.T, 'r', linewidth=3)

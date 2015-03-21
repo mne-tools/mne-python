@@ -154,7 +154,7 @@ information about configuring your git installation, see
 The following sections cover the installation of the git software, the basic
 configuration, and links to resources to learn more about using git.
 However, you can also directly go to the `GitHub help pages
-<http://help.github.com/>`_ which offer a great introduction to git and
+<https://help.github.com/>`_ which offer a great introduction to git and
 GitHub.
 
 In the present document, we refer to the mne-python ``master`` branch, as the
@@ -167,7 +167,7 @@ Creating a fork
 
 You need to do this only once for each package you want to contribute to. The
 instructions here are very similar to the instructions at
-http://help.github.com/fork-a-repo/ |emdash| please see that page for more
+https://help.github.com/fork-a-repo/ |emdash| please see that page for more
 details. We're repeating some of it here just to give the specifics for the
 mne-python_ project, and to suggest some default names.
 
@@ -438,7 +438,7 @@ Asking for your changes to be reviewed or merged
 When you are ready to ask for someone to review your code and consider a merge:
 
 #. Go to the URL of your forked repo, say
-   ``http://github.com/your-user-name/mne-python``.
+   ``https://github.com/your-user-name/mne-python``.
 
 #. Use the 'Switch Branches' dropdown menu near the top left of the page to
    select the branch with your changes:
@@ -488,7 +488,7 @@ Delete a branch on GitHub
    git push origin :my-unwanted-branch
 
 (Note the colon ``:`` before ``test-branch``.  See also:
-http://github.com/guides/remove-a-remote-branch
+https://help.github.com/remotes
 
 Several people sharing a single repository
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -156,11 +156,11 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     if ch_type == 'meg':
         # Put them in head coordinates
         coils = _create_coils(chs, FIFF.FWD_COIL_ACCURACY_NORMAL,
-                              info['dev_head_t'], coil_type='meg')[0]
+                              info['dev_head_t'], 'meg')
         type_str = 'coils'
         miss = 1e-4  # Smoothing criterion for MEG
     else:  # EEG
-        coils = _create_coils(chs, coil_type='eeg')[0]
+        coils = _create_coils(chs, coil_type='eeg')
         type_str = 'electrodes'
         miss = 1e-3  # Smoothing criterion for EEG
 

@@ -20,6 +20,7 @@ fname_evoked = op.join(data_path, 'MEG', 'sample',
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+subjects_dir = op.join(data_path, 'subjects')
 
 
 @slow_test

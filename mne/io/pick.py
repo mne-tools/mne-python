@@ -193,7 +193,7 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         raise ValueError('exclude must be a list of strings or "bads"')
     elif exclude == 'bads':
         exclude = info.get('bads', [])
-    elif not isinstance(exclude, list):
+    elif not isinstance(exclude, (list, tuple)):
         raise ValueError('exclude must either be "bads" or a list of strings.'
                          ' If only one channel is to be excluded, use '
                          '[ch_name] instead of passing ch_name.')
@@ -217,8 +217,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
                     pick[k] = True
                 elif meg == 'planar2' and info['ch_names'][k].endswith('3'):
                     pick[k] = True
-            elif (meg == 'mag'
-                    and info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
+            elif (meg == 'mag' and
+                  info['chs'][k]['unit'] == FIFF.FIFF_UNIT_T):
                 pick[k] = True
         elif kind == FIFF.FIFFV_EEG_CH and eeg:
             pick[k] = True
@@ -255,9 +255,9 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
         # the selection only restricts these types of channels
         sel_kind = [FIFF.FIFFV_MEG_CH, FIFF.FIFFV_REF_MEG_CH,
                     FIFF.FIFFV_EEG_CH]
-        for k in np.where(pick == True)[0]:
-            if (info['chs'][k]['kind'] in sel_kind
-                    and info['ch_names'][k] not in selection):
+        for k in np.where(pick == True)[0]:  # noqa
+            if (info['chs'][k]['kind'] in sel_kind and
+                    info['ch_names'][k] not in selection):
                 pick[k] = False
 
     myinclude = [info['ch_names'][k] for k in range(nchan) if pick[k]]
@@ -292,7 +292,7 @@ def pick_info(info, sel=[], copy=True):
         info = deepcopy(info)
 
     if len(sel) == 0:
-        raise ValueError('Warning : No channels match the selection.')
+        raise ValueError('No channels match the selection.')
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
@@ -547,7 +547,10 @@ def pick_channels_cov(orig, include=[], exclude='bads'):
     sel = pick_channels(orig['names'], include=include, exclude=exclude)
     res = deepcopy(orig)
     res['dim'] = len(sel)
-    res['data'] = orig['data'][sel][:, sel]
+    if not res['diag']:
+        res['data'] = orig['data'][sel][:, sel]
+    else:
+        res['data'] = orig['data'][sel]
     res['names'] = [orig['names'][k] for k in sel]
     res['bads'] = [name for name in orig['bads'] if name in res['names']]
     res['eig'] = None

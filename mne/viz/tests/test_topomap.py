@@ -13,10 +13,6 @@ from numpy.testing import assert_raises
 
 from nose.tools import assert_true, assert_equal
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 from mne import io, read_evokeds, read_proj
 from mne.io.constants import FIFF
@@ -27,6 +23,10 @@ from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -121,11 +121,11 @@ def test_plot_topomap():
 
         # Remove extra digitization point, so EEG digitization points
         # correspond with the EEG electrodes
-        del evoked.info['dig'][85] 
+        del evoked.info['dig'][85]
         plot_evoked_topomap(evoked, times, ch_type='eeg')
 
         # Remove digitization points. Now topomap should fail
-        evoked.info['dig'] = None 
+        evoked.info['dig'] = None
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                       times, ch_type='eeg')
 

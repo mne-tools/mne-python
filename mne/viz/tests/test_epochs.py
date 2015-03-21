@@ -11,10 +11,6 @@ from collections import namedtuple
 
 import numpy as np
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_types
@@ -22,6 +18,11 @@ from mne.utils import run_tests_if_main
 from mne.channels import read_layout
 
 from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
+
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

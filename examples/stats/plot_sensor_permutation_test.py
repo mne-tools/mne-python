@@ -8,12 +8,9 @@ during a fixed time window of interest. Here computation
 is performed on MNE sample dataset between 40 and 60 ms.
 
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
-
-print(__doc__)
 
 import numpy as np
 
@@ -21,6 +18,8 @@ import mne
 from mne import io
 from mne.stats import permutation_t_test
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

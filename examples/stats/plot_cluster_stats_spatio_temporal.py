@@ -9,12 +9,10 @@ The multiple comparisons problem is addressed with a cluster-level
 permutation test across space and time.
 
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)
 
-print(__doc__)
 
 import os.path as op
 import numpy as np
@@ -30,6 +28,8 @@ from mne.stats import (spatio_temporal_cluster_1samp_test,
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
 from mne.viz import mne_analyze_colormap
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

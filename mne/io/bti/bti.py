@@ -475,9 +475,9 @@ def _read_config(fname):
         cfg['chs'] = list()
 
         # prepare reading channels
-        dev_header = lambda x: {'size': read_int32(x),
-                                'checksum': read_int32(x),
-                                'reserved': read_str(x, 32)}
+        def dev_header(x):
+            return dict(size=read_int32(x), checksum=read_int32(x),
+                        reserved=read_str(x, 32))
 
         for channel in range(cfg['hdr']['total_chans']):
             ch = {'name': read_str(fid, 16),
@@ -1108,7 +1108,9 @@ class RawBTi(_BaseRaw):
             # include digital weights from reference channel
             comps = info['comps'] = list()
             weights = bti_info['weights']
-            by_name = lambda x: x[1]
+
+            def by_name(x):
+                return x[1]
             chn = dict(ch_mapping)
             columns = [chn[k] for k in weights['dsp_ch_names']]
             rows = [chn[k] for k in weights['ch_names']]
@@ -1147,7 +1149,6 @@ class RawBTi(_BaseRaw):
         self.cals = cals
         self.rawdirs = list()
         self.orig_format = 'double'
-        self.proj = None
         self.comp = None
         self._filenames = list()
         self.preload = True

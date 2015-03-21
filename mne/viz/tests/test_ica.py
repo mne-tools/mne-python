@@ -13,14 +13,12 @@ from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
-
-warnings.simplefilter('always')  # enable b/c these tests throw warnings
-
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa
 
+warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')

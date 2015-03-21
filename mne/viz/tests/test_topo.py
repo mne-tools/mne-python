@@ -12,10 +12,6 @@ from collections import namedtuple
 import numpy as np
 from numpy.testing import assert_raises
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
@@ -25,6 +21,10 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 

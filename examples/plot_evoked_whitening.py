@@ -11,9 +11,9 @@ plots are based on [1].
 
 References
 ----------
-[1] Engemann D. and Gramfort A. Automated model selection in covariance
-    estimation and spatial whitening of MEG and EEG signals. (in press.)
-    NeuroImage.
+[1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
+    estimation and spatial whitening of MEG and EEG signals, vol. 108,
+    328-342, NeuroImage.
 
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
@@ -21,13 +21,13 @@ References
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 
 from mne import io
 from mne.datasets import sample
 from mne.cov import compute_covariance
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters

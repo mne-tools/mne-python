@@ -40,7 +40,7 @@ def read_str(fid, count=1):
     bytestr = b('').join(data[0:data.index(b('\x00')) if b('\x00') in data else
                          count])
 
-    return str(bytestr.decode('ascii')) # Return native str type for Py2/3
+    return str(bytestr.decode('ascii'))  # Return native str type for Py2/3
 
 
 def read_char(fid, count=1):

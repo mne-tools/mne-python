@@ -116,9 +116,11 @@ def _helper_resize(event, params):
 def _pick_bad_channels(event, params):
     """Helper for selecting / dropping bad channels onpick"""
     bads = params['raw'].info['bads']
+
     # trade-off, avoid selecting more than one channel when drifts are present
     # however for clean data don't click on peaks but on flat segments
-    f = lambda x, y: y(np.mean(x), x.std() * 2)
+    def f(x, y):
+        return y(np.mean(x), x.std() * 2)
     for l in event.inaxes.lines:
         ydata = l.get_ydata()
         if not isinstance(ydata, list) and not np.isnan(ydata).any():

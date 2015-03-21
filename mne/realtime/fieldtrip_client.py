@@ -195,8 +195,8 @@ class FieldTripClient(object):
 
                 if ch.startswith('MEG') and ch.endswith('1'):
                     this_info['unit'] = FIFF.FIFF_UNIT_T
-                elif ch.startswith('MEG') and (ch.endswith('2')
-                                               or ch.endswith('3')):
+                elif ch.startswith('MEG') and (ch.endswith('2') or
+                                               ch.endswith('3')):
                     this_info['unit'] = FIFF.FIFF_UNIT_T_M
                 else:
                     this_info['unit'] = FIFF.FIFF_UNIT_V

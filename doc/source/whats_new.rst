@@ -63,6 +63,24 @@ Changelog
 
    - Add support for combining Evoked datasets with arbitrary weights (e.g., for oddball paradigms) by `Eric Larson`_ and `Alex Gramfort`_
 
+   - Add support for concatenating a list of Epochs objects by `Denis Engemann`_
+
+   - Labels support subtraction (``label_1 - label_2``) by `Christian Brodbeck`_
+
+   - Add GeneralizationAcrossTime object with support for cross-condition generalization by `Jean-Remi King`_ and `Denis Engemann`_
+
+   - Add support for single dipole fitting by `Eric Larson`_
+
+   - Add support for spherical models in forward calculations by `Eric Larson`_
+
+   - Add support for SNR estimation by `Eric Larson`_
+
+   - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
+
+   - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
+
+   - Add support for adding an empty reference channel to data by `Teon Brooks`_
+
 BUG
 ~~~
 
@@ -95,6 +113,14 @@ BUG
 
    - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
 
+   - Fix picks argument to filter in n dimensions (affects FilterEstimator), and highpass filter in FilterEstimator by `Mainak Jas`_
+
+   - Fix beamformer code LCMV/DICS for CTF data with reference channels by `Denis Engemann`_ and `Alex Gramfort`_
+
+   - Fix scalings for bad EEG channels in `mne.viz.plot_topo` by `Marijn van Vliet`_
+
+   - Fix EGI reading when no events are present by `Federico Raimondo`_
+
 API
 ~~~
 
@@ -103,7 +129,7 @@ API
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-	``mne.layouts`` by `Denis Engemann`_
+    ``mne.layouts`` by `Denis Engemann`_
 
    - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
 
@@ -115,7 +141,15 @@ API
 
    - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann`_ and `Eric Larson`_ and `Alex Gramfort`_
 
-   - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``.
+   - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``
+
+   - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
+
+   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_
+
+   - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
+
+   - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
 
 .. _changes_0_8:
 
@@ -271,7 +305,7 @@ API
 
    - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
 
-   - Deprecated ICA methods specfific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
+   - Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
    - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
 
@@ -871,17 +905,17 @@ of commits):
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
-.. _Martin Luessi: http://www.nmr.mgh.harvard.edu/martinos/people/showPerson.php?people_id=1600
+.. _Martin Luessi: https://www.martinos.org/user/8245
 
 .. _Yaroslav Halchenko: http://www.onerussian.com/
 
 .. _Daniel Strohmeier: http://www.tu-ilmenau.de/bmti/fachgebiete/biomedizinische-technik/dipl-ing-daniel-strohmeier/
 
-.. _Eric Larson: http://faculty.washington.edu/larsoner/
+.. _Eric Larson: http://larsoner.com
 
 .. _Denis Engemann: https://github.com/dengemann
 
-.. _Christian Brodbeck: https://github.com/christianmbrodbeck
+.. _Christian Brodbeck: https://github.com/christianbrodbeck
 
 .. _Simon Kornblith: http://simonster.com
 
@@ -893,7 +927,7 @@ of commits):
 
 .. _Andrew Dykstra: https://github.com/adykstra
 
-.. _Romain Trachel: http://www-sop.inria.fr/athena/Site/RomainTrachel
+.. _Romain Trachel: http://www.lscp.net/braware/trachelBr.html
 
 .. _Christopher Dinh: https://github.com/chdinh
 
@@ -927,10 +961,12 @@ of commits):
 
 .. _Alan Leggitt: https://github.com/leggitta
 
-.. _Marijn van Vliet: http://github.com/wmvanvliet
+.. _Marijn van Vliet: https://github.com/wmvanvliet
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 
 .. _Jona Sassenhagen: https://github.com/jona-sassenhagen
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
+
+.. _Chris Holdgraf: http://chrisholdgraf.com

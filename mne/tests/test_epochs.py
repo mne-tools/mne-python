@@ -14,13 +14,15 @@ from numpy.testing import (assert_array_equal, assert_array_almost_equal,
 import numpy as np
 import copy as cp
 import warnings
+from scipy import fftpack
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
                  write_evokeds)
-from mne.epochs import (bootstrap, equalize_epoch_counts, combine_event_ids,
-                        add_channels_epochs, EpochsArray)
-from mne.utils import (_TempDir, requires_pandas, requires_nitime,
+from mne.epochs import (
+    bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
+    EpochsArray, concatenate_epochs)
+from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
                        clean_warning_registry, run_tests_if_main)
 
 from mne.io.meas_info import create_info
@@ -54,6 +56,29 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 clean_warning_registry()  # really clean warning stack
+
+
+def test_filter():
+    """Test savgol filtering
+    """
+    h_freq = 10.
+    raw, events = _get_data()[:2]
+    epochs = Epochs(raw, events, event_id, tmin, tmax)
+    assert_raises(RuntimeError, epochs.savgol_filter, 10.)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=True)
+    freqs = fftpack.fftfreq(len(epochs.times), 1. / epochs.info['sfreq'])
+    data = np.abs(fftpack.fft(epochs.get_data()))
+    match_mask = np.logical_and(freqs >= 0, freqs <= h_freq / 2.)
+    mismatch_mask = np.logical_and(freqs >= h_freq * 2, freqs < 50.)
+    epochs.savgol_filter(h_freq)
+    data_filt = np.abs(fftpack.fft(epochs.get_data()))
+    # decent in pass-band
+    assert_allclose(np.mean(data[:, :, match_mask], 0),
+                    np.mean(data_filt[:, :, match_mask], 0),
+                    rtol=1e-4, atol=1e-2)
+    # suppression in stop-band
+    assert_true(np.mean(data[:, :, mismatch_mask]) >
+                np.mean(data_filt[:, :, mismatch_mask]) * 5)
 
 
 def test_epochs_hash():
@@ -138,6 +163,7 @@ def test_read_epochs_bad_events():
     warnings.resetwarnings()
 
 
+@slow_test
 def test_read_write_epochs():
     """Test epochs from raw files with IO as fif file
     """
@@ -157,8 +183,8 @@ def test_read_write_epochs():
                            eog=True, exclude='bads')
     eog_ch_names = [raw.ch_names[k] for k in eog_picks]
     epochs.drop_channels(eog_ch_names)
-    assert_true(len(epochs.info['chs']) == len(epochs.ch_names)
-                == epochs.get_data().shape[1])
+    assert_true(len(epochs.info['chs']) == len(epochs.ch_names) ==
+                epochs.get_data().shape[1])
     data_no_eog = epochs.get_data()
     assert_true(data.shape[1] == (data_no_eog.shape[1] + len(eog_picks)))
 
@@ -862,20 +888,20 @@ def test_access_by_name():
 
 
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test epochs Pandas exporter"""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    assert_raises(ValueError, epochs.as_data_frame, index=['foo', 'bar'])
-    assert_raises(ValueError, epochs.as_data_frame, index='qux')
-    assert_raises(ValueError, epochs.as_data_frame, np.arange(400))
-    df = epochs.as_data_frame()
+    assert_raises(ValueError, epochs.to_data_frame, index=['foo', 'bar'])
+    assert_raises(ValueError, epochs.to_data_frame, index='qux')
+    assert_raises(ValueError, epochs.to_data_frame, np.arange(400))
+    df = epochs.to_data_frame()
     data = np.hstack(epochs.get_data())
     assert_true((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.as_data_frame(index=ind)
+        df = epochs.to_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
         df.reset_index().columns[:3] == ['condition', 'epoch', 'time']
@@ -924,6 +950,7 @@ def test_epochs_proj_mixin():
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                          baseline=(None, 0), proj=True, preload=preload,
                          add_eeg_ref=True, reject=reject)
+
         assert_allclose(epochs.copy().apply_proj().get_data()[0],
                         epochs2.get_data()[0])
 
@@ -1126,8 +1153,8 @@ def test_add_channels_epochs():
     data3 = np.concatenate([e.get_data() for e in
                             [epochs_meg, epochs_eeg]], axis=1)
     assert_array_equal(data1.shape, data2.shape)
-    assert_array_equal(data1, data3)  # XXX unrelated bug? this crashes
-                                      # when proj == True
+    # XXX unrelated bug? this crashes when proj == True
+    assert_array_equal(data1, data3)
     assert_array_equal(data1, data2)
 
     epochs_meg2 = epochs_meg.copy()
@@ -1253,6 +1280,41 @@ def test_array_epochs():
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
+
+
+def test_concatenate_epochs():
+    """test concatenate epochs"""
+
+    raw, events, picks = _get_data()
+    epochs = Epochs(
+        raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
+        picks=picks)
+    epochs2 = epochs.copy()
+    epochs_list = [epochs, epochs2]
+    epochs_conc = concatenate_epochs(epochs_list)
+    assert_array_equal(
+        epochs_conc.events[:, 0], np.unique(epochs_conc.events[:, 0]))
+
+    expected_shape = list(epochs.get_data().shape)
+    expected_shape[0] *= 2
+    expected_shape = tuple(expected_shape)
+
+    assert_equal(epochs_conc.get_data().shape, expected_shape)
+    assert_equal(epochs_conc.drop_log, epochs.drop_log * 2)
+
+    epochs2 = epochs.copy()
+    epochs2._data = epochs2.get_data()
+    epochs2.preload = True
+    assert_raises(
+        ValueError, concatenate_epochs,
+        [epochs, epochs2.drop_channels(epochs2.ch_names[:1], copy=True)])
+
+    epochs2.times = np.delete(epochs2.times, 1)
+    assert_raises(
+        ValueError,
+        concatenate_epochs, [epochs, epochs2])
+
+    assert_equal(epochs_conc.raw, None)
 
 
 run_tests_if_main()

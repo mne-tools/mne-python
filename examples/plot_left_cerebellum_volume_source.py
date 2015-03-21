@@ -13,13 +13,13 @@ segmentation file.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy.spatial import ConvexHull
 from mayavi import mlab
 from mne import setup_source_space, setup_volume_source_space
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
@@ -60,11 +60,11 @@ mlab.figure(1, bgcolor=(0, 0, 0))
 # plot the left cortical surface
 mesh = mlab.pipeline.triangular_mesh_source(x1, y1, z1, faces)
 mesh.data.point_data.normals = normals
-mlab.pipeline.surface(mesh, color=3*(0.7,))
+mlab.pipeline.surface(mesh, color=3 * (0.7,))
 
 # plot the convex hull bounding the left cerebellum
 hull = ConvexHull(np.c_[x2, y2, z2])
-mlab.triangular_mesh(x2, y2, z2, hull.simplices, color=3*(0.5,), opacity=0.3)
+mlab.triangular_mesh(x2, y2, z2, hull.simplices, color=3 * (0.5,), opacity=0.3)
 
 # plot the left cerebellum sources
 mlab.points3d(x2, y2, z2, color=(1, 1, 0), scale_factor=0.001)

@@ -93,7 +93,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         figs.append(this_fig)
 
         ch_type = channel_type(epochs.info, idx)
-        if not ch_type in scalings:
+        if ch_type not in scalings:
             # We know it's not in either scalings or units since keys match
             raise KeyError('%s type not in scalings and units' % ch_type)
         this_data *= scalings[ch_type]
@@ -281,7 +281,7 @@ def _epochs_navigation_onclick(event, params):
                           p['data'][this_idx],
                           p['times'], p['axes'], p['title_str'],
                           p['axes_handler'])
-            # XXX don't ask me why
+        # XXX don't ask me why
         p['axes'][0].get_figure().canvas.draw()
 
 
@@ -348,7 +348,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    scalings = _mutable_defaults(('scalings_plot_raw', None))[0]
+    scalings = _mutable_defaults(('scalings_plot_raw', scalings))[0]
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if epoch_idx is None:

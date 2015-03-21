@@ -11,14 +11,14 @@ accuracy is plotted
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne.realtime import MockRtClient, RtEpochs
 from mne.datasets import sample
 
-import numpy as np
-import matplotlib.pyplot as plt
+print(__doc__)
 
 # Fiff file to simulate the realtime client
 data_path = sample.data_path()
@@ -51,12 +51,12 @@ rt_client.send_data(rt_epochs, picks, tmin=0, tmax=90, buffer_size=1000)
 # Decoding in sensor space using a linear SVM
 n_times = len(rt_epochs.times)
 
-from sklearn import preprocessing
-from sklearn.svm import SVC
-from sklearn.pipeline import Pipeline
-from sklearn.cross_validation import cross_val_score, ShuffleSplit
+from sklearn import preprocessing  # noqa
+from sklearn.svm import SVC  # noqa
+from sklearn.pipeline import Pipeline  # noqa
+from sklearn.cross_validation import cross_val_score, ShuffleSplit  # noqa
+from mne.decoding import ConcatenateChannels, FilterEstimator  # noqa
 
-from mne.decoding import ConcatenateChannels, FilterEstimator
 
 scores_x, scores, std_scores = [], [], []
 

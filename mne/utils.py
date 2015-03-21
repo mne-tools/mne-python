@@ -557,8 +557,14 @@ def has_nibabel(vox2ras_tkr=False):
         return False
 
 
-has_mne_c = lambda: 'MNE_ROOT' in os.environ
-has_freesurfer = lambda: 'FREESURFER_HOME' in os.environ
+def has_mne_c():
+    """Aux function"""
+    return 'MNE_ROOT' in os.environ
+
+
+def has_freesurfer():
+    """Aux function"""
+    return 'FREESURFER_HOME' in os.environ
 
 
 def requires_nibabel(vox2ras_tkr=False):
@@ -811,7 +817,7 @@ def set_log_level(verbose=None, return_old_level=False):
         logging_types = dict(DEBUG=logging.DEBUG, INFO=logging.INFO,
                              WARNING=logging.WARNING, ERROR=logging.ERROR,
                              CRITICAL=logging.CRITICAL)
-        if not verbose in logging_types:
+        if verbose not in logging_types:
             raise ValueError('verbose must be of a valid type')
         verbose = logging_types[verbose]
     logger = logging.getLogger('mne')
@@ -830,7 +836,7 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         To suppress log outputs, use set_log_level('WARN').
     output_format : str
         Format of the output messages. See the following for examples:
-            http://docs.python.org/dev/howto/logging.html
+            https://docs.python.org/dev/howto/logging.html
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
     overwrite : bool, or None
         Overwrite the log file (if it exists). Otherwise, statements
@@ -1085,7 +1091,7 @@ def set_config(key, value, home_dir=None):
     # settings using env, which are strings, so we enforce that here
     if not isinstance(value, string_types) and value is not None:
         raise TypeError('value must be a string or None')
-    if not key in known_config_types and not \
+    if key not in known_config_types and not \
             any(k in key for k in known_config_wildcards):
         warnings.warn('Setting non-standard config type: "%s"' % key)
 
@@ -1182,7 +1188,7 @@ class ProgressBar(object):
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_value = cur_value
-        progress = float(self.cur_value) / self.max_value
+        progress = min(float(self.cur_value) / self.max_value, 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1290,9 +1296,11 @@ def _chunk_read_ftp_resume(url, temp_file_name, local_file, verbose_bool=True):
     progress = ProgressBar(file_size, initial_value=local_file_size,
                            max_chars=40, spinner=True, mesg='downloading',
                            verbose_bool=verbose_bool)
+
     # Callback lambda function that will be passed the downloaded data
     # chunk and will write it to file and update the progress bar
-    chunk_write = lambda chunk: _chunk_write(chunk, local_file, progress)
+    def chunk_write(chunk):
+        return _chunk_write(chunk, local_file, progress)
     data.retrbinary(down_cmd, chunk_write)
     data.close()
     sys.stdout.write('\n')
@@ -1352,7 +1360,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures
             scheme = urllib.parse.urlparse(url).scheme
-            if scheme == 'http':
+            if scheme in ('http', 'https'):
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
                 req = urllib.request.Request(url)
@@ -1506,7 +1514,7 @@ def _check_pandas_index_arguments(index, defaults):
     """ Helper function to check pandas index arguments """
     if not any(isinstance(index, k) for k in (list, tuple)):
         index = [index]
-    invalid_choices = [e for e in index if not e in defaults]
+    invalid_choices = [e for e in index if e not in defaults]
     if invalid_choices:
         options = [', '.join(e) for e in [invalid_choices, defaults]]
         raise ValueError('[%s] is not an valid option. Valid index'
@@ -1677,3 +1685,46 @@ def _sphere_to_cartesian(theta, phi, r):
     x = rcos_phi * np.cos(theta)
     y = rcos_phi * np.sin(theta)
     return x, y, z
+
+
+def create_slices(start, stop, step=None, length=1):
+    """ Generate slices of time indexes
+
+    Parameters
+    ----------
+    start : int
+        Index where first slice should start.
+    stop : int
+        Index where last slice should maximally end.
+    length : int
+        Number of time sample included in a given slice.
+    step: int | None
+        Number of time samples separating two slices.
+        If step = None, step = length.
+
+    Returns
+    -------
+    slices : list
+        List of slice objects.
+    """
+
+    # default parameters
+    if step is None:
+        step = length
+
+    # slicing
+    slices = [slice(t, t + length, 1) for t in
+              range(start, stop - length + 1, step)]
+    return slices
+
+
+def _time_mask(times, tmin=None, tmax=None, strict=False):
+    """Helper to safely find sample boundaries"""
+    tmin = -np.inf if tmin is None else tmin
+    tmax = np.inf if tmax is None else tmax
+    mask = (times >= tmin)
+    mask &= (times <= tmax)
+    if not strict:
+        mask |= np.isclose(times, tmin)
+        mask |= np.isclose(times, tmax)
+    return mask

@@ -52,7 +52,7 @@ def init_cuda():
         return
     try:
         # Initialize CUDA; happens with importing autoinit
-        import pycuda.autoinit  # noqa, analysis:ignore
+        import pycuda.autoinit  # noqa
     except ImportError:
         logger.warning('pycuda.autoinit could not be imported, likely '
                        'a hardware error, CUDA not enabled')
@@ -145,8 +145,8 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
             # try setting up for float64
             try:
                 # do the IFFT normalization now so we don't have to later
-                h_fft = gpuarray.to_gpu(h_fft[:cuda_fft_len].astype('complex_')
-                                        / len(h_fft))
+                h_fft = gpuarray.to_gpu(h_fft[:cuda_fft_len]
+                                        .astype('complex_') / len(h_fft))
                 cuda_dict.update(
                     use_cuda=True,
                     fft_plan=cudafft.Plan(n_fft, np.float64, np.complex128),
@@ -255,8 +255,8 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
             # try setting up for float64
             try:
                 # do the IFFT normalization now so we don't have to later
-                W = gpuarray.to_gpu(W[:cuda_fft_len_x].astype('complex_')
-                                    / n_fft_y)
+                W = gpuarray.to_gpu(W[:cuda_fft_len_x]
+                                    .astype('complex_') / n_fft_y)
                 cuda_dict.update(
                     use_cuda=True,
                     fft_plan=cudafft.Plan(n_fft_x, np.float64, np.complex128),

@@ -136,7 +136,6 @@ def infomax(data, weights=None, l_rate=None, block=None, w_change=1e-12,
     while step < max_iter:
 
         # shuffle data at each step
-        rng.seed(step)  # --> permutation is fixed but differs at each step
         permute = list(range(n_samples))
         rng.shuffle(permute)
 

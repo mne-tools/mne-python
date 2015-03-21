@@ -108,8 +108,8 @@ class Kit2FiffModel(HasPrivateTraits):
         if not has_sqd:
             return False
 
-        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp)
-                       and np.any(self.elp) and np.any(self.fid))
+        has_all_hsp = (np.any(self.dev_head_trans) and np.any(self.hsp) and
+                       np.any(self.elp) and np.any(self.fid))
         if has_all_hsp:
             return True
 
@@ -377,7 +377,7 @@ class Kit2FiffPanel(HasPrivateTraits):
                Item('queue_current', show_label=False, style='readonly'),
                Item('queue_len_str', show_label=False, style='readonly')
                )
-        )
+    )
 
     def __init__(self, *args, **kwargs):
         super(Kit2FiffPanel, self).__init__(*args, **kwargs)

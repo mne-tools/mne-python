@@ -14,10 +14,10 @@ from .baseline import rescale
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
-from .filter import resample, detrend
+from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, deprecated)
+                    object_hash, deprecated, _time_mask)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -34,6 +34,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
+from .io.base import ToDataFrameMixin
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -42,7 +43,8 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-             SetChannelsMixin, InterpolationMixin):
+             SetChannelsMixin, InterpolationMixin, FilterMixin,
+             ToDataFrameMixin):
     """Evoked data
 
     Parameters
@@ -247,8 +249,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  ' %d)' % (all_data.shape[1], nsamp))
 
         # Calibrate
-        cals = np.array([info['chs'][k]['cal']
-                         * info['chs'][k].get('scale', 1.0)
+        cals = np.array([info['chs'][k]['cal'] *
+                         info['chs'][k].get('scale', 1.0)
                          for k in range(info['nchan'])])
         all_data *= cals[:, np.newaxis]
 
@@ -267,7 +269,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         # bind info, proj, data to self so apply_proj can be used
         self.data = all_data
-        self.proj = False
         if proj:
             self.apply_proj()
         # Run baseline correction
@@ -297,14 +298,16 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
         """
-        times = self.times
-        mask = np.ones(len(times), dtype=np.bool)
-        if tmin is not None:
-            mask = mask & (times >= tmin)
-        if tmax is not None:
-            mask = mask & (times <= tmax)
-        self.times = times[mask]
+        mask = _time_mask(self.times, tmin, tmax)
+        self.times = self.times[mask]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
@@ -593,9 +596,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         References
         ----------
-        [1] Engemann D. and Gramfort A (in press). Automated model selection in
-            covariance estimation and spatial whitening of MEG and EEG signals.
-            NeuroImage.
+        [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+            covariance estimation and spatial whitening of MEG and EEG signals,
+            vol. 108, 328-342, NeuroImage.
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
@@ -624,6 +627,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                sampling_rate=self.info['sfreq'])
         return evoked_ts
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
                       use_time_index=True, copy=True):
         """Get the Evoked object as a Pandas DataFrame
@@ -715,8 +720,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.data = resample(self.data, sfreq, o_sfreq, npad, -1, window)
         # adjust indirectly affected variables
         self.info['sfreq'] = sfreq
-        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq
-                      + self.times[0])
+        self.times = (np.arange(self.data.shape[1], dtype=np.float) / sfreq +
+                      self.times[0])
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
 
@@ -760,7 +765,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         this_evoked = deepcopy(evoked)
         this_evoked.data *= -1.
         out = combine_evoked([self, this_evoked])
-        out.comment = self.comment + " - " + this_evoked.comment
+        if self.comment is None or this_evoked.comment is None:
+            warnings.warn('evoked.comment expects a string but is None')
+            out.comment = 'unknown'
+        else:
+            out.comment = self.comment + " - " + this_evoked.comment
         return out
 
     def __hash__(self):
@@ -874,8 +883,9 @@ class EvokedArray(Evoked):
                              'n_samples)')
 
         if len(info['ch_names']) != np.shape(data)[0]:
-            raise ValueError('Info and data must have same number of '
-                             'channels.')
+            raise ValueError('Info (%s) and data (%s) must have same number '
+                             'of channels.' % (len(info['ch_names']),
+                                               np.shape(data)[0]))
 
         self.data = data
 
@@ -889,7 +899,6 @@ class EvokedArray(Evoked):
         self.nave = nave
         self.kind = kind
         self.comment = comment
-        self.proj = None
         self.picks = None
         self.verbose = verbose
         self._projector = None
@@ -1163,8 +1172,8 @@ def write_evokeds(fname, evoked):
 
             decal = np.zeros((e.info['nchan'], 1))
             for k in range(e.info['nchan']):
-                decal[k] = 1.0 / (e.info['chs'][k]['cal']
-                                  * e.info['chs'][k].get('scale', 1.0))
+                decal[k] = 1.0 / (e.info['chs'][k]['cal'] *
+                                  e.info['chs'][k].get('scale', 1.0))
 
             write_float_matrix(fid, FIFF.FIFF_EPOCH, decal * e.data)
             end_block(fid, FIFF.FIFFB_ASPECT)

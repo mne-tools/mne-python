@@ -24,15 +24,16 @@ multiple comparisons using False Discovery Rate correction.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
+import matplotlib.pyplot as plt
 
 import mne
 from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import f_threshold_twoway_rm, f_twoway_rm, fdr_correction
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -81,9 +82,9 @@ baseline_mask = times[::decim] < 0
 # now create TFR representations for all conditions
 epochs_power = []
 for condition in [epochs[k].get_data()[:, 97:98, :] for k in event_id]:
-    this_power = single_trial_power(condition, sfreq=sfreq, frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False,
-                                    decim=decim)
+    this_power = single_trial_power(condition, sfreq=sfreq,
+                                    frequencies=frequencies, n_cycles=n_cycles,
+                                    use_fft=False, decim=decim)
     this_power = this_power[:, 0, :, :]  # we only have one channel.
     # Compute ratio with baseline power (be sure to correct time vector with
     # decimation factor)
@@ -130,7 +131,6 @@ print(data.shape)
 fvals, pvals = f_twoway_rm(data, factor_levels, effects=effects)
 
 effect_labels = ['modality', 'location', 'modality by location']
-import matplotlib.pyplot as plt
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label in zip(fvals, pvals, effect_labels):

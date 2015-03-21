@@ -5,18 +5,20 @@ Time-frequency representations on topographies for MEG sensors
 
 Both average power and intertrial coherence are displayed.
 """
-print(__doc__)
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 import mne
 from mne import io
 from mne.time_frequency import tfr_morlet
 from mne.datasets import somato
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -51,7 +53,6 @@ power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, use_fft=False,
 power.plot_topo(baseline=(-0.5, 0), mode='logratio', title='Average power')
 power.plot([82], baseline=(-0.5, 0), mode='logratio')
 
-import matplotlib.pyplot as plt
 fig, axis = plt.subplots(1, 2, figsize=(7, 4))
 power.plot_topomap(ch_type='grad', tmin=0.5, tmax=1.5, fmin=8, fmax=12,
                    baseline=(-0.5, 0), mode='logratio', axes=axis[0],

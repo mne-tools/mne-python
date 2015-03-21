@@ -11,8 +11,6 @@ functional label. As expected the time course in the functional
 label yields higher values.
 
 """
-print(__doc__)
-
 # Author: Luke Bloy <luke.bloy@gmail.com>
 #         Alex Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD (3-clause)
@@ -23,6 +21,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne.minimum_norm import read_inverse_operator, apply_inverse
 from mne.datasets import sample
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

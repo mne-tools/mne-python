@@ -14,6 +14,8 @@ import mne
 from mne.datasets import sample
 from matplotlib import pyplot as plt
 
+print(__doc__)
+
 # Setup for reading the raw data
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'

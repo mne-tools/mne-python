@@ -31,8 +31,8 @@ data_path.__doc__ = _doc.format(name='testing',
 # Allow forcing of testing dataset skip (for Debian tests) using:
 # `make test-no-testing-data`
 def _skip_testing_data():
-    skip_testing = (get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false')
-                    == 'true')
+    skip_testing = (get_config('MNE_SKIP_TESTING_DATASET_TESTS', 'false') ==
+                    'true')
     skip = skip_testing or not has_testing_data()
     return skip
 

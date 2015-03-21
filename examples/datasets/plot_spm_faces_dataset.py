@@ -10,8 +10,6 @@ Runs a full pipeline using MNE-Python:
 - source reconstruction using dSPM on the contrast : "faces - scrambled"
 
 """
-print(__doc__)
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
@@ -25,6 +23,7 @@ from mne.preprocessing import ICA, create_eog_epochs
 from mne import io
 from mne.minimum_norm import make_inverse_operator, apply_inverse
 
+print(__doc__)
 
 data_path = spm_face.data_path()
 subjects_dir = data_path + '/subjects'

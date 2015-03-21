@@ -9,8 +9,8 @@ import numpy as np
 from scipy import signal
 
 from ..io.pick import pick_channels_cov
-from ..utils import check_random_state, verbose
 from ..forward import apply_forward
+from ..utils import check_random_state, verbose, _time_mask
 
 
 @verbose
@@ -81,8 +81,8 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     rng = check_random_state(random_state)
     n_channels = np.zeros(noise.info['nchan'])
     n_samples = evoked.data.shape[1]
-    noise.data = rng.multivariate_normal(n_channels, noise_cov.data,
-                                         n_samples).T
+    c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
     if iir_filter is not None:
         noise.data = signal.lfilter([1], iir_filter, noise.data, axis=-1)
     return noise
@@ -113,12 +113,7 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
         An instance of evoked corrupted by noise
     """
     evoked = copy.deepcopy(evoked)
-    times = evoked.times
-    if tmin is None:
-        tmin = np.min(times)
-    if tmax is None:
-        tmax = np.max(times)
-    tmask = (times >= tmin) & (times <= tmax)
+    tmask = _time_mask(evoked.times, tmin, tmax)
     tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
                         np.mean((noise.data ** 2).ravel()))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data

@@ -11,10 +11,12 @@ neural currents from different regions of the brain.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import mne
 from mne.datasets import sample
+import matplotlib.pyplot as plt
+
+print(__doc__)
+
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -41,7 +43,6 @@ eeg_map = mne.sensitivity_map(fwd, ch_type='eeg', mode='fixed')
 ###############################################################################
 # Show gain matrix a.k.a. leadfield matrix with sensitivity map
 
-import matplotlib.pyplot as plt
 picks_meg = mne.pick_types(fwd['info'], meg=True, eeg=False)
 picks_eeg = mne.pick_types(fwd['info'], meg=False, eeg=True)
 

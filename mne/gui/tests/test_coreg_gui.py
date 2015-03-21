@@ -66,8 +66,8 @@ def test_coreg_model():
 
     model.fit_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_hsp_points()
@@ -157,8 +157,8 @@ def test_coreg_model_with_fsaverage():
 
     model.fit_scale_fiducials()
     old_x = lpa_distance ** 2 + rpa_distance ** 2 + nasion_distance ** 2
-    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2
-             + model.nasion_distance ** 2)
+    new_x = (model.lpa_distance ** 2 + model.rpa_distance ** 2 +
+             model.nasion_distance ** 2)
     assert_true(new_x < old_x)
 
     model.fit_scale_hsp_points()

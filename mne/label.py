@@ -10,13 +10,13 @@ from os import path as op
 import os
 import copy as cp
 import re
-from warnings import warn
 
 import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    deprecated)
 from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import add_source_space_distances
@@ -340,6 +340,33 @@ class Label(object):
         label = Label(vertices, pos, values, self.hemi, comment, name, None,
                       self.subject, color, verbose)
         return label
+
+    def __sub__(self, other):
+        if isinstance(other, BiHemiLabel):
+            if self.hemi == 'lh':
+                return self - other.lh
+            else:
+                return self - other.rh
+        elif isinstance(other, Label):
+            if self.subject != other.subject:
+                raise ValueError('Label subject parameters must match, got '
+                                 '"%s" and "%s". Consider setting the '
+                                 'subject parameter on initialization, or '
+                                 'setting label.subject manually before '
+                                 'combining labels.' % (self.subject,
+                                                        other.subject))
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        if self.hemi == other.hemi:
+            keep = in1d(self.vertices, other.vertices, True, invert=True)
+        else:
+            keep = np.arange(len(self.vertices))
+
+        name = "%s - %s" % (self.name or 'unnamed', other.name or 'unnamed')
+        return Label(self.vertices[keep], self.pos[keep], self.values[keep],
+                     self.hemi, self.comment, name, None, self.subject,
+                     self.color, self.verbose)
 
     def save(self, filename):
         """Write to disk as FreeSurfer *.label file
@@ -719,6 +746,28 @@ class BiHemiLabel(object):
         color = _blend_colors(self.color, other.color)
         return BiHemiLabel(lh, rh, name, color)
 
+    def __sub__(self, other):
+        if isinstance(other, Label):
+            if other.hemi == 'lh':
+                lh = self.lh - other
+                rh = self.rh
+            else:
+                rh = self.rh - other
+                lh = self.lh
+        elif isinstance(other, BiHemiLabel):
+            lh = self.lh - other.lh
+            rh = self.rh - other.rh
+        else:
+            raise TypeError("Need: Label or BiHemiLabel. Got: %r" % other)
+
+        if len(lh.vertices) == 0:
+            return rh
+        elif len(rh.vertices) == 0:
+            return lh
+        else:
+            name = '%s - %s' % (self.name, other.name)
+            return BiHemiLabel(lh, rh, name, self.color)
+
 
 def read_label(filename, subject=None, color=None):
     """Read FreeSurfer Label file
@@ -988,6 +1037,8 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
     return labels
 
 
+@deprecated("'label_time_courses' will be removed in version 0.10, please use "
+            "'in_label' method of SourceEstimate instead")
 def label_time_courses(labelfile, stcfile):
     """Extract the time courses corresponding to a label file from an stc file
 
@@ -1277,7 +1328,7 @@ def _grow_labels(seeds, extents, hemis, names, dist, vert, subject):
 
 
 def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
-                overlap=True, names=None):
+                overlap=True, names=None, surface='white'):
     """Generate circular labels in source space with region growing
 
     This function generates a number of labels in source space by growing
@@ -1314,6 +1365,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     names : None | list of str
         Assign names to the new labels (list needs to have the same length as
         seeds).
+    surface : string
+        The surface used to grow the labels, defaults to the white surface.
 
     Returns
     -------
@@ -1367,7 +1420,8 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
     # load the surfaces and create the distance graphs
     tris, vert, dist = {}, {}, {}
     for hemi in set(hemis):
-        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.white')
+        surf_fname = op.join(subjects_dir, subject, 'surf', hemi + '.' +
+                             surface)
         vert[hemi], tris[hemi] = read_surface(surf_fname)
         dist[hemi] = mesh_dist(tris[hemi], vert[hemi])
 
@@ -1524,11 +1578,11 @@ def _read_annot(fname):
             n_entries = np.fromfile(fid, '>i4', 1)[0]
             ctab = np.zeros((n_entries, 5), np.int)
             length = np.fromfile(fid, '>i4', 1)[0]
-            _ = np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
+            np.fromfile(fid, "|S%d" % length, 1)[0]  # Orig table path
             entries_to_read = np.fromfile(fid, '>i4', 1)[0]
             names = list()
             for i in range(entries_to_read):
-                _ = np.fromfile(fid, '>i4', 1)[0]  # Structure
+                np.fromfile(fid, '>i4', 1)[0]  # Structure
                 name_length = np.fromfile(fid, '>i4', 1)[0]
                 name = np.fromfile(fid, "|S%d" % name_length, 1)[0]
                 names.append(name)
@@ -1818,7 +1872,8 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
             if labels_by_color[no_color_rgb]:
                 default_colors = _n_colors(n_hemi_labels, bytes_=True,
                                            cmap=colormap)
-                safe_color_i = 0  # keep track of colors known to be in hemi_colors
+                # keep track of colors known to be in hemi_colors :
+                safe_color_i = 0
                 for i in xrange(n_hemi_labels):
                     if ctab[i, 0] == -1:
                         color = default_colors[i]

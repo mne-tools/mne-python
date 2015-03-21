@@ -17,6 +17,7 @@ help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html      to make standalone HTML files (stable version)"
 	@echo "  html_dev  to make standalone HTML files (dev version)"
+	@echo "  *-noplot  to make standalone HTML files without plotting"
 	@echo "  dirhtml   to make HTML files named index.html in directories"
 	@echo "  pickle    to make pickle files"
 	@echo "  json      to make JSON files"
@@ -46,14 +47,24 @@ html_dev:
 	@echo "Build finished. The HTML pages are in build/html."
 
 html-noplot:
-	$(SPHINXBUILD) -D plot_gallery=False -b html $(ALLSPHINXOPTS) build/html
+	$(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) build/html
 	@echo
-	@echo "Build finished. The HTML pages are in build/html/stable."
+	@echo "Build finished. The HTML pages are in build/html."
 
 html_dev-noplot:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=False -b html $(ALLSPHINXOPTS) build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -b html $(ALLSPHINXOPTS) build/html
 	@echo
-	@echo "Build finished. The HTML pages are in build/html/stable."
+	@echo "Build finished. The HTML pages are in build/html."
+
+html-noplot-nodiagram:
+	$(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
+	@echo
+	@echo "Build finished. The HTML pages are in build/html."
+
+html_dev-noplot-nodiagram:
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
+	@echo
+	@echo "Build finished. The HTML pages are in build/html."
 
 dirhtml:
 	$(SPHINXBUILD) -b dirhtml $(ALLSPHINXOPTS) build/dirhtml

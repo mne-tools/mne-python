@@ -1,6 +1,8 @@
-=========
-Reference
-=========
+.. _api_reference:
+
+=============
+API Reference
+=============
 
 .. automodule:: mne
    :no-members:
@@ -36,6 +38,7 @@ Classes
    VolSourceEstimate
    MixedSourceEstimate
    Covariance
+   Dipole
    Label
    BiHemiLabel
    preprocessing.ICA
@@ -44,6 +47,7 @@ Classes
    decoding.ConcatenateChannels
    decoding.FilterEstimator
    decoding.PSDEstimator
+   decoding.GeneralizationAcrossTime
    realtime.RtEpochs
    realtime.RtClient
    realtime.MockRtClient
@@ -137,7 +141,7 @@ Functions:
    read_bem_solution
    read_bem_surfaces
    read_cov
-   read_dip
+   read_dipole
    read_epochs
    read_events
    read_evokeds
@@ -285,6 +289,7 @@ Visualization
    plot_raw
    plot_raw_psds
    plot_events
+   plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
    plot_tfr_topomap
@@ -424,6 +429,7 @@ Events
    combine_event_ids
    equalize_epoch_counts
    add_channels_epochs
+   concatenate_epochs
 
 Sensor Space Data
 =================
@@ -463,6 +469,7 @@ Covariance
 
    compute_covariance
    compute_raw_data_covariance
+   make_ad_hoc_cov
    read_cov
    write_cov
 
@@ -513,6 +520,7 @@ Functions:
    do_forward_solution
    make_forward_solution
    make_field_map
+   make_sphere_model
    read_bem_surfaces
    read_forward_solution
    read_trans
@@ -569,6 +577,7 @@ Functions:
    apply_inverse_epochs
    apply_inverse_raw
    compute_rank_inverse
+   estimate_snr
    make_inverse_operator
    read_inverse_operator
    source_band_induced_power
@@ -611,6 +620,18 @@ Functions:
    dics
    dics_epochs
    dics_source_power
+
+:py:mod:`mne`:
+
+.. currentmodule:: mne
+
+Functions:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   fit_dipole
 
 
 Source Space Data
@@ -779,6 +800,7 @@ Classes:
    PSDEstimator
    FilterEstimator
    CSP
+   GeneralizationAcrossTime
 
 Realtime
 ========

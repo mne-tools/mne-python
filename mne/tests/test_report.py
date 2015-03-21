@@ -1,4 +1,5 @@
-# Author: Mainak Jas <mainak@neuro.hut.fi>
+# Authors: Mainak Jas <mainak@neuro.hut.fi>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: BSD (3-clause)
 import os
@@ -17,6 +18,9 @@ from mne.utils import (_TempDir, requires_mayavi, requires_nibabel,
                        requires_PIL, run_tests_if_main, slow_test)
 from mne.viz import plot_trans
 
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+
 data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 report_dir = op.join(data_dir, 'MEG', 'sample')
@@ -33,11 +37,7 @@ base_dir = op.realpath(op.join(op.dirname(__file__), '..', 'io', 'tests',
                                'data'))
 evoked_fname = op.join(base_dir, 'test-ave.fif')
 
-
-
 # Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -158,6 +158,7 @@ def test_render_add_sections():
     report.add_figs_to_section(figs=fig,  # test non-list input
                                captions='random image', scale=1.2)
 
+
 @slow_test
 @testing.requires_testing_data
 @requires_mayavi
@@ -194,6 +195,21 @@ def test_render_mri_without_bem():
         report.parse_folder(tempdir)
     assert_true(len(w) >= 1)
     report.save(op.join(tempdir, 'report.html'), open_browser=False)
+
+
+@testing.requires_testing_data
+@requires_nibabel()
+def test_add_htmls_to_section():
+    """Test adding html str to mne report.
+    """
+    report = Report(info_fname=raw_fname,
+                    subject='sample', subjects_dir=subjects_dir)
+    html = '<b>MNE-Python is AWESOME</b>'
+    caption, section = 'html', 'html_section'
+    report.add_htmls_to_section(html, caption, section)
+    idx = report._sectionlabels.index(section)
+    html_compare = report.html[idx]
+    assert_equal(html, html_compare)
 
 
 run_tests_if_main()

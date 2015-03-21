@@ -32,7 +32,7 @@ def test_array_raw():
     sfreq = raw.info['sfreq']
     ch_names = [(ch[4:] if 'STI' not in ch else ch)
                 for ch in raw.info['ch_names']]  # change them, why not
-    #del raw
+    # del raw
     types = list()
     for ci in range(102):
         types.extend(('grad', 'grad', 'mag'))

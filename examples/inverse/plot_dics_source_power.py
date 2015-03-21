@@ -10,20 +10,20 @@ The original reference for DICS is:
 Gross et al. Dynamic imaging of coherent sources: Studying neural interactions
 in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 """
-
 # Author: Roman Goj <roman.goj@gmail.com>
 #         Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
+from scipy.stats import scoreatpercentile  # for thresholding
 
 import mne
-
 from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import compute_epochs_csd
 from mne.beamformer import dics_source_power
+
+print(__doc__)
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
@@ -70,6 +70,8 @@ for i, csd in enumerate(data_csds):
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i, clim=clim, transparent=True)
     brain.set_data_time_index(i)
+    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
+                              transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
-    #brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])
+    # brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])

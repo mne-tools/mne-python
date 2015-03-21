@@ -127,7 +127,6 @@ class RawFIFF(_BaseRaw):
         self.info = copy.deepcopy(raws[0].info)
         self.verbose = verbose
         self.orig_format = raws[0].orig_format
-        self.proj = False
 
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
@@ -140,7 +139,6 @@ class RawFIFF(_BaseRaw):
 
         self._projector = None
         # setup the SSP projector
-        self.proj = proj
         if proj:
             self.apply_proj()
 
@@ -375,8 +373,8 @@ class RawFIFF(_BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir])
-                                   / info['sfreq'])
+        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir]) /
+                                   info['sfreq'])
 
         raw.info = info
         raw.verbose = verbose

@@ -12,8 +12,6 @@ are used which produces strong connectvitiy in the right occipital sensors.
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import numpy as np
 from scipy import linalg
 
@@ -21,6 +19,8 @@ import mne
 from mne import io
 from mne.connectivity import spectral_connectivity
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -37,7 +37,7 @@ raw.info['bads'] += ['MEG 2443']
 
 # Pick MEG gradiometers
 picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=True,
-                        exclude='bads')
+                       exclude='bads')
 
 # Create epochs for the visual condition
 event_id, tmin, tmax = 3, -0.2, 0.5
@@ -49,10 +49,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
 fmin, fmax = 3., 9.
 sfreq = raw.info['sfreq']  # the sampling frequency
 tmin = 0.0  # exclude the baseline period
-con, freqs, times, n_epochs, n_tapers = spectral_connectivity(epochs,
-    method='pli', mode='multitaper', sfreq=sfreq,
-    fmin=fmin, fmax=fmax, faverage=True, tmin=tmin,
-    mt_adaptive=False, n_jobs=2)
+con, freqs, times, n_epochs, n_tapers = spectral_connectivity(
+    epochs, method='pli', mode='multitaper', sfreq=sfreq, fmin=fmin, fmax=fmax,
+    faverage=True, tmin=tmin, mt_adaptive=False, n_jobs=2)
 
 # the epochs contain an EOG channel, which we remove now
 ch_names = epochs.ch_names

@@ -13,7 +13,7 @@ from mne.viz import plot_connectivity_circle, circular_layout
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt  # noqa
 
 
 def test_plot_connectivity_circle():

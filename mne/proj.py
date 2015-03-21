@@ -63,7 +63,8 @@ def write_proj(fname, projs):
 def _compute_proj(data, info, n_grad, n_mag, n_eeg, desc_prefix, verbose=None):
     mag_ind = pick_types(info, meg='mag', ref_meg=False, exclude='bads')
     grad_ind = pick_types(info, meg='grad', ref_meg=False, exclude='bads')
-    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False, exclude='bads')
+    eeg_ind = pick_types(info, meg=False, eeg=True, ref_meg=False,
+                         exclude='bads')
 
     if (n_grad > 0) and len(grad_ind) == 0:
         logger.info("No gradiometers found. Forcing n_grad to 0")
@@ -280,10 +281,10 @@ def sensitivity_map(fwd, projs=None, ch_type='grad', mode='fixed', exclude=[],
         visualization.
     """
     # check strings
-    if not ch_type in ['eeg', 'grad', 'mag']:
+    if ch_type not in ['eeg', 'grad', 'mag']:
         raise ValueError("ch_type should be 'eeg', 'mag' or 'grad (got %s)"
                          % ch_type)
-    if not mode in ['free', 'fixed', 'ratio', 'radiality', 'angle',
+    if mode not in ['free', 'fixed', 'ratio', 'radiality', 'angle',
                     'remaining', 'dampening']:
         raise ValueError('Unknown mode type (got %s)' % mode)
 

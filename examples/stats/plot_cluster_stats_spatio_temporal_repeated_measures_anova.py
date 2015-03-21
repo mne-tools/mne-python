@@ -13,18 +13,16 @@ interaction effect using a repeated measures ANOVA. The multiple
 comparisons problem is addressed with a cluster-level permutation test
 across space and time.
 """
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Denis Engemannn <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
-print(__doc__)
-
 import os.path as op
 import numpy as np
 from numpy.random import randn
+import matplotlib.pyplot as plt
 
 import mne
 from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
@@ -34,6 +32,8 @@ from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
@@ -169,7 +169,7 @@ def stat_fun(*args):
     # The following expression catches the list input
     # and swaps the first and the second dimension, and finally calls ANOVA.
     return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
-                        effects=effects, return_pvals=return_pvals)[0]
+                       effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
@@ -236,7 +236,6 @@ brain.show_view('medial')
 # Finally, let's investigate interaction effect by reconstructing the time
 # courses
 
-import matplotlib.pyplot as plt
 inds_t, inds_v = [(clusters[cluster_ind]) for ii, cluster_ind in
                   enumerate(good_cluster_inds)][0]  # first cluster
 

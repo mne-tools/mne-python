@@ -6,7 +6,7 @@
 
 import copy as cp
 import os
-from math import floor, ceil
+from math import floor, ceil, log
 import itertools as itt
 import warnings
 
@@ -29,10 +29,9 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, requires_sklearn, check_sklearn_version )
+                    _compute_row_norms, check_sklearn_version, _time_mask)
 
 from .externals.six.moves import zip
-from .fixes import nanmean
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -49,10 +48,9 @@ def _check_covs_algebra(cov1, cov2):
 def _get_tslice(epochs, tmin, tmax):
     """get the slice"""
     tstart, tend = None, None
-    if tmin is not None:
-        tstart = np.where(epochs.times >= tmin)[0][0]
-    if tmax is not None:
-        tend = np.where(epochs.times <= tmax)[0][-1] + 1
+    mask = _time_mask(epochs.times, tmin, tmax)
+    tstart = np.where(mask)[0][0] if tmin is not None else None
+    tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
     tslice = slice(tstart, tend, None)
     return tslice
 
@@ -174,11 +172,46 @@ class Covariance(dict):
 
         return self
 
+    @verbose
+    def plot(self, info, exclude=[], colorbar=True, proj=False, show_svd=True,
+             show=True, verbose=None):
+        """Plot Covariance data
+
+        Parameters
+        ----------
+        info: dict
+            Measurement info.
+        exclude : list of string | str
+            List of channels to exclude. If empty do not exclude any channel.
+            If 'bads', exclude info['bads'].
+        colorbar : bool
+            Show colorbar or not.
+        proj : bool
+            Apply projections or not.
+        show : bool
+            Call pyplot.show() as the end or not.
+        show_svd : bool
+            Plot also singular values of the noise covariance for each sensor
+            type. We show square roots ie. standard deviations.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig_cov : instance of matplotlib.pyplot.Figure
+            The covariance plot.
+        fig_svd : instance of matplotlib.pyplot.Figure | None
+            The SVD spectra plot of the covariance.
+        """
+        from .viz.misc import plot_cov
+        return plot_cov(self, info, exclude, colorbar, proj, show_svd, show)
+
 
 ###############################################################################
 # IO
 
-def read_cov(fname):
+@verbose
+def read_cov(fname, verbose=None):
     """Read a noise covariance from a FIF file.
 
     Parameters
@@ -186,6 +219,8 @@ def read_cov(fname):
     fname : string
         The name of file containing the covariance matrix. It should end with
         -cov.fif or -cov.fif.gz.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -199,6 +234,41 @@ def read_cov(fname):
 
 ###############################################################################
 # Estimate from data
+
+def make_ad_hoc_cov(info):
+    """Create an ad hoc noise covariance
+
+    Parameters
+    ----------
+    info : instance of mne.io.meas_info.Info
+        Measurement info.
+
+    Returns
+    -------
+    cov : instance of Covariance
+        The ad hoc diagonal noise covariance for the M/EEG data channels.
+    """
+    info = pick_info(info, pick_types(info, meg=True, eeg=True))
+
+    # Standard deviations to be used
+    grad_std = 5e-13
+    mag_std = 20e-15
+    eeg_std = 0.2e-6
+    logger.info('Using standard noise values '
+                '(MEG grad : %6.1f fT/cm MEG mag : %6.1f fT EEG : %6.1f uV)'
+                % (1e13 * grad_std, 1e15 * mag_std, 1e6 * eeg_std))
+
+    data = np.zeros(len(info['ch_names']))
+    for meg, eeg, val in zip(('grad', 'mag', False), (False, False, True),
+                             (grad_std, mag_std, eeg_std)):
+        data[pick_types(info, meg=meg, eeg=eeg)] = val * val
+    cov = Covariance(None)
+    cov.update(kind=FIFF.FIFFV_MNE_NOISE_COV, diag=True, dim=len(data),
+               names=info['ch_names'], data=data, projs=info['projs'],
+               bads=info['bads'], nfree=0, eig=None, eigvec=None,
+               info=info)
+    return cov
+
 
 def _check_n_samples(n_samples, n_chan):
     """Check to see if there are enough samples for reliable cov calc"""
@@ -379,8 +449,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         the sample covariance will be computed. A list can be passed to run a
         set of the different methods.
         If 'auto' or a list of methods, the best estimator will be determined
-        based on log-likelihood and cross-validation on unseen data as described
-        in ref. [1]. Valid methods are:
+        based on log-likelihood and cross-validation on unseen data as
+        described in ref. [1]. Valid methods are:
         'empirical', the empirical or sample covariance,
         'diagonal_fixed', a diagonal regularization as in mne.cov.regularize
         (see MNE manual), 'ledoit_wolf', the Ledoit-Wolf estimator (see [2]),
@@ -439,9 +509,9 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     References
     ----------
-    [1] Engemann D. and Gramfort A (in press). Automated model selection in
-        covariance estimation and spatial whitening of MEG and EEG signals.
-        NeuroImage.
+    [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+        covariance estimation and spatial whitening of MEG and EEG signals,
+        vol. 108, 328-342, NeuroImage.
     [2] Ledoit, O., Wolf, M., (2004). A well-conditioned estimator for
         large-dimensional covariance matrices. Journal of Multivariate
         Analysis 88 (2), 365 - 411.
@@ -576,7 +646,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
 
     info = pick_info(info, picks_meeg)
     tslice = _get_tslice(epochs[0], tmin, tmax)
-    epochs = [e.get_data()[:, picks_meeg, tslice] for e in epochs]
+    epochs = [ee.get_data()[:, picks_meeg, tslice] for ee in epochs]
     picks_meeg = np.arange(len(picks_meeg))
     picks_list = _picks_by_type(info)
 
@@ -720,7 +790,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
 
         elif this_method == 'pca':
             mp = method_params[this_method]
-            pca, _info = _auto_low_rank_model(data_, this_method, n_jobs=n_jobs,
+            pca, _info = _auto_low_rank_model(data_, this_method,
+                                              n_jobs=n_jobs,
                                               method_params=mp, cv=cv,
                                               stop_early=stop_early)
             pca.fit(data_)
@@ -743,8 +814,8 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     logliks = np.array([_cross_val(data, e, cv, n_jobs) for e in estimators])
 
     # undo scaling
-    [_undo_scaling_cov(c, picks_list, scalings) for _, c, _
-     in estimator_cov_info]
+    for c in estimator_cov_info:
+        _undo_scaling_cov(c[1], picks_list, scalings)
 
     out = dict()
     estimators, covs, runtime_infos = zip(*estimator_cov_info)
@@ -759,14 +830,34 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     return out
 
 
+def _logdet(A):
+    """Compute the log det of a symmetric matrix"""
+    vals = linalg.eigh(A)[0]
+    vals = np.abs(vals)  # avoid negative values (numerical errors)
+    return np.sum(np.log(vals))
+
+
+def _gaussian_loglik_scorer(est, X, y=None):
+    """Compute the Gaussian log likelihood of X under the model in est"""
+    # compute empirical covariance of the test set
+    precision = est.get_precision()
+    n_samples, n_features = X.shape
+    log_like = np.zeros(n_samples)
+    log_like = -.5 * (X * (np.dot(X, precision))).sum(axis=1)
+    log_like -= .5 * (n_features * log(2. * np.pi) - _logdet(precision))
+    out = np.mean(log_like)
+    return out
+
+
 def _cross_val(data, est, cv, n_jobs):
     """Helper to compute cross validation"""
     from sklearn.cross_validation import cross_val_score
-    return nanmean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs))
+    return np.mean(cross_val_score(est, data, cv=cv, n_jobs=n_jobs,
+                                   scoring=_gaussian_loglik_scorer))
 
 
-def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
-                         verbose=None):
+def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
+                         stop_early=True, verbose=None):
     """compute latent variable models"""
     method_params = cp.deepcopy(method_params)
     iter_n_components = method_params.pop('iter_n_components')
@@ -804,8 +895,8 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv, stop_early=True,
         if score != -np.inf:
             scores[ii] = score
 
-        if (ii >= 3 and np.all(np.diff(scores[ii-3:ii]) < 0.)
-           and stop_early is True):
+        if (ii >= 3 and np.all(np.diff(scores[ii - 3:ii]) < 0.) and
+           stop_early is True):
             # early stop search when loglik has been going down 3 times
             logger.info('early stopping parameter search.')
             break
@@ -852,6 +943,7 @@ if check_sklearn_version('0.15') is True:
             cov_['nfree'] = len(self.covariance_)
             cov_['bads'] = self.info['bads']
             cov_['projs'] = self.info['projs']
+            cov_['diag'] = False
             cov_ = regularize(cov_, self.info, grad=self.grad, mag=self.mag,
                               eeg=self.eeg, proj=False,
                               exclude='bads')  # ~proj == important!!
@@ -913,10 +1005,10 @@ if check_sklearn_version('0.15') is True:
             Parameters
             ----------
             X_test : array-like, shape = [n_samples, n_features]
-                Test data of which we compute the likelihood, where n_samples is
-                the number of samples and n_features is the number of features.
-                X_test is assumed to be drawn from the same distribution than
-                the data used in fit (including centering).
+                Test data of which we compute the likelihood, where n_samples
+                is the number of samples and n_features is the number of
+                features. X_test is assumed to be drawn from the same
+                distribution as the data used in fit (including centering).
 
             y : not used, present for API consistence purpose.
 
@@ -968,8 +1060,8 @@ def _unpack_epochs(epochs):
     return epochs
 
 
-@verbose
-def _get_whitener(A, pca, ch_type, rank=None, verbose=None):
+def _get_ch_whitener(A, pca, ch_type, rank):
+    """"Get whitener params for a set of channels"""
     # whitening operator
     eig, eigvec = linalg.eigh(A, overwrite_a=True)
     eigvec = eigvec.T
@@ -1015,15 +1107,12 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     """
     C_ch_idx = [noise_cov.ch_names.index(c) for c in ch_names]
     if noise_cov['diag'] is False:
-
         C = noise_cov.data[np.ix_(C_ch_idx, C_ch_idx)]
     else:
         C = np.diag(noise_cov.data[C_ch_idx])
 
     scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if scalings is None:
-        pass
-    elif isinstance(scalings, dict):
+    if isinstance(scalings, dict):
         scalings_.update(scalings)
 
     # Create the projection operator
@@ -1063,8 +1152,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
             rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings_)
-        C_meg_eig, C_meg_eigvec = _get_whitener(C_meg, False, 'MEG',
-                                                rank_meg)
+        C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
+                                                   rank_meg)
     if has_eeg:
         C_eeg = C[np.ix_(C_eeg_idx, C_eeg_idx)]
         this_info = pick_info(info, pick_eeg)
@@ -1072,8 +1161,8 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
             rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings_)
-        C_eeg_eig, C_eeg_eigvec = _get_whitener(C_eeg, False, 'EEG',
-                                                rank_eeg)
+        C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
+                                                   rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
             warnings.warn('No average EEG reference present in info["projs"], '
                           'covariance may be adversely affected. Consider '
@@ -1271,8 +1360,9 @@ def compute_whitener(noise_cov, info, picks=None, rank=None,
     return W, ch_names
 
 
-def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
-                  scalings=None):
+@verbose
+def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
+                  scalings=None, verbose=None):
     """Whiten evoked data using given noise covariance
 
     Parameters
@@ -1281,8 +1371,9 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
         The evoked data
     noise_cov : instance of Covariance
         The noise covariance
-    picks : array-like of int
-        The channel indices to whiten
+    picks : array-like of int | None
+        The channel indices to whiten. Can be None to whiten MEG and EEG
+        data.
     diag : bool
         If True, whiten using only the diagonal of the covariance.
     rank : None | int | dict
@@ -1298,29 +1389,39 @@ def whiten_evoked(evoked, noise_cov, picks, diag=False, rank=None,
 
             dict(mag=1e15, grad=1e13, eeg=1e6)
 
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
     Returns
     -------
     evoked_white : instance of Evoked
         The whitened evoked data.
     """
-    ch_names = [evoked.ch_names[k] for k in picks]
     evoked = cp.deepcopy(evoked)
+    if picks is None:
+        picks = pick_types(evoked.info, meg=True, eeg=True)
+    W = _get_whitener_data(evoked.info, noise_cov, picks,
+                           diag, rank, scalings, evoked.nave)
+    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
+    return evoked
 
+
+@verbose
+def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
+                       scalings=None, verbose=None):
+    """Get whitening matrix for a set of data"""
+    ch_names = [info['ch_names'][k] for k in picks]
     noise_cov = pick_channels_cov(noise_cov, include=ch_names, exclude=[])
     if diag:
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
     scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if scalings is None:
-        pass
-    elif isinstance(scalings, dict):
+    if isinstance(scalings, dict):
         scalings_.update(scalings)
 
-    W, _ = compute_whitener(noise_cov, evoked.info, rank=rank,
-                            scalings=scalings)
-    evoked.data[picks] = np.sqrt(evoked.nave) * np.dot(W, evoked.data[picks])
-    return evoked
+    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings_)[0]
+    return W
 
 
 @verbose

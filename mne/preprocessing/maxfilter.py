@@ -8,78 +8,11 @@ from ..externals.six import string_types
 import os
 from warnings import warn
 
-import numpy as np
-from scipy import linalg
 
+from ..bem import fit_sphere_to_headshape
 from ..io import Raw
-from ..io.constants import FIFF
 from ..utils import logger, verbose
 from ..externals.six.moves import map
-from ..channels.utils import _fit_sphere
-
-
-@verbose
-def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
-                            verbose=None):
-    """ Fit a sphere to the headshape points to determine head center for
-        maxfilter.
-
-    Parameters
-    ----------
-    info : instance of mne.io.meas_info.Info
-        Measurement info.
-    dig_kinds : tuple of int
-        Kind of digitization points to use in the fitting. These can be
-        any kind defined in io.constants.FIFF:
-            FIFFV_POINT_CARDINAL
-            FIFFV_POINT_HPI
-            FIFFV_POINT_EEG
-            FIFFV_POINT_ECG
-            FIFFV_POINT_EXTRA
-        Defaults to (FIFFV_POINT_EXTRA,).
-
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    radius : float
-        Sphere radius in mm.
-    origin_head: ndarray
-        Head center in head coordinates (mm).
-    origin_device: ndarray
-        Head center in device coordinates (mm).
-    """
-    # get head digization points of the specified kind
-    hsp = [p['r'] for p in info['dig'] if p['kind'] in dig_kinds]
-
-    # exclude some frontal points (nose etc.)
-    hsp = [p for p in hsp if not (p[2] < 0 and p[1] > 0)]
-
-    if len(hsp) == 0:
-        raise ValueError('No head digitization points of the specified '
-                         'kinds (%s) found.' % dig_kinds)
-
-    hsp = 1e3 * np.array(hsp)
-
-    radius, origin_head = _fit_sphere(hsp)
-    # compute origin in device coordinates
-    trans = info['dev_head_t']
-    if trans['from'] != FIFF.FIFFV_COORD_DEVICE\
-            or trans['to'] != FIFF.FIFFV_COORD_HEAD:
-        raise RuntimeError('device to head transform not found')
-
-    head_to_dev = linalg.inv(trans['trans'])
-    origin_device = 1e3 * np.dot(head_to_dev,
-                                 np.r_[1e-3 * origin_head, 1.0])[:3]
-
-    logger.info('Fitted sphere: r = %0.1f mm' % radius)
-    logger.info('Origin head coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_head[0], origin_head[1], origin_head[2]))
-    logger.info('Origin device coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_device[0], origin_device[1], origin_device[2]))
-
-    return radius, origin_head, origin_device
 
 
 def _mxwarn(msg):
