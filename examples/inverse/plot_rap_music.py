@@ -47,7 +47,8 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 noise_cov = mne.read_cov(cov_fname)
 
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
-                              return_residual=True, verbose=True)
+                              return_residual=True, verbose=True,
+                              signal_ndim=2)
 coord_trans = forward['mri_head_t']['trans']
 plot_dipoles(dipoles, coord_trans, subject='sample',
              subjects_dir=subjects_dir, colors=[(0., 0., 1.), (1., 0., 0.)])
@@ -60,5 +61,5 @@ plt.ylabel('amplitude (nAm)')
 plt.xlabel('times (ms)')
 
 # Plot the evoked data and the residual.
-evoked.plot()
-residual.plot()
+evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
+residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
