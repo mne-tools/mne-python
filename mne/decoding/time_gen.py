@@ -534,7 +534,8 @@ class GeneralizationAcrossTime(object):
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
     def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='steelblue', xlabel=True, ylabel=True):
+                      color='steelblue', xlabel=True, ylabel=True,
+		      legend=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -562,6 +563,8 @@ class GeneralizationAcrossTime(object):
 	    If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
 	    If True, the ylabel is displayed. Defaults to True.
+	legend : bool
+	    If True, a legend is displayed. Defaults to True.
 
         Returns
         -------
@@ -570,7 +573,7 @@ class GeneralizationAcrossTime(object):
         """
         return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
                                  ax=ax, show=show, color=color,
-                                 xlabel=xlabel, ylabel=ylabel)
+                                 xlabel=xlabel, ylabel=ylabel, legend=legend)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
