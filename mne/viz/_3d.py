@@ -363,8 +363,9 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     return fig
 
 
-def _percent_to_control_points(clim, stc_data, colormap):
-    """Private helper function to convert percentiles to control points.
+def _limits_to_control_points(clim, stc_data, colormap):
+    """Private helper function to convert limits (values or percentiles)
+    to control points.
 
     Note: If using 'mne_analyze', generate cmap control points for a directly
     mirrored cmap for simplicity (i.e., no normalization is computed to account
@@ -373,7 +374,7 @@ def _percent_to_control_points(clim, stc_data, colormap):
     Parameters
     ----------
     clim : str | dict
-        Desired percentages used to set cmap control points.
+        Desired limits use to set cmap control points.
 
     Returns
     -------
@@ -553,7 +554,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     else:
         if any([f is not None for f in [fmin, fmid, fmax]]):
             warnings.warn('"clim" overrides fmin, fmid, fmax')
-        ctrl_pts = _percent_to_control_points(clim, stc.data, colormap)
+        ctrl_pts = _limits_to_control_points(clim, stc.data, colormap)
 
     # Construct cmap manually if 'mne_analyze' and get cmap bounds
     if colormap == 'mne_analyze':
