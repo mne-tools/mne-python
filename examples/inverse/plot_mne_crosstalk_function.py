@@ -24,7 +24,7 @@ print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects/'
-fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-oct-6-fwd.fif'
+fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_inv = data_path + '/MEG/sample/sample_audvis-meg-oct-6-meg-inv.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 fname_label = [data_path + '/MEG/sample/labels/Aud-rh.label',
