@@ -1690,20 +1690,6 @@ def _sphere_to_cartesian(theta, phi, r):
     y = rcos_phi * np.sin(theta)
     return x, y, z
 
-
-<<<<<<< HEAD
-def compute_corr(x, y):
-    """Compute pearson correlations between a vector and a matrix"""
-    X = np.array(x)
-    Y = np.array(y)
-    X -= X.mean(0)
-    Y -= Y.mean(0)
-    x_sd = X.std(0, ddof=1)
-    # if covariance matrix is fully expanded, Y needs a transpos / brodcasting
-    # else Y is correct
-    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
-    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
-=======
 def create_slices(start, stop, step=None, length=1):
     """ Generate slices of time indexes
 
@@ -1745,4 +1731,16 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= np.isclose(times, tmin)
         mask |= np.isclose(times, tmax)
     return mask
->>>>>>> master
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix"""
+    X = np.array(x)
+    Y = np.array(y)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a transpos / brodcasting
+    # else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    return (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
