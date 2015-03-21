@@ -100,7 +100,7 @@ class ToDataFrameMixin(object):
         """
         from ..epochs import _BaseEpochs
         from ..evoked import Evoked
-        from .fiff import RawFIFF
+        from .fiff import RawFIF
         from .array import RawArray
         from ..source_estimate import _BaseSourceEstimate
 
@@ -146,10 +146,10 @@ class ToDataFrameMixin(object):
                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
-            elif isinstance(self, (RawFIFF, RawArray, Evoked)):
+            elif isinstance(self, (RawFIF, RawArray, Evoked)):
                 picks = self._get_check_picks(picks, self.ch_names)
                 default_index = ['time']
-                if isinstance(self, (RawFIFF, RawArray)):
+                if isinstance(self, (RawFIF, RawArray)):
                     data, times = self[picks, start:stop]
                 elif isinstance(self, (Evoked)):
                     data = self.data[picks, :]

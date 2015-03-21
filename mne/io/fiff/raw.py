@@ -27,7 +27,7 @@ from ...utils import check_fname, logger, verbose
 from ...externals.six import string_types
 
 
-class RawFIFF(_BaseRaw):
+class RawFIF(_BaseRaw):
     """Raw data
 
     Parameters
@@ -666,9 +666,9 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
 
     Returns
     -------
-    raw : Instance of RawFIFF
+    raw : Instance of RawFIF
         A Raw object containing FIF data.
     """
-    return RawFIFF(fnames=fnames, allow_maxshield=allow_maxshield,
-                   preload=preload, proj=proj, compensation=compensation,
-                   add_eeg_ref=add_eeg_ref, verbose=verbose)
+    return RawFIF(fnames=fnames, allow_maxshield=allow_maxshield,
+                  preload=preload, proj=proj, compensation=compensation,
+                  add_eeg_ref=add_eeg_ref, verbose=verbose)

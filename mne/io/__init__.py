@@ -29,7 +29,7 @@ from .kit import read_raw_kit
 from .fiff import read_raw_fif
 
 # for backward compatibility
-from .fiff import RawFIFF
-from .fiff import RawFIFF as Raw
+from .fiff import RawFIF
+from .fiff import RawFIF as Raw
 from .base import concatenate_raws, get_chpi_positions
 from .reference import set_eeg_reference, set_bipolar_reference, add_reference_channels
