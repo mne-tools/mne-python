@@ -56,7 +56,6 @@ stc_ctf_dspm = cross_talk_function(
     inverse_operator, forward, labels, method=method, lambda2=lambda2,
     signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
-from mayavi import mlab
 time_label = "MNE %d"
 clim = dict(kind='percent', lims=[95, 99.75, 100])
 brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
