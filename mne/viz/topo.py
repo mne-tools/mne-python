@@ -28,7 +28,8 @@ from .utils import _draw_proj_checkbox
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None):
+                    axis_spinecolor='k', layout_scale=None,
+                    linewidth=0.5):
     """ Create iterator over channel positions
 
     This function returns a generator that unpacks into
@@ -70,6 +71,8 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         The current axis of the topo plot.
     ch_dx : int
         The related channel index.
+    name : str
+        The channel name.
     """
     import matplotlib.pyplot as plt
 
@@ -93,7 +96,6 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
     for idx, name in iter_ch:
         ax = plt.axes(pos[idx])
-        ax.patch.set_facecolor(axis_facecolor)
         plt.setp(list(ax.spines.values()), color=axis_spinecolor)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
@@ -103,14 +105,64 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         vars(ax)['_mne_ch_name'] = name
         vars(ax)['_mne_ch_idx'] = ch_idx
         vars(ax)['_mne_ax_face_color'] = axis_facecolor
-        yield ax, ch_idx
+        yield ax, ch_idx, name
+
+
+def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks, 
+                 xlim, linewidth, fontsize, spine_color, is_legend=False):
+
+    import matplotlib.pyplot as plt                 
+
+    if is_legend: 
+        ax = plt.axes((0,0,0.125,0.125))
+        ax.set_ylabel(y_label)
+        ax.yaxis.set_label_coords(0.05, 0.5)
+        ax.patch.set_alpha(0)
+
+    ax.set_xlabel(x_label)
+    if is_legend is False:
+        ax.xaxis.set_label_coords(0, 1)
+
+    ax.plot((0, 0), ylim, color='black', linewidth=linewidth)
+    ax.plot(xlim, (0,0), color='black', linewidth=linewidth)
+
+    for pos in ['left', 'bottom']:        
+        ax.spines[pos].set_position('zero')
+        ax.spines[pos].set_smart_bounds(True)
+        ax.spines[pos].set_color(spine_color)
+
+    ax.spines['right'].set_color('none')
+    ax.spines['top'].set_color('none')
+
+    ax.xaxis.set_ticks_position('bottom')
+    ax.yaxis.set_ticks_position('left')
+
+    ax.set_xticks(xticks)
+    ax.set_yticks(yticks)
+
+    for tick in ax.get_xaxis().get_major_ticks() + \
+                ax.get_yaxis().get_major_ticks():
+        tick.set_pad(2.)
+        tick.label1 = tick._get_text1()
+
+    ax.xaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
+    ax.yaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
+
+    for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
+                 ax.get_xticklabels() + ax.get_yticklabels()):
+        item.set_fontsize(fontsize)
+        item.set_color(spine_color)
+
+    [i.set_linewidth(linewidth) for i in ax.spines.values()]
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, font_color='w'):
+               y_label=None, vline=None, hline=None, xticks=None, yticks=None,
+               font_color='w', linewidth=0.5, plottype=None, 
+               fontsize=7, spine_color=None):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
 
@@ -137,7 +189,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
-    for ax, ch_idx in my_topo_plot:
+    for ax, ch_idx, name in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
             this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
             ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
@@ -147,8 +199,22 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
+        if plottype is not None and plottype is 'erp':
+            if axis_facecolor:
+                ax.patch.set_facecolor(axis_facecolor)
+            else:
+                ax.patch.set_alpha(0)
+
+            _plot_spines(ax, ylim_, name, y_label, xticks, yticks, 
+                         (tmin, tmax), linewidth, fontsize, spine_color)
+
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
+
+    if plottype is not None and plottype is 'erp':
+        _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
+                     (tmin, tmax), linewidth, fontsize, spine_color, 
+                     is_legend=True)
 
     if title is not None:
         plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
@@ -206,24 +272,20 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
-                     times, vline=None, x_label=None, y_label=None,
-                     colorbar=False):
+                     times, vline=None, linewidth=0.5, colorbar=False):
     """ Aux function to show time series on topo """
     import matplotlib.pyplot as plt
     picker_flag = False
     for data_, color_ in zip(data, color):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color_, picker=1e9)
+            ax.plot(times, data_[ch_idx], color_, picker=1e9, 
+                    linewidth=linewidth)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color_)
+            ax.plot(times, data_[ch_idx], color_, linewidth=linewidth)
     if vline:
         [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
-    if x_label is not None:
-        plt.xlabel(x_label)
-    if y_label is not None:
-        plt.ylabel(y_label)
     if colorbar:
         plt.colorbar()
 
@@ -235,8 +297,10 @@ def _check_vlim(vlim):
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              font_color='w'):
+              vline=[0.0], hline=[0.0], fig_facecolor='k', axis_facecolor='k',
+              font_color='w', y_label='Time (s)', x_label=r'$\mu$V',
+              spine_color=None, xticks=(-0.2, 0.2), yticks=None,
+              linewidth=0.5, conditions=None, fontsize=4):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -274,13 +338,29 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     title : str
         Title of the figure.
     vline : list of floats | None
-        The values at which to show a vertical line.
+        The values at which to show a vertical line. Defaults to 0.
+    linewidth : float | None
+        Line width for time series. Defaults to 0.5.
+    y_label : string | None
+        Label for y axis. Defaults to 'Time (s)'.
+    x_label : string | None
+        Label for x axis. Defaults to 'μV' (r'$\mu$V').
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    xticks : list of floats | None
+        List of tickmarks for time axis.
+    yticks : list of floats | None
+        List of tickmarks for amplitude axis.
+    linewidth : float | None
+        Linewidth for time series, spines, tick mars.
+    conditions : list of str | None
+        Condition labels. Will be plotted in the specified colors.
+    fontsize : float | None
+        Font size for axis labels.
 
     Returns
     -------
@@ -333,7 +413,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                  for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
+        picks = [pick_types(info, meg=False, **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
     scalings = _mutable_defaults(('scalings', scalings))[0]
@@ -349,8 +429,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
             _check_delayed_ssp(e)
 
     if ylim is None:
-        def set_ylim(x):
-            return np.abs(x).max()
+        set_ylim = lambda x: np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
@@ -363,17 +442,28 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         else:
             ylim_ = zip(*[np.array(yl) for yl in ylim_])
     else:
-        raise ValueError('ylim must be None ore a dict')
+        raise ValueError('ylim must be None or a dict')
+
+    if yticks is None: 
+        yticks = (round(np.abs(ylim_).max()*2/4), 
+                   -round(np.abs(ylim_).max()*2/4))
+
+    if spine_color is None:
+        bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
+        spine_color = ('w' if bc is not 'w' else 'black')
 
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
-                       color=color, times=times, vline=vline)
+                       color=color, times=times, vline=vline,
+                       linewidth=linewidth)
 
     fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor,
-                     title=title, x_label='Time (s)', vline=vline)
+                     axis_facecolor=axis_facecolor, plottype='erp',
+                     title=title, x_label=x_label, vline=vline,
+                     y_label=y_label, xticks=xticks, yticks=yticks, 
+                     fontsize=fontsize, spine_color=spine_color)
 
     if proj == 'interactive':
         for e in evoked:
@@ -382,6 +472,10 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       plot_update_proj_callback=_plot_update_evoked_topo,
                       projs=evoked[0].info['projs'], fig=fig)
         _draw_proj_checkbox(None, params)
+
+    if conditions is not None:
+        for cond, col, pos in zip(conditions, color, np.arange(0,0.3,0.025)):
+            plt.figtext(0.7, pos, cond, color=col, fontsize=fontsize)
 
     return fig
 
@@ -423,7 +517,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    if ch_type not in scalings:
+    if not ch_type in scalings:
         raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
