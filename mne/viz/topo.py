@@ -28,8 +28,7 @@ from .utils import _draw_proj_checkbox
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
                     fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None,
-                    linewidth=0.5):
+                    axis_spinecolor='k', layout_scale=None):
     """ Create iterator over channel positions
 
     This function returns a generator that unpacks into
