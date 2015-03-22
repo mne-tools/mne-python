@@ -2313,7 +2313,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
             ica.labels[label] = list(set(list(max_corr) +
-                                    ica.labels[label]))
+                                     ica.labels[label]))
             if plot:
                 allmaps.extend(get_ica_map(ica, components=max_corr))
                 subjs.extend([i] * len(max_corr))
