@@ -160,7 +160,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, vline=None, xticks=None, yticks=None,
-               font_color='w', linewidth=0.5, plot_legend=True, unit=None,
+               font_color='w', linewidth=0.5, plot_legend=False, unit=None,
                fontsize=7, spine_color=None):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
