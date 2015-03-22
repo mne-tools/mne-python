@@ -125,7 +125,7 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
     ax.plot((0, 0), ylim, color='black', linewidth=linewidth)
     ax.plot(xlim, (0,0), color='black', linewidth=linewidth)
 
-    for pos in ['left', 'bottom']:   
+    for pos in ['left', 'bottom']:
         ax.spines[pos].set_position('zero')
         ax.spines[pos].set_smart_bounds(True)
         ax.spines[pos].set_color(spine_color)
@@ -198,10 +198,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                   vmax=vmax, ylim=ylim_)
 
         if plot_legend is True:
-            if axis_facecolor:
-                ax.patch.set_facecolor(axis_facecolor)
-            else:
+            if axis_facecolor == fig_facecolor:
                 ax.patch.set_alpha(0)
+            elif axis_facecolor:
+                ax.patch.set_facecolor(axis_facecolor)
 
             _plot_spines(ax, ylim_, ch_name, None, xticks, yticks,
                          (tmin, tmax), linewidth, fontsize, spine_color)
@@ -293,8 +293,8 @@ def _check_vlim(vlim):
     return not np.isscalar(vlim) and vlim is not None
 
 
-def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
-              border='none', ylim=None, scalings=None, units=None, title=None, 
+def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
+              border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=[0.0], fig_facecolor='k', axis_facecolor='k',
               font_color='w', x_label='Time (s)', plot_legend=True,
               xticks=(-0.2, 0.2), yticks=None,
@@ -488,7 +488,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
                                   np.arange(0, 0.3, 0.025)):
-            plt.figtext(0.7, pos, cond, color=col, fontsize=fontsize)
+            plt.figtext(layout_scale, pos, cond, color=col, fontsize=fontsize)
 
     return fig
 
