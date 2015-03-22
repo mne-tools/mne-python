@@ -123,9 +123,9 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
         ax.xaxis.set_label_coords(0, 1)
 
     ax.plot((0, 0), ylim, color='black', linewidth=linewidth)
-    ax.plot(xlim, (0, 0), color='black', linewidth=linewidth)
+    ax.plot(xlim, (0,0), color='black', linewidth=linewidth)
 
-    for pos in ['left', 'bottom']:
+    for pos in ['left', 'bottom']:   
         ax.spines[pos].set_position('zero')
         ax.spines[pos].set_smart_bounds(True)
         ax.spines[pos].set_color(spine_color)
@@ -159,8 +159,8 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                decim=None, vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, hline=None, xticks=None, yticks=None,
-               font_color='w', linewidth=0.5, plottype=None,
+               y_label=None, vline=None, xticks=None, yticks=None,
+               font_color='w', linewidth=0.5, plot_legend=True, unit=None,
                fontsize=7, spine_color=None):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
@@ -169,7 +169,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     tmin, tmax = times[[0, -1]]
     on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, x_label=x_label,
-                      y_label=y_label, colorbar=colorbar)
+                      colorbar=colorbar)
 
     fig = plt.figure()
     if colorbar:
@@ -198,20 +198,20 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
-        if plottype is not None and plottype is 'erp':
+        if plot_legend is True:
             if axis_facecolor:
                 ax.patch.set_facecolor(axis_facecolor)
             else:
                 ax.patch.set_alpha(0)
 
-            _plot_spines(ax, ylim_, ch_name, y_label, xticks, yticks,
+            _plot_spines(ax, ylim_, ch_name, None, xticks, yticks,
                          (tmin, tmax), linewidth, fontsize, spine_color)
 
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
 
-    if plottype is not None and plottype is 'erp':
-        _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
+    if plot_legend is True:
+        _plot_spines(ax, ylim, x_label, unit, xticks, yticks,
                      (tmin, tmax), linewidth, fontsize, spine_color,
                      is_legend=True)
 
@@ -295,10 +295,10 @@ def _check_vlim(vlim):
 
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
-              border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0], hline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              font_color='w', y_label='Time (s)', x_label=r'$\mu$V',
-              spine_color=None, xticks=(-0.2, 0.2), yticks=None,
+              border='none', ylim=None, scalings=None, units=None, title=None, 
+              proj=False, vline=[0.0], fig_facecolor='k', axis_facecolor='k',
+              font_color='w', x_label='Time (s)', plot_legend=True,
+              xticks=(-0.2, 0.2), yticks=None,
               linewidth=0.5, conditions=None, fontsize=4):
     """Plot 2D topography of evoked responses.
 
@@ -338,10 +338,11 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         Title of the figure.
     vline : list of floats | None
         The values at which to show a vertical line. Defaults to 0.
-    linewidth : float | None
-        Line width for time series. Defaults to 0.5.
-    y_label : string | None
-        Label for y axis. Defaults to r'$\mu$V' (microvolt).
+    units : dict | None
+        The units of the channel types used for axes lables. If None,
+        defaults to `dict(eeg='uV', grad='fT/cm', mag='fT')`.
+    plot_legend : True
+        Plot x and y axis legend (usually time/unit)?
     x_label : string | None
         Label for x axis. Defaults to 'Time (s)'.
     fig_facecolor : str | obj
@@ -416,6 +417,18 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
     scalings = _mutable_defaults(('scalings', scalings))[0]
+    if units is None:
+        units = _mutable_defaults(('units', units))[0]
+        if plot_legend is True:
+            try:
+                unit = units[list(types_used)[0]]
+            except TypeError:
+                raise TypeError('Legend plotting only with 1 channel type')
+    elif isinstance(units, str):
+        unit = units
+    elif not isinstance(units, dict):
+        raise TypeError('units must be a string, a dict or None')
+
     evoked = [e.copy() for e in evoked]
     for e in evoked:
         for pick, t in zip(picks, types_used):
@@ -448,9 +461,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         yticks = (round(np.abs(ylim_).max() * 2 / 4),
                   -round(np.abs(ylim_).max() * 2 / 4))
 
-    if spine_color is None:
-        bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
-        spine_color = ('w' if bc is not 'w' else 'black')
+    bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
+    spine_color = ('w' if bc is not 'w' else 'black')
 
     plot_fun = partial(_plot_timeseries, data=[e.data for e in evoked],
                        color=color, times=times, vline=vline,
@@ -460,9 +472,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor, plottype='erp',
-                     title=title, x_label=x_label, vline=vline,
-                     y_label=y_label, xticks=xticks, yticks=yticks,
+                     axis_facecolor=axis_facecolor, unit=unit,
+                     plot_legend=plot_legend, title=title, x_label=x_label,
+                     vline=vline, y_label=unit, xticks=xticks, yticks=yticks,
                      fontsize=fontsize, spine_color=spine_color)
 
     if proj == 'interactive':
@@ -475,7 +487,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
 
     if conditions is not None:
         import matplotlib.pyplot as plt
-        for cond, col, pos in zip(conditions, color, np.arange(0, 0.3, 0.025)):
+        for cond, col, pos in zip(reversed(conditions), reversed(color),
+                                  np.arange(0, 0.3, 0.025)):
             plt.figtext(0.7, pos, cond, color=col, fontsize=fontsize)
 
     return fig
