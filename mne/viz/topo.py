@@ -107,13 +107,13 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         yield ax, ch_idx, ch_name
 
 
-def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks, 
+def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
                  xlim, linewidth, fontsize, spine_color, is_legend=False):
 
-    import matplotlib.pyplot as plt                 
+    import matplotlib.pyplot as plt
 
-    if is_legend: 
-        ax = plt.axes((0,0,0.125,0.125))
+    if is_legend:
+        ax = plt.axes((0, 0, 0.125, 0.125))
         ax.set_ylabel(y_label)
         ax.yaxis.set_label_coords(0.05, 0.5)
         ax.patch.set_alpha(0)
@@ -123,9 +123,9 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
         ax.xaxis.set_label_coords(0, 1)
 
     ax.plot((0, 0), ylim, color='black', linewidth=linewidth)
-    ax.plot(xlim, (0,0), color='black', linewidth=linewidth)
+    ax.plot(xlim, (0, 0), color='black', linewidth=linewidth)
 
-    for pos in ['left', 'bottom']:        
+    for pos in ['left', 'bottom']:
         ax.spines[pos].set_position('zero')
         ax.spines[pos].set_smart_bounds(True)
         ax.spines[pos].set_color(spine_color)
@@ -140,7 +140,7 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
     ax.set_yticks(yticks)
 
     for tick in ax.get_xaxis().get_major_ticks() + \
-                ax.get_yaxis().get_major_ticks():
+            ax.get_yaxis().get_major_ticks():
         tick.set_pad(2.)
         tick.label1 = tick._get_text1()
 
@@ -160,7 +160,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, vline=None, hline=None, xticks=None, yticks=None,
-               font_color='w', linewidth=0.5, plottype=None, 
+               font_color='w', linewidth=0.5, plottype=None,
                fontsize=7, spine_color=None):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
@@ -204,7 +204,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             else:
                 ax.patch.set_alpha(0)
 
-            _plot_spines(ax, ylim_, ch_name, y_label, xticks, yticks, 
+            _plot_spines(ax, ylim_, ch_name, y_label, xticks, yticks,
                          (tmin, tmax), linewidth, fontsize, spine_color)
 
         if ylim_ and not any(v is None for v in ylim_):
@@ -212,7 +212,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     if plottype is not None and plottype is 'erp':
         _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
-                     (tmin, tmax), linewidth, fontsize, spine_color, 
+                     (tmin, tmax), linewidth, fontsize, spine_color,
                      is_legend=True)
 
     if title is not None:
@@ -278,7 +278,7 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     for data_, color_ in zip(data, color):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
-            ax.plot(times, data_[ch_idx], color_, picker=1e9, 
+            ax.plot(times, data_[ch_idx], color_, picker=1e9,
                     linewidth=linewidth)
             picker_flag = True
         else:
@@ -341,9 +341,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     linewidth : float | None
         Line width for time series. Defaults to 0.5.
     y_label : string | None
-        Label for y axis. Defaults to 'Time (s)'.
+        Label for y axis. Defaults to r'$\mu$V' (microvolt).
     x_label : string | None
-        Label for x axis. Defaults to 'μV' (r'$\mu$V').
+        Label for x axis. Defaults to 'Time (s)'.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
     axis_facecolor : str | obj
@@ -444,9 +444,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     else:
         raise ValueError('ylim must be None or a dict')
 
-    if yticks is None: 
-        yticks = (round(np.abs(ylim_).max()*2/4), 
-                   -round(np.abs(ylim_).max()*2/4))
+    if yticks is None:
+        yticks = (round(np.abs(ylim_).max() * 2 / 4),
+                  -round(np.abs(ylim_).max() * 2 / 4))
 
     if spine_color is None:
         bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
@@ -462,7 +462,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor, plottype='erp',
                      title=title, x_label=x_label, vline=vline,
-                     y_label=y_label, xticks=xticks, yticks=yticks, 
+                     y_label=y_label, xticks=xticks, yticks=yticks,
                      fontsize=fontsize, spine_color=spine_color)
 
     if proj == 'interactive':
@@ -474,7 +474,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         _draw_proj_checkbox(None, params)
 
     if conditions is not None:
-        for cond, col, pos in zip(conditions, color, np.arange(0,0.3,0.025)):
+        import matplotlib.pyplot as plt
+        for cond, col, pos in zip(conditions, color, np.arange(0, 0.3, 0.025)):
             plt.figtext(0.7, pos, cond, color=col, fontsize=fontsize)
 
     return fig
