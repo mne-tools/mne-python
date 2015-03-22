@@ -85,7 +85,7 @@ def test_plot_topo():
 
         for evo in [evoked, [evoked, picked_evoked]]:
             assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'], 
-                          condition=['1', '2'])
+                          conditions=['1', '2'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
