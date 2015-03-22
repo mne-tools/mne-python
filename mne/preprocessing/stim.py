@@ -104,7 +104,7 @@ def eliminate_stim_artifact_evoked(evoked, mode='linear'):
                                signal.hann(4)[-2:]].T
         first_samp = s_start
         last_samp = s_end
-        data = evoked.data[picks, :]
+        data = evoked.data[picks, first_samp:last_samp]
         if mode == 'linear':
             x = np.array([first_samp, last_samp])
             f = interpolate.interp1d(x, data[:, (0, -1)])
@@ -112,5 +112,6 @@ def eliminate_stim_artifact_evoked(evoked, mode='linear'):
             interp_data = f(xnew)
             evoked.data[picks, first_samp:last_samp] = interp_data
         elif mode == 'window':
-            evoked.data[picks, first_samp:last_samp] = data * window[np.newaxis, :]
+            evoked.data[picks, first_samp:last_samp] = \
+                data * window[np.newaxis, :]
         return evoked

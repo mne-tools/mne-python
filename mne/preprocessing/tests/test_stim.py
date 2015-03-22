@@ -74,3 +74,25 @@ def test_stim_elim():
                                   tmax=tmax, mode='window')
     data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
     assert_true(np.all(data) == 0.)
+
+def test_stim_elim_evoked():
+    """Test eliminate stim artifact"""
+    raw = Raw(raw_fname, preload=True)
+    events = read_events(event_fname)
+    event_id = 1
+    tmin = -0.02
+    tmax = 0.02
+    picks = pick_types(raw.info, meg=True, eeg=True,
+                       eog=True, stim=False, exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax,
+                    picks=picks, preload=False)
+
+    # use window before stimulus
+    evoked = epochs.average()
+    data = evoked.data[:, :]
+    assert_true(np.all(data) == 0.)
+
+    # use window after stimulus
+    evoked = eliminate_stim_artifact_evoked(evoked, mode='window')
+    data = evoked.data[:, :]
+    assert_true(np.all(data) == 0.)
