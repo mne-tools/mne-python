@@ -49,6 +49,8 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     -------
     fig : instance of matplotlib.figure.Figure
         The figure.
+    im : instance of matplotlib.image.AxesImage
+	The image to be displayed.
     """
     if not hasattr(gat, 'scores_'):
         raise RuntimeError('Please score your data before trying to plot '
@@ -78,7 +80,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         plt.colorbar(im, ax=ax)
     if show:
         plt.show()
-    return fig if ax is None else ax.get_figure()
+    return im, fig if ax is None else ax.get_figure()
 
 
 def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
