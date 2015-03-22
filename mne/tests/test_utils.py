@@ -16,12 +16,8 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        ArgvSetter, _memory_usage, check_random_state,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
-<<<<<<< HEAD
                        create_slices, _time_mask, compute_corr)
 
-=======
-                       create_slices, _time_mask)
->>>>>>> master
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO

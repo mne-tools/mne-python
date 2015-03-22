@@ -2149,7 +2149,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
     new_icas  :  list
         Returns a list of fitted ICA objects, enrichened with a dictionary
         containing the indices of the selected maps under a key
-        specified by the name keyword.
+        specified by the label keyword.
     """
 
     def get_ica_map(ica, components=None):
@@ -2194,17 +2194,17 @@ def corrmap(icas, template, threshold="auto", label="bads",
         except IndexError:
             return [], 0, 0, []
 
-    def _plot_corrmap(data, subjs, indices, ch_type, ica, name):
+    def _plot_corrmap(data, subjs, indices, ch_type, ica, label):
         import matplotlib.pyplot as plt
 
-        title = 'Detected components of type ' + name
+        title = 'Detected components of type ' + label
         picks = list(range(len(data)))
 
         p = 20
         if len(picks) > p:  # plot components by sets of 20
             n_components = len(picks)
-            figs = [_plot_corrmap(data[k:k+p], subjs[k:k+p],
-                    indices[k:k+p], ch_type, ica, name)
+            figs = [_plot_corrmap(data[k:k + p], subjs[k:k + p],
+                    indices[k:k + p], ch_type, ica, label)
                     for k in range(0, n_components, p)]
             return figs
         elif np.isscalar(picks):
@@ -2295,8 +2295,8 @@ def corrmap(icas, template, threshold="auto", label="bads",
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
-            ica.labels[name] = list(set(list(max_corr) +
-                                    ica.labels[name]))
+            ica.labels[label] = list(set(list(max_corr) +
+                                    ica.labels[label]))
             if plot:
                 allmaps.extend(get_ica_map(ica, components=max_corr))
                 subjs.extend([i] * len(max_corr))
@@ -2306,7 +2306,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
             new_icas.append(ica)
 
     if plot is True:
-        _plot_corrmap(allmaps, subjs, indices, ch_type, ica, name)
+        _plot_corrmap(allmaps, subjs, indices, ch_type, ica, label)
 
     if nones:
         logger.info("No maps selected for subject(s) " +
