@@ -70,7 +70,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         The current axis of the topo plot.
     ch_dx : int
         The related channel index.
-    name : str
+    ch_name : str
         The channel name.
     """
     import matplotlib.pyplot as plt
@@ -93,18 +93,18 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
     ch_names = _clean_names(info['ch_names'])
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
-    for idx, name in iter_ch:
+    for idx, ch_name in iter_ch:
         ax = plt.axes(pos[idx])
         plt.setp(list(ax.spines.values()), color=axis_spinecolor)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
         plt.setp(ax.get_xticklines(), visible=False)
         plt.setp(ax.get_yticklines(), visible=False)
-        ch_idx = ch_names.index(name)
-        vars(ax)['_mne_ch_name'] = name
+        ch_idx = ch_names.index(ch_name)
+        vars(ax)['_mne_ch_name'] = ch_name
         vars(ax)['_mne_ch_idx'] = ch_idx
         vars(ax)['_mne_ax_face_color'] = axis_facecolor
-        yield ax, ch_idx, name
+        yield ax, ch_idx, ch_name
 
 
 def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks, 
@@ -188,7 +188,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
-    for ax, ch_idx, name in my_topo_plot:
+    for ax, ch_idx, ch_name in my_topo_plot:
         if layout.kind == 'Vectorview-all' and ylim is not None:
             this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
             ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
@@ -204,7 +204,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             else:
                 ax.patch.set_alpha(0)
 
-            _plot_spines(ax, ylim_, name, y_label, xticks, yticks, 
+            _plot_spines(ax, ylim_, ch_name, y_label, xticks, yticks, 
                          (tmin, tmax), linewidth, fontsize, spine_color)
 
         if ylim_ and not any(v is None for v in ylim_):
@@ -351,9 +351,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
     xticks : list of floats | None
-        List of tickmarks for time axis.
+        List of tick marks for time axis.
     yticks : list of floats | None
-        List of tickmarks for amplitude axis.
+        List of tick marks for amplitude axis.
     linewidth : float | None
         Linewidth for time series, spines, tick mars.
     conditions : list of str | None
