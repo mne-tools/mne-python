@@ -168,8 +168,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     # prepare callbacks
     tmin, tmax = times[[0, -1]]
     on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
-                      vmax=vmax, ylim=ylim, x_label=x_label,
-                      colorbar=colorbar)
+                      vmax=vmax, ylim=ylim, colorbar=colorbar)
 
     fig = plt.figure()
     if colorbar:
