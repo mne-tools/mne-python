@@ -4,6 +4,7 @@
 
 import numpy as np
 from scipy import signal, interpolate
+from mne.evoked import EvokedArray
 
 from .. import pick_types
 
@@ -68,6 +69,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
             raw[picks, first_samp:last_samp] = data * window[np.newaxis, :]
     return raw
 
+
 def eliminate_stim_artifact_evoked(evoked, mode='linear'):
     """Eliminates stimulations artifacts from evoked data
 
@@ -88,27 +90,27 @@ def eliminate_stim_artifact_evoked(evoked, mode='linear'):
     evoked : evoked object
         evoked data object.
     """
+    if isinstance(evoked, EvokedArray):
+        s_start = 0
+        s_end = len(evoked.data[0]) - 1
 
-    s_start = 0
-    s_end = len(evoked.data[0]) -1
+        picks = pick_types(evoked.info, meg=True, eeg=True, eog=True, ecg=True,
+                           emg=True, ref_meg=True, misc=True, chpi=True,
+                           exclude='bads', stim=False, resp=False)
 
-    picks = pick_types(evoked.info, meg=True, eeg=True, eog=True, ecg=True,
-                       emg=True, ref_meg=True, misc=True, chpi=True,
-                       exclude='bads', stim=False, resp=False)
-
-    if mode == 'window':
-        window = 1 - np.r_[signal.hann(4)[:2],
-                           np.ones(np.abs(s_end - s_start) - 4),
-                           signal.hann(4)[-2:]].T
-    first_samp = s_start
-    last_samp = s_end
-    data = evoked.data[picks,:]
-    if mode == 'linear':
-        x = np.array([first_samp, last_samp])
-        f = interpolate.interp1d(x, data[:, (0, -1)])
-        xnew = np.arange(first_samp, last_samp)
-        interp_data = f(xnew)
-        evoked.data[picks, first_samp:last_samp] = interp_data
-    elif mode == 'window':
-        evoked.data[picks, first_samp:last_samp] = data * window[np.newaxis, :]
-    return evoked
+        if mode == 'window':
+            window = 1 - np.r_[signal.hann(4)[:2],
+                               np.ones(np.abs(s_end - s_start) - 4),
+                               signal.hann(4)[-2:]].T
+        first_samp = s_start
+        last_samp = s_end
+        data = evoked.data[picks, :]
+        if mode == 'linear':
+            x = np.array([first_samp, last_samp])
+            f = interpolate.interp1d(x, data[:, (0, -1)])
+            xnew = np.arange(first_samp, last_samp)
+            interp_data = f(xnew)
+            evoked.data[picks, first_samp:last_samp] = interp_data
+        elif mode == 'window':
+            evoked.data[picks, first_samp:last_samp] = data * window[np.newaxis, :]
+        return evoked
