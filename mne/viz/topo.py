@@ -27,7 +27,7 @@ from .utils import _draw_proj_checkbox
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
-                    fig_facecolor='k', axis_facecolor='k',
+                    fig_facecolor='k', axis_facecolor='k', yticks=None,
                     axis_spinecolor='k', layout_scale=None):
     """ Create iterator over channel positions
 
@@ -183,7 +183,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
-                                   axis_spinecolor=border,
+                                   axis_spinecolor=border, yticks=yticks,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
@@ -194,10 +194,15 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         else:
             ylim_ = ylim
 
+        if plot_legend is True:
+            if yticks is None:
+                yticks = (round(np.abs(ylim).max() * 2 / 4),
+                          -round(np.abs(ylim).max() * 2 / 4))
+
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
-        if plot_legend is True:
+        if plot_legend is True and True:
             if axis_facecolor == fig_facecolor:
                 ax.patch.set_alpha(0)
             elif axis_facecolor:
@@ -210,6 +215,9 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if plot_legend is True:
+        if yticks is None:
+            yticks = (round(np.abs(ylim_).max() * 2 / 4),
+                      -round(np.abs(ylim_).max() * 2 / 4))
         _plot_spines(ax, ylim, x_label, unit, xticks, yticks,
                      (tmin, tmax), linewidth, fontsize, spine_color,
                      is_legend=True)
@@ -456,10 +464,6 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
     else:
         raise ValueError('ylim must be None or a dict')
 
-    if yticks is None:
-        yticks = (round(np.abs(ylim_).max() * 2 / 4),
-                  -round(np.abs(ylim_).max() * 2 / 4))
-
     bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
     spine_color = ('w' if bc is not 'w' else 'black')
 
@@ -623,7 +627,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      show_func=erf_imshow, layout=layout, decim=1,
                      colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                      layout_scale=layout_scale, title=title,
-                     fig_facecolor=fig_facecolor,
+                     fig_facecolor=fig_facecolor, plot_legend=False,
                      font_color=font_color, border=border,
                      x_label='Time (s)', y_label='Epoch')
 
