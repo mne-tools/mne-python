@@ -116,9 +116,9 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
 	If True, the xlabel is displayed. Defaults to True.
     ylabel : bool
 	If True, the ylabel is displayed. Defaults to True.
-    legend : int | None
+    legend : int | str | tuple | None
 	If not None, a legend is displayed at the location given by the 
-        integer. Otherwise, the legend is not displayed. Defaults to None.
+        argument. Otherwise, the legend is not displayed. Defaults to None.
 
     Returns
     -------
@@ -139,6 +139,8 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
+    if title is not None:
+	ax.set_title(title)
     ax.set_ylim(ymin, ymax)
     if xmin is not None and xmax is not None:
 	ax.set_xlim(xmin, xmax)

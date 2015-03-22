@@ -567,9 +567,9 @@ class GeneralizationAcrossTime(object):
 	    If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
 	    If True, the ylabel is displayed. Defaults to True.
-	legend : bool
+	legend : int | str | tuple | None
 	    If not None, a legend is displayed at the location given by the 
-            integer. Otherwise, the legend is not displayed. Defaults to None.
+            argument. Otherwise, the legend is not displayed. Defaults to None.
 
         Returns
         -------
