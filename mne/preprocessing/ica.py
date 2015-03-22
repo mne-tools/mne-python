@@ -2200,10 +2200,13 @@ def corrmap(icas, template, threshold="auto", label="bads",
 
         try:
             newtarget = np.zeros(maxmaps[0].size)
+            std_of_maps = np.std(np.asarray(maxmaps))
+            mean_of_maps = np.std(np.asarray(maxmaps))
             for maxmap, polarity in zip(maxmaps, polarities):
-                newtarget += maxmap * polarity
+                newtarget += (maxmap / std_of_maps - mean_of_maps) * polarity
 
             newtarget /= len(maxmaps)
+            newtarget *= std_of_maps
 
             sim_i_o = np.abs(np.corrcoef(target, newtarget)[1, 0])
 
