@@ -533,9 +533,9 @@ class GeneralizationAcrossTime(object):
                                tlim=tlim, ax=ax, cmap=cmap, show=show,
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='steelblue', xlabel=True, ylabel=True,
-		      legend=True):
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
+                      ax=None, show=True, color='steelblue', xlabel=True, 
+                      ylabel=True, legend=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -546,12 +546,14 @@ class GeneralizationAcrossTime(object):
         ----------
         title : str | None
             Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
             Max score value. Defaults to 1.
-        tlim : np.ndarray, (train_min_max, test_min_max) | None
-            The temporal boundaries. Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
@@ -571,9 +573,10 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
-                                 ax=ax, show=show, color=color,
-                                 xlabel=xlabel, ylabel=ylabel, legend=legend)
+        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax, 
+                                 ymin=ymin, ymax=ymax, ax=ax, show=show, 
+                                 color=color, xlabel=xlabel, ylabel=ylabel, 
+                                 legend=legend)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):

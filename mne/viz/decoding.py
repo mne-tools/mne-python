@@ -81,8 +81,9 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     return fig if ax is None else ax.get_figure()
 
 
-def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='b', xlabel=True, ylabel=True, legend=True):
+def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
+                      ax=None, show=True, color='b', xlabel=True, ylabel=True,
+                      legend=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -95,6 +96,10 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
         The gat object.
     title : str | None
         Figure title. Defaults to None.
+    xmin : float | None, optional, defaults to None.
+        Min time value.
+    xmax : float | None, optional, defaults to None.
+        Max time value.
     ymin : float, optional, defaults to 0.
         Min score value.
     ymax : float, optional, defaults to 1.
@@ -132,6 +137,8 @@ def plot_gat_diagonal(gat, title=None, ymin=0., ymax=1., ax=None, show=True,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
     ax.set_ylim(ymin, ymax)
+    if xmin is not None and xmax is not None:
+	ax.set_xlim(xmin, xmax)
     if xlabel:
         ax.set_xlabel('Time (s)')
     if ylabel:
