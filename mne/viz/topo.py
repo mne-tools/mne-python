@@ -413,7 +413,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                  for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, **types_used_kwargs)]
+        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
     scalings = _mutable_defaults(('scalings', scalings))[0]
@@ -429,7 +429,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
             _check_delayed_ssp(e)
 
     if ylim is None:
-        set_ylim = lambda x: np.abs(x).max()
+        def set_ylim(x):
+            return np.abs(x).max()
         ylim_ = [set_ylim([e.data[t] for e in evoked]) for t in picks]
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
@@ -517,7 +518,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
-    if not ch_type in scalings:
+    if ch_type not in scalings:
         raise KeyError('%s channel type not in scalings' % ch_type)
     this_data *= scalings[ch_type]
 
