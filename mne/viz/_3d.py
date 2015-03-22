@@ -7,6 +7,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
 # License: Simplified BSD
 
@@ -406,6 +407,9 @@ def _limits_to_control_points(clim, stc_data, colormap):
     if len(ctrl_pts) != 3:
         raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
                          ' 3' % len(ctrl_pts))
+    elif len(set(ctrl_pts)) != 3:
+        raise ValueError('Too few control points (need 3). Is there enough'
+                         ' data to create three unique control point values?')
 
     return ctrl_pts
 

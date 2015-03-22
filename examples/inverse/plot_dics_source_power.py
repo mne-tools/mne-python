@@ -15,8 +15,6 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 #
 # License: BSD (3-clause)
 
-from scipy.stats import scoreatpercentile  # for thresholding
-
 import mne
 from mne.io import Raw
 from mne.datasets import sample
@@ -70,8 +68,6 @@ for i, csd in enumerate(data_csds):
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                      time_label=message, figure=i, clim=clim, transparent=True)
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                              transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
     # brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])

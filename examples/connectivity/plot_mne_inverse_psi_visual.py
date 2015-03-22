@@ -31,7 +31,6 @@ from mne.datasets import sample
 from mne.io import Raw
 from mne.minimum_norm import read_inverse_operator, apply_inverse_epochs
 from mne.connectivity import seed_target_indices, phase_slope_index
-from mne.viz import mne_analyze_colormap
 
 print(__doc__)
 
