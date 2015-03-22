@@ -476,7 +476,7 @@ def test_compute_corr():
                    5.25, 12.50, 5.56, 7.91, 6.89]])
 
     r = compute_corr(x, y.T).round(3)
-    r2 = np.array([np.corrcoef(x, y[i])[0, 1] 
+    r2 = np.array([np.corrcoef(x, y[i])[0, 1]
                    for i in range(len(y))]).round(3)
     assert(r[3] != r[0] == r[1] == r[2] != r[4])
     for r_v, r2_v in zip(r, r2):
