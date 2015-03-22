@@ -81,7 +81,7 @@ def test_plot_topo():
     # test scaling
     with warnings.catch_warnings(record=True):
         for ylim in [dict(mag=[-600, 600]), None]:
-            plot_topo([picked_evoked] * 2, layout, ylim=ylim)
+            plot_topo([picked_evoked] * 2, layout=layout, ylim=ylim)
 
         for evo in [evoked, [evoked, picked_evoked]]:
             assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'], 
@@ -91,7 +91,7 @@ def test_plot_topo():
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
-        fig = plot_topo(picked_evoked_delayed_ssp, layout, proj='interactive')
+        fig = plot_topo(picked_evoked_delayed_ssp, layout=layout, proj='interactive')
         func = _get_presser(fig)
         event = namedtuple('Event', 'inaxes')
         func(event(inaxes=fig.axes[0]))
