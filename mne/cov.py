@@ -305,8 +305,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         End of time interval in seconds
     tstep : float
         Length of data chunks for artefact rejection in seconds.
-    reject : dict
-        Rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done. Example::
 
@@ -316,9 +316,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     picks : array-like of int
         Indices of channels to include (if None, all channels
