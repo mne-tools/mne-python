@@ -47,10 +47,10 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
 
     Returns
     -------
-    fig : instance of matplotlib.figure.Figure
-        The figure.
     im : instance of matplotlib.image.AxesImage
         The image to be displayed.
+    fig : instance of matplotlib.figure.Figure
+        The figure.
     """
     if not hasattr(gat, 'scores_'):
         raise RuntimeError('Please score your data before trying to plot '
