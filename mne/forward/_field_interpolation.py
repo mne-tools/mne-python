@@ -209,7 +209,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
 
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
-                   ch_type=None, mode='fast', n_jobs=1, fname_trans=None):
+                   ch_type=None, mode='fast', n_jobs=1, trans_fname=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -243,9 +243,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
-    if fname_trans is not None:
-        trans = fname_trans
-        warnings.warn('The parameter "fname_trans" is deprecated and will '
+    if trans_fname is not None:
+        trans = trans_fname
+        warnings.warn('The parameter "trans_fname" is deprecated and will '
                       'be removed in 0.10, use "trans" instead',
                       DeprecationWarning)
     info = evoked.info
