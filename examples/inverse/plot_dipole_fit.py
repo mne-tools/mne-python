@@ -18,13 +18,12 @@ For a comparison of fits between MNE-C and mne-python, see:
 from os import path as op
 
 import mne
-import numpy as np
 
 print(__doc__)
 
 data_path = mne.datasets.sample.data_path()
 subjects_dir = op.join(data_path, 'subjects')
-fname_evo = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
 fname_bem = op.join(subjects_dir, 'sample', 'bem', 'sample-5120-bem-sol.fif')
 fname_trans = op.join(data_path, 'MEG', 'sample',
@@ -32,9 +31,8 @@ fname_trans = op.join(data_path, 'MEG', 'sample',
 fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
 
 # Let's localize the N100m (using MEG only)
-evoked = mne.read_evokeds(fname_evo, condition='Right Auditory')
-# baseline correct, crop to time of interest, and select MEG channels
-evoked.data -= evoked.data[:, evoked.times <= 0].mean(axis=1)[:, np.newaxis]
+evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
+                          baseline=(None, 0))
 picks = mne.pick_types(evoked.info, meg=True, eeg=False)
 evoked.pick_channels([evoked.ch_names[p] for p in picks])
 evoked.crop(0.07, 0.08)
