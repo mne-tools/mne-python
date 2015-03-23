@@ -280,14 +280,21 @@ class ICA(ContainsMixin):
             Increment for selecting each nth time slice. If None, all samples
             within ``start`` and ``stop`` are used.
         reject : dict | None
-            Rejection parameters based on peak to peak amplitude.
+            Rejection parameters based on peak-to-peak amplitude.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. You should
-            use such parameters to reject big measurement artifacts
-            and not EOG for example. It only applies if `inst` is of type Raw.
+            If reject is None then no rejection is done. Example::
+
+                reject = dict(grad=4000e-13, # T / m (gradiometers)
+                              mag=4e-12, # T (magnetometers)
+                              eeg=40e-6, # uV (EEG channels)
+                              eog=250e-6 # uV (EOG channels)
+                              )
+
+            It only applies if `inst` is of type Raw.
         flat : dict | None
-            Rejection parameters based on flatness of signal
-            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+            Rejection parameters based on flatness of signal.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+            are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done.
             It only applies if `inst` is of type Raw.
         tstep : float
