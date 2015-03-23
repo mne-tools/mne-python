@@ -123,7 +123,7 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
         ax.xaxis.set_label_coords(0, 1)
 
     ax.plot((0, 0), ylim, color='black', linewidth=linewidth)
-    ax.plot(xlim, (0,0), color='black', linewidth=linewidth)
+    ax.plot(xlim, (0, 0), color='black', linewidth=linewidth)
 
     for pos in ['left', 'bottom']:
         ax.spines[pos].set_position('zero')
@@ -152,7 +152,7 @@ def _plot_spines(ax, ylim, x_label, y_label, xticks, yticks,
         item.set_fontsize(fontsize)
         item.set_color(spine_color)
 
-    [i.set_linewidth(linewidth) for i in ax.spines.values()]
+    [s.set_linewidth(linewidth) for s in ax.spines.values()]
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
@@ -188,37 +188,43 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                    fig_facecolor=fig_facecolor)
 
     for ax, ch_idx, ch_name in my_topo_plot:
+        from copy import deepcopy
+
         if layout.kind == 'Vectorview-all' and ylim is not None:
             this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
-            ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
+            ylim_ = [v[this_type] if _check_vlim(v) else v for v in deepcopy(ylim)]
         else:
-            ylim_ = ylim
-
-        if plot_legend is True:
-            if yticks is None:
-                yticks = (round(np.abs(ylim).max() * 2 / 4),
-                          -round(np.abs(ylim).max() * 2 / 4))
+            ylim_ = deepcopy(ylim)
 
         show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
-        if plot_legend is True and True:
+        ylim_t = None
+        if plot_legend is True:
+            if isinstance(ylim_, zip):
+                ar = np.asarray([(x,y) for x,y in deepcopy(ylim_)])
+                ylim_t = (ar.min(), ar.max)
+            if yticks is None:
+                if isinstance(ylim_, zip):
+                    yticks = (round(np.abs(ylim_t).max() * 2 / 4),
+                              -round(np.abs(ylim_t).max() * 2 / 4))
+                else:
+                    yticks = (round(np.abs(ylim_).max() * 2 / 4),
+                              -round(np.abs(ylim_).max() * 2 / 4))                           
             if axis_facecolor == fig_facecolor:
                 ax.patch.set_alpha(0)
             elif axis_facecolor:
                 ax.patch.set_facecolor(axis_facecolor)
 
-            _plot_spines(ax, ylim_, ch_name, None, xticks, yticks,
+            y = (ylim_ if ylim_t is None else ylim_t)
+            _plot_spines(ax, y, ch_name, None, xticks, yticks,
                          (tmin, tmax), linewidth, fontsize, spine_color)
 
         if ylim_ and not any(v is None for v in ylim_):
-            plt.ylim(*ylim_)
+            plt.ylim(*deepcopy(ylim_))
 
     if plot_legend is True:
-        if yticks is None:
-            yticks = (round(np.abs(ylim_).max() * 2 / 4),
-                      -round(np.abs(ylim_).max() * 2 / 4))
-        _plot_spines(ax, ylim, x_label, unit, xticks, yticks,
+        _plot_spines(ax, y, x_label, unit, xticks, yticks,
                      (tmin, tmax), linewidth, fontsize, spine_color,
                      is_legend=True)
 
