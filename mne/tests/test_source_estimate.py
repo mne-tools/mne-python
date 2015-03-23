@@ -210,7 +210,9 @@ def test_stc_arithmetic():
         a -= 1
         a *= -1
         a /= 2
-        a **= 3
+        with warnings.catch_warnings(record=True):
+            warnings.simplefilter('always')
+            a **= 3
         out.append(a)
 
     assert_array_equal(out[0], out[1].data)
@@ -384,6 +386,13 @@ def test_morph_data():
     stc_to3 = morph_data(subject_from, subject_to, stc_from,
                          grade=vertices_to, smooth=12, buffer_size=3,
                          subjects_dir=subjects_dir)
+    # make sure we get a warning about # of steps
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        morph_data(subject_from, subject_to, stc_from,
+                   grade=vertices_to, smooth=1, buffer_size=3,
+                   subjects_dir=subjects_dir)
+    assert_equal(len(w), 2)
 
     assert_array_almost_equal(stc_to.data, stc_to1.data, 5)
     assert_array_almost_equal(stc_to1.data, stc_to2.data)
@@ -394,6 +403,13 @@ def test_morph_data():
                                      smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
+    # steps warning
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        compute_morph_matrix(subject_from, subject_to,
+                             stc_from.vertices, vertices_to,
+                             smooth=1, subjects_dir=subjects_dir)
+    assert_equal(len(w), 2)
 
     mean_from = stc_from.data.mean(axis=0)
     mean_to = stc_to1.data.mean(axis=0)

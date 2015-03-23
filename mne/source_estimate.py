@@ -2007,6 +2007,10 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         data.data /= data_sum.repeat(np.diff(data.indptr))
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
+    if len(idx_use) != len(data_sum):
+        warnings.warn('%s/%s vertices not included in smoothing, consider '
+                      'increasing the number of steps'
+                      % (len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
