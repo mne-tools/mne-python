@@ -11,7 +11,8 @@ from ..utils import deprecated
 from .. import pick_types
 
 
-@deprecated('DEPRECATED: Use fix_stim_artifact_raw')
+@deprecated('`eliminate_stim_artifact` is deprecated'
+            'Use fix_stim_artifact_raw')
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                             tmax=0.01, mode='linear'):
     """Eliminates stimulations artifacts from raw data
@@ -101,7 +102,7 @@ def fix_stim_artifact_raw(raw, events, event_id, tmin=-0.005,
     raw: Raw object
         raw data object.
     """
-    if not raw.preload:
+    if raw.preload is False:
         raise RuntimeError('Modifying data of Raw is only supported '
                            'when preloading is used. Use preload=True '
                            '(or string) in the constructor.')
@@ -135,14 +136,14 @@ def fix_stim_artifact_raw(raw, events, event_id, tmin=-0.005,
 
 
 def fix_stim_artifact(epochs, mode='linear'):
-    """Eliminates stimulations artifacts from evoked data
+    """Eliminates stimulations artifacts from evoked or epochs
 
-    The evoked object will be modified in place (no copy)
+    The evoked or epochs object will be modified in place (no copy)
 
     Parameters
     ----------
-    evoked : evoked object
-        evoked data object.
+    epochs : evoked or epochs object
+        evoked or epochs object.
 
     mode : 'linear' | 'window'
         way to fill the artifacted time interval.
@@ -151,13 +152,17 @@ def fix_stim_artifact(epochs, mode='linear'):
 
     Returns
     -------
-    evoked : evoked object
-        evoked data object.
+    epochs : evoked or epochs object
+        evoked or epochs object.
     """
     picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
                        emg=True, ref_meg=True, misc=True, chpi=True,
                        exclude='bads', stim=False, resp=False)
     if isinstance(epochs, Epochs):
+        if epochs.preload is False:
+            raise RuntimeError('Modifying data of Epochs is only supported '
+                               'when preloading is used. Use preload=True '
+                               'in the constructor.')
         data = epochs.get_data()[:, picks, :]
         s_start = 0
         s_end = len(data[0][0])
@@ -174,6 +179,7 @@ def fix_stim_artifact(epochs, mode='linear'):
                 epoch[picks, :] = interp_data
             if mode == 'window':
                 epoch[picks, :] = data * window[np.newaxis, :]
+        epochs._data = data
 
     elif isinstance(epochs, Evoked):
         data = epochs.data
