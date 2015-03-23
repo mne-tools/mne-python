@@ -387,7 +387,7 @@ def _limits_to_control_points(clim, stc_data, colormap):
     if clim == 'auto':
         # Set upper and lower bound based on percent, and get average between
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
-        ctrl_pts.insert(1, np.average(ctrl_pts))
+        ctrl_pts = np.insert(ctrl_pts, 1, np.average(ctrl_pts))
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
