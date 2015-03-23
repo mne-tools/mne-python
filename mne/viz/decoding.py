@@ -68,17 +68,17 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',
                    extent=tlim, vmin=vmin, vmax=vmax,
                    cmap=cmap)
-    if xlabel:
+    if xlabel is True:
         ax.set_xlabel('Testing Time (s)')
-    if ylabel:
+    if ylabel is True:
         ax.set_ylabel('Training Time (s)')
     if title is not None:
         ax.set_title(title)
     ax.axvline(0, color='k')
     ax.axhline(0, color='k')
-    if colorbar:
+    if colorbar is True:
         plt.colorbar(im, ax=ax)
-    if show:
+    if show is True:
         plt.show()
     return im, fig if ax is None else ax.get_figure()
 
@@ -144,14 +144,14 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     ax.set_ylim(ymin, ymax)
     if xmin is not None and xmax is not None:
         ax.set_xlim(xmin, xmax)
-    if xlabel:
+    if xlabel is True:
         ax.set_xlabel('Time (s)')
-    if ylabel:
+    if ylabel is True:
         ax.set_ylabel('Classif. score ({0})'.format(
                       'AUC' if 'roc' in repr(gat.scorer_) else r'%'
                       ))
     if legend is not None:
         ax.legend(loc=legend)
-    if show:
+    if show is True:
         plt.show()
     return fig if ax is None else ax.get_figure()
