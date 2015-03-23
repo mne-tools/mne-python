@@ -11,7 +11,7 @@ import numpy as np
 
 def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
-		    xlabel=True, ylabel=True):
+            xlabel=True, ylabel=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -39,18 +39,18 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     show : bool
         If True, the figure will be shown. Defaults to True.
     colorbar : bool
-	If True, the colorbar of the figure is displayed. Defaults to True.
+        If True, the colorbar of the figure is displayed. Defaults to True.
     xlabel : bool
-	If True, the xlabel is displayed. Defaults to True.
+        If True, the xlabel is displayed. Defaults to True.
     ylabel : bool
-	If True, the ylabel is displayed. Defaults to True.
+        If True, the ylabel is displayed. Defaults to True.
 
     Returns
     -------
     fig : instance of matplotlib.figure.Figure
         The figure.
     im : instance of matplotlib.image.AxesImage
-	The image to be displayed.
+        The image to be displayed.
     """
     if not hasattr(gat, 'scores_'):
         raise RuntimeError('Please score your data before trying to plot '
@@ -69,9 +69,9 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
                    extent=tlim, vmin=vmin, vmax=vmax,
                    cmap=cmap)
     if xlabel:
-	ax.set_xlabel('Testing Time (s)')
+        ax.set_xlabel('Testing Time (s)')
     if ylabel:
-	ax.set_ylabel('Training Time (s)')
+        ax.set_ylabel('Training Time (s)')
     if title is not None:
         ax.set_title(title)
     ax.axvline(0, color='k')
@@ -113,11 +113,11 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     color : str
         Score line color. Defaults to 'steelblue'.
     xlabel : bool
-	If True, the xlabel is displayed. Defaults to True.
+        If True, the xlabel is displayed. Defaults to True.
     ylabel : bool
-	If True, the ylabel is displayed. Defaults to True.
+        If True, the ylabel is displayed. Defaults to True.
     legend : int | str | tuple | None
-	If not None, a legend is displayed at the location given by the 
+        If not None, a legend is displayed at the location given by the 
         argument. Otherwise, the legend is not displayed. Defaults to None.
 
     Returns
@@ -140,18 +140,18 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
     if title is not None:
-	ax.set_title(title)
+        ax.set_title(title)
     ax.set_ylim(ymin, ymax)
     if xmin is not None and xmax is not None:
-	ax.set_xlim(xmin, xmax)
+        ax.set_xlim(xmin, xmax)
     if xlabel:
         ax.set_xlabel('Time (s)')
     if ylabel:
-	ax.set_ylabel('Classif. score ({0})'.format(
-            'AUC' if 'roc' in repr(gat.scorer_) else r'%'
-        ))
+        ax.set_ylabel('Classif. score ({0})'.format(
+                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'
+                      ))
     if legend is not None:
-	ax.legend(loc=legend)
+        ax.legend(loc=legend)
     if show:
         plt.show()
     return fig if ax is None else ax.get_figure()

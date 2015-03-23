@@ -492,7 +492,7 @@ class GeneralizationAcrossTime(object):
         self.scores_ = scores
         return scores
 
-    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
+    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None, 
              cmap='RdBu_r', show=True, colorbar=True, 
              xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
@@ -517,22 +517,22 @@ class GeneralizationAcrossTime(object):
             The color map to be used. Defaults to 'RdBu_r'.
         show : bool
             If True, the figure will be shown. Defaults to True.
-	colorbar : bool
-	    If True, the colorbar of the figure is displayed. Defaults to True.
-	xlabel : bool
-	    If True, the xlabel is displayed. Defaults to True.
+        colorbar : bool
+            If True, the colorbar of the figure is displayed. Defaults to True.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
-	    If True, the ylabel is displayed. Defaults to True.
+            If True, the ylabel is displayed. Defaults to True.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
-	im : instance of matplotlib.image.AxesImage
-	    The image to be displayed.
+        im : instance of matplotlib.image.AxesImage
+            The image to be displayed.
         """
-        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
-                               tlim=tlim, ax=ax, cmap=cmap, show=show,
+        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax, 
+                               tlim=tlim, ax=ax, cmap=cmap, show=show, 
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
     def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
@@ -563,12 +563,12 @@ class GeneralizationAcrossTime(object):
             If True, the figure will be shown. Defaults to True.
         color : str
             Score line color. Defaults to 'steelblue'.
-	xlabel : bool
-	    If True, the xlabel is displayed. Defaults to True.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
-	    If True, the ylabel is displayed. Defaults to True.
-	legend : int | str | tuple | None
-	    If not None, a legend is displayed at the location given by the 
+            If True, the ylabel is displayed. Defaults to True.
+        legend : int | str | tuple | None
+            If not None, a legend is displayed at the location given by the 
             argument. Otherwise, the legend is not displayed. Defaults to None.
 
         Returns
