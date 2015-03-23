@@ -297,7 +297,8 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
         else:
             ax.plot(times, data_[ch_idx], color_, linewidth=linewidth)
     if vline:
-        [plt.axvline(x, color='w', linewidth=0.5) for x in vline]
+        [plt.axvline(x, color='grey', linewidth=0.5) for x in vline]
+    plt.axhline(0, color='grey', linewidth=0.5)
     if colorbar:
         plt.colorbar()
 
@@ -481,9 +482,11 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor, unit=unit,
+                     axis_facecolor=axis_facecolor, 
+                     unit=(unit if plot_legend else None),
                      plot_legend=plot_legend, title=title, x_label=x_label,
-                     vline=vline, y_label=unit, xticks=xticks, yticks=yticks,
+                     vline=vline, y_label=(unit if plot_legend else None), 
+                     xticks=xticks, yticks=yticks,
                      fontsize=fontsize, spine_color=spine_color)
 
     if proj == 'interactive':
