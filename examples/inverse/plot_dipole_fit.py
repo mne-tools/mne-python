@@ -33,8 +33,7 @@ fname_surf_lh = op.join(subjects_dir, 'sample', 'surf', 'lh.white')
 # Let's localize the N100m (using MEG only)
 evoked = mne.read_evokeds(fname_ave, condition='Right Auditory',
                           baseline=(None, 0))
-picks = mne.pick_types(evoked.info, meg=True, eeg=False)
-evoked.pick_channels([evoked.ch_names[p] for p in picks])
+evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 evoked.crop(0.07, 0.08)
 
 # Fit a dipole
