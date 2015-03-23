@@ -492,8 +492,8 @@ class GeneralizationAcrossTime(object):
         self.scores_ = scores
         return scores
 
-    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None, 
-             cmap='RdBu_r', show=True, colorbar=True, 
+    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
+             cmap='RdBu_r', show=True, colorbar=True,
              xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
@@ -531,12 +531,12 @@ class GeneralizationAcrossTime(object):
         im : instance of matplotlib.image.AxesImage
             The image to be displayed.
         """
-        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax, 
-                               tlim=tlim, ax=ax, cmap=cmap, show=show, 
+        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
+                               tlim=tlim, ax=ax, cmap=cmap, show=show,
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
-                      ax=None, show=True, color='steelblue', xlabel=True, 
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
+                      ax=None, show=True, color='steelblue', xlabel=True,
                       ylabel=True, legend=0):
         """Plotting function of GeneralizationAcrossTime object
 
@@ -568,7 +568,7 @@ class GeneralizationAcrossTime(object):
         ylabel : bool
             If True, the ylabel is displayed. Defaults to True.
         legend : int | str | tuple | None
-            If not None, a legend is displayed at the location given by the 
+            If not None, a legend is displayed at the location given by the
             argument. Otherwise, the legend is not displayed. Defaults to None.
 
         Returns
@@ -576,9 +576,9 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax, 
-                                 ymin=ymin, ymax=ymax, ax=ax, show=show, 
-                                 color=color, xlabel=xlabel, ylabel=ylabel, 
+        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax,
+                                 ymin=ymin, ymax=ymax, ax=ax, show=show,
+                                 color=color, xlabel=xlabel, ylabel=ylabel,
                                  legend=legend)
 
 

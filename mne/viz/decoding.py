@@ -11,7 +11,7 @@ import numpy as np
 
 def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
-            xlabel=True, ylabel=True):
+                    xlabel=True, ylabel=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -83,7 +83,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     return im, fig if ax is None else ax.get_figure()
 
 
-def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1., 
+def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
                       ax=None, show=True, color='b', xlabel=True, ylabel=True,
                       legend=0):
     """Plotting function of GeneralizationAcrossTime object
@@ -117,7 +117,7 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     ylabel : bool
         If True, the ylabel is displayed. Defaults to True.
     legend : int | str | tuple | None
-        If not None, a legend is displayed at the location given by the 
+        If not None, a legend is displayed at the location given by the
         argument. Otherwise, the legend is not displayed. Defaults to None.
 
     Returns
