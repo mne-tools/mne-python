@@ -37,10 +37,15 @@ evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
 evoked.crop(tmin=-50e-3, tmax=300e-3)
 
+# Set up pick list: EEG + MEG - bad channels (modify to your needs)
+# left_temporal_channels = mne.read_selection('Right-temporal')
+# left_temporal_channels = mne.read_selection('Left-temporal')
+# evoked = mne.pick_types_evoked(evoked, meg=False, eeg=False, include=left_temporal_channels)
+
 evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 
 # Read the forward solution
-forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
+forward = mne.read_forward_solution(fwd_fname, surf_ori=False,
                                     force_fixed=False)
 
 # Read noise covariance matrix and regularize it

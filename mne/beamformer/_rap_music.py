@@ -62,8 +62,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         info, forward, label=None, picks=picks, pick_ori=None)
 
     gain = G.copy()
-    if return_explained_data:
-        gain_dip = []
 
     # Handle whitening + data covariance
     whitener, _ = compute_whitener(noise_cov, info, picks)
@@ -78,56 +76,52 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
     phi_sig = eig_vectors[:, -signal_ndim:]
 
     n_orient = 3 if is_free_ori else 1
-    A = np.zeros((G.shape[0], n_dipoles))
-    active_set = []
-    oris = []
+    A = np.empty((G.shape[0], n_dipoles))
+    gain_dip = np.empty((G.shape[0], n_dipoles))
+    oris = np.empty((n_dipoles, 3))
+    poss = np.empty((n_dipoles, 3))
 
     G_proj = G.copy()
     phi_sig_proj = phi_sig.copy()
 
     for k in range(n_dipoles):
         subcorr_max = -1.
-        for i_source in range(G.shape[1] // n_orient - 10):
-            Gk = G_proj[:, n_orient * i_source:
-                        n_orient * i_source + n_orient]
+        for i_source in range(G.shape[1] // n_orient):
+            idx_k = slice(n_orient * i_source, n_orient * (i_source + 1))
+            Gk = G_proj[:, idx_k]
 
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
-                if ori[-1] < 0:  # make sure ori is relative to surface ori
-                    ori *= -1.
+                if n_orient == 3 and ori[-1] < 0:
+                    ori *= -1.  # make sure ori is relative to surface ori
 
+                pos = forward['source_rr'][i_source]
                 if n_orient == 1:
-                    ori = forward['src'][0]['nn'][vertno[0][i_source]]\
-                          if i_source <= vertno[0].size else\
-                          forward['src'][1]['nn'][vertno[1][i_source -
-                                                            vertno[0].size]]
-                else:
-                    ori = np.dot(forward['source_nn'][n_orient * i_source:
-                                                      n_orient * i_source +
-                                                      n_orient, :], ori)
-                source_ori = ori
+                    ori = forward['source_nn'][i_source]
 
-        A[:, k] = np.dot(G[:, n_orient * source_idx:
-                           n_orient * source_idx + n_orient], (1, ) if\
-                           n_orient == 1 else source_ori)
+        idx_k = slice(n_orient * source_idx, n_orient * (source_idx + 1))
+        Ak = G[:, idx_k]
+        if n_orient == 3:
+            Ak = np.dot(Ak, ori)
+
+        A[:, k] = Ak.ravel()
 
         if return_explained_data:
+            gain_k = gain[:, idx_k]
             if n_orient == 3:
-                gain_dip.append(np.dot(gain[:, n_orient * source_idx:
-                                            n_orient * source_idx + n_orient],
-                                       source_ori))
-            else:
-                gain_dip.append(gain[:, source_idx])
+                gain_k = np.dot(gain_k, ori)
+            gain_dip[:, k] = gain_k.ravel()
 
-        active_set.append(source_idx)
-        oris.append(source_ori)
-
-        logger.info("source %s found: p = %s" % (k + 1, active_set[-1]))
+        oris[k] = ori
+        poss[k] = pos
         if n_orient == 3:
-            logger.info("ori = %s %s %s" % (source_ori[0], source_ori[1],
-                                            source_ori[2]))
+            oris[k] = np.dot(forward['source_nn'][idx_k], oris[k])
+
+        logger.info("source %s found: p = %s" % (k + 1, source_idx))
+        if n_orient == 3:
+            logger.info("ori = %s %s %s" % tuple(oris[k]))
 
         projection = _compute_proj(A[:, :k + 1])
         G_proj = np.dot(projection, G)
@@ -135,37 +129,23 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
 
     sol = linalg.lstsq(A, data)[0]
 
-    active_set = np.sort(active_set)
     explained_data = None
     if return_explained_data:
-        explained_data = np.dot(np.array(gain_dip).T, sol)
+        explained_data = np.dot(gain_dip, sol)
 
-    vertno[1] = vertno[1][active_set[active_set > vertno[0].size] -
-                          vertno[0].size]
-    vertno[0] = vertno[0][active_set[active_set <= vertno[0].size]]
-
-    tstep = 1.0 / info['sfreq']
-
-    return _make_dipoles(times, tstep, forward['src'], vertno, active_set,
+    return _make_dipoles(times, forward['src'], poss,
                          oris, sol), explained_data
 
 
-def _make_dipoles(times, tstep, src, vertno, active_set, oris, sol):
-    if vertno[0].size == 0:
-        pos = np.array(src[1]['rr'][vertno[1]])
-    elif vertno[1].size == 0:
-        pos = np.array(src[0]['rr'][vertno[0]])
-    else:
-        pos = np.concatenate((src[0]['rr'][vertno[0]],
-                              src[1]['rr'][vertno[1]]), axis=0)
-    amplitude = sol * 1e09
-    ori = np.array(oris)
+def _make_dipoles(times, src, poss, oris, sol):
+    amplitude = sol * 1e9
+    oris = np.array(oris)
     gof = []
 
     dipoles = []
-    for i_dip in range(pos.shape[0]):
-        i_pos = pos[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        i_ori = ori[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+    for i_dip in range(poss.shape[0]):
+        i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
+        i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         dipoles.append(Dipole(times * 1e3, i_pos, amplitude[i_dip],
                               i_ori, gof))
 
@@ -207,10 +187,10 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance.
-    signal_ndim: int
+    signal_ndim : int
         The dimension of the subspace spanning the signal.
         The default value is 15.
-    n_dipoles: int
+    n_dipoles : int
         The number of dipoles to look for. Default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
@@ -253,7 +233,7 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
 
     if return_residual:
         residual = evoked.copy()
-        selection = np.array(info['ch_names'])[picks]
+        selection = [info['ch_names'][p] for p in picks]
 
         residual = pick_channels_evoked(residual,
                                         include=selection)
