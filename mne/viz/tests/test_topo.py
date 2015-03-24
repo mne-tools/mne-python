@@ -81,11 +81,8 @@ def test_plot_topo():
     # test scaling
     with warnings.catch_warnings(record=True):
         for ylim in [dict(mag=[-600, 600]), None]:
-            plot_topo([picked_evoked] * 2, layout=layout, ylim=ylim)
-
-        for evo in [evoked, [evoked, picked_evoked]]:
-            assert_raises(ValueError, plot_topo, evo, layout, color=['y', 'b'], 
-                          conditions=['1', '2'])
+            plot_topo([picked_evoked] * 2, layout=layout, ylim=ylim,
+                      external_legend=True, color=['y', 'k', 'w'])
 
         evoked_delayed_ssp = _get_epochs_delayed_ssp().average()
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
