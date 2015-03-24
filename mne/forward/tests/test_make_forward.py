@@ -91,7 +91,7 @@ def test_make_forward_solution_kit():
     mrk_path = op.join(kit_dir, 'test_mrk.sqd')
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    mri_path = op.join(kit_dir, 'trans-sample.fif')
+    trans_path = op.join(kit_dir, 'trans-sample.fif')
     fname_kit_raw = op.join(kit_dir, 'test_bin_raw.fif')
 
     bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
@@ -113,13 +113,13 @@ def test_make_forward_solution_kit():
 
     # first use mne-C: convert file, make forward solution
     fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src_small,
-                              bem=fname_bem_meg, mri=mri_path,
+                              bem=fname_bem_meg, mri=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     assert_true(isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
     fwd_py = make_forward_solution(fname_kit_raw, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path)
+                                   bem=fname_bem_meg, mri=trans_path)
     _compare_forwards(fwd, fwd_py, 157, n_src)
     assert_true(isinstance(fwd_py, Forward))
 
@@ -128,20 +128,20 @@ def test_make_forward_solution_kit():
     # without ignore_ref=True, this should throw an error:
     assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
                   src=src, eeg=False, meg=True,
-                  bem=fname_bem_meg, mri=mri_path)
+                  bem=fname_bem_meg, trans=trans_path)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path,
+                                   bem=fname_bem_meg, trans=trans_path,
                                    ignore_ref=True)
     _compare_forwards(fwd, fwd_py, 157, n_src,
                       meg_rtol=1e-3, meg_atol=1e-7)
 
     # BTI python end-to-end versus C
     fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
-                              bem=fname_bem_meg, mri=mri_path,
+                              bem=fname_bem_meg, trans=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path)
+                                   bem=fname_bem_meg, trans=trans_path)
     _compare_forwards(fwd, fwd_py, 248, n_src)
 
     # now let's test CTF w/compensation
