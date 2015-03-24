@@ -889,35 +889,14 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         else:
             self._data = None
 
-    def drop_bad_epochs(self):
-        """Drop bad epochs without retaining the epochs data.
+    def drop_bad_epochs(self, reject=None, flat=None):
+        """Drop bad epochs and apply rejection post-hoc.
 
         Should be used before slicing operations.
 
         .. Warning:: Operation is slow since all epochs have to be read from
             disk. To avoid reading epochs form disk multiple times, initialize
             Epochs object with preload=True.
-
-        """
-        self._get_data_from_disk(out=False)
-
-    def drop_log_stats(self, ignore=['IGNORED']):
-        """Compute the channel stats based on a drop_log from Epochs.
-
-        Parameters
-        ----------
-        ignore : list
-            The drop reasons to ignore.
-
-        Returns
-        -------
-        perc : float
-            Total percentage of epochs dropped.
-        """
-        return _drop_log_stats(self.drop_log, ignore)
-
-    def apply_reject(self, reject=None, flat=None):
-        """Apply peak-to-peak and flat rejection parameters later.
 
         Parameters
         ----------
@@ -937,24 +916,29 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done.
+
         """
-        self.reject = reject
-        self.flat = flat
+        if reject is not None:
+            self.reject = reject
+        if flat is not None:
+            self.flat = flat
         self._reject_setup()
-        drop_inds = list()
-        if self.reject is not None or self.flat is not None:
-            for i_epoch, epoch in enumerate(self):
-                is_good, chan = self._is_good_epoch(epoch,
-                                                    verbose=self.verbose)
-                if not is_good:
-                    drop_inds.append(i_epoch)
-                    self.drop_log[i_epoch].extend(chan)
-        if drop_inds:
-            select = np.ones(len(self.events), dtype=np.bool)
-            select[drop_inds] = False
-            self.events = self.events[select]
-            self._data = self._data[select]
-            self.selection[select]
+        self._get_data_from_disk(out=False)
+
+    def drop_log_stats(self, ignore=['IGNORED']):
+        """Compute the channel stats based on a drop_log from Epochs.
+
+        Parameters
+        ----------
+        ignore : list
+            The drop reasons to ignore.
+
+        Returns
+        -------
+        perc : float
+            Total percentage of epochs dropped.
+        """
+        return _drop_log_stats(self.drop_log, ignore)
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
