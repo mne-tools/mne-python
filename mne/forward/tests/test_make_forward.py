@@ -118,8 +118,8 @@ def test_make_forward_solution_kit():
     assert_true(isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
-    fwd_py = make_forward_solution(fname_kit_raw, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=trans_path)
+    fwd_py = make_forward_solution(fname_kit_raw, trans_path, src,
+                                   fname_bem_meg, eeg=False, meg=True)
     _compare_forwards(fwd, fwd_py, 157, n_src)
     assert_true(isinstance(fwd_py, Forward))
 
@@ -137,7 +137,7 @@ def test_make_forward_solution_kit():
 
     # BTI python end-to-end versus C
     fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
-                              bem=fname_bem_meg, trans=trans_path,
+                              bem=fname_bem_meg, mri=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
