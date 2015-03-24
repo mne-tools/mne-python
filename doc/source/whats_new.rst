@@ -153,7 +153,7 @@ API
 
    - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
 
-   - Deprecated `fmin, fmid, fmax` in stc.plot and added clim by `Mark Wronkiewicz`_
+   - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
 
 .. _changes_0_8:
 
