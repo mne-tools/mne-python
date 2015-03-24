@@ -266,15 +266,16 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     return fig if img_output is None else outs
 
 
-def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head'):
+def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
+               ch_type=None, source=('bem', 'head'), coord_frame='head',
+               trans_fname=None):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
     ----------
     info : dict
         The measurement info.
-    trans_fname : str | 'auto'
+    trans : str | 'auto'
         The full path to the `*-trans.fif` file produced during
         coregistration.
     subject : str | None
@@ -298,17 +299,22 @@ def plot_trans(info, trans_fname='auto', subject=None, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    if trans_fname is not None:
+        trans = trans_fname
+        warnings.warn('The parameter "fname_trans" is deprecated and will '
+                      'be removed in 0.10, use "trans" instead',
+                      DeprecationWarning)
     if coord_frame not in ['head', 'meg']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
         raise ValueError('Argument ch_type must be None | eeg | meg. Got %s.'
                          % ch_type)
 
-    if trans_fname == 'auto':
+    if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
-        trans_fname = _find_trans(subject, subjects_dir)
+        trans = _find_trans(subject, subjects_dir)
 
-    trans = read_trans(trans_fname)
+    trans = read_trans(trans)
 
     surfs = [get_head_surf(subject, source=source, subjects_dir=subjects_dir)]
     if ch_type is None or ch_type == 'meg':

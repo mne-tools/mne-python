@@ -20,13 +20,13 @@ print(__doc__)
 data_path = sample.data_path()
 
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
-mri = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
+trans = data_path + '/MEG/sample/sample_audvis_raw-trans.fif'
 src = data_path + '/subjects/sample/bem/sample-oct-6-src.fif'
 bem = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 subjects_dir = data_path + '/subjects'
 
 # Note that forward solutions can also be read with read_forward_solution
-fwd = mne.make_forward_solution(raw_fname, mri=mri, src=src, bem=bem,
+fwd = mne.make_forward_solution(raw_fname, trans, src, bem,
                                 fname=None, meg=True, eeg=True, mindist=5.0,
                                 n_jobs=2, overwrite=True)
 
