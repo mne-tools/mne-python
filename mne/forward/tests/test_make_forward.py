@@ -148,8 +148,8 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(fname_ctf_raw, fname_trans, src,
                                    fname_bem_meg, eeg=False, meg=True)
 
-    fwd = do_forward_solution('sample', fname_ctf_raw, fname_trans,
-                              fname_src_small, fname_bem_meg,
+    fwd = do_forward_solution('sample', fname_ctf_raw, mri=fname_trans,
+                              src=fname_src_small, bem=fname_bem_meg,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
@@ -159,9 +159,10 @@ def test_make_forward_solution_kit():
     fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
                                    fname_bem_meg, eeg=False, meg=True)
     with warnings.catch_warnings(record=True):
-        fwd = do_forward_solution('sample', ctf_raw, fname_trans,
-                                  fname_src_small, fname_bem_meg, eeg=False,
-                                  meg=True, subjects_dir=subjects_dir)
+        fwd = do_forward_solution('sample', ctf_raw, mri=fname_trans,
+                                  src=fname_src_small, bem=fname_bem_meg,
+                                  eeg=False, meg=True,
+                                  subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
 
