@@ -90,7 +90,7 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         pos[:, :2] *= layout_scale
 
     ch_names = _clean_names(info['ch_names'])
-    ch_types = {ch_name: channel_type(info, j) 
+    ch_types = {ch_name:channel_type(info, j) 
                 for j, ch_name in enumerate(ch_names)}
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
     for idx, ch_name in iter_ch:
@@ -178,7 +178,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, vline=None, xticks=3, yticks=None,
                font_color='w', linewidth=0.5, internal_legend=False,
-               external_legend=False, fontsize=4, spine_color=None,
+               external_legend=False, fontsize=4,
                ylim_dict=None, plot_ch_names=True, plot_type=None, 
                external_scale=1):
     """Helper function to plot on sensor layout"""
@@ -219,8 +219,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         plt.setp(cb_yticks, color=font_color)
         ax.axis('off')
 
-    bc = (axis_facecolor if axis_facecolor is not None else fig_facecolor)
-    spine_color = ('black' if bc in ['w', "white"] else 'w')
+    spine_color = ('black' if fig_facecolor in ['w', "white"] else 'w')
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
@@ -551,14 +550,13 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
                      decim=1, colorbar=False, ylim=ylim_, cmap=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor,
+                     axis_facecolor=axis_facecolor, fontsize=fontsize,
                      external_legend=external_legend,
                      internal_legend=internal_legend, plot_type='evoked',
                      title=title, vline=vline, x_label=x_label,
                      y_label=(unit if (external_legend or internal_legend)
                               else None), plot_ch_names=plot_ch_names,
                      xticks=xticks, yticks=yticks, ylim_dict=ylim_dict,
-                     fontsize=fontsize, spine_color=spine_color,
                      external_scale=(external_legend 
                      if isinstance(external_legend, float) else 1))
 
