@@ -18,7 +18,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, requires_h5py, _time_mask
+from ..utils import logger, verbose, requires_h5py
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
@@ -515,21 +515,19 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop time
     itmin, itmax = None, None
-    idx = np.where(_time_mask(times, tmin, tmax))[0]
     if tmin is not None:
-        itmin = idx[0]
+        itmin = np.where(times >= tmin)[0][0]
     if tmax is not None:
-        itmax = idx[-1] + 1
+        itmax = np.where(times <= tmax)[0][-1]
 
     times = times[itmin:itmax]
 
     # crop freqs
     ifmin, ifmax = None, None
-    idx = np.where(_time_mask(freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = idx[0]
+        ifmin = np.where(freqs >= fmin)[0][0]
     if fmax is not None:
-        ifmax = idx[-1] + 1
+        ifmax = np.where(freqs <= fmax)[0][-1]
 
     freqs = freqs[ifmin:ifmax]
 
@@ -683,7 +681,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
                   colorbar=True, layout_scale=0.945, show=True,
-                  border='none', fig_facecolor='k', font_color='w'):
+                  border='none', fig_facecolor='w', font_color='w',
+                  internal_legend=False):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -771,8 +770,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
                          x_label='Time (ms)', y_label='Frequency (Hz)',
-                         fig_facecolor=fig_facecolor,
-                         font_color=font_color)
+                         fig_facecolor=fig_facecolor, font_color=font_color,
+                         ylim_dict=(min(freqs), max(freqs)),
+                         internal_legend=internal_legend)
 
         if show:
             import matplotlib.pyplot as plt
