@@ -435,6 +435,20 @@ def test_reject_epochs():
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
+
+    # apply rejection through constructor and apply_reject() method and check
+    # if they match
+    epochs_noreject = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                             baseline=(None, 0), preload=True)
+    epochs_noreject.apply_reject(reject=reject, flat=flat)
+    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+
+    # do apply_reject() a second time with more conservative thresholds
+    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
+    epochs.apply_reject(reject=reject_crazy, flat=flat)
+    epochs_noreject.apply_reject(reject=reject_crazy, flat=flat)
+    assert_array_equal(epochs.get_data(), epochs_noreject.get_data())
+
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff

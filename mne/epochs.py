@@ -916,6 +916,46 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         """
         return _drop_log_stats(self.drop_log, ignore)
 
+    def apply_reject(self, reject=None, flat=None):
+        """Apply peak-to-peak and flat rejection parameters later.
+
+        Parameters
+        ----------
+        reject : dict | None
+            Rejection parameters based on peak-to-peak amplitude.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            If reject is None then no rejection is done. Example::
+
+                reject = dict(grad=4000e-13, # T / m (gradiometers)
+                              mag=4e-12, # T (magnetometers)
+                              eeg=40e-6, # uV (EEG channels)
+                              eog=250e-6 # uV (EOG channels)
+                              )
+
+        flat : dict | None
+            Rejection parameters based on flatness of signal.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+            are floats that set the minimum acceptable peak-to-peak amplitude.
+            If flat is None then no rejection is done.
+        """
+        self.reject = reject
+        self.flat = flat
+        self._reject_setup()
+        drop_inds = list()
+        if self.reject is not None or self.flat is not None:
+            for i_epoch, epoch in enumerate(self):
+                is_good, chan = self._is_good_epoch(epoch,
+                                                    verbose=self.verbose)
+                if not is_good:
+                    drop_inds.append(i_epoch)
+                    self.drop_log[i_epoch].extend(chan)
+        if drop_inds:
+            select = np.ones(len(self.events), dtype=np.bool)
+            select[drop_inds] = False
+            self.events = self.events[select]
+            self._data = self._data[select]
+            self.selection[select]
+
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
                       show=True, return_fig=True):
