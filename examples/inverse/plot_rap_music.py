@@ -82,6 +82,10 @@ tmin = evoked.times.min()
 tstep = 1. / evoked.info['sfreq']
 src = forward['src']
 
+forward = mne.pick_types_forward(forward, meg=True, eeg=False,
+                                 exclude=['MEG 2443'])
+forward = mne.convert_forward_solution(forward, force_fixed=True)
+
 forward['source_nn'][active_set[0]] = np.array([.5, 0., 0.])
 forward['source_nn'][active_set[1]] = np.array([0., 0., .5])
 
@@ -98,7 +102,7 @@ vertices = [lh_vertno, rh_vertno]
 stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 rng = np.random.RandomState(0)
 ev_sim = mne.simulation.generate_evoked(forward, stc, evoked, noise_cov,
-										snr=20, random_state=rng)
+                                        snr=20, random_state=rng)
 
 dipoles, residual = rap_music(ev_sim, forward, noise_cov, n_dipoles=2,
                               return_residual=True, verbose=True,
