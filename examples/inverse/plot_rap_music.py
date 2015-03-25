@@ -73,9 +73,10 @@ residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
 
 
 # ############### test ########
+import numpy as np
 # active_set = np.array([1640, 5579])
 active_set = np.array([1595, 5624])
-import numpy as np
+
 data = np.array([dipoles[0].amplitude, dipoles[1].amplitude])
 tmin = evoked.times.min()
 tstep = 1. / evoked.info['sfreq']
