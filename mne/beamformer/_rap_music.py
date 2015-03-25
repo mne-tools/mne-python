@@ -94,27 +94,28 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
             if subcorr > subcorr_max:
                 subcorr_max = subcorr
                 source_idx = i_source
+                source_ori = ori
                 if n_orient == 3 and ori[-1] < 0:
-                    ori *= -1.  # make sure ori is relative to surface ori
+                    source_ori *= -1.  # make sure ori is relative to surface ori
 
                 pos = forward['source_rr'][i_source]
                 if n_orient == 1:
-                    ori = forward['source_nn'][i_source]
+                    source_ori = forward['source_nn'][i_source]
 
         idx_k = slice(n_orient * source_idx, n_orient * (source_idx + 1))
         Ak = G[:, idx_k]
         if n_orient == 3:
-            Ak = np.dot(Ak, ori)
+            Ak = np.dot(Ak, source_ori)
 
         A[:, k] = Ak.ravel()
 
         if return_explained_data:
             gain_k = gain[:, idx_k]
             if n_orient == 3:
-                gain_k = np.dot(gain_k, ori)
+                gain_k = np.dot(gain_k, source_ori)
             gain_dip[:, k] = gain_k.ravel()
 
-        oris[k] = ori
+        oris[k] = source_ori
         poss[k] = pos
         if n_orient == 3:
             oris[k] = np.dot(forward['source_nn'][idx_k], oris[k])
