@@ -20,8 +20,8 @@ print(__doc__)
 sfreq = 1000  # Sampling frequency
 times = np.arange(0, 10, 0.001)  # Use 10000 samples (10s)
 
-sin = np.sin(times)
-cos = np.cos(times)
+sin = np.sin(times * 10)  # Multiplied by 10 for shorter phase
+cos = np.cos(times * 10)
 sinX2 = sin * 2
 cosX2 = cos * 2
 
@@ -54,7 +54,7 @@ events = np.array([[200, 0, event_id],
 # Here a data set of 700 ms epochs from 2 channels is
 # created from sin and cos data.
 # Any data in shape (n_epochs, n_channels, n_times) can be used.
-epochs_data = [[sin[:700], cos[:700]],
+epochs_data = [[sin[:700],      cos[:700]],
                [sin[1000:1700], cos[1000:1700]],
                [sin[1800:2500], cos[1800:2500]]]
 
@@ -77,7 +77,7 @@ evoked_data = np.mean(epochs_data, axis=0)
 evokeds = mne.EvokedArray(evoked_data, info=info, tmin=-0.2,
                           comment='Arbitrary', nave=nave)
 evokeds.plot(picks=picks, show=True, units={'misc': '-'},
-             titles={'misc': 'sin and cos'})
+             titles={'misc': 'sin and cos averaged'})
 
 
 ###############################################################################
