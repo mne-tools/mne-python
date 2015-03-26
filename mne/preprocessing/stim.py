@@ -11,8 +11,8 @@ from ..utils import deprecated
 from .. import pick_types
 
 
-@deprecated('`eliminate_stim_artifact` is deprecated'
-            'Use fix_stim_artifact_raw')
+@deprecated('`eliminate_stim_artifact` will be deprecated '
+            'in v0.10 : Use fix_stim_artifact_raw')
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                             tmax=0.01, mode='linear'):
     """Eliminates stimulations artifacts from raw data
@@ -135,15 +135,15 @@ def fix_stim_artifact_raw(raw, events, event_id, tmin=-0.005,
     return raw
 
 
-def fix_stim_artifact(epochs, mode='linear'):
-    """Eliminates stimulations artifacts from evoked or epochs
+def fix_stim_artifact(epochs, tmin=-0.005, tmax=0.01, mode='linear'):
+    """Eliminates stimulations artifacts from instance
 
-    The evoked or epochs object will be modified in place (no copy)
+    The instance will be modified in place (no copy)
 
     Parameters
     ----------
-    epochs : evoked or epochs object
-        evoked or epochs object.
+    epochs : instance of evoked or epochs
+        instance
 
     mode : 'linear' | 'window'
         way to fill the artifacted time interval.
@@ -152,50 +152,59 @@ def fix_stim_artifact(epochs, mode='linear'):
 
     Returns
     -------
-    epochs : evoked or epochs object
-        evoked or epochs object.
+    epochs : instance of evoked or epochs
+        instance with modified data
     """
     picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
                        emg=True, ref_meg=True, misc=True, chpi=True,
                        exclude='bads', stim=False, resp=False)
+    s_start = int(np.ceil(epochs.info['sfreq'] * tmin))
+    s_end = int(np.ceil(epochs.info['sfreq'] * tmax))
+
     if isinstance(epochs, Epochs):
         if epochs.preload is False:
             raise RuntimeError('Modifying data of Epochs is only supported '
                                'when preloading is used. Use preload=True '
                                'in the constructor.')
+        if epochs.reject is True:
+            raise RuntimeError('Reject is already applied. Use reject=False '
+                               'in the constructor.')
+        e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
+        first_samp = s_start - e_start
+        last_samp = s_end - e_start
         data = epochs.get_data()[:, picks, :]
-        s_start = 0
-        s_end = len(data[0][0])
         if mode == 'window':
             window = 1 - np.r_[signal.hann(4)[:2],
                                np.ones(np.abs(s_end - s_start) - 4),
                                signal.hann(4)[-2:]].T
         for epoch in data:
             if mode == 'linear':
-                x = np.array([s_start, s_end])
+                x = np.array([first_samp, last_samp])
                 f = interpolate.interp1d(x, epoch[:, (0, -1)])
-                xnew = np.arange(s_start, s_end)
+                xnew = np.arange(first_samp, last_samp)
                 interp_data = f(xnew)
-                epoch[picks, :] = interp_data
+                epoch[picks, first_samp:last_samp] = interp_data
             if mode == 'window':
-                epoch[picks, :] = data * window[np.newaxis, :]
+                epoch[picks, first_samp:last_samp] = \
+                    epoch[picks, first_samp:last_samp] * window[np.newaxis, :]
         epochs._data = data
 
     elif isinstance(epochs, Evoked):
+        first_samp = s_start - epochs.first
+        last_samp = s_end - epochs.first
         data = epochs.data
-        s_start = 0
-        s_end = len(data[0])
         if mode == 'window':
             window = 1 - np.r_[signal.hann(4)[:2],
                                np.ones(np.abs(s_end - s_start) - 4),
                                signal.hann(4)[-2:]].T
-            data[picks, :] = data * window[np.newaxis, :]
+            data[picks, first_samp:last_samp] = \
+                data[picks, first_samp:last_samp] * window[np.newaxis, :]
         elif mode == 'linear':
-            x = np.array([s_start, s_end])
+            x = np.array([first_samp, last_samp])
             f = interpolate.interp1d(x, data[:, (0, -1)])
-            xnew = np.arange(s_start, s_end)
+            xnew = np.arange(first_samp, last_samp)
             interp_data = f(xnew)
-            data[picks, :] = interp_data
+            data[picks, first_samp:last_samp] = interp_data
     else:
         raise TypeError('Not a Epochs or Evoked')
     return epochs
