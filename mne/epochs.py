@@ -918,6 +918,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             If flat is None then no rejection is done.
 
         """
+        if self._bad_dropped is True:
+            raise RuntimeError('Bad epochs have already been dropped')
         if reject is not None:
             self.reject = reject
         if flat is not None:

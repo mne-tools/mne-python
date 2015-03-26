@@ -443,11 +443,12 @@ def test_reject_epochs():
     epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
     assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
 
-    # do apply_reject() a second time with more conservative thresholds
-    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
-    epochs.drop_bad_epochs(reject=reject_crazy, flat=flat)
-    epochs_noreject.drop_bad_epochs(reject=reject_crazy, flat=flat)
-    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+    # applying drop_bad_epochs() should raise an error if you
+    # already rejected using Epochs constructor or using drop_bad_epochs()
+    assert_raises(RuntimeError, epochs_noreject.drop_bad_epochs,
+                  reject=reject, flat=flat)
+    assert_raises(RuntimeError, epochs.drop_bad_epochs,
+                  reject=reject, flat=flat)
 
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
