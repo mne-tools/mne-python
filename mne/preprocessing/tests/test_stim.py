@@ -27,8 +27,7 @@ def test_stim_fix_raw():
     tidx = int(events[event_idx, 0] - raw.first_samp)
 
     # use window around stimulus
-    tmin = -0.02
-    tmax = 0.02
+    tmin, tmax = -0.02, 0.02
     test_tminidx = int(-0.01 * raw.info['sfreq'])
     test_tmaxidx = int(0.01 * raw.info['sfreq'])
 
@@ -44,8 +43,7 @@ def test_stim_fix_raw():
     assert_true(np.all(data) == 0.)
 
     # use window before stimulus
-    tmin = -0.045
-    tmax = 0.015
+    tmin, tmax= -0.045, 0.015
     test_tminidx = int(-0.035 * raw.info['sfreq'])
     test_tmaxidx = int(-0.015 * raw.info['sfreq'])
 
@@ -61,8 +59,7 @@ def test_stim_fix_raw():
     assert_true(np.all(data) == 0.)
 
     # use window after stimulus
-    tmin = 0.005
-    tmax = 0.045
+    tmin, tmax = 0.005, 0.045
     test_tminidx = int(0.015 * raw.info['sfreq'])
     test_tmaxidx = int(0.035 * raw.info['sfreq'])
 
@@ -82,9 +79,7 @@ def test_stim_fix_evoked():
     """Test eliminate stim artifact"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
-    event_id = 1
-    tmin = -0.02
-    tmax = 0.02
+    tmin, tmax, event_id = -0.2, 0.5, 1
     picks = pick_types(raw.info, meg=True, eeg=True,
                        eog=True, stim=False, exclude='bads')
     epochs = Epochs(raw, events, event_id, tmin, tmax,
@@ -92,10 +87,45 @@ def test_stim_fix_evoked():
 
     # use window before stimulus
     evoked = epochs.average()
-    data = evoked.data[:, :]
+    tmin, tmax= -0.2, 0.1
+    test_tminidx = int(-0.1 * evoked.info['sfreq']) - evoked.first
+    test_tmaxidx = int(0.05 * evoked.info['sfreq']) - evoked.first
+    evoked = fix_stim_artifact(evoked, tmin, tmax, mode='window')
+    data = evoked.data[:, test_tminidx:test_tmaxidx]
     assert_true(np.all(data) == 0.)
 
     # use window after stimulus
-    evoked = fix_stim_artifact(evoked, mode='window')
-    data = evoked.data[:, :]
+    tmin, tmax= 0.2, 0.4
+    test_tminidx = int(0.25 * evoked.info['sfreq']) - evoked.first
+    test_tmaxidx = int(0.35 * evoked.info['sfreq']) - evoked.first
+    evoked = fix_stim_artifact(evoked, tmin, tmax, mode='window')
+    data = evoked.data[:, test_tminidx:test_tmaxidx]
+    assert_true(np.all(data) == 0.)
+
+
+def test_stim_fix_epochs():
+    """Test eliminate stim artifact"""
+    raw = Raw(raw_fname, preload=True)
+    events = read_events(event_fname)
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    picks = pick_types(raw.info, meg=True, eeg=True,
+                       eog=True, stim=False, exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax,
+                    picks=picks, preload=True)
+    e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
+
+    # use window before stimulus
+    tmin, tmax= -0.15, 0.1
+    test_tminidx = int(-0.1 * epochs.info['sfreq']) - e_start
+    test_tmaxidx = int(0.05 * epochs.info['sfreq']) - e_start
+    epochs = fix_stim_artifact(epochs, tmin, tmax, mode='window')
+    data = epochs._data[:, test_tminidx:test_tmaxidx]
+    assert_true(np.all(data) == 0.)
+
+    # use window after stimulus
+    tmin, tmax= 0.2, 0.4
+    test_tminidx = int(0.25 * epochs.info['sfreq']) - e_start
+    test_tmaxidx = int(0.35 * epochs.info['sfreq']) - e_start
+    epochs = fix_stim_artifact(epochs, tmin, tmax, mode='window')
+    data = epochs._data[:, test_tminidx:test_tmaxidx]
     assert_true(np.all(data) == 0.)
