@@ -432,15 +432,15 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
         channel type. If float, an external legend is plotted and scaled by
         this factor.
     internal_legend : bool
-        Plot time and unit labels for individual channel subplots. If 
-        external_legend is true, only tick labels, not axis labels are 
+        Plot time and unit labels for individual channel subplots. If
+        external_legend is true, only tick labels, not axis labels are
         plotted.
     plot_ch_names : bool
         Should channel names be plotted next to each topo plot?
     x_label : string | None
         Label for x axis. Defaults to 'Time (s)'.
     fig_facecolor : str | obj
-        The figure face color. Defaults to black. If "black", spines are 
+        The figure face color. Defaults to black. If "black", spines are
         white (else they are black).
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. If none, transparent.
@@ -670,7 +670,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
-                           border='none', fig_facecolor='k', font_color=None, 
+                           border='none', fig_facecolor='k', font_color=None,
                            y_label='Epoch', plot_ch_names=None,
                            internal_legend=False, external_legend=False):
     """Plot Event Related Potential / Fields image on topographies
@@ -711,7 +711,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     border : str
         matplotlib borders style to be used for each sensor plot.
     fig_facecolor : str | obj
-        The figure face color. Defaults to black. If "black", spines are 
+        The figure face color. Defaults to black. If "black", spines are
         white (else they are black).
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to spine_color
@@ -726,8 +726,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         channel type. If float, an external legend is plotted and scaled by
         this factor.
     internal_legend : bool
-        Plot time and unit labels for individual channel subplots. If 
-        external_legend is true, only tick labels, not axis labels are 
+        Plot time and unit labels for individual channel subplots. If
+        external_legend is true, only tick labels, not axis labels are
         plotted.
 
 
