@@ -10,8 +10,12 @@ import warnings
 from collections import namedtuple
 
 import numpy as np
-from numpy.testing import assert_raises
+#from numpy.testing import assert_raises
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt
 
 from mne import io, read_events, Epochs
 from mne import pick_channels_evoked
@@ -21,10 +25,6 @@ from mne.utils import run_tests_if_main
 
 from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
 
-# Set our plotters to test mode
-import matplotlib
-matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -88,7 +88,8 @@ def test_plot_topo():
         ch_names = evoked_delayed_ssp.ch_names[:3]  # make it faster
         picked_evoked_delayed_ssp = pick_channels_evoked(evoked_delayed_ssp,
                                                          ch_names)
-        fig = plot_topo(picked_evoked_delayed_ssp, layout=layout, proj='interactive')
+        fig = plot_topo(picked_evoked_delayed_ssp, layout=layout,
+                        proj='interactive', internal_legend=True)
         func = _get_presser(fig)
         event = namedtuple('Event', 'inaxes')
         func(event(inaxes=fig.axes[0]))
