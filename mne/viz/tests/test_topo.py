@@ -9,7 +9,7 @@ import os.path as op
 import warnings
 from collections import namedtuple
 
-#from numpy.testing import assert_raises
+# from numpy.testing import assert_raises
 import numpy as np
 
 # Set our plotters to test mode
