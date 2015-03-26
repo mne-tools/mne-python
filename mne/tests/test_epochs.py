@@ -443,13 +443,6 @@ def test_reject_epochs():
     epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
     assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
 
-    # applying drop_bad_epochs() should raise an error if you
-    # already rejected using Epochs constructor or using drop_bad_epochs()
-    assert_raises(RuntimeError, epochs_noreject.drop_bad_epochs,
-                  reject=reject, flat=flat)
-    assert_raises(RuntimeError, epochs.drop_bad_epochs,
-                  reject=reject, flat=flat)
-
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
