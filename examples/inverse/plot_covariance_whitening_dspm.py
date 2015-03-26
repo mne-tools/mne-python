@@ -60,11 +60,11 @@ reject = dict(mag=3e-12)
 
 # Make source space
 
-mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+trans = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
                              overwrite=True, add_dist=False)
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
-forward = mne.make_forward_solution(raw.info, mri=mri, src=src, bem=bem)
+forward = mne.make_forward_solution(raw.info, trans, src, bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # inverse parameters

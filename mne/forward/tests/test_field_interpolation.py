@@ -101,14 +101,14 @@ def test_make_field_map_eeg():
     assert_raises(ValueError, _make_surface_mapping, evoked.info, surf, 'eeg')
 
     evoked = pick_types_evoked(evoked, meg=False, eeg=True)
-    fmd = make_field_map(evoked, trans_fname=trans_fname,
+    fmd = make_field_map(evoked, trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
 
     # trans is necessary for EEG only
-    assert_raises(RuntimeError, make_field_map, evoked, trans_fname=None,
+    assert_raises(RuntimeError, make_field_map, evoked, None,
                   subject='sample', subjects_dir=subjects_dir)
 
-    fmd = make_field_map(evoked, trans_fname=trans_fname,
+    fmd = make_field_map(evoked, trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (642, 59))  # maps data onto surf
@@ -145,7 +145,7 @@ def test_make_field_map_meg():
 
     # now do it with make_field_map
     evoked = pick_types_evoked(evoked, meg=True, eeg=False)
-    fmd = make_field_map(evoked, trans_fname=None,
+    fmd = make_field_map(evoked, None,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (304, 106))  # maps data onto surf

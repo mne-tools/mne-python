@@ -152,7 +152,7 @@ def test_render_add_sections():
 
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
-    fig = plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
+    fig = plot_trans(evoked.info, trans_fname, subject='sample',
                      subjects_dir=subjects_dir)
 
     report.add_figs_to_section(figs=fig,  # test non-list input

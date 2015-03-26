@@ -83,9 +83,8 @@ def test_plot_evoked_field():
                           baseline=(-0.2, 0.0))
     evoked = pick_channels_evoked(evoked, evoked.ch_names[::10])  # speed
     for t in ['meg', None]:
-        maps = make_field_map(evoked, trans_fname=trans_fname,
-                              subject='sample', subjects_dir=subjects_dir,
-                              n_jobs=1, ch_type=t)
+        maps = make_field_map(evoked, trans_fname, subject='sample',
+                              subjects_dir=subjects_dir, n_jobs=1, ch_type=t)
 
         evoked.plot_field(maps, time=0.1)
 
@@ -97,8 +96,8 @@ def test_plot_trans():
     """
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
-    plot_trans(evoked.info, trans_fname=trans_fname, subject='sample',
+    plot_trans(evoked.info, trans_fname, subject='sample',
                subjects_dir=subjects_dir)
-    assert_raises(ValueError, plot_trans, evoked.info, trans_fname=trans_fname,
+    assert_raises(ValueError, plot_trans, evoked.info, trans_fname,
                   subject='sample', subjects_dir=subjects_dir,
                   ch_type='bad-chtype')
