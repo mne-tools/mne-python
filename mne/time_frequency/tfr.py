@@ -18,7 +18,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, requires_h5py
+from ..utils import logger, verbose, requires_h5py, _time_mask
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
@@ -515,19 +515,21 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop time
     itmin, itmax = None, None
+    idx = np.where(_time_mask(times, tmin, tmax))[0]
     if tmin is not None:
-        itmin = np.where(times >= tmin)[0][0]
+        itmin = idx[0]
     if tmax is not None:
-        itmax = np.where(times <= tmax)[0][-1]
+        itmax = idx[-1] + 1
 
     times = times[itmin:itmax]
 
     # crop freqs
     ifmin, ifmax = None, None
+    idx = np.where(_time_mask(freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = np.where(freqs >= fmin)[0][0]
+        ifmin = ifmin = idx[0]
     if fmax is not None:
-        ifmax = np.where(freqs <= fmax)[0][-1]
+        ifmax = idx[-1] + 1
 
     freqs = freqs[ifmin:ifmax]
 
@@ -742,26 +744,26 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             Call pyplot.show() at the end.
         border : str
             matplotlib borders style to be used for each sensor plot.
-		fig_facecolor : str | obj
-			The figure face color. Defaults to black. If "black", spines are 
-			white (else they are black).
+        fig_facecolor : str | obj
+            The figure face color. Defaults to black. If "black", spines are
+            white (else they are black).
         font_color : str | obj
-            The color of text in the colorbar and title. Defaults to 
-            spine_color (which is automatically set based on fig_facecolor 
+            The color of text in the colorbar and title. Defaults to
+            spine_color (which is automatically set based on fig_facecolor
             if None).
-		external_legend : bool | float
-			Plot an external x and y axis legend (usually time/unit), showing
-			and labelling time and unit ticks. Requires `evokeds` to hold 
-			only 1 channel type. If float, an external legend is plotted and 
-			scaled by this factor.
-		internal_legend : bool
-			Plot time and unit labels for individual channel subplots. If 
-			external_legend is true, only tick labels, not axis labels are 
-			plotted.
-		plot_ch_names : bool
-			Should channel names be plotted next to each topo plot?
-		linewidth : float | None
-			Linewidth for time series, spines, tick marks.
+        external_legend : bool | float
+            Plot an external x and y axis legend (usually time/unit), showing
+            and labelling time and unit ticks. Requires `evokeds` to hold
+            only 1 channel type. If float, an external legend is plotted and
+            scaled by this factor.
+        internal_legend : bool
+            Plot time and unit labels for individual channel subplots. If
+            external_legend is true, only tick labels, not axis labels are
+            plotted.
+        plot_ch_names : bool
+            Should channel names be plotted next to each topo plot?
+        linewidth : float | None
+            Linewidth for time series, spines, tick marks.
 
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
@@ -784,7 +786,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
 
-        fig = _plot_topo(info=info, times=(times/1000),
+        fig = _plot_topo(info=info, times=(times / 1000),
                          show_func=imshow, layout=layout,
                          colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
                          layout_scale=layout_scale, title=title, border=border,
