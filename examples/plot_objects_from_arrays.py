@@ -25,21 +25,24 @@ cos = np.cos(times * 10)
 sinX2 = sin * 2
 cosX2 = cos * 2
 
-data = np.array([sin, cos, sinX2, cosX2])  # Matrix of size 4 X 10000
+# Numpy array of size 4 X 10000.
+data = np.array([sin, cos, sinX2, cosX2])
 
+# Definition of channel types and names.
+ch_types = ['mag', 'mag', 'grad', 'grad']
 ch_names = ['sin', 'cos', 'sinX2', 'cosX2']
 
 # Creation of info dictionary.
 # It is also possible to use info from another raw object.
-info = mne.create_info(ch_names=ch_names, sfreq=sfreq)
+info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
 raw = mne.io.RawArray(data, info)
 
 # Scaling of the figure.
-# For actual EEG/MEG data a different scaling factor should be used.
-scalings = {'misc': 2}
+# For actual EEG/MEG data different scaling factors should be used.
+scalings = {'mag': 2, 'grad': 2}
 
-raw.plot(n_channels=4, scalings=scalings, title='Data created from arrays',
+raw.plot(n_channels=4, scalings=scalings, title='Data from arrays',
          show=True, block=True)
 
 
@@ -58,12 +61,14 @@ epochs_data = [[sin[:700],      cos[:700]],
                [sin[1000:1700], cos[1000:1700]],
                [sin[1800:2500], cos[1800:2500]]]
 
-info = mne.create_info(ch_names=['sin', 'cos'], sfreq=sfreq)
+ch_names = ['sin', 'cos']
+ch_types = ['mag', 'mag']
+info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
 epochs = mne.EpochsArray(epochs_data, info=info, events=events,
                          event_id={'arbitrary': 1})
 
-picks = mne.pick_types(info, meg=False, eeg=False, misc=True)
+picks = mne.pick_types(info, meg=True, eeg=False, misc=False)
 
 epochs.plot(picks=picks, show=True, block=True)
 
@@ -76,8 +81,8 @@ evoked_data = np.mean(epochs_data, axis=0)
 
 evokeds = mne.EvokedArray(evoked_data, info=info, tmin=-0.2,
                           comment='Arbitrary', nave=nave)
-evokeds.plot(picks=picks, show=True, units={'misc': '-'},
-             titles={'misc': 'sin and cos averaged'})
+evokeds.plot(picks=picks, show=True, units={'mag': '-'},
+             titles={'mag': 'sin and cos averaged'})
 
 
 ###############################################################################
