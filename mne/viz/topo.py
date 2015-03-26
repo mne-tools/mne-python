@@ -22,7 +22,7 @@ from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names
 
-from .utils import _mutable_defaults, _check_delayed_ssp, COLORS
+from .utils import _mutable_defaults, _check_delayed_ssp  # , COLORS
 from .utils import _draw_proj_checkbox
 
 
@@ -90,16 +90,20 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
         pos[:, :2] *= layout_scale
 
     ch_names = _clean_names(info['ch_names'])
-    ch_types = {ch_name:channel_type(info, j) 
+    ch_types = {ch_name: channel_type(info, j)
                 for j, ch_name in enumerate(ch_names)}
+
+    ch_types = dict((ch_name, channel_type(info, j))
+                    for j, ch_name in enumerate(ch_names))
+
     iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
     for idx, ch_name in iter_ch:
         ax = plt.axes(pos[idx])
         plt.setp(list(ax.spines.values()), color=axis_spinecolor)
         ax.set_xticklabels([])
         ax.set_yticklabels([])
-        plt.setp(ax.get_xticklines(), visible=False)
-        plt.setp(ax.get_yticklines(), visible=False)
+        plt.setp(ax.get_xticklines(), visible=True)
+        plt.setp(ax.get_yticklines(), visible=True)
         ch_idx = ch_names.index(ch_name)
         ch_type = ch_types[ch_name]
         vars(ax)['_mne_ch_name'] = ch_name
@@ -111,40 +115,27 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
                  linewidth, fontsize, spine_color, ch_name=None,
-                 legend_type='unlabelled', plot_type=None, 
-                 external_scale=1):
+                 external_legend=False, internal_legend=False, is_legend=None,
+                 plot_type=None):
 
     import matplotlib.pyplot as plt
     import matplotlib.lines as mpll
 
-    if legend_type is 'external':
-        x, y = (np.array(ax.get_position())[1]
-                - np.array(ax.get_position())[0]) * external_scale
-        ax = plt.axes((0, 0, x, y))
-        ax.patch.set_alpha(0)
+    if is_legend is True:
         ch_name = 'Axis legend'
 
-    ax.plot((0, 0), ylim)  # initialise every plot to the correct dimensions
-    ax.plot(xlim, (0, 0))
-    ax.lines.pop()
+    ax.patch.set_alpha(0)
+
+    cf = (1.2 if plot_type == 'evoked' else 1)  # I know, this is grisly
+    ax.plot(xlim, [y*cf for y in ylim])  # initialise to correct dimensions
     ax.lines.pop()
 
     if ch_name is not None:
         ax.set_title(ch_name)
-        ax.title.set_position([0.75, 0.9])
+        ax.title.set_position([0.8, 0.75])
 
     ax.spines['right'].set_color('none')
     ax.spines['top'].set_color('none')
-
-    ax.set_xticks(xticks)
-    ax.set_yticks(yticks)
-    ax.xaxis.set_ticks_position('bottom')
-    ax.yaxis.set_ticks_position('left')
-
-    for tick in ax.get_xaxis().get_major_ticks() + \
-            ax.get_yaxis().get_major_ticks():
-        tick.set_pad(2.)
-        tick.label1 = tick._get_text1()
 
     for pos in ['left', 'bottom']:
         if plot_type == 'evoked':
@@ -153,23 +144,49 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         ax.spines[pos].set_color(spine_color)
         ax.spines[pos].set_linewidth(linewidth)
 
-    if legend_type is not 'unlabelled':
-        ax.set_ylabel(y_label)
-        ax.yaxis.set_label_coords(-0.1, 0.5)
+    if plot_type == 'evoked':
+        ax.spines['left'].set_bounds(yticks[0], yticks[-1])
 
+    if (internal_legend and not external_legend) or is_legend:
+        ax.set_ylabel(y_label)
         ax.set_xlabel(x_label)
-        ax.xaxis.set_label_coords(0.5, -0.1)
+        if plot_type != 'evoked':
+            ax.yaxis.set_label_coords(-0.35, 0.5)
+            ax.xaxis.set_label_coords(0.5, -0.35)
+        elif plot_type == 'evoked':
+            ax.yaxis.set_label_coords(-0.15, 0.5)
+            ax.xaxis.set_label_coords(0.5, -0.15)
+
+    if external_legend or internal_legend:
+        ax.set_xticks(xticks)
+        ax.set_yticks(yticks)
+        if internal_legend is True:
+            ax.set_xticklabels(xticks)
+            ax.set_yticklabels(yticks)
+        ax.xaxis.set_ticks_position('bottom')
+        ax.yaxis.set_ticks_position('left')
+        for tick in ax.get_xaxis().get_major_ticks() + \
+                ax.get_yaxis().get_major_ticks():
+            tick.set_pad(2.)
+            tick.label1 = tick._get_text1()
+    else:
+        for tic in ax.xaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+        ax.set_xticklabels([])
+        for tic in ax.yaxis.get_major_ticks():
+            tic.tick1On = tic.tick2On = False
+        ax.set_yticklabels([])
 
     ax.xaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
     ax.yaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
-
-    [line.set_marker(mpll.TICKDOWN) for line in ax.get_xticklines()]
-    [line.set_marker(mpll.TICKLEFT) for line in ax.get_yticklines()]
 
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
         item.set_fontsize(fontsize)
         item.set_color(spine_color)
+
+    [line.set_marker(mpll.TICKDOWN) for line in ax.get_xticklines()]
+    [line.set_marker(mpll.TICKLEFT) for line in ax.get_yticklines()]
 
 
 def _plot_topo(info=None, times=None, show_func=None, layout=None,
@@ -179,7 +196,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                y_label=None, vline=None, xticks=3, yticks=None,
                font_color='w', linewidth=0.5, internal_legend=False,
                external_legend=False, fontsize=4,
-               ylim_dict=None, plot_ch_names=True, plot_type=None, 
+               ylim_dict=None, plot_ch_names=None, plot_type=None,
                external_scale=1):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
@@ -193,8 +210,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         endpoints = times[0], times[-1]
         xticks = list(np.round(np.linspace(*endpoints,
                                            num=xticks+2) * 4) / 4)[1:-1]
-        if 0.0 in xticks:
-            del xticks[xticks.index(0.0)]  
+        if 0.0 in xticks and plot_type == 'evoked':
+            del xticks[xticks.index(0.0)]
+        if plot_type is None:
+            xticks = list(set([int(x) for x in xticks]))
 
     if isinstance(ylim_dict, (list, tuple)):
         from collections import defaultdict
@@ -205,27 +224,25 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         yticks = list(np.round(np.linspace(np.min(ylim_dict["dummy"]),
                                            np.max(ylim_dict["dummy"]),
                                            num=5) * 2) / 2)[1:-1]
-        if 0.0 in yticks:
+        if plot_type is None:
+            yticks = list(set([int(x) for x in yticks]))
+        if 0.0 in yticks and plot_type == 'evoked':
             del yticks[yticks.index(0.0)]
-
-    fig = plt.figure()
-    if colorbar:
-        norm = normalize_colors(vmin=vmin, vmax=vmax)
-        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-        sm.set_array(np.linspace(vmin, vmax))
-        ax = plt.axes([0.015, 0.025, 1.05, .8], axisbg=fig_facecolor)
-        cb = fig.colorbar(sm, ax=ax)
-        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
-        plt.setp(cb_yticks, color=font_color)
-        ax.axis('off')
+    if any(np.abs(x) > 20 for x in yticks):
+        yticks = [int(5 * round(float(x)/5)) for x in yticks]
 
     spine_color = ('black' if fig_facecolor in ['w', "white"] else 'w')
+
+    fig = plt.figure()
 
     my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
                                    fig=fig, layout_scale=layout_scale,
                                    axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
+
+    if (len(info["ch_names"]) < 35) and (plot_ch_names is None):
+        plot_ch_names = True
 
     for ax, ch_idx in my_topo_plot:
 
@@ -246,22 +263,40 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         _plot_spines(ax, (tmin, tmax), ylim_dict[ax.__dict__['_mne_ch_type']],
                      x_label, y_label, xticks, yticks, linewidth, fontsize,
                      spine_color, plot_type=plot_type,
-                     legend_type=('labelled' if internal_legend is True
-                                  else 'unlabelled'),
-                     ch_name = (ax.__dict__['_mne_ch_name']
-                                if plot_ch_names is True else None))
+                     internal_legend=internal_legend,
+                     external_legend=external_legend,
+                     ch_name=(ax.__dict__['_mne_ch_name']
+                              if plot_ch_names is True else None))
 
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
 
     if external_legend is True:
+        pos = layout.pos.copy()
+        if layout_scale:
+            pos[:, :2] *= layout_scale
+        ax = plt.axes((0, 0, pos[0][2]*external_scale,
+                       pos[0][3]*external_scale))
+
         _plot_spines(ax, (tmin, tmax), ylim_dict["dummy"], x_label, y_label,
                      xticks, yticks, linewidth, fontsize, spine_color,
-                     plot_type=plot_type, legend_type='external', 
-                     external_scale=external_scale)
+                     plot_type=plot_type, is_legend=True,
+                     external_legend=external_legend,
+                     internal_legend=internal_legend)
 
     if title is not None:
         plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
+
+    if colorbar:
+        norm = normalize_colors(vmin=vmin, vmax=vmax)
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array(np.linspace(vmin, vmax)[1:-1:2])
+        ax = plt.subplot(399)
+        cb = fig.colorbar(sm, ax=ax)
+        cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
+        plt.setp(cb_yticks, color=spine_color, fontsize=fontsize)
+        cb.ax.get_children()[4].set_linewidths(0.4)
+        ax.axis('off')
 
     return fig
 
@@ -344,7 +379,7 @@ def _check_vlim(vlim):
 def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
-              font_color='w', x_label='Time (s)', plot_ch_names=True,
+              font_color='w', x_label='Time (s)', plot_ch_names=None,
               external_legend=True, internal_legend=False,
               xticks=2, yticks=None,
               linewidth=0.3, fontsize=4, conditions=None):
@@ -367,7 +402,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
     color : list of color objects | color object | None
         Everything matplotlib accepts to specify colors. If not list-like,
         the color specified will be repeated. If None, colors are
-        automatically drawn. If not None, should be at least as long as 
+        automatically drawn. If not None, should be at least as long as
         `evoked`.
     border : str
         matplotlib borders style to be used for each sensor plot.
@@ -389,13 +424,13 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
     vline : list of floats | None
         The values at which to show a vertical line. Defaults to None.
     units : dict | str | None
-        The units of the channel types used for axes lables, either as a single 
-        string or as dict by channel type. If None, defaults to 
+        The units of the channel types used for axes lables, either as a single
+        string or as dict by channel type. If None, defaults to
         `dict(eeg='uV', grad='fT/cm', mag='fT')`.
     external_legend : bool | float
         Plot an external x and y axis legend (usually time/unit), showing
-        and labelling time and unit ticks. Requires `evokeds` to hold only 1 
-        channel type. If float, an external legend is plotted and scaled by 
+        and labelling time and unit ticks. Requires `evokeds` to hold only 1
+        channel type. If float, an external legend is plotted and scaled by
         this factor.
     internal_legend : bool
         Plot time and unit labels for individual channel subplots.
@@ -432,8 +467,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
         evoked = [evoked]
 
     if color is None:
-        color = [#'#7fc97f', '#beaed4', '#fdc086', '#ffff99', '#386cb0',
-                 '#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
+        color = ['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00',
                  '#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e']
         color = color[:len(evoked)]
     if 1 < len(color) < len(evoked):
@@ -455,7 +489,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
 #    else:
 #        color = cycle([color])
 
-    times = evoked[0].times    
+    times = evoked[0].times
 
     if not all([(e.times == times).all() for e in evoked]):
         raise ValueError('All evoked.times must be the same')
@@ -557,8 +591,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
                      y_label=(unit if (external_legend or internal_legend)
                               else None), plot_ch_names=plot_ch_names,
                      xticks=xticks, yticks=yticks, ylim_dict=ylim_dict,
-                     external_scale=(external_legend 
-                     if isinstance(external_legend, float) else 1))
+                     external_scale=(external_legend
+                                     if isinstance(external_legend, float)
+                                     else 1))
 
     if proj == 'interactive':
         for e in evoked:
@@ -644,8 +679,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color='w',
-                           ylim_dict=None, internal_legend=False, 
-                           y_label='Epoch'):
+                           ylim_dict=None, y_label='Epoch',
+                           plot_ch_names=None,
+                           internal_legend=False, external_legend=False):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -714,7 +750,9 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      fig_facecolor=fig_facecolor,
                      ylim_dict=(0, epochs.get_data().shape[0]),
                      font_color=font_color, border=border,
-                     x_label='Time (s)', y_label=y_label, 
-                     internal_legend=internal_legend)
+                     x_label='Time (s)', y_label=y_label,
+                     internal_legend=internal_legend,
+                     external_legend=external_legend,
+                     plot_ch_names=plot_ch_names)
 
     return fig
