@@ -99,13 +99,14 @@ bl = reader.read(cascade=True, lazy=False)[0]
 seg = bl.segments[0]
 title = seg.file_origin
 
+ch_names = []
 data = []
 for asig in seg.analogsignals:
+    # Since the data doesn't contain channel names, channel indices are used.
+    ch_names.append(str(asig.channel_index))
     asig = asig.rescale('V').magnitude
     data.append(asig)
 
-# data is now a stored in an array of 4 channels.
-ch_names = ['1', '2', '3', '4']
 sfreq = int(seg.analogsignals[0].sampling_rate.magnitude)
 
 # By default, the channel types are assumed to be 'misc'.
