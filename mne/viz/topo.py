@@ -26,9 +26,9 @@ from .utils import _mutable_defaults, _check_delayed_ssp  # , COLORS
 from .utils import _draw_proj_checkbox
 
 
-def iter_topography(info, layout=None, on_pick=None, fig=None,
-                    fig_facecolor='k', axis_facecolor='k',
-                    axis_spinecolor='k', layout_scale=None):
+def iter_topography(pos=None, info=None, on_pick=None, fig=None,
+                    fig_facecolor='w', axis_facecolor='w',
+                    axis_spinecolor='k'):
     """ Create iterator over channel positions
 
     This function returns a generator that unpacks into
@@ -76,38 +76,53 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
     if fig is None:
         fig = plt.figure()
 
-    fig.set_facecolor(fig_facecolor)
-    if layout is None:
-        from ..channels import find_layout
-        layout = find_layout(info)
-
     if on_pick is not None:
         callback = partial(_plot_topo_onpick, show_func=on_pick)
         fig.canvas.mpl_connect('button_press_event', callback)
 
-    pos = layout.pos.copy()
-    if layout_scale:
-        pos[:, :2] *= layout_scale
+    fig.set_facecolor(fig_facecolor)
 
     ch_names = _clean_names(info['ch_names'])
     ch_types = dict((ch_name, channel_type(info, j))
                     for j, ch_name in enumerate(ch_names))
 
-    iter_ch = [(x, y) for x, y in enumerate(layout.names) if y in ch_names]
+    iter_ch = [(x, y) for x, y in enumerate(info["ch_names"]) if y in ch_names]
     for idx, ch_name in iter_ch:
         ax = plt.axes(pos[idx])
-        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
-        ax.set_xticklabels([])
-        ax.set_yticklabels([])
-        plt.setp(ax.get_xticklines(), visible=True)
-        plt.setp(ax.get_yticklines(), visible=True)
+#        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
+#        ax.set_xticklabels([])
+#        ax.set_yticklabels([])
+#        plt.setp(ax.get_xticklines(), visible=True)
+#        plt.setp(ax.get_yticklines(), visible=True)
         ch_idx = ch_names.index(ch_name)
-        ch_type = ch_types[ch_name]
+#        ch_type = ch_types[ch_name]
         vars(ax)['_mne_ch_name'] = ch_name
         vars(ax)['_mne_ch_idx'] = ch_idx
-        vars(ax)['_mne_ch_type'] = ch_type
-        vars(ax)['_mne_ax_face_color'] = axis_facecolor
+        vars(ax)['_mne_ch_type'] = ch_types[ch_name]
+        vars(ax)['_mne_ax_face_color'] = 'w'
         yield ax, ch_idx
+
+
+def _scale_layout(layout, layout_scale):
+
+    pos = layout.pos.copy()
+
+    if layout_scale is 'auto':
+        from itertools import combinations
+        layout_scale = 0.1
+
+        def _area(a, b):
+            dx = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
+            dy = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
+            return ((dx>=0) and (dy>=0))
+
+        while any(_area(a, b) for a, b in combinations(pos, 2)):
+            layout_scale += 0.05
+            pos[:, :2] *= layout_scale
+    else:
+        pos[:, :2] *= layout_scale
+
+    return pos, layout_scale
 
 
 def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
@@ -130,7 +145,10 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
 
     if ch_name is not None:
         ax.set_title(ch_name)
-        ax.title.set_position([0.8, 0.75])
+        if plot_type == 'evoked':
+            ax.title.set_position([0.8, 0.75])
+        else:
+            ax.title.set_position([0.8, 0.85])
 
     ax.spines['right'].set_color('none')
     ax.spines['top'].set_color('none')
@@ -166,7 +184,7 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         ax.yaxis.set_ticks_position('left')
         for tick in ax.get_xaxis().get_major_ticks() + \
                 ax.get_yaxis().get_major_ticks():
-            tick.set_pad(2.*fontsize/3)
+            tick.set_pad(2. * fontsize / 3)
             tick.label1 = tick._get_text1()
 
     if plot_tick_labels is True:
@@ -197,8 +215,8 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
                y_label=None, vline=None, xticks=3, yticks=None,
-               font_color=None, linewidth=0.5, internal_legend=False,
-               external_legend=False, fontsize=4,
+               font_color=None, linewidth=1, internal_legend=False,
+               external_legend=False, fontsize=9,
                ylim_dict=None, plot_ch_names=None, plot_type=None,
                external_scale=1):
     """Helper function to plot on sensor layout"""
@@ -240,8 +258,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     fig = plt.figure()
 
-    my_topo_plot = iter_topography(info, layout=layout, on_pick=on_pick,
-                                   fig=fig, layout_scale=layout_scale,
+    pos, layout_scale = _scale_layout(layout, layout_scale)
+
+    my_topo_plot = iter_topography(pos=pos, info=info, on_pick=on_pick,
+                                   fig=fig,
                                    axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
@@ -265,7 +285,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         else:
             ax.patch.set_facecolor(axis_facecolor)
 
-        _plot_spines(ax, (tmin, tmax), ylim_dict[ax.__dict__['_mne_ch_type']],
+        _plot_spines(ax, (tmin, tmax), ylim_dict[ax._mne_ch_type],
                      x_label, y_label, xticks, yticks, linewidth, fontsize,
                      spine_color, plot_type=plot_type,
                      plot_tick_labels=(True if internal_legend is True
@@ -274,7 +294,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                      and external_legend is False else False),
                      plot_ticks=(True if (internal_legend or external_legend)
                      else False),
-                     ch_name=(ax.__dict__['_mne_ch_name']
+                     ch_name=(ax._mne_ch_name
                               if plot_ch_names is True else None))
 
         if ylim_ and not any(v is None for v in ylim_):
@@ -282,8 +302,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     if external_legend is True:
         pos = layout.pos.copy()
-        if layout_scale:
-            pos[:, :2] *= layout_scale
+        pos[:, :2] *= layout_scale
         ax = plt.axes((0.025, 0.025, pos[0][2] * external_scale,
                        pos[0][3] * external_scale))
 
@@ -383,7 +402,7 @@ def _check_vlim(vlim):
     return not np.isscalar(vlim) and vlim is not None
 
 
-def plot_topo(evoked, layout=None, layout_scale=1, color=None,
+def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
               font_color=None, x_label='Time (s)', plot_ch_names=None,
@@ -473,11 +492,6 @@ def plot_topo(evoked, layout=None, layout_scale=1, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
-
-    layout_scale = 0.75*layout_scale
-
-    if fontsize is None:
-        fontsize = 12 * np.log(layout_scale)
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -612,7 +626,7 @@ def plot_topo(evoked, layout=None, layout_scale=1, color=None,
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
                                   np.arange(0.1, 0.4, 0.025)):
-            plt.figtext(layout_scale, pos, cond, color=col, fontsize=fontsize)
+            plt.figtext(1, pos, cond, color=col, fontsize=fontsize)
 
     return fig
 
@@ -680,10 +694,11 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
-                           layout_scale=.95, title=None, scalings=None,
+                           layout_scale=1, title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
                            y_label='Epoch', plot_ch_names=None,
-                           internal_legend=False, external_legend=False):
+                           internal_legend=False, external_legend=False,
+                           linewidth=1, fontsize=9):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -771,6 +786,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      x_label='Time (s)', y_label=y_label,
                      internal_legend=internal_legend,
                      external_legend=external_legend,
-                     plot_ch_names=plot_ch_names)
+                     plot_ch_names=plot_ch_names,
+                     linewidth=linewidth,
+                     fontsize=fontsize)
 
     return fig
