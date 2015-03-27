@@ -112,18 +112,19 @@ def iter_topography(info, layout=None, on_pick=None, fig=None,
 
 def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
                  linewidth, fontsize, spine_color, ch_name=None,
-                 external_legend=False, internal_legend=False, is_legend=None,
+                 plot_unit_labels=True, plot_tick_labels=True,
+                 plot_ticks=True, is_legend=None,
                  plot_type=None):
     """Helper function to plot spines and ticks for topo plots"""
 
     import matplotlib.lines as mpll
 
     if is_legend is True:
-        ch_name = 'Axis legend'
+        ch_name = ''
 
     ax.patch.set_alpha(0)
 
-    cf = (1.2 if plot_type == 'evoked' else 1)  # I know, this is grisly
+    cf = (1 if plot_type == 'evoked' else 1)  # I know, this is grisly
     ax.plot(xlim, [y * cf for y in ylim])  # initialise to correct dimensions
     ax.lines.pop()
 
@@ -144,7 +145,7 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
     if plot_type == 'evoked':
         ax.spines['left'].set_bounds(yticks[0], yticks[-1])
 
-    if (internal_legend and not external_legend) or is_legend:
+    if plot_unit_labels is True:
         ax.set_ylabel(y_label)
         ax.set_xlabel(x_label)
         if plot_type != 'evoked':
@@ -153,19 +154,24 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         elif plot_type == 'evoked':
             ax.yaxis.set_label_coords(-0.15, 0.5)
             ax.xaxis.set_label_coords(0.5, -0.15)
+    elif plot_unit_labels is False:
+        ax.set_ylabel('')
+        ax.set_xlabel('')
 
-    if external_legend or internal_legend:
+    if plot_ticks is True:
         ax.set_xticks(xticks)
         ax.set_yticks(yticks)
-        if internal_legend is True:
-            ax.set_xticklabels(xticks)
-            ax.set_yticklabels(yticks)
+
         ax.xaxis.set_ticks_position('bottom')
         ax.yaxis.set_ticks_position('left')
         for tick in ax.get_xaxis().get_major_ticks() + \
                 ax.get_yaxis().get_major_ticks():
-            tick.set_pad(2.)
+            tick.set_pad(2.*fontsize/3)
             tick.label1 = tick._get_text1()
+
+    if plot_tick_labels is True:
+        ax.set_xticklabels(xticks)
+        ax.set_yticklabels(yticks)
     else:
         for tic in ax.xaxis.get_major_ticks():
             tic.tick1On = tic.tick2On = False
@@ -174,8 +180,8 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
             tic.tick1On = tic.tick2On = False
         ax.set_yticklabels([])
 
-    ax.xaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
-    ax.yaxis.set_tick_params(width=linewidth, size=1, color=spine_color)
+    ax.xaxis.set_tick_params(width=linewidth, color=spine_color)
+    ax.yaxis.set_tick_params(width=linewidth, color=spine_color)
 
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
@@ -262,8 +268,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         _plot_spines(ax, (tmin, tmax), ylim_dict[ax.__dict__['_mne_ch_type']],
                      x_label, y_label, xticks, yticks, linewidth, fontsize,
                      spine_color, plot_type=plot_type,
-                     internal_legend=internal_legend,
-                     external_legend=external_legend,
+                     plot_tick_labels=(True if internal_legend is True
+                     else False),
+                     plot_unit_labels=(True if internal_legend is True
+                     and external_legend is False else False),
+                     plot_ticks=(True if (internal_legend or external_legend)
+                     else False),
                      ch_name=(ax.__dict__['_mne_ch_name']
                               if plot_ch_names is True else None))
 
@@ -274,14 +284,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         pos = layout.pos.copy()
         if layout_scale:
             pos[:, :2] *= layout_scale
-        ax = plt.axes((0, 0, pos[0][2] * external_scale,
+        ax = plt.axes((0.025, 0.025, pos[0][2] * external_scale,
                        pos[0][3] * external_scale))
 
         _plot_spines(ax, (tmin, tmax), ylim_dict["dummy"], x_label, y_label,
                      xticks, yticks, linewidth, fontsize, spine_color,
-                     plot_type=plot_type, is_legend=True,
-                     external_legend=external_legend,
-                     internal_legend=internal_legend)
+                     plot_type=plot_type, is_legend=True)
 
     if title is not None:
         plt.figtext(0.03, 0.9, title, color=font_color, fontsize=19)
@@ -375,13 +383,13 @@ def _check_vlim(vlim):
     return not np.isscalar(vlim) and vlim is not None
 
 
-def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
+def plot_topo(evoked, layout=None, layout_scale=1, color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
               font_color=None, x_label='Time (s)', plot_ch_names=None,
               external_legend=True, internal_legend=False,
               xticks=2, yticks=None,
-              linewidth=0.3, fontsize=4, conditions=None):
+              linewidth=1, fontsize=9, conditions=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -465,6 +473,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+
+    layout_scale = 0.75*layout_scale
 
     if fontsize is None:
         fontsize = 12 * np.log(layout_scale)
@@ -577,7 +587,8 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
                      layout_scale=layout_scale, border=border,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor, fontsize=fontsize,
-                     external_legend=external_legend,
+                     external_legend=(True if external_legend is not False
+                                      else False),
                      internal_legend=internal_legend, plot_type='evoked',
                      title=title, vline=vline, x_label=x_label,
                      y_label=(unit if (external_legend or internal_legend)
@@ -600,7 +611,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.8, color=None,
             raise ValueError("Condition and Evokeds must have the same length")
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
-                                  np.arange(0, 0.3, 0.025)):
+                                  np.arange(0.1, 0.4, 0.025)):
             plt.figtext(layout_scale, pos, cond, color=col, fontsize=fontsize)
 
     return fig
