@@ -110,15 +110,19 @@ def _scale_layout(layout, layout_scale):
     if layout_scale is 'auto':
         from itertools import combinations
         layout_scale = 0.1
+        pos[:, :2] *= layout_scale
 
         def _area(a, b):
             dx = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
             dy = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
-            return ((dx>=0) and (dy>=0))
+            return ((dx >= 0) and (dy >= 0))
 
         while any(_area(a, b) for a, b in combinations(pos, 2)):
+            # print(layout_scale)
             layout_scale += 0.05
+            pos = layout.pos.copy()
             pos[:, :2] *= layout_scale
+
     else:
         pos[:, :2] *= layout_scale
 
@@ -324,7 +328,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         cb.ax.get_children()[4].set_linewidths(0.4)
         ax.axis('off')
 
-    return fig
+    return fig, layout_scale
 
 
 def _plot_topo_onpick(event, show_func=None, colorbar=False):
@@ -596,21 +600,29 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
                        color=color, times=times, vline=vline,
                        linewidth=linewidth)
 
-    fig = _plot_topo(info=info, times=times, show_func=plot_fun, layout=layout,
-                     decim=1, colorbar=False, ylim=ylim_, cmap=None,
-                     layout_scale=layout_scale, border=border,
-                     fig_facecolor=fig_facecolor, font_color=font_color,
-                     axis_facecolor=axis_facecolor, fontsize=fontsize,
-                     external_legend=(True if external_legend is not False
-                                      else False),
-                     internal_legend=internal_legend, plot_type='evoked',
-                     title=title, vline=vline, x_label=x_label,
-                     y_label=(unit if (external_legend or internal_legend)
-                              else None), plot_ch_names=plot_ch_names,
-                     xticks=xticks, yticks=yticks, ylim_dict=ylim_dict,
-                     external_scale=(external_legend
-                                     if isinstance(external_legend, float)
-                                     else 1))
+    external_legend = (external_legend if
+                       isinstance(external_legend, float) else 1)
+    fig, layout_scale = _plot_topo(info=info, times=times, show_func=plot_fun,
+                                   layout=layout, decim=1, colorbar=False,
+                                   ylim=ylim_, cmap=None,
+                                   layout_scale=layout_scale,
+                                   border=border, fig_facecolor=fig_facecolor,
+                                   font_color=font_color,
+                                   axis_facecolor=axis_facecolor,
+                                   fontsize=fontsize,
+                                   external_legend=(True if external_legend
+                                                    is not False else False),
+                                   internal_legend=internal_legend,
+                                   plot_type='evoked', title=title,
+                                   vline=vline, x_label=x_label,
+                                   y_label=(unit if
+                                            (external_legend or
+                                             internal_legend)
+                                            else None),
+                                   plot_ch_names=plot_ch_names,
+                                   xticks=xticks, yticks=yticks,
+                                   ylim_dict=ylim_dict,
+                                   external_scale=external_legend)
 
     if proj == 'interactive':
         for e in evoked:
@@ -626,7 +638,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
                                   np.arange(0.1, 0.4, 0.025)):
-            plt.figtext(1, pos, cond, color=col, fontsize=fontsize)
+            plt.figtext(layout_scale, pos, cond, color=col, fontsize=fontsize)
 
     return fig
 
@@ -694,7 +706,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
-                           layout_scale=1, title=None, scalings=None,
+                           layout_scale='auto', title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
                            y_label='Epoch', plot_ch_names=None,
                            internal_legend=False, external_legend=False,
@@ -776,18 +788,18 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                          data=data, epochs=epochs, sigma=sigma,
                          cmap=cmap)
 
-    fig = _plot_topo(info=epochs.info, times=epochs.times,
-                     show_func=erf_imshow, layout=layout, decim=1,
-                     colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                     layout_scale=layout_scale, title=title,
-                     fig_facecolor=fig_facecolor,
-                     ylim_dict=(0, epochs.get_data().shape[0]),
-                     font_color=font_color, border=border,
-                     x_label='Time (s)', y_label=y_label,
-                     internal_legend=internal_legend,
-                     external_legend=external_legend,
-                     plot_ch_names=plot_ch_names,
-                     linewidth=linewidth,
-                     fontsize=fontsize)
+    fig, l = _plot_topo(info=epochs.info, times=epochs.times,
+                        show_func=erf_imshow, layout=layout, decim=1,
+                        colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
+                        layout_scale=layout_scale, title=title,
+                        fig_facecolor=fig_facecolor,
+                        ylim_dict=(0, epochs.get_data().shape[0]),
+                        font_color=font_color, border=border,
+                        x_label='Time (s)', y_label=y_label,
+                        internal_legend=internal_legend,
+                        external_legend=external_legend,
+                        plot_ch_names=plot_ch_names,
+                        linewidth=linewidth,
+                        fontsize=fontsize)
 
     return fig
