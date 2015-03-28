@@ -102,7 +102,7 @@ title = seg.file_origin
 ch_names = []
 data = []
 for asig in seg.analogsignals:
-    # Since the data doesn't contain channel names, channel indices are used.
+    # Since the data does not contain channel names, channel indices are used.
     ch_names.append(str(asig.channel_index))
     asig = asig.rescale('V').magnitude
     data.append(asig)
