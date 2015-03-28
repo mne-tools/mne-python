@@ -537,7 +537,7 @@ class GeneralizationAcrossTime(object):
 
     def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
                       ax=None, show=True, color='steelblue', xlabel=True,
-                      ylabel=True, legend=0):
+                      ylabel=True, legend=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -567,9 +567,8 @@ class GeneralizationAcrossTime(object):
             If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
             If True, the ylabel is displayed. Defaults to True.
-        legend : int | str | tuple | None
-            If not None, a legend is displayed at the location given by the
-            argument. Otherwise, the legend is not displayed. Defaults to None.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
 
         Returns
         -------

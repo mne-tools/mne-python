@@ -85,7 +85,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
 
 def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
                       ax=None, show=True, color='b', xlabel=True, ylabel=True,
-                      legend=0):
+                      legend=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -116,9 +116,8 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
         If True, the xlabel is displayed. Defaults to True.
     ylabel : bool
         If True, the ylabel is displayed. Defaults to True.
-    legend : int | str | tuple | None
-        If not None, a legend is displayed at the location given by the
-        argument. Otherwise, the legend is not displayed. Defaults to None.
+    legend : bool
+        If True, a legend is displayed. Defaults to True.
 
     Returns
     -------
@@ -150,8 +149,8 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
         ax.set_ylabel('Classif. score ({0})'.format(
                       'AUC' if 'roc' in repr(gat.scorer_) else r'%'
                       ))
-    if legend is not None:
-        ax.legend(loc=legend)
+    if legend is True:
+        ax.legend(loc='best')
     if show is True:
         plt.show()
     return fig if ax is None else ax.get_figure()
