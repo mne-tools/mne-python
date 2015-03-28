@@ -528,8 +528,6 @@ class GeneralizationAcrossTime(object):
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
-        im : instance of matplotlib.image.AxesImage
-            The image to be displayed.
         """
         return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
                                tlim=tlim, ax=ax, cmap=cmap, show=show,

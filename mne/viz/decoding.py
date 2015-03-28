@@ -47,8 +47,6 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
 
     Returns
     -------
-    im : instance of matplotlib.image.AxesImage
-        The image to be displayed.
     fig : instance of matplotlib.figure.Figure
         The figure.
     """
@@ -80,7 +78,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         plt.colorbar(im, ax=ax)
     if show is True:
         plt.show()
-    return im, fig if ax is None else ax.get_figure()
+    return fig if ax is None else ax.get_figure()
 
 
 def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
