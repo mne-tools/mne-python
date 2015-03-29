@@ -137,11 +137,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
-            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
+            if (lowpass is not None) and (new_sfreq < 2.5 * lowpass):
                 msg = ('The measurement information indicates a low-pass '
                        'frequency of %g Hz. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
+                       # nyquist says freq * 2 but 2.5 is safer
                        % (lowpass, decim, new_sfreq))
                 warnings.warn(msg)
 
