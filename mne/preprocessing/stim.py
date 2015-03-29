@@ -182,5 +182,5 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=-0.2,
             data[picks, first_samp:last_samp] = interp_data
 
     else:
-        raise TypeError('Not a Epochs or Evoked')
+        raise TypeError('Not a Epochs or Evoked or Raw')
     return inst
