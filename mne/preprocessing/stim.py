@@ -6,7 +6,7 @@ import numpy as np
 from scipy import signal, interpolate
 from ..evoked import Evoked
 from ..epochs import Epochs
-from ..io.fiff  import RawFIFF
+from ..io.fiff.raw import RawFIFF
 from ..utils import deprecated
 
 from .. import pick_types
