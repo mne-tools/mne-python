@@ -493,7 +493,8 @@ class GeneralizationAcrossTime(object):
         return scores
 
     def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
-             cmap='RdBu_r', show=True):
+             cmap='RdBu_r', show=True, colorbar=True,
+             xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -516,6 +517,12 @@ class GeneralizationAcrossTime(object):
             The color map to be used. Defaults to 'RdBu_r'.
         show : bool
             If True, the figure will be shown. Defaults to True.
+        colorbar : bool
+            If True, the colorbar of the figure is displayed. Defaults to True.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
 
         Returns
         -------
@@ -523,10 +530,12 @@ class GeneralizationAcrossTime(object):
             The figure.
         """
         return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
-                               tlim=tlim, ax=ax, cmap=cmap, show=show)
+                               tlim=tlim, ax=ax, cmap=cmap, show=show,
+                               colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='steelblue'):
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
+                      ax=None, show=True, color='steelblue', xlabel=True,
+                      ylabel=True, legend=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -537,12 +546,14 @@ class GeneralizationAcrossTime(object):
         ----------
         title : str | None
             Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
             Max score value. Defaults to 1.
-        tlim : np.ndarray, (train_min_max, test_min_max) | None
-            The temporal boundaries. Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
@@ -550,14 +561,22 @@ class GeneralizationAcrossTime(object):
             If True, the figure will be shown. Defaults to True.
         color : str
             Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
-                                 ax=ax, show=show, color=color)
+        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax,
+                                 ymin=ymin, ymax=ymax, ax=ax, show=show,
+                                 color=color, xlabel=xlabel, ylabel=ylabel,
+                                 legend=legend)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
