@@ -9,15 +9,17 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne.io import Raw
+from mne.io.pick import pick_types
 from mne.event import read_events
-from mne.preprocessing.stim import eliminate_stim_artifact
+from mne.epochs import Epochs
+from mne.preprocessing.stim import fix_stim_artifact
 
 data_path = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_path, 'test_raw.fif')
 event_fname = op.join(data_path, 'test-eve.fif')
 
 
-def test_stim_elim():
+def test_stim_fix():
     """Test eliminate stim artifact"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
@@ -25,52 +27,40 @@ def test_stim_elim():
     tidx = int(events[event_idx, 0] - raw.first_samp)
 
     # use window around stimulus
-    tmin = -0.02
-    tmax = 0.02
-    test_tminidx = int(-0.01 * raw.info['sfreq'])
-    test_tmaxidx = int(0.01 * raw.info['sfreq'])
+    tmin, tmax = -0.02, 0.02
+    tmin_samp = int(-0.01 * raw.info['sfreq'])
+    tmax_samp = int(0.01 * raw.info['sfreq'])
 
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='linear')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
+    raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
+                                tmax=tmax, mode='linear')
+    data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     diff_data0 = np.diff(data[0])
     diff_data0 -= np.mean(diff_data0)
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='window')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
+    raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
+                                tmax=tmax, mode='window')
+    data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     assert_true(np.all(data) == 0.)
 
     # use window before stimulus
-    tmin = -0.045
-    tmax = 0.015
-    test_tminidx = int(-0.035 * raw.info['sfreq'])
-    test_tmaxidx = int(-0.015 * raw.info['sfreq'])
-
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='linear')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
-    diff_data0 = np.diff(data[0])
-    diff_data0 -= np.mean(diff_data0)
-    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='window')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
+    tmin, tmax, event_id = -0.2, 0.5, 1
+    picks = pick_types(raw.info, meg=True, eeg=True,
+                       eog=True, stim=False, exclude='bads')
+    epochs = Epochs(raw, events, event_id, tmin, tmax,
+                    picks=picks, preload=True)
+    e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
+    tmin, tmax = -0.15, -0.05
+    tmin_samp = int(-0.125 * epochs.info['sfreq']) - e_start
+    tmax_samp = int(-0.03 * epochs.info['sfreq']) - e_start
+    epochs = fix_stim_artifact(epochs,None, None, tmin, tmax, mode='window')
+    data = epochs._data[:, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
 
     # use window after stimulus
-    tmin = 0.005
-    tmax = 0.045
-    test_tminidx = int(0.015 * raw.info['sfreq'])
-    test_tmaxidx = int(0.035 * raw.info['sfreq'])
-
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='linear')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
-    diff_data0 = np.diff(data[0])
-    diff_data0 -= np.mean(diff_data0)
-    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
-    raw = eliminate_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                  tmax=tmax, mode='window')
-    data, times = raw[:, (tidx + test_tminidx):(tidx + test_tmaxidx)]
+    evoked = epochs.average()
+    tmin, tmax = 0.1, 0.3
+    tmin_samp = int(0.10 * evoked.info['sfreq']) - evoked.first
+    tmax_samp = int(0.25 * evoked.info['sfreq']) - evoked.first
+    evoked = fix_stim_artifact(evoked, None, None, tmin, tmax, mode='window')
+    data = evoked.data[:, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
