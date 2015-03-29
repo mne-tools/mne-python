@@ -6,7 +6,7 @@ import numpy as np
 from scipy import signal, interpolate
 from ..evoked import Evoked
 from ..epochs import Epochs
-from ..io.fiff.raw import RawFIFF
+from ..io import Raw
 from ..utils import deprecated
 
 from .. import pick_types
@@ -118,7 +118,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=-0.2,
     if mode == 'window':
         window = _get_window(s_start, s_end)
 
-    if isinstance(inst, RawFIFF):
+    if isinstance(inst, Raw):
         picks = pick_types(inst.info, meg=True, eeg=True, eog=True, ecg=True,
                            emg=True, ref_meg=True, misc=True, chpi=True,
                            exclude='bads', stim=False, resp=False)
