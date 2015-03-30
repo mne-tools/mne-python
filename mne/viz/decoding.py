@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Clement Moutard <clement.moutard@gmail.com>
 #
 # License: Simplified BSD
 

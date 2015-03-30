@@ -1,6 +1,7 @@
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Clement Moutard <clement.moutard@gmail.com>
 #
 # License: BSD (3-clause)
 
