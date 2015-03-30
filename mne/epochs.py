@@ -148,8 +148,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                        'frequency of %g Hz. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
-                       % (lowpass, decim, new_sfreq))
-                       # nyquist says freq * 2 but 2.5 is safer
+                       % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
                 warnings.warn(msg)
 
             i_start = start_idx % decim
