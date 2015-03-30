@@ -918,12 +918,17 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             If flat is None then no rejection is done.
 
         """
-        if reject is not None:
-            self.reject = reject
-        if flat is not None:
-            self.flat = flat
-        self._reject_setup()
-        self._get_data_from_disk(out=False)
+        if (reject is not None and reject != self.reject) or \
+                (flat is not None and flat != self.flat):
+            raise RuntimeError('Epochs have already been dropped with '
+                               'different reject and flat parameters')
+        if self._bad_dropped is False:
+            if reject is not None:
+                self.reject = reject
+            if flat is not None:
+                self.flat = flat
+            self._reject_setup()
+            self._get_data_from_disk(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):
         """Compute the channel stats based on a drop_log from Epochs.

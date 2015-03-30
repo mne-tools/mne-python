@@ -443,6 +443,14 @@ def test_reject_epochs():
     epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
     assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
 
+    # try rejection again but with same parameters
+    epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
+    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+
+    # try rejection again with different parameters
+    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
+    assert_raises(RuntimeError, epochs.drop_bad_epochs, reject=reject_crazy)
+
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
@@ -454,7 +462,6 @@ def test_reject_epochs():
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
     raw_2.info['bads'] = ['MEG 2443']
-    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
     epochs = Epochs(raw_2, events1, event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject_crazy, flat=flat)
     epochs.drop_bad_epochs()
