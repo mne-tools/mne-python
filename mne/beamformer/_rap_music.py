@@ -20,7 +20,7 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 @verbose
 def _apply_rap_music(data, info, times, forward, noise_cov,
-                     signal_ndim=15, n_dipoles=5, picks=None,
+                     signal_ndim=None, n_dipoles=5, picks=None,
                      return_explained_data=False, verbose=None):
     """RAP-MUSIC for evoked data
 
@@ -38,7 +38,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         The noise covariance.
     signal_ndim : int
         The dimension of the subspace spanning the signal.
-        The default value is 15.
+        The default value is the number of dipoles.
     n_dipoles : int
         The number of dipoles to estimate.
     picks : array-like of int | None
@@ -58,6 +58,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
+    if signal_ndim is None:
+        signal_ndim = n_dipoles
+
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
 
@@ -96,9 +99,10 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                 source_idx = i_source
                 source_ori = ori
                 if n_orient == 3 and ori[-1] < 0:
-                    source_ori *= -1.  # make sure ori is relative to surface ori
+                    # make sure ori is relative to surface ori
+                    source_ori *= -1.
 
-                pos = forward['source_rr'][i_source]
+                source_pos = forward['source_rr'][i_source]
                 if n_orient == 1:
                     source_ori = forward['source_nn'][i_source]
 
@@ -116,7 +120,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
             gain_dip[:, k] = gain_k.ravel()
 
         oris[k] = source_ori
-        poss[k] = pos
+        poss[k] = source_pos
         if n_orient == 3:
             oris[k] = np.dot(forward['source_nn'][idx_k], oris[k])
 
@@ -173,7 +177,7 @@ def _compute_proj(A):
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
+def rap_music(evoked, forward, noise_cov, signal_ndim=None, n_dipoles=5,
               return_residual=False, picks=None, verbose=None):
     """RAP-MUSIC source localization method.
 
@@ -190,7 +194,7 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=15, n_dipoles=5,
         The noise covariance.
     signal_ndim : int
         The dimension of the subspace spanning the signal.
-        The default value is 15.
+        The default value is the number of dipoles.
     n_dipoles : int
         The number of dipoles to look for. Default value is 5.
     return_residual : bool
