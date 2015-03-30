@@ -142,7 +142,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                        'low-pass filtered. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
-                       % (decim, new_sfreq))         
+                       % (decim, new_sfreq))
             elif new_sfreq < 2.5 * lowpass:
                 msg = ('The measurement information indicates a low-pass '
                        'frequency of %g Hz. The decim=%i parameter will '
