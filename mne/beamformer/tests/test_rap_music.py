@@ -77,7 +77,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     mu, sigma = 0.075, 0.008
     s2 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
                                                    (2 * sigma ** 2))
-    data = np.array([s1, s2])
+    data = np.array([s1, s2]) * 10e-10
 
     src = forward['src']
     rndi = np.random.randint(len(src[0]['vertno']))
@@ -131,7 +131,7 @@ def test_rap_music():
 
 @slow_test
 @testing.requires_testing_data
-def test_rap_music():
+def test_rap_music_simulated():
     """Test RAP-MUSIC with simulated evoked
     """
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
