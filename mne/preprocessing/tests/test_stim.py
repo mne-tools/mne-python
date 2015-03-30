@@ -49,18 +49,28 @@ def test_stim_fix():
     epochs = Epochs(raw, events, event_id, tmin, tmax,
                     picks=picks, preload=True)
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
-    tmin, tmax = -0.15, -0.05
-    tmin_samp = int(-0.125 * epochs.info['sfreq']) - e_start
-    tmax_samp = int(-0.03 * epochs.info['sfreq']) - e_start
+    tmin, tmax = -0.045, -0.015
+    tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
+    tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
+
+    epochs = fix_stim_artifact(epochs, None, None, tmin, tmax, mode='linear')
+    data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    diff_data0 = np.diff(data[0][0])
+    diff_data0 -= np.mean(diff_data0)
+    assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
     epochs = fix_stim_artifact(epochs,None, None, tmin, tmax, mode='window')
-    data = epochs._data[:, tmin_samp:tmax_samp]
+    data = epochs.get_data()[:, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
 
     # use window after stimulus
     evoked = epochs.average()
-    tmin, tmax = 0.1, 0.3
-    tmin_samp = int(0.10 * evoked.info['sfreq']) - evoked.first
-    tmax_samp = int(0.25 * evoked.info['sfreq']) - evoked.first
+    tmin, tmax = 0.005, 0.045
+    tmin_samp = int(0.015 * evoked.info['sfreq']) - evoked.first
+    tmax_samp = int(0.035 * evoked.info['sfreq']) - evoked.first
+    evoked = fix_stim_artifact(evoked, None, None, tmin, tmax, mode='linear')
+    data = evoked.data[:, tmin_samp:tmax_samp]
+    diff_data0 = np.diff(data[0])
+    diff_data0 -= np.mean(diff_data0)
     evoked = fix_stim_artifact(evoked, None, None, tmin, tmax, mode='window')
     data = evoked.data[:, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
