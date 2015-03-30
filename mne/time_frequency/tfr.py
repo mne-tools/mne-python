@@ -184,6 +184,11 @@ def _cwt_fft(X, Ws, mode="same"):
     """Compute cwt with fft based convolutions
     Return a generator over signals.
     """
+    try:
+        from mklfft.fftpack import fftn, ifftn
+    except ImportError:
+        pass
+
     X = np.asarray(X)
 
     # Precompute wavelets for given frequency range to save time
