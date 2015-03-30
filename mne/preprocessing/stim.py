@@ -165,8 +165,10 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         first_samp = s_start - e_start
         last_samp = s_end - e_start
         data = inst.get_data()[:, picks, :]
-        for epoch, k in data, range(len(data)):
+        k = 0
+        for epoch in data:
             _fix_artifact(inst._data[k], epoch, window, picks, first_samp, last_samp, mode)
+            k += 1
 
     elif isinstance(inst, Evoked):
         first_samp = s_start - inst.first
