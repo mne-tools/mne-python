@@ -372,7 +372,7 @@ class GeneralizationAcrossTime(object):
         self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
-    def score(self, epochs, y=None, scorer=None, test_times=None):
+    def score(self, epochs=None, y=None, scorer=None, test_times=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
@@ -382,9 +382,10 @@ class GeneralizationAcrossTime(object):
 
         Parameters
         ----------
-        epochs : instance of Epochs
+        epochs : instance of Epochs | None
             The epochs. Can be similar to fitted epochs or not. See independent
             parameter.
+            If None, it relies on the y_pred_ generated from predit()
         y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
@@ -426,15 +427,26 @@ class GeneralizationAcrossTime(object):
         from sklearn.base import is_classifier
         from sklearn.preprocessing import LabelEncoder
 
-        # Run predictions
-        self.predict(epochs, test_times=test_times)
+        # Run predictions if not already done
+        if epochs is not None:
+            self.predict(epochs, test_times=test_times)
+        else:
+            if not hasattr(self, 'y_pred_'):
+                raise RuntimeError('Please predit() epochs first or pass '
+                                   'epochs to score()')
 
         # If no regressor is passed, use default epochs events
         if y is None:
             if self.predict_mode == 'cross-validation':
                 y = self.y_train_
             else:
-                y = epochs.events[:, 2]
+                if epochs is not None:
+                    y = epochs.events[:, 2]
+                else:
+                    raise RuntimeError('y is undefined because'
+                                       'predict_mode="mean-prediction" and '
+                                       'epochs are missing. You need to '
+                                       'explicitly specify y.')
             if not np.all(np.unique(y) == np.unique(self.y_train_)):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
