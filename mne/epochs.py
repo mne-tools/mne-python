@@ -561,10 +561,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                verbose=None)
 
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
-                         n_fft=256, picks=None,
+                         n_fft=256, ch_type=None,
                          n_overlap=0, layout=None, cmap='RdBu_r',
                          agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         verbose=None):
+                         cbar_fmt='%0.3f', verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -589,10 +589,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Apply projection.
         n_fft : int
             Number of points to use in Welch FFT calculations.
-        picks : array-like of int | None
-            List of channels to use.
         n_overlap : int
             The number of points of overlap between blocks.
+        ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
+            The channel type to plot. For 'grad', the gradiometers are collected in
+            pairs and the RMS for each pair is plotted. If None, defaults to
+            'mag' if MEG data are present and to 'eeg' if only EEG data are
+            present.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout
@@ -614,6 +617,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         normalize : bool
             If True, each band will be devided by the total power. Defaults to
             False.
+        cbar_fmt : str
+            The colorbar format. Defaults to '%0.3f'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -624,9 +629,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return plot_epochs_psd_topomap(
             self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
-            picks=picks, n_overlap=n_overlap, layout=layout, cmap=cmap,
+            ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            verbose=None)
+            cbar_fmt=cbar_fmt, verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):

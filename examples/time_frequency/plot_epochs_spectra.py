@@ -42,4 +42,4 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, eog=False,
                        stim=False, exclude='bads')
 
 # Now let's take a look at the spatial distributions of the psd.
-epochs.plot_psd_topomap(picks=picks, normalize=True)
+epochs.plot_psd_topomap(ch_type='grad', normalize=True)
