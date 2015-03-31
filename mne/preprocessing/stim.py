@@ -14,13 +14,23 @@ from ..io.pick import pick_channels
 
 
 def _get_window(start, end):
+    """Return window which has length as much as parameter start - end"""
     window = 1 - np.r_[signal.hann(4)[:2],
                        np.ones(np.abs(end - start) - 4),
                        signal.hann(4)[-2:]].T
     return window
 
 
+def _check_preload(inst):
+    """Check if inst.preload is False. If it is False, raising error"""
+    if inst.preload is False:
+            raise RuntimeError('Modifying data of Instance is only supported '
+                               'when preloading is used. Use preload=True '
+                               '(or string) in the constructor.')
+
+
 def _fix_artifact(orig, data, window, picks, first_samp, last_samp, mode):
+    """Modify original data by using parameter data"""
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
         f = interpolate.interp1d(x, data[:, (0, -1)])
@@ -33,10 +43,10 @@ def _fix_artifact(orig, data, window, picks, first_samp, last_samp, mode):
 
 
 @deprecated('`eliminate_stim_artifact` will be deprecated '
-            'in v0.10 : Use fix_stim_artifact_raw')
+            'in v0.10 : Use fix_stim_artifact')
 def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
                             tmax=0.01, mode='linear'):
-    """Eliminates stimulations artifacts from raw data
+    """Eliminate stimulations artifacts from raw data
 
     The raw object will be modified in place (no copy)
 
@@ -95,19 +105,17 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
                       tmax=0.01, mode='linear', copy=False):
-    """Eliminates stimulations artifacts from instance
-
-    The instance will be modified in place (no copy)
+    """Eliminate stimulation's artifacts from instance
 
     Parameters
     ----------
-    inst : instance of evoked or epochs
+    inst : instance of raw or evoked or epochs
         instance
     events : array, shape (n_events, 3)
-        The list of events. No need when inst is epochs or evoked
+        The list of events. Required only when inst is raw
     event_id : int
         The id of the events generating the stimulation artifacts.
-        No need when inst is epochs or evoked
+        Required only when inst is raw
     tmin : float
         Start time of the interpolation window in seconds.
     tmax : float
@@ -121,7 +129,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     Returns
     -------
-    inst : instance of evoked or epochs
+    inst : instance of raw or evoked or epochs
         instance with modified data
     """
     if copy:
@@ -138,45 +146,37 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     picks = pick_channels(ch_names, ch_names)
 
     if isinstance(inst, Raw):
-        if inst.preload is False:
-            raise RuntimeError('Modifying data of Raw is only supported '
-                               'when preloading is used. Use preload=True '
-                               '(or string) in the constructor.')
+        _check_preload(inst)
         events_sel = (events[:, 2] == event_id)
         event_start = events[events_sel, 0]
-        if mode is 'linear':
-            data, _ = inst[picks, :]
-        elif mode is 'window':
-            data, _ = inst[:, :]
-        for k in range(len(event_start)):
-            first_samp = int(event_start[k]) - inst.first_samp + s_start
-            last_samp = int(event_start[k]) - inst.first_samp + s_end
-            _fix_artifact(inst, data, window, picks, first_samp, last_samp, mode)
+        data, _ = inst[:, :]
+        for event_idx in event_start:
+            first_samp = int(event_idx) - inst.first_samp + s_start
+            last_samp = int(event_idx) - inst.first_samp + s_end
+            _fix_artifact(inst, data, window, picks, first_samp,
+                          last_samp, mode)
 
     elif isinstance(inst, Epochs):
-        if inst.preload is False:
-            raise RuntimeError('Modifying data of Epochs is only supported '
-                               'when preloading is used. Use preload=True '
-                               'in the constructor.')
+        _check_preload(inst)
         if inst.reject:
-            raise RuntimeError('Reject is already applied. Use reject=False '
+            raise RuntimeError('Reject is already applied. Use reject=None '
                                'in the constructor.')
         e_start = int(np.ceil(inst.info['sfreq'] * inst.tmin))
         first_samp = s_start - e_start
         last_samp = s_end - e_start
         data = inst.get_data()[:, picks, :]
-        k = 0
-        for epoch in data:
-            _fix_artifact(inst._data[k], epoch, window, picks, first_samp, last_samp, mode)
-            k += 1
+        for epoch, k in zip(data, range(len(data[0][0]))):
+            _fix_artifact(inst.get_data()[k], epoch, window, picks, first_samp,
+                          last_samp, mode)
 
     elif isinstance(inst, Evoked):
         first_samp = s_start - inst.first
         last_samp = s_end - inst.first
         data = inst.data
-        _fix_artifact(inst.data, data, window, picks, first_samp, last_samp, mode)
+        _fix_artifact(inst.data, data, window, picks, first_samp,
+                      last_samp, mode)
 
     else:
-        raise TypeError('Not a Epochs or Evoked or Raw')
+        raise TypeError('Not a Raw or Epochs or Evoked')
 
     return inst

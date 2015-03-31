@@ -32,13 +32,13 @@ def test_stim_fix():
     tmax_samp = int(0.01 * raw.info['sfreq'])
 
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                tmax=tmax, mode='linear')
+                            tmax=tmax, mode='linear')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     diff_data0 = np.diff(data[0])
     diff_data0 -= np.mean(diff_data0)
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
-                                tmax=tmax, mode='window')
+                            tmax=tmax, mode='window')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     assert_true(np.all(data) == 0.)
 
@@ -46,20 +46,20 @@ def test_stim_fix():
     tmin, tmax, event_id = -0.2, 0.5, 1
     picks = pick_types(raw.info, meg=True, eeg=True,
                        eog=True, stim=False, exclude='bads')
-    epochs = Epochs(raw, events, event_id, tmin, tmax,
-                    picks=picks, preload=True)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, reject=None)
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
     tmin, tmax = -0.045, -0.015
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
 
-    epochs = fix_stim_artifact(epochs, None, None, tmin, tmax, mode='linear')
+    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='linear')
     data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
     diff_data0 = np.diff(data[0][0])
     diff_data0 -= np.mean(diff_data0)
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
-    epochs = fix_stim_artifact(epochs,None, None, tmin, tmax, mode='window')
-    data = epochs.get_data()[:, tmin_samp:tmax_samp]
+    epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
+    data = epochs.get_data()[:, :, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
 
     # use window after stimulus
@@ -67,10 +67,10 @@ def test_stim_fix():
     tmin, tmax = 0.005, 0.045
     tmin_samp = int(0.015 * evoked.info['sfreq']) - evoked.first
     tmax_samp = int(0.035 * evoked.info['sfreq']) - evoked.first
-    evoked = fix_stim_artifact(evoked, None, None, tmin, tmax, mode='linear')
+    evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='linear')
     data = evoked.data[:, tmin_samp:tmax_samp]
     diff_data0 = np.diff(data[0])
     diff_data0 -= np.mean(diff_data0)
-    evoked = fix_stim_artifact(evoked, None, None, tmin, tmax, mode='window')
+    evoked = fix_stim_artifact(evoked, tmin=tmin, tmax=tmax, mode='window')
     data = evoked.data[:, tmin_samp:tmax_samp]
     assert_true(np.all(data) == 0.)
