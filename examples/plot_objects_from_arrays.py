@@ -63,7 +63,7 @@ events = np.array([[200, 0, event_id],
 # Here a data set of 700 ms epochs from 2 channels is
 # created from sin and cos data.
 # Any data in shape (n_epochs, n_channels, n_times) can be used.
-epochs_data = [[sin[:700],      cos[:700]],
+epochs_data = [[sin[:700], cos[:700]],
                [sin[1000:1700], cos[1000:1700]],
                [sin[1800:2500], cos[1800:2500]]]
 
