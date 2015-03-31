@@ -85,6 +85,8 @@ Changelog
 
    - Add example of creating MNE objects from arbitrary data and NEO files by 'Jaakko Leppakangas'_
 
+   - Add plot_psd and plot_psd_topomap methods to epochs by `Yousra Bekhti_`, `Eric Larson_` and `Denis Engemann_`
+
 BUG
 ~~~
 
@@ -158,6 +160,9 @@ API
    - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
 
    - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
+
+   - Use `scipy.signal.welch` instead of matplotlib.psd inside `compute_raw_psd` and `compute_epochs_psd` by `Yousra Bekhti_`
+     `Eric Larson_` and `Denis Engemann_`
 
 .. _changes_0_8:
 
