@@ -244,3 +244,11 @@ def test_generalization_across_time():
                             cv=2, clf=clf, predict_type=pt)
                         gat.fit(epochs, y=y_)
                         gat.score(epochs, y=y_)
+
+    # Test score without passing epochs
+    gat = GeneralizationAcrossTime()
+    with warnings.catch_warnings(record=True):
+        gat.fit(epochs)
+    assert_raises(RuntimeError, gat.score)
+    gat.predict(epochs)
+    gat.score()
