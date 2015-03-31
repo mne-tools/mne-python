@@ -1038,8 +1038,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
-        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
-                     format=format)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
@@ -1050,6 +1048,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         cax.set_position(cpos)
         if unit is not None:
             cax.set_title(unit)
+        plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
+                     format=format)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
