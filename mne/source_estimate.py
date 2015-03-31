@@ -1402,10 +1402,10 @@ class SourceEstimate(_BaseSourceEstimate):
             automatically based on data percentiles. If dict, should contain:
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
-                lims : list, np.ndarray, or tuple of float, 3 elements
+                lims : list | np.ndarray | tuple of float, 3 elements
                     Note: Only use this if 'colormap' is not 'mne_analyze'.
                     Left, middle, and right bound for colormap.
-                pos_lims : list, np.ndarray, or tuple of float, 3 elements
+                pos_lims : list | np.ndarray | tuple of float, 3 elements
                     Note: Only use this if 'colormap' is 'mne_analyze'.
                     Left, middle, and right bound for colormap. Positive values
                     will be mirrored directly across zero during colormap
