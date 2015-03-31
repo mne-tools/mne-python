@@ -11,10 +11,10 @@ NEO file format is used as a source for the data.
 #
 # License: BSD (3-clause)
 
-import mne
-
 import neo
 import numpy as np
+
+import mne
 
 print(__doc__)
 
@@ -103,8 +103,8 @@ bl = reader.read(cascade=True, lazy=False)[0]
 seg = bl.segments[0]
 title = seg.file_origin
 
-ch_names = []
-data = []
+ch_names = list()
+data = list()
 for asig in seg.analogsignals:
     # Since the data does not contain channel names, channel indices are used.
     ch_names.append(str(asig.channel_index))
