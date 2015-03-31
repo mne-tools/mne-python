@@ -11,8 +11,8 @@ NEO file format is used as a source for the data.
 #
 # License: BSD (3-clause)
 
-import neo
 import numpy as np
+import neo
 
 import mne
 
