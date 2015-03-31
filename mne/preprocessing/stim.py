@@ -15,9 +15,12 @@ from ..io.pick import pick_channels
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end"""
-    window = 1 - np.r_[signal.hann(4)[:2],
-                       np.ones(np.abs(end - start) - 4),
-                       signal.hann(4)[-2:]].T
+    if np.abs(end - start) <= 4:  # When time range is too small
+        window = np.zeros(end - start)
+    else:
+        window = 1 - np.r_[signal.hann(4)[:2],
+                           np.ones(np.abs(end - start) - 4),
+                           signal.hann(4)[-2:]].T
     return window
 
 
@@ -109,7 +112,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     Parameters
     ----------
-    inst : instance of raw or evoked or epochs
+    inst : instance of Raw or Evoked or Epochs
         instance
     events : array, shape (n_events, 3)
         The list of events. Required only when inst is raw
@@ -129,16 +132,13 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     Returns
     -------
-    inst : instance of raw or evoked or epochs
+    inst : instance of Raw or Evoked or Epochs
         instance with modified data
     """
     if copy:
         inst = inst.copy()
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
-    if (s_end - s_start - 4) < 0:
-        raise ValueError('Time between tmin and tmax is too short'
-                         ' to fix artifact. Input longer values')
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
