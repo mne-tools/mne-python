@@ -432,8 +432,8 @@ class GeneralizationAcrossTime(object):
             self.predict(epochs, test_times=test_times)
         else:
             if not hasattr(self, 'y_pred_'):
-                raise RuntimeError('Please predit() epochs first or pass epochs'
-                                    ' to score()')
+                raise RuntimeError('Please predit() epochs first or pass '
+                                   'epochs to score()')
 
         # If no regressor is passed, use default epochs events
         if y is None:
@@ -444,8 +444,9 @@ class GeneralizationAcrossTime(object):
                     y = epochs.events[:, 2]
                 else:
                     raise RuntimeError('y is undefined because'
-                        'predict_mode="mean-prediction" and epochs are missing.'
-                        'You need to explicitly specify y.')
+                                       'predict_mode="mean-prediction" and '
+                                       'epochs are missing. You need to '
+                                       'explicitly specify y.')
             if not np.all(np.unique(y) == np.unique(self.y_train_)):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '

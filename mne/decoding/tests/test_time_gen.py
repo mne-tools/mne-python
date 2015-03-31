@@ -163,7 +163,7 @@ def test_generalization_across_time():
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
     assert_raises(RuntimeError, gat.score)
-    gat.predict(epochs, test_times='diagonal') # Test diagonal decoding
+    gat.predict(epochs, test_times='diagonal')  # Test diagonal decoding
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
