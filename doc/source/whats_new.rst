@@ -83,6 +83,8 @@ Changelog
 
    - Add reader function for Raw FIF files by `Teon Brooks`_
 
+   - Add example of creating MNE objects from arbitrary data and NEO files by 'Jaakko Leppakangas'_
+
 BUG
 ~~~
 
@@ -972,3 +974,5 @@ of commits):
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Chris Holdgraf: http://chrisholdgraf.com
+
+.. _Jaakko Leppakangas: https://github.com/jaeilepp
