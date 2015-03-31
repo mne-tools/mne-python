@@ -974,3 +974,5 @@ of commits):
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Chris Holdgraf: http://chrisholdgraf.com
+
+.. _Jaakko Leppakangas: https://github.com/jaeilepp
