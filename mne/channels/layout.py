@@ -907,11 +907,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
     if transform is True:
         names_lower = [name.lower() for name in list(ch_names_)]
-        fids = ('nasion', 'lpa', 'rpa')
-        # check that all needed points are present
-        missing = [name for name in fids
-                   if name not in names_lower]
-        if missing:
+        if ext == '.hpts':
             fids = ('1', '2', '3')  # Alternate cardinal point names
             missing = [name for name in fids
                        if name not in names_lower]
@@ -925,6 +921,15 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
             lpa = pos[names_lower.index('1')]
             rpa = pos[names_lower.index('3')]
         else:
+            fids = ('nasion', 'lpa', 'rpa')
+            missing = [name for name in fids
+                       if name not in names_lower]
+            if missing:
+                raise ValueError("The points %s are missing, but are needed "
+                                 "to transform the points to the MNE "
+                                 "coordinate system. Either add the points, "
+                                 "or read the montage with scale as bool."
+                                 % missing)
             nasion = pos[names_lower.index('nasion')]
             lpa = pos[names_lower.index('lpa')]
             rpa = pos[names_lower.index('rpa')]

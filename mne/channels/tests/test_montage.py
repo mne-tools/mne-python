@@ -77,9 +77,9 @@ def test_montage():
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
     eeg AF3 -87 -41 28
-    cardinal nasion -91 0 -42
-    cardinal lpa 0 -91 -42
-    cardinal rpa 0 91 -42
+    cardinal 2 -91 0 -42
+    cardinal 1 0 -91 -42
+    cardinal 3 0 91 -42
     """
     kind = 'test_fid.hpts'
     fname = op.join(tempdir, kind)
