@@ -1101,7 +1101,7 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, ch_type=None,
                             n_overlap=0, layout=None,
-                            cmap='RdBu_r', agg_fun=np.mean, dB=False, n_jobs=1,
+                            cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
                             normalize=False, verbose=None, cbar_fmt='%0.3f'):
     """Plot the topomap of the power spectral density across epochs
 
@@ -1171,7 +1171,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     info = epochs.info
     if ch_type is None:
         ch_type = 'mag' if 'meg' in epochs else 'eeg'
-    if layout is None and ch_type is not 'eeg':
+    if layout is None and ch_type != 'eeg':
         from ..channels import find_layout
         layout = find_layout(info)
     elif layout == 'auto':
