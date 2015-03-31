@@ -8,6 +8,7 @@ from numpy.testing import assert_array_equal, assert_array_almost_equal
 from mne.channels import read_montage, apply_montage
 from mne.utils import _TempDir
 from mne import create_info
+from mne.transforms import (apply_trans, get_ras_to_neuromag_trans)
 
 
 def test_montage():
@@ -71,6 +72,38 @@ def test_montage():
                 table = np.loadtxt(fname, skiprows=2, dtype=dtype)
             pos2 = np.c_[table['x'], table['y'], table['z']]
             assert_array_almost_equal(pos2, montage.pos, 4)
+    # test transform
+    input_str = """
+    eeg Fp1 -95.0 -31.0 -3.0
+    eeg AF7 -81 -59 -3
+    eeg AF3 -87 -41 28
+    cardinal nasion -91 0 -42
+    cardinal lpa 0 -91 -42
+    cardinal rpa 0 91 -42
+    """
+    kind = 'test_fid.hpts'
+    fname = op.join(tempdir, kind)
+    with open(fname, 'w') as fid:
+        fid.write(input_str)
+    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), transform=True)
+    # check coordinate transformation
+    pos = np.array([-95.0, -31.0, -3.0])
+    nasion = np.array([-91, 0, -42])
+    lpa = np.array([0, -91, -42])
+    rpa = np.array([0, 91, -42])
+    fids = np.vstack((nasion, lpa, rpa))
+    trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
+    pos = apply_trans(trans, pos)
+    assert_array_equal(montage.pos[0], pos)
+    idx = montage.ch_names.index('nasion')
+    assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
+    idx = montage.ch_names.index('lpa')
+    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+    idx = montage.ch_names.index('rpa')
+    assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
+    pos = np.array([-95.0, -31.0, -3.0])
+    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='mm')
+    assert_array_equal(montage.pos[0], pos * 1e-3)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))

@@ -110,6 +110,7 @@ Functions:
   read_raw_kit
   read_raw_brainvision
   read_raw_egi
+  read_raw_fif
 
 .. currentmodule:: mne.io.kit
 

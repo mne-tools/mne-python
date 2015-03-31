@@ -9,7 +9,7 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
-from .fiff import RawFIFF as Raw
+from .fiff import RawFIF as Raw
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..utils import logger

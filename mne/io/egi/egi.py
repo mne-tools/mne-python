@@ -167,8 +167,12 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
 
     Returns
     -------
-    raw : instance of mne.io.Raw
-        A raw object containing EGI data.
+    raw : Instance of RawEGI
+        A Raw object containing EGI data.
+
+    See Also
+    --------
+    mne.io.Raw : Documentation of attribute and methods.
     """
     return _RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
 
@@ -200,63 +204,69 @@ class _RawEGI(_BaseRaw):
 
         logger.info('    Assembling measurement info ...')
 
-        event_codes = list(egi_info['event_codes'])
-        egi_events = data[-egi_info['n_events']:]
+        if egi_info['n_events'] > 0:
+            event_codes = list(egi_info['event_codes'])
+            egi_events = data[-egi_info['n_events']:]
 
-        if include is None:
-            exclude_list = ['sync', 'TREV'] if exclude is None else exclude
-            exclude_inds = [i for i, k in enumerate(event_codes) if k in
-                            exclude_list]
-            more_excludes = []
-            if exclude is None:
-                for ii, event in enumerate(egi_events):
-                    if event.sum() <= 1 and event_codes[ii]:
-                        more_excludes.append(ii)
-            if len(exclude_inds) + len(more_excludes) == len(event_codes):
-                warnings.warn('Did not find any event code with more '
-                              'than one event.', RuntimeWarning)
+            if include is None:
+                exclude_list = ['sync', 'TREV'] if exclude is None else exclude
+                exclude_inds = [i for i, k in enumerate(event_codes) if k in
+                                exclude_list]
+                more_excludes = []
+                if exclude is None:
+                    for ii, event in enumerate(egi_events):
+                        if event.sum() <= 1 and event_codes[ii]:
+                            more_excludes.append(ii)
+                if len(exclude_inds) + len(more_excludes) == len(event_codes):
+                    warnings.warn('Did not find any event code with more '
+                                  'than one event.', RuntimeWarning)
+                else:
+                    exclude_inds.extend(more_excludes)
+
+                exclude_inds.sort()
+                include_ = [i for i in np.arange(egi_info['n_events']) if
+                            i not in exclude_inds]
+                include_names = [k for i, k in enumerate(event_codes)
+                                 if i in include_]
             else:
-                exclude_inds.extend(more_excludes)
+                include_ = [i for i, k in enumerate(event_codes)
+                            if k in include]
+                include_names = include
 
-            exclude_inds.sort()
-            include_ = [i for i in np.arange(egi_info['n_events']) if
-                        i not in exclude_inds]
-            include_names = [k for i, k in enumerate(event_codes)
-                             if i in include_]
+            for kk, v in [('include', include_names), ('exclude', exclude)]:
+                if isinstance(v, list):
+                    for k in v:
+                        if k not in event_codes:
+                            raise ValueError('Could find event named "%s"' % k)
+                elif v is not None:
+                    raise ValueError('`%s` must be None or of type list' % kk)
+
+            event_ids = np.arange(len(include_)) + 1
+            try:
+                logger.info('    Synthesizing trigger channel "STI 014" ...')
+                logger.info('    Excluding events {%s} ...' %
+                            ", ".join([k for i, k in enumerate(event_codes)
+                                       if i not in include_]))
+                new_trigger = _combine_triggers(egi_events[include_],
+                                                remapping=event_ids)
+                data = np.concatenate([data, new_trigger])
+            except RuntimeError:
+                logger.info('    Found multiple events at the same time '
+                            'sample. Could not create trigger channel.')
+                new_trigger = None
+
+            self.event_id = dict(zip([e for e in event_codes if e in
+                                      include_names], event_ids))
         else:
-            include_ = [i for i, k in enumerate(event_codes) if k in include]
-            include_names = include
-
-        for kk, v in [('include', include_names), ('exclude', exclude)]:
-            if isinstance(v, list):
-                for k in v:
-                    if k not in event_codes:
-                        raise ValueError('Could find event named "%s"' % k)
-            elif v is not None:
-                raise ValueError('`%s` must be None or of type list' % kk)
-
-        event_ids = np.arange(len(include_)) + 1
-        try:
-            logger.info('    Synthesizing trigger channel "STI 014" ...')
-            logger.info('    Excluding events {%s} ...' %
-                        ", ".join([k for i, k in enumerate(event_codes)
-                                   if i not in include_]))
-            new_trigger = _combine_triggers(egi_events[include_],
-                                            remapping=event_ids)
-            data = np.concatenate([data, new_trigger])
-        except RuntimeError:
-            logger.info('    Found multiple events at the same time sample. '
-                        'Could not create trigger channel.')
+            # No events
+            self.event_id = None
             new_trigger = None
-
-        self.event_id = dict(zip([e for e in event_codes if e in
-                                  include_names], event_ids))
         self._data = data
         self.verbose = verbose
         self.info = info = _empty_info()
         info['hpi_subsystem'] = None
         info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
-        info['sfreq'] = egi_info['samp_rate']
+        info['sfreq'] = float(egi_info['samp_rate'])
         info['filename'] = input_fname
         my_time = datetime.datetime(
             egi_info['year'],

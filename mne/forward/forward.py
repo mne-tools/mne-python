@@ -441,7 +441,7 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
             raise ValueError('No parent MRI information in %s' % fname)
         parent_mri = parent_mri[0]
 
-        src = _read_source_spaces_from_tree(fid, tree, add_geom=False)
+        src = _read_source_spaces_from_tree(fid, tree, patch_stats=False)
         for s in src:
             s['id'] = find_source_space_hemi(s)
 
@@ -1379,13 +1379,8 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     bem : str | None
         Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
         (Default), the MNE default will be used.
-    trans : str | None
+    trans : dict | str | None
         File name of the trans file. If None, mri must not be None.
-    mri : dict | str | None
-        Either a transformation (usually made using mne_analyze) or an
-        info dict (usually opened using read_trans()), or a filename.
-        If dict, the trans will be saved in a temporary directory. If
-        None, trans must not be None.
     eeg : bool
         If True (Default), include EEG computations.
     meg : bool

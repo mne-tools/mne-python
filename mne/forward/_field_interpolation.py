@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
+import warnings
 
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
@@ -207,15 +208,15 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     return fmd
 
 
-def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
-                   ch_type=None, mode='fast', n_jobs=1):
+def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
+                   ch_type=None, mode='fast', n_jobs=1, trans_fname=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
     ----------
     evoked : Evoked | Epochs | Raw
         The measurement file. Need to have info attribute.
-    trans_fname : str | 'auto' | None
+    trans : str | 'auto' | None
         The full path to the `*-trans.fif` file produced during
         coregistration. If present or found using 'auto'
         the maps will be in MRI coordinates.
@@ -242,6 +243,11 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
+    if trans_fname is not None:
+        trans = trans_fname
+        warnings.warn('The parameter "trans_fname" is deprecated and will '
+                      'be removed in 0.10, use "trans" instead',
+                      DeprecationWarning)
     info = evoked.info
 
     if ch_type is None:
@@ -252,20 +258,19 @@ def make_field_map(evoked, trans_fname='auto', subject=None, subjects_dir=None,
                              % ch_type)
         types = [ch_type]
 
-    if trans_fname == 'auto':
+    if trans == 'auto':
         # let's try to do this in MRI coordinates so they're easy to plot
-        trans_fname = _find_trans(subject, subjects_dir)
+        trans = _find_trans(subject, subjects_dir)
 
-    if 'eeg' in types and trans_fname is None:
+    if 'eeg' in types and trans is None:
         logger.info('No trans file available. EEG data ignored.')
         types.remove('eeg')
 
     if len(types) == 0:
         raise RuntimeError('No data available for mapping.')
 
-    trans = None
-    if trans_fname is not None:
-        trans = read_trans(trans_fname)
+    if trans is not None:
+        trans = read_trans(trans)
 
     surfs = []
     for this_type in types:

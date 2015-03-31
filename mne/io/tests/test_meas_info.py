@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import os.path as op
 
 from nose.tools import assert_false, assert_equal, assert_raises, assert_true
@@ -15,6 +17,7 @@ from mne.io.kit.tests import data_dir
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
 raw_fname = op.join(base_dir, 'test_raw.fif')
+chpi_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
 evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 hsp_fname = op.join(data_dir, 'test_hsp.txt')
@@ -85,6 +88,17 @@ def test_read_write_info():
     t2 = info2['dev_head_t']['trans']
     assert_true(len(info['chs']) == len(info2['chs']))
     assert_array_equal(t1, t2)
+    # proc_history (e.g., GH#1875)
+    creator = u'é'
+    info = io.read_info(chpi_fname)
+    info['proc_history'][0]['creator'] = creator
+    info['hpi_meas'][0]['creator'] = creator
+    info['subject_info']['his_id'] = creator
+    io.write_info(temp_file, info)
+    info = io.read_info(temp_file)
+    assert_equal(info['proc_history'][0]['creator'], creator)
+    assert_equal(info['hpi_meas'][0]['creator'], creator)
+    assert_equal(info['subject_info']['his_id'], creator)
 
 
 def test_io_dig_points():

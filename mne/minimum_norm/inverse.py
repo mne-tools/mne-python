@@ -237,7 +237,8 @@ def read_inverse_operator(fname, verbose=None):
         #
         #   Read the source spaces
         #
-        inv['src'] = _read_source_spaces_from_tree(fid, tree, add_geom=False)
+        inv['src'] = _read_source_spaces_from_tree(fid, tree,
+                                                   patch_stats=False)
 
         for s in inv['src']:
             s['id'] = find_source_space_hemi(s)

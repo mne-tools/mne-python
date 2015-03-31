@@ -9,8 +9,8 @@ import numpy as np
 from scipy import signal
 
 from ..io.pick import pick_channels_cov
-from ..utils import check_random_state, verbose
 from ..forward import apply_forward
+from ..utils import check_random_state, verbose, _time_mask
 
 
 @verbose
@@ -113,12 +113,7 @@ def add_noise_evoked(evoked, noise, snr, tmin=None, tmax=None):
         An instance of evoked corrupted by noise
     """
     evoked = copy.deepcopy(evoked)
-    times = evoked.times
-    if tmin is None:
-        tmin = np.min(times)
-    if tmax is None:
-        tmax = np.max(times)
-    tmask = (times >= tmin) & (times <= tmax)
+    tmask = _time_mask(evoked.times, tmin, tmax)
     tmp = 10 * np.log10(np.mean((evoked.data[:, tmask] ** 2).ravel()) /
                         np.mean((noise.data ** 2).ravel()))
     noise.data = 10 ** ((tmp - float(snr)) / 20) * noise.data

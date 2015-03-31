@@ -657,6 +657,11 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    Returns
+    -------
+    raw : Instance of RawEDF
+        A Raw object containing EDF data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.

@@ -16,7 +16,7 @@ from mne.utils import (set_log_level, set_log_file, _TempDir,
                        ArgvSetter, _memory_usage, check_random_state,
                        _check_mayavi_version, requires_mayavi,
                        set_memmap_min_size, _get_stim_channel, _check_fname,
-                       create_slices)
+                       create_slices, _time_mask)
 from mne.io import show_fiff
 from mne import Evoked
 from mne.externals.six.moves import StringIO
@@ -448,5 +448,15 @@ def test_create_slices():
     assert_true(slices[0].stop == 3)
     assert_true(slices[-1].start == 6)
     assert_true(slices[-1].stop == 9)
+
+
+def test_time_mask():
+    """Test safe time masking
+    """
+    N = 10
+    x = np.arange(N).astype(float)
+    assert_equal(_time_mask(x, 0, N - 1).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, 0, N - 1).sum(), N)
+    assert_equal(_time_mask(x - 1e-10, 0, N - 1, strict=True).sum(), N - 1)
 
 run_tests_if_main()

@@ -18,7 +18,7 @@ from ..time_frequency.multitaper import (dpss_windows, _mt_spectra,
                                          _psd_from_mt, _csd_from_mt,
                                          _psd_from_mt_adaptive)
 from ..time_frequency.tfr import morlet, cwt
-from ..utils import logger, verbose
+from ..utils import logger, verbose, _time_mask
 
 ########################################################################
 # Various connectivity estimators
@@ -778,16 +778,11 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                                        endpoint=False)
 
             n_times_in = len(times_in)
-            tmin_idx = 0
-            tmax_idx = n_times_in
-            tmin_true = times_in[0]
-            tmax_true = times_in[-1]
-            if tmin is not None:
-                tmin_idx = np.argmin(np.abs(times_in - tmin))
-                tmin_true = times_in[tmin_idx]
-            if tmax is not None:
-                tmax_idx = np.argmin(np.abs(times_in - tmax)) + 1
-                tmax_true = times_in[tmax_idx - 1]  # time of last point used
+            mask = _time_mask(times_in, tmin, tmax)
+            tmin_idx, tmax_idx = np.where(mask)[0][[0, -1]]
+            tmax_idx += 1
+            tmin_true = times_in[tmin_idx]
+            tmax_true = times_in[tmax_idx - 1]  # time of last point used
 
             times = times_in[tmin_idx:tmax_idx]
             n_times = len(times)

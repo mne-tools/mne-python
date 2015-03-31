@@ -356,7 +356,7 @@ def test_setup_source_space():
 def test_read_source_spaces():
     """Test reading of source space meshes
     """
-    src = read_source_spaces(fname, add_geom=True)
+    src = read_source_spaces(fname, patch_stats=True)
 
     # 3D source space
     lh_points = src[0]['rr']
@@ -381,9 +381,10 @@ def test_write_source_space():
     """Test reading and writing of source spaces
     """
     tempdir = _TempDir()
-    src0 = read_source_spaces(fname, add_geom=False)
+    src0 = read_source_spaces(fname, patch_stats=False)
     write_source_spaces(op.join(tempdir, 'tmp-src.fif'), src0)
-    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'), add_geom=False)
+    src1 = read_source_spaces(op.join(tempdir, 'tmp-src.fif'),
+                              patch_stats=False)
     _compare_source_spaces(src0, src1)
 
     # test warnings on bad filenames
@@ -488,7 +489,7 @@ def test_combine_source_spaces():
                      for ii in range(2)]
 
     # get a surface source space (no need to test creation here)
-    srf = read_source_spaces(fname, add_geom=False)
+    srf = read_source_spaces(fname, patch_stats=False)
 
     # setup 2 volume source spaces
     vol = setup_volume_source_space('sample', subjects_dir=subjects_dir,

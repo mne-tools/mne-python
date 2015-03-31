@@ -18,7 +18,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, requires_h5py
+from ..utils import logger, verbose, requires_h5py, _time_mask
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
@@ -515,19 +515,21 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     # crop time
     itmin, itmax = None, None
+    idx = np.where(_time_mask(times, tmin, tmax))[0]
     if tmin is not None:
-        itmin = np.where(times >= tmin)[0][0]
+        itmin = idx[0]
     if tmax is not None:
-        itmax = np.where(times <= tmax)[0][-1]
+        itmax = idx[-1] + 1
 
     times = times[itmin:itmax]
 
     # crop freqs
     ifmin, ifmax = None, None
+    idx = np.where(_time_mask(freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = np.where(freqs >= fmin)[0][0]
+        ifmin = idx[0]
     if fmax is not None:
-        ifmax = np.where(freqs <= fmax)[0][-1]
+        ifmax = idx[-1] + 1
 
     freqs = freqs[ifmin:ifmax]
 

@@ -29,7 +29,7 @@ from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
-                    _compute_row_norms, check_sklearn_version)
+                    _compute_row_norms, check_sklearn_version, _time_mask)
 
 from .externals.six.moves import zip
 
@@ -48,10 +48,9 @@ def _check_covs_algebra(cov1, cov2):
 def _get_tslice(epochs, tmin, tmax):
     """get the slice"""
     tstart, tend = None, None
-    if tmin is not None:
-        tstart = np.where(epochs.times >= tmin)[0][0]
-    if tmax is not None:
-        tend = np.where(epochs.times <= tmax)[0][-1] + 1
+    mask = _time_mask(epochs.times, tmin, tmax)
+    tstart = np.where(mask)[0][0] if tmin is not None else None
+    tend = np.where(mask)[0][-1] + 1 if tmax is not None else None
     tslice = slice(tstart, tend, None)
     return tslice
 
@@ -306,8 +305,8 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
         End of time interval in seconds
     tstep : float
         Length of data chunks for artefact rejection in seconds.
-    reject : dict
-        Rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
         If reject is None then no rejection is done. Example::
 
@@ -317,9 +316,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     picks : array-like of int
         Indices of channels to include (if None, all channels

@@ -79,9 +79,9 @@ Changelog
 
    - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
 
-   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_ 
-
    - Add support for adding an empty reference channel to data by `Teon Brooks`_
+
+   - Add reader function for Raw FIF files by `Teon Brooks`_
 
 BUG
 ~~~
@@ -119,6 +119,10 @@ BUG
 
    - Fix beamformer code LCMV/DICS for CTF data with reference channels by `Denis Engemann`_ and `Alex Gramfort`_
 
+   - Fix scalings for bad EEG channels in `mne.viz.plot_topo` by `Marijn van Vliet`_
+
+   - Fix EGI reading when no events are present by `Federico Raimondo`_
+
 API
 ~~~
 
@@ -142,6 +146,12 @@ API
    - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``
 
    - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
+
+   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_
+
+   - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
+
+   - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
 
 .. _changes_0_8:
 
@@ -960,3 +970,5 @@ of commits):
 .. _Jona Sassenhagen: https://github.com/jona-sassenhagen
 
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
+
+.. _Chris Holdgraf: http://chrisholdgraf.com

@@ -888,20 +888,20 @@ def test_access_by_name():
 
 
 @requires_pandas
-def test_as_data_frame():
+def test_to_data_frame():
     """Test epochs Pandas exporter"""
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
-    assert_raises(ValueError, epochs.as_data_frame, index=['foo', 'bar'])
-    assert_raises(ValueError, epochs.as_data_frame, index='qux')
-    assert_raises(ValueError, epochs.as_data_frame, np.arange(400))
-    df = epochs.as_data_frame()
+    assert_raises(ValueError, epochs.to_data_frame, index=['foo', 'bar'])
+    assert_raises(ValueError, epochs.to_data_frame, index='qux')
+    assert_raises(ValueError, epochs.to_data_frame, np.arange(400))
+    df = epochs.to_data_frame()
     data = np.hstack(epochs.get_data())
     assert_true((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
     assert_array_equal(df.values[:, 2], data[2] * 1e15)
     for ind in ['time', ['condition', 'time'], ['condition', 'time', 'epoch']]:
-        df = epochs.as_data_frame(index=ind)
+        df = epochs.to_data_frame(index=ind)
         assert_true(df.index.names == ind if isinstance(ind, list) else [ind])
         # test that non-indexed data were present as categorial variables
         df.reset_index().columns[:3] == ['condition', 'epoch', 'time']

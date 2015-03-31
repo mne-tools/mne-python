@@ -32,8 +32,8 @@ fname_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data',
                     'test_raw.fif')
 fname_evoked = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                        'data', 'test-ave.fif')
-fname_mri = op.join(data_path, 'MEG', 'sample',
-                    'sample_audvis_trunc-trans.fif')
+fname_trans = op.join(data_path, 'MEG', 'sample',
+                      'sample_audvis_trunc-trans.fif')
 subjects_dir = os.path.join(data_path, 'subjects')
 fname_src = op.join(subjects_dir, 'sample', 'bem', 'sample-oct-4-src.fif')
 fname_bem = op.join(subjects_dir, 'sample', 'bem',
@@ -91,7 +91,7 @@ def test_make_forward_solution_kit():
     mrk_path = op.join(kit_dir, 'test_mrk.sqd')
     elp_path = op.join(kit_dir, 'test_elp.txt')
     hsp_path = op.join(kit_dir, 'test_hsp.txt')
-    mri_path = op.join(kit_dir, 'trans-sample.fif')
+    trans_path = op.join(kit_dir, 'trans-sample.fif')
     fname_kit_raw = op.join(kit_dir, 'test_bin_raw.fif')
 
     bti_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'bti',
@@ -113,13 +113,13 @@ def test_make_forward_solution_kit():
 
     # first use mne-C: convert file, make forward solution
     fwd = do_forward_solution('sample', fname_kit_raw, src=fname_src_small,
-                              bem=fname_bem_meg, mri=mri_path,
+                              bem=fname_bem_meg, mri=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     assert_true(isinstance(fwd, Forward))
 
     # now let's use python with the same raw file
-    fwd_py = make_forward_solution(fname_kit_raw, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path)
+    fwd_py = make_forward_solution(fname_kit_raw, trans_path, src,
+                                   fname_bem_meg, eeg=False, meg=True)
     _compare_forwards(fwd, fwd_py, 157, n_src)
     assert_true(isinstance(fwd_py, Forward))
 
@@ -128,40 +128,40 @@ def test_make_forward_solution_kit():
     # without ignore_ref=True, this should throw an error:
     assert_raises(NotImplementedError, make_forward_solution, raw_py.info,
                   src=src, eeg=False, meg=True,
-                  bem=fname_bem_meg, mri=mri_path)
+                  bem=fname_bem_meg, trans=trans_path)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path,
+                                   bem=fname_bem_meg, trans=trans_path,
                                    ignore_ref=True)
     _compare_forwards(fwd, fwd_py, 157, n_src,
                       meg_rtol=1e-3, meg_atol=1e-7)
 
     # BTI python end-to-end versus C
     fwd = do_forward_solution('sample', fname_bti_raw, src=fname_src_small,
-                              bem=fname_bem_meg, mri=mri_path,
+                              bem=fname_bem_meg, mri=trans_path,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     raw_py = read_raw_bti(bti_pdf, bti_config, bti_hs)
     fwd_py = make_forward_solution(raw_py.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=mri_path)
+                                   bem=fname_bem_meg, trans=trans_path)
     _compare_forwards(fwd, fwd_py, 248, n_src)
 
     # now let's test CTF w/compensation
-    fwd_py = make_forward_solution(fname_ctf_raw, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=fname_mri)
+    fwd_py = make_forward_solution(fname_ctf_raw, fname_trans, src,
+                                   fname_bem_meg, eeg=False, meg=True)
 
-    fwd = do_forward_solution('sample', fname_ctf_raw, src=fname_src_small,
-                              bem=fname_bem_meg, mri=fname_mri,
+    fwd = do_forward_solution('sample', fname_ctf_raw, mri=fname_trans,
+                              src=fname_src_small, bem=fname_bem_meg,
                               eeg=False, meg=True, subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
     # CTF with compensation changed in python
     ctf_raw = Raw(fname_ctf_raw, compensation=2)
 
-    fwd_py = make_forward_solution(ctf_raw.info, src=src, eeg=False, meg=True,
-                                   bem=fname_bem_meg, mri=fname_mri)
+    fwd_py = make_forward_solution(ctf_raw.info, fname_trans, src,
+                                   fname_bem_meg, eeg=False, meg=True)
     with warnings.catch_warnings(record=True):
-        fwd = do_forward_solution('sample', ctf_raw, src=fname_src_small,
-                                  bem=fname_bem_meg,
-                                  mri=fname_mri, eeg=False, meg=True,
+        fwd = do_forward_solution('sample', ctf_raw, mri=fname_trans,
+                                  src=fname_src_small, bem=fname_bem_meg,
+                                  eeg=False, meg=True,
                                   subjects_dir=subjects_dir)
     _compare_forwards(fwd, fwd_py, 274, n_src)
 
@@ -171,9 +171,8 @@ def test_make_forward_solution_kit():
 def test_make_forward_solution():
     """Test making M-EEG forward solution from python
     """
-    fwd_py = make_forward_solution(fname_raw, mindist=5.0,
-                                   src=fname_src, eeg=True, meg=True,
-                                   bem=fname_bem, mri=fname_mri)
+    fwd_py = make_forward_solution(fname_raw, fname_trans, fname_src,
+                                   fname_bem, mindist=5.0, eeg=True, meg=True)
     assert_true(isinstance(fwd_py, Forward))
     fwd = read_forward_solution(fname_meeg)
     assert_true(isinstance(fwd, Forward))
@@ -191,10 +190,10 @@ def test_make_forward_solution_sphere():
     out_name = op.join(temp_dir, 'tmp-fwd.fif')
     run_subprocess(['mne_forward_solution', '--meg', '--eeg',
                     '--meas', fname_raw, '--src', fname_src_small,
-                    '--mri', fname_mri, '--fwd', out_name])
+                    '--mri', fname_trans, '--fwd', out_name])
     fwd = read_forward_solution(out_name)
     sphere = make_sphere_model(verbose=True)
-    fwd_py = make_forward_solution(fname_raw, fname_mri, src, sphere,
+    fwd_py = make_forward_solution(fname_raw, fname_trans, src, sphere,
                                    meg=True, eeg=True, verbose=True)
     _compare_forwards(fwd, fwd_py, 366, 108,
                       meg_rtol=5e-1, meg_atol=1e-6,
@@ -218,7 +217,7 @@ def test_do_forward_solution():
     with open(existing_file, 'w') as fid:
         fid.write('aoeu')
 
-    mri = read_trans(fname_mri)
+    mri = read_trans(fname_trans)
     fname_fake = op.join(temp_dir, 'no_have.fif')
 
     # ## Error checks
@@ -256,24 +255,24 @@ def test_do_forward_solution():
                   mri=mri, eeg=False, meg=False, subjects_dir=subjects_dir)
     # mindist as non-integer
     assert_raises(TypeError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, mindist=dict(), subjects_dir=subjects_dir)
+                  mri=fname_trans, mindist=dict(), subjects_dir=subjects_dir)
     # mindist as string but not 'all'
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, eeg=False, mindist='yall',
+                  mri=fname_trans, eeg=False, mindist='yall',
                   subjects_dir=subjects_dir)
     # src, spacing, and bem as non-str
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, src=1, subjects_dir=subjects_dir)
+                  mri=fname_trans, src=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, spacing=1, subjects_dir=subjects_dir)
+                  mri=fname_trans, spacing=1, subjects_dir=subjects_dir)
     assert_raises(ValueError, do_forward_solution, 'sample', fname_raw,
-                  mri=fname_mri, bem=1, subjects_dir=subjects_dir)
+                  mri=fname_trans, bem=1, subjects_dir=subjects_dir)
     # no overwrite flag
     assert_raises(IOError, do_forward_solution, 'sample', fname_raw,
-                  existing_file, mri=fname_mri, subjects_dir=subjects_dir)
+                  existing_file, mri=fname_trans, subjects_dir=subjects_dir)
     # let's catch an MNE error, this time about trans being wrong
     assert_raises(CalledProcessError, do_forward_solution, 'sample',
-                  fname_raw, existing_file, trans=fname_mri, overwrite=True,
+                  fname_raw, existing_file, trans=fname_trans, overwrite=True,
                   spacing='oct6', subjects_dir=subjects_dir)
 
     # No need to actually calculate and check here, since it's effectively
@@ -307,8 +306,7 @@ def test_forward_mixed_source_space():
     src = surf + vol1 + vol2
 
     # calculate forward solution
-    fwd = make_forward_solution(fname_raw, mri=fname_mri, src=src,
-                                bem=fname_bem, fname=None)
+    fwd = make_forward_solution(fname_raw, fname_trans, src, fname_bem, None)
     assert_true(repr(fwd))
 
     # extract source spaces

@@ -27,7 +27,7 @@ from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels)
 from .io.proj import setup_proj, ProjMixin, proj_equal
-from .io.base import _BaseRaw, _time_as_index, _index_as_time
+from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
 from .utils import (check_random_state, _check_pandas_index_arguments,
@@ -41,7 +41,7 @@ from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
-from .utils import _check_type_picks
+from .utils import _check_type_picks, _time_mask, deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -130,27 +130,33 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if tmin >= tmax:
             raise ValueError('tmin has to be smaller than tmax')
         sfreq = float(self.info['sfreq'])
-        n_times_min = int(round(tmin * sfreq))
-        n_times_max = int(round(tmax * sfreq))
-        times = np.arange(n_times_min, n_times_max + 1, dtype=np.float) / sfreq
-        self.times = times
-        self._raw_times = times  # times before decimation
-        self._epoch_stop = ep_len = len(self.times)
+        start_idx = int(round(tmin * sfreq))
+        self._raw_times = np.arange(start_idx,
+                                    int(round(tmax * sfreq)) + 1) / sfreq
+        self._epoch_stop = ep_len = len(self._raw_times)
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
-            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
+            if lowpass is None:
+                msg = ('The measurement information indicates data is not '
+                       'low-pass filtered. The decim=%i parameter will '
+                       'result in a sampling frequency of %g Hz, which can '
+                       'cause aliasing artifacts.'
+                       % (decim, new_sfreq))
+            elif new_sfreq < 2.5 * lowpass:
                 msg = ('The measurement information indicates a low-pass '
                        'frequency of %g Hz. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
-                       % (lowpass, decim, new_sfreq))
+                       % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
                 warnings.warn(msg)
 
-            i_start = n_times_min % decim
+            i_start = start_idx % decim
             self._decim_idx = slice(i_start, ep_len, decim)
-            self.times = self.times[self._decim_idx]
+            self.times = self._raw_times[self._decim_idx]
             self.info['sfreq'] = new_sfreq
+        else:
+            self.times = self._raw_times
 
         self.preload = False
         self._data = None
@@ -504,7 +510,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            show=show, block=block)
 
 
-class Epochs(_BaseEpochs):
+class Epochs(_BaseEpochs, ToDataFrameMixin):
     """List of Epochs
 
     Parameters
@@ -546,11 +552,10 @@ class Epochs(_BaseEpochs):
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example::
+        If reject is None then no rejection is done. Example::
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
@@ -558,9 +563,10 @@ class Epochs(_BaseEpochs):
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
@@ -1179,9 +1185,9 @@ class Epochs(_BaseEpochs):
 
         Parameters
         ----------
-        tmin : float
+        tmin : float | None
             Start time of selection in seconds.
-        tmax : float
+        tmax : float | None
             End time of selection in seconds.
         copy : bool
             If False epochs is cropped in place.
@@ -1215,7 +1221,7 @@ class Epochs(_BaseEpochs):
                           "tmax is set to epochs.tmax")
             tmax = self.tmax
 
-        tmask = (self.times >= tmin) & (self.times <= tmax)
+        tmask = _time_mask(self.times, tmin, tmax)
         tidx = np.where(tmask)[0]
 
         this_epochs = self if not copy else self.copy()
@@ -1344,6 +1350,8 @@ class Epochs(_BaseEpochs):
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, index=None, scale_time=1e3,
                       scalings=None, copy=True):
         """Get the epochs as Pandas DataFrame
@@ -1588,11 +1596,10 @@ class EpochsArray(Epochs):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example::
+        If reject is None then no rejection is done. Example::
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
@@ -1600,9 +1607,10 @@ class EpochsArray(Epochs):
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,

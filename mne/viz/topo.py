@@ -333,7 +333,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                  for kk in types_used]
     else:
         types_used_kwargs = dict((t, True) for t in types_used)
-        picks = [pick_types(info, meg=False, **types_used_kwargs)]
+        picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
     scalings = _mutable_defaults(('scalings', scalings))[0]

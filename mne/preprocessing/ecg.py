@@ -236,14 +236,20 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     h_freq : float
         High pass frequency.
     reject : dict | None
-        Rejection parameters based on peak to peak amplitude.
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done. You should
-        use such parameters to reject big measurement artifacts
-        and not ECG for example
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # uV (EEG channels)
+                          eog=250e-6 # uV (EOG channels)
+                          )
+
     flat : dict | None
-        Rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     baseline : tuple or list of length 2, or None
         The time interval to apply rescaling / baseline correction.

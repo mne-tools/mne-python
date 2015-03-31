@@ -28,7 +28,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, deprecated
+from .utils import logger, verbose, deprecated, _time_mask
 
 
 class Dipole(object):
@@ -91,13 +91,15 @@ class Dipole(object):
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
         """
-        times = self.times
-        mask = np.ones(len(times), dtype=np.bool)
-        if tmin is not None:
-            mask = mask & (times >= tmin)
-        if tmax is not None:
-            mask = mask & (times <= tmax)
+        mask = _time_mask(self.times, tmin, tmax)
         for attr in ('times', 'pos', 'gof', 'amplitude', 'ori', 'gof'):
             setattr(self, attr, getattr(self, attr)[mask])
 

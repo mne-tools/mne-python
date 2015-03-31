@@ -1188,7 +1188,7 @@ class ProgressBar(object):
         # Ensure floating-point division so we can get fractions of a percent
         # for the progressbar.
         self.cur_value = cur_value
-        progress = float(self.cur_value) / self.max_value
+        progress = min(float(self.cur_value) / self.max_value, 1.)
         num_chars = int(progress * self.max_chars)
         num_left = self.max_chars - num_chars
 
@@ -1360,7 +1360,7 @@ def _fetch_file(url, file_name, print_destination=True, resume=True,
             local_file = open(temp_file_name, "ab")
             # Resuming HTTP and FTP downloads requires different procedures
             scheme = urllib.parse.urlparse(url).scheme
-            if scheme == 'http':
+            if scheme in ('http', 'https'):
                 local_file_size = os.path.getsize(temp_file_name)
                 # If the file exists, then only download the remainder
                 req = urllib.request.Request(url)
@@ -1716,3 +1716,15 @@ def create_slices(start, stop, step=None, length=1):
     slices = [slice(t, t + length, 1) for t in
               range(start, stop - length + 1, step)]
     return slices
+
+
+def _time_mask(times, tmin=None, tmax=None, strict=False):
+    """Helper to safely find sample boundaries"""
+    tmin = -np.inf if tmin is None else tmin
+    tmax = np.inf if tmax is None else tmax
+    mask = (times >= tmin)
+    mask &= (times <= tmax)
+    if not strict:
+        mask |= np.isclose(times, tmin)
+        mask |= np.isclose(times, tmax)
+    return mask

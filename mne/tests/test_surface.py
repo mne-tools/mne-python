@@ -122,13 +122,13 @@ def test_io_bem_surfaces():
     """Test reading of bem surfaces
     """
     tempdir = _TempDir()
-    surf = read_bem_surfaces(fname, add_geom=True)
-    surf = read_bem_surfaces(fname, add_geom=False)
+    surf = read_bem_surfaces(fname, patch_stats=True)
+    surf = read_bem_surfaces(fname, patch_stats=False)
     print("Number of surfaces : %d" % len(surf))
 
     write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
     surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  add_geom=False)
+                                  patch_stats=False)
 
     for key in surf[0].keys():
         assert_array_almost_equal(surf[0][key], surf_read[0][key])

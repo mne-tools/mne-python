@@ -17,7 +17,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, deprecated)
+                    object_hash, deprecated, _time_mask)
 from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
 from .viz import plot_evoked_field
 from .viz import plot_evoked_image
@@ -34,6 +34,7 @@ from .io.proj import ProjMixin
 from .io.write import (start_file, start_block, end_file, end_block,
                        write_int, write_string, write_float_matrix,
                        write_id)
+from .io.base import ToDataFrameMixin
 
 aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
@@ -42,7 +43,8 @@ aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
-             SetChannelsMixin, InterpolationMixin, FilterMixin):
+             SetChannelsMixin, InterpolationMixin, FilterMixin,
+             ToDataFrameMixin):
     """Evoked data
 
     Parameters
@@ -296,14 +298,16 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def crop(self, tmin=None, tmax=None):
         """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
         """
-        times = self.times
-        mask = np.ones(len(times), dtype=np.bool)
-        if tmin is not None:
-            mask = mask & (times >= tmin)
-        if tmax is not None:
-            mask = mask & (times <= tmax)
-        self.times = times[mask]
+        mask = _time_mask(self.times, tmin, tmax)
+        self.times = self.times[mask]
         self.first = int(self.times[0] * self.info['sfreq'])
         self.last = len(self.times) + self.first - 1
         self.data = self.data[:, mask]
@@ -623,6 +627,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                sampling_rate=self.info['sfreq'])
         return evoked_ts
 
+    @deprecated("'as_data_frame' will be removed in v0.10. Use"
+                " 'to_data_frame' instead.")
     def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
                       use_time_index=True, copy=True):
         """Get the Evoked object as a Pandas DataFrame

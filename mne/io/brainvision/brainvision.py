@@ -620,6 +620,11 @@ def read_raw_brainvision(vhdr_fname, montage=None,
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
+    Returns
+    -------
+    raw : Instance of RawBrainVision
+        A Raw object containing BrainVision data.
+
     See Also
     --------
     mne.io.Raw : Documentation of attribute and methods.

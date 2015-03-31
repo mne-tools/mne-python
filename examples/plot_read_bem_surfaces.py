@@ -17,7 +17,7 @@ print(__doc__)
 data_path = sample.data_path()
 fname = data_path + '/subjects/sample/bem/sample-5120-5120-5120-bem-sol.fif'
 
-surfaces = mne.read_bem_surfaces(fname, add_geom=True)
+surfaces = mne.read_bem_surfaces(fname, patch_stats=True)
 
 print("Number of surfaces : %d" % len(surfaces))
 
