@@ -162,7 +162,7 @@ API
    - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
 
    - Use `scipy.signal.welch` instead of matplotlib.psd inside `compute_raw_psd` and `compute_epochs_psd` by `Yousra Bekhti_`
-     `Eric Larson_` and `Denis Engemann_`
+     `Eric Larson_` and `Denis Engemann_`. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
 .. _changes_0_8:
 
