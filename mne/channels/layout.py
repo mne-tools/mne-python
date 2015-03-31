@@ -912,14 +912,23 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         missing = [name for name in fids
                    if name not in names_lower]
         if missing:
-            raise ValueError("The points %s are missing, but are needed "
-                             "to transform the points to the MNE coordinate "
-                             "system. Either add the points, or read the "
-                             "montage with scale as bool." % missing)
+            fids = ('1', '2', '3')  # Alternate cardinal point names
+            missing = [name for name in fids
+                       if name not in names_lower]
+            if missing:
+                raise ValueError("The points %s are missing, but are needed "
+                                 "to transform the points to the MNE "
+                                 "coordinate system. Either add the points, "
+                                 "or read the montage with scale as bool."
+                                 % missing)
+            nasion = pos[names_lower.index('2')]
+            lpa = pos[names_lower.index('1')]
+            rpa = pos[names_lower.index('3')]
+        else:
+            nasion = pos[names_lower.index('nasion')]
+            lpa = pos[names_lower.index('lpa')]
+            rpa = pos[names_lower.index('rpa')]
 
-        nasion = pos[names_lower.index('nasion')]
-        lpa = pos[names_lower.index('lpa')]
-        rpa = pos[names_lower.index('rpa')]
         neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         pos = apply_trans(neuromag_trans, pos)
 
