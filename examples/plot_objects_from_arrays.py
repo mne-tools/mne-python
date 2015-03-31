@@ -13,9 +13,13 @@ NEO file format is used as a source for the data.
 
 import mne
 
+import neo
 import numpy as np
 
 print(__doc__)
+
+###############################################################################
+# Create arbitrary data
 
 sfreq = 1000  # Sampling frequency
 times = np.arange(0, 10, 0.001)  # Use 10000 samples (10s)
@@ -32,7 +36,9 @@ data = np.array([sin, cos, sinX2, cosX2])
 ch_types = ['mag', 'mag', 'grad', 'grad']
 ch_names = ['sin', 'cos', 'sinX2', 'cosX2']
 
+###############################################################################
 # Creation of info dictionary.
+
 # It is also possible to use info from another raw object.
 info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
 
@@ -87,8 +93,6 @@ evokeds.plot(picks=picks, show=True, units={'mag': '-'},
 
 ###############################################################################
 # Extracting data from NEO file
-
-import neo
 
 # The example here uses the ExampleIO object for creating fake data.
 # For actual data and different file formats, consult the NEO documentation.
