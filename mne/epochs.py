@@ -592,7 +592,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_overlap : int
             The number of points of overlap between blocks.
         ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
-            The channel type to plot. For 'grad', the gradiometers are collected in
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in
             pairs and the RMS for each pair is plotted. If None, defaults to
             'mag' if MEG data are present and to 'eeg' if only EEG data are
             present.
