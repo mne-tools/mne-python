@@ -440,14 +440,16 @@ def test_reject_epochs():
     # check if they match
     epochs_noreject = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
                              baseline=(None, 0))
+    epochs_noreject.drop_bad_epochs()
     epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
     assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
 
-    # try rejection again but with same parameters
-    epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
+    # try rejection again with same parameters
+    epochs_noreject.drop_bad_epochs()
     assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+    assert_raises(RuntimeError, epochs_noreject.drop_bad_epochs, reject=reject)
 
-    # try rejection again with different parameters
+    # don't allow rejection again
     reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
     assert_raises(RuntimeError, epochs.drop_bad_epochs, reject=reject_crazy)
 
