@@ -306,7 +306,8 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
                     sparse_indices = np.fromstring(tmp_indices, dtype='>i4')
                     tmp_ptrs = fid.read(4 * (ncol + 1))
                     sparse_ptrs = np.fromstring(tmp_ptrs, dtype='>i4')
-                    if sparse_ptrs[-1] > len(sparse_indices):
+                    if (sparse_ptrs[-1] > len(sparse_indices) or
+                            np.any(sparse_ptrs < 0)):
                         # There was a bug in MNE-C that caused some data to be
                         # stored without byte swapping
                         sparse_indices = np.concatenate(
