@@ -440,7 +440,12 @@ class GeneralizationAcrossTime(object):
             if self.predict_mode == 'cross-validation':
                 y = self.y_train_
             else:
-                y = epochs.events[:, 2]
+                if epochs is not None:
+                    y = epochs.events[:, 2]
+                else:
+                    raise RuntimeError('y is undefined because'
+                        'predict_mode="mean-prediction" and epochs are missing.'
+                        'You need to explicitly specify y.')
             if not np.all(np.unique(y) == np.unique(self.y_train_)):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
