@@ -1084,25 +1084,25 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     vmax = np.max(data) if vmax is None else vmax
 
     if title is not None:
-        ax.set_title(title)
+        ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
                          cmap=cmap, image_interp='bilinear', contours=False)
 
     if colorbar is True:
         divider = make_axes_locatable(ax)
-        cax = divider.append_axes("right", size="5%", pad=0.05)
+        cax = divider.append_axes("right", size="10%", pad=0.25)
         cbar = plt.colorbar(im, cax=cax, ticks=(vmin, vmax),
                             format='%3.3f')
         if unit is not None:
-            cbar.set_label(unit)
+            cbar.ax.set_title(unit, fontsize=8)
         cbar.ax.tick_params(labelsize=8)
 
 
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, picks=None,
                             n_overlap=0, layout=None,
-                            cmap='RdBu_r', agg_fun=np.sum, dB=False, n_jobs=1,
-                            verbose=None):
+                            cmap='RdBu_r', agg_fun=np.mean, dB=False, n_jobs=1,
+                            normalize=False, verbose=None):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1143,12 +1143,17 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
     agg_fun : callable
-        The function used to aggregate over frequencies. Defaults to np.sum.
+        The function used to aggregate over frequencies.
+        Defaults to np.sum. if normalize is True, else np.mean.
     dB : bool
         If True, transform data to decibels (with ``10 * np.log10(data)``)
-        following the application of `agg_fun`.
+        following the application of `agg_fun`. Only valid if normalize is
+        False.
     n_jobs : int
         Number of jobs to run in parallel.
+    normalize : bool
+        If True, each band will be devided by the total power. Defaults to
+        False.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1175,12 +1180,23 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     else:
         pos = layout.pos[picks]
 
+    if agg_fun is None:
+        agg_fun = np.sum if normalize is True else np.mean
+
     psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
                                      n_overlap=n_overlap, proj=proj,
                                      n_jobs=n_jobs)
 
     psds = np.mean(psds, axis=0)
-    for fmin, fmax, title in bands:
+    if normalize is True:
+        psds /= psds.sum(axis=-1)[..., None]
+        assert np.allclose(psds.sum(axis=-1), 1.)
+    n_axes = len(bands)
+    fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+    if n_axes == 1:
+        axes = [axes]
+
+    for ax, (fmin, fmax, title) in zip(axes, bands):
         freq_mask = (fmin < freqs) & (freqs < fmax)
         if freq_mask.sum() == 0:
             raise RuntimeError('No frequencies in band "%s" (%s, %s) for '
@@ -1188,18 +1204,17 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                                % (title, fmin, fmax,
                                   epochs.info['sfreq'], n_fft))
         data = agg_fun(psds[:, freq_mask], axis=1)
-        if dB:
+        if dB is True and normalize is False:
             data = 10 * np.log10(data)
             unit = 'dB'
         else:
             unit = 'power'
 
-        fig, ax = plt.subplots(1, 1, figsize=(2, 2))
         _plot_topomap_multi_cbar(data, pos, ax, title=title,
                                  vmin=vmin, vmax=vmax, cmap=cmap,
                                  colorbar=True, unit=unit)
-        tight_layout(fig=fig)
-        fig.canvas.draw()
+    tight_layout(fig=fig)
+    fig.canvas.draw()
 
     plt.show()
     return fig

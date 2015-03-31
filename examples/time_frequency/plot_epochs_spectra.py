@@ -38,8 +38,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 epochs.plot_psd(fmin=2, fmax=200)
 
 # picks MEG gradiometers
-picks = mne.pick_types(raw.info, meg='mag', eeg=False, eog=False,
+picks = mne.pick_types(raw.info, meg=True, eeg=False, eog=False,
                        stim=False, exclude='bads')
 
 # Now let's take a look at the spatial distributions of the psd.
-epochs.plot_psd_topomap(picks=picks)
+epochs.plot_psd_topomap(picks=picks, normalize=True)

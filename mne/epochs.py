@@ -563,7 +563,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
                          n_fft=256, picks=None,
                          n_overlap=0, layout=None, cmap='RdBu_r',
-                         agg_fun=np.sum, dB=True, n_jobs=1, verbose=None):
+                         agg_fun=None, dB=True, n_jobs=1, normalize=False,
+                         verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -603,12 +604,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             'Reds'.
         agg_fun : callable
             The function used to aggregate over frequencies.
-            Defaults to np.sum.
+            Defaults to np.sum. if normalize is True, else np.mean.
         dB : bool
             If True, transform data to decibels (with ``10 * np.log10(data)``)
-            following the application of `agg_fun`.
+            following the application of `agg_fun`. Only valid if normalize
+            is False.
         n_jobs : int
             Number of jobs to run in parallel.
+        normalize : bool
+            If True, each band will be devided by the total power. Defaults to
+            False.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -617,12 +622,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fig : instance of matplotlib figure
             Figure distributing one image per channel across sensor topography.
         """
-        return plot_epochs_psd_topomap(self, bands=bands, vmin=vmin,
-                                       vmax=vmax, proj=proj, n_fft=n_fft,
-                                       picks=picks,
-                                       n_overlap=n_overlap, layout=layout,
-                                       cmap=cmap, agg_fun=np.sum, dB=dB,
-                                       n_jobs=n_jobs, verbose=None)
+        return plot_epochs_psd_topomap(
+            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
+            picks=picks, n_overlap=n_overlap, layout=layout, cmap=cmap,
+            agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
+            verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):
