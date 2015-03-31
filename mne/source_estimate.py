@@ -1370,7 +1370,7 @@ class SourceEstimate(_BaseSourceEstimate):
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
-        colormap : str | array
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
             Name of colormap to use or a custom look up table. If array, must
             be (n x 3) or (n x 4) array for with RGB or RGBA values between 0
             and 255.
