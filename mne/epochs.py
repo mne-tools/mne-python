@@ -114,11 +114,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.selection = None
         self.detrend = detrend
 
-        # Allow reject parameters to be updated only once
-        # The boolean is True if the parameters have been set
-        self._is_reject = False if reject is None else True
-        self._is_flat = False if flat is None else True
-
         # Handle measurement info
         self.info = info
         if picks is None:
@@ -923,8 +918,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             If flat is None then no rejection is done.
 
         """
-        if (reject is not None and self._is_reject is True) or \
-                (flat is not None and self._is_reject is True):
+        if (reject is not None and self.reject is not None) or \
+                (flat is not None and self.flat is not None):
             raise RuntimeError('reject and flat parameters have already been'
                                ' set')
 
@@ -932,15 +927,13 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         # and do not update them once they have been set
         if reject is not None:
             self.reject = reject
-            self._is_reject = True
         if flat is not None:
             self.flat = flat
-            self._is_flat = True
 
         # drop epochs only if they have not been dropped and
         # at least one of the reject params have been set
         if self._bad_dropped is False and \
-                (self._is_reject is True or self._is_flat is True):
+                (self.reject is not None or self.flat is not None):
             self._reject_setup()
             self._get_data_from_disk(out=False)
 
