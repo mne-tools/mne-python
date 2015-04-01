@@ -932,8 +932,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
         # drop epochs only if they have not been dropped and
         # at least one of the reject params have been set
-        if self._bad_dropped is False and \
-                (self.reject is not None or self.flat is not None):
+        if self._bad_dropped is False:
             self._reject_setup()
             self._get_data_from_disk(out=False)
 
@@ -1162,7 +1161,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
             self.selection = self.selection[good_events]
             self.events = np.atleast_2d(self.events[good_events])
-            self._bad_dropped = True
+            if self.reject is not None or self.flat is not None:
+                self._bad_dropped = True
             logger.info("%d bad epochs dropped"
                         % (n_events - len(good_events)))
             if not out:
