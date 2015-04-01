@@ -889,6 +889,21 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         else:
             self._data = None
 
+    def _drop_preloaded_epochs(self):
+        drop_inds = list()
+        for i_epoch, epoch in enumerate(self):
+            is_good, chan = self._is_good_epoch(epoch,
+                                                verbose=self.verbose)
+            if not is_good:
+                drop_inds.append(i_epoch)
+                self.drop_log[i_epoch].extend(chan)
+        if drop_inds:
+            select = np.ones(len(self.events), dtype=np.bool)
+            select[drop_inds] = False
+            self.events = self.events[select]
+            self._data = self._data[select]
+            self.selection[select]
+
     def drop_bad_epochs(self, reject=None, flat=None):
         """Drop bad epochs and apply rejection post-hoc.
 
@@ -934,7 +949,10 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         # at least one of the reject params have been set
         if self._bad_dropped is False:
             self._reject_setup()
-            self._get_data_from_disk(out=False)
+            if self.preload:
+                self._drop_preloaded_epochs()
+            else:
+                self._get_data_from_disk(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -1803,20 +1821,8 @@ class EpochsArray(Epochs):
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self._reject_setup()
-        drop_inds = list()
         if self.reject is not None or self.flat is not None:
-            for i_epoch, epoch in enumerate(self):
-                is_good, chan = self._is_good_epoch(epoch,
-                                                    verbose=self.verbose)
-                if not is_good:
-                    drop_inds.append(i_epoch)
-                    self.drop_log[i_epoch].extend(chan)
-        if drop_inds:
-            select = np.ones(len(events), dtype=np.bool)
-            select[drop_inds] = False
-            self.events = self.events[select]
-            self._data = self._data[select]
-            self.selection[select]
+            self._drop_preloaded_epochs()
         if baseline is not None:
             rescale(self._data, self.times, baseline, mode='mean', copy=False)
 
