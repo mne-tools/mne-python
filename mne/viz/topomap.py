@@ -1167,6 +1167,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
+    if ch_type is None:
+        ch_type = 'mag' if 'meg' in epochs else 'eeg'
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
