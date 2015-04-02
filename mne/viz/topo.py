@@ -122,6 +122,11 @@ def _scale_layout(layout, layout_scale):
             layout_scale += 0.05
             pos = layout.pos.copy()
             pos[:, :2] *= layout_scale
+            if layout_scale > 4:
+                raise ValueError("Layout auto scaler not converging. "
+                                 "Set a value for layout_scale manually, "
+                                 "and/or ensure sensor coverage does "
+                                 "not include overlapping sensors.")
 
     else:
         pos[:, :2] *= layout_scale
