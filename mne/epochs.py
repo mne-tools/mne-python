@@ -136,6 +136,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._epoch_stop = ep_len = len(self._raw_times)
         if decim > 1:
             new_sfreq = sfreq / decim
+            print self.info['lowpass']
             lowpass = self.info['lowpass']
             if lowpass is None:
                 msg = ('The measurement information indicates data is not '
@@ -149,7 +150,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
                        % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
-                warnings.warn(msg)
+            warnings.warn(msg)
 
             i_start = start_idx % decim
             self._decim_idx = slice(i_start, ep_len, decim)
@@ -249,14 +250,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        data : array of shape [n_epochs, n_channels, n_times]
+        data : array of shape (n_epochs, n_channels, n_times)
             The epochs data
         """
-        if self.preload:
-            return self._data
-        else:
-            data = self._get_data_from_disk()
-            return data
+        raise NotImplementedError('get_data() must be implemented in derived '
+                                  'class.')
 
     def iter_evoked(self):
         """Iterate over Evoked objects with nave=1
@@ -1005,31 +1003,12 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                 data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
-    @verbose
-    def _is_good_epoch(self, data, verbose=None):
-        """Determine if epoch is good"""
-        if data is None:
-            return False, ['NO_DATA']
-        n_times = len(self.times)
-        if data.shape[1] < n_times:
-            # epoch is too short ie at the end of the data
-            return False, ['TOO_SHORT']
-        if self.reject is None and self.flat is None:
-            return True, None
-        else:
-            if self._reject_time is not None:
-                data = data[:, self._reject_time]
-
-            return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True,
-                            ignore_chs=self.info['bads'])
-
     def get_data(self):
         """Get all epochs as a 3D array
 
         Returns
         -------
-        data : array, shape (n_epochs, n_channels, n_times)
+        data : array of shape (n_epochs, n_channels, n_times)
             The epochs data
         """
         if self.preload:
@@ -1044,39 +1023,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             data = data_
 
         return data
-
-    def _reject_setup(self):
-        """Sets self._reject_time and self._channel_type_idx (called from
-        __init__)
-        """
-        if self.reject is None and self.flat is None:
-            return
-
-        idx = channel_indices_by_type(self.info)
-        for key in idx.keys():
-            if (self.reject is not None and key in self.reject) \
-                    or (self.flat is not None and key in self.flat):
-                if len(idx[key]) == 0:
-                    raise ValueError("No %s channel found. Cannot reject based"
-                                     " on %s." % (key.upper(), key.upper()))
-
-        self._channel_type_idx = idx
-
-        if (self.reject_tmin is None) and (self.reject_tmax is None):
-            self._reject_time = None
-        else:
-            if self.reject_tmin is None:
-                reject_imin = None
-            else:
-                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
-                reject_imin = idxs[0]
-            if self.reject_tmax is None:
-                reject_imax = None
-            else:
-                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
-                reject_imax = idxs[-1]
-
-            self._reject_time = slice(reject_imin, reject_imax)
 
     def __len__(self):
         """Number of epochs.
@@ -1689,6 +1635,16 @@ class EpochsArray(Epochs):
             self.events = self.events[select]
             self._data = self._data[select]
             self.selection[select]
+
+    def get_data(self):
+        """Get all epochs as a 3D array
+
+        Returns
+        -------
+        data : array of shape (n_epochs, n_channels, n_times)
+            The epochs data
+        """
+        return self._data
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
