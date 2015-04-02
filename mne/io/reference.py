@@ -169,7 +169,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst.data = data
-    elif inst.__class__.__base__ == _BaseRaw:
+    elif isinstance(inst, _BaseRaw):
         data = inst._data
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
@@ -200,7 +200,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
-    if inst.__class__.__base__ == _BaseRaw:
+    if isinstance(inst, _BaseRaw):
         inst.cals = np.hstack((inst.cals, [1] * len(ref_channels)))
 
     return inst
