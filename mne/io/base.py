@@ -39,7 +39,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -1033,9 +1033,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                         lowpass, filtorder, clipping)
 
     @verbose
-    def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
-                  proj=False, n_fft=2048, picks=None, ax=None, color='black',
-                  area_mode='std', area_alpha=0.33, n_jobs=1, verbose=None):
+    def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                 proj=False, n_fft=2048, picks=None, ax=None,
+                 color='black', area_mode='std', area_alpha=0.33,
+                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1067,13 +1068,32 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 0 (no overlap).
+        dB : bool
+            If True, transform data to decibels.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
         """
-        return plot_raw_psds(self, tmin, tmax, fmin, fmax, proj, n_fft, picks,
-                             ax, color, area_mode, area_alpha, n_jobs)
+        return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                            proj=proj, n_fft=n_fft, picks=picks, ax=ax,
+                            color=color, area_mode=area_mode,
+                            area_alpha=area_alpha,
+                            n_overlap=n_overlap, dB=dB, n_jobs=n_jobs)
+
+    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
+                "instead")
+    def plot_psds(self, *args, **kwargs):
+        self.plot_psd(*args, **kwargs)
+    plot_psds.__doc__ = plot_psd.__doc__
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
