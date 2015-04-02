@@ -136,7 +136,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._epoch_stop = ep_len = len(self._raw_times)
         if decim > 1:
             new_sfreq = sfreq / decim
-            print self.info['lowpass']
             lowpass = self.info['lowpass']
             if lowpass is None:
                 msg = ('The measurement information indicates data is not '
