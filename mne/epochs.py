@@ -253,8 +253,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         data : array of shape (n_epochs, n_channels, n_times)
             The epochs data
         """
-        raise NotImplementedError('get_data() must be implemented in derived '
-                                  'class.')
+        if self.preload:
+            return self._data
+        else:
+            data = self._get_data_from_disk()
+            return data
 
     def iter_evoked(self):
         """Iterate over Evoked objects with nave=1
@@ -1635,16 +1638,6 @@ class EpochsArray(Epochs):
             self.events = self.events[select]
             self._data = self._data[select]
             self.selection[select]
-
-    def get_data(self):
-        """Get all epochs as a 3D array
-
-        Returns
-        -------
-        data : array of shape (n_epochs, n_channels, n_times)
-            The epochs data
-        """
-        return self._data
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
