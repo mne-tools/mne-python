@@ -1168,38 +1168,18 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Figure distributing one image per channel across sensor topography.
     """
 
-    info = epochs.info
-    if ch_type is None:
-        ch_type = 'mag' if 'meg' in epochs else 'eeg'
-    if layout is None and ch_type != 'eeg':
-        from ..channels import find_layout
-        layout = find_layout(info)
-    elif layout == 'auto':
-        layout = None
-    if ch_type == 'eeg':
-        picks = pick_types(info, meg=False, eeg=True, ref_meg=False,
-                           exclude='bads')
-    else:
-        picks = pick_types(info, meg=ch_type, ref_meg=False,
-                           exclude='bads')
-
-    if len(picks) == 0:
-        raise ValueError("No channels of type %r" % ch_type)
-
-    if layout is None:
-        from ..channels.layout import _find_topomap_coords
-        pos = _find_topomap_coords(info, picks)
-    else:
-        names = [n.upper() for n in layout.names]
-        pos = [layout.pos[names.index(info['ch_names'][k].upper())]
-               for k in picks]
-
-    pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
+    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
+        epochs, ch_type, layout)
 
     psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
                                      n_overlap=n_overlap, proj=proj,
                                      n_jobs=n_jobs)
     psds = np.mean(psds, axis=0)
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        psds = _merge_grad_data(psds)
+
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
