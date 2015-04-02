@@ -686,7 +686,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                   colorbar=True, layout_scale=0.945, show=True,
                   border='none', fig_facecolor='k', font_color=None,
                   internal_legend=None, external_legend=None,
-                  plot_ch_names=None, linewidth=None):
+                  show_names=None, linewidth=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -760,7 +760,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             Plot time and unit labels for individual channel subplots. If
             external_legend is true, only tick labels, not axis labels are
             plotted.
-        plot_ch_names : bool
+        show_names : bool
             Should channel names be plotted next to each topo plot?
         linewidth : float | None
             Linewidth for time series, spines, tick marks.
@@ -795,7 +795,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          ylim_dict=(min(freqs), max(freqs)),
                          external_legend=external_legend,
                          internal_legend=internal_legend,
-                         plot_ch_names=plot_ch_names, linewidth=linewidth)
+                         show_names=show_names, linewidth=linewidth)
 
         if show:
             import matplotlib.pyplot as plt
