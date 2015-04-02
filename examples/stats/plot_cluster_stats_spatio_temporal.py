@@ -27,7 +27,6 @@ from mne.stats import (spatio_temporal_cluster_1samp_test,
                        summarize_clusters_stc)
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
-from mne.viz import mne_analyze_colormap
 
 print(__doc__)
 
@@ -166,14 +165,13 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
-colormap = mne_analyze_colormap(limits=[0, 10, 50])
+colormap = 'mne_analyze'
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both', colormap,
                                  subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)')
+                                 time_label='Duration significant (ms)',
+                                 clim='auto', transparent=False)
 brain.set_data_time_index(0)
-# The colormap requires brain data to be scaled -fmax -> fmax
-brain.scale_data_colormap(fmin=-50, fmid=0, fmax=50, transparent=False)
 brain.show_view('lateral')
 brain.save_image('clusters.png')

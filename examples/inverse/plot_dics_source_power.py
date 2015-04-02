@@ -15,8 +15,6 @@ in the human brain. PNAS (2001) vol. 98 (2) pp. 694-699
 #
 # License: BSD (3-clause)
 
-from scipy.stats import scoreatpercentile  # for thresholding
-
 import mne
 from mne.io import Raw
 from mne.datasets import sample
@@ -64,16 +62,12 @@ noise_csds = compute_epochs_csd(epochs, mode='multitaper', tmin=-0.11,
 # Compute DICS spatial filter and estimate source power
 stc = dics_source_power(epochs.info, forward, noise_csds, data_csds)
 
-
+clim = dict(kind='value', lims=[1.6, 1.9, 2.2])
 for i, csd in enumerate(data_csds):
     message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=message, figure=i)
-    fmin, fmax = [scoreatpercentile(stc.data[:, i], ii) for ii in [95, 100]]
-    fmid = fmin + (fmax - fmin) / 2
+                     time_label=message, figure=i, clim=clim, transparent=True)
     brain.set_data_time_index(i)
-    brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                              transparent=True)
     brain.show_view('lateral')
     # Uncomment line below to save images
     # brain.save_image('DICS_source_power_freq_%d.png' % csd.frequencies[0])

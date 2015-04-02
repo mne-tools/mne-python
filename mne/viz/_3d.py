@@ -7,6 +7,7 @@ from __future__ import print_function
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 #          Mainak Jas <mainak@neuro.hut.fi>
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
 #
 # License: Simplified BSD
 
@@ -369,12 +370,62 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
     return fig
 
 
+def _limits_to_control_points(clim, stc_data, colormap):
+    """Private helper function to convert limits (values or percentiles)
+    to control points.
+
+    Note: If using 'mne_analyze', generate cmap control points for a directly
+    mirrored cmap for simplicity (i.e., no normalization is computed to account
+    for a 2-tailed mne_analyze cmap).
+
+    Parameters
+    ----------
+    clim : str | dict
+        Desired limits use to set cmap control points.
+
+    Returns
+    -------
+    ctrl_pts : list (length 3)
+        Array of floats corresponding to values to use as cmap control points.
+    """
+
+    # Based on type of limits specified, get cmap control points
+    if clim == 'auto':
+        # Set upper and lower bound based on percent, and get average between
+        ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
+        ctrl_pts = np.insert(ctrl_pts, 1, np.average(ctrl_pts))
+    elif isinstance(clim, dict):
+        # Get appropriate key for clim if it's a dict
+        limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
+        if limit_key not in clim.keys():
+            raise KeyError('lims" OR "pos_lims" must be defined depending on'
+                           ' if colormap is "mne_analyze"')
+        if clim['kind'] == 'percent':
+            ctrl_pts = np.percentile(np.abs(stc_data),
+                                     list(np.abs(clim[limit_key])))
+        elif clim['kind'] == 'value':
+            ctrl_pts = list(clim[limit_key])
+        else:
+            raise ValueError('If clim is a dict, clim[kind] must be '
+                             ' "value" or "percent"')
+    else:
+        raise ValueError('"clim" must be "auto" or dict')
+    if len(ctrl_pts) != 3:
+        raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
+                         ' 3' % len(ctrl_pts))
+    elif len(set(ctrl_pts)) != 3:
+        raise ValueError('Too few control points (need 3). Is there enough'
+                         ' data to create three unique control point values?')
+
+    return ctrl_pts
+
+
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='hot', time_label='time=%0.2f ms',
-                          smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-                          transparent=True, alpha=1.0, time_viewer=False,
+                          smoothing_steps=10, fmin=None, fmid=None, fmax=None,
+                          transparent=None, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True):
+                          views='lat', colorbar=True, clim=None):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -398,18 +449,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
         The hemisphere to display. Using 'both' or 'split' requires
         PySurfer version 0.4 or above.
-    colormap : str
-        The type of colormap to use.
+    colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+        Name of colormap to use or a custom look up table. If array, must be
+        (n x 3) or (n x 4) array for with RGB or RGBA values between 0 and 255.
     time_label : str
         How to print info about the time instant visualized.
     smoothing_steps : int
         The amount of smoothing
-    fmin : float
-        The minimum value to display.
-    fmid : float
-        The middle value on the colormap.
-    fmax : float
-        The maximum value for the colormap.
     transparent : bool
         If True, use a linear transparency between fmin and fmid.
     alpha : float
@@ -431,6 +477,20 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         View to use. See surfer.Brain().
     colorbar : bool
         If True, display colorbar on scene.
+    clim : str | dict
+        Colorbar properties specification. If 'auto', set clim automatically
+        based on data percentiles. If dict, should contain:
+            kind : str
+                Flag to specify type of limits. 'value' or 'percent'.
+            lims : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is not 'mne_analyze'.
+                Left, middle, and right bound for colormap.
+            pos_lims : list | np.ndarray | tuple of float, 3 elements
+                Note: Only use this if 'colormap' is 'mne_analyze'.
+                Left, middle, and right bound for colormap. Positive values
+                will be mirrored directly across zero during colormap
+                construction to obtain negative control points.
+
 
     Returns
     -------
@@ -480,8 +540,40 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
+    # Set default transparency if user didn't specify it
+    if transparent is None:
+        if colormap == 'mne_analyze':
+            transparent = False
+        else:
+            transparent = True
 
+    ctrl_pts = [fmin, fmid, fmax]
+
+    # Check if using old fmin/fmid/fmax cmap behavior
+    if clim is None:
+        # Throw deprecation warning
+        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
+                      ' removed in v0.10. Use "clim" instead.',
+                      DeprecationWarning)
+        # Fill in any missing flim values
+        for fi, f in enumerate(ctrl_pts):
+            if f is None:
+                ctrl_pts[fi] = [5., 10., 15.][fi]
+
+    # Otherwise, use new cmap behavior
+    else:
+        if any([f is not None for f in [fmin, fmid, fmax]]):
+            warnings.warn('"clim" overrides fmin, fmid, fmax')
+        ctrl_pts = _limits_to_control_points(clim, stc.data, colormap)
+
+    # Construct cmap manually if 'mne_analyze' and get cmap bounds
+    if colormap == 'mne_analyze':
+        colormap = mne_analyze_colormap(ctrl_pts)
+        scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+    else:
+        scale_pts = ctrl_pts
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     subject = _check_subject(stc.subject, subject, False)
     if subject is None:
         if 'SUBJECT' in os.environ:
@@ -520,8 +612,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                            colorbar=colorbar)
 
         # scale colormap and set time (index) to display
-        brain.scale_data_colormap(fmin=fmin, fmid=fmid, fmax=fmax,
-                                  transparent=transparent)
+        brain.scale_data_colormap(fmin=scale_pts[0], fmid=scale_pts[1],
+                                  fmax=scale_pts[2], transparent=transparent)
 
     if time_viewer:
         TimeViewer(brain)

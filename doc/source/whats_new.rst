@@ -125,6 +125,8 @@ BUG
 
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
+   - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
+
 API
 ~~~
 
@@ -154,6 +156,8 @@ API
    - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
 
    - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
+
+   - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
 
 .. _changes_0_8:
 

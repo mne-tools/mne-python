@@ -111,7 +111,8 @@ coh_stc = mne.SourceEstimate(coh, vertices=stc.vertices, tmin=1e-3 * tmin,
                              tstep=1e-3 * tstep, subject='sample')
 
 # Now we can visualize the coherence using the plot method
-brain = coh_stc.plot('sample', 'inflated', 'rh', fmin=0.25, fmid=0.4,
-                     fmax=0.65, time_label='Coherence %0.1f Hz',
-                     subjects_dir=subjects_dir)
+clim = dict(kind='value', lims=(0.25, 0.4, 0.65))
+brain = coh_stc.plot('sample', 'inflated', 'both',
+                     time_label='Coherence %0.1f Hz',
+                     subjects_dir=subjects_dir, clim=clim)
 brain.show_view('lateral')

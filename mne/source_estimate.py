@@ -1345,10 +1345,10 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='hot', time_label='time=%0.2f ms',
-             smoothing_steps=10, fmin=5., fmid=10., fmax=15.,
-             transparent=True, alpha=1.0, time_viewer=False,
+             smoothing_steps=10, fmin=None, fmid=None, fmax=None,
+             transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
-             views='lat', colorbar=True):
+             views='lat', colorbar=True, clim=None):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1370,18 +1370,14 @@ class SourceEstimate(_BaseSourceEstimate):
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
             The hemisphere to display. Using 'both' or 'split' requires
             PySurfer version 0.4 or above.
-        colormap : str
-            The type of colormap to use.
+        colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
+            Name of colormap to use or a custom look up table. If array, must
+            be (n x 3) or (n x 4) array for with RGB or RGBA values between 0
+            and 255.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        fmin : float
-            The minimum value to display.
-        fmid : float
-            The middle value on the colormap.
-        fmax : float
-            The maximum value for the colormap.
         transparent : bool
             If True, use a linear transparency between fmin and fmid.
         alpha : float
@@ -1401,6 +1397,20 @@ class SourceEstimate(_BaseSourceEstimate):
             View to use. See surfer.Brain().
         colorbar : bool
             If True, display colorbar on scene.
+        clim : str | dict
+            Colorbar properties specification. If 'auto', set clim
+            automatically based on data percentiles. If dict, should contain:
+                kind : str
+                    Flag to specify type of limits. 'value' or 'percent'.
+                lims : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is not 'mne_analyze'.
+                    Left, middle, and right bound for colormap.
+                pos_lims : list | np.ndarray | tuple of float, 3 elements
+                    Note: Only use this if 'colormap' is 'mne_analyze'.
+                    Left, middle, and right bound for colormap. Positive values
+                    will be mirrored directly across zero during colormap
+                    construction to obtain negative control points.
+
 
         Returns
         -------
@@ -1416,7 +1426,8 @@ class SourceEstimate(_BaseSourceEstimate):
                                       time_viewer=time_viewer,
                                       config_opts=config_opts,
                                       subjects_dir=subjects_dir, figure=figure,
-                                      views=views, colorbar=colorbar)
+                                      views=views, colorbar=colorbar,
+                                      clim=clim)
         return brain
 
     @verbose

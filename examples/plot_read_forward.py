@@ -60,7 +60,7 @@ plt.ylabel('count')
 plt.legend()
 
 # Cautious smoothing to see actual dipoles
-args = dict(fmin=-0.1, fmid=0.5, fmax=1.1, smoothing_steps=3)
+args = dict(clim=dict(kind='percent', lims=[0, 50, 100]), smoothing_steps=3)
 grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
               subjects_dir=subjects_dir, **args)
 
