@@ -226,7 +226,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                y_label=None, vline=None, xticks=3, yticks=None,
                font_color=None, linewidth=1, internal_legend=False,
                external_legend=False, fontsize=9,
-               ylim_dict=None, plot_ch_names=None, plot_type=None,
+               ylim_dict=None, show_names=None, plot_type=None,
                external_scale=1):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
@@ -275,8 +275,8 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
-    if (len(info["ch_names"]) < 35) and (plot_ch_names is None):
-        plot_ch_names = True
+    if (len(info["ch_names"]) < 35) and (show_names is None):
+        show_names = True
 
     for ax, ch_idx in my_topo_plot:
 
@@ -304,7 +304,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                      plot_ticks=(True if (internal_legend or external_legend)
                      else False),
                      ch_name=(ax._mne_ch_name
-                              if plot_ch_names is True else None))
+                              if show_names is True else None))
 
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
@@ -414,7 +414,7 @@ def _check_vlim(vlim):
 def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
-              font_color=None, x_label='Time (s)', plot_ch_names=None,
+              font_color=None, x_label='Time (s)', show_names=None,
               external_legend=True, internal_legend=False,
               xticks=2, yticks=None,
               linewidth=1, fontsize=9, conditions=None):
@@ -471,7 +471,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         Plot time and unit labels for individual channel subplots. If
         external_legend is true, only tick labels, not axis labels are
         plotted.
-    plot_ch_names : bool
+    show_names : bool
         Should channel names be plotted next to each topo plot?
     x_label : string | None
         Label for x axis. Defaults to 'Time (s)'.
@@ -521,8 +521,8 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
 
     info = evoked[0].info
     ch_names = evoked[0].ch_names
-    if plot_ch_names is None and len(ch_names) > 35:
-        plot_ch_names = False
+    if show_names is None and len(ch_names) > 35:
+        show_names = False
 
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
@@ -624,7 +624,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
                                             (external_legend or
                                              internal_legend)
                                             else None),
-                                   plot_ch_names=plot_ch_names,
+                                   show_names=show_names,
                                    xticks=xticks, yticks=yticks,
                                    ylim_dict=ylim_dict,
                                    external_scale=external_legend)
@@ -713,7 +713,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale='auto', title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
-                           y_label='Epoch', plot_ch_names=None,
+                           y_label='Epoch', show_names=None,
                            internal_legend=False, external_legend=False,
                            linewidth=1, fontsize=9):
     """Plot Event Related Potential / Fields image on topographies
@@ -761,7 +761,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         (which is automatically set based on fig_facecolor if None).
     y_label : 'str'
         Y axis label (also: sorting factor).
-    plot_ch_names : bool
+    show_names : bool
         Should channel names be plotted next to each topo plot?
     external_legend : bool | float
         Plot an external x and y axis legend (usually time/unit), showing
@@ -803,7 +803,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                         x_label='Time (s)', y_label=y_label,
                         internal_legend=internal_legend,
                         external_legend=external_legend,
-                        plot_ch_names=plot_ch_names,
+                        show_names=show_names,
                         linewidth=linewidth,
                         fontsize=fontsize)
 
