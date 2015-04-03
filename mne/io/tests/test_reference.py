@@ -126,7 +126,7 @@ def test_set_eeg_reference():
     reref, ref_data = set_eeg_reference(raw)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
     assert_true(ref_data is None)
-    
+
     # Test setting an average reference when one was already present
     reref, ref_data = set_eeg_reference(raw, copy=False)
     assert_true(ref_data is None)
