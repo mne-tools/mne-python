@@ -15,12 +15,9 @@ from ..io.pick import pick_channels
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end"""
-    if np.abs(end - start) <= 4:  # When time range is too small
-        window = np.zeros(end - start)
-    else:
-        window = 1 - np.r_[signal.hann(4)[:2],
-                           np.ones(np.abs(end - start) - 4),
-                           signal.hann(4)[-2:]].T
+    window = 1 - np.r_[signal.hann(4)[:2],
+                       np.ones(np.abs(end - start) - 4),
+                       signal.hann(4)[-2:]].T
     return window
 
 
@@ -139,6 +136,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         inst = inst.copy()
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
+    if (s_end - s_start) < 4:
+        mode = 'linear'  # When time is too short, force linear mode.
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
@@ -165,7 +164,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         first_samp = s_start - e_start
         last_samp = s_end - e_start
         data = inst.get_data()[:, picks, :]
-        for epoch, k in zip(data, range(len(data[0][0]))):
+        for epoch, k in zip(data, range(np.shape(data)[2])):
             _fix_artifact(inst.get_data()[k], epoch, window, picks, first_samp,
                           last_samp, mode)
 
