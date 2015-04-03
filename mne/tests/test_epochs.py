@@ -65,7 +65,6 @@ def test_base_epochs():
     epochs = _BaseEpochs(raw.info, event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
     assert_raises(NotImplementedError, epochs.__next__)
-    assert_raises(NotImplementedError, epochs.__next__)
     assert_equal(epochs.__iter__()._current, 0)
 
 
