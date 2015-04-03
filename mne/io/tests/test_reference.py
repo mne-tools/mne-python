@@ -110,6 +110,10 @@ def test_apply_reference():
     assert_true(reref.info['custom_ref_applied'])
     _test_reference(evoked, reref, ref_data, ['EEG 001', 'EEG 002'])
 
+    # Test invalid input
+    raw_np = Raw(fif_fname, preload=False)
+    assert_raises(RuntimeError, _apply_reference, raw_np, ['EEG 001'])
+
 
 @testing.requires_testing_data
 def test_set_eeg_reference():
@@ -121,6 +125,10 @@ def test_set_eeg_reference():
     assert_true(not _has_eeg_average_ref_proj(raw.info['projs']))
     reref, ref_data = set_eeg_reference(raw)
     assert_true(_has_eeg_average_ref_proj(reref.info['projs']))
+    assert_true(ref_data is None)
+    
+    # Test setting an average reference when one was already present
+    reref, ref_data = set_eeg_reference(raw, copy=False)
     assert_true(ref_data is None)
 
     # Rereference raw data by creating a copy of original data
@@ -167,6 +175,10 @@ def test_set_bipolar_reference():
         else:
             assert_equal(bp_info[key], an_info[key])
     assert_equal(bp_info['extra'], 'some extra value')
+
+    # Minimalist call
+    reref = set_bipolar_reference(raw, 'EEG 001', 'EEG 002')
+    assert_true('EEG 001-EEG 002' in reref.ch_names)
 
     # Test creating a bipolar reference that doesn't involve EEG channels:
     # it should not set the custom_ref_applied flag
@@ -286,3 +298,8 @@ def test_add_reference():
     picks_eeg = pick_types(evoked.info, meg=False, eeg=True)
     assert_array_equal(evoked.data[picks_eeg, :],
                        evoked_ref.data[picks_eeg, :])
+
+    # Test invalid inputs
+    raw_np = Raw(fif_fname, preload=False)
+    assert_raises(RuntimeError, add_reference_channels, raw_np, ['Ref'])
+    assert_raises(ValueError, add_reference_channels, raw, 1)
