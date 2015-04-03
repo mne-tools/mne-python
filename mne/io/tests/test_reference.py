@@ -133,10 +133,6 @@ def test_set_eeg_reference():
                                         copy=False)
     assert_true(raw is reref)
 
-    # Setting an average reference on a dataset that already contains a custom
-    # reference should fail
-    assert_raises(RuntimeError, set_eeg_reference, reref)
-
 
 @testing.requires_testing_data
 def test_set_bipolar_reference():
