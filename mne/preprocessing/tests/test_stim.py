@@ -19,8 +19,8 @@ raw_fname = op.join(data_path, 'test_raw.fif')
 event_fname = op.join(data_path, 'test-eve.fif')
 
 
-def test_stim_fix():
-    """Test eliminate stim artifact"""
+def test_fix_stim_artifact():
+    """Test fix stim artifact"""
     raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
     event_idx = np.where(events[:, 2] == 1)[0][0]
