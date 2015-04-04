@@ -605,8 +605,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=True, colorbar=True, show=True,
-             title=None, verbose=None,
-             internal_legend=True, external_legend=False):
+             title=None, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -653,15 +652,6 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             If true, colorbar will be added to the plot
         show : bool
             Call pyplot.show() at the end.
-        external_legend : bool | float
-            Plot an external x and y axis legend (usually time/unit), showing
-            and labelling time and unit ticks. Requires `evokeds` to hold only 1
-            channel type. If float, an external legend is plotted and scaled by
-            this factor.
-        internal_legend : bool
-            Plot time and unit labels for individual channel subplots. If
-            external_legend is true, only tick labels, not axis labels are
-            plotted.            
         title : str | None
             String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
