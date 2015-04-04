@@ -605,8 +605,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=True, colorbar=True, show=True,
-             internal_legend=False, external_legend=False,
-             title=None, verbose=None):
+             title=None, verbose=None,
+             internal_legend=True, external_legend=False):
         """Plot TFRs in a topography with images
 
         Parameters
