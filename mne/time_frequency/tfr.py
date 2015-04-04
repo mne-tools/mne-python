@@ -752,21 +752,6 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The figure face color. Defaults to black.
         font_color: str | obj
             The color of tick labels in the colorbar. Defaults to white.
-            If None, defaults to spine_color (which is automatically set 
-            based on fig_facecolor if None).
-        external_legend : bool | float
-            Plot an external x and y axis legend (usually time/unit), showing
-            and labelling time and unit ticks. Requires `evokeds` to hold
-            only 1 channel type. If float, an external legend is plotted and
-            scaled by this factor.
-        internal_legend : bool
-            Plot time and unit labels for individual channel subplots. If
-            external_legend is true, only tick labels, not axis labels are
-            plotted.
-        plot_ch_names : bool
-            Should channel names be plotted next to each topo plot?
-        linewidth : float | None
-            Linewidth for time series, spines, tick marks.
 
         Returns
         -------
