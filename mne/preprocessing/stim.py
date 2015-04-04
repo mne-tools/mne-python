@@ -163,9 +163,9 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         e_start = int(np.ceil(inst.info['sfreq'] * inst.tmin))
         first_samp = s_start - e_start
         last_samp = s_end - e_start
-        data = inst.get_data()[:, picks, :]
+        data = inst._data[:, picks, :]
         for epoch, k in zip(data, range(np.shape(data)[2])):
-            _fix_artifact(inst.get_data()[k], epoch, window, picks, first_samp,
+            _fix_artifact(inst._data[k], epoch, window, picks, first_samp,
                           last_samp, mode)
 
     elif isinstance(inst, Evoked):
