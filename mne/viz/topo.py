@@ -72,6 +72,7 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
         The related channel index.
     """
     import matplotlib.pyplot as plt
+    from ..channels.layout import find_layout
 
     if fig is None:
         fig = plt.figure()
@@ -88,19 +89,20 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
 
     iter_ch = [(x, y) for x, y in enumerate(info["ch_names"]) if y in ch_names]
     for idx, ch_name in iter_ch:
-        ax = plt.axes(pos[idx])
+        if ch_name in find_layout(info).names:
+            ax = plt.axes(pos[idx])
 #        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
 #        ax.set_xticklabels([])
 #        ax.set_yticklabels([])
 #        plt.setp(ax.get_xticklines(), visible=True)
 #        plt.setp(ax.get_yticklines(), visible=True)
-        ch_idx = ch_names.index(ch_name)
+            ch_idx = ch_names.index(ch_name)
 #        ch_type = ch_types[ch_name]
-        vars(ax)['_mne_ch_name'] = ch_name
-        vars(ax)['_mne_ch_idx'] = ch_idx
-        vars(ax)['_mne_ch_type'] = ch_types[ch_name]
-        vars(ax)['_mne_ax_face_color'] = 'w'
-        yield ax
+            vars(ax)['_mne_ch_name'] = ch_name
+            vars(ax)['_mne_ch_idx'] = ch_idx
+            vars(ax)['_mne_ch_type'] = ch_types[ch_name]
+            vars(ax)['_mne_ax_face_color'] = 'w'
+            yield ax
 
 
 def _scale_layout(layout, layout_scale):
@@ -148,8 +150,7 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
 
     ax.patch.set_alpha(0)
 
-    cf = (1 if plot_type == 'evoked' else 1)  # I know, this is grisly
-    ax.plot(xlim, [y * cf for y in ylim])  # initialise to correct dimensions
+    ax.plot(xlim, [y for y in ylim])
     ax.lines.pop()
 
     if ch_name is not None:
@@ -291,7 +292,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         else:
             ylim_ = ylim
 
-        show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
+        show_func(ax, ax._mne_ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
         if (axis_facecolor is fig_facecolor) or (axis_facecolor is None):
