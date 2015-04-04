@@ -82,25 +82,29 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
 
     fig.set_facecolor(fig_facecolor)
 
+    from ..channels.layout import find_layout
+
     ch_names = _clean_names(info['ch_names'])
     ch_types = dict((ch_name, channel_type(info, j))
                     for j, ch_name in enumerate(ch_names))
 
     iter_ch = [(x, y) for x, y in enumerate(info["ch_names"]) if y in ch_names]
     for idx, ch_name in iter_ch:
-        ax = plt.axes(pos[idx])
+        if ch_name in find_layout(info).names:
+#        print(idx)
+            ax = plt.axes(pos[idx])
 #        plt.setp(list(ax.spines.values()), color=axis_spinecolor)
 #        ax.set_xticklabels([])
 #        ax.set_yticklabels([])
 #        plt.setp(ax.get_xticklines(), visible=True)
 #        plt.setp(ax.get_yticklines(), visible=True)
-        ch_idx = ch_names.index(ch_name)
+            ch_idx = ch_names.index(ch_name)
 #        ch_type = ch_types[ch_name]
-        vars(ax)['_mne_ch_name'] = ch_name
-        vars(ax)['_mne_ch_idx'] = ch_idx
-        vars(ax)['_mne_ch_type'] = ch_types[ch_name]
-        vars(ax)['_mne_ax_face_color'] = 'w'
-        yield ax, ch_idx
+            vars(ax)['_mne_ch_name'] = ch_name
+            vars(ax)['_mne_ch_idx'] = ch_idx
+            vars(ax)['_mne_ch_type'] = ch_types[ch_name]
+            vars(ax)['_mne_ax_face_color'] = 'w'
+            yield ax
 
 
 def _scale_layout(layout, layout_scale):
@@ -122,11 +126,11 @@ def _scale_layout(layout, layout_scale):
             layout_scale += 0.05
             pos = layout.pos.copy()
             pos[:, :2] *= layout_scale
-            if layout_scale > 4:
-                raise ValueError("Layout auto scaler not converging. "
-                                 "Set a value for layout_scale manually, "
-                                 "and/or ensure sensor coverage does "
-                                 "not include overlapping sensors.")
+            if layout_scale > 5:
+                print("Automatic selecting of plot scaling is not converging. "
+                      "Check that no electrodes are set to (almost) the same "
+                      "location and/or manually set layout_scale to a value.")
+                break
 
     else:
         pos[:, :2] *= layout_scale
@@ -148,8 +152,7 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
 
     ax.patch.set_alpha(0)
 
-    cf = (1 if plot_type == 'evoked' else 1)  # I know, this is grisly
-    ax.plot(xlim, [y * cf for y in ylim])  # initialise to correct dimensions
+    ax.plot(xlim, [y for y in ylim])  # initialise to correct dimensions
     ax.lines.pop()
 
     if ch_name is not None:
@@ -226,7 +229,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                y_label=None, vline=None, xticks=3, yticks=None,
                font_color=None, linewidth=1, internal_legend=False,
                external_legend=False, fontsize=9,
-               ylim_dict=None, show_names=None, plot_type=None,
+               ylim_dict=None, plot_ch_names=None, plot_type=None,
                external_scale=1):
     """Helper function to plot on sensor layout"""
     import matplotlib.pyplot as plt
@@ -261,7 +264,11 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     if any(np.abs(x) > 20 for x in yticks):
         yticks = [int(5 * round(float(x) / 5)) for x in yticks]
 
-    spine_color = ('black' if fig_facecolor in ['w', "white"] else 'w')
+    from matplotlib.colors import colorConverter
+    import colorsys
+    h, l, s = colorsys.rgb_to_hls(*colorConverter.to_rgb(fig_facecolor))
+    spine_color = ('k' if l >= .5 else 'w')
+
     if font_color is None:
         font_color = spine_color
 
@@ -270,23 +277,24 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     pos, layout_scale = _scale_layout(layout, layout_scale)
 
     my_topo_plot = iter_topography(pos=pos, info=info, on_pick=on_pick,
-                                   fig=fig,
+                                   fig=fig, #layout=layout,
                                    axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
-    if (len(info["ch_names"]) < 35) and (show_names is None):
-        show_names = True
+    if (len(info["ch_names"]) < 35) and (plot_ch_names is None):
+        plot_ch_names = True
 
-    for ax, ch_idx in my_topo_plot:
+    for ax in my_topo_plot:
 
         if layout.kind == 'Vectorview-all' and ylim is not None:
-            this_type = {'mag': 0, 'grad': 1}[channel_type(info, ch_idx)]
+            this_type = {'mag': 0, 'grad': 1}[channel_type(info, 
+                                              ax._mne_ch_idx)]
             ylim_ = [v[this_type] if _check_vlim(v) else v for v in ylim]
         else:
             ylim_ = ylim
 
-        show_func(ax, ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
+        show_func(ax, ax._mne_ch_idx, tmin=tmin, tmax=tmax, vmin=vmin,
                   vmax=vmax, ylim=ylim_)
 
         if (axis_facecolor is fig_facecolor) or (axis_facecolor is None):
@@ -304,7 +312,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                      plot_ticks=(True if (internal_legend or external_legend)
                      else False),
                      ch_name=(ax._mne_ch_name
-                              if show_names is True else None))
+                              if plot_ch_names is True else None))
 
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
@@ -414,7 +422,7 @@ def _check_vlim(vlim):
 def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
-              font_color=None, x_label='Time (s)', show_names=None,
+              font_color=None, x_label='Time (s)', plot_ch_names=None,
               external_legend=True, internal_legend=False,
               xticks=2, yticks=None,
               linewidth=1, fontsize=9, conditions=None):
@@ -471,7 +479,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         Plot time and unit labels for individual channel subplots. If
         external_legend is true, only tick labels, not axis labels are
         plotted.
-    show_names : bool
+    plot_ch_names : bool
         Should channel names be plotted next to each topo plot?
     x_label : string | None
         Label for x axis. Defaults to 'Time (s)'.
@@ -521,8 +529,8 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
 
     info = evoked[0].info
     ch_names = evoked[0].ch_names
-    if show_names is None and len(ch_names) > 35:
-        show_names = False
+    if plot_ch_names is None and len(ch_names) > 35:
+        plot_ch_names = False
 
     if not all([e.ch_names == ch_names for e in evoked]):
         raise ValueError('All evoked.picks must be the same')
@@ -624,7 +632,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
                                             (external_legend or
                                              internal_legend)
                                             else None),
-                                   show_names=show_names,
+                                   plot_ch_names=plot_ch_names,
                                    xticks=xticks, yticks=yticks,
                                    ylim_dict=ylim_dict,
                                    external_scale=external_legend)
@@ -642,7 +650,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
             raise ValueError("Condition and Evokeds must have the same length")
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
-                                  np.arange(0.1, 0.4, 0.025)):
+                                  np.arange(0.05, 0.4, 0.025)):
             plt.figtext(layout_scale, pos, cond, color=col, fontsize=fontsize)
 
     return fig
@@ -713,7 +721,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale='auto', title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
-                           y_label='Epoch', show_names=None,
+                           y_label='Epoch', plot_ch_names=None,
                            internal_legend=False, external_legend=False,
                            linewidth=1, fontsize=9):
     """Plot Event Related Potential / Fields image on topographies
@@ -761,7 +769,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         (which is automatically set based on fig_facecolor if None).
     y_label : 'str'
         Y axis label (also: sorting factor).
-    show_names : bool
+    plot_ch_names : bool
         Should channel names be plotted next to each topo plot?
     external_legend : bool | float
         Plot an external x and y axis legend (usually time/unit), showing
@@ -803,7 +811,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                         x_label='Time (s)', y_label=y_label,
                         internal_legend=internal_legend,
                         external_legend=external_legend,
-                        show_names=show_names,
+                        plot_ch_names=plot_ch_names,
                         linewidth=linewidth,
                         fontsize=fontsize)
 
