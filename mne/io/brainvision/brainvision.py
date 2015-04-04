@@ -469,7 +469,7 @@ def _get_eeg_info(vhdr_fname, eog, misc):
         else:
             name, _, resolution, unit = props[:4]
         ch_names[n - 1] = name
-        if len(resolution) > 0:
+        if resolution == '':
             cals[n - 1] = float(resolution)
         else:
             cals[n - 1] = 0.000001
