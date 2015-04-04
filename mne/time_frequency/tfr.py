@@ -527,7 +527,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
     ifmin, ifmax = None, None
     idx = np.where(_time_mask(freqs, fmin, fmax))[0]
     if fmin is not None:
-        ifmin = ifmin = idx[0]
+        ifmin = idx[0]
     if fmax is not None:
         ifmax = idx[-1] + 1
 
@@ -604,9 +604,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
-             cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, verbose=None,
-             internal_legend=False, external_legend=False):
+             cmap='RdBu_r', dB=True, colorbar=True, show=True,
+             internal_legend=False, external_legend=False,
+             title=None, verbose=None):
         """Plot TFRs in a topography with images
 
         Parameters
