@@ -749,8 +749,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         border : str
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
-            The figure face color. Defaults to black. If "black", spines are
-            white (else they are black).
+            The figure face color. Defaults to black. 
+            If "black", spines are white (else they are black).
         font_color : str | obj
             The color of text in the colorbar and title. Defaults to
             spine_color (which is automatically set based on fig_facecolor
@@ -764,11 +764,15 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             Plot time and unit labels for individual channel subplots. If
             external_legend is true, only tick labels, not axis labels are
             plotted.
-        show_names : bool
+        plot_ch_names : bool
             Should channel names be plotted next to each topo plot?
         linewidth : float | None
             Linewidth for time series, spines, tick marks.
 
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
         times = self.times.copy()
