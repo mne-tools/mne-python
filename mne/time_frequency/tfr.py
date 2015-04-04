@@ -750,11 +750,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
             The figure face color. Defaults to black. 
-            If "black", spines are white (else they are black).
         font_color : str | obj
-            The color of text in the colorbar and title. Defaults to
-            spine_color (which is automatically set based on fig_facecolor
-            if None).
+            The color of text in the colorbar and title. Defaults to white.
+            If None, defaults to spine_color (which is automatically set 
+            based on fig_facecolor if None).
         external_legend : bool | float
             Plot an external x and y axis legend (usually time/unit), showing
             and labelling time and unit ticks. Requires `evokeds` to hold
