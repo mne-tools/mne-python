@@ -653,10 +653,24 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             If true, colorbar will be added to the plot
         show : bool
             Call pyplot.show() at the end.
+        external_legend : bool | float
+            Plot an external x and y axis legend (usually time/unit), showing
+            and labelling time and unit ticks. Requires `evokeds` to hold only 1
+            channel type. If float, an external legend is plotted and scaled by
+            this factor.
+        internal_legend : bool
+            Plot time and unit labels for individual channel subplots. If
+            external_legend is true, only tick labels, not axis labels are
+            plotted.            
         title : str | None
             String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
