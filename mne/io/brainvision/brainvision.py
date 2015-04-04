@@ -469,9 +469,9 @@ def _get_eeg_info(vhdr_fname, eog, misc):
         else:
             name, _, resolution, unit = props[:4]
         ch_names[n - 1] = name
-        try:
+        if len(resolution) > 0:
             cals[n - 1] = float(resolution)
-        except ValueError:
+        else:
             cals[n - 1] = 0.000001
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         if u(unit) == u('\xb5V'):
