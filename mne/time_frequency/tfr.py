@@ -749,9 +749,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         border : str
             matplotlib borders style to be used for each sensor plot.
         fig_facecolor : str | obj
-            The figure face color. Defaults to black. 
-        font_color : str | obj
-            The color of text in the colorbar and title. Defaults to white.
+            The figure face color. Defaults to black.
+        font_color: str | obj
+            The color of tick labels in the colorbar. Defaults to white.
             If None, defaults to spine_color (which is automatically set 
             based on fig_facecolor if None).
         external_legend : bool | float
