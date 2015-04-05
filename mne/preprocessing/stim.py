@@ -7,7 +7,8 @@ from scipy import signal, interpolate
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..io import Raw
-from ..utils import deprecated
+from ..utils import deprecated, logger
+from ..event import find_events
 
 from .. import pick_types
 from ..io.pick import pick_channels
@@ -29,16 +30,16 @@ def _check_preload(inst):
                                '(or string) in the constructor.')
 
 
-def _fix_artifact(orig, data, window, picks, first_samp, last_samp, mode):
+def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data"""
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
         f = interpolate.interp1d(x, data[:, (0, -1)])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
-        orig[picks, first_samp:last_samp] = interp_data
+        data[picks, first_samp:last_samp] = interp_data
     if mode == 'window':
-        orig[picks, first_samp:last_samp] = \
+        data[picks, first_samp:last_samp] = \
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
 
 
@@ -110,11 +111,12 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     Parameters
     ----------
     inst : instance of Raw or Evoked or Epochs
-        instance
+        The data
     events : array, shape (n_events, 3)
         The list of events. Required only when inst is raw
     event_id : int
         The id of the events generating the stimulation artifacts.
+        If none, read all events.
         Required only when inst is raw
     tmin : float
         Start time of the interpolation window in seconds.
@@ -125,7 +127,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         'linear' does linear interpolation
         'window' applies a (1 - hanning) window.
     copy : bool
-        If False inst is cropped in place.
+        If true, data will be copied. Else data may be modified in place.
 
     Returns
     -------
@@ -137,7 +139,9 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (s_end - s_start) < 4:
-        mode = 'linear'  # When time is too short, force linear mode.
+        mode = 'linear'
+        logger.info("For time range is too short, "
+                    "method is changed to linear mode")
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
@@ -146,14 +150,20 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     if isinstance(inst, Raw):
         _check_preload(inst)
-        events_sel = (events[:, 2] == event_id)
+        if events is None:
+            events = find_events(inst)
+        if len(events) == 0:
+            raise ValueError('No events are found')
+        if event_id is None:
+            events_sel = events
+        else:
+            events_sel = (events[:, 2] == event_id)
         event_start = events[events_sel, 0]
         data, _ = inst[:, :]
         for event_idx in event_start:
             first_samp = int(event_idx) - inst.first_samp + s_start
             last_samp = int(event_idx) - inst.first_samp + s_end
-            _fix_artifact(inst, data, window, picks, first_samp,
-                          last_samp, mode)
+            _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     elif isinstance(inst, Epochs):
         _check_preload(inst)
@@ -163,17 +173,15 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         e_start = int(np.ceil(inst.info['sfreq'] * inst.tmin))
         first_samp = s_start - e_start
         last_samp = s_end - e_start
-        data = inst._data[:, picks, :]
-        for epoch, k in zip(data, range(np.shape(data)[2])):
-            _fix_artifact(inst._data[k], epoch, window, picks, first_samp,
-                          last_samp, mode)
+        data = inst._data
+        for epoch in data:
+            _fix_artifact(epoch, window, picks, first_samp, last_samp, mode)
 
     elif isinstance(inst, Evoked):
         first_samp = s_start - inst.first
         last_samp = s_end - inst.first
         data = inst.data
-        _fix_artifact(inst.data, data, window, picks, first_samp,
-                      last_samp, mode)
+        _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
         raise TypeError('Not a Raw or Epochs or Evoked')
