@@ -469,7 +469,10 @@ def _get_eeg_info(vhdr_fname, eog, misc):
         else:
             name, _, resolution, unit = props[:4]
         ch_names[n - 1] = name
-        cals[n - 1] = float(resolution)
+        if resolution == "":        # For truncated vhdrs (e.g. EEGLAB export)
+            cals[n - 1] = 0.000001  # Fill in a default
+        else:
+            cals[n - 1] = float(resolution)
         unit = unit.replace('\xc2', '')  # Remove unwanted control characters
         if u(unit) == u('\xb5V'):
             units[n - 1] = 1e-6
