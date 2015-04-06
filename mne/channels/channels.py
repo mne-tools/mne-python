@@ -356,7 +356,6 @@ def rename_channels(info, mapping):
         a dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}.
     """
-    # section to go after depr
     human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
                   'emg': FIFF.FIFFV_EMG_CH,
                   'ecg': FIFF.FIFFV_ECG_CH,
@@ -366,7 +365,7 @@ def rename_channels(info, mapping):
     bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
     new_names, new_kinds, new_bads = list(), list(), list()
-    # end section
+
     # first check and assemble clean mappings of index and name
     for ch_name, new_name in mapping.items():
         if ch_name not in ch_names:
@@ -374,8 +373,11 @@ def rename_channels(info, mapping):
                              % ch_name)
 
         c_ind = ch_names.index(ch_name)
-        # section to go after depr
-        if isinstance(new_name, tuple):  # name and type change
+        if not isinstance(new_name, (string_types, tuple)):
+            raise ValueError('Your mapping is not configured properly. '
+                             'Please see the help: mne.rename_channels?')
+
+        elif isinstance(new_name, tuple):  # name and type change
             warnings.warn("Changing sensor type is now deprecated. Please use "
                           "'define_sensor' instead.", DeprecationWarning)
             new_name, new_type = new_name  # unpack
@@ -383,19 +385,19 @@ def rename_channels(info, mapping):
                 raise ValueError('This function cannot change to this '
                                  'channel type: %s.' % new_type)
             new_kinds.append((c_ind, human2fiff[new_type]))
-        # end section
+
         new_names.append((c_ind, new_name))
         if ch_name in bads:  # check bads
             new_bads.append((bads.index(ch_name), new_name))
 
-    # Reset ch_names and Check that all the channel names are unique. depr
+    # Reset ch_names and Check that all the channel names are unique.
     for key, collection in [('ch_name', new_names), ('kind', new_kinds)]:
         for c_ind, new_name in collection:
             chs[c_ind][key] = new_name
 
     for c_ind, new_name in new_bads:
         bads[c_ind] = new_name
-    # end section
+
     # reference magic, please don't change (with the local binding
     # it doesn't work)
     info['ch_names'] = [c['ch_name'] for c in chs]
