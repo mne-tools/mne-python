@@ -1,6 +1,7 @@
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
-#          Teon Brooks <teon.brooks@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: BSD (3-clause)
 
@@ -28,6 +29,8 @@ from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
+from ..transforms import (als_ras_trans_mm, get_ras_to_neuromag_trans,
+                          apply_trans)
 
 
 _kind_dict = dict(
@@ -1227,3 +1230,141 @@ def _empty_info():
                           'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     return info
+
+
+class DigMontage(object):
+    """Montage for Digitized data
+
+    Montages are typically loaded from a file using read_montage. Only use this
+    class directly if you're constructing a new montage.
+
+    Parameters
+    ----------
+    hsp : array, shape (n_points, 3)
+        The positions of the channels in 3d.
+    hpi : array, shape (n_hpi, 3)
+        The positions of the head-position indicator coils in 3d.
+        These points are in the MEG device space.
+    elp : array, shape (n_hpi, 3)
+        The positions of the head-position indicator coils in 3d.
+        This is typically in the acquisition digitizer space.
+    point_names : list, shape (n_elp)
+        The names of the digitized points for hpi and elp.
+    nasion : array, shape (1, 3)
+        The position of the nasion fidicual point in the RAS head space.
+    lpa : array, shape (1, 3)
+        The position of the left periauricular fidicual point in
+        the RAS head space.
+    rpa : array, shape (1, 3)
+        The position of the right periauricular fidicual point in
+        the RAS head space.
+    """
+    def __init__(self, hsp, hpi, elp, point_names,
+                 nasion=None, lpa=None, rpa=None):
+        self.hsp = hsp
+        self.hpi = hpi
+        self.elp = elp
+        self.point_names = point_names
+
+        self.nasion = nasion
+        self.lpa = lpa
+        self.rpa = rpa
+
+    def __repr__(self):
+        s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
+        s %= self.kind, len(self.ch_names), ', '.join(self.point_names[:3])
+        return s
+
+    def plot(self, scale_factor=1.5, show_names=False):
+        """Plot EEG sensor montage
+
+        Parameters
+        ----------
+        scale_factor : float
+            Determines the size of the points. Defaults to 1.5
+        show_names : bool
+            Whether to show the channel names. Defaults to False
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            The figure object.
+        """
+        from ..viz import plot_montage
+        return plot_montage(self, scale_factor=scale_factor,
+                            show_names=show_names)
+
+
+def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
+                     transform=True):
+    """Read montage from a file
+
+    Note: Digitized points will be transformed to head-based coordinate system.
+
+    Parameters
+    ----------
+    hsp : None | str | array, shape (n_points, 3)
+        If str, this corresponds to the filename of the headshape points.
+        If numpy.array, this corresponds to an array of positions of the
+        channels in 3d.
+    hpi : None | str | numpy.array, shape (n_channels, 3)
+        If str, this corresponds to the filename of hpi points. If numpy.array,
+        this corresponds to an array hpi points. These points are in
+        device space.
+    elp : None | str | numpy.array
+        If str, this corresponds to the filename of hpi points. If numpy.array,
+        this corresponds to an array hpi points. These points are in
+        head space.
+    point_names : None | list
+        If list, this corresponds to a list of point names. This must be
+        specified if elp is defined.
+
+    Returns
+    -------
+    montage : instance of DigMontage
+        The digitizer montage.
+    """
+    if isinstance(hsp, str):
+        hsp = _read_dig_points(hsp)
+    if isinstance(hpi, str):
+        ext = op.splitext(hpi)[-1]
+        if ext == '.txt':
+            hpi = _read_dig_points(hpi)
+        elif ext in ('.sqd', '.mrk'):
+            hpi = read_mrk(hpi)
+        else:
+            raise TypeError('HPI file is not supported.')
+    if isinstance(elp, str):
+        elp_points = _read_dig_points(elp)
+    if len(elp) != len(point_names):
+        raise ValueError("The file %s contains %i points, but %i names were "
+                         "specified." % (elp, len(elp_points),
+                                         len(point_names)))
+    elp = apply_trans(als_ras_trans_mm, elp_points)
+
+    if transform:
+        names_lower = [name.lower() for name in point_names]
+
+        # check that all needed points are present
+        missing = tuple(name for name in ('nasion', 'lpa', 'rpa')
+                        if name not in names_lower)
+        if missing:
+            raise ValueError("The points %s are missing, but are needed "
+                             "to transform the points to the MNE coordinate "
+                             "system. Either add the points, or read the "
+                             "montage with transform=False." % str(missing))
+
+        nasion = elp[names_lower.index('nasion')]
+        lpa = elp[names_lower.index('lpa')]
+        rpa = elp[names_lower.index('rpa')]
+        neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
+
+        fids = np.array([nasion, lpa, rpa])
+        fids = apply_trans(neuromag_trans, fids)
+        elp = apply_trans(neuromag_trans, elp)
+        hsp = apply_trans(als_ras_trans_mm, hsp)
+        hsp = apply_trans(neuromag_trans, hsp)
+    else:
+        fids = [None] * 3
+
+    return DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2])
