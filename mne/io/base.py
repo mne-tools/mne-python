@@ -2058,3 +2058,112 @@ def _check_update_montage(info, montage):
                        "because they are EOG channels use the eog parameter."
                        % str(missing_positions))
                 raise KeyError(err)
+
+
+def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
+             preload=False, verbose=None):
+    """Reader function for Raw data
+
+    Note: This assumes the default parameters of a given system. This is
+    largely applicable but if you need to customize a parameter, please use the
+    system-specific read_raw_* function.
+
+
+    Parameters
+    ----------
+    input_fname : str | list of str
+        The path to raw file or a list of the raw files to treat as a Raw
+        instance. For files that have automatically been split, only the
+        name of the first file has to be specified. List of raw files is
+        currently only implemented for '.fif' files.
+    montage : None | str | instance of Montage | list of Montage instances
+        If None and eeg only, sensor locations are (0,0,0).
+        If str, this correspond to the path of a Montage instance. If instance,
+        it can be a Montage or a DigMontage. If a list, it can contain a list
+        of distinct montages: a Montage and DigMontage, not two Montages, not
+        two DigMontages.
+    eog : list or tuple of str
+        Names of channels or list of indices that should be designated
+        EOG channels. Values should correspond to channels listed within
+        the raw file.
+    misc : list or tuple of str
+        Names of channels or list of indices that should be designated
+        MISC channels. Values should correspond to channels listed within
+        the raw file.
+    reference : bool | str
+        If True, add average EEG reference projector (if it's not already
+        present).
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    raw : Instance of Raw
+        A Raw object.
+    """
+
+    from mne.io import (read_raw_brainvision, read_raw_bti, read_raw_edf,
+                        read_raw_egi, read_raw_fif, read_raw_kit)
+
+    if isinstance(input_fname, str):
+        fname, ext = os.path.splitext(input_fname)
+    elif isinstance(input_fname, list):
+        for f in input_fname:
+            fname, ext = os.path.splitext(input_fname)
+            err = "File must be '.fif', not %s." % ext
+            assert_equal(ext, '.fif', err)
+
+        if eog is not None:
+            eog_map = dict()
+            for s in eog:
+                eog_map[s] = 'eog'
+        if misc is not None:
+            misc_map = dict()
+            for s in misc:
+                misc_map[s] = 'misc'
+
+    # (MEG) KIT systems
+    if ext in ['.con', '.sqd']:
+        raw = read_raw_kit(input_fname, mrk=montage, eog=eog, misc=misc,
+                           preload=preload, verbose=verbose)
+        if eog is not None:
+            rename_sensor(raw.info, eog_map)
+        if misc is not None:
+            rename_sensor(raw.info, misc_map)
+    # (EEG) EDF and Biosemi systems
+    elif ext == '.edf':
+        raw = read_raw_edf(input_fname, montage=montage, eog=eog, misc=eog,
+                           preload=preload, verbose=verbose)
+    # (EEG) EGI systems
+    elif ext == '.raw':
+        raw = read_raw_egi(input_fname, montage=montage, eog=eog, misc=misc,
+                           preload=preload, verbose=verbose)
+    # (MEG) Neuromag or converted-to-fif systems
+    elif ext == '.fif':
+        raw = read_raw_fif(input_fname, add_eeg_ref=reference, eog=eog,
+                           misc=misc, preload=preload, verbose=verbose)
+        if eog is not None:
+            rename_sensor(raw.info, eog_map)
+        if misc is not None:
+            rename_sensor(raw.info, misc_map)
+    # (MEG) BTi systems
+    elif ext == '.pdf':
+        raw = read_raw_bti(input_fname, eog=eog, misc=['E31'], preload=preload,
+                           verbose=verbose)
+        if eog is not None:
+            rename_sensor(raw.info, eog_map)
+        if misc is not None:
+            rename_sensor(raw.info, misc_map)
+    # (EEG) Brainvision systems
+    elif ext == '.vhdr':
+        raw = read_raw_brainvision(input_fname, montage=montage, eog=eog,
+                                   misc=misc, reference=reference,
+                                   preload=preload, verbose=verbose)
+
+    return raw

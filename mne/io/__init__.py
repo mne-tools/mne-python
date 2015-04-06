@@ -27,6 +27,7 @@ from .edf import read_raw_edf
 from .egi import read_raw_egi
 from .kit import read_raw_kit
 from .fiff import read_raw_fif
+from .base import read_raw
 
 # for backward compatibility
 from .fiff import RawFIF
