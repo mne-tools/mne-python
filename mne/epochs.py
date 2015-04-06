@@ -144,13 +144,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
                        % (decim, new_sfreq))
+                warnings.warn(msg)
             elif new_sfreq < 2.5 * lowpass:
                 msg = ('The measurement information indicates a low-pass '
                        'frequency of %g Hz. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
                        % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
-            warnings.warn(msg)
+                warnings.warn(msg)
 
             i_start = start_idx % decim
             self._decim_idx = slice(i_start, ep_len, decim)
