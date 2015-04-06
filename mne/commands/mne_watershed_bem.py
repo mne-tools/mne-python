@@ -9,10 +9,13 @@ import sys
 import os
 import shutil
 import mne
+from mne.utils import (verbose, logger)
 
 
+@verbose
 def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
-                      volume='T1', atlas=False, gcaatlas=False, preflood=None):
+                      volume='T1', atlas=False, gcaatlas=False, preflood=None,
+                      verbose=None):
     """
     Create BEM surfaces using the watershed algorithm included with FreeSurfer
 
@@ -89,11 +92,11 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
         cmd += ['-useSRAS', '-surf', os.path.join(ws_dir, subject), T1_dir,
                 os.path.join(ws_dir, 'ws')]
     # report and run
-    print("\nRunning mri_watershed for BEM segmentation with the following \
-        parameters:\n")
-    print("SUBJECTS_DIR = %s" % subjects_dir)
-    print("SUBJECT = %s" % subject)
-    print("Result dir = %s\n" % ws_dir)
+    logger.info('\nRunning mri_watershed for BEM segmentation with the '
+                'following parameters:\n\n'
+                'SUBJECTS_DIR = %s\n'
+                'SUBJECT = %s\n'
+                'Result dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(os.path.join(ws_dir, 'ws'))
     mne.utils.run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
@@ -113,8 +116,7 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
            subject+'_outer_skin_surface'), '--id', '4', '--fif',
            subject+'-head.fif']
     mne.utils.run_subprocess(cmd, env=env, stdout=sys.stdout)
-    print("Created %s/%s-head.fif" % (bem_dir, subject))
-    print("\nComplete.")
+    logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))
 
 
 def run():
@@ -125,9 +127,10 @@ def run():
     atlas = False
     gcaatlas = False
     preflood = None
+    verbose = None
     mne_watershed_bem(subject=subject, subjects_dir=subjects_dir,
                       overwrite=overwrite, volume=volume, atlas=atlas,
-                      gcaatlas=gcaatlas, preflood=preflood)
+                      gcaatlas=gcaatlas, preflood=preflood, verbose=verbose)
 
 is_main = (__name__ == '__main__')
 if is_main:
