@@ -1,4 +1,5 @@
 """
+
     Create BEM surfaces using the watershed algorithm included with
         FreeSurfer
 
@@ -36,6 +37,8 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
         Use the subcortical atlas
     preflood : int
         Change the preflood height
+    verbose : bool, str or None
+        If not None, override default verbose level
     """
     if not os.environ['FREESURFER_HOME']:
         raise RuntimeError('FREESURFER_HOME environment variable not set')
@@ -120,14 +123,40 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
 
 
 def run():
-    subject = None
-    subjects_dir = None
-    overwrite = True
-    volume = 'T1'
-    atlas = False
-    gcaatlas = False
-    preflood = None
-    verbose = None
+    from mne.commands.utils import get_optparser
+
+    parser = get_optparser(__file__)
+
+    parser.add_option("-s", "--subject", dest="subject",
+                      help="Subject name", default=None)
+    parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
+                      help="Subjects directory", default=None)
+    parser.add_option("-o", "--overwrite", dest="overwrite",
+                      help="Write over existing files")
+    parser.add_option("-v", "--volume", dest="volume",
+                      help="Defaults to T1", default='T1')
+    parser.add_option("-a", "--atlas", dest="atlas",
+                      help="Specify the --atlas option for mri_watershed",
+                      default=False)
+    parser.add_option("-g", "--gcaatlas", dest="gcaatlas",
+                      help="Use the subcortical atlas", default=False)
+    parser.add_option("-p", "--preflood", dest="preflood",
+                      help="Change the preflood height", default=None)
+    parser.add_option("--verbose", dest="verbose",
+                      help="If not None, override default verbose level",
+                      default=None)
+
+    options, args = parser.parse_args()
+
+    subject = options.subject
+    subjects_dir = options.subjects_dir
+    overwrite = options.overwrite
+    volume = options.volume
+    atlas = options.atlas
+    gcaatlas = options.gcaatlas
+    preflood = options.preflood
+    verbose = options.verbose
+
     mne_watershed_bem(subject=subject, subjects_dir=subjects_dir,
                       overwrite=overwrite, volume=volume, atlas=atlas,
                       gcaatlas=gcaatlas, preflood=preflood, verbose=verbose)
