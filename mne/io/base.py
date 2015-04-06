@@ -2153,7 +2153,7 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         if misc is not None:
             rename_sensor(raw.info, misc_map)
     # (MEG) BTi systems
-    elif ext == '.pdf':
+    elif ext == '':
         raw = read_raw_bti(input_fname, eog=eog, misc=['E31'], preload=preload,
                            verbose=verbose)
         if eog is not None:
