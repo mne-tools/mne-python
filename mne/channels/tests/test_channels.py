@@ -77,15 +77,15 @@ def test_define_sensor():
     assert_true(info2['chs'][374]['ch_name'] == 'EEG 060')
     assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
     assert_true(info2['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][374]['coil'] == FIFF.FIFFV_COIL_EEG)
+    assert_true(info2['chs'][374]['coil_type'] == FIFF.FIFFV_COIL_NONE)
     assert_true(info2['chs'][373]['ch_name'] == 'EEG 059')
     assert_true(info2['chs'][373]['kind'] == FIFF.FIFFV_ECG_CH)
     assert_true(info2['chs'][373]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][373]['coil'] == FIFF.FIFFV_COIL_NONE)
+    assert_true(info2['chs'][373]['coil_type'] == FIFF.FIFFV_COIL_NONE)
     assert_true(info2['chs'][375]['ch_name'] == 'EOG 061')
     assert_true(info2['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)
     assert_true(info2['chs'][375]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][375]['coil'] == FIFF.FIFFV_COIL_EEG)
+    assert_true(info2['chs'][375]['coil_type'] == FIFF.FIFFV_COIL_EEG)
 
 
 def test_read_ch_connectivity():
