@@ -20,7 +20,7 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 @verbose
 def _apply_rap_music(data, info, times, forward, noise_cov,
-                     signal_ndim=None, n_dipoles=5, picks=None,
+                     n_dipoles=5, signal_ndim=None, picks=None,
                      return_explained_data=False, verbose=None):
     """RAP-MUSIC for evoked data
 
@@ -36,11 +36,11 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance.
+    n_dipoles : int
+        The number of dipoles to estimate.
     signal_ndim : int
         The dimension of the subspace spanning the signal.
         The default value is the number of dipoles.
-    n_dipoles : int
-        The number of dipoles to estimate.
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
@@ -177,7 +177,7 @@ def _compute_proj(A):
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, signal_ndim=None, n_dipoles=5,
+def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
               return_residual=False, picks=None, verbose=None):
     """RAP-MUSIC source localization method.
 
@@ -186,17 +186,17 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=None, n_dipoles=5,
 
     Parameters
     ----------
-    evoked : Evoked
+    evoked : instance of Evoked
         Evoked data to localize.
     forward : instance of Forward
         Forward operator.
     noise_cov : instance of Covariance
         The noise covariance.
+    n_dipoles : int
+        The number of dipoles to look for. Default value is 5.
     signal_ndim : int
         The dimension of the subspace spanning the signal.
         The default value is the number of dipoles.
-    n_dipoles : int
-        The number of dipoles to look for. Default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     picks : array-like of int | None
@@ -209,7 +209,7 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=None, n_dipoles=5,
     -------
     dipoles : list of instance of Dipole
         The dipole fits.
-    residual : Evoked
+    residual : instance of Evoked
         The residual a.k.a. data not explained by the dipoles.
         Only returned if return_residual is True.
 
@@ -232,8 +232,8 @@ def rap_music(evoked, forward, noise_cov, signal_ndim=None, n_dipoles=5,
     data = data[picks]
 
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
-                                               noise_cov, signal_ndim,
-                                               n_dipoles, picks,
+                                               noise_cov, n_dipoles,
+                                               signal_ndim, picks,
                                                return_residual)
 
     if return_residual:

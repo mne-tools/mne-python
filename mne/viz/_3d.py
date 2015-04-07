@@ -854,6 +854,8 @@ def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
 
     from mayavi import mlab
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+    import matplotlib.pyplot as plt
+    ax = plt.subplot()
 
     points = surfaces[0] * 1e-03
     faces = surfaces[1]
@@ -874,6 +876,12 @@ def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
                       opacity=1., mode=mode, color=colors[i_dip],
                       scalars=dipoles[i_dip].amplitude.max(),
                       scale_factor=scale_factor)
+
+        # Plot the time-series
+        ax.plot(dipoles[i_dip].times, dipoles[i_dip].amplitude,
+                color=colors[i_dip], linewidth=1.5)
+    ax.set_ylabel('amplitude (nAm)')
+    ax.set_xlabel('times (ms)')
 
     if fig_name is not None:
         mlab.title(fig_name)

@@ -10,7 +10,6 @@ import warnings
 from nose.tools import assert_true
 from numpy.testing import assert_array_almost_equal
 
-
 import mne
 from mne.datasets import testing
 from mne.beamformer import rap_music
@@ -18,49 +17,32 @@ from mne.utils import slow_test
 
 
 data_path = testing.data_path(download=False)
-fname_raw = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc_raw.fif')
+fname_ave = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
 fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis_trunc-cov.fif')
 fname_fwd = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
-fname_event = op.join(data_path, 'MEG', 'sample',
-                      'sample_audvis_trunc_raw-eve.fif')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def read_forward_solution_meg(fname_fwd, ch_names, **kwargs):
+def read_forward_solution_meg(fname_fwd, **kwargs):
     fwd = mne.read_forward_solution(fname_fwd, **kwargs)
-    return mne.pick_types_forward(fwd, eeg=False, include=ch_names,
+    return mne.pick_types_forward(fwd, meg=True, eeg=False,
                                   exclude=['MEG 2443'])
 
 
-def _get_data(tmin=-0.1, tmax=0.15, event_id=1):
+def _get_data(event_id=1):
     """Read in data used in tests
     """
-    events = mne.read_events(fname_event)
-    raw = mne.io.Raw(fname_raw, preload=True)
+    # Read evoked
+    evoked = mne.read_evokeds(fname_ave, event_id)
+    evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
+    evoked.crop(0, 0.3)
 
-    # Setup for reading the raw data
-    raw.info['bads'] = ['MEG 2443']  # 2 bads channels
+    forward = mne.read_forward_solution(fname_fwd)
 
-    # Set up pick list: MEG - bad channels
-    picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=False,
-                           eog=True, ref_meg=False, exclude='bads')
-
-    # Read epochs
-    epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
-                        picks=picks, baseline=(None, 0), preload=False,
-                        reject=dict(grad=4000e-13, mag=4e-12, eog=150e-6))
-
-    evoked = epochs.average()
-
-    ch_names = evoked.info['ch_names']
-    forward = mne.read_forward_solution(fname_fwd, ch_names)
-
-    forward_surf_ori = read_forward_solution_meg(fname_fwd, ch_names,
-                                                 surf_ori=True)
-    forward_fixed = read_forward_solution_meg(fname_fwd, ch_names,
-                                              force_fixed=True,
+    forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
+    forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
                                               surf_ori=True)
 
     noise_cov = mne.read_cov(fname_cov)
@@ -80,16 +62,18 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     data = np.array([s1, s2]) * 10e-10
 
     src = forward['src']
-    rndi = np.random.randint(len(src[0]['vertno']))
+    rng = np.random.RandomState(42)
+
+    rndi = rng.randint(len(src[0]['vertno']))
     lh_vertno = src[0]['vertno'][[rndi]]
-    rndi = np.random.randint(len(src[1]['vertno']))
+
+    rndi = rng.randint(len(src[1]['vertno']))
     rh_vertno = src[1]['vertno'][[rndi]]
 
     vertices = [lh_vertno, rh_vertno]
     tmin, tstep = times.min(), 1 / evoked.info['sfreq']
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
-    rng = np.random.RandomState(0)
     sim_evoked = mne.simulation.generate_evoked(forward, stc, evoked,
                                                 noise_cov, snr=20,
                                                 random_state=rng)
@@ -97,7 +81,6 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     return sim_evoked, stc
 
 
-@slow_test
 @testing.requires_testing_data
 def test_rap_music():
     """Test RAP-MUSIC with evoked data
@@ -129,7 +112,6 @@ def test_rap_music():
     assert_array_almost_equal(evoked.times, res.times)
 
 
-@slow_test
 @testing.requires_testing_data
 def test_rap_music_simulated():
     """Test RAP-MUSIC with simulated evoked
@@ -141,23 +123,23 @@ def test_rap_music_simulated():
     sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
                                 evoked.times)
 
-    def _check_dipoles(dipoles, ori=False):
-        src = forward_fixed['src']
-        pos1 = forward_fixed['source_rr'][np.where(src[0]['vertno'] ==
-                                          stc.vertices[0])]
-        pos2 = forward_fixed['source_rr'][np.where(src[1]['vertno'] ==
-                                          stc.vertices[1])[0] +
-                                          len(src[0]['vertno'])]
+    def _check_dipoles(dipoles, fwd, ori=False):
+        src = fwd['src']
+        pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
+                                         stc.vertices[0])]
+        pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
+                                         stc.vertices[1])[0] +
+                                len(src[0]['vertno'])]
 
         # Check the position of the two dipoles
         assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
         assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
 
-        ori1 = forward_fixed['source_nn'][np.where(src[0]['vertno'] ==
-                                          stc.vertices[0])]
-        ori2 = forward_fixed['source_nn'][np.where(src[1]['vertno'] ==
-                                          stc.vertices[1])[0] +
-                                          len(src[0]['vertno'])]
+        ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
+                                         stc.vertices[0])]
+        ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
+                                         stc.vertices[1])[0] +
+                                len(src[0]['vertno'])]
 
         if ori:
             # Check the orientation of the two dipoles
@@ -167,9 +149,9 @@ def test_rap_music_simulated():
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, ori=True)
+    _check_dipoles(dipoles, forward_fixed, ori=True)
 
     # Check dipoles for free ori
-    dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
+    dipoles = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles)
+    _check_dipoles(dipoles, forward_surf_ori)

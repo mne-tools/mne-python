@@ -58,13 +58,6 @@ coord_trans = forward['mri_head_t']['trans']
 plot_dipoles(dipoles, coord_trans, subject='sample',
              subjects_dir=subjects_dir, colors=[(0., 0., 1.), (1., 0., 0.)])
 
-# Plot the time-series
-plt.figure()
-plt.plot(dipoles[0].times, dipoles[0].amplitude, 'b', linewidth=1.5)
-plt.plot(dipoles[1].times, dipoles[1].amplitude, 'r', linewidth=1.5)
-plt.ylabel('amplitude (nAm)')
-plt.xlabel('times (ms)')
-
 # Plot the evoked data and the residual.
 evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
 residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
