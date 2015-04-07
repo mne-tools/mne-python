@@ -437,6 +437,22 @@ def define_sensor(info, mapping):
                   'stim': FIFF.FIFFV_STIM_CH,
                   'syst': FIFF.FIFFV_SYST_CH}
 
+    human2unit = {'ecg': FIFF.FIFF_UNIT_V,
+                  'eeg': FIFF.FIFF_UNIT_V,
+                  'emg': FIFF.FIFF_UNIT_V,
+                  'eog': FIFF.FIFF_UNIT_V,
+                  'exci': FIFF.FIFF_UNIT_NONE,
+                  'ias': FIFF.FIFF_UNIT_NONE,
+                  'meg': FIFF.FIFF_UNIT_T,
+                  'mcg': FIFF.FIFF_UNIT_T,
+                  'misc': FIFF.FIFF_UNIT_NONE,
+                  'ref_meg': FIFF.FIFF_UNIT_T,
+                  'resp': FIFF.FIFF_UNIT_NONE,
+                  'seeg': FIFF.FIFF_UNIT_V,
+                  'stim': FIFF.FIFF_UNIT_NONE,
+                  'syst': FIFF.FIFF_UNIT_NONE}
+
+
     ch_names = info['ch_names']
 
     # first check and assemble clean mappings of index and name
@@ -451,7 +467,7 @@ def define_sensor(info, mapping):
                              'channel type: %s.' % ch_type)
     # Set sensor type
         info['chs'][c_ind]['kind'] = human2fiff[ch_type]
-
+        info['chs'][c_ind]['unit'] = human2unit[ch_type]
 
 def _recursive_flatten(cell, dtype):
     """Helper to unpack mat files in Python"""
