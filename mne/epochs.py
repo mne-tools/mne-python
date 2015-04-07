@@ -2009,7 +2009,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     bmin, bmax = None, None
     baseline = None
     selection = None
-    drop_log = []
+    drop_log = None
     for k in range(my_epochs['nent']):
         kind = my_epochs['directory'][k].kind
         pos = my_epochs['directory'][k].pos
@@ -2093,7 +2093,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     # In case epochs didn't have a FIFF.FIFFB_MNE_EPOCHS_SELECTION tag
     # (version < 0.8):
     if selection is None:
-        selection = range(len(epochs))
+        selection = np.arange(len(epochs))
+    if drop_log is None:
+        drop_log = [[] for _ in range(len(epochs))]  # noqa
 
     epochs.selection = selection
     epochs.drop_log = drop_log
