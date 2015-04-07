@@ -17,8 +17,6 @@ DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
 #
 # License: BSD (3-clause)
 
-import matplotlib.pyplot as plt
-
 import mne
 
 from mne.datasets import sample
@@ -37,12 +35,6 @@ evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
 evoked.crop(tmin=0., tmax=200e-3)
 
-# Set up pick list: EEG + MEG - bad channels (modify to your needs)
-# left_temporal_channels = mne.read_selection('Right-temporal')
-# left_temporal_channels = mne.read_selection('Left-temporal')
-# evoked = mne.pick_types_evoked(evoked, meg=False, eeg=False,
-#                                include=left_temporal_channels)
-
 evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 
 # Read the forward solution
@@ -54,9 +46,9 @@ noise_cov = mne.read_cov(cov_fname)
 
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
                               return_residual=True, verbose=True)
-coord_trans = forward['mri_head_t']['trans']
-plot_dipoles(dipoles, coord_trans, subject='sample',
-             subjects_dir=subjects_dir, colors=[(0., 0., 1.), (1., 0., 0.)])
+trans = forward['mri_head_t']
+plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir,
+             colors=[(0., 0., 1.), (1., 0., 0.)])
 
 # Plot the evoked data and the residual.
 evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))

@@ -784,7 +784,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
-def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
+def plot_dipoles(dipoles, trans, subject, subjects_dir,
                  bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
                  mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
                  mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
@@ -794,8 +794,8 @@ def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
     ----------
     dipoles : list of instances of dipole
         The dipoles.
-    coord_trans : array
-        The coordinate transformation array 4x4.
+    trans : dict
+        The trans dict.
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -829,6 +829,13 @@ def plot_dipoles(dipoles, coord_trans, subject, subjects_dir,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    if trans['to'] == FIFF.FIFFV_COORD_HEAD:
+        coord_trans = trans['trans']
+    else:
+        from ..transforms import invert_transform
+        trans = invert_transform(trans)
+        coord_trans = trans['trans']
+
     fname = os.path.join(subjects_dir, subject, 'bem',
                          'inner_skull.surf')
 

@@ -13,7 +13,6 @@ from numpy.testing import assert_array_almost_equal
 import mne
 from mne.datasets import testing
 from mne.beamformer import rap_music
-from mne.utils import slow_test
 
 
 data_path = testing.data_path(download=False)
