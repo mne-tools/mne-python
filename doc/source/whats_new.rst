@@ -91,6 +91,7 @@ Changelog
 
    - `rename_channels` and `set_channel_types` added as methods to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_ 
 
+
 BUG
 ~~~
 
@@ -181,9 +182,6 @@ API
    - Deprecated changing the sensor type of channels in `rename_channels` by `Teon Brooks`_
 
    - CUDA is no longer initialized at module import, but only when first used.
-
-   - Deprecated changing the sensor type of channels in `rename_channels` for `define_sensor` by `Teon Brooks`_
-
 
 .. _changes_0_8:
 
