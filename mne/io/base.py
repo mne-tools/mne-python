@@ -2137,7 +2137,7 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         if misc is not None:
             rename_sensor(raw.info, misc_map)
     # (EEG) EDF and Biosemi systems
-    elif ext == '.edf':
+    elif ext in ['bdf', '.edf']:
         raw = read_raw_edf(input_fname, montage=montage, eog=eog, misc=eog,
                            preload=preload, verbose=verbose)
     # (EEG) EGI systems
