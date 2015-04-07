@@ -111,37 +111,36 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     Parameters
     ----------
     inst : instance of Raw or Evoked or Epochs
-        The data
+        The Data
     events : array, shape (n_events, 3)
         The list of events. Required only when inst is raw
     event_id : int
         The id of the events generating the stimulation artifacts.
-        If none, read all events.
+        If None, read all events.
         Required only when inst is raw
     tmin : float
         Start time of the interpolation window in seconds.
     tmax : float
         End time of the interpolation window in seconds.
     mode : 'linear' | 'window'
-        way to fill the artifacted time interval.
+        Way to fill the artifacted time interval.
         'linear' does linear interpolation
         'window' applies a (1 - hanning) window.
     copy : bool
-        If true, data will be copied. Else data may be modified in place.
+        If True, data will be copied. Else data may be modified in place.
 
     Returns
     -------
     inst : instance of Raw or Evoked or Epochs
-        instance with modified data
+        Instance with modified data
     """
     if copy:
         inst = inst.copy()
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (s_end - s_start) < 4:
-        mode = 'linear'
-        logger.info("For time range is too short, "
-                    "method is changed to linear mode")
+        raise RuntimeError('Time range is too short to fix stimulation '
+                           'artifact. Input longer values ')
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
