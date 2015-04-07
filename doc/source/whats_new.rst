@@ -89,6 +89,9 @@ Changelog
 
    - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
 
+   - Add `define_sensor` for changing the sensor type of channels by `Teon Brooks`_
+
+
 BUG
 ~~~
 
@@ -141,13 +144,13 @@ API
    - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-    ``mne.layouts`` by `Denis Engemann`_
+    `mne.layouts` by `Denis Engemann`_
 
    - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
-   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
+   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in `Report.parse_folder()` by `Mainak Jas`_
 
    - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and made private by `Teon Brooks`_
 
@@ -172,7 +175,11 @@ API
      zero to be consistent with all other `Raw` instances. To get the former `start` and `stop` times,
      use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
 
+<<<<<<< HEAD
    - `pick_types_evoked` has been deprecated in favor of `evoked.pick_types`.
+=======
+   - Deprecated changing the sensor type of channels in `rename_channels` for `define_sensor` by `Teon Brooks`_
+>>>>>>> Update whats_new
 
    - CUDA is no longer initialized at module import, but only when first used.
 
