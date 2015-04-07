@@ -139,8 +139,9 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (s_end - s_start) < 4:
-        raise RuntimeError('Time range is too short to fix stimulation '
-                           'artifact. Input longer values ')
+        mode = 'linear'
+        logger.info("For time range is too short, "
+                    "method is changed to linear mode")
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
