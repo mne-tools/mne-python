@@ -411,8 +411,7 @@ def define_sensor(info, mapping):
     """Define the sensor type of channels.
 
     Note: The following sensor types are accepted:
-        ecg, eeg, emg, eog, exci, grad, ias, mag, mcg,
-        misc, ref_meg, resp, seeg, stim, syst
+        ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst
 
     Parameters
     ----------
@@ -427,12 +426,8 @@ def define_sensor(info, mapping):
                   'emg': FIFF.FIFFV_EMG_CH,
                   'eog': FIFF.FIFFV_EOG_CH,
                   'exci': FIFF.FIFFV_EXCI_CH,
-                  'grad': FIFF.FIFFV_MEG_CH,
                   'ias': FIFF.FIFFV_IAS_CH,
-                  'meg': FIFF.FIFFV_MEG_CH,
-                  'mcg': FIFF.FIFFV_MCG_CH,
                   'misc': FIFF.FIFFV_MISC_CH,
-                  'ref_meg': FIFF.FIFFV_REF_MEG_CH,
                   'resp': FIFF.FIFFV_RESP_CH,
                   'seeg': FIFF.FIFFV_SEEG_CH,
                   'stim': FIFF.FIFFV_STIM_CH,
@@ -443,12 +438,8 @@ def define_sensor(info, mapping):
                   'emg': FIFF.FIFF_UNIT_V,
                   'eog': FIFF.FIFF_UNIT_V,
                   'exci': FIFF.FIFF_UNIT_NONE,
-                  'grad': FIFF.FIFF_UNIT_T,
                   'ias': FIFF.FIFF_UNIT_NONE,
-                  'mag': FIFF.FIFF_UNIT_T,
-                  'mcg': FIFF.FIFF_UNIT_T,
                   'misc': FIFF.FIFF_UNIT_NONE,
-                  'ref_meg': FIFF.FIFF_UNIT_T,
                   'resp': FIFF.FIFF_UNIT_NONE,
                   'seeg': FIFF.FIFF_UNIT_V,
                   'stim': FIFF.FIFF_UNIT_NONE,
