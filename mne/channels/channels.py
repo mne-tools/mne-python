@@ -411,7 +411,7 @@ def define_sensor(info, mapping):
     """Define the sensor type of channels.
 
     Note: The following sensor types are accepted:
-        ecg, eeg, emg, eog, exci, ias, meg, mcg,
+        ecg, eeg, emg, eog, exci, grad, ias, mag, mcg,
         misc, ref_meg, resp, seeg, stim, syst
 
     Parameters
@@ -427,6 +427,7 @@ def define_sensor(info, mapping):
                   'emg': FIFF.FIFFV_EMG_CH,
                   'eog': FIFF.FIFFV_EOG_CH,
                   'exci': FIFF.FIFFV_EXCI_CH,
+                  'grad': FIFF.FIFFV_MEG_CH,
                   'ias': FIFF.FIFFV_IAS_CH,
                   'meg': FIFF.FIFFV_MEG_CH,
                   'mcg': FIFF.FIFFV_MCG_CH,
@@ -442,8 +443,9 @@ def define_sensor(info, mapping):
                   'emg': FIFF.FIFF_UNIT_V,
                   'eog': FIFF.FIFF_UNIT_V,
                   'exci': FIFF.FIFF_UNIT_NONE,
+                  'grad': FIFF.FIFF_UNIT_T,
                   'ias': FIFF.FIFF_UNIT_NONE,
-                  'meg': FIFF.FIFF_UNIT_T,
+                  'mag': FIFF.FIFF_UNIT_T,
                   'mcg': FIFF.FIFF_UNIT_T,
                   'misc': FIFF.FIFF_UNIT_NONE,
                   'ref_meg': FIFF.FIFF_UNIT_T,
@@ -451,7 +453,6 @@ def define_sensor(info, mapping):
                   'seeg': FIFF.FIFF_UNIT_V,
                   'stim': FIFF.FIFF_UNIT_NONE,
                   'syst': FIFF.FIFF_UNIT_NONE}
-
 
     ch_names = info['ch_names']
 
@@ -465,9 +466,14 @@ def define_sensor(info, mapping):
         if ch_type not in human2fiff:
             raise ValueError('This function cannot change to this '
                              'channel type: %s.' % ch_type)
-    # Set sensor type
+        # Set sensor type
         info['chs'][c_ind]['kind'] = human2fiff[ch_type]
         info['chs'][c_ind]['unit'] = human2unit[ch_type]
+        if ch_type in ['eeg', 'seeg']:
+            info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+        else:
+            info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+
 
 def _recursive_flatten(cell, dtype):
     """Helper to unpack mat files in Python"""
