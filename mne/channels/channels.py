@@ -345,8 +345,8 @@ def rename_channels(info, mapping):
     """Rename channels.
 
     Note : The ability to change sensor types has been deprecated in favor of
-    `define_sensor`. Please use this function if you would changing or defining
-    sensor type.
+    `set_channel_type`. Please use this function if you would changing or
+    defining sensor type.
 
 
     Parameters
@@ -407,7 +407,7 @@ def rename_channels(info, mapping):
     assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
 
 
-def define_sensor(info, mapping):
+def set_channel_type(info, mapping):
     """Define the sensor type of channels.
 
     Note: The following sensor types are accepted:

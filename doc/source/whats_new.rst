@@ -89,7 +89,7 @@ Changelog
 
    - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
 
-   - Add `define_sensor` for changing the sensor type of channels by `Teon Brooks`_
+   - Add `set_channel_type` for changing the channel type by `Teon Brooks`_
 
 
 BUG
