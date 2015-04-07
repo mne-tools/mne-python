@@ -2095,7 +2095,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     if selection is None:
         selection = np.arange(len(epochs))
     if drop_log is None:
-        drop_log = [[] for _ in range(len(epochs))]
+        drop_log = [[] for _ in range(len(epochs))]  # noqa
 
     epochs.selection = selection
     epochs.drop_log = drop_log
