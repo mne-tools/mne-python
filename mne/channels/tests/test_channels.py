@@ -73,10 +73,10 @@ def test_define_sensor():
     info2 = deepcopy(info)
     info2['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     mapping = {'EEG 060': 'eog', 'EEG 059': 'ecg', 'EOG 061': 'seeg'}
-    rename_channels(info2, mapping)
-    assert_true(info2['chs'][374]['ch_name'] == 'EOG 060')
+    define_sensor(info2, mapping)
+    assert_true(info2['chs'][374]['ch_name'] == 'EEG 060')
     assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
-    assert_true(info2['chs'][373]['ch_name'] == 'EOG 059')
+    assert_true(info2['chs'][373]['ch_name'] == 'EEG 059')
     assert_true(info2['chs'][373]['kind'] == FIFF.FIFFV_ECG_CH)
     assert_true(info2['chs'][375]['ch_name'] == 'EOG 061')
     assert_true(info2['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)

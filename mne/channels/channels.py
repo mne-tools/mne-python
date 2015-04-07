@@ -437,7 +437,6 @@ def define_sensor(info, mapping):
                   'stim': FIFF.FIFFV_STIM_CH,
                   'syst': FIFF.FIFFV_SYST_CH}
 
-    bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
 
     # first check and assemble clean mappings of index and name
@@ -451,7 +450,7 @@ def define_sensor(info, mapping):
             raise ValueError('This function cannot change to this '
                              'channel type: %s.' % ch_type)
     # Set sensor type
-        info['chs'][c_ind]['kind'] = ch_type
+        info['chs'][c_ind]['kind'] = human2fiff[ch_type]
 
 
 def _recursive_flatten(cell, dtype):
