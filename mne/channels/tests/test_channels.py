@@ -61,6 +61,7 @@ def test_rename_channels():
 def test_define_sensor():
     """Test define sensor
     """
+    info = read_info(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}

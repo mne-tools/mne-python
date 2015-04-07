@@ -8,6 +8,7 @@
 
 import os
 import os.path as op
+import warnings
 
 import numpy as np
 from scipy.io import loadmat
