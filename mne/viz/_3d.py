@@ -784,7 +784,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
-def plot_dipoles(dipoles, trans, subject, subjects_dir,
+def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
                  bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
                  mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
                  mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
@@ -799,9 +799,10 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir,
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
-    subjects_dir : str
+    subjects_dir : None | str
         The path to the freesurfer subjects reconstructions.
         It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        The default is None.
     bgcolor : tuple of length 3
         Background color in 3D.
     opacity : float in [0, 1]
@@ -836,6 +837,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir,
         trans = invert_transform(trans)
         coord_trans = trans['trans']
 
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
                          'inner_skull.surf')
 
