@@ -459,6 +459,8 @@ def set_channel_type(info, mapping):
                              'channel type: %s.' % ch_type)
         # Set sensor type
         info['chs'][c_ind]['kind'] = human2fiff[ch_type]
+        if info['chs'][c_ind]['unit'] != human2unit[ch_type]:
+            warnings.warn("The unit for Channel %s has changed." % ch_name)
         info['chs'][c_ind]['unit'] = human2unit[ch_type]
         if ch_type in ['eeg', 'seeg']:
             info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
