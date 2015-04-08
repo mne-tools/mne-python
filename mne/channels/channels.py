@@ -345,7 +345,7 @@ def rename_channels(info, mapping):
     """Rename channels.
 
     Note : The ability to change sensor types has been deprecated in favor of
-    `set_channel_type`. Please use this function if you would changing or
+    `set_channels_type`. Please use this function if you would changing or
     defining sensor type.
 
 
@@ -380,7 +380,7 @@ def rename_channels(info, mapping):
 
         elif isinstance(new_name, tuple):  # name and type change
             warnings.warn("Changing sensor type is now deprecated. Please use "
-                          "'define_sensor' instead.", DeprecationWarning)
+                          "'set_channels_type' instead.", DeprecationWarning)
             new_name, new_type = new_name  # unpack
             if new_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
@@ -407,7 +407,7 @@ def rename_channels(info, mapping):
     assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
 
 
-def set_channel_type(info, mapping):
+def set_channels_type(info, mapping):
     """Define the sensor type of channels.
 
     Note: The following sensor types are accepted:
@@ -445,6 +445,8 @@ def set_channel_type(info, mapping):
                   'stim': FIFF.FIFF_UNIT_NONE,
                   'syst': FIFF.FIFF_UNIT_NONE}
 
+    unit2human = {FIFF.FIFF_UNIT_V: 'V',
+                  FIFF.FIFF_UNIT_NONE: 'NA'}
     ch_names = info['ch_names']
 
     # first check and assemble clean mappings of index and name
@@ -456,11 +458,18 @@ def set_channel_type(info, mapping):
         c_ind = ch_names.index(ch_name)
         if ch_type not in human2fiff:
             raise ValueError('This function cannot change to this '
-                             'channel type: %s.' % ch_type)
+                             'channel type: %s. Accepted channel types are '
+                             'ecg, eeg, emg, eog, exci, ias, misc, resp, '
+                             'seeg, stim, syst.' % ch_type)
         # Set sensor type
         info['chs'][c_ind]['kind'] = human2fiff[ch_type]
-        if info['chs'][c_ind]['unit'] != human2unit[ch_type]:
-            warnings.warn("The unit for Channel %s has changed." % ch_name)
+        unit_old = info['chs'][c_ind]['unit']
+        unit_new = human2unit[ch_type]
+        if unit_old != human2unit[ch_type]:
+            warnings.warn("The unit for Channel %s has changed "
+                          "from %s to %s." % (ch_name,
+                                              unit2human[unit_old],
+                                              unit2human[unit_new]))
         info['chs'][c_ind]['unit'] = human2unit[ch_type]
         if ch_type in ['eeg', 'seeg']:
             info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG

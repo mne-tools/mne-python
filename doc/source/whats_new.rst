@@ -89,7 +89,7 @@ Changelog
 
    - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
 
-   - Add `set_channel_type` for changing the channel type by `Teon Brooks`_
+   - Add `set_channels_type` for changing the channel type by `Teon Brooks`_
 
 
 BUG
@@ -176,10 +176,15 @@ API
      use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
    - `pick_types_evoked` has been deprecated in favor of `evoked.pick_types`.
 =======
    - Deprecated changing the sensor type of channels in `rename_channels` for `define_sensor` by `Teon Brooks`_
 >>>>>>> Update whats_new
+=======
+   - Deprecated changing the sensor type of channels in `rename_channels` for `set_channels_type` by `Teon Brooks`_
+
+>>>>>>> ENH name and error messages
 
    - CUDA is no longer initialized at module import, but only when first used.
 
