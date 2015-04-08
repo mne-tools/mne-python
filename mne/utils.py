@@ -37,6 +37,8 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
+from .fixes import isclose
+
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
@@ -1725,6 +1727,6 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
     mask = (times >= tmin)
     mask &= (times <= tmax)
     if not strict:
-        mask |= np.isclose(times, tmin)
-        mask |= np.isclose(times, tmax)
+        mask |= isclose(times, tmin)
+        mask |= isclose(times, tmax)
     return mask
