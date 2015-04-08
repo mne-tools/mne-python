@@ -324,9 +324,11 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     chs_in_layout = set(layout.names) & set(ch_names)
     types_used = set(channel_type(info, ch_names.index(ch))
                      for ch in chs_in_layout)
+    # remove possible reference meg channels
+    types_used = set.difference(types_used, set('ref_meg'))
     # one check for all vendors
-    meg_types = ['mag'], ['grad'], ['mag', 'grad'],
-    is_meg = any(types_used == set(k) for k in meg_types)
+    meg_types = set(('mag', 'grad'))
+    is_meg = len(set.intersection(types_used, meg_types)) > 0
     if is_meg:
         types_used = list(types_used)[::-1]  # -> restore kwarg order
         picks = [pick_types(info, meg=kk, ref_meg=False, exclude=[])
