@@ -7,7 +7,7 @@ from scipy import signal, interpolate
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..io import Raw
-from ..utils import deprecated, logger
+from ..utils import deprecated
 from ..event import find_events
 
 from .. import pick_types
@@ -25,9 +25,9 @@ def _get_window(start, end):
 def _check_preload(inst):
     """Check if inst.preload is False. If it is False, raising error"""
     if inst.preload is False:
-            raise RuntimeError('Modifying data of Instance is only supported '
-                               'when preloading is used. Use preload=True '
-                               '(or string) in the constructor.')
+        raise RuntimeError('Modifying data of Instance is only supported '
+                           'when preloading is used. Use preload=True '
+                           '(or string) in the constructor.')
 
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
@@ -110,7 +110,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     Parameters
     ----------
-    inst : instance of Raw or Evoked or Epochs
+    inst : instance of Raw or Epochs or Evoked
         The Data
     events : array, shape (n_events, 3)
         The list of events. Required only when inst is raw
@@ -139,9 +139,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
     if (s_end - s_start) < 4:
-        mode = 'linear'
-        logger.info("For time range is too short, "
-                    "method is changed to linear mode")
+        raise ValueError('Time range is too short. '
+                         'Input bigger value')
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)

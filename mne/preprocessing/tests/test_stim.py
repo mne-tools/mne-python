@@ -45,11 +45,11 @@ def test_fix_stim_artifact():
     data_from_raw_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
     assert_true(np.all(data_from_raw_fix) == 0.)
 
-     # use window before stimulus in raw
+    # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
-    tmin, tmax = -0.045, 0.015
-    tmin_samp = int(-0.01 * raw.info['sfreq'])
-    tmax_samp = int(0.01 * raw.info['sfreq'])
+    tmin, tmax = -0.045, -0.015
+    tmin_samp = int(-0.035 * raw.info['sfreq'])
+    tmax_samp = int(-0.015 * raw.info['sfreq'])
     tidx = int(events[event_idx, 0] - raw.first_samp)
 
     raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
@@ -64,6 +64,7 @@ def test_fix_stim_artifact():
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     assert_true(np.all(data) == 0.)
 
+    # get epochs from raw with fixed data
     tmin, tmax, event_id = -0.2, 0.5, 1
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     preload=True, reject=None)
