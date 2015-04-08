@@ -42,8 +42,8 @@ def test_fix_stim_artifact():
     assert_array_almost_equal(diff_data0, np.zeros(len(diff_data0)))
 
     epochs = fix_stim_artifact(epochs, tmin=tmin, tmax=tmax, mode='window')
-    data_from_raw_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert_true(np.all(data_from_raw_fix) == 0.)
+    data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    assert_true(np.all(data_from_epochs_fix) == 0.)
 
     # use window before stimulus in raw
     event_idx = np.where(events[:, 2] == 1)[0][0]
@@ -71,11 +71,8 @@ def test_fix_stim_artifact():
     e_start = int(np.ceil(epochs.info['sfreq'] * epochs.tmin))
     tmin_samp = int(-0.035 * epochs.info['sfreq']) - e_start
     tmax_samp = int(-0.015 * epochs.info['sfreq']) - e_start
-    data_from_epochs_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
-    assert_true(np.all(data_from_epochs_fix) == 0.)
-
-    # check two data samples are same which  are from raw fix and epochs fix
-    assert_array_almost_equal(data_from_raw_fix, data_from_epochs_fix)
+    data_from_raw_fix = epochs.get_data()[:, :, tmin_samp:tmax_samp]
+    assert_true(np.all(data_from_raw_fix) == 0.)
 
     # use window after stimulus
     evoked = epochs.average()
