@@ -832,18 +832,18 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     """
     if trans['to'] == FIFF.FIFFV_COORD_HEAD:
         if trans['from'] == FIFF.FIFFV_COORD_MRI:
+            coord_trans = trans['trans']
+        else:
             raise ValueError('trans must be the transformation between'
                              'the head (coord 4) and the mri (coord 5)')
-        else:
-            coord_trans = trans['trans']
     elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
         if trans['to'] == FIFF.FIFFV_COORD_MRI:
-            raise ValueError('trans must be the transformation between'
-                             'the head (coord 4) and the mri (coord 5)')
-        else:
             from ..transforms import invert_transform
             trans = invert_transform(trans)
             coord_trans = trans['trans']
+        else:
+            raise ValueError('trans must be the transformation between'
+                             'the head (coord 4) and the mri (coord 5)')
     else:
         raise ValueError('trans must be the transformation between'
                          'the head (coord 4) and the mri (coord 5)')
