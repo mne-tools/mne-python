@@ -54,8 +54,8 @@ def test_bdf_data():
     raw_eeglab = io.loadmat(bdf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
-
-    assert_array_almost_equal(data_py, data_eeglab)
+    # bdf saved as a single, resolution to seven decimal points in matlab
+    assert_array_almost_equal(data_py, data_eeglab, 8)
 
     # Manually checking that float coordinates are imported
     assert_true((raw_py.info['chs'][0]['eeg_loc']).any())
@@ -85,7 +85,7 @@ def test_edf_data():
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
     data_eeglab = raw_eeglab[picks]
 
-    assert_array_almost_equal(data_py, data_eeglab)
+    assert_array_almost_equal(data_py, data_eeglab, 10)
 
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw_py.copy(), raw_py])
