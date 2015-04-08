@@ -795,7 +795,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     dipoles : list of instances of dipole
         The dipoles.
     trans : dict
-        The trans dict.
+        The mri to head trans.
     subject : str
         The subject name corresponding to FreeSurfer environment
         variable SUBJECT.
@@ -831,11 +831,22 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
         The mayavi figure.
     """
     if trans['to'] == FIFF.FIFFV_COORD_HEAD:
-        coord_trans = trans['trans']
+        if trans['from'] == FIFF.FIFFV_COORD_MRI:
+            raise ValueError('trans must be the transformation between'
+                             'the head (coord 4) and the mri (coord 5)')
+        else:
+            coord_trans = trans['trans']
+    elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
+        if trans['to'] == FIFF.FIFFV_COORD_MRI:
+            raise ValueError('trans must be the transformation between'
+                             'the head (coord 4) and the mri (coord 5)')
+        else:
+            from ..transforms import invert_transform
+            trans = invert_transform(trans)
+            coord_trans = trans['trans']
     else:
-        from ..transforms import invert_transform
-        trans = invert_transform(trans)
-        coord_trans = trans['trans']
+        raise ValueError('trans must be the transformation between'
+                         'the head (coord 4) and the mri (coord 5)')
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
