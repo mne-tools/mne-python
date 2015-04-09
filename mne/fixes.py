@@ -694,7 +694,7 @@ def _isclose(a, b, rtol=1.e-5, atol=1.e-8, equal_nan=False):
     """
     def within_tol(x, y, atol, rtol):
         with np.errstate(invalid='ignore'):
-            result = np.less_equal(abs(x-y), atol + rtol * abs(y))
+            result = np.less_equal(abs(x - y), atol + rtol * abs(y))
         if np.isscalar(a) and np.isscalar(b):
             result = bool(result)
         return result
