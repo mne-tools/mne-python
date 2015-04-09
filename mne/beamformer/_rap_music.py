@@ -79,8 +79,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
     phi_sig = eig_vectors[:, -signal_ndim:]
 
     n_orient = 3 if is_free_ori else 1
-    A = np.empty((G.shape[0], n_dipoles))
-    gain_dip = np.empty((G.shape[0], n_dipoles))
+    n_channels = G.shape[0]
+    A = np.empty((n_channels, n_dipoles))
+    gain_dip = np.empty((n_channels, n_dipoles))
     oris = np.empty((n_dipoles, 3))
     poss = np.empty((n_dipoles, 3))
 
@@ -160,7 +161,8 @@ def _make_dipoles(times, src, poss, oris, sol):
 def _compute_subcorr(G, phi_sig):
     """ Compute the subspace correlation
     """
-    Ug = linalg.qr(G, mode='economic')[0]
+    # Ug = linalg.qr(G, mode='economic')[0]
+    Ug, _, _ = linalg.svd(G, full_matrices=False)
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
     subcorr = np.dot(tmp, tmp.T.conjugate()).real
     eig_vals, eig_vecs = linalg.eigh(subcorr)
@@ -171,9 +173,8 @@ def _compute_proj(A):
     """ Compute the orthogonal projection operation for
     a manifold vector A.
     """
-    Ah = A.T.conjugate()
-    I = np.identity(A.shape[0])
-    return I - np.dot(np.dot(A, linalg.pinv(np.dot(Ah, A))), Ah)
+    U, _, _ = linalg.svd(A, full_matrices=False)
+    return np.identity(A.shape[0]) - np.dot(U, U.T.conjugate())
 
 
 @verbose

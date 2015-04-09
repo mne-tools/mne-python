@@ -820,8 +820,8 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
         dipoles should be shown.
     scale_factor :
         The scaling applied to amplitudes for the plot.
-    colors: list of colors
-        color to plot with each dipole.
+    colors: list of colors | None
+        Color to plot with each dipole. If None defaults colors are used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -830,23 +830,22 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    msg = ('trans must be the transformation between '
+           'the head (coord 4) and the mri (coord 5)')
     if trans['to'] == FIFF.FIFFV_COORD_HEAD:
         if trans['from'] == FIFF.FIFFV_COORD_MRI:
             coord_trans = trans['trans']
         else:
-            raise ValueError('trans must be the transformation between'
-                             'the head (coord 4) and the mri (coord 5)')
+            raise ValueError(msg)
     elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
         if trans['to'] == FIFF.FIFFV_COORD_MRI:
             from ..transforms import invert_transform
             trans = invert_transform(trans)
             coord_trans = trans['trans']
         else:
-            raise ValueError('trans must be the transformation between'
-                             'the head (coord 4) and the mri (coord 5)')
+            raise ValueError(msg)
     else:
-        raise ValueError('trans must be the transformation between'
-                         'the head (coord 4) and the mri (coord 5)')
+        raise ValueError(msg)
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
@@ -861,9 +860,9 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
         raise ValueError('mode must be in "cone" or "sphere"')
 
     if colors is None:
-        colors = [None] * len(dipoles)
+        colors = cycle(COLORS)
 
-    surfaces = read_surface(fname)
+    points, faces = read_surface(fname)
 
     pos = np.zeros((n_dipoles, n_times, 3))
     ori = np.zeros((n_dipoles, n_times, 3))
@@ -873,14 +872,15 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
         amp[i_dip] = dipoles[i_dip].amplitude
 
     from mayavi import mlab
-    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
     import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
+
+    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
     ax = plt.subplot()
 
-    points = surfaces[0] * 1e-03
-    faces = surfaces[1]
-
-    points = np.dot(coord_trans[:3, :3], points.T).T + coord_trans[:3, -1]
+    points *= 1e-03
+    points = apply_trans(coord_trans, points)
 
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
@@ -888,18 +888,18 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     # Normalize the amplitude for the plot
     mean = amp.mean(axis=1)[:, np.newaxis]
     std = amp.std(axis=1)[:, np.newaxis]
-    amp = (amp - mean.repeat(amp.shape[1], axis=1)) / std.repeat(amp.shape[1],
-                                                                 axis=1)
-    for i_dip in range(len(dipoles)):
+    amp = (amp - mean) / std
+    for i_dip, color in zip(range(len(dipoles)), colors):
+        rgb_color = color_converter.to_rgb(color)
         mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],
                       ori[i_dip, 0, 0], ori[i_dip, 0, 1], ori[i_dip, 0, 2],
-                      opacity=1., mode=mode, color=colors[i_dip],
+                      opacity=1., mode=mode, color=rgb_color,
                       scalars=dipoles[i_dip].amplitude.max(),
                       scale_factor=scale_factor)
 
         # Plot the time-series
         ax.plot(dipoles[i_dip].times, dipoles[i_dip].amplitude,
-                color=colors[i_dip], linewidth=1.5)
+                color=color, linewidth=1.5)
     ax.set_ylabel('amplitude (nAm)')
     ax.set_xlabel('times (ms)')
 
