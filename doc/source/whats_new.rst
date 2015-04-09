@@ -128,6 +128,8 @@ BUG
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
    - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
+ 
+   - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_ 
 
 API
 ~~~

@@ -194,8 +194,14 @@ class RawEDF(_BaseRaw):
 
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
-        cal = np.array([ch['cal'] for ch in self.info['chs']], float)
+        cal = np.array([ch['cal'] for ch in self.info['chs']])
         gains = np.atleast_2d(self._edf_info['units'] * (physical_range / cal))
+        # physical dimension in uV
+        physical_min = self._edf_info['physical_min'] * 1e-6
+        digital_min = self._edf_info['digital_min']
+        offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
+        picks = [stim_channel, tal_channel]
+        offsets[picks] = 0
 
         with open(self.info['filename'], 'rb') as fid:
             # extract data
@@ -256,6 +262,7 @@ class RawEDF(_BaseRaw):
                 stop_pt = int(start_pt + max_samp)
                 datas[:, start_pt:stop_pt] = data
         datas *= gains.T
+        datas += offsets
 
         if stim_channel is not None:
             if annot and annotmap:
@@ -441,10 +448,12 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         edf_info['units'] = units
         physical_min = np.array([float(fid.read(8).decode())
                                  for ch in channels])
+        edf_info['physical_min'] = physical_min
         physical_max = np.array([float(fid.read(8).decode())
                                  for ch in channels])
         digital_min = np.array([float(fid.read(8).decode())
                                 for ch in channels])
+        edf_info['digital_min'] = digital_min
         digital_max = np.array([float(fid.read(8).decode())
                                 for ch in channels])
         prefiltering = [fid.read(80).strip().decode() for ch in channels][:-1]
