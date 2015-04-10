@@ -307,8 +307,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.info._anonymize()
 
     @verbose
-    def apply_function(self, fun, picks, dtype, n_jobs, verbose=None, *args,
-                       **kwargs):
+    def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
         """ Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -332,25 +331,27 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int
-            Indices of channels to apply the function to.
+        picks : array-like of int | None
+            Indices of channels to apply the function to. If None, all
+            M-EEG channels are used.
         dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs: int
             Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs :
-            Keyword arguments to pass to fun.
+            Keyword arguments to pass to fun. Note that if "verbose" is passed
+            as a member of ``kwargs``, it will be consumed and will override
+            the default mne-python verbose level (see mne.verbose).
         """
         if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
