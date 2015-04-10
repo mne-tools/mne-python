@@ -8,13 +8,15 @@ from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import transform_surface_to, read_trans, _find_trans
+from ..transforms import (transform_surface_to, read_trans, apply_trans,
+                          _find_trans)
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
+from ..evoked import EvokedArray
 
 
 def _is_axial_coil(coil):
@@ -85,6 +87,58 @@ def _compute_mapping_matrix(fmd, info):
             logger.info('The map will have average electrode reference')
             mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
     return mapping_mat
+
+
+def compute_virtual_evoked(evoked, subject=None, subjects_dir=None,
+                           from_type='mag', to_type='grad', n_jobs=1):
+    """Plot MEG/EEG fields on head surface and helmet in 3D
+
+    Parameters
+    ----------
+    evoked : instance of mne.Evoked
+        The evoked object.
+    subject : str | None
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT. If None, map for EEG data will not be available.
+    subjects_dir : str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    n_jobs : int
+        Number of jobs to run in parallel.
+
+    Returns
+    -------
+    evoked : instance of mne.Evoked
+        The transformed evoked object.
+    """
+
+    # get surface in head coordinates
+    surf = get_meg_helmet_surf(evoked.info)
+
+    trans = evoked.info['dev_head_t']['trans']
+    pick_from = pick_types(evoked.info, meg=from_type, eeg=False,
+                           ref_meg=False)
+    pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
+                         ref_meg=False)
+
+    info_to = pick_info(evoked.info, pick_to)
+    pts = np.array([ch['loc'][:3] for ch in info_to['chs']])
+    nn = np.array([ch['loc'][-3:] for ch in info_to['chs']])
+
+    pts = apply_trans(trans, pts)
+    nn = apply_trans(trans, nn)
+
+    surf['rr'], surf['nn'] = pts, nn
+    surf['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+
+    info_from = pick_info(evoked.info, pick_from)
+    field_map = _make_surface_mapping(info_from, surf, 'meg',
+                                      trans, n_jobs=n_jobs)
+
+    data = np.dot(field_map['data'], evoked.data[pick_from])
+
+    mapped_evoked = EvokedArray(data, info_to, tmin=evoked.times[0])
+    return mapped_evoked
 
 
 @verbose
