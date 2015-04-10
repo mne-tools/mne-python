@@ -6,7 +6,7 @@ import os.path as op
 
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_raises
 
 from mne.io import Raw
 from mne.io.pick import pick_types
@@ -21,8 +21,12 @@ event_fname = op.join(data_path, 'test-eve.fif')
 
 def test_fix_stim_artifact():
     """Test fix stim artifact"""
-    raw = Raw(raw_fname, preload=True)
     events = read_events(event_fname)
+
+    raw = Raw(raw_fname, preload=False)
+    assert_raises(RuntimeError, fix_stim_artifact, raw)
+
+    raw = Raw(raw_fname, preload=True)
 
     # use window before stimulus in epochs
     tmin, tmax, event_id = -0.2, 0.5, 1
@@ -52,7 +56,8 @@ def test_fix_stim_artifact():
     tmax_samp = int(-0.015 * raw.info['sfreq'])
     tidx = int(events[event_idx, 0] - raw.first_samp)
 
-    raw = fix_stim_artifact(raw, events, event_id=1, tmin=tmin,
+    assert_raises(ValueError, fix_stim_artifact, raw, events=np.array([]))
+    raw = fix_stim_artifact(raw, events=None, event_id=1, tmin=tmin,
                             tmax=tmax, mode='linear')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     diff_data0 = np.diff(data[0])

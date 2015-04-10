@@ -34,7 +34,7 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data"""
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
-        f = interpolate.interp1d(x, data[:, (0, -1)])
+        f = interpolate.interp1d(x, data[:, (first_samp, last_samp)])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
         data[picks, first_samp:last_samp] = interp_data
@@ -111,13 +111,12 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     Parameters
     ----------
     inst : instance of Raw or Epochs or Evoked
-        The Data
+        The data.
     events : array, shape (n_events, 3)
-        The list of events. Required only when inst is raw
+        The list of events. Required only when inst is Raw.
     event_id : int
         The id of the events generating the stimulation artifacts.
-        If None, read all events.
-        Required only when inst is raw
+        If None, read all events. Required only when inst is Raw.
     tmin : float
         Start time of the interpolation window in seconds.
     tmax : float
@@ -134,13 +133,16 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     inst : instance of Raw or Evoked or Epochs
         Instance with modified data
     """
+    if mode not in ('linear', 'window'):
+        raise ValueError("mode has to be 'linear' or 'window' (got %s)" % mode)
+
     if copy:
         inst = inst.copy()
     s_start = int(np.ceil(inst.info['sfreq'] * tmin))
     s_end = int(np.ceil(inst.info['sfreq'] * tmax))
-    if (s_end - s_start) < 4:
-        raise ValueError('Time range is too short. '
-                         'Input bigger value')
+    if (mode == "window") and (s_end - s_start) < 4:
+        raise ValueError('Time range is too short. Use a larger interval '
+                         'or set mode to "linear".')
     window = None
     if mode == 'window':
         window = _get_window(s_start, s_end)
@@ -154,7 +156,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         if len(events) == 0:
             raise ValueError('No events are found')
         if event_id is None:
-            events_sel = events
+            events_sel = np.arange(len(events))
         else:
             events_sel = (events[:, 2] == event_id)
         event_start = events[events_sel, 0]
@@ -166,7 +168,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
 
     elif isinstance(inst, Epochs):
         _check_preload(inst)
-        if inst.reject:
+        if inst.reject is not None:
             raise RuntimeError('Reject is already applied. Use reject=None '
                                'in the constructor.')
         e_start = int(np.ceil(inst.info['sfreq'] * inst.tmin))
@@ -183,6 +185,6 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         _fix_artifact(data, window, picks, first_samp, last_samp, mode)
 
     else:
-        raise TypeError('Not a Raw or Epochs or Evoked')
+        raise TypeError('Not a Raw or Epochs or Evoked (got %s).' % type(inst))
 
     return inst
