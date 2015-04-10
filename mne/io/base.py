@@ -185,8 +185,6 @@ class ToDataFrameMixin(object):
         if copy is True:
             data = data.copy()
 
-        times = np.round(times * scale_time)
-
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
         df = pd.DataFrame(data, columns=col_names)
