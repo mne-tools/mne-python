@@ -15,7 +15,7 @@ def test_apply_function_verbose():
     """Test apply function verbosity
     """
     def printer(x):
-	    logger.info('exec')
+        logger.info('exec')
 
     n_ch = 100
     ch_names = [str(ii) for ii in range(n_ch)]
