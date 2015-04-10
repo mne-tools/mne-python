@@ -174,6 +174,8 @@ API
 
    - `pick_types_evoked` has been deprecated in favor of `evoked.pick_types`.
 
+   - CUDA is no longer initialized at module import, but only when first used.
+
 .. _changes_0_8:
 
 Version 0.8
