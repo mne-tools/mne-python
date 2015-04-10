@@ -12,7 +12,6 @@ from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
-from mne.cuda import cuda_capable
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -248,7 +247,8 @@ def test_cuda():
     with open(log_file) as fid:
         out = fid.readlines()
     # triage based on whether or not we actually expected to use CUDA
-    tot = 12 if cuda_capable else 0
+    from mne.cuda import _cuda_capable  # allow above funs to set it
+    tot = 12 if _cuda_capable else 0
     assert_true(sum(['Using CUDA for FFT FIR filtering' in o
                      for o in out]) == tot)
 
