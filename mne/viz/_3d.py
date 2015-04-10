@@ -505,12 +505,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                   'version of pysurfer. Please upgrade to '
                                   'version 0.4 or higher.' % hemi)
 
-    try:
-        import mayavi
-        from mayavi import mlab
-    except ImportError:
-        from enthought import mayavi
-        from enthought.mayavi import mlab
+    import mayavi
+    from mayavi import mlab
 
     # import here to avoid circular import problem
     from ..source_estimate import SourceEstimate
@@ -714,11 +710,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
                for stc in stcs]
     unique_vertnos = np.unique(np.concatenate(vertnos).ravel())
 
-    try:
-        from mayavi import mlab
-    except ImportError:
-        from enthought.mayavi import mlab
-
+    from mayavi import mlab
     from matplotlib.colors import ColorConverter
     color_converter = ColorConverter()
 

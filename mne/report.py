@@ -704,6 +704,7 @@ class Report(object):
         """
         from scipy.misc import imread
         import matplotlib.pyplot as plt
+        mayavi = None
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, mlab imported
@@ -720,7 +721,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            if isinstance(fig, mayavi.core.scene.Scene):
+            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
                 if fig.scene is not None:

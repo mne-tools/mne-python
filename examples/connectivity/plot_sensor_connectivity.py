@@ -63,10 +63,7 @@ con = con[idx][:, idx]
 con = con[:, :, 0]
 
 # Now, visualize the connectivity in 3D
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
+from mayavi import mlab
 
 mlab.figure(size=(600, 600), bgcolor=(0.5, 0.5, 0.5))
 

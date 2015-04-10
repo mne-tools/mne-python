@@ -29,10 +29,7 @@ brain_col = (0.67, 0.89, 0.91)  # light blue
 colors = [head_col, skull_col, brain_col]
 
 # 3D source space
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
+from mayavi import mlab
 
 mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
 for c, surf in zip(colors, surfaces):
