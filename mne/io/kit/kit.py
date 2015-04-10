@@ -443,8 +443,8 @@ class EpochsKIT(EpochsArray):
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._kit_info['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._kit_info['DYNAMIC_RANGE'])
-                               * sensor_gain, ndmin=2)
+                                self._kit_info['DYNAMIC_RANGE']) *
+                               sensor_gain, ndmin=2)
         data = conv_factor * data
         # reshape
         data = data.T
@@ -747,7 +747,7 @@ def get_kit_info(rawfile):
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'],
-                                      sqd['n_sens']+1):
+                                      sqd['n_sens'] + 1):
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
             chan_info['logno'] = idy
@@ -821,7 +821,7 @@ def read_raw_kit(input_fname, mrk=None, elp=None, hsp=None, stim='>',
 
 def read_epochs_kit(input_fname, events, event_id=None,
                     mrk=None, elp=None, hsp=None, verbose=None):
-    """Reader function for KIT conversion to FIF
+    """Reader function for KIT epochs files
 
     Parameters
     ----------
