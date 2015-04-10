@@ -769,7 +769,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The figure containing the topography.
     """
     if format is not None:
-        fmt = format
+        cbar_fmt = format
         warnings.warn("The format parameter is deprecated and will be "
                       "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
                       "instead.", DeprecationWarning)
