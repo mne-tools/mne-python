@@ -15,6 +15,8 @@ import copy
 import numpy as np
 from scipy import linalg
 from matplotlib.patches import Circle
+import warnings
+
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -679,8 +681,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
-                     show_names=False, title=None, axes=None, show=True):
+                     colorbar=True, unit=None, res=64, size=2, format=None,
+                     fmt=None, show_names=False, title=None,
+                     axes=None, show=True):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -746,7 +749,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
+    fmt : str
         String format for colorbar values.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
@@ -766,6 +769,14 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fig : matplotlib.figure.Figure
         The figure containing the topography.
     """
+    if format is not None:
+        fmt = format
+        warnings.warn("The format parameter is deprecated and will be replaced"
+                      "by fmt in version 0.11. Use fmt instead.",
+                      DeprecationWarning)
+    else:
+        fmt = '%1.1e'
+
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -839,7 +850,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
-                        res=64, size=1, format='%3.1f',
+                        res=64, size=1, format=None, fmt=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
@@ -891,7 +902,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
+    fmt : str
         String format for colorbar values.
     time_format : str
         String format for topomap values. Defaults to "%01d ms"
@@ -933,6 +944,13 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         and ends 5 ms after a given time point. Defaults to None, which means
         no averaging.
     """
+    if format is not None:
+        fmt = format
+        warnings.warn("The format parameter is deprecated and will be replaced"
+                      "by fmt in version 0.11. Use fmt instead.",
+                      DeprecationWarning)
+    else:
+        fmt = '%3.1f'
     import matplotlib.pyplot as plt
 
     if mask_params is None:
@@ -1040,7 +1058,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
-                     format=format)
+                     format=fmt)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
