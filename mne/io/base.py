@@ -115,7 +115,6 @@ class ToDataFrameMixin(object):
             data = self.data.T
             times = self.times
             shape = data.shape
-            mindex.append(('time', self.times * scale_time))
             mindex.append(('subject', np.repeat(self.subject, shape[0])))
 
             if isinstance(self.vertices, list):
@@ -138,7 +137,7 @@ class ToDataFrameMixin(object):
                 data = np.hstack(data).T  # (time*epochs) x signals
 
                 # Multi-index creation
-                mindex.append(('time', np.tile(times, n_epochs)))
+                times = np.tile(times, n_epochs)
                 id_swapped = dict((v, k) for k, v in self.event_id.items())
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
@@ -151,12 +150,11 @@ class ToDataFrameMixin(object):
                 default_index = ['time']
                 if isinstance(self, (RawFIF, RawArray)):
                     data, times = self[picks, start:stop]
-                elif isinstance(self, (Evoked)):
+                elif isinstance(self, Evoked):
                     data = self.data[picks, :]
                     times = self.times
                     n_picks, n_times = data.shape
                 data = data.T
-                mindex.append(('time', times))
                 col_names = [self.ch_names[k] for k in picks]
 
             types = [channel_type(self.info, idx) for idx in picks]
@@ -175,6 +173,10 @@ class ToDataFrameMixin(object):
                 if len(idx) > 0:
                     data[:, idx] *= scaling
 
+        # Make sure that the time index is scaled correctly
+        times = np.round(times * scale_time)
+        mindex.append(('time', times))
+
         if index is not None:
             _check_pandas_index_arguments(index, default_index)
         else:
@@ -184,6 +186,7 @@ class ToDataFrameMixin(object):
             data = data.copy()
 
         times = np.round(times * scale_time)
+        print times
 
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
