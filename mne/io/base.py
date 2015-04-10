@@ -186,7 +186,6 @@ class ToDataFrameMixin(object):
             data = data.copy()
 
         times = np.round(times * scale_time)
-        print times
 
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
