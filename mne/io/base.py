@@ -199,6 +199,17 @@ class ToDataFrameMixin(object):
         return df
 
 
+def _check_fun(fun, d, *args, **kwargs):
+    want_shape = d.shape
+    d = fun(d, *args, **kwargs)
+    if not isinstance(d, np.ndarray):
+        raise TypeError('Return value must be an ndarray')
+    if d.shape != want_shape:
+        raise ValueError('Return data must have shape %s not %s'
+                         % (want_shape, d.shape))
+    return d
+
+
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
     """Base class for Raw data"""
@@ -363,11 +374,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
-                self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(fun, n_jobs)
-            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(p_fun(fun, data_in[p], *args, **kwargs)
                                       for p in picks)
             for pp, p in enumerate(picks):
                 self._data[p, :] = data_picks_new[pp]
