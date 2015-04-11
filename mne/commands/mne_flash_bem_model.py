@@ -93,7 +93,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
         skull_col = (0.91, 0.89, 0.67)
         brain_col = (0.67, 0.89, 0.91)  # light blue
         colors = [head_col, skull_col, brain_col]
-        from enthought.mayavi import mlab
+        from mayavi import mlab
         mlab.clf()
         for fname, c in zip(fnames, colors):
             points, faces = mne.read_surface(fname)

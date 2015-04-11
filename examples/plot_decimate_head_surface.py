@@ -28,10 +28,7 @@ points, triangles = surf['rr'], surf['tris']
 points_dec, triangles_dec = decimate_surface(points, triangles,
                                              n_triangles=30000)
 
-try:
-    from enthought.mayavi import mlab
-except:
-    from mayavi import mlab
+from mayavi import mlab
 
 head_col = (0.95, 0.83, 0.83)  # light pink
 

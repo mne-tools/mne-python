@@ -927,10 +927,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
             import matplotlib.pyplot as plt
             plt.close('all')
 
-            try:
-                from mayavi import mlab
-            except Exception:
-                from enthought.mayavi import mlab
+            from mayavi import mlab
             mlab.close(all=True)
 
             cwd = os.getcwd()
