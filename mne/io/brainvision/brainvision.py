@@ -77,33 +77,23 @@ class RawBrainVision(_BaseRaw):
         if not isinstance(scale, (int, float)):
             raise TypeError('Scale factor must be an int or float. '
                             '%s provided' % type(scale))
-        self.info, self._eeg_info, events = _get_eeg_info(vhdr_fname,
-                                                          eog, misc)
+        info, self._eeg_info, events = _get_eeg_info(vhdr_fname, eog, misc)
         self._eeg_info['scale'] = float(scale)
         logger.info('Creating Raw.info structure...')
-        _check_update_montage(self.info, montage)
-        self.set_brainvision_events(events)
-
-        # Raw attributes
-        self.verbose = verbose
-        self._filenames = list()
-        self.rawdirs = list()
-        self.cals = np.ones(len(self.info['chs']))
-        self.orig_format = 'double'
-        self._projector = None
-        self.comp = None  # no compensation for EEG
-        self.first_samp = 0
-        with open(self.info['filename'], 'rb') as f:
+        _check_update_montage(info, montage)
+        with open(info['filename'], 'rb') as f:
             f.seek(0, os.SEEK_END)
             n_samples = f.tell()
         dtype = int(self._eeg_info['dtype'][-1])
-        # n_chan = self.info['nchan']
-        self.last_samp = (n_samples //
-                          (dtype * self._eeg_info['n_eeg_chan'])) - 1
-        self._raw_lengths = np.array([self.n_times])
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
+        last_samps = [(n_samples //
+                      (dtype * self._eeg_info['n_eeg_chan'])) - 1]
+        super(RawBrainVision, self).__init__(
+            info, None, np.ones(len(info['chs'])),
+            last_samps=last_samps,
+            verbose=verbose)
+        self.set_brainvision_events(events)
 
+        # load data
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % vhdr_fname)
@@ -111,11 +101,6 @@ class RawBrainVision(_BaseRaw):
             if reference is not None:
                 add_reference_channels(self, reference, copy=False)
             assert len(self._data) == self.info['nchan']
-
-            # Add time info
-            self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                    dtype=np.float64)
-            self._times /= self.info['sfreq']
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],

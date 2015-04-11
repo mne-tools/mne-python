@@ -1141,37 +1141,15 @@ class RawBTi(_BaseRaw):
         # check nchan is correct
         assert len(info['ch_names']) == info['nchan']
 
-        cals = np.zeros(info['nchan'])
-        for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
-
-        self.verbose = verbose
-        self.cals = cals
-        self.rawdirs = list()
-        self.orig_format = 'double'
-        self.comp = None
-        self._filenames = list()
-        self.preload = True
-        self._projector_hashes = [None]
-        self.info = info
-
         logger.info('Reading raw data from %s...' % pdf_fname)
-        self._data = _read_data(bti_info)
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._raw_lengths = np.array([self._data.shape[1]])
-        self._first_samps = np.array([0])
-        self._last_samps = self._raw_lengths - 1
-        self.rawdirs = [[]]
-
-        assert len(self._data) == len(self.info['ch_names'])
-        self._times = np.arange(self.first_samp,
-                                self.last_samp + 1) / info['sfreq']
-        self._projectors = [None]
+        data = _read_data(bti_info)
+        assert len(data) == len(info['ch_names'])
+        self._projector_hashes = [None]
+        super(RawBTi, self).__init__(info, data, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],
                     float(self.last_samp) / info['sfreq']))
-
         logger.info('Ready.')
 
 

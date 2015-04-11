@@ -37,27 +37,7 @@ class RawArray(_BaseRaw):
         if len(data) != len(info['ch_names']):
             raise ValueError('len(data) does not match len(info["ch_names"])')
         assert len(info['ch_names']) == info['nchan']
-
-        cals = np.zeros(info['nchan'])
-        for k in range(info['nchan']):
-            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
-
-        self.verbose = verbose
-        self.cals = cals
-        self.orig_format = 'double'
-        self.rawdirs = list()
-        self.comp = None
-        self._filenames = list()
-        self.preload = True
-        self.info = info
-        self._data = data
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._first_samps = [self.first_samp]
-        self._last_samps = [self.last_samp]
-        self._raw_lengths = [self.last_samp - self.first_samp + 1]
-        self._times = np.arange(self.first_samp,
-                                self.last_samp + 1) / info['sfreq']
-        self._projectors = list()
+        super(RawArray, self).__init__(info, data, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],

@@ -245,8 +245,8 @@ class PickDropChannelsMixin(object):
         if inst_has('picks'):
             self.picks = self.picks[idx]
 
-        if inst_has('cals'):
-            self.cals = self.cals[idx]
+        if inst_has('_cals'):
+            self._cals = self._cals[idx]
 
         self.info = pick_info(self.info, idx, copy=False)
 

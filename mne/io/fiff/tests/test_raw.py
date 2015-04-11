@@ -14,7 +14,7 @@ import itertools as itt
 
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
-                           assert_allclose)
+                           assert_allclose, assert_equal)
 from nose.tools import (assert_true, assert_raises, assert_equal,
                         assert_not_equal)
 
@@ -58,7 +58,7 @@ def test_hash_raw():
     raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
-    assert_true(pickle.dumps(raw) == pickle.dumps(raw_2))
+    assert_equal(pickle.dumps(raw), pickle.dumps(raw_2))
 
     raw_2._data[0, 0] -= 1
     assert_not_equal(hash(raw), hash(raw_2))
@@ -119,7 +119,7 @@ def test_copy_append():
     raw_full = Raw(fif_fname)
     raw_full.append(raw)
     data = raw_full[:, :][0]
-    assert_true(data.shape[1] == 2 * raw._data.shape[1])
+    assert_equal(data.shape[1], 2 * raw._data.shape[1])
 
 
 @slow_test
@@ -179,15 +179,15 @@ def test_output_formats():
     raw.crop(0, 1, copy=False)
 
     temp_file = op.join(tempdir, 'raw.fif')
-    for ii, (format, tol) in enumerate(zip(formats, tols)):
+    for ii, (fmt, tol) in enumerate(zip(formats, tols)):
         # Let's test the overwriting error throwing while we're at it
         if ii > 0:
-            assert_raises(IOError, raw.save, temp_file, format=format)
-        raw.save(temp_file, format=format, overwrite=True)
+            assert_raises(IOError, raw.save, temp_file, fmt=fmt)
+        raw.save(temp_file, fmt=fmt, overwrite=True)
         raw2 = Raw(temp_file)
         raw2_data = raw2[:, :][0]
         assert_allclose(raw2_data, raw[:, :][0], rtol=tol, atol=1e-25)
-        assert_true(raw2.orig_format == format)
+        assert_equal(raw2.orig_format, fmt)
 
 
 def _compare_combo(raw, new, times, n_times):
@@ -215,7 +215,7 @@ def test_multiple_files():
     tmaxs = np.concatenate((tmins[1:] - 1, [nsamp]))
     tmaxs /= sfreq
     tmins /= sfreq
-    assert_equal(raw.n_times, len(raw._times))
+    assert_equal(raw.n_times, len(raw.times))
 
     # going in reverse order so the last fname is the first file (need later)
     raws = [None] * len(tmins)
@@ -231,8 +231,8 @@ def test_multiple_files():
     assert_raises(ValueError, concatenate_raws, raws, True, events[1:])
     all_raw_1, events1 = concatenate_raws(raws, preload=False,
                                           events_list=events)
-    assert_true(raw.first_samp == all_raw_1.first_samp)
-    assert_true(raw.last_samp == all_raw_1.last_samp)
+    assert_equal(raw.first_samp, all_raw_1.first_samp)
+    assert_equal(raw.last_samp, all_raw_1.last_samp)
     assert_allclose(raw[:, :][0], all_raw_1[:, :][0])
     raws[0] = Raw(fname)
     all_raw_2 = concatenate_raws(raws, preload=True)
@@ -246,7 +246,7 @@ def test_multiple_files():
 
     # test various methods of combining files
     raw = Raw(fif_fname, preload=True)
-    n_times = len(raw._times)
+    n_times = raw.n_times
     # make sure that all our data match
     times = list(range(0, 2 * n_times, 999))
     # add potentially problematic points
@@ -260,14 +260,14 @@ def test_multiple_files():
     _compare_combo(raw, raw_combo, times, n_times)
     assert_raises(ValueError, Raw, [fif_fname, ctf_fname])
     assert_raises(ValueError, Raw, [fif_fname, fif_bad_marked_fname])
-    assert_true(raw[:, :][0].shape[1] * 2 == raw_combo0[:, :][0].shape[1])
-    assert_true(raw_combo0[:, :][0].shape[1] == len(raw_combo0._times))
+    assert_equal(raw[:, :][0].shape[1] * 2, raw_combo0[:, :][0].shape[1])
+    assert_equal(raw_combo0[:, :][0].shape[1], raw_combo0.n_times)
 
     # with all data preloaded, result should be preloaded
     raw_combo = Raw(fif_fname, preload=True)
     raw_combo.append(Raw(fif_fname, preload=True))
     assert_true(raw_combo.preload is True)
-    assert_true(len(raw_combo._times) == raw_combo._data.shape[1])
+    assert_equal(raw_combo.n_times, raw_combo._data.shape[1])
     _compare_combo(raw, raw_combo, times, n_times)
 
     # with any data not preloaded, don't set result as preloaded
@@ -314,8 +314,8 @@ def test_multiple_files():
     assert_array_equal(events, events2)
 
     # check out the len method
-    assert_true(len(raw) == raw.n_times)
-    assert_true(len(raw) == raw.last_samp - raw.first_samp + 1)
+    assert_equal(len(raw), raw.n_times)
+    assert_equal(len(raw), raw.last_samp - raw.first_samp + 1)
 
 
 @testing.requires_testing_data
@@ -412,11 +412,11 @@ def test_io_raw():
     raw.save(fname, buffer_size_sec=1.0)
     # read it in, make sure the whole thing matches
     raw = Raw(fname)
-    assert_true(np.allclose(data, raw[:, :][0], 1e-6, 1e-20))
+    assert_allclose(data, raw[:, :][0], rtol=1e-6, atol=1e-20)
     # let's read portions across the 1-sec tag boundary, too
     inds = raw.time_as_index([1.75, 2.25])
     sl = slice(inds[0], inds[1])
-    assert_true(np.allclose(data[:, sl], raw[:, sl][0], 1e-6, 1e-20))
+    assert_allclose(data[:, sl], raw[:, sl][0], rtol=1e-6, atol=1e-20)
 
     # now let's do some real I/O
     fnames_in = [fif_fname, test_fif_gz_fname, ctf_fname]
@@ -455,14 +455,14 @@ def test_io_raw():
         raw.save(fname_out, picks, tmin=0, tmax=5, overwrite=True)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
-            assert_true(len(raw.info['dig']) == 146)
+            assert_equal(len(raw.info['dig']), 146)
 
         raw2 = Raw(fname_out)
 
         sel = pick_channels(raw2.ch_names, meg_ch_names)
         data2, times2 = raw2[sel, :]
 
-        assert_true(np.allclose(data, data2, 1e-6, 1e-20))
+        assert_allclose(data, data2, rtol=1e-6, atol=1e-20)
         assert_allclose(times, times2)
         assert_allclose(raw.info['sfreq'], raw2.info['sfreq'], rtol=1e-5)
 
@@ -484,8 +484,8 @@ def test_io_raw():
                 else:
                     to_id = FIFF.FIFFV_MNE_COORD_CTF_HEAD
                 for raw_ in [raw, raw2]:
-                    assert_true(raw_.info[trans]['from'] == from_id)
-                    assert_true(raw_.info[trans]['to'] == to_id)
+                    assert_equal(raw_.info[trans]['from'], from_id)
+                    assert_equal(raw_.info[trans]['to'], to_id)
 
         if fname_in == fif_fname or fname_in == fif_fname + '.gz':
             assert_allclose(raw.info['dig'][0]['r'], raw2.info['dig'][0]['r'])
@@ -580,11 +580,11 @@ def test_proj():
             projs = deepcopy(raw.info['projs'])
             n_proj = len(raw.info['projs'])
             raw.del_proj(0)
-            assert_true(len(raw.info['projs']) == n_proj - 1)
+            assert_equal(len(raw.info['projs']), n_proj - 1)
             raw.add_proj(projs, remove_existing=False)
-            assert_true(len(raw.info['projs']) == 2 * n_proj - 1)
+            assert_equal(len(raw.info['projs']), 2 * n_proj - 1)
             raw.add_proj(projs, remove_existing=True)
-            assert_true(len(raw.info['projs']) == n_proj)
+            assert_equal(len(raw.info['projs']), n_proj)
 
     # test apply_proj() with and without preload
     for preload in [True, False]:
@@ -739,8 +739,8 @@ def test_crop():
     for ri, (tmin, tmax) in enumerate(zip(tmins, tmaxs)):
         raws[ri] = raw.crop(tmin, tmax, True)
     all_raw_2 = concatenate_raws(raws, preload=False)
-    assert_true(raw.first_samp == all_raw_2.first_samp)
-    assert_true(raw.last_samp == all_raw_2.last_samp)
+    assert_equal(raw.first_samp, all_raw_2.first_samp)
+    assert_equal(raw.last_samp, all_raw_2.last_samp)
     assert_array_equal(raw[:, :][0], all_raw_2[:, :][0])
 
     tmins = np.round(np.arange(0., nsamp - 1, split_size * sfreq))
@@ -758,8 +758,8 @@ def test_crop():
 
     all_raw_2 = raw.crop(0, None, True)
     for ar in [all_raw_1, all_raw_2]:
-        assert_true(raw.first_samp == ar.first_samp)
-        assert_true(raw.last_samp == ar.last_samp)
+        assert_equal(raw.first_samp, ar.first_samp)
+        assert_equal(raw.last_samp, ar.last_samp)
         assert_array_equal(raw[:, :][0], ar[:, :][0])
 
 
@@ -773,19 +773,19 @@ def test_resample():
     sfreq = raw.info['sfreq']
     # test parallel on upsample
     raw_resamp.resample(sfreq * 2, n_jobs=2)
-    assert_true(raw_resamp.n_times == len(raw_resamp._times))
+    assert_equal(raw_resamp.n_times, len(raw_resamp.times))
     raw_resamp.save(op.join(tempdir, 'raw_resamp-raw.fif'))
     raw_resamp = Raw(op.join(tempdir, 'raw_resamp-raw.fif'), preload=True)
-    assert_true(sfreq == raw_resamp.info['sfreq'] / 2)
-    assert_true(raw.n_times == raw_resamp.n_times / 2)
-    assert_true(raw_resamp._data.shape[1] == raw_resamp.n_times)
-    assert_true(raw._data.shape[0] == raw_resamp._data.shape[0])
+    assert_equal(sfreq, raw_resamp.info['sfreq'] / 2)
+    assert_equal(raw.n_times, raw_resamp.n_times / 2)
+    assert_equal(raw_resamp._data.shape[1], raw_resamp.n_times)
+    assert_equal(raw._data.shape[0], raw_resamp._data.shape[0])
     # test non-parallel on downsample
     raw_resamp.resample(sfreq, n_jobs=1)
-    assert_true(raw_resamp.info['sfreq'] == sfreq)
-    assert_true(raw._data.shape == raw_resamp._data.shape)
-    assert_true(raw.first_samp == raw_resamp.first_samp)
-    assert_true(raw.last_samp == raw.last_samp)
+    assert_equal(raw_resamp.info['sfreq'], sfreq)
+    assert_equal(raw._data.shape, raw_resamp._data.shape)
+    assert_equal(raw.first_samp, raw_resamp.first_samp)
+    assert_equal(raw.last_samp, raw.last_samp)
     # upsampling then downsampling doubles resampling error, but this still
     # works (hooray). Note that the stim channels had to be sub-sampled
     # without filtering to be accurately preserved
@@ -862,25 +862,25 @@ def test_raw_to_nitime():
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
-    assert_true(raw_ts.data.shape[0] == len(picks))
+    assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks)
-    assert_true(raw_ts.data.shape[0] == len(picks))
+    assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_true(raw_ts.data.shape[0] == len(picks))
+    assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
     raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_true(raw_ts.data.shape[0] == len(picks))
+    assert_equal(raw_ts.data.shape[0], len(picks))
 
 
 @requires_pandas
@@ -904,7 +904,7 @@ def test_raw_index_as_time():
     t0 = raw.index_as_time([0], True)[0]
     t1 = raw.index_as_time([100], False)[0]
     t2 = raw.index_as_time([100], True)[0]
-    assert_true((t2 - t1) == t0)
+    assert_equal(t2 - t1, t0)
     # ensure we can go back and forth
     t3 = raw.index_as_time(raw.time_as_index([0], True), True)
     assert_array_almost_equal(t3, [0.0], 2)
@@ -913,12 +913,12 @@ def test_raw_index_as_time():
     t3 = raw.index_as_time(raw.time_as_index(raw.info['sfreq'], False), False)
     assert_array_almost_equal(t3, [raw.info['sfreq']], 2)
     i0 = raw.time_as_index(raw.index_as_time([0], True), True)
-    assert_true(i0[0] == 0)
+    assert_equal(i0[0], 0)
     i1 = raw.time_as_index(raw.index_as_time([100], True), True)
-    assert_true(i1[0] == 100)
+    assert_equal(i1[0], 100)
     # Have to add small amount of time because we truncate via int casting
     i1 = raw.time_as_index(raw.index_as_time([100.0001], False), False)
-    assert_true(i1[0] == 100)
+    assert_equal(i1[0], 100)
 
 
 @testing.requires_testing_data
@@ -926,7 +926,7 @@ def test_raw_time_as_index():
     """ Test time as index conversion"""
     raw = Raw(fif_fname, preload=True)
     first_samp = raw.time_as_index([0], True)[0]
-    assert_true(raw.first_samp == -first_samp)
+    assert_equal(raw.first_samp, -first_samp)
 
 
 @testing.requires_testing_data
@@ -1033,7 +1033,7 @@ def test_drop_channels_mixin():
 
     raw.drop_channels(drop_ch)
     assert_equal(ch_names, raw.ch_names)
-    assert_equal(len(ch_names), len(raw.cals))
+    assert_equal(len(ch_names), len(raw._cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
 
@@ -1054,7 +1054,7 @@ def test_pick_channels_mixin():
 
     raw.pick_channels(ch_names, copy=False)  # copy is False
     assert_equal(ch_names, raw.ch_names)
-    assert_equal(len(ch_names), len(raw.cals))
+    assert_equal(len(ch_names), len(raw._cals))
     assert_equal(len(ch_names), raw._data.shape[0])
 
     raw = Raw(fif_fname, preload=False)

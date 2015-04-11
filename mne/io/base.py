@@ -212,13 +212,55 @@ def _check_fun(fun, d, *args, **kwargs):
 
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
-    """Base class for Raw data"""
+    """Base class for Raw data
+
+    Subclasses must provide the following methods:
+
+        * _read_segment(start, stop, sel, projector, verbose)
+          (only needed for types that support on-demand disk reads)
+    """
     @verbose
-    def __init__(self, *args, **kwargs):
-        raise NotImplementedError
+    def __init__(self, info, data=None, cals=None,
+                 first_samps=(0,), last_samps=None,
+                 filenames=(), rawdirs=(), 
+                 comp=None, orig_comp_grade=None,
+                 orig_format='double', verbose=None):
+        self.info = info
+        self._data = data
+        if cals is None:
+            cals = np.empty(info['nchan'])
+            for k in range(info['nchan']):
+                cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
+        self.verbose = verbose
+        self._cals = cals
+        self._rawdirs = list(rawdirs)
+        self.comp = comp
+        self._orig_comp_grade = orig_comp_grade
+        self._filenames = list(filenames)
+        self.preload = True if data is not None else False
+        self._first_samps = np.array(first_samps)
+        self.orig_format = orig_format
+        if data is not None:
+            self._last_samps = np.array([self._data.shape[1] - 1])
+        else:
+            self._last_samps = np.array(last_samps)
+        self._projectors = list()
+        self._projector = None
 
     def _read_segment(start, stop, sel, projector, verbose):
         raise NotImplementedError
+
+    @property
+    def first_samp(self):
+        return self._first_samps[0]
+
+    @property
+    def last_samp(self):
+        return self.first_samp + sum(self._raw_lengths) - 1
+
+    @property
+    def _raw_lengths(self):
+        return [l - f + 1 for f, l in zip(self._first_samps, self._last_samps)]
 
     def __del__(self):
         # remove file for memmap
@@ -294,7 +336,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """getting raw data content with python slicing"""
         sel, start, stop = self._parse_get_set_params(item)
         if self.preload:
-            data, times = self._data[sel, start:stop], self._times[start:stop]
+            data, times = self._data[sel, start:stop], self.times[start:stop]
         else:
             data, times = self._read_segment(start=start, stop=stop, sel=sel,
                                              projector=self._projector,
@@ -752,11 +794,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         # adjust affected variables
         self._data = np.concatenate(new_data, axis=1)
-        self.first_samp = self._first_samps[0]
-        self.last_samp = self.first_samp + self._data.shape[1] - 1
         self.info['sfreq'] = sfreq
-        self._times = (np.arange(self.n_times, dtype=np.float64) /
-                       self.info['sfreq'])
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -806,15 +844,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raw._first_samps[0] += smin - cumul_lens[keepers[0]]
         raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
         raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        raw._raw_lengths = raw._last_samps - raw._first_samps + 1
-        raw.rawdirs = [r for ri, r in enumerate(raw.rawdirs)
-                       if ri in keepers]
-        raw.first_samp = raw._first_samps[0]
-        raw.last_samp = raw.first_samp + (smax - smin)
+        raw._rawdirs = [r for ri, r in enumerate(raw._rawdirs)
+                        if ri in keepers]
         if raw.preload:
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
-            raw._times = np.arange(raw.n_times) / raw.info['sfreq']
         return raw
 
     @verbose
@@ -939,6 +973,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # set the correct compensation grade and make inverse compensator
         inv_comp = None
         if self.comp is not None:
+            print(self.comp)
             inv_comp = linalg.inv(self.comp)
             set_current_comp(info, self._orig_comp_grade)
 
@@ -1326,7 +1361,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if preload is False:
             if self.preload:
                 self._data = None
-                self._times = None
             self.preload = False
         else:
             # do the concatenation ourselves since preload might be a string
@@ -1362,14 +1396,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         for r in raws:
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._raw_lengths = np.r_[self._raw_lengths, r._raw_lengths]
-            self.rawdirs += r.rawdirs
+            self._rawdirs += r._rawdirs
             self._filenames += r._filenames
-        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
-
-        # this has to be done after first and last sample are set appropriately
-        if self.preload:
-            self._times = np.arange(self.n_times) / self.info['sfreq']
 
     def close(self):
         """Clean up the object.
@@ -1606,8 +1634,8 @@ class _RawShell():
     def __init__(self):
         self.first_samp = None
         self.last_samp = None
-        self.cals = None
-        self.rawdir = None
+        self._cals = None
+        self._rawdir = None
         self._projector = None
 
     @property
@@ -1863,8 +1891,8 @@ def _check_raw_compatibility(raw):
             raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
         if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
             raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
-        if not all(raw[ri].cals == raw[0].cals):
-            raise ValueError('raw[%d].cals must match' % ri)
+        if not all(raw[ri]._cals == raw[0]._cals):
+            raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
         if not all(proj_equal(p1, p2) for p1, p2 in
