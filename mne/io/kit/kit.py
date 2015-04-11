@@ -21,7 +21,7 @@ from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
-from ...epochs import EpochsArray
+from ...epochs import Epochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
@@ -317,7 +317,7 @@ class RawKIT(_BaseRaw):
         return data, times
 
 
-class EpochsKIT(EpochsArray):
+class EpochsKIT(Epochs):
     """Epochs Array object from KIT SQD file
 
     Parameters
@@ -337,6 +337,39 @@ class EpochsKIT(EpochsArray):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
+    tmin : float
+        Start time before event.
+    baseline : None or tuple of length 2 (default (None, 0))
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+        The baseline (a, b) includes both endpoints, i.e. all
+        timepoints t such that a <= t <= b.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # uV (EEG channels)
+                          eog=250e-6 # uV (EOG channels)
+                          )
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
+        If flat is None then no rejection is done.
+    reject_tmin : scalar | None
+        Start of the time window used to reject epochs (with the default None,
+        the window will start with tmin).
+    reject_tmax : scalar | None
+        End of the time window used to reject epochs (with the default None,
+        the window will end with tmax).    
     mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
@@ -353,11 +386,12 @@ class EpochsKIT(EpochsArray):
 
     See Also
     --------
-    mne.EpochsArray : Documentation of attribute and methods.
+    mne.Epochs : Documentation of attribute and methods.
     """
     @verbose
-    def __init__(self, input_fname, events, event_id=None,
-                 mrk=None, elp=None, hsp=None, verbose=None):
+    def __init__(self, input_fname, events, event_id=None, tmin=0,
+                 baseline=None,  reject=None, flat=None, reject_tmin=None,
+                 reject_tmax=None, mrk=None, elp=None, hsp=None, verbose=None):
 
         if isinstance(events, string_types):
             events = read_events(events)
@@ -400,14 +434,16 @@ class EpochsKIT(EpochsArray):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        data = self._read_data()
+        self._data = self._read_data()
         assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
                               self._kit_info['frame_length'])
 
-        super(EpochsKIT, self).__init__(data=data, info=self.info,
-                                        events=events, event_id=event_id,
+        super(EpochsKIT, self).__init__(info=self.info, events=events,
+                                        event_id=event_id, tmin=tmin,
+                                        baseline=baseline,  reject=reject,
+                                        flat=flat, reject_tmin=reject_tmin,
+                                        reject_tmax=reject_tmax,
                                         verbose=verbose)
-
         logger.info('Ready.')
 
     def _read_data(self):
