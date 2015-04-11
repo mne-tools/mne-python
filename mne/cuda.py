@@ -19,7 +19,7 @@ def get_cuda_memory():
     Returns
     -------
     memory : str
-        The memory string.
+        The amount of available memory as a human-readable string.
     """
     if not _cuda_capable:
         logger.warning('CUDA not enabled, returning zero for memory')
@@ -52,8 +52,8 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        import pycuda.gpuarray
-        import pycuda.driver
+        from pycuda import gpuarray, driver
+        from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         logger.warning('module pycuda not found, CUDA not enabled')
         return
@@ -71,9 +71,6 @@ def init_cuda(ignore_config=False):
         logger.warning('module scikits.cuda not found, CUDA not '
                        'enabled')
         return
-
-    # Make our multiply inplace kernel
-    from pycuda.elementwise import ElementwiseKernel
 
     # let's construct our own CUDA multiply in-place function
     _multiply_inplace_c128 = ElementwiseKernel(
