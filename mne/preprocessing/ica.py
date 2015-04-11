@@ -6,7 +6,7 @@
 
 from copy import deepcopy
 from inspect import getargspec, isfunction
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 
 import os
 import json
@@ -188,6 +188,10 @@ class ICA(ContainsMixin):
         The measurement info copied from the object fitted.
     `n_samples_` : int
         the number of samples used on fit.
+    `labels_` : dict
+        A dictionary of independent component indices, grouped by kinds
+        of artifacts. This attribute is set by some of the artifact detection
+        functions.
     """
     @verbose
     def __init__(self, n_components=None, max_pca_components=None,
@@ -756,7 +760,7 @@ class ICA(ContainsMixin):
             Callable taking as arguments either two input arrays
             (e.g. Pearson correlation) or one input
             array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels: Currently,
+            most common score_funcs are available via string labels_: Currently,
             all distance metrics from scipy.spatial and all functions from
             scipy.stats taking compatible input arguments are supported. These
             function have been modified to support iteration over the rows of a
@@ -939,7 +943,10 @@ class ICA(ContainsMixin):
             raise ValueError('Method "%s" not supported.' % method)
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
-        return list(ecg_idx), scores
+        if not hasattr(self, 'labels_'):
+            self.labels_ = {}
+        self.labels_['ecg'] = list(ecg_idx)
+        return self.labels_['ecg'], scores
 
     @verbose
     def find_bads_eog(self, inst, ch_name=None, threshold=3.0,
@@ -1024,7 +1031,10 @@ class ICA(ContainsMixin):
         if len(scores) == 1:
             scores = scores[0]
 
-        return eog_idx, scores
+        if not hasattr(self, 'labels_'):
+            self.labels_ = {}
+        self.labels_['eog'] = list(eog_idx)
+        return self.labels_['eog'], scores
 
     def apply(self, inst, include=None, exclude=None,
               n_pca_components=None, start=None, stop=None,
@@ -2112,7 +2122,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 @verbose
 def corrmap(icas, template, threshold="auto", label="bads",
-            plot=True, inplace=False, ch_type="eeg"):
+            plot=True, copy=False, ch_type="eeg"):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2149,14 +2159,14 @@ def corrmap(icas, template, threshold="auto", label="bads",
         original Corrmap)
         Defaults to "auto".
     label : str
-        Categorised ICs are stored in a default dictionary "labels". This
+        Categorised ICs are stored in a default dictionary "labels_". This
         parameter gives the key under which found ICs will be stored.
         Preexisting entries will be appended to (excluding repeats), not
         overwritten.
         Defaults to "bads".
     plot : bool
         Should constructed template and selected maps be plotted?
-    inplace : bool
+    copy : bool
         Should files be modified in place?
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
@@ -2171,7 +2181,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
 
     def get_ica_map(ica, components=None):
         if components is None:
-            components = range(ica.n_components_)
+            components = list(range(ica.n_components_))
         maps = fast_dot(ica.mixing_matrix_[:, components].T,
                         ica.pca_components_[:ica.n_components_])
         return maps
@@ -2190,7 +2200,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
 
         am = [l[i] for l, i_s in zip(abs_corrs, max_corrs)
               for i in i_s]
-        median_corr_with_target = (np.median(am) if len(am) > 0 else 0)
+        median_corr_with_target = np.median(am) if len(am) > 0 else 0
 
         polarities = [l[i] for l, i_s in zip(corr_polarities, max_corrs)
                       for i in i_s]
@@ -2261,7 +2271,7 @@ def corrmap(icas, template, threshold="auto", label="bads",
         plt.show()
 
     if threshold == "auto":
-        threshold = np.arange(60, 95) / 100
+        threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
     all_maps = [get_ica_map(ica) for ica in icas]
 
@@ -2278,10 +2288,8 @@ def corrmap(icas, template, threshold="auto", label="bads",
         try:
             nt, mt, s, mx = find_max_corrs(all_maps, target, threshold)
         except ValueError:
-            if threshold > 1:
-                logger.info("No component detected using find_outliers."
-                            " Consider using threshold='auto'")
-            return
+            raise RuntimeError("No component detected using find_outliers."
+                               " Consider using threshold='auto'")
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
@@ -2303,26 +2311,26 @@ def corrmap(icas, template, threshold="auto", label="bads",
 
     nones = list(range(len(icas)))
     new_icas, allmaps, indices, subjs = [], [], [], []
-    logger.info("Median correlation with constructed map: " + str(mt))
+    logger.info("Median correlation with constructed map: %0.3f" % mt)
     if plot:
         logger.info("Displaying selected ICs per subject.")
 
-    for i, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if inplace is False:
+    for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
+        if copy is False:
             ica = deepcopy(ica)
-        if not hasattr(ica, 'labels'):
-            ica.labels = defaultdict(lambda: [])
+        if not hasattr(ica, 'labels_'):
+            ica.labels_ = {}
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
-            ica.labels[label] = list(set(list(max_corr) +
-                                     ica.labels[label]))
-            if plot:
+            ica.labels_[label] = list(set(list(max_corr) +
+                                          ica.labels_.get(label, [])))
+            if plot is True:
                 allmaps.extend(get_ica_map(ica, components=max_corr))
-                subjs.extend([i] * len(max_corr))
+                subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
-            nones.remove(i)
-        if inplace is False:
+            nones.remove(ii)
+        if copy is False:
             new_icas.append(ica)
 
     if plot is True:

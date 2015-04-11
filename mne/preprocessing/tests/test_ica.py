@@ -273,9 +273,9 @@ def test_ica_additional():
 
     # test corrmap
     ica2 = deepcopy(ica)
-    _ = corrmap([ica, ica2], (0, 0), threshold=2, inplace=False, plot=False)
-    corrmap([ica, ica2], (0, 0), threshold=0.99, inplace=True, ch_type="mag")
-    assert_true(ica.labels["bads"] == ica2.labels["bads"])
+    _ = corrmap([ica, ica2], (0, 0), threshold=2, copy=False, plot=False)
+    corrmap([ica, ica2], (0, 0), threshold=0.99, copy=True, ch_type="mag")
+    assert_true(ica.labels_["bads"] == ica2.labels_["bads"])
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
