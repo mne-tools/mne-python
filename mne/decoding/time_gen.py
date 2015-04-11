@@ -259,8 +259,7 @@ class GeneralizationAcrossTime(object):
             n_chunk = multiprocessing.cpu_count()
 
         # Avoid splitting the data in more time chunk than there is time points
-        if n_chunk > X.shape[2]:
-            n_chunk = X.shape[2]
+        n_chunk = min(X.shape[2], n_chunk)
 
         # Parallel across training time
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
@@ -485,23 +484,27 @@ class GeneralizationAcrossTime(object):
         else:
             transform_classes = False
 
-        # Initialize values: Note that this is not an array as the testing
-        # times per training time need not be regular
-        scores = [list() for _ in range(len(self.test_times_['slices']))]
+        # Loop across estimators (i.e. training times)
+        y_true = self.y_true_
+        if transform_classes:
+            y_true = le.transform(y_true)
 
-        # Loop across training/testing times
-        for t_train, slices in enumerate(self.test_times_['slices']):
-            n_time = len(slices)
-            # Loop across testing times
-            scores[t_train] = [0] * n_time
-            for t, indices in enumerate(slices):
-                y_true = self.y_true_
-                y_pred = self.y_pred_[t_train][t]
-                # Transform labels for Sklearn API compatibility
-                if transform_classes:
-                    y_true = le.transform(y_true)
-                # Scores across trials
-                scores[t_train][t] = _score(y_true, y_pred, scorer)
+        # Preprocessing for parallelization:
+        if self.n_jobs > 0:
+            n_chunk = self.n_jobs
+        else:
+            n_chunk = multiprocessing.cpu_count()
+        # avoid bug if n_jobs < n_time
+        n_chunk = min(self.y_pred_.shape[2], n_chunk)
+        parallel, p_time_gen, _ = parallel_func(_score_loop, n_chunk)
+
+        # Score each training and testing time point
+        scores = parallel(p_time_gen(y_true, self.y_pred_[t_train], slices,
+                                     scorer)
+                          for t_train, slices
+                          in enumerate(self.test_times_['slices']))
+
+
         self.scores_ = scores
         return scores
 
@@ -664,6 +667,14 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
                              ' or "cross-validation"')
     return y_pred
 
+def _score_loop(y_true, y_pred, slices, scorer):
+    n_time = len(slices)
+    # Loop across testing times
+    scores = [0] * n_time
+    for t, indices in enumerate(slices):
+        # Scores across trials
+        scores[t] = _score(y_true, y_pred[t], scorer)
+    return scores
 
 def _score(y, y_pred, scorer):
     """Aux function of GeneralizationAcrossTime
