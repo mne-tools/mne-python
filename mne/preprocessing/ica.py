@@ -185,9 +185,9 @@ class ICA(ContainsMixin):
     `n_samples_` : int
         the number of samples used on fit.
     `labels_` : dict
-        A dictionary of independent component indices, grouped by kinds
-        of artifacts. This attribute is set by some of the artifact detection
-        functions.
+        A dictionary of independent component indices, grouped by types of
+        independent components. This attribute is set by some of the artifact
+        detection functions.
     """
     @verbose
     def __init__(self, n_components=None, max_pca_components=None,
@@ -745,11 +745,11 @@ class ICA(ContainsMixin):
             Callable taking as arguments either two input arrays
             (e.g. Pearson correlation) or one input
             array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels_: Currently,
-            all distance metrics from scipy.spatial and all functions from
-            scipy.stats taking compatible input arguments are supported. These
-            function have been modified to support iteration over the rows of a
-            2D array.
+            most common score_funcs are available via string labels_:
+            Currently, all distance metrics from scipy.spatial and All
+            functions from scipy.stats taking compatible input arguments are
+            supported. These function have been modified to support iteration
+            over the rows of a 2D array.
         start : int | float | None
             First sample to include. If float, data will be interpreted as
             time in seconds. If None, data will be used from the first sample.
@@ -2271,8 +2271,9 @@ def corrmap(icas, template, threshold="auto", label="bads",
         try:
             nt, mt, s, mx = find_max_corrs(all_maps, target, threshold)
         except ValueError:
-            raise RuntimeError("No component detected using find_outliers."
-                               " Consider using threshold='auto'")
+            logger.info("No component detected using find_outliers."
+                        " Consider using threshold='auto'")
+            return icas
     elif len(threshold) > 1:
         paths = [find_max_corrs(all_maps, target, t) for t in threshold]
         # find iteration with highest avg correlation with target
