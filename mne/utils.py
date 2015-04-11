@@ -506,7 +506,7 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Improved verbose decorator to allow functions to override log-level
 
-    Do not call this directly to set global verbosrity level, instead use
+    Do not call this directly to set global verbosity level, instead use
     set_log_level().
 
     Parameters
@@ -523,8 +523,10 @@ def verbose(function, *args, **kwargs):
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
-    if('verbose' in arg_names):
+    if 'verbose' in arg_names:
         verbose_level = args[arg_names.index('verbose')]
+    elif 'verbose' in kwargs:
+        verbose_level = kwargs.pop('verbose')
 
     # This ensures that object.method(verbose=None) will use object.verbose
     verbose_level = default_level if verbose_level is None else verbose_level

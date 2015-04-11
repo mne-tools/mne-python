@@ -199,6 +199,17 @@ class ToDataFrameMixin(object):
         return df
 
 
+def _check_fun(fun, d, *args, **kwargs):
+    want_shape = d.shape
+    d = fun(d, *args, **kwargs)
+    if not isinstance(d, np.ndarray):
+        raise TypeError('Return value must be an ndarray')
+    if d.shape != want_shape:
+        raise ValueError('Return data must have shape %s not %s'
+                         % (want_shape, d.shape))
+    return d
+
+
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                SetChannelsMixin, InterpolationMixin, ToDataFrameMixin):
     """Base class for Raw data"""
@@ -307,8 +318,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.info._anonymize()
 
     @verbose
-    def apply_function(self, fun, picks, dtype, n_jobs, verbose=None, *args,
-                       **kwargs):
+    def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
         """ Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -332,25 +342,27 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int
-            Indices of channels to apply the function to.
+        picks : array-like of int | None
+            Indices of channels to apply the function to. If None, all
+            M-EEG channels are used.
         dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs: int
             Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs :
-            Keyword arguments to pass to fun.
+            Keyword arguments to pass to fun. Note that if "verbose" is passed
+            as a member of ``kwargs``, it will be consumed and will override
+            the default mne-python verbose level (see mne.verbose).
         """
         if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -362,11 +374,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
-                self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(fun, n_jobs)
-            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(p_fun(fun, data_in[p], *args, **kwargs)
                                       for p in picks)
             for pp, p in enumerate(picks):
                 self._data[p, :] = data_picks_new[pp]
