@@ -92,6 +92,7 @@ flake:
 		echo "flake8 not found, please install it!"; \
 		exit 1; \
 	fi;
+	@echo "flake8 passed"
 
 codespell:
 	# The *.fif had to be there twice to be properly ignored (!)

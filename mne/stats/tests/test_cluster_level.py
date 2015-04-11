@@ -1,3 +1,5 @@
+import os
+import os.path as op
 import numpy as np
 from numpy.testing import (assert_equal, assert_array_equal,
                            assert_array_almost_equal)
@@ -11,7 +13,7 @@ from mne.stats.cluster_level import (permutation_cluster_test,
                                      spatio_temporal_cluster_test,
                                      spatio_temporal_cluster_1samp_test,
                                      ttest_1samp_no_p, summarize_clusters_stc)
-from mne.utils import run_tests_if_main, slow_test
+from mne.utils import run_tests_if_main, slow_test, _TempDir, set_log_file
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -40,6 +42,42 @@ def _get_conditions():
     condition1_2d = condition1_1d[:, :, np.newaxis]
     condition2_2d = condition2_1d[:, :, np.newaxis]
     return condition1_1d, condition2_1d, condition1_2d, condition2_2d
+
+
+def test_cache_dir():
+    """Test use of cache dir
+    """
+    tempdir = _TempDir()
+    orig_dir = os.getenv('MNE_CACHE_DIR', None)
+    orig_size = os.getenv('MNE_MEMMAP_MIN_SIZE', None)
+    rng = np.random.RandomState(0)
+    X = rng.randn(9, 2, 10)
+    log_file = op.join(tempdir, 'log.txt')
+    try:
+        os.environ['MNE_MEMMAP_MIN_SIZE'] = '1K'
+        os.environ['MNE_CACHE_DIR'] = tempdir
+        # Fix error for #1507: in-place when memmapping
+        permutation_cluster_1samp_test(
+            X, buffer_size=None, n_jobs=2, n_permutations=1,
+            seed=0, stat_fun=ttest_1samp_no_p, verbose=False)
+        # ensure that non-independence yields warning
+        stat_fun = partial(ttest_1samp_no_p, sigma=1e-3)
+        set_log_file(log_file)
+        permutation_cluster_1samp_test(
+            X, buffer_size=10, n_jobs=2, n_permutations=1,
+            seed=0, stat_fun=stat_fun, verbose=False)
+        with open(log_file, 'r') as fid:
+            assert_true('independently' in ''.join(fid.readlines()))
+    finally:
+        if orig_dir is not None:
+            os.environ['MNE_CACHE_DIR'] = orig_dir
+        else:
+            del os.environ['MNE_CACHE_DIR']
+        if orig_size is not None:
+            os.environ['MNE_MEMMAP_MIN_SIZE'] = orig_size
+        else:
+            del os.environ['MNE_MEMMAP_MIN_SIZE']
+        set_log_file(None)
 
 
 def test_permutation_step_down_p():
