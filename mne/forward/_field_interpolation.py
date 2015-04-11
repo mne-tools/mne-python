@@ -89,55 +89,85 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def compute_virtual_evoked(evoked, subject=None, subjects_dir=None,
-                           from_type='mag', to_type='grad', n_jobs=1):
-    """Plot MEG/EEG fields on head surface and helmet in 3D
+def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
+                           baseline=None, n_jobs=1):
+    """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked object.
-    subject : str | None
-        The subject name corresponding to FreeSurfer environment
-        variable SUBJECT. If None, map for EEG data will not be available.
-    subjects_dir : str
-        The path to the freesurfer subjects reconstructions.
-        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+    from_type : str
+        The original channel type. It can be 'mag' or 'grad'.
+    to_type : str
+        The destination channel type. It can be 'mag' or 'grad'.
+    copy : bool
+        If False evoked is modified in place.
     n_jobs : int
         Number of jobs to run in parallel.
 
     Returns
     -------
     evoked : instance of mne.Evoked
-        The transformed evoked object.
+        The transformed evoked object containing only virtual channels.
     """
+    if from_type not in ['mag', 'grad']:
+        raise ValueError('from_type must be "mag" or "grad", not "%s"'
+                         % from_type)
+    if to_type not in ['mag', 'grad']:
+        raise ValueError('to_type must be "mag" or "grad", not "%s"'
+                         % to_type)
+    if from_type == to_type:
+        raise ValueError('from_type and to_type cannot be the same.')
 
     # get surface in head coordinates
-    surf = get_meg_helmet_surf(evoked.info)
+    surf_virt = get_meg_helmet_surf(evoked.info)
 
-    trans = evoked.info['dev_head_t']['trans']
+    # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=from_type, eeg=False,
                            ref_meg=False)
     pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
                          ref_meg=False)
 
-    info_to = pick_info(evoked.info, pick_to)
-    pts = np.array([ch['loc'][:3] for ch in info_to['chs']])
-    nn = np.array([ch['loc'][-3:] for ch in info_to['chs']])
+    # find location and normals for virtual channels
+    info_virt = pick_info(evoked.info, pick_from)
+    pts = np.array([ch['loc'][:3] for ch in info_virt['chs']])
+    nn = np.array([ch['loc'][-3:] for ch in info_virt['chs']])
 
+    # take virtual channels to head coordinates
+    trans = evoked.info['dev_head_t']['trans']
     pts = apply_trans(trans, pts)
     nn = apply_trans(trans, nn)
 
-    surf['rr'], surf['nn'] = pts, nn
-    surf['coord_frame'] = FIFF.FIFFV_COORD_HEAD
+    # virtual channels lie on a 'surface' with location and
+    # normals copied from channel info
+    surf_virt['rr'], surf_virt['nn'] = pts, nn
+    surf_virt['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
-    info_from = pick_info(evoked.info, pick_from)
-    field_map = _make_surface_mapping(info_from, surf, 'meg',
-                                      trans, n_jobs=n_jobs)
+    # pick the complementary channel type which will be used
+    # to compute the fields in the virtual channels.
+    info_from = pick_info(evoked.info, pick_to)
+    field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
+                                      trans=None, n_jobs=n_jobs)
 
-    data = np.dot(field_map['data'], evoked.data[pick_from])
+    # compute evoked data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    data = np.dot(field_map['data'], evoked.data[pick_to])
 
-    mapped_evoked = EvokedArray(data, info_to, tmin=evoked.times[0])
+    # create new info structure for virtual channels
+    chs = list()
+    for ch in info_virt['chs']:
+        ch['unit'] = info_from['chs'][0]['unit']
+        ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+        ch['ch_name'] = 'MEG_interp_%s' % ch['ch_name'][3:].strip()
+        chs.append(ch)
+    info_virt['chs'] = chs
+    info_virt['ch_names'] = [ch['ch_name'] for ch in info_virt['chs']]
+
+    # TODO: return full evoked instead of only the virtual channels.
+
+    # create evoked data struct. using data at virtual channels
+    mapped_evoked = EvokedArray(data, info_virt, tmin=evoked.times[0])
     return mapped_evoked
 
 

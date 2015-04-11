@@ -26,6 +26,17 @@ from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
 from ..time_frequency import compute_epochs_psd
 
 
+def _prepare_virt_chs(info, ch_type):
+    """Aux function"""
+    has_virt_ch = False
+    if any([ch_name.find('interp') != -1 for ch_name in info['ch_names']]):
+        has_virt_ch = True
+        ch_type = 'mag' if ch_type == 'grad' else 'grad'
+        info['ch_names'] = [ch_name.replace('_interp_', '') for ch_name
+                            in info['ch_names']]
+    return has_virt_ch, info, ch_type
+
+
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
     info = copy.deepcopy(inst.info)
@@ -44,6 +55,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
             np.unique([ch['coil_type'] for ch in info['chs']])):
         from ..channels.layout import _pair_grad_sensors
+        has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
         picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
     else:
@@ -54,7 +66,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
-
+        has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
@@ -72,6 +84,10 @@ def _prepare_topo_plot(inst, ch_type, layout):
         # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
+
+    if has_virt_ch is True:
+        ch_type = 'mag' if ch_type == 'grad' else 'grad'
+
     return picks, pos, merge_grads, ch_names, ch_type
 
 
