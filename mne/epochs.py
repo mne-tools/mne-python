@@ -1739,7 +1739,7 @@ class EpochsArray(Epochs):
         self.picks = None
         self.times = (np.arange(data.shape[-1], dtype=np.float) /
                       info['sfreq'] + tmin)
-        self.tmin = self.times[0]
+        self.tmin = tmin
         self.tmax = self.times[-1]
         self.verbose = verbose
         self.name = 'Unknown'
