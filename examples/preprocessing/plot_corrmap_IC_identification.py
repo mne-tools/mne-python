@@ -6,7 +6,6 @@ After fitting ICA to multiple data sets, CORRMAP[1]
 automatically identifies similar ICs in all sets based
 on a manually selected template. These ICs can then be
 removed, or further investigated.
-
 [1] Viola FC, et al. Semi-automatic identification of independent components
 representing EEG artifact. Clin Neurophysiol 2009, May; 120(5): 868-77.
 """
@@ -48,7 +47,7 @@ tmin, tmax = -0.5, 0.75
 subsets = [mne.Epochs(raw, events[ranges[0]:ranges[1]], event_id, tmin, tmax,
                       proj=False, picks=picks, baseline=(None, 0),
                       preload=True, reject=None, verbose=False)
-           for ranges in [(0, 100), (101, 200), (201,300)]]
+           for ranges in [(0, 100), (101, 200), (201, 300)]]
 
 ###############################################################################
 # 1) Fit ICA
@@ -60,7 +59,7 @@ icas = [ICA(n_components=20, random_state=0).fit(epochs)
 #    to a pre-specified template across all subsets
 #    (or, in the real world, multiple participant data sets)
 
-template=(0,0)
+template = (0, 0)
 corrmap(icas, template=template, label="blinks", inplace=True)
 
 # 3) Zeroing the identified blink components for all data sets
