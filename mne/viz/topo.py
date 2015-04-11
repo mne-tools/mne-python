@@ -72,11 +72,12 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
         The related channel index.
     """
     import matplotlib.pyplot as plt
-    from ..channels.layout import find_layout
+
+    if layout is None:
+        from ..channels.layout import find_layout
+        layout = find_layout(info)
 
     if pos is None:
-        if layout is None:
-            layout = find_layout(info)
         pos = layout.pos.copy()
         if layout_scale is not None:
             pos[:, :2] *= layout_scale
@@ -94,10 +95,9 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
     ch_types = dict((ch_name, channel_type(info, j))
                     for j, ch_name in enumerate(ch_names))
 
-    iter_ch = [(x, y) for x, y in enumerate(info["ch_names"]) if y in ch_names]
-    for idx, ch_name in iter_ch:
-        if ch_name in find_layout(info).names:
-            ax = plt.axes(pos[idx])
+    for idx, ch_name in enumerate(info["ch_names"]):
+        if ch_name in layout.names:
+            ax = plt.axes(pos[layout.names.index(ch_name)])
             ch_idx = ch_names.index(ch_name)
             vars(ax)['_mne_ch_name'] = ch_name
             vars(ax)['_mne_ch_idx'] = ch_idx
@@ -107,55 +107,41 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
 
 
 def _scale_layout(layout, layout_scale, ybound, zero):
+    """Helper function to set scaling factor so subplots don't overlap"""
 
     pos = layout.pos.copy()
 
     if layout_scale is 'wide':
-        from itertools import combinations
-        layout_scale = 0.1
-        pos[:, :2] *= layout_scale
 
-        def _area(a, b):
+        def _make_lines(pos):
+            return pos
+
+        def _check_intersect(a, b):  # check if subplot rectangles overlap
             dx = min(a[0] + a[2], b[0] + b[2]) - max(a[0], b[0])
             dy = min(a[1] + a[3], b[1] + b[3]) - max(a[1], b[1])
             return ((dx >= 0) and (dy >= 0))
 
-        while any(_area(a, b) for a, b in combinations(pos, 2)):
-            # print(layout_scale)
-            layout_scale += 0.01
-            pos = layout.pos.copy()
-            pos[:, :2] *= layout_scale
-            if layout_scale > 4:
-                raise ValueError("Layout auto scaler not converging. "
-                                 "Set a value for layout_scale manually, "
-                                 "and/or ensure sensor coverage does "
-                                 "not include overlapping sensors.")
-
     elif layout_scale is 'tight':
-        from itertools import combinations
-        layout_scale = 0.1
-        pos[:, :2] *= layout_scale
 
-        def _make_lines(pos):
+        def _make_lines(pos):  # find coordinates of spines (x and y axis)
             return [((p[0], p[1] + p[3] * .5),
                     (p[0] + p[2], p[1] + p[3] * .5),
                     (p[0] + p[2] * -zero, p[1] + p[3] / 2 * (1 - ybound)),
                     (p[0] + p[2] * -zero, p[1] + p[3] * (1 - ybound / 2)))
                     for p in pos]
 
-        def _check_intersect(line, line2):
-            return sum([((line[0][0] < line2[2][0] and line[1][0] > line2[2][0]
-                       and
-                       line[0][1] > line2[2][1] and line[0][1] < line2[3][1])
-                       or
-                       (line2[0][0] < line[2][0] and line2[1][0] > line[2][0]
-                       and
-                       line2[0][1] > line[2][1] and line2[0][1] < line[3][1]))]
-                       )
+        def _check_intersect(a, b):  # check if spines overlap
+            return sum([((a[0][0] < b[2][0] and a[1][0] > b[2][0] and
+                        a[0][1] > b[2][1] and a[0][1] < b[3][1]) or
+                        (b[0][0] < a[2][0] and b[1][0] > a[2][0] and
+                        b[0][1] > a[2][1] and b[0][1] < a[3][1]))])
 
+    if isinstance(layout_scale, str):
+        from itertools import combinations
+        layout_scale = 0.1
+        pos[:, :2] *= layout_scale
         while any(_check_intersect(a, b) for a, b in
                   combinations(_make_lines(pos), 2)):
-            # print(layout_scale)
             layout_scale += 0.01
             pos = layout.pos.copy()
             pos[:, :2] *= layout_scale
@@ -165,7 +151,8 @@ def _scale_layout(layout, layout_scale, ybound, zero):
                                  "and/or ensure sensor coverage does "
                                  "not include overlapping sensors.")
 
-    else:
+    elif not isinstance(layout_scale, str):
+        layout_scale = float(layout_scale)
         pos[:, :2] *= layout_scale
 
     return pos, layout_scale
@@ -215,7 +202,7 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
             ax.yaxis.set_label_coords(-0.35, 0.5)
             ax.xaxis.set_label_coords(0.5, -0.35)
         elif plot_type == 'evoked':
-            ax.yaxis.set_label_coords(-0.15, 0.5)
+            ax.yaxis.set_label_coords(-0.25, 0.5)
             ax.xaxis.set_label_coords(0.5, -0.15)
     elif plot_unit_labels is False:
         ax.set_ylabel('')
@@ -229,10 +216,12 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         ax.yaxis.set_ticks_position('left')
         for tick in ax.get_xaxis().get_major_ticks() + \
                 ax.get_yaxis().get_major_ticks():
-            tick.set_pad(2. * fontsize / 3)
+            tick.set_pad(2. * fontsize / 3.)
             tick.label1 = tick._get_text1()
 
     if plot_tick_labels is True:
+#        ax.set_xticklabels([('' if i % 2 else str(t))
+#                           for i, t in enumerate(xticks)])
         ax.set_xticklabels(xticks)
         ax.set_yticklabels(yticks)
     else:
@@ -243,8 +232,8 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
             tic.tick1On = tic.tick2On = False
         ax.set_yticklabels([])
 
-    ax.xaxis.set_tick_params(width=linewidth, color=spine_color)
-    ax.yaxis.set_tick_params(width=linewidth, color=spine_color)
+    ax.xaxis.set_tick_params(width=linewidth, length=3, color=spine_color)
+    ax.yaxis.set_tick_params(width=linewidth, length=3, color=spine_color)
 
     for item in ([ax.title, ax.xaxis.label, ax.yaxis.label] +
                  ax.get_xticklabels() + ax.get_yticklabels()):
@@ -259,7 +248,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                vmin=None, vmax=None, ylim=None, colorbar=None,
                border='none', axis_facecolor='k', fig_facecolor='k',
                cmap='RdBu_r', layout_scale=None, title=None, x_label=None,
-               y_label=None, vline=None, xticks=3, yticks=None,
+               y_label=None, vline=None, xticks=2, yticks=None,
                font_color=None, linewidth=1, internal_legend=False,
                external_legend=False, fontsize=None,
                ylim_dict=None, show_names=None, plot_type=None,
@@ -274,8 +263,8 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     if isinstance(xticks, int):
         endpoints = times[0], times[-1]
-        xticks = list(np.round(np.linspace(*endpoints,
-                                           num=xticks + 2) * 4) / 4)[1:-1]
+        xticks = [round(.05 * round(float(x) / .05), 2)
+                  for x in np.linspace(*endpoints, num=xticks + 2)][1:-1]
         if 0.0 in xticks and plot_type == 'evoked':
             del xticks[xticks.index(0.0)]
         if plot_type is None:
@@ -320,11 +309,10 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                                       yticks[0] / ylim_dict["dummy"][0],
                                       tmin / (tmax - tmin))
     if fontsize is None:
-        fontsize = 11 * layout_scale
+        fontsize = 9 * layout_scale
 
     my_topo_plot = iter_topography(pos=pos, info=info, on_pick=on_pick,
-                                   fig=fig,
-                                   axis_spinecolor=border,
+                                   fig=fig, axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
 
@@ -361,13 +349,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if external_legend is True:
-        pos = layout.pos.copy()
-        pos[:, :2] *= layout_scale
-        ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
+        legend_ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
 
-        _plot_spines(ax, (tmin, tmax), ylim_dict["dummy"], x_label, y_label,
-                     xticks, yticks, linewidth, fontsize, spine_color,
-                     plot_type=plot_type, is_legend=True)
+        _plot_spines(legend_ax, (tmin, tmax), ylim_dict["dummy"],
+                     x_label, y_label, xticks, yticks, linewidth,
+                     fontsize, spine_color, plot_type=plot_type,
+                     is_legend=True)
 
     if title is not None:
         plt.figtext(0.03, 0.9 * layout_scale, title, color=font_color,
@@ -384,7 +371,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         cb.ax.get_children()[4].set_linewidths(0.4)
         ax.axis('off')
 
-    return fig, layout_scale
+    return fig, legend_ax, layout_scale
 
 
 def _plot_topo_onpick(event, show_func=None, colorbar=False):
@@ -441,14 +428,15 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     """ Aux function to show time series on topo """
     import matplotlib.pyplot as plt
     picker_flag = False
-    for data_, color_ in zip(data, color):
+    for i, (data_, color_) in enumerate(zip(data, color)):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
             ax.plot(times, data_[ch_idx], color_, picker=1e9,
-                    linewidth=linewidth)
+                    linewidth=linewidth, zorder=20+i)
             picker_flag = True
         else:
-            ax.plot(times, data_[ch_idx], color_, linewidth=linewidth)
+            ax.plot(times, data_[ch_idx], color_, linewidth=linewidth,
+                    zorder=20+i)
     if vline:
         cs = cycle(['pink', 'purple', 'green'])
         [plt.axvline(x, color=c,
@@ -467,7 +455,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
               font_color=None, x_label='Time (s)', show_names=None,
               legend='external', xticks=2, yticks=None,
-              linewidth=1, fontsize=11, conditions=None):
+              linewidth=1, fontsize=9, conditions=None):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -548,6 +536,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
     -------
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
+    l_ax : The axis instance holding the legend.
     """
 
     if not type(evoked) in (tuple, list):
@@ -561,6 +550,11 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         warnings.warn('More evoked objects than colors available.'
                       'You should pass a list of unique colors.')
         color = cycle(color)
+    if color is 'bw':  # currently not implemented
+        fig_facecolor = 'w'
+        from itertools import cycle
+        color = cycle('k')
+        line_styles = ['-', ':', '-.', '--']
 
     times = evoked[0].times
 
@@ -629,6 +623,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         for e in evoked:
             _check_delayed_ssp(e)
 
+    # sorry, y axis handling is a terrible mess right now
     from collections import defaultdict
     if ylim is None:
         def set_ylim(x):
@@ -662,27 +657,27 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
                        color=color, times=times, vline=vline,
                        linewidth=linewidth)
 
-    fig, layout_scale = _plot_topo(info=info, times=times, show_func=plot_fun,
-                                   layout=layout, colorbar=False,
-                                   ylim=ylim_, cmap=None,
-                                   layout_scale=layout_scale,
-                                   border=border, fig_facecolor=fig_facecolor,
-                                   font_color=font_color,
-                                   axis_facecolor=axis_facecolor,
-                                   fontsize=fontsize,
-                                   external_legend=(True if external_legend
-                                                    is not False else False),
-                                   internal_legend=internal_legend,
-                                   plot_type='evoked', title=title,
-                                   vline=vline, x_label=x_label,
-                                   y_label=(unit if
-                                            (external_legend or
-                                             internal_legend)
-                                            else None),
-                                   show_names=show_names,
-                                   xticks=xticks, yticks=yticks,
-                                   ylim_dict=ylim_dict,
-                                   external_scale=external_legend)
+    fig, l_ax, l_scale = _plot_topo(info=info, times=times, show_func=plot_fun,
+                                    layout=layout, colorbar=False,
+                                    ylim=ylim_, cmap=None,
+                                    layout_scale=layout_scale,
+                                    border=border, fig_facecolor=fig_facecolor,
+                                    font_color=font_color,
+                                    axis_facecolor=axis_facecolor,
+                                    fontsize=fontsize,
+                                    external_legend=(True if external_legend
+                                                     is not False else False),
+                                    internal_legend=internal_legend,
+                                    plot_type='evoked', title=title,
+                                    vline=vline, x_label=x_label,
+                                    y_label=(unit if
+                                             (external_legend or
+                                              internal_legend)
+                                             else None),
+                                    show_names=show_names,
+                                    xticks=xticks, yticks=yticks,
+                                    ylim_dict=ylim_dict,
+                                    external_scale=external_legend)
 
     if proj == 'interactive':
         for e in evoked:
@@ -698,10 +693,10 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         import matplotlib.pyplot as plt
         for cond, col, pos in zip(reversed(conditions), reversed(color),
                                   np.arange(0.1, 0.4, 0.025)):
-            plt.figtext(layout_scale, pos, cond, color=col,
-                        fontsize=fontsize * layout_scale * 1.5)
+            plt.figtext(l_scale, pos, cond, color=col,
+                        fontsize=fontsize * l_scale * 1.5)
 
-    return fig
+    return fig, l_ax
 
 
 def _plot_update_evoked_topo(params, bools):
@@ -770,7 +765,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            layout_scale='wide', title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
                            y_label='Epoch', show_names=None,
-                           legend='internal', linewidth=1, fontsize=11):
+                           legend='internal', linewidth=1, fontsize=9):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -841,15 +836,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
-
-    if legend in ['internal', 'both']:
-        internal_legend = True
-    else:
-        internal_legend = False
-    if legend in ['external', 'both']:
-        external_legend = True
-    else:
-        external_legend = False
 
     erf_imshow = partial(_erfimage_imshow, scalings=scalings, order=order,
                          data=data, epochs=epochs, sigma=sigma,
