@@ -687,10 +687,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
                   layout=None, cmap='RdBu_r', title=None, dB=False,
-                  colorbar=True, layout_scale=0.945, show=True,
+                  colorbar=True, layout_scale='auto', show=True,
                   border='none', fig_facecolor='k', font_color=None,
-                  internal_legend=None, external_legend=None,
-                  show_names=None, linewidth=None):
+                  legend='internal', show_names=None, linewidth=None,
+                  fontsize=9):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -778,16 +778,23 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
         imshow = partial(_imshow_tfr, tfr=data, freq=freqs, cmap=cmap)
 
-        fig = _plot_topo(info=info, times=(times / 1000),
-                         show_func=imshow, layout=layout,
-                         colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                         layout_scale=layout_scale, title=title, border=border,
-                         x_label='Time (ms)', y_label='Freq. (Hz)',
-                         fig_facecolor=fig_facecolor, font_color=font_color,
-                         ylim_dict=(min(freqs), max(freqs)),
-                         external_legend=external_legend,
-                         internal_legend=internal_legend,
-                         show_names=show_names, linewidth=linewidth)
+        fig, l_x, l_s = _plot_topo(info=info, times=(times / 1000),
+                                   fontsize=fontsize, show_func=imshow,
+                                   layout=layout, colorbar=colorbar,
+                                   vmin=vmin, vmax=vmax, cmap=cmap,
+                                   layout_scale=layout_scale, title=title,
+                                   border=border, x_label='Time (ms)',
+                                   y_label='Freq. (Hz)',
+                                   fig_facecolor=fig_facecolor,
+                                   font_color=font_color,
+                                   ylim_dict=(min(freqs), max(freqs)),
+                                   internal_legend = (True if legend in
+                                                      ['internal', 'both']
+                                                      else False),
+                                   external_legend = (True if legend in
+                                                      ['external', 'both']
+                                                      else False),
+                                   show_names=show_names, linewidth=linewidth)
 
         if show:
             import matplotlib.pyplot as plt
