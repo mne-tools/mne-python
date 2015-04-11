@@ -623,12 +623,12 @@ class ICA(ContainsMixin):
         # merge copied instance and picked data with sources
         sources = self._transform_raw(raw, start=start, stop=stop)
         if raw.preload:  # get data and temporarily delete
-            data, times = raw._data, raw._times
-            del raw._data, raw._times
+            data = raw._data
+            del raw._data
 
         out = raw.copy()  # copy and reappend
         if raw.preload:
-            raw._data, raw._times = data, times
+            raw._data = data
 
         # populate copied raw.
         start, stop = _check_start_stop(raw, start, stop)
@@ -645,8 +645,10 @@ class ICA(ContainsMixin):
         out.preload = True
 
         # update first and last samples
-        out.first_samp = raw.first_samp + (start if start else 0)
-        out.last_samp = out.first_samp + stop if stop else raw.last_samp
+        out._first_samps = np.array([raw.first_samp +
+                                     (start if start else 0)])
+        out._last_samps = np.array([out.first_samp + stop
+                                    if stop else raw.last_samp])
 
         out._projector = None
         self._export_info(out.info, raw, add_channels)

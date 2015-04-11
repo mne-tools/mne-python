@@ -148,7 +148,7 @@ def test_find_events():
     assert_array_equal(events11, events22)
 
     # Reset some data for ease of comparison
-    raw.first_samp = 0
+    raw._first_samps[0] = 0
     raw.info['sfreq'] = 1000
 
     stim_channel = 'STI 014'

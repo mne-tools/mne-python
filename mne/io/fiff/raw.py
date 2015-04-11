@@ -18,8 +18,7 @@ from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag
-from ..proj import (proj_equal, make_eeg_average_ref_proj,
-                    _needs_eeg_average_ref_proj)
+from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 

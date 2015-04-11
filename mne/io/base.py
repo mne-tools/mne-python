@@ -222,7 +222,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @verbose
     def __init__(self, info, data=None, cals=None,
                  first_samps=(0,), last_samps=None,
-                 filenames=(), rawdirs=(), 
+                 filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
                  orig_format='double', verbose=None):
         self.info = info

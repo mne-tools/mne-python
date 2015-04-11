@@ -29,7 +29,7 @@ lh_faces = src[0]['tris']
 rh_points = src[1]['rr']
 rh_faces = src[1]['tris']
 
-from mayavi import mlab
+from mayavi import mlab  # noqa
 mlab.figure(size=(600, 600), bgcolor=(0, 0, 0),)
 mesh = mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],
                             lh_faces, colormap='RdBu')

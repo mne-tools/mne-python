@@ -78,8 +78,8 @@ class RawEDF(_BaseRaw):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, self._edf_info = _get_edf_info(input_fname, stim_channel,
-                                                  annot, annotmap, tal_channel,
-                                                  eog, misc, preload)
+                                             annot, annotmap, tal_channel,
+                                             eog, misc, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
 

@@ -15,8 +15,7 @@ import itertools as itt
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose, assert_equal)
-from nose.tools import (assert_true, assert_raises, assert_equal,
-                        assert_not_equal)
+from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
