@@ -40,10 +40,14 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
 
     Parameters
     ----------
+    pos : array
+        Array of sensor positions (e.g., from 
+        mne.channels.layout.find_layout(info).pos). If None, will be inferred
+        from layout.
     info : instance of mne.io.meas_info.Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
-        The layout to use. If None, layout will be guessed
+        The layout to use. If None, layout will be inferred from info.
     on_pick : callable | None
         The callback function to be invoked on clicking one
         of the axes. Is supposed to instantiate the following
@@ -52,12 +56,11 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
         The figure object to be considered. If None, a new
         figure will be created.
     fig_facecolor : str | obj
-        The figure face color. Defaults to black.
+        The figure face color. Defaults to white.
     axis_facecolor : str | obj
-        The axis face color. Defaults to black.
+        The axis face color. Defaults to white.
     axis_spinecolor : str | obj
-        The axis spine color. Defaults to black. In other words,
-        the color of the axis' edge lines.
+        The axis spine color. Defaults to black.
     layout_scale: float | None
         Scaling factor for adjusting the relative size of the layout
         on the canvas. If None, nothing will be scaled.
@@ -102,11 +105,11 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
             vars(ax)['_mne_ch_name'] = ch_name
             vars(ax)['_mne_ch_idx'] = ch_idx
             vars(ax)['_mne_ch_type'] = ch_types[ch_name]
-            vars(ax)['_mne_ax_face_color'] = axis_facecolor
+            vars(ax)['_mne_ax_face_color'] = str(axis_facecolor)   # why str?
             yield ax
 
 
-def _scale_layout(layout, layout_scale, ybound, zero):
+def _scale_layout(layout, layout_scale, ybound, zero=None):
     """Helper function to set scaling factor so subplots don't overlap"""
 
     pos = layout.pos.copy()
@@ -300,14 +303,19 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         show_names = True
 
     if layout_scale is None or layout_scale is 'auto':
-        if len(info["ch_names"]) < 35:
+        if plot_type == 'evoked':
+            if len(info["ch_names"]) < 35:
+                layout_scale = 'wide'
+            elif len(info["ch_names"]) >= 35:
+                layout_scale = 'tight'
+        else:
             layout_scale = 'wide'
-        elif len(info["ch_names"]) >= 35:
-            layout_scale = 'tight'
+
+    zero = (yticks[0] / ylim_dict["dummy"][0] 
+            if plot_type == 'evoked' else None)
 
     pos, layout_scale = _scale_layout(layout, layout_scale,
-                                      yticks[0] / ylim_dict["dummy"][0],
-                                      tmin / (tmax - tmin))
+                                      tmin / (tmax - tmin), zero=zero)
     if fontsize is None:
         fontsize = 9 * layout_scale
 
@@ -348,13 +356,6 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
 
-    if external_legend is True:
-        legend_ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
-
-        _plot_spines(legend_ax, (tmin, tmax), ylim_dict["dummy"],
-                     x_label, y_label, xticks, yticks, linewidth,
-                     fontsize, spine_color, plot_type=plot_type,
-                     is_legend=True)
 
     if title is not None:
         plt.figtext(0.03, 0.9 * layout_scale, title, color=font_color,
@@ -371,7 +372,18 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         cb.ax.get_children()[4].set_linewidths(0.4)
         ax.axis('off')
 
-    return fig, legend_ax, layout_scale
+    if external_legend is True:
+        legend_ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
+
+        _plot_spines(legend_ax, (tmin, tmax), ylim_dict["dummy"],
+                     x_label, y_label, xticks, yticks, linewidth,
+                     fontsize, spine_color, plot_type=plot_type,
+                     is_legend=True)
+
+        return fig, legend_ax, layout_scale
+    
+    else:
+        return fig, None, layout_scale 
 
 
 def _plot_topo_onpick(event, show_func=None, colorbar=False):
@@ -841,22 +853,22 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                          data=data, epochs=epochs, sigma=sigma,
                          cmap=cmap)
 
-    fig, l = _plot_topo(info=epochs.info, times=epochs.times,
-                        show_func=erf_imshow, layout=layout,
-                        colorbar=colorbar, vmin=vmin, vmax=vmax, cmap=cmap,
-                        layout_scale=layout_scale, title=title,
-                        fig_facecolor=fig_facecolor,
-                        ylim_dict=(0, epochs.get_data().shape[0]),
-                        font_color=font_color, border=border,
-                        x_label='Time (s)', y_label=y_label,
-                        internal_legend = (True if legend in
-                                           ['internal', 'both']
-                                           else False),
-                        external_legend = (True if legend in
-                                           ['external', 'both']
-                                           else False),
-                        show_names=show_names,
-                        linewidth=linewidth,
-                        fontsize=fontsize)
+    fig, l_x, l_s = _plot_topo(info=epochs.info, times=epochs.times,
+                               show_func=erf_imshow, layout=layout,
+                               colorbar=colorbar, vmin=vmin, vmax=vmax, 
+                               cmap=cmap, layout_scale=layout_scale, 
+                               title=title, fig_facecolor=fig_facecolor,
+                               ylim_dict=(0, epochs.get_data().shape[0]),
+                               font_color=font_color, border=border,
+                               x_label='Time (s)', y_label=y_label,
+                               internal_legend = (True if legend in
+                                                  ['internal', 'both']
+                                                  else False),
+                               external_legend = (True if legend in
+                                                  ['external', 'both']
+                                                  else False),
+                               show_names=show_names,
+                               linewidth=linewidth,
+                               fontsize=fontsize)
 
     return fig
