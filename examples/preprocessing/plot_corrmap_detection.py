@@ -40,30 +40,32 @@ event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 reject = dict(eog=250e-6)
 tmin, tmax = -0.5, 0.75
 
-# subsetting the data set into 3 independent sets of epochs
-# in a real-world case, this would instead be multiple subjects/data sets,
-# not subsets of one data set
-
-subsets = [mne.Epochs(raw, events[ranges[0]:ranges[1]], event_id, tmin, tmax,
-                      proj=False, picks=picks, baseline=(None, 0),
-                      preload=True, reject=None, verbose=False)
-           for ranges in [(0, 100), (101, 200), (201, 300)]]
 
 ###############################################################################
-# 1) Fit ICA
+# 1) Fit ICA to all "subjects".
+# In a real-world case, this would instead be multiple subjects/data sets,
+# here we create artificial subsets
+
+all_epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        proj=False, picks=picks, baseline=(None, 0),
+                        preload=True, reject=None, verbose=False)
+
+all_epochs = [all_epochs[start:stop] for start, stop in
+              [(0, 100), (101, 200), (201, 300)]]
 
 icas = [ICA(n_components=20, random_state=0).fit(epochs)
-        for epochs in subsets]
+        for epochs in all_epochs]
 
 # 2) Use corrmap to identify the maps best corresponding
 #    to a pre-specified template across all subsets
 #    (or, in the real world, multiple participant data sets)
 
 template = (0, 0)
-corrmap(icas, template=template, label="blinks", inplace=True)
+corrmap(icas, template=template, label="blinks", copy=True)
 
 # 3) Zeroing the identified blink components for all data sets
-#    results in individually cleaned data sets
+#    results in individually cleaned data sets. Specific components
+#    can be accessed using the label_ attribute.
 
-cleaned_epochs = [ica.apply(epoch, exclude=ica.labels["blinks"], copy=True)
-                  for i, (epoch, ica) in enumerate(zip(subsets, icas))]
+for ica in icas:
+    print(ica.labels_)
