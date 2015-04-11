@@ -1692,6 +1692,14 @@ class EpochsArray(Epochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
+    baseline : None or tuple of length 2 (default (None, 0))
+        The time interval to apply baseline correction.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
@@ -1700,7 +1708,7 @@ class EpochsArray(Epochs):
     @verbose
     def __init__(self, data, info, events, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, verbose=None):
+                 reject_tmax=None, baseline=(None, 0), verbose=None):
 
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -1726,7 +1734,7 @@ class EpochsArray(Epochs):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        self.baseline = None
+        self.baseline = baseline
         self.preload = True
         self.reject = None
         self.decim = 1
@@ -1739,7 +1747,7 @@ class EpochsArray(Epochs):
         self.picks = None
         self.times = (np.arange(data.shape[-1], dtype=np.float) /
                       info['sfreq'] + tmin)
-        self.tmin = tmin
+        self.tmin = self.times[0]
         self.tmax = self.times[-1]
         self.verbose = verbose
         self.name = 'Unknown'
