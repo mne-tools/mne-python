@@ -2,12 +2,11 @@
 ==========================================================
 Identify similar ICs across multiple datasets via CORRMAP
 ==========================================================
-After fitting ICA to multiple data sets, CORRMAP[1] 
-automatically identifies similar ICs in all sets based 
-on a manually selected template. These ICs can then be 
+After fitting ICA to multiple data sets, CORRMAP[1]
+automatically identifies similar ICs in all sets based
+on a manually selected template. These ICs can then be
 removed, or further investigated.
-
-[1] Viola FC, et al. Semi-automatic identification of independent components 
+[1] Viola FC, et al. Semi-automatic identification of independent components
 representing EEG artifact. Clin Neurophysiol 2009, May; 120(5): 868-77.
 """
 
@@ -41,26 +40,26 @@ event_id = dict(aud_l=1, aud_r=2, vis_l=3, vis_r=4)
 reject = dict(eog=250e-6)
 tmin, tmax = -0.5, 0.75
 
-# subsetting the data set into 3 independent sets of epochs 
-# in a real-world case, this would instead be multiple subjects/data sets, 
+# subsetting the data set into 3 independent sets of epochs
+# in a real-world case, this would instead be multiple subjects/data sets,
 # not subsets of one data set
 
-subsets = [mne.Epochs(raw, events[ranges[0]:ranges[1]], event_id, tmin, tmax, 
-                      proj=False, picks=picks, baseline=(None, 0), 
-                      preload=True, reject=None, verbose=False) 
-           for ranges in [(0, 100), (101, 200), (201,300)]]
+subsets = [mne.Epochs(raw, events[ranges[0]:ranges[1]], event_id, tmin, tmax,
+                      proj=False, picks=picks, baseline=(None, 0),
+                      preload=True, reject=None, verbose=False)
+           for ranges in [(0, 100), (101, 200), (201, 300)]]
 
 ###############################################################################
 # 1) Fit ICA
 
-icas = [ICA(n_components=20, random_state=0).fit(epochs) 
+icas = [ICA(n_components=20, random_state=0).fit(epochs)
         for epochs in subsets]
 
-# 2) Use corrmap to identify the maps best corresponding 
+# 2) Use corrmap to identify the maps best corresponding
 #    to a pre-specified template across all subsets
 #    (or, in the real world, multiple participant data sets)
 
-template=(0,0)
+template = (0, 0)
 corrmap(icas, template=template, label="blinks", inplace=True)
 
 # 3) Zeroing the identified blink components for all data sets
