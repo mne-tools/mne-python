@@ -17,13 +17,15 @@ import os.path as op
 import numpy as np
 from scipy.signal import hilbert
 from scipy import linalg
+from nose.tools import assert_equal
 
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
-                                 SetChannelsMixin, InterpolationMixin)
+                                 SetChannelsMixin, InterpolationMixin,
+                                 set_channels_type)
 from ..channels.layout import read_montage, apply_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
@@ -2133,9 +2135,9 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         raw = read_raw_kit(input_fname, mrk=montage, eog=eog, misc=misc,
                            preload=preload, verbose=verbose)
         if eog is not None:
-            rename_sensor(raw.info, eog_map)
+            set_channels_type(raw.info, eog_map)
         if misc is not None:
-            rename_sensor(raw.info, misc_map)
+            set_channels_type(raw.info, misc_map)
     # (EEG) EDF and Biosemi systems
     elif ext in ['bdf', '.edf']:
         raw = read_raw_edf(input_fname, montage=montage, eog=eog, misc=eog,
@@ -2149,17 +2151,17 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         raw = read_raw_fif(input_fname, add_eeg_ref=reference, eog=eog,
                            misc=misc, preload=preload, verbose=verbose)
         if eog is not None:
-            rename_sensor(raw.info, eog_map)
+            set_channels_type(raw.info, eog_map)
         if misc is not None:
-            rename_sensor(raw.info, misc_map)
+            set_channels_type(raw.info, misc_map)
     # (MEG) BTi systems
     elif ext == '':
         raw = read_raw_bti(input_fname, eog=eog, misc=['E31'], preload=preload,
                            verbose=verbose)
         if eog is not None:
-            rename_sensor(raw.info, eog_map)
+            set_channels_type(raw.info, eog_map)
         if misc is not None:
-            rename_sensor(raw.info, misc_map)
+            set_channels_type(raw.info, misc_map)
     # (EEG) Brainvision systems
     elif ext == '.vhdr':
         raw = read_raw_brainvision(input_fname, montage=montage, eog=eog,
