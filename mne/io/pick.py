@@ -186,6 +186,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     sel : array of int
         Indices of good channels.
     """
+    # NOTE: Changes to this function's signature should also be changed in
+    # PickChannelsMixin
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 

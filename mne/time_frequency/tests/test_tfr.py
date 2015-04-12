@@ -179,6 +179,20 @@ def test_tfr_multitaper():
     assert_true(fmax > 40 and fmax < 60)
 
 
+def test_crop():
+    """Test TFR cropping"""
+    data = np.zeros((3, 2, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    info = mne.create_info(['MEG 001', 'MEG 002', 'MEG 003'], 1000.,
+                           ['mag', 'mag', 'mag'])
+    tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
+                     nave=20, comment='test', method='crazy-tfr')
+    tfr.crop(0.2, 0.3)
+    assert_array_equal(tfr.times, [0.2, 0.3])
+    assert_equal(tfr.data.shape[-1], 2)
+
+
 def test_io():
     """Test TFR IO capacities"""
 
