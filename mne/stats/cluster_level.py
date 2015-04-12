@@ -628,11 +628,15 @@ def _do_1samp_permutations(X, slices, threshold, tail, connectivity, stat_fun,
             signs = signs[:, np.newaxis]
 
         if buffer_size is None:
-            X *= signs
-            # Recompute statistic on randomized data
-            T_obs_surr = stat_fun(X)
-            # Set X back to previous state (trade memory eff. for CPU use)
-            X *= signs
+            # be careful about non-writable memmap (GH#1507)
+            if X.flags.writeable:
+                X *= signs
+                # Recompute statistic on randomized data
+                T_obs_surr = stat_fun(X)
+                # Set X back to previous state (trade memory eff. for CPU use)
+                X *= signs
+            else:
+                T_obs_surr = stat_fun(X * signs)
         else:
             # only sign-flip a small data buffer, so we need less memory
             T_obs_surr = np.empty(n_vars, dtype=X.dtype)

@@ -905,21 +905,24 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
         pos /= 1e2
     elif unit != 'm':
         raise ValueError("'unit' should be either 'm', 'cm', or 'mm'.")
-    if transform is True:
+    if transform:
         names_lower = [name.lower() for name in list(ch_names_)]
-        fids = ('nasion', 'lpa', 'rpa')
-        # check that all needed points are present
+        if ext == '.hpts':
+            fids = ('2', '1', '3')  # Alternate cardinal point names
+        else:
+            fids = ('nasion', 'lpa', 'rpa')
+
         missing = [name for name in fids
                    if name not in names_lower]
         if missing:
             raise ValueError("The points %s are missing, but are needed "
                              "to transform the points to the MNE coordinate "
                              "system. Either add the points, or read the "
-                             "montage with scale as bool." % missing)
+                             "montage with transform=False. " % missing)
+        nasion = pos[names_lower.index(fids[0])]
+        lpa = pos[names_lower.index(fids[1])]
+        rpa = pos[names_lower.index(fids[2])]
 
-        nasion = pos[names_lower.index('nasion')]
-        lpa = pos[names_lower.index('lpa')]
-        rpa = pos[names_lower.index('rpa')]
         neuromag_trans = get_ras_to_neuromag_trans(nasion, lpa, rpa)
         pos = apply_trans(neuromag_trans, pos)
 

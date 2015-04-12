@@ -538,7 +538,7 @@ def _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
 
     times *= 1e3
     if dB:
-        data = 20 * np.log10(data)
+        data = 10 * np.log10((data * data.conj()).real)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
     return data, times, freqs, vmin, vmax
@@ -674,15 +674,15 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         tmin, tmax = times[0], times[-1]
 
         for k, p in zip(range(len(data)), picks):
-            plt.figure()
+            fig = plt.figure()
             _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
                         tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
                         y_label='Frequency (Hz)', colorbar=colorbar,
                         picker=False, cmap=cmap, title=title)
 
         if show:
-            plt.show()
-        return
+            fig.show()
+        return fig
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
                   tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
@@ -803,8 +803,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                    show_names=show_names, linewidth=linewidth)
 
         if show:
-            import matplotlib.pyplot as plt
-            plt.show()
+            fig.show()
 
         return fig
 
@@ -872,8 +871,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      ch_type='mag', baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
-                     format='%1.1e', show_names=False, title=None,
-                     axes=None, show=True):
+                     cbar_fmt='%1.1e', show_names=False, title=None,
+                     axes=None, show=True, format=None):
         """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
@@ -937,7 +936,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The resolution of the topomap image (n pixels along each side).
         size : float
             Side length per topomap in inches.
-        format : str
+        cbar_fmt : str
             String format for colorbar values.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
@@ -962,9 +961,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 fmax=fmax, ch_type=ch_type, baseline=baseline,
                                 mode=mode, layout=layout, vmin=vmin, vmax=vmax,
                                 cmap=cmap, sensors=sensors, colorbar=colorbar,
-                                unit=unit, res=res, size=size, format=format,
-                                show_names=show_names, title=title, axes=axes,
-                                show=show)
+                                unit=unit, res=res, size=size,
+                                cbar_fmt=cbar_fmt, show_names=show_names,
+                                title=title, axes=axes, show=show,
+                                format=format)
 
     @requires_h5py
     def save(self, fname, overwrite=False):

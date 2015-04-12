@@ -60,11 +60,11 @@ reject = dict(mag=3e-12)
 
 # Make source space
 
-mri = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
+trans = data_path + '/MEG/spm/SPM_CTF_MEG_example_faces1_3D_raw-trans.fif'
 src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
                              overwrite=True, add_dist=False)
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
-forward = mne.make_forward_solution(raw.info, mri=mri, src=src, bem=bem)
+forward = mne.make_forward_solution(raw.info, trans, src, bem)
 forward = mne.convert_forward_solution(forward, surf_ori=True)
 
 # inverse parameters
@@ -72,8 +72,8 @@ conditions = 'faces', 'scrambled'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
-fmin, fmid, fmax, transp = 0, 2.5, 5, True
-
+transp = True
+clim = dict(kind='value', lims=[0, 2.5, 5])
 ###############################################################################
 # Estimate covariance and show resulting source estimates
 
@@ -123,8 +123,7 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
         brain = stc.plot(subjects_dir=subjects_dir, hemi='both',
-                         colormap='hot')
-        brain.scale_data_colormap(fmin, fmid, fmax, transp)
+                         colormap='hot', transparent=transp, clim=clim)
         brain.set_time(175)
 
         im = brain_to_mpl(brain)

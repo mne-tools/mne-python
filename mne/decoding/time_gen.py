@@ -1,6 +1,7 @@
 # Authors: Jean-Remi King <jeanremi.king@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
+#          Clement Moutard <clement.moutard@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -371,7 +372,7 @@ class GeneralizationAcrossTime(object):
         self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
-    def score(self, epochs, y=None, scorer=None, test_times=None):
+    def score(self, epochs=None, y=None, scorer=None, test_times=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
@@ -381,9 +382,10 @@ class GeneralizationAcrossTime(object):
 
         Parameters
         ----------
-        epochs : instance of Epochs
+        epochs : instance of Epochs | None
             The epochs. Can be similar to fitted epochs or not. See independent
             parameter.
+            If None, it relies on the y_pred_ generated from predit()
         y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
@@ -425,15 +427,26 @@ class GeneralizationAcrossTime(object):
         from sklearn.base import is_classifier
         from sklearn.preprocessing import LabelEncoder
 
-        # Run predictions
-        self.predict(epochs, test_times=test_times)
+        # Run predictions if not already done
+        if epochs is not None:
+            self.predict(epochs, test_times=test_times)
+        else:
+            if not hasattr(self, 'y_pred_'):
+                raise RuntimeError('Please predit() epochs first or pass '
+                                   'epochs to score()')
 
         # If no regressor is passed, use default epochs events
         if y is None:
             if self.predict_mode == 'cross-validation':
                 y = self.y_train_
             else:
-                y = epochs.events[:, 2]
+                if epochs is not None:
+                    y = epochs.events[:, 2]
+                else:
+                    raise RuntimeError('y is undefined because'
+                                       'predict_mode="mean-prediction" and '
+                                       'epochs are missing. You need to '
+                                       'explicitly specify y.')
             if not np.all(np.unique(y) == np.unique(self.y_train_)):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
@@ -493,7 +506,8 @@ class GeneralizationAcrossTime(object):
         return scores
 
     def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
-             cmap='RdBu_r', show=True):
+             cmap='RdBu_r', show=True, colorbar=True,
+             xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -516,6 +530,12 @@ class GeneralizationAcrossTime(object):
             The color map to be used. Defaults to 'RdBu_r'.
         show : bool
             If True, the figure will be shown. Defaults to True.
+        colorbar : bool
+            If True, the colorbar of the figure is displayed. Defaults to True.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
 
         Returns
         -------
@@ -523,10 +543,12 @@ class GeneralizationAcrossTime(object):
             The figure.
         """
         return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
-                               tlim=tlim, ax=ax, cmap=cmap, show=show)
+                               tlim=tlim, ax=ax, cmap=cmap, show=show,
+                               colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, ymin=0., ymax=1., ax=None, show=True,
-                      color='steelblue'):
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
+                      ax=None, show=True, color='steelblue', xlabel=True,
+                      ylabel=True, legend=True):
         """Plotting function of GeneralizationAcrossTime object
 
         Predict each classifier. If multiple classifiers are passed, average
@@ -537,12 +559,14 @@ class GeneralizationAcrossTime(object):
         ----------
         title : str | None
             Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
             Max score value. Defaults to 1.
-        tlim : np.ndarray, (train_min_max, test_min_max) | None
-            The temporal boundaries. Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
@@ -550,14 +574,22 @@ class GeneralizationAcrossTime(object):
             If True, the figure will be shown. Defaults to True.
         color : str
             Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, ymin=ymin, ymax=ymax,
-                                 ax=ax, show=show, color=color)
+        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax,
+                                 ymin=ymin, ymax=ymax, ax=ax, show=show,
+                                 color=color, xlabel=xlabel, ylabel=ylabel,
+                                 legend=legend)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):

@@ -366,14 +366,18 @@ class FilterEstimator(TransformerMixin):
         if self.h_freq is not None and not isinstance(self.h_freq, float):
             self.h_freq = float(self.h_freq)
 
-        if self.h_freq is not None and \
-                (self.l_freq is None or self.l_freq < self.h_freq) and \
-                self.h_freq < self.info['lowpass']:
+        if self.info['lowpass'] is None or (self.h_freq is not None and
+                                            (self.l_freq is None or
+                                             self.l_freq < self.h_freq) and
+                                            self.h_freq <
+                                            self.info['lowpass']):
             self.info['lowpass'] = self.h_freq
 
-        if self.l_freq is not None and \
-                (self.h_freq is None or self.l_freq < self.h_freq) and \
-                self.l_freq > self.info['highpass']:
+        if self.info['highpass'] is None or (self.l_freq is not None and
+                                             (self.h_freq is None or
+                                              self.l_freq < self.h_freq) and
+                                             self.l_freq >
+                                             self.info['highpass']):
             self.info['highpass'] = self.l_freq
 
         return self

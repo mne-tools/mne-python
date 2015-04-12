@@ -21,7 +21,7 @@ from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  write_evokeds)
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
-    EpochsArray, concatenate_epochs)
+    EpochsArray, concatenate_epochs, _BaseEpochs)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
                        clean_warning_registry, run_tests_if_main)
 
@@ -56,6 +56,16 @@ reject = dict(grad=1000e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
 flat = dict(grad=1e-15, mag=1e-15)
 
 clean_warning_registry()  # really clean warning stack
+
+
+def test_base_epochs():
+    """Test base epochs class
+    """
+    raw = _get_data()[0]
+    epochs = _BaseEpochs(raw.info, event_id, tmin, tmax)
+    assert_raises(NotImplementedError, epochs.get_data)
+    assert_raises(NotImplementedError, epochs.__next__)
+    assert_equal(epochs.__iter__()._current, 0)
 
 
 def test_filter():
@@ -174,6 +184,10 @@ def test_read_write_epochs():
     evoked = epochs.average()
     data = epochs.get_data()
 
+    # Bad tmin/tmax parameters
+    assert_raises(ValueError, Epochs, raw, events, event_id, tmax, tmin,
+                  baseline=None)
+
     epochs_no_id = Epochs(raw, pick_events(events, include=event_id),
                           None, tmin, tmax, picks=picks,
                           baseline=(None, 0))
@@ -190,10 +204,19 @@ def test_read_write_epochs():
 
     # test decim kwarg
     with warnings.catch_warnings(record=True) as w:
+        # decim with lowpass
         warnings.simplefilter('always')
         epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             baseline=(None, 0), decim=4)
         assert_equal(len(w), 1)
+
+        # decim without lowpass
+        lowpass = raw.info['lowpass']
+        raw.info['lowpass'] = None
+        epochs_dec = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            baseline=(None, 0), decim=4)
+        assert_equal(len(w), 2)
+        raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
     assert_array_equal(data[:, :, epochs_dec._decim_idx], data_dec)
@@ -431,6 +454,14 @@ def test_reject_epochs():
     assert_true(all(['MEG 2442' in e for e in epochs.drop_log]))
     assert_true(all(['MEG 2443' not in e for e in epochs.drop_log]))
 
+    # Invalid reject_tmin/reject_tmax/detrend
+    assert_raises(ValueError, Epochs, raw, events1, event_id, tmin, tmax,
+                  reject_tmin=1., reject_tmax=0)
+    assert_raises(ValueError, Epochs, raw, events1, event_id, tmin, tmax,
+                  reject_tmin=tmin - 1, reject_tmax=1.)
+    assert_raises(ValueError, Epochs, raw, events1, event_id, tmin, tmax,
+                  reject_tmin=0., reject_tmax=tmax + 1)
+
     epochs = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject, flat=flat,
                     reject_tmin=0., reject_tmax=.1)
@@ -440,6 +471,14 @@ def test_reject_epochs():
     assert_true(len(epochs) == 7)
     assert_true(epochs.times[epochs._reject_time][0] >= 0.)
     assert_true(epochs.times[epochs._reject_time][-1] <= 0.1)
+
+    # Invalid data for _is_good_epoch function
+    epochs = Epochs(raw, events1, event_id, tmin, tmax, reject=None, flat=None)
+    assert_equal(epochs._is_good_epoch(None), (False, ['NO_DATA']))
+    assert_equal(epochs._is_good_epoch(np.zeros((1, 1))),
+                 (False, ['TOO_SHORT']))
+    data = epochs[0].get_data()[0]
+    assert_equal(epochs._is_good_epoch(data), (True, None))
 
 
 def test_preload_epochs():
@@ -611,6 +650,7 @@ def test_detrend():
     """Test detrending of epochs
     """
     raw, events, picks = _get_data()
+
     # test first-order
     epochs_1 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                       baseline=None, detrend=1)
@@ -638,6 +678,9 @@ def test_detrend():
                                 rtol=1e-16, atol=1e-20))
         # There are non-M/EEG channels that should not be equal:
         assert_true(not np.allclose(a, b))
+
+    assert_raises(ValueError, Epochs, raw, events[:4], event_id, tmin, tmax,
+                  detrend=2)
 
 
 def test_bootstrap():
@@ -829,6 +872,8 @@ def test_access_by_name():
     """
     tempdir = _TempDir()
     raw, events, picks = _get_data()
+
+    # Test various invalid inputs
     assert_raises(ValueError, Epochs, raw, events, {1: 42, 2: 42}, tmin,
                   tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, {'a': 'spam', 2: 'eggs'},
@@ -837,6 +882,9 @@ def test_access_by_name():
                   tmin, tmax, picks=picks)
     assert_raises(ValueError, Epochs, raw, events, 'foo', tmin, tmax,
                   picks=picks)
+    assert_raises(ValueError, Epochs, raw, events, ['foo'], tmin, tmax,
+                  picks=picks)
+
     # Test accessing non-existent events (assumes 12345678 does not exist)
     event_id_illegal = dict(aud_l=1, does_not_exist=12345678)
     assert_raises(ValueError, Epochs, raw, events, event_id_illegal,
@@ -851,6 +899,12 @@ def test_access_by_name():
         assert_true(1 <= nw <= 2)
         Epochs(raw, events, event_id_illegal, tmin, tmax, on_missing='ignore')
         assert_equal(len(w), nw)
+
+    # Test constructing epochs with a list of ints as events
+    epochs = Epochs(raw, events, [1, 2], tmin, tmax, picks=picks)
+    for k, v in epochs.event_id.items():
+        assert_equal(int(k), v)
+
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
 
@@ -895,7 +949,15 @@ def test_to_data_frame():
     assert_raises(ValueError, epochs.to_data_frame, index=['foo', 'bar'])
     assert_raises(ValueError, epochs.to_data_frame, index='qux')
     assert_raises(ValueError, epochs.to_data_frame, np.arange(400))
-    df = epochs.to_data_frame()
+
+    df = epochs.to_data_frame(index=['condition', 'epoch', 'time'],
+                              picks=list(range(epochs.info['nchan'])))
+
+    # Default index and picks
+    df2 = epochs.to_data_frame()
+    assert_equal(df.index.names, df2.index.names)
+    assert_array_equal(df.columns.values, epochs.ch_names)
+
     data = np.hstack(epochs.get_data())
     assert_true((df.columns == epochs.ch_names).all())
     assert_array_equal(df.values[:, 0], data[0] * 1e13)
@@ -1100,6 +1162,10 @@ def test_pick_channels_mixin():
     epochs.pick_channels(ch_names)
     assert_equal(ch_names, epochs.ch_names)
     assert_equal(len(ch_names), epochs.get_data().shape[1])
+
+    # Invalid picks
+    assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=[])
 
 
 def test_equalize_channels():

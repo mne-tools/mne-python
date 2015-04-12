@@ -70,8 +70,8 @@ def parallel_func(func, n_jobs, verbose=None, max_nbytes='auto'):
             return parallel, my_func, n_jobs
 
     # check if joblib is recent enough to support memmaping
-    aspec = inspect.getargspec(Parallel.__init__)
-    joblib_mmap = ('temp_folder' in aspec.args and 'max_nbytes' in aspec.args)
+    p_args = inspect.getargspec(Parallel.__init__).args
+    joblib_mmap = ('temp_folder' in p_args and 'max_nbytes' in p_args)
 
     cache_dir = get_config('MNE_CACHE_DIR', None)
     if isinstance(max_nbytes, string_types) and max_nbytes == 'auto':

@@ -6,12 +6,12 @@ import numpy as np
 from ...externals.six import b
 
 
-def _unpack_matrix(fid, format, rows, cols, dtype):
+def _unpack_matrix(fid, fmt, rows, cols, dtype):
     """ Aux Function """
     out = np.zeros((rows, cols), dtype=dtype)
-    bsize = struct.calcsize(format)
+    bsize = struct.calcsize(fmt)
     string = fid.read(bsize)
-    data = struct.unpack(format, string)
+    data = struct.unpack(fmt, string)
     iter_mat = [(r, c) for r in range(rows) for c in range(cols)]
     for idx, (row, col) in enumerate(iter_mat):
         out[row, col] = data[idx]
@@ -19,11 +19,11 @@ def _unpack_matrix(fid, format, rows, cols, dtype):
     return out
 
 
-def _unpack_simple(fid, format, count):
+def _unpack_simple(fid, fmt, count):
     """ Aux Function """
-    bsize = struct.calcsize(format)
+    bsize = struct.calcsize(fmt)
     string = fid.read(bsize)
-    data = list(struct.unpack(format, string))
+    data = list(struct.unpack(fmt, string))
 
     out = data if count < 2 else list(data)
     if len(out) > 0:
@@ -34,8 +34,8 @@ def _unpack_simple(fid, format, count):
 
 def read_str(fid, count=1):
     """ Read string """
-    format = '>' + ('c' * count)
-    data = list(struct.unpack(format, fid.read(struct.calcsize(format))))
+    fmt = '>' + ('c' * count)
+    data = list(struct.unpack(fmt, fid.read(struct.calcsize(fmt))))
 
     bytestr = b('').join(data[0:data.index(b('\x00')) if b('\x00') in data else
                          count])
@@ -105,23 +105,23 @@ def read_double(fid, count=1):
 
 def read_int16_matrix(fid, rows, cols):
     """ Read 16bit integer matrix from bti file """
-    format = '>' + ('h' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, np.int16)
+    fmt = '>' + ('h' * rows * cols)
+    return _unpack_matrix(fid, fmt, rows, cols, np.int16)
 
 
 def read_float_matrix(fid, rows, cols):
     """ Read 32bit float matrix from bti file """
-    format = '>' + ('f' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, 'f4')
+    fmt = '>' + ('f' * rows * cols)
+    return _unpack_matrix(fid, fmt, rows, cols, 'f4')
 
 
 def read_double_matrix(fid, rows, cols):
     """ Read 64bit float matrix from bti file """
-    format = '>' + ('d' * rows * cols)
-    return _unpack_matrix(fid, format, rows, cols, 'f8')
+    fmt = '>' + ('d' * rows * cols)
+    return _unpack_matrix(fid, fmt, rows, cols, 'f8')
 
 
 def read_transform(fid):
     """ Read 64bit float matrix transform from bti file """
-    format = '>' + ('d' * 4 * 4)
-    return _unpack_matrix(fid, format, 4, 4, 'f8')
+    fmt = '>' + ('d' * 4 * 4)
+    return _unpack_matrix(fid, fmt, 4, 4, 'f8')

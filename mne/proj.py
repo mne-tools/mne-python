@@ -190,27 +190,27 @@ def compute_proj_raw(raw, start=0, stop=None, duration=1, n_grad=2, n_mag=2,
     Parameters
     ----------
     raw : instance of Raw
-        A raw object to use the data from
+        A raw object to use the data from.
     start : float
-        Time (in sec) to start computing SSP
+        Time (in sec) to start computing SSP.
     stop : float
-        Time (in sec) to stop computing SSP
-        None will go to the end of the file
+        Time (in sec) to stop computing SSP.
+        None will go to the end of the file.
     duration : float
         Duration (in sec) to chunk data into for SSP
         If duration is None, data will not be chunked.
     n_grad : int
-        Number of vectors for gradiometers
+        Number of vectors for gradiometers.
     n_mag : int
-        Number of vectors for magnetometers
+        Number of vectors for magnetometers.
     n_eeg : int
-        Number of vectors for EEG channels
-    reject : dict
-        Epoch rejection configuration (see Epochs)
-    flat : dict
-        Epoch flat configuration (see Epochs)
+        Number of vectors for EEG channels.
+    reject : dict | None
+        Epoch rejection configuration (see Epochs).
+    flat : dict | None
+        Epoch flat configuration (see Epochs).
     n_jobs : int
-        Number of jobs to use to compute covariance
+        Number of jobs to use to compute covariance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

@@ -1135,9 +1135,10 @@ def create_info(ch_names, sfreq, ch_types=None):
         Channel names.
     sfreq : float
         Sample rate of the data.
-    ch_types : list of str
+    ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
+        If str, then all channels are assumed to be of the same type.
 
     Notes
     -----
@@ -1154,6 +1155,8 @@ def create_info(ch_names, sfreq, ch_types=None):
     nchan = len(ch_names)
     if ch_types is None:
         ch_types = ['misc'] * nchan
+    if isinstance(ch_types, string_types):
+        ch_types = [ch_types] * nchan
     if len(ch_types) != nchan:
         raise ValueError('ch_types and ch_names must be the same length')
     info = _empty_info()

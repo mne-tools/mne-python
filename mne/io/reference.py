@@ -9,7 +9,7 @@ import numpy as np
 from .constants import FIFF
 from .proj import _has_eeg_average_ref_proj, make_eeg_average_ref_proj
 from .pick import pick_types
-from .fiff import RawFIFF as Raw
+from .base import _BaseRaw
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..utils import logger
@@ -169,7 +169,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
         inst.data = data
-    elif isinstance(inst, Raw):
+    elif isinstance(inst, _BaseRaw):
         data = inst._data
         refs = np.zeros((len(ref_channels), data.shape[1]))
         data = np.vstack((data, refs))
@@ -200,7 +200,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
-    if isinstance(inst, Raw):
+    if isinstance(inst, _BaseRaw):
         inst.cals = np.hstack((inst.cals, [1] * len(ref_channels)))
 
     return inst
@@ -256,6 +256,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
                            'added. The data has been left untouched.')
             return inst, None
         else:
+            inst.info['custom_ref_applied'] = False
             inst.add_proj(make_eeg_average_ref_proj(inst.info, activate=False))
             return inst, None
     else:
@@ -281,7 +282,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     Parameters
     ----------
-    inst : instance of Raw | Epochs |Evoked
+    inst : instance of Raw | Epochs | Evoked
         Data containing the unreferenced channels.
     anode : str | list of str
         The name(s) of the channel(s) to use as anode in the bipolar reference.

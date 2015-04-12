@@ -37,6 +37,8 @@ from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
 
+from .fixes import isclose
+
 logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
@@ -504,7 +506,7 @@ class deprecated(object):
 def verbose(function, *args, **kwargs):
     """Improved verbose decorator to allow functions to override log-level
 
-    Do not call this directly to set global verbosrity level, instead use
+    Do not call this directly to set global verbosity level, instead use
     set_log_level().
 
     Parameters
@@ -521,8 +523,10 @@ def verbose(function, *args, **kwargs):
     default_level = verbose_level = None
     if len(arg_names) > 0 and arg_names[0] == 'self':
         default_level = getattr(args[0], 'verbose', None)
-    if('verbose' in arg_names):
+    if 'verbose' in arg_names:
         verbose_level = args[arg_names.index('verbose')]
+    elif 'verbose' in kwargs:
+        verbose_level = kwargs.pop('verbose')
 
     # This ensures that object.method(verbose=None) will use object.verbose
     verbose_level = default_level if verbose_level is None else verbose_level
@@ -612,10 +616,7 @@ if version < required_version:
 """
 
 _mayavi_call = """
-try:
-    from mayavi import mlab
-except ImportError:
-    from enthought.mayavi import mlab
+from mayavi import mlab
 mlab.options.backend = 'test'
 """
 
@@ -1725,6 +1726,6 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
     mask = (times >= tmin)
     mask &= (times <= tmax)
     if not strict:
-        mask |= np.isclose(times, tmin)
-        mask |= np.isclose(times, tmax)
+        mask |= isclose(times, tmin)
+        mask |= isclose(times, tmax)
     return mask

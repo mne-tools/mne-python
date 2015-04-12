@@ -93,7 +93,7 @@ def test_array_raw():
     import matplotlib
     matplotlib.use('Agg')  # for testing don't use X server
     raw2.plot()
-    raw2.plot_psds()
+    raw2.plot_psd()
 
     # epoching
     events = find_events(raw2, stim_channel='STI 014')

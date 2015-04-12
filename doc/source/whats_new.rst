@@ -83,6 +83,10 @@ Changelog
 
    - Add reader function for Raw FIF files by `Teon Brooks`_
 
+   - Add example of creating MNE objects from arbitrary data and NEO files by 'Jaakko Leppakangas'_
+
+   - Add plot_psd and plot_psd_topomap methods to epochs by `Yousra Bekhti_`, `Eric Larson_` and `Denis Engemann_`
+
 BUG
 ~~~
 
@@ -123,6 +127,10 @@ BUG
 
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
+   - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
+ 
+   - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_ 
+
 API
 ~~~
 
@@ -152,6 +160,11 @@ API
    - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
 
    - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
+
+   - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
+
+   - Use `scipy.signal.welch` instead of matplotlib.psd inside `compute_raw_psd` and `compute_epochs_psd` by `Yousra Bekhti_`
+     `Eric Larson_` and `Denis Engemann_`. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
 .. _changes_0_8:
 
@@ -972,3 +985,5 @@ of commits):
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Chris Holdgraf: http://chrisholdgraf.com
+
+.. _Jaakko Leppakangas: https://github.com/jaeilepp

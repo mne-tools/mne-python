@@ -156,7 +156,7 @@ def dics(evoked, forward, noise_csd, data_csd, reg=0.01, label=None,
 
     Parameters
     ----------
-    evoked : Evooked
+    evoked : Evoked
         Evoked data.
     forward : dict
         Forward operator.

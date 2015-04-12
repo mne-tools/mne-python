@@ -158,11 +158,13 @@ def test_generalization_across_time():
     assert_equal(gat.train_times['times_'][0], epochs.times[6])
     assert_equal(gat.train_times['times_'][-1], epochs.times[9])
 
-    # Test diagonal decoding
+    # Test score without passing epochs
     gat = GeneralizationAcrossTime()
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
-    scores = gat.score(epochs, test_times='diagonal')
+    assert_raises(RuntimeError, gat.score)
+    gat.predict(epochs, test_times='diagonal')  # Test diagonal decoding
+    scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
 
@@ -172,6 +174,7 @@ def test_generalization_across_time():
         gat.fit(epochs[0:6])
     gat.predict(epochs[7:])
     assert_raises(ValueError, gat.predict, epochs, test_times='hahahaha')
+    assert_raises(RuntimeError, gat.score)
     gat.score(epochs[7:])
 
     svc = SVC(C=1, kernel='linear', probability=True)

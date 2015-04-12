@@ -39,7 +39,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psds, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -100,7 +100,7 @@ class ToDataFrameMixin(object):
         """
         from ..epochs import _BaseEpochs
         from ..evoked import Evoked
-        from .fiff import RawFIFF
+        from .fiff import RawFIF
         from .array import RawArray
         from ..source_estimate import _BaseSourceEstimate
 
@@ -115,7 +115,6 @@ class ToDataFrameMixin(object):
             data = self.data.T
             times = self.times
             shape = data.shape
-            mindex.append(('time', self.times * scale_time))
             mindex.append(('subject', np.repeat(self.subject, shape[0])))
 
             if isinstance(self.vertices, list):
@@ -138,7 +137,7 @@ class ToDataFrameMixin(object):
                 data = np.hstack(data).T  # (time*epochs) x signals
 
                 # Multi-index creation
-                mindex.append(('time', np.tile(times, n_epochs)))
+                times = np.tile(times, n_epochs)
                 id_swapped = dict((v, k) for k, v in self.event_id.items())
                 names = [id_swapped[k] for k in self.events[:, 2]]
                 mindex.append(('condition', np.repeat(names, n_times)))
@@ -146,17 +145,16 @@ class ToDataFrameMixin(object):
                               np.repeat(np.arange(n_epochs), n_times)))
                 col_names = [self.ch_names[k] for k in picks]
 
-            elif isinstance(self, (RawFIFF, RawArray, Evoked)):
+            elif isinstance(self, (RawFIF, RawArray, Evoked)):
                 picks = self._get_check_picks(picks, self.ch_names)
                 default_index = ['time']
-                if isinstance(self, (RawFIFF, RawArray)):
+                if isinstance(self, (RawFIF, RawArray)):
                     data, times = self[picks, start:stop]
-                elif isinstance(self, (Evoked)):
+                elif isinstance(self, Evoked):
                     data = self.data[picks, :]
                     times = self.times
                     n_picks, n_times = data.shape
                 data = data.T
-                mindex.append(('time', times))
                 col_names = [self.ch_names[k] for k in picks]
 
             types = [channel_type(self.info, idx) for idx in picks]
@@ -175,6 +173,10 @@ class ToDataFrameMixin(object):
                 if len(idx) > 0:
                     data[:, idx] *= scaling
 
+        # Make sure that the time index is scaled correctly
+        times = np.round(times * scale_time)
+        mindex.append(('time', times))
+
         if index is not None:
             _check_pandas_index_arguments(index, default_index)
         else:
@@ -182,8 +184,6 @@ class ToDataFrameMixin(object):
 
         if copy is True:
             data = data.copy()
-
-        times = np.round(times * scale_time)
 
         assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
 
@@ -197,6 +197,17 @@ class ToDataFrameMixin(object):
         if all([i in default_index for i in index]):
             df.columns.name = 'signal'
         return df
+
+
+def _check_fun(fun, d, *args, **kwargs):
+    want_shape = d.shape
+    d = fun(d, *args, **kwargs)
+    if not isinstance(d, np.ndarray):
+        raise TypeError('Return value must be an ndarray')
+    if d.shape != want_shape:
+        raise ValueError('Return data must have shape %s not %s'
+                         % (want_shape, d.shape))
+    return d
 
 
 class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -307,8 +318,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.info._anonymize()
 
     @verbose
-    def apply_function(self, fun, picks, dtype, n_jobs, verbose=None, *args,
-                       **kwargs):
+    def apply_function(self, fun, picks, dtype, n_jobs, *args, **kwargs):
         """ Apply a function to a subset of channels.
 
         The function "fun" is applied to the channels defined in "picks". The
@@ -332,25 +342,27 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             A function to be applied to the channels. The first argument of
             fun has to be a timeseries (numpy.ndarray). The function must
             return an numpy.ndarray with the same size as the input.
-        picks : array-like of int
-            Indices of channels to apply the function to.
+        picks : array-like of int | None
+            Indices of channels to apply the function to. If None, all
+            M-EEG channels are used.
         dtype : numpy.dtype
             Data type to use for raw data after applying the function. If None
             the data type is not modified.
         n_jobs: int
             Number of jobs to run in parallel.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-            Defaults to self.verbose.
         *args :
             Additional positional arguments to pass to fun (first pos. argument
             of fun is the timeseries of a channel).
         **kwargs :
-            Keyword arguments to pass to fun.
+            Keyword arguments to pass to fun. Note that if "verbose" is passed
+            as a member of ``kwargs``, it will be consumed and will override
+            the default mne-python verbose level (see mne.verbose).
         """
         if not self.preload:
             raise RuntimeError('Raw data needs to be preloaded. Use '
                                'preload=True (or string) in the constructor.')
+        if picks is None:
+            picks = pick_types(self.info, meg=True, eeg=True, exclude=[])
 
         if not callable(fun):
             raise ValueError('fun needs to be a function')
@@ -362,11 +374,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if n_jobs == 1:
             # modify data inplace to save memory
             for idx in picks:
-                self._data[idx, :] = fun(data_in[idx, :], *args, **kwargs)
+                self._data[idx, :] = _check_fun(fun, data_in[idx, :],
+                                                *args, **kwargs)
         else:
             # use parallel function
-            parallel, p_fun, _ = parallel_func(fun, n_jobs)
-            data_picks_new = parallel(p_fun(data_in[p], *args, **kwargs)
+            parallel, p_fun, _ = parallel_func(_check_fun, n_jobs)
+            data_picks_new = parallel(p_fun(fun, data_in[p], *args, **kwargs)
                                       for p in picks)
             for pp, p in enumerate(picks):
                 self._data[p, :] = data_picks_new[pp]
@@ -443,8 +456,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         respectively, to filter out of the data. Thus the uses are:
             l_freq < h_freq: band-pass filter
             l_freq > h_freq: band-stop filter
-            l_freq is not None, h_freq is None: low-pass filter
-            l_freq is None, h_freq is not None: high-pass filter
+            l_freq is not None, h_freq is None: high-pass filter
+            l_freq is None, h_freq is not None: low-pass filter
 
         Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
               additional time points need to be temporarily stored in memory.
@@ -806,8 +819,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
-             drop_small_buffer=False, proj=False, format='single',
-             overwrite=False, split_size='2GB', verbose=None):
+             drop_small_buffer=False, proj=False, fmt='single',
+             overwrite=False, split_size='2GB', format=None, verbose=None):
         """Save raw data to file
 
         Parameters
@@ -835,7 +848,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             If True the data is saved with the projections applied (active).
             Note: If apply_proj() was used to apply the projections,
             the projectons will be active even if proj is False.
-        format : str
+        fmt : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
             16-bit integers, respectively. It is STRONGLY recommended to use
@@ -870,6 +883,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
+        if format is not None:
+            fmt = format
+            warnings.warn("The format parameter is deprecated and will "
+                          "be replaced by fmt in version 0.10."
+                          "Use fmt instead.", DeprecationWarning)
 
         if isinstance(split_size, string_types):
             exp = dict(MB=20, GB=30).get(split_size[-2:], None)
@@ -895,15 +913,15 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          int=FIFF.FIFFT_INT,
                          single=FIFF.FIFFT_FLOAT,
                          double=FIFF.FIFFT_DOUBLE)
-        if format not in type_dict.keys():
-            raise ValueError('format must be "short", "int", "single", '
+        if fmt not in type_dict.keys():
+            raise ValueError('fmt must be "short", "int", "single", '
                              'or "double"')
         reset_dict = dict(short=False, int=False, single=True, double=True)
-        reset_range = reset_dict[format]
-        data_type = type_dict[format]
+        reset_range = reset_dict[fmt]
+        data_type = type_dict[fmt]
 
         data_test = self[0, 0][0]
-        if format == 'short' and np.iscomplexobj(data_test):
+        if fmt == 'short' and np.iscomplexobj(data_test):
             raise ValueError('Complex data must be saved as "single" or '
                              '"double", not "short"')
 
@@ -944,7 +962,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
 
         # write the raw file
-        _write_raw(fname, self, info, picks, format, data_type, reset_range,
+        _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
                    start, stop, buffer_size, projector, inv_comp,
                    drop_small_buffer, split_size, 0, None)
 
@@ -1033,9 +1051,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                         lowpass, filtorder, clipping)
 
     @verbose
-    def plot_psds(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
-                  proj=False, n_fft=2048, picks=None, ax=None, color='black',
-                  area_mode='std', area_alpha=0.33, n_jobs=1, verbose=None):
+    def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
+                 proj=False, n_fft=2048, picks=None, ax=None,
+                 color='black', area_mode='std', area_alpha=0.33,
+                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1067,13 +1086,32 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             calculations. If None, no area will be plotted.
         area_alpha : float
             Alpha for the area.
+        n_overlap : int
+            The number of points of overlap between blocks. The default value
+            is 0 (no overlap).
+        dB : bool
+            If True, transform data to decibels.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
         """
-        return plot_raw_psds(self, tmin, tmax, fmin, fmax, proj, n_fft, picks,
-                             ax, color, area_mode, area_alpha, n_jobs)
+        return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
+                            proj=proj, n_fft=n_fft, picks=picks, ax=ax,
+                            color=color, area_mode=area_mode,
+                            area_alpha=area_alpha,
+                            n_overlap=n_overlap, dB=dB, n_jobs=n_jobs)
+
+    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
+                "instead")
+    def plot_psds(self, *args, **kwargs):
+        self.plot_psd(*args, **kwargs)
+    plot_psds.__doc__ = plot_psd.__doc__
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
@@ -1579,7 +1617,7 @@ class _RawShell():
 
 ###############################################################################
 # Writing
-def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
+def _write_raw(fname, raw, info, picks, fmt, data_type, reset_range, start,
                stop, buffer_size, projector, inv_comp, drop_small_buffer,
                split_size, part_idx, prev_fname):
     """Write raw file with splitting
@@ -1638,7 +1676,7 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         if pos_prev is None:
             pos_prev = fid.tell()
 
-        _write_raw_buffer(fid, data, cals, format, inv_comp)
+        _write_raw_buffer(fid, data, cals, fmt, inv_comp)
 
         pos = fid.tell()
         this_buff_size_bytes = pos - pos_prev
@@ -1652,7 +1690,7 @@ def _write_raw(fname, raw, info, picks, format, data_type, reset_range, start,
         # Split files if necessary, leave some space for next file info
         if pos >= split_size - this_buff_size_bytes - 2 ** 20:
             next_fname, next_idx = _write_raw(
-                fname, raw, info, picks, format,
+                fname, raw, info, picks, fmt,
                 data_type, reset_range, first + buffer_size, stop, buffer_size,
                 projector, inv_comp, drop_small_buffer, split_size,
                 part_idx + 1, use_fname)
@@ -1757,7 +1795,7 @@ def _start_writing_raw(name, info, sel=None, data_type=FIFF.FIFFT_FLOAT,
     return fid, cals
 
 
-def _write_raw_buffer(fid, buf, cals, format, inv_comp):
+def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
     """Write raw buffer
 
     Parameters
@@ -1768,7 +1806,7 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
         The buffer to write.
     cals : array
         Calibration factors.
-    format : str
+    fmt : str
         'short', 'int', 'single', or 'double' for 16/32 bit int or 32/64 bit
         float for each item. This will be doubled for complex datatypes. Note
         that short and int formats cannot be used for complex data.
@@ -1779,22 +1817,22 @@ def _write_raw_buffer(fid, buf, cals, format, inv_comp):
     if buf.shape[0] != len(cals):
         raise ValueError('buffer and calibration sizes do not match')
 
-    if format not in ['short', 'int', 'single', 'double']:
-        raise ValueError('format must be "short", "single", or "double"')
+    if fmt not in ['short', 'int', 'single', 'double']:
+        raise ValueError('fmt must be "short", "single", or "double"')
 
     if np.isrealobj(buf):
-        if format == 'short':
+        if fmt == 'short':
             write_function = write_dau_pack16
-        elif format == 'int':
+        elif fmt == 'int':
             write_function = write_int
-        elif format == 'single':
+        elif fmt == 'single':
             write_function = write_float
         else:
             write_function = write_double
     else:
-        if format == 'single':
+        if fmt == 'single':
             write_function = write_complex64
-        elif format == 'double':
+        elif fmt == 'double':
             write_function = write_complex128
         else:
             raise ValueError('only "single" and "double" supported for '

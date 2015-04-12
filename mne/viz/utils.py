@@ -141,8 +141,9 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
 
     Parameters
     ----------
-    limits : list (or array) of length 3
-        Bounds for the colormap.
+    limits : list (or array) of length 3 or 6
+        Bounds for the colormap, which will be mirrored across zero if length
+        3, or completely specified (and potentially asymmetric) if length 6.
     format : str
         Type of colormap to return. If 'matplotlib', will return a
         matplotlib.colors.LinearSegmentedColormap. If 'mayavi', will
@@ -167,43 +168,57 @@ def mne_analyze_colormap(limits=[5, 10, 15], format='mayavi'):
         brain.scale_data_colormap(fmin=-15, fmid=0, fmax=15, transparent=False)
 
     """
-    l = np.asarray(limits, dtype='float')
-    if len(l) != 3:
-        raise ValueError('limits must have 3 elements')
-    if any(l < 0):
-        raise ValueError('limits must all be positive')
-    if any(np.diff(l) <= 0):
+    # Ensure limits is an array
+    limits = np.asarray(limits, dtype='float')
+
+    if len(limits) != 3 and len(limits) != 6:
+        raise ValueError('limits must have 3 or 6 elements')
+    if len(limits) == 3 and any(limits < 0.):
+        raise ValueError('if 3 elements, limits must all be non-negative')
+    if any(np.diff(limits) <= 0):
         raise ValueError('limits must be monotonically increasing')
     if format == 'matplotlib':
         from matplotlib import colors
-        l = (np.concatenate((-np.flipud(l), l)) + l[-1]) / (2 * l[-1])
-        cdict = {'red': ((l[0], 0.0, 0.0),
-                         (l[1], 0.0, 0.0),
-                         (l[2], 0.5, 0.5),
-                         (l[3], 0.5, 0.5),
-                         (l[4], 1.0, 1.0),
-                         (l[5], 1.0, 1.0)),
-                 'green': ((l[0], 1.0, 1.0),
-                           (l[1], 0.0, 0.0),
-                           (l[2], 0.5, 0.5),
-                           (l[3], 0.5, 0.5),
-                           (l[4], 0.0, 0.0),
-                           (l[5], 1.0, 1.0)),
-                 'blue': ((l[0], 1.0, 1.0),
-                          (l[1], 1.0, 1.0),
-                          (l[2], 0.5, 0.5),
-                          (l[3], 0.5, 0.5),
-                          (l[4], 0.0, 0.0),
-                          (l[5], 0.0, 0.0))}
+        if len(limits) == 3:
+            limits = (np.concatenate((-np.flipud(limits), limits)) +
+                      limits[-1]) / (2 * limits[-1])
+        else:
+            limits = (limits - np.min(limits)) / np.max(limits -
+                                                        np.min(limits))
+
+        cdict = {'red': ((limits[0], 0.0, 0.0),
+                         (limits[1], 0.0, 0.0),
+                         (limits[2], 0.5, 0.5),
+                         (limits[3], 0.5, 0.5),
+                         (limits[4], 1.0, 1.0),
+                         (limits[5], 1.0, 1.0)),
+                 'green': ((limits[0], 1.0, 1.0),
+                           (limits[1], 0.0, 0.0),
+                           (limits[2], 0.5, 0.5),
+                           (limits[3], 0.5, 0.5),
+                           (limits[4], 0.0, 0.0),
+                           (limits[5], 1.0, 1.0)),
+                 'blue': ((limits[0], 1.0, 1.0),
+                          (limits[1], 1.0, 1.0),
+                          (limits[2], 0.5, 0.5),
+                          (limits[3], 0.5, 0.5),
+                          (limits[4], 0.0, 0.0),
+                          (limits[5], 0.0, 0.0))}
         return colors.LinearSegmentedColormap('mne_analyze', cdict)
     elif format == 'mayavi':
-        l = np.concatenate((-np.flipud(l), [0], l)) / l[-1]
+        if len(limits) == 3:
+            limits = np.concatenate((-np.flipud(limits), [0], limits)) /\
+                limits[-1]
+        else:
+            limits = np.concatenate((limits[:3], [0], limits[3:]))
+            limits /= np.max(np.abs(limits))
         r = np.array([0, 0, 0, 0, 1, 1, 1])
         g = np.array([1, 0, 0, 0, 0, 0, 1])
         b = np.array([1, 1, 1, 0, 0, 0, 0])
         a = np.array([1, 1, 0, 0, 0, 1, 1])
         xp = (np.arange(256) - 128) / 128.0
-        colormap = np.r_[[np.interp(xp, l, 255 * c) for c in [r, g, b, a]]].T
+        colormap = np.r_[[np.interp(xp, limits, 255 * c)
+                          for c in [r, g, b, a]]].T
         return colormap
     else:
         raise ValueError('format must be either matplotlib or mayavi')

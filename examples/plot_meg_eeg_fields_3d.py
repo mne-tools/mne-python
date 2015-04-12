@@ -30,7 +30,7 @@ evoked = read_evokeds(evoked_fname, condition=condition, baseline=(-0.2, 0.0))
 
 # Compute the field maps to project MEG and EEG data to MEG helmet
 # and scalp surface
-maps = make_field_map(evoked, trans_fname=trans_fname, subject='sample',
+maps = make_field_map(evoked, trans_fname, subject='sample',
                       subjects_dir=subjects_dir, n_jobs=1)
 
 # explore several points in time

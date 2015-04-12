@@ -68,9 +68,9 @@ def _compute_exg_proj(mode, raw, raw_event, tmin, tmax,
         Number of jobs to run in parallel.
     ch_name : string (or None)
         Channel to use for ECG event detection.
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.
@@ -252,9 +252,9 @@ def compute_proj_ecg(raw, raw_event=None, tmin=-0.2, tmax=0.4,
         Number of jobs to run in parallel.
     ch_name : string (or None)
         Channel to use for ECG detection (Required if no ECG found).
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.
@@ -346,9 +346,9 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Number of taps to use for filtering.
     n_jobs : int
         Number of jobs to run in parallel.
-    reject : dict
+    reject : dict | None
         Epoch rejection configuration (see Epochs).
-    flat : dict
+    flat : dict | None
         Epoch flat configuration (see Epochs).
     bads : list
         List with (additional) bad channels.

@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import math
 import copy
+import warnings
 
 import numpy as np
 from scipy import linalg
@@ -22,6 +23,7 @@ from ..io.pick import pick_types
 from ..utils import _clean_names, _time_mask
 from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
+from ..time_frequency import compute_epochs_psd
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -678,8 +680,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type='mag', baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
-                     colorbar=True, unit=None, res=64, size=2, format='%1.1e',
-                     show_names=False, title=None, axes=None, show=True):
+                     colorbar=True, unit=None, res=64, size=2,
+                     cbar_fmt='%1.1e', show_names=False, title=None,
+                     axes=None, show=True, format=None):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -745,7 +748,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
+    cbar_fmt : str
         String format for colorbar values.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
@@ -765,6 +768,11 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fig : matplotlib.figure.Figure
         The figure containing the topography.
     """
+    if format is not None:
+        cbar_fmt = format
+        warnings.warn("The format parameter is deprecated and will be "
+                      "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
+                      "instead.", DeprecationWarning)
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -824,7 +832,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     if colorbar:
         divider = make_axes_locatable(ax)
         cax = divider.append_axes("right", size="5%", pad=0.05)
-        cbar = plt.colorbar(im, cax=cax, format='%3.2f', cmap=cmap)
+        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt, cmap=cmap)
         cbar.set_ticks((vmin, vmax))
         cbar.ax.tick_params(labelsize=12)
         cbar.ax.set_title('AU')
@@ -838,11 +846,11 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                         vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
-                        res=64, size=1, format='%3.1f',
+                        res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear', average=None):
+                        image_interp='bilinear', average=None, format=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -890,7 +898,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The resolution of the topomap image (n pixels along each side).
     size : float
         Side length per topomap in inches.
-    format : str
+    cbar_fmt : str
         String format for colorbar values.
     time_format : str
         String format for topomap values. Defaults to "%01d ms"
@@ -932,6 +940,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         and ends 5 ms after a given time point. Defaults to None, which means
         no averaging.
     """
+    if format is not None:
+        cbar_fmt = format
+        warnings.warn("The format parameter is deprecated and will be "
+                      "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
+                      "instead.", DeprecationWarning)
     import matplotlib.pyplot as plt
 
     if mask_params is None:
@@ -1039,7 +1052,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
-                     format=format)
+                     format=cbar_fmt)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
@@ -1066,4 +1079,217 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if show:
         plt.show()
 
+    return fig
+
+
+def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
+                             vmin=None, vmax=None, cmap='RdBu_r',
+                             colorbar=False, cbar_fmt='%3.3f'):
+    """Aux Function"""
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.axes_grid1 import make_axes_locatable
+
+    ax.set_yticks([])
+    ax.set_xticks([])
+    ax.set_frame_on(False)
+    vmin = np.min(data) if vmin is None else vmin
+    vmax = np.max(data) if vmax is None else vmax
+
+    if title is not None:
+        ax.set_title(title, fontsize=10)
+    im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
+                         cmap=cmap, image_interp='bilinear', contours=False)
+
+    if colorbar is True:
+        divider = make_axes_locatable(ax)
+        cax = divider.append_axes("right", size="10%", pad=0.25)
+        cbar = plt.colorbar(im, cax=cax, format=cbar_fmt)
+        cbar.set_ticks((vmin, vmax))
+        if unit is not None:
+            cbar.ax.set_title(unit, fontsize=8)
+        cbar.ax.tick_params(labelsize=8)
+
+
+def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
+                            proj=False, n_fft=256, ch_type=None,
+                            n_overlap=0, layout=None,
+                            cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
+                            normalize=False, verbose=None, cbar_fmt='%0.3f'):
+    """Plot the topomap of the power spectral density across epochs
+
+    Parameters
+    ----------
+    epochs : instance of Epochs
+        The epochs object
+    bands : list of tuple | None
+        The lower and upper frequency and the name for that band. If None,
+        (default) expands to:
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
+    proj : bool
+        Apply projection.
+    n_fft : int
+        Number of points to use in Welch FFT calculations.
+    ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted. If None, defaults to
+        'mag' if MEG data are present and to 'eeg' if only EEG data are
+        present.
+    n_overlap : int
+        The number of points of overlap between blocks.
+    layout : None | Layout
+        Layout instance specifying sensor positions (does not need to
+        be specified for Neuromag data). If possible, the correct layout
+        file is inferred from the data; if no appropriate layout file was
+        found, the layout is automatically generated from the sensor
+        locations.
+    cmap : matplotlib colormap
+        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+        'Reds'.
+    agg_fun : callable
+        The function used to aggregate over frequencies.
+        Defaults to np.sum. if normalize is True, else np.mean.
+    dB : bool
+        If True, transform data to decibels (with ``10 * np.log10(data)``)
+        following the application of `agg_fun`. Only valid if normalize is
+        False.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    normalize : bool
+        If True, each band will be devided by the total power. Defaults to
+        False.
+    cbar_fmt : str
+        The colorbar format. Defaults to '%0.3f'.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+    if ch_type is None:
+        ch_type = 'mag' if 'meg' in epochs else 'eeg'
+
+    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
+        epochs, ch_type, layout)
+
+    psds, freqs = compute_epochs_psd(epochs, picks=picks, n_fft=n_fft,
+                                     n_overlap=n_overlap, proj=proj,
+                                     n_jobs=n_jobs)
+    psds = np.mean(psds, axis=0)
+
+    if merge_grads:
+        from ..channels.layout import _merge_grad_data
+        psds = _merge_grad_data(psds)
+
+    return plot_psds_topomap(
+        psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
+        vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
+        cbar_fmt=cbar_fmt)
+
+
+def plot_psds_topomap(
+        psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
+        cmap='RdBu_r', dB=True, normalize=False, cbar_fmt='%0.3f'):
+    """Plot spatial maps of PSDs
+
+    psds : np.ndarray of float, shape (n_channels, n_freqs)
+        Power spectral densities
+    freqs : np.ndarray of float, shape (n_freqs)
+        Frequencies used to compute psds.
+    pos : numpy.ndarray of float, shape (n_sensors, 2)
+        The positions of the sensors.
+    bands : list of tuple | None
+        The lower and upper frequency and the name for that band. If None,
+        (default) expands to:
+
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    vmin : float | callable
+        The value specfying the lower bound of the color range.
+        If None, and vmax is None, -vmax is used. Else np.min(data).
+        If callable, the output equals vmin(data).
+    vmax : float | callable
+        The value specfying the upper bound of the color range.
+        If None, the maximum absolute value is used. If vmin is None,
+        but vmax is not, defaults to np.min(data).
+        If callable, the output equals vmax(data).
+    ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
+        The channel type to plot. For 'grad', the gradiometers are collected in
+        pairs and the RMS for each pair is plotted. If None, defaults to
+        'mag' if MEG data are present and to 'eeg' if only EEG data are
+        present.
+    cmap : matplotlib colormap
+        Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+        'Reds'.
+    agg_fun : callable
+        The function used to aggregate over frequencies.
+        Defaults to np.sum. if normalize is True, else np.mean.
+    dB : bool
+        If True, transform data to decibels (with ``10 * np.log10(data)``)
+        following the application of `agg_fun`. Only valid if normalize is
+        False.
+    n_jobs : int
+        Number of jobs to run in parallel.
+    normalize : bool
+        If True, each band will be devided by the total power. Defaults to
+        False.
+    cbar_fmt : str
+        The colorbar format. Defaults to '%0.3f'.
+
+    Returns
+    -------
+    fig : instance of matplotlib figure
+        Figure distributing one image per channel across sensor topography.
+    """
+
+    import matplotlib.pyplot as plt
+
+    if bands is None:
+        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+    if agg_fun is None:
+        agg_fun = np.sum if normalize is True else np.mean
+
+    if normalize is True:
+        psds /= psds.sum(axis=-1)[..., None]
+        assert np.allclose(psds.sum(axis=-1), 1.)
+
+    n_axes = len(bands)
+    fig, axes = plt.subplots(1, n_axes, figsize=(2 * n_axes, 1.5))
+    if n_axes == 1:
+        axes = [axes]
+
+    for ax, (fmin, fmax, title) in zip(axes, bands):
+        freq_mask = (fmin < freqs) & (freqs < fmax)
+        if freq_mask.sum() == 0:
+            raise RuntimeError('No frequencies in band "%s" (%s, %s)'
+                               % (title, fmin, fmax))
+        data = agg_fun(psds[:, freq_mask], axis=1)
+        if dB is True and normalize is False:
+            data = 10 * np.log10(data)
+            unit = 'dB'
+        else:
+            unit = 'power'
+
+        _plot_topomap_multi_cbar(data, pos, ax, title=title,
+                                 vmin=vmin, vmax=vmax, cmap=cmap,
+                                 colorbar=True, unit=unit, cbar_fmt=cbar_fmt)
+    tight_layout(fig=fig)
+    fig.canvas.draw()
+    plt.show()
     return fig

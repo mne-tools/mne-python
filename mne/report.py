@@ -704,6 +704,7 @@ class Report(object):
         """
         from scipy.misc import imread
         import matplotlib.pyplot as plt
+        mayavi = None
         try:
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, mlab imported
@@ -720,7 +721,7 @@ class Report(object):
             div_klass = self._sectionvars[section]
             img_klass = self._sectionvars[section]
 
-            if isinstance(fig, mayavi.core.scene.Scene):
+            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
                 tempdir = _TempDir()
                 temp_fname = op.join(tempdir, 'test')
                 if fig.scene is not None:
@@ -1404,11 +1405,11 @@ class Report(object):
                                          show=show)
         return html
 
-    def _render_trans(self, trans_fname, path, info, subject,
+    def _render_trans(self, trans, path, info, subject,
                       subjects_dir, image_format='png'):
         """Render trans.
         """
-        kwargs = dict(info=info, trans_fname=trans_fname, subject=subject,
+        kwargs = dict(info=info, trans=trans, subject=subject,
                       subjects_dir=subjects_dir)
         try:
             img = _iterate_trans_views(function=plot_trans, **kwargs)
@@ -1418,7 +1419,7 @@ class Report(object):
 
         if img is not None:
             global_id = self._get_id()
-            caption = 'Trans : ' + trans_fname
+            caption = 'Trans : ' + trans
             div_klass = 'trans'
             img_klass = 'trans'
             show = True

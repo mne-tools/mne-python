@@ -62,19 +62,21 @@ class RtEpochs(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example:
-        reject = dict(grad=4000e-13, # T / m (gradiometers)
-                      mag=4e-12, # T (magnetometers)
-                      eeg=40e-6, # uV (EEG channels)
-                      eog=250e-6 # uV (EOG channels)
-                      )
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+        If reject is None then no rejection is done. Example::
+
+            reject = dict(grad=4000e-13, # T / m (gradiometers)
+                          mag=4e-12, # T (magnetometers)
+                          eeg=40e-6, # uV (EEG channels)
+                          eog=250e-6 # uV (EOG channels)
+                          )
+
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     proj : bool, optional
         Apply SSP projection vectors

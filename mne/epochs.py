@@ -37,7 +37,8 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import _mutable_defaults, plot_epochs, _drop_log_stats
+from .viz import (_mutable_defaults, plot_epochs, _drop_log_stats,
+                  plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import check_fname, logger, verbose
 from .externals import six
 from .externals.six.moves import zip
@@ -137,12 +138,19 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if decim > 1:
             new_sfreq = sfreq / decim
             lowpass = self.info['lowpass']
-            if new_sfreq < 2.5 * lowpass:  # nyquist says 2 but 2.5 is safer
+            if lowpass is None:
+                msg = ('The measurement information indicates data is not '
+                       'low-pass filtered. The decim=%i parameter will '
+                       'result in a sampling frequency of %g Hz, which can '
+                       'cause aliasing artifacts.'
+                       % (decim, new_sfreq))
+                warnings.warn(msg)
+            elif new_sfreq < 2.5 * lowpass:
                 msg = ('The measurement information indicates a low-pass '
                        'frequency of %g Hz. The decim=%i parameter will '
                        'result in a sampling frequency of %g Hz, which can '
                        'cause aliasing artifacts.'
-                       % (lowpass, decim, new_sfreq))
+                       % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
                 warnings.warn(msg)
 
             i_start = start_idx % decim
@@ -243,7 +251,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        data : array of shape [n_epochs, n_channels, n_times]
+        data : array of shape (n_epochs, n_channels, n_times)
             The epochs data
         """
         if self.preload:
@@ -503,6 +511,130 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
 
+    def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
+                 picks=None, ax=None, color='black', area_mode='std',
+                 area_alpha=0.33, n_overlap=0, dB=True,
+                 n_jobs=1, verbose=None):
+        """Plot the power spectral density across epochs
+
+        Parameters
+        ----------
+        fmin : float
+            Start frequency to consider.
+        fmax : float
+            End frequency to consider.
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        picks : array-like of int | None
+            List of channels to use.
+        ax : instance of matplotlib Axes | None
+            Axes to plot into. If None, axes will be created.
+        color : str | tuple
+            A matplotlib-compatible color to use.
+        area_mode : str | None
+            Mode for plotting area. If 'std', the mean +/- 1 STD (across
+            channels) will be plotted. If 'range', the min and max (across
+            channels) will be plotted. Bad channels will be excluded from
+            these calculations. If None, no area will be plotted.
+        area_alpha : float
+            Alpha for the area.
+        n_overlap : int
+            The number of points of overlap between blocks.
+        dB : bool
+            If True, transform data to decibels.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_epochs_psd(self, fmin=fmin, fmax=fmax, proj=proj,
+                               n_fft=n_fft, picks=picks, ax=ax,
+                               color=color, area_mode=area_mode,
+                               area_alpha=area_alpha,
+                               n_overlap=n_overlap, dB=dB, n_jobs=n_jobs,
+                               verbose=None)
+
+    def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
+                         n_fft=256, ch_type=None,
+                         n_overlap=0, layout=None, cmap='RdBu_r',
+                         agg_fun=None, dB=True, n_jobs=1, normalize=False,
+                         cbar_fmt='%0.3f', verbose=None):
+        """Plot the topomap of the power spectral density across epochs
+
+        Parameters
+        ----------
+        bands : list of tuple | None
+            The lower and upper frequency and the name for that band. If None,
+            (default) expands to:
+
+            bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
+        vmin : float | callable
+            The value specfying the lower bound of the color range.
+            If None, and vmax is None, -vmax is used. Else np.min(data).
+            If callable, the output equals vmin(data).
+        vmax : float | callable
+            The value specfying the upper bound of the color range.
+            If None, the maximum absolute value is used. If vmin is None,
+            but vmax is not, defaults to np.min(data).
+            If callable, the output equals vmax(data).
+        proj : bool
+            Apply projection.
+        n_fft : int
+            Number of points to use in Welch FFT calculations.
+        n_overlap : int
+            The number of points of overlap between blocks.
+        ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
+            The channel type to plot. For 'grad', the gradiometers are
+            collected in
+            pairs and the RMS for each pair is plotted. If None, defaults to
+            'mag' if MEG data are present and to 'eeg' if only EEG data are
+            present.
+        layout : None | Layout
+            Layout instance specifying sensor positions (does not need to
+            be specified for Neuromag data). If possible, the correct layout
+            file is inferred from the data; if no appropriate layout file was
+            found, the layout is automatically generated from the sensor
+            locations.
+        cmap : matplotlib colormap
+            Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+            'Reds'.
+        agg_fun : callable
+            The function used to aggregate over frequencies.
+            Defaults to np.sum. if normalize is True, else np.mean.
+        dB : bool
+            If True, transform data to decibels (with ``10 * np.log10(data)``)
+            following the application of `agg_fun`. Only valid if normalize
+            is False.
+        n_jobs : int
+            Number of jobs to run in parallel.
+        normalize : bool
+            If True, each band will be devided by the total power. Defaults to
+            False.
+        cbar_fmt : str
+            The colorbar format. Defaults to '%0.3f'.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of matplotlib figure
+            Figure distributing one image per channel across sensor topography.
+        """
+        return plot_epochs_psd_topomap(
+            self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
+            ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
+            agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
+            cbar_fmt=cbar_fmt, verbose=None)
+
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):
     """List of Epochs
@@ -546,11 +678,10 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
         efficient but can be slower).
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example::
+        If reject is None then no rejection is done. Example::
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
@@ -558,9 +689,10 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     proj : bool | 'delayed'
         Apply SSP projection vectors. If proj is 'delayed' and reject is not
@@ -999,31 +1131,12 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                 data.resize((n_out,) + data.shape[1:], refcheck=False)
         return data
 
-    @verbose
-    def _is_good_epoch(self, data, verbose=None):
-        """Determine if epoch is good"""
-        if data is None:
-            return False, ['NO_DATA']
-        n_times = len(self.times)
-        if data.shape[1] < n_times:
-            # epoch is too short ie at the end of the data
-            return False, ['TOO_SHORT']
-        if self.reject is None and self.flat is None:
-            return True, None
-        else:
-            if self._reject_time is not None:
-                data = data[:, self._reject_time]
-
-            return _is_good(data, self.ch_names, self._channel_type_idx,
-                            self.reject, self.flat, full_report=True,
-                            ignore_chs=self.info['bads'])
-
     def get_data(self):
         """Get all epochs as a 3D array
 
         Returns
         -------
-        data : array, shape (n_epochs, n_channels, n_times)
+        data : array of shape (n_epochs, n_channels, n_times)
             The epochs data
         """
         if self.preload:
@@ -1038,39 +1151,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             data = data_
 
         return data
-
-    def _reject_setup(self):
-        """Sets self._reject_time and self._channel_type_idx (called from
-        __init__)
-        """
-        if self.reject is None and self.flat is None:
-            return
-
-        idx = channel_indices_by_type(self.info)
-        for key in idx.keys():
-            if (self.reject is not None and key in self.reject) \
-                    or (self.flat is not None and key in self.flat):
-                if len(idx[key]) == 0:
-                    raise ValueError("No %s channel found. Cannot reject based"
-                                     " on %s." % (key.upper(), key.upper()))
-
-        self._channel_type_idx = idx
-
-        if (self.reject_tmin is None) and (self.reject_tmax is None):
-            self._reject_time = None
-        else:
-            if self.reject_tmin is None:
-                reject_imin = None
-            else:
-                idxs = np.nonzero(self.times >= self.reject_tmin)[0]
-                reject_imin = idxs[0]
-            if self.reject_tmax is None:
-                reject_imax = None
-            else:
-                idxs = np.nonzero(self.times <= self.reject_tmax)[0]
-                reject_imax = idxs[-1]
-
-            self._reject_time = slice(reject_imin, reject_imax)
 
     def __len__(self):
         """Number of epochs.
@@ -1590,11 +1670,10 @@ class EpochsArray(Epochs):
         in the list are used. If None, all events will be used with
         and a dict is created with string integer names corresponding
         to the event id integers.
-    reject : dict
-        Epoch rejection parameters based on peak to peak amplitude.
+    reject : dict | None
+        Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-        If reject is None then no rejection is done.
-        Values are float. Example::
+        If reject is None then no rejection is done. Example::
 
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
@@ -1602,9 +1681,10 @@ class EpochsArray(Epochs):
                           eog=250e-6 # uV (EOG channels)
                           )
 
-    flat : dict
-        Epoch rejection parameters based on flatness of signal
-        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'
+    flat : dict | None
+        Rejection parameters based on flatness of signal.
+        Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+        are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
     reject_tmin : scalar | None
         Start of the time window used to reject epochs (with the default None,
@@ -1929,7 +2009,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     bmin, bmax = None, None
     baseline = None
     selection = None
-    drop_log = []
+    drop_log = None
     for k in range(my_epochs['nent']):
         kind = my_epochs['directory'][k].kind
         pos = my_epochs['directory'][k].pos
@@ -2013,7 +2093,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     # In case epochs didn't have a FIFF.FIFFB_MNE_EPOCHS_SELECTION tag
     # (version < 0.8):
     if selection is None:
-        selection = range(len(epochs))
+        selection = np.arange(len(epochs))
+    if drop_log is None:
+        drop_log = [[] for _ in range(len(epochs))]  # noqa
 
     epochs.selection = selection
     epochs.drop_log = drop_log

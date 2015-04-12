@@ -77,9 +77,9 @@ def test_montage():
     eeg Fp1 -95.0 -31.0 -3.0
     eeg AF7 -81 -59 -3
     eeg AF3 -87 -41 28
-    cardinal nasion -91 0 -42
-    cardinal lpa 0 -91 -42
-    cardinal rpa 0 91 -42
+    cardinal 2 -91 0 -42
+    cardinal 1 0 -91 -42
+    cardinal 3 0 91 -42
     """
     kind = 'test_fid.hpts'
     fname = op.join(tempdir, kind)
@@ -95,11 +95,11 @@ def test_montage():
     trans = get_ras_to_neuromag_trans(fids[0], fids[1], fids[2])
     pos = apply_trans(trans, pos)
     assert_array_equal(montage.pos[0], pos)
-    idx = montage.ch_names.index('nasion')
+    idx = montage.ch_names.index('2')
     assert_array_equal(montage.pos[idx, [0, 2]], [0, 0])
-    idx = montage.ch_names.index('lpa')
+    idx = montage.ch_names.index('1')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
-    idx = montage.ch_names.index('rpa')
+    idx = montage.ch_names.index('3')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
     pos = np.array([-95.0, -31.0, -3.0])
     montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='mm')
