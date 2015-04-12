@@ -1692,7 +1692,7 @@ class EpochsArray(Epochs):
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
         the window will end with tmax).
-    baseline : None or tuple of length 2 (default (None, 0))
+    baseline : None or tuple of length 2 (default: None)
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
@@ -1708,7 +1708,7 @@ class EpochsArray(Epochs):
     @verbose
     def __init__(self, data, info, events, tmin=0, event_id=None,
                  reject=None, flat=None, reject_tmin=None,
-                 reject_tmax=None, baseline=(None, 0), verbose=None):
+                 reject_tmax=None, baseline=None, verbose=None):
 
         dtype = np.complex128 if np.any(np.iscomplex(data)) else np.float64
         data = np.asanyarray(data, dtype=dtype)
@@ -1771,6 +1771,8 @@ class EpochsArray(Epochs):
             self.events = self.events[select]
             self._data = self._data[select]
             self.selection[select]
+        if baseline is not None:
+            rescale(self._data, self.times, baseline, mode='mean', copy=False)
 
 
 def combine_event_ids(epochs, old_event_ids, new_event_id, copy=True):
