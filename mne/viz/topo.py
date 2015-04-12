@@ -41,9 +41,9 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
     Parameters
     ----------
     pos : array
-        Array of sensor positions (e.g., from 
-        mne.channels.layout.find_layout(info).pos). If None, will be inferred
-        from layout.
+        Array of sensor positions (e.g., from
+        mne.channels.layout.find_layout(info).pos).
+        If None, will be inferred from layout.
     info : instance of mne.io.meas_info.Info
         The measurement info.
     layout : instance of mne.layout.Layout | None
@@ -223,8 +223,8 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
             tick.label1 = tick._get_text1()
 
     if plot_tick_labels is True:
-#        ax.set_xticklabels([('' if i % 2 else str(t))
-#                           for i, t in enumerate(xticks)])
+        # ax.set_xticklabels([('' if i % 2 else str(t))
+                            # for i, t in enumerate(xticks)])
         ax.set_xticklabels(xticks)
         ax.set_yticklabels(yticks)
     else:
@@ -311,7 +311,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         else:
             layout_scale = 'wide'
 
-    zero = (yticks[0] / ylim_dict["dummy"][0] 
+    zero = (yticks[0] / ylim_dict["dummy"][0]
             if plot_type == 'evoked' else None)
 
     pos, layout_scale = _scale_layout(layout, layout_scale,
@@ -356,7 +356,6 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         if ylim_ and not any(v is None for v in ylim_):
             plt.ylim(*ylim_)
 
-
     if title is not None:
         plt.figtext(0.03, 0.9 * layout_scale, title, color=font_color,
                     fontsize=fontsize * 2)
@@ -381,9 +380,9 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                      is_legend=True)
 
         return fig, legend_ax, layout_scale
-    
+
     else:
-        return fig, None, layout_scale 
+        return fig, None, layout_scale
 
 
 def _plot_topo_onpick(event, show_func=None, colorbar=False):
@@ -566,7 +565,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
         fig_facecolor = 'w'
         from itertools import cycle
         color = cycle('k')
-        line_styles = ['-', ':', '-.', '--']
+        # line_styles = ['-', ':', '-.', '--']
 
     times = evoked[0].times
 
@@ -857,8 +856,8 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
 
     fig, l_x, l_s = _plot_topo(info=epochs.info, times=epochs.times,
                                show_func=erf_imshow, layout=layout,
-                               colorbar=colorbar, vmin=vmin, vmax=vmax, 
-                               cmap=cmap, layout_scale=layout_scale, 
+                               colorbar=colorbar, vmin=vmin, vmax=vmax,
+                               cmap=cmap, layout_scale=layout_scale,
                                title=title, fig_facecolor=fig_facecolor,
                                ylim_dict=(0, epochs.get_data().shape[0]),
                                font_color=font_color, border=border,
