@@ -83,9 +83,11 @@ Changelog
 
    - Add reader function for Raw FIF files by `Teon Brooks`_
 
-   - Add example of creating MNE objects from arbitrary data and NEO files by 'Jaakko Leppakangas'_
+   - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
 
-   - Add plot_psd and plot_psd_topomap methods to epochs by `Yousra Bekhti_`, `Eric Larson_` and `Denis Engemann_`
+   - Add plot_psd and plot_psd_topomap methods to epochs by `Yousra Bekhti`_, `Eric Larson`_ and `Denis Engemann`_
+
+   - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
 
 BUG
 ~~~
@@ -169,6 +171,8 @@ API
    - `Raw` instances returned by `mne.forward.apply_forward_raw` now always have times starting from
      zero to be consistent with all other `Raw` instances. To get the former `start` and `stop` times,
      use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
+
+   - `pick_types_evoked` has been deprecated in favor of `evoked.pick_types`.
 
 .. _changes_0_8:
 

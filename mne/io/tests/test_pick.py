@@ -7,8 +7,7 @@ from mne import (pick_channels_regexp, pick_types, Epochs,
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
-                         pick_types_evoked, pick_types_forward,
-                         _picks_by_type)
+                         pick_types_forward, _picks_by_type)
 from mne.datasets import testing
 from mne.forward.tests import test_forward
 
@@ -37,7 +36,7 @@ def test_pick_seeg():
     events = array([[1, 0, 0], [2, 0, 0]]).astype('d')
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
-    e_seeg = pick_types_evoked(evoked, meg=False, seeg=True)
+    e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
     for l, r in zip(e_seeg.ch_names, names[4:]):
         assert_equal(l, r)
 

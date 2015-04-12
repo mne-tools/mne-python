@@ -11,7 +11,7 @@ from mne.forward._lead_dots import (_comp_sum_eeg, _comp_sums_meg,
                                     _get_legen_table,
                                     _get_legen_lut_fast,
                                     _get_legen_lut_accurate)
-from mne import pick_types_evoked, read_evokeds
+from mne import read_evokeds
 from mne.fixes import partial
 from mne.externals.six.moves import zip
 from mne.utils import run_tests_if_main, slow_test
@@ -100,7 +100,7 @@ def test_make_field_map_eeg():
     # we must have trans if surface is in MRI coords
     assert_raises(ValueError, _make_surface_mapping, evoked.info, surf, 'eeg')
 
-    evoked = pick_types_evoked(evoked, meg=False, eeg=True)
+    evoked.pick_types(meg=False, eeg=True)
     fmd = make_field_map(evoked, trans_fname,
                          subject='sample', subjects_dir=subjects_dir)
 
@@ -130,7 +130,7 @@ def test_make_field_map_meg():
     assert_raises(ValueError, _make_surface_mapping, info, surf, 'meg',
                   mode='foo')
     # no picks
-    evoked_eeg = pick_types_evoked(evoked, meg=False, eeg=True)
+    evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
     assert_raises(RuntimeError, _make_surface_mapping, evoked_eeg.info,
                   surf, 'meg')
     # bad surface def
@@ -144,7 +144,7 @@ def test_make_field_map_meg():
     surf['coord_frame'] = cf
 
     # now do it with make_field_map
-    evoked = pick_types_evoked(evoked, meg=True, eeg=False)
+    evoked.pick_types(meg=True, eeg=False)
     fmd = make_field_map(evoked, None,
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)

@@ -199,8 +199,6 @@ class PickDropChannelsMixin(object):
 
         Parameters
         ----------
-        info : dict
-            The measurement info.
         meg : bool or string
             If True include all MEG channels. If False include None
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
@@ -217,8 +215,8 @@ class PickDropChannelsMixin(object):
         stim : bool
             If True include stimulus channels.
         ref_meg: bool | str
-            If True include CTF / 4D reference channels. If 'auto', the reference
-            channels are only included if compensations are present.
+            If True include CTF / 4D reference channels. If 'auto', the
+            reference channels are only included if compensations are present.
         misc : bool
             If True include miscellaneous analog channels.
         resp : bool
@@ -235,7 +233,8 @@ class PickDropChannelsMixin(object):
         seeg : bool
             Stereotactic EEG channels
         include : list of string
-            List of additional channels to include. If empty do not include any.
+            List of additional channels to include. If empty do not include
+            any.
         exclude : list of string | str
             List of channels to exclude. If 'bads' (default), exclude channels
             in info['bads'].
