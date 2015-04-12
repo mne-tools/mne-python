@@ -26,8 +26,8 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     subject : string
         Subject name (SUBJECT environment variable)
     subjects_dir : string
-        Directory containing subjects data. If None use the Freesurfer\
-         SUBJECTS_DIR environment variable.
+        Directory containing subjects data. If None use
+        the Freesurfer SUBJECTS_DIR environment variable.
     overwrite : bool
         Write over existing files
     volume : string
@@ -68,8 +68,8 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
         raise RuntimeError('Could not find the MRI data')
     if op.exists(ws_dir):
         if not overwrite:
-            raise RuntimeError('%s already exists. Use the overwrite option to\
-             recreate it' % ws_dir)
+            raise RuntimeError('%s already exists. Use the overwrite option to'
+                               ' recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
     # put together the command
