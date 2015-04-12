@@ -1518,6 +1518,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
         return df
 
+    @deprecated('to_nitime will be removed in v0.10')
     def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
                   copy=True, first_samp=0):
         """ Export epochs as nitime TimeSeries

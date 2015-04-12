@@ -768,23 +768,26 @@ def test_epochs_to_nitime():
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True,
                     reject=reject, flat=flat)
-
     picks2 = [0, 3]
 
-    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                 collapse=True, copy=True)
+    with warnings.catch_warnings(record=True):
+        epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                     collapse=True, copy=True)
     assert_true(epochs_ts.ch_names == epochs.ch_names)
 
-    epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
-                                 collapse=True, copy=True)
+    with warnings.catch_warnings(record=True):
+        epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
+                                     collapse=True, copy=True)
     assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks2])
 
-    epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                 collapse=False, copy=False)
+    with warnings.catch_warnings(record=True):
+        epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
+                                     collapse=False, copy=False)
     assert_true(epochs_ts.ch_names == epochs.ch_names)
 
-    epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
-                                 collapse=False, copy=False)
+    with warnings.catch_warnings(record=True):
+        epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
+                                     collapse=False, copy=False)
     assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks2])
 
 
