@@ -1350,6 +1350,13 @@ def test_array_epochs():
     assert_equal(epochs.drop_log[0], ['EEG 006'])
     assert_equal(len(events), len(epochs.selection))
 
+    # baseline
+    data = np.ones((10, 20, 300))
+    epochs = EpochsArray(data, info, events=events, event_id=event_id,
+                         tmin=-.2, baseline=(None, 0))
+    ep_data = epochs.get_data()
+    assert_array_equal(np.zeros_like(ep_data), ep_data)
+
 
 def test_concatenate_epochs():
     """test concatenate epochs"""
