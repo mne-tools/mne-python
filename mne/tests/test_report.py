@@ -135,6 +135,10 @@ def test_render_add_sections():
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
 
+    # Check validation of section names
+    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+                  captions='H', section='evoked')
+
     # Check add_images_to_section
     img_fname = op.join(tempdir, 'testimage.png')
     fig.savefig(img_fname)

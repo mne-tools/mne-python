@@ -691,6 +691,11 @@ class Report(object):
             raise ValueError('Captions and report items must have the same'
                              ' length.')
 
+        if section in SECTION_ORDER:
+            raise ValueError('Section name %s is a pre-defined section. Please'
+                             ' use a section name that is not in the list [%s]'
+                             % (section, ', '.join(SECTION_ORDER)))
+
         # Book-keeping of section names
         if section not in self.sections:
             self.sections.append(section)
