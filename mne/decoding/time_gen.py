@@ -12,7 +12,7 @@ import warnings
 from scipy import stats
 
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
-from ..parallel import parallel_func
+from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
 from ..io.pick import channel_type, pick_types
 
@@ -482,10 +482,7 @@ class GeneralizationAcrossTime(object):
             y_true = le.transform(y_true)
 
         # Preprocessing for parallelization:
-        n_jobs = self.n_jobs
-        if n_jobs == -1:
-            n_jobs = multiprocessing.cpu_count()
-        n_jobs = min(self.y_pred_.shape[2], n_jobs)
+        n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
