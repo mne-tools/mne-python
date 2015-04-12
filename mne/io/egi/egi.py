@@ -261,9 +261,7 @@ class _RawEGI(_BaseRaw):
             # No events
             self.event_id = None
             new_trigger = None
-        self._data = data
-        self.verbose = verbose
-        self.info = info = _empty_info()
+        info = _empty_info()
         info['hpi_subsystem'] = None
         info['events'], info['hpi_results'], info['hpi_meas'] = [], [], []
         info['sfreq'] = float(egi_info['samp_rate'])
@@ -319,31 +317,17 @@ class _RawEGI(_BaseRaw):
                 ch_info.update(u)
             info['chs'].append(ch_info)
 
-        _check_update_montage(self.info, montage)
-        self.preload = True
-        self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-        self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                dtype=np.float64)
-        self._times /= self.info['sfreq']
+        _check_update_montage(info, montage)
+        cals = np.array([c['cal'] for c in info['chs']])
+        orig_format = {'>f4': 'single', '>f4': 'double',
+                       '>i2': 'int'}[egi_info['dtype']]
+        super(_RawEGI, self).__init__(
+            info, data, cals, orig_format=orig_format, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                     % (self.first_samp, self.last_samp,
                        float(self.first_samp) / self.info['sfreq'],
                        float(self.last_samp) / self.info['sfreq']))
-
-        # Raw attributes
-        self._filenames = list()
-        self._projector = None
-        self.first_samp = 0
-        self.last_samp = egi_info['n_samples'] - 1
-        self.comp = None  # no compensation for egi
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
-        self._raw_lengths = np.array([egi_info['n_samples']])
-        self.rawdirs = np.array([])
-        self.cals = np.array([c['cal'] for c in self.info['chs']])
         # use information from egi
-        self.orig_format = {'>f4': 'single', '>f4': 'double',
-                            '>i2': 'int'}[egi_info['dtype']]
         logger.info('Ready.')
 
     def __repr__(self):

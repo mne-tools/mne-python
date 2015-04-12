@@ -18,10 +18,9 @@ from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
 from ..tag import read_tag
-from ..proj import (proj_equal, make_eeg_average_ref_proj,
-                    _needs_eeg_average_ref_proj)
+from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
-from ..base import _BaseRaw
+from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 
 from ...utils import check_fname, logger, verbose
 from ...externals.six import string_types
@@ -114,21 +113,15 @@ class RawFIF(_BaseRaw):
 
         _check_raw_compatibility(raws)
 
-        # combine information from each raw file to construct self
-        self._filenames = [r.filename for r in raws]
-        self.first_samp = raws[0].first_samp  # meta first sample
-        self._first_samps = np.array([r.first_samp for r in raws])
-        self._last_samps = np.array([r.last_samp for r in raws])
-        self._raw_lengths = np.array([r.n_times for r in raws])
-        self.last_samp = self.first_samp + sum(self._raw_lengths) - 1
-        self.cals = raws[0].cals
-        self.rawdirs = [r.rawdir for r in raws]
-        self.comp = copy.deepcopy(raws[0].comp)
-        self._orig_comp_grade = raws[0]._orig_comp_grade
-        self.info = copy.deepcopy(raws[0].info)
-        self.verbose = verbose
-        self.orig_format = raws[0].orig_format
+        super(RawFIF, self).__init__(
+            copy.deepcopy(raws[0].info), None, raws[0]._cals,
+            [r.first_samp for r in raws], [r.last_samp for r in raws],
+            [r.filename for r in raws], [r._rawdir for r in raws],
+            copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
+            raws[0].orig_format,
+            verbose=verbose)
 
+        # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
             eeg_ref = make_eeg_average_ref_proj(self.info, activate=False)
             self.add_proj(eeg_ref)
@@ -138,7 +131,6 @@ class RawFIF(_BaseRaw):
         else:
             self.preload = False
 
-        self._projector = None
         # setup the SSP projector
         if proj:
             self.apply_proj()
@@ -151,7 +143,7 @@ class RawFIF(_BaseRaw):
         else:
             data_buffer = None
 
-        self._data, self._times = self._read_segment(data_buffer=data_buffer)
+        self._data = self._read_segment(data_buffer=data_buffer)[0]
         self.preload = True
         # close files once data are preloaded
         self.close()
@@ -350,8 +342,8 @@ class RawFIF(_BaseRaw):
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
-        raw.cals = cals
-        raw.rawdir = rawdir
+        raw._cals = cals
+        raw._rawdir = rawdir
         raw.comp = None
         raw._orig_comp_grade = None
 
@@ -442,8 +434,8 @@ class RawFIF(_BaseRaw):
             data = None  # we will allocate it later, once we know the type
 
         mult = list()
-        for ri in range(len(self._raw_lengths)):
-            mult.append(np.diag(self.cals.ravel()))
+        for ri in range(len(self._first_samps)):
+            mult.append(np.diag(self._cals.ravel()))
             if self.comp is not None:
                 mult[ri] = np.dot(self.comp, mult[ri])
             if projector is not None:
@@ -462,9 +454,9 @@ class RawFIF(_BaseRaw):
         s_off = 0
         dest = 0
         if isinstance(idx, slice):
-            cals = self.cals.ravel()[idx][:, np.newaxis]
+            cals = self._cals.ravel()[idx][:, np.newaxis]
         else:
-            cals = self.cals.ravel()[:, np.newaxis]
+            cals = self._cals.ravel()[:, np.newaxis]
 
         for fi in np.nonzero(files_used)[0]:
             start_loc = self._first_samps[fi]
@@ -483,7 +475,7 @@ class RawFIF(_BaseRaw):
             len_loc = stop_loc - start_loc + 1
             fid = _fiff_get_fid(self._filenames[fi])
 
-            for this in self.rawdirs[fi]:
+            for this in self._rawdirs[fi]:
 
                 #  Do we need this buffer
                 if this['last'] >= start_loc:
@@ -582,46 +574,6 @@ def _allocate_data(data, data_buffer, data_shape, dtype):
         else:
             data = np.zeros(data_shape, dtype=dtype)
     return data
-
-
-class _RawShell():
-    """Used for creating a temporary raw object"""
-    def __init__(self):
-        self.first_samp = None
-        self.last_samp = None
-        self.cals = None
-        self.rawdir = None
-        self._projector = None
-
-    @property
-    def n_times(self):
-        return self.last_samp - self.first_samp + 1
-
-
-def _check_raw_compatibility(raw):
-    """Check to make sure all instances of Raw
-    in the input list raw have compatible parameters"""
-    for ri in range(1, len(raw)):
-        if not raw[ri].info['nchan'] == raw[0].info['nchan']:
-            raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
-        if not raw[ri].info['bads'] == raw[0].info['bads']:
-            raise ValueError('raw[%d][\'info\'][\'bads\'] must match' % ri)
-        if not raw[ri].info['sfreq'] == raw[0].info['sfreq']:
-            raise ValueError('raw[%d][\'info\'][\'sfreq\'] must match' % ri)
-        if not set(raw[ri].info['ch_names']) == set(raw[0].info['ch_names']):
-            raise ValueError('raw[%d][\'info\'][\'ch_names\'] must match' % ri)
-        if not all(raw[ri].cals == raw[0].cals):
-            raise ValueError('raw[%d].cals must match' % ri)
-        if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
-            raise ValueError('SSP projectors in raw files must be the same')
-        if not all(proj_equal(p1, p2) for p1, p2 in
-                   zip(raw[0].info['projs'], raw[ri].info['projs'])):
-            raise ValueError('SSP projectors in raw files must be the same')
-    if not all([r.orig_format == raw[0].orig_format for r in raw]):
-        warnings.warn('raw files do not all have the same data format, '
-                      'could result in precision mismatch. Setting '
-                      'raw.orig_format="unknown"')
-        raw[0].orig_format = 'unknown'
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,

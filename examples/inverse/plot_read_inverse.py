@@ -31,7 +31,7 @@ lh_points = inv['src'][0]['rr']
 lh_faces = inv['src'][0]['use_tris']
 rh_points = inv['src'][1]['rr']
 rh_faces = inv['src'][1]['use_tris']
-from mayavi import mlab
+from mayavi import mlab  # noqa
 
 mlab.figure(size=(600, 600), bgcolor=(0, 0, 0))
 mesh = mlab.triangular_mesh(lh_points[:, 0], lh_points[:, 1], lh_points[:, 2],

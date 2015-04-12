@@ -184,8 +184,10 @@ def test_apply_forward():
         # do some tests
         assert_array_almost_equal(raw_proj.info['sfreq'], sfreq)
         assert_array_almost_equal(np.sum(data, axis=1), n_times * gain_sum)
-        assert_array_almost_equal(times[0], t_start)
-        assert_array_almost_equal(times[-1], t_start + (n_times - 1) / sfreq)
+        atol = 1. / sfreq
+        assert_allclose(raw_proj.first_samp / sfreq, t_start, atol=atol)
+        assert_allclose(raw_proj.last_samp / sfreq,
+                        t_start + (n_times - 1) / sfreq, atol=atol)
 
 
 @testing.requires_testing_data

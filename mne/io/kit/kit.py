@@ -81,29 +81,19 @@ class RawKIT(_BaseRaw):
         self._sqd_params['fname'] = input_fname
         logger.info('Creating Raw.info structure...')
 
-        # Raw attributes
-        self.verbose = verbose
-        self.preload = False
-        self._projector = None
-        self.first_samp = 0
-        self.last_samp = self._sqd_params['nsamples'] - 1
-        self.comp = None  # no compensation for KIT
-        self._raw_lengths = np.array([self.n_times])
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
-
         # Create raw.info dict for raw fif object with SQD data
-        self.info = info = _empty_info()
+        info = _empty_info()
         info['meas_date'] = int(time.time())
         info['lowpass'] = self._sqd_params['lowpass']
         info['highpass'] = self._sqd_params['highpass']
         info['sfreq'] = float(self._sqd_params['sfreq'])
         # meg channels plus synthetic channel
         info['nchan'] = self._sqd_params['nchan'] + 1
-        self._filenames = []
-        self.cals = np.ones(self.info['nchan'])
-        self.orig_format = 'double'
-        self.rawdirs = list()
+
+        cals = np.ones(info['nchan'])
+        last_samps = [self._sqd_params['nsamples'] - 1]
+        super(RawKIT, self).__init__(
+            info, cals=cals, last_samps=last_samps, verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
@@ -223,10 +213,7 @@ class RawKIT(_BaseRaw):
             self._data[-1, :] = stim_ch
 
             # Add time info
-            self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-            self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                    dtype=np.float64)
-            self._times /= self.info['sfreq']
+            self._last_samps = np.array([self._data.shape[1] - 1])
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],

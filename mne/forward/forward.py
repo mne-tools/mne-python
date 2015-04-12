@@ -1217,18 +1217,15 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     raw = raw_template.copy()
     raw.preload = True
     raw._data = data
-    raw._times = times
 
-    sfreq = float(1.0 / stc.tstep)
-    raw.first_samp = int(np.round(raw._times[0] * sfreq))
-    raw.last_samp = raw.first_samp + raw._data.shape[1] - 1
+    sfreq = 1.0 / stc.tstep
+    raw._first_samps = np.array([int(np.round(times[0] * sfreq))])
+    raw._last_samps = np.array([raw.first_samp + raw._data.shape[1] - 1])
 
     # fill the measurement info
     raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
-
     raw.info['projs'] = []
     raw._projector = None
-
     return raw
 
 

@@ -41,7 +41,7 @@ dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 ###############################################################################
 # Show result on 3D source space
-from mayavi import mlab
+from mayavi import mlab  # noqa
 
 rh_points, rh_faces = mne.read_surface(fname_surf_lh)
 rh_points /= 1000.

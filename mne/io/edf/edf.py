@@ -77,42 +77,29 @@ class RawEDF(_BaseRaw):
                  preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        self.info, self._edf_info = _get_edf_info(input_fname, stim_channel,
-                                                  annot, annotmap, tal_channel,
-                                                  eog, misc, preload)
+        info, self._edf_info = _get_edf_info(input_fname, stim_channel,
+                                             annot, annotmap, tal_channel,
+                                             eog, misc, preload)
         logger.info('Creating Raw.info structure...')
-        _check_update_montage(self.info, montage)
+        _check_update_montage(info, montage)
 
         if bool(annot) != bool(annotmap):
             warnings.warn(("Stimulus Channel will not be annotated. "
                            "Both 'annot' and 'annotmap' must be specified."))
 
         # Raw attributes
-        self.verbose = verbose
-        self.preload = False
-        self._filenames = list()
-        self._projector = None
-        self.first_samp = 0
-        self.last_samp = self._edf_info['nsamples'] - 1
-        self.comp = None  # no compensation for EDF
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
-        self._raw_lengths = np.array([self._edf_info['nsamples']])
-        self.rawdirs = np.array([])
-        self.cals = np.array([ch['cal'] for ch in self.info['chs']])
-        self.orig_format = 'int'
+        cals = np.array([ch['cal'] for ch in info['chs']])
+        last_samps = [self._edf_info['nsamples'] - 1]
+        super(RawEDF, self).__init__(
+            info, cals=cals, last_samps=last_samps, orig_format='int',
+            verbose=verbose)
 
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
             self._data, _ = self._read_segment()
             assert len(self._data) == self.info['nchan']
-
-            # Add time info
-            self.first_samp, self.last_samp = 0, self._data.shape[1] - 1
-            self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                    dtype=np.float64)
-            self._times /= self.info['sfreq']
+            self._last_samps = np.array([self._data.shape[1] - 1])
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
                            float(self.first_samp) / self.info['sfreq'],

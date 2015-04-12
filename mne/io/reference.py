@@ -201,7 +201,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
     if isinstance(inst, _BaseRaw):
-        inst.cals = np.hstack((inst.cals, [1] * len(ref_channels)))
+        inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
 
     return inst
 
