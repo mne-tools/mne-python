@@ -504,7 +504,6 @@ class GeneralizationAcrossTime(object):
                           for t_train, slices
                           in enumerate(self.test_times_['slices']))
 
-
         self.scores_ = scores
         return scores
 
@@ -667,6 +666,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
                              ' or "cross-validation"')
     return y_pred
 
+
 def _score_loop(y_true, y_pred, slices, scorer):
     n_time = len(slices)
     # Loop across testing times
@@ -675,6 +675,7 @@ def _score_loop(y_true, y_pred, slices, scorer):
         # Scores across trials
         scores[t] = _score(y_true, y_pred[t], scorer)
     return scores
+
 
 def _score(y, y_pred, scorer):
     """Aux function of GeneralizationAcrossTime
