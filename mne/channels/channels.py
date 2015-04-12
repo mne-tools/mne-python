@@ -459,8 +459,7 @@ def set_channels_type(info, mapping):
         if ch_type not in human2fiff:
             raise ValueError('This function cannot change to this '
                              'channel type: %s. Accepted channel types are '
-                             'ecg, eeg, emg, eog, exci, ias, misc, resp, '
-                             'seeg, stim, syst.' % ch_type)
+                             '%s.' % (ch_type, ", ".join(human2unit.keys())))
         # Set sensor type
         info['chs'][c_ind]['kind'] = human2fiff[ch_type]
         unit_old = info['chs'][c_ind]['unit']
