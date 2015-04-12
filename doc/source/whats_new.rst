@@ -168,7 +168,7 @@ API
 
    - `Raw` instances returned by `mne.forward.apply_forward_raw` now always have times starting from
      zero to be consistent with all other `Raw` instances. To get the former `start` and `stop` times,
-	 use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
+     use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
 
 .. _changes_0_8:
 
