@@ -10,7 +10,8 @@ import sys
 import os
 import os.path as op
 import shutil
-from mne.utils import (verbose, logger, run_subprocess)
+from mne.utils import (verbose, logger, run_subprocess, get_config,
+                       get_subjects_dir)
 
 
 @verbose
@@ -45,17 +46,10 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     if subject:
         os.environ['SUBJECT'] = subject
     else:
-        try:
-            subject = os.environ['SUBJECT']
-        except KeyError:
-            raise RuntimeError('SUBJECT environment variable not defined')
-    if subjects_dir:
-        os.environ['SUBJECTS_DIR'] = subjects_dir
-    else:
-        try:
-            subjects_dir = os.environ['SUBJECTS_DIR']
-        except KeyError:
-            raise RuntimeError('SUBJECTS_DIR environment variable not defined')
+        subject = get_config('SUBJECT', raise_error=True)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    os.environ['SUBJECTS_DIR'] = subjects_dir
+
     env = os.environ.copy()
 
     subject_dir = op.join(subjects_dir, subject)
