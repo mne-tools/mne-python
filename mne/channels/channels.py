@@ -187,8 +187,72 @@ class SetChannelsMixin(object):
 
 
 class PickDropChannelsMixin(object):
-    """Mixin class for Raw, Evoked, Epochs
+    """Mixin class for Raw, Evoked, Epochs, AverageTFR
     """
+    def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
+                   ecg=False, emg=False, ref_meg='auto', misc=False,
+                   resp=False, chpi=False, exci=False, ias=False, syst=False,
+                   seeg=False, include=[], exclude='bads', selection=None,
+                   copy=False):
+
+        """Pick some channels by type and names
+
+        Parameters
+        ----------
+        meg : bool or string
+            If True include all MEG channels. If False include None
+            If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
+            only magnetometers, all gradiometers, or a specific type of
+            gradiometer.
+        eeg : bool
+            If True include EEG channels.
+        eog : bool
+            If True include EOG channels.
+        ecg : bool
+            If True include ECG channels.
+        emg : bool
+            If True include EMG channels.
+        stim : bool
+            If True include stimulus channels.
+        ref_meg: bool | str
+            If True include CTF / 4D reference channels. If 'auto', the
+            reference channels are only included if compensations are present.
+        misc : bool
+            If True include miscellaneous analog channels.
+        resp : bool
+            If True include response-trigger channel. For some MEG systems this
+            is separate from the stim channel.
+        chpi : bool
+            If True include continuous HPI coil channels.
+        exci : bool
+            Flux excitation channel used to be a stimulus channel.
+        ias : bool
+            Internal Active Shielding data (maybe on Triux only).
+        syst : bool
+            System status channel information (on Triux systems only).
+        seeg : bool
+            Stereotactic EEG channels
+        include : list of string
+            List of additional channels to include. If empty do not include
+            any.
+        exclude : list of string | str
+            List of channels to exclude. If 'bads' (default), exclude channels
+            in info['bads'].
+        selection : list of string
+            Restrict sensor channels (MEG, EEG) to this list of channel names.
+        copy : bool
+            If True, returns new instance. Else, modifies in place. Defaults to
+            False.
+        """
+        inst = self.copy() if copy else self
+        idx = pick_types(
+            self.info, meg=meg, eeg=eeg, stim=stim, eog=eog, ecg=ecg, emg=emg,
+            ref_meg=ref_meg, misc=misc, resp=resp, chpi=chpi, exci=exci,
+            ias=ias, syst=syst, seeg=seeg, include=include, exclude=exclude,
+            selection=selection)
+        inst._pick_drop_channels(idx)
+        return inst
+
     def pick_channels(self, ch_names, copy=False):
         """Pick some channels
 

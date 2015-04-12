@@ -451,7 +451,6 @@ Sensor Space Data
    pick_channels_forward
    pick_channels_regexp
    pick_types
-   pick_types_evoked
    pick_types_forward
    read_epochs
    read_reject_parameters

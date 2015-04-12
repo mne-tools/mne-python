@@ -601,6 +601,24 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def ch_names(self):
         return self.info['ch_names']
 
+    def crop(self, tmin=None, tmax=None, copy=False):
+        """Crop data to a given time interval
+
+        Parameters
+        ----------
+        tmin : float | None
+            Start time of selection in seconds.
+        tmax : float | None
+            End time of selection in seconds.
+        copy : bool
+            If False epochs is cropped in place.
+        """
+        inst = self if not copy else self.copy()
+        mask = _time_mask(inst.times, tmin, tmax)
+        inst.times = inst.times[mask]
+        inst.data = inst.data[..., mask]
+        return inst
+
     @verbose
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,

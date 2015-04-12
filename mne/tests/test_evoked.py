@@ -343,6 +343,14 @@ def test_pick_channels_mixin():
     assert_equal(ch_names, evoked.ch_names)
     assert_equal(len(ch_names), len(evoked.data))
 
+    evoked = read_evokeds(fname, condition=0, proj=True)
+    assert_true('meg' in evoked)
+    assert_true('eeg' in evoked)
+    evoked.pick_types(meg=False, eeg=True)
+    assert_true('meg' not in evoked)
+    assert_true('eeg' in evoked)
+    assert_true(len(evoked.ch_names) == 60)
+
 
 def test_equalize_channels():
     """Test equalization of channels

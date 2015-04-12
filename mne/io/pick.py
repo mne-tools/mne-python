@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose
+from ..utils import logger, verbose, deprecated
 from ..externals.six import string_types
 
 
@@ -186,6 +186,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     sel : array of int
         Indices of good channels.
     """
+    # NOTE: Changes to this function's signature should also be changed in
+    # PickChannelsMixin
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
@@ -353,6 +355,8 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     return res
 
 
+@deprecated('"pick_types_evoked" has been deprecated and will be removed '
+            'in v0.10, used evoked.pick_types instead')
 def pick_types_evoked(evoked, meg=True, eeg=False, stim=False, eog=False,
                       ecg=False, emg=False, ref_meg=False, misc=False,
                       resp=False, chpi=False, exci=False, ias=False,

@@ -13,8 +13,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from mne import (read_proj, read_forward_solution, read_cov, read_label,
-                 pick_types_evoked, pick_types_forward, pick_types,
-                 read_evokeds)
+                 pick_types_forward, pick_types, read_evokeds)
 from mne.io import Raw
 from mne.datasets import sample
 from mne.time_frequency import iir_filter_raw, morlet
@@ -43,8 +42,7 @@ cov = read_cov(cov_fname)
 
 condition = 'Left Auditory'
 evoked_template = read_evokeds(ave_fname, condition=condition, baseline=None)
-evoked_template = pick_types_evoked(evoked_template, meg=True, eeg=True,
-                                    exclude=raw.info['bads'])
+evoked_template.pick_types(meg=True, eeg=True, exclude=raw.info['bads'])
 
 label_names = ['Aud-lh', 'Aud-rh']
 labels = [read_label(data_path + '/MEG/sample/labels/%s.label' % ln)

@@ -296,7 +296,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def crop(self, tmin=None, tmax=None):
+    def crop(self, tmin=None, tmax=None, copy=False):
         """Crop data to a given time interval
 
         Parameters
@@ -305,12 +305,16 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Start time of selection in seconds.
         tmax : float | None
             End time of selection in seconds.
+        copy : bool
+            If False epochs is cropped in place.
         """
-        mask = _time_mask(self.times, tmin, tmax)
-        self.times = self.times[mask]
-        self.first = int(self.times[0] * self.info['sfreq'])
-        self.last = len(self.times) + self.first - 1
-        self.data = self.data[:, mask]
+        inst = self if not copy else self.copy()
+        mask = _time_mask(inst.times, tmin, tmax)
+        inst.times = inst.times[mask]
+        inst.first = int(inst.times[0] * inst.info['sfreq'])
+        inst.last = len(inst.times) + inst.first - 1
+        inst.data = inst.data[:, mask]
+        return inst
 
     def shift_time(self, tshift, relative=True):
         """Shift time scale in evoked data
