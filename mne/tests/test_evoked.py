@@ -215,12 +215,14 @@ def test_evoked_detrend():
 def test_evoked_to_nitime():
     """ Test to_nitime """
     ave = read_evokeds(fname, 0)
-    evoked_ts = ave.to_nitime()
+    with warnings.catch_warnings(record=True):
+        evoked_ts = ave.to_nitime()
     assert_equal(evoked_ts.data, ave.data)
 
     picks2 = [1, 2]
     ave = read_evokeds(fname, 0)
-    evoked_ts = ave.to_nitime(picks=picks2)
+    with warnings.catch_warnings(record=True):
+        evoked_ts = ave.to_nitime(picks=picks2)
     assert_equal(evoked_ts.data, ave.data[picks2])
 
 

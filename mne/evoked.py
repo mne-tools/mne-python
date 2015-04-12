@@ -603,6 +603,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
 
+    @deprecated('to_nitime will be removed in v0.10')
     def to_nitime(self, picks=None):
         """Export Evoked object to NiTime
 

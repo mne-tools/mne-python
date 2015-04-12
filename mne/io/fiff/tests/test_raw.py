@@ -860,25 +860,29 @@ def test_raw_to_nitime():
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
-    raw_ts = raw.to_nitime(picks=picks)
+    with warnings.catch_warnings(record=True):
+        raw_ts = raw.to_nitime(picks=picks)
     assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
-    raw_ts = raw.to_nitime(picks=picks)
+    with warnings.catch_warnings(record=True):
+        raw_ts = raw.to_nitime(picks=picks)
     assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=True)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
-    raw_ts = raw.to_nitime(picks=picks, copy=False)
+    with warnings.catch_warnings(record=True):
+        raw_ts = raw.to_nitime(picks=picks, copy=False)
     assert_equal(raw_ts.data.shape[0], len(picks))
 
     raw = Raw(fif_fname, preload=False)
     picks_meg = pick_types(raw.info, meg=True, exclude='bads')
     picks = picks_meg[:4]
-    raw_ts = raw.to_nitime(picks=picks, copy=False)
+    with warnings.catch_warnings(record=True):
+        raw_ts = raw.to_nitime(picks=picks, copy=False)
     assert_equal(raw_ts.data.shape[0], len(picks))
 
 

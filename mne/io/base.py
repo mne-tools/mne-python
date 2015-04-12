@@ -1489,6 +1489,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         return df
 
+    @deprecated('to_nitime will be removed in v0.10')
     def to_nitime(self, picks=None, start=None, stop=None,
                   use_first_samp=False, copy=True):
         """ Raw data as nitime TimeSeries
@@ -1522,6 +1523,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         data, _ = self[picks, start:stop]
         if copy:
             data = data.copy()
+        if picks is None:
+            picks = np.arange(len(self.info['ch_names']))
 
         start_time = self.index_as_time(start if start else 0, use_first_samp)
         raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
