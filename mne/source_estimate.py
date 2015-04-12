@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -966,6 +967,63 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
                 df.set_index(index, inplace=True)
 
         return df
+
+    @verbose
+    def estimate_snr(self, info, fwd, cov, verbose=None):
+        """Compute time-varying SNR
+
+        This function should only be used with source estimates with units
+        nA (i.e., MNE-like solutions, *not* dSPM or sLORETA).
+
+        Reference:
+        Goldenholz, D. M., Ahlfors, S. P., Hämäläinen, M. S., Sharon, D.,
+        Ishitobi, M., Vaina, L. M., & Stufflebeam, S. M. (2009).
+        Mapping the Signal-To-Noise-Ratios of Cortical Sources in
+        Magnetoencephalography and Electroencephalography.
+        Human Brain Mapping, 30(4), 1077–1086. doi:10.1002/hbm.20571
+
+        Parameters
+        ----------
+        info : instance of io.meas_info.Info
+            The measurement info.
+        fwd : instance of Forward
+            The forward solution used to create the source estimate.
+        cov : instance of Covariance
+            The noise covariance used to estimate the resting cortical
+            activations. Should be an evoked covariance, not empty room.
+
+        Returns
+        -------
+        snr_stc : instance of SourceEstimate
+            The source estimate with the SNR computed.
+
+        Notes
+        -----
+        We define the SNR in decibels for each source location at each
+        time point as:
+
+        .. math::
+
+            {\\rm SNR} = 10\\log_10[\\frac{a^2}{N}\\sum_k\\frac{b_k^2}{s_k^2}]
+
+        where :math:`\\b_k` is the signal on sensor :math:`k` provided by the
+        forward model for a source with unit amplitude, :math:`a` is the
+        source amplitude, :math:`N` is the number of sensors, and
+        :math:`s_k^2` is the noise variance on sensor :math:`k`.
+        """
+        from .forward import convert_forward_solution
+        from .minimum_norm.inverse import _prepare_forward
+        snr_stc = self.copy()
+        fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True)
+        _, A, cov, _, _ = _prepare_forward(fwd, info, cov)
+        N = A.shape[0]
+        b_k2 = (A * A).T
+        # Static estimate could also eventually be used:
+        # s_k2 = (s_rest ** 2) * np.diag(np.dot(A, A.T))
+        s_k2 = np.diag(cov['data'])
+        scaling = (1. / N) * np.sum(b_k2 / s_k2, axis=1)[:, np.newaxis]
+        snr_stc._data = (snr_stc.data * snr_stc.data) * scaling
+        return snr_stc
 
 
 class SourceEstimate(_BaseSourceEstimate):
