@@ -9,8 +9,7 @@ from __future__ import print_function
 import sys
 import os
 import shutil
-import mne
-from mne.utils import (verbose, logger)
+from mne.utils import (verbose, logger, run_subprocess)
 
 
 @verbose
@@ -101,7 +100,7 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
                 'SUBJECT = %s\n'
                 'Result dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(os.path.join(ws_dir, 'ws'))
-    mne.utils.run_subprocess(cmd, env=env, stdout=sys.stdout)
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     os.chdir(ws_dir)
     if os.path.exists(T1_mgz):
@@ -111,14 +110,14 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
         for s in surfaces:
             cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
                    '--surfout', s]
-            mne.utils.run_subprocess(cmd, env=env, stdout=sys.stdout)
+            run_subprocess(cmd, env=env, stdout=sys.stdout)
     os.chdir(bem_dir)
     if os.path.exists(subject+'-head.fif'):
         os.remove(subject+'-head.fif')
     cmd = ['mne_surf2bem', '--surf', os.path.join(ws_dir,
            subject+'_outer_skin_surface'), '--id', '4', '--fif',
            subject+'-head.fif']
-    mne.utils.run_subprocess(cmd, env=env, stdout=sys.stdout)
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
     logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))
 
 
