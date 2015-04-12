@@ -252,18 +252,10 @@ class GeneralizationAcrossTime(object):
         t_inds_ = [t[-1] for t in self.train_times['slices']]
         self.train_times['times_'] = epochs.times[t_inds_]
 
-        # Chunk X for parallelization
-        if n_jobs > 0:
-            n_chunk = n_jobs
-        else:
-            n_chunk = multiprocessing.cpu_count()
-
-        # Avoid splitting the data in more time chunk than there is time points
-        n_chunk = min(X.shape[2], n_chunk)
-
         # Parallel across training time
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
-        splits = np.array_split(self.train_times['slices'], n_chunk)
+        n_chunks = min(X.shape[2], n_jobs)
+        splits = np.array_split(self.train_times['slices'], n_chunks)
 
         def f(x):
             return np.unique(np.concatenate(x))
@@ -490,13 +482,11 @@ class GeneralizationAcrossTime(object):
             y_true = le.transform(y_true)
 
         # Preprocessing for parallelization:
-        if self.n_jobs > 0:
-            n_chunk = self.n_jobs
-        else:
-            n_chunk = multiprocessing.cpu_count()
-        # avoid bug if n_jobs < n_time
-        n_chunk = min(self.y_pred_.shape[2], n_chunk)
-        parallel, p_time_gen, _ = parallel_func(_score_loop, n_chunk)
+        n_jobs = self.n_jobs
+        if n_jobs == -1:
+            n_jobs = multiprocessing.cpu_count()
+        n_jobs = min(self.y_pred_.shape[2], n_jobs)
+        parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
         scores = parallel(p_time_gen(y_true, self.y_pred_[t_train], slices,
