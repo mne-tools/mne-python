@@ -8,6 +8,7 @@
 from __future__ import print_function
 import sys
 import os
+import os.path as op
 import shutil
 from mne.utils import (verbose, logger, run_subprocess)
 
@@ -57,21 +58,21 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
             raise RuntimeError('SUBJECTS_DIR environment variable not defined')
     env = os.environ.copy()
 
-    subject_dir = os.path.join(subjects_dir, subject)
-    mri_dir = os.path.join(subject_dir, 'mri')
-    T1_dir = os.path.join(mri_dir, volume)
-    T1_mgz = os.path.join(mri_dir, volume+'.mgz')
-    bem_dir = os.path.join(subject_dir, 'bem')
-    ws_dir = os.path.join(subject_dir, 'bem', 'watershed')
+    subject_dir = op.join(subjects_dir, subject)
+    mri_dir = op.join(subject_dir, 'mri')
+    T1_dir = op.join(mri_dir, volume)
+    T1_mgz = op.join(mri_dir, volume+'.mgz')
+    bem_dir = op.join(subject_dir, 'bem')
+    ws_dir = op.join(subject_dir, 'bem', 'watershed')
 
-    if not os.path.exists(subject_dir):
+    if not op.exists(subject_dir):
         raise RuntimeError('Could not find the MRI data directory "%s"'
                            % subject_dir)
-    if not os.path.exists(bem_dir):
+    if not op.exists(bem_dir):
         os.makedirs(bem_dir)
-    if (not os.path.exists(T1_dir) and not os.path.exists(T1_mgz)):
+    if (not op.exists(T1_dir) and not op.exists(T1_mgz)):
         raise RuntimeError('Could not find the MRI data')
-    if os.path.exists(ws_dir):
+    if op.exists(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the overwrite option to\
              recreate it' % ws_dir)
@@ -87,23 +88,23 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
                 subject_dir+'/mri/transforms/talairach_with_skull.lta']
     elif atlas:
         cmd += ['-atlas']
-    if os.path.exists(T1_mgz):
-        cmd += ['-useSRAS', '-surf', os.path.join(ws_dir, subject), T1_mgz,
-                os.path.join(ws_dir, 'ws')]
+    if op.exists(T1_mgz):
+        cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_mgz,
+                op.join(ws_dir, 'ws')]
     else:
-        cmd += ['-useSRAS', '-surf', os.path.join(ws_dir, subject), T1_dir,
-                os.path.join(ws_dir, 'ws')]
+        cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_dir,
+                op.join(ws_dir, 'ws')]
     # report and run
     logger.info('\nRunning mri_watershed for BEM segmentation with the '
                 'following parameters:\n\n'
                 'SUBJECTS_DIR = %s\n'
                 'SUBJECT = %s\n'
                 'Result dir = %s\n' % (subjects_dir, subject, ws_dir))
-    os.makedirs(os.path.join(ws_dir, 'ws'))
+    os.makedirs(op.join(ws_dir, 'ws'))
     run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     os.chdir(ws_dir)
-    if os.path.exists(T1_mgz):
+    if op.exists(T1_mgz):
         surfaces = [subject+'_brain_surface', subject+'_inner_skull_surface',
                     subject+'_outer_skull_surface', subject +
                     '_outer_skin_surface']
@@ -112,9 +113,9 @@ def mne_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
                    '--surfout', s]
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     os.chdir(bem_dir)
-    if os.path.exists(subject+'-head.fif'):
+    if op.exists(subject+'-head.fif'):
         os.remove(subject+'-head.fif')
-    cmd = ['mne_surf2bem', '--surf', os.path.join(ws_dir,
+    cmd = ['mne_surf2bem', '--surf', op.join(ws_dir,
            subject+'_outer_skin_surface'), '--id', '4', '--fif',
            subject+'-head.fif']
     run_subprocess(cmd, env=env, stdout=sys.stdout)
