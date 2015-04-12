@@ -145,8 +145,8 @@ def test_generalization_across_time():
         gat.fit(epochs)
 
     gat.score(epochs)
-    assert_true(len(gat.scores_) == len(gat.estimators_) == 8) # training time
-    assert_equal(len(gat.scores_[0]), 15) # testing time
+    assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
+    assert_equal(len(gat.scores_[0]), 15)  # testing time
 
     # Test start stop training
     gat = GeneralizationAcrossTime(train_times={'start': 0.090,
