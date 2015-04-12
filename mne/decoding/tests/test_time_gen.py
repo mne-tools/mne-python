@@ -1,4 +1,5 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Jean-Rémi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
