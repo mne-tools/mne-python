@@ -407,7 +407,7 @@ def rename_channels(info, mapping):
     assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
 
 
-def set_channels_type(info, mapping):
+def _set_channels_type(info, mapping):
     """Define the sensor type of channels.
 
     Note: The following sensor types are accepted:

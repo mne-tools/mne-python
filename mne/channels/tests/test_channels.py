@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne.channels import (rename_channels, set_channels_type,
+from mne.channels import (rename_channels, _set_channels_type,
                           read_ch_connectivity)
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
@@ -66,15 +66,15 @@ def test_set_channels_type():
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
-    assert_raises(ValueError, set_channels_type, info, mapping)
+    assert_raises(ValueError, _set_channels_type, info, mapping)
     # Test change to illegal channel type
     mapping = {'EOG 061': 'xxx'}
-    assert_raises(ValueError, set_channels_type, info, mapping)
+    assert_raises(ValueError, _set_channels_type, info, mapping)
     # Test type change
     info2 = deepcopy(info)
     info2['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     mapping = {'EEG 060': 'eog', 'EEG 059': 'ecg', 'EOG 061': 'seeg'}
-    set_channels_type(info2, mapping)
+    _set_channels_type(info2, mapping)
     assert_true(info2['chs'][374]['ch_name'] == 'EEG 060')
     assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
     assert_true(info2['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
