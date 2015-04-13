@@ -1,4 +1,5 @@
-# Author: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -144,7 +145,8 @@ def test_generalization_across_time():
         gat.fit(epochs)
 
     gat.score(epochs)
-    assert_equal(len(gat.scores_), 8)
+    assert_true(len(gat.scores_) == len(gat.estimators_) == 8)  # training time
+    assert_equal(len(gat.scores_[0]), 15)  # testing time
 
     # Test start stop training
     gat = GeneralizationAcrossTime(train_times={'start': 0.090,
