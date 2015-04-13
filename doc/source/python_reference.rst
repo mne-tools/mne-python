@@ -341,9 +341,6 @@ Manipulate channels and set sensors locations for processing and plotting:
    read_ch_connectivity
    equalize_channels
    rename_channels
-   get_channel_positions
-   set_channel_positions
-   _set_channels_type
 
 :py:mod:`mne.preprocessing`:
 

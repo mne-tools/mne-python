@@ -12,7 +12,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne.channels import (rename_channels, _set_channels_type,
+from mne.channels import (rename_channels, set_channels_type,
                           read_ch_connectivity)
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
@@ -62,31 +62,32 @@ def test_rename_channels():
 def test_set_channels_type():
     """Test Set Channels Type
     """
-    info = read_info(raw_fname)
+    raw = Raw(raw_fname)
     # Error Tests
     # Test channel name exists in ch_names
     mapping = {'EEG 160': 'EEG060'}
-    assert_raises(ValueError, _set_channels_type, info, mapping)
+    assert_raises(ValueError, raw.set_channel_types, mapping)
     # Test change to illegal channel type
     mapping = {'EOG 061': 'xxx'}
-    assert_raises(ValueError, _set_channels_type, info, mapping)
+    assert_raises(ValueError, raw.set_channel_types, mapping)
     # Test type change
-    info2 = deepcopy(info)
-    info2['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
+    raw2 = Raw(raw_fname)
+    raw2.info['bads'] = ['EEG 059', 'EEG 060', 'EOG 061']
     mapping = {'EEG 060': 'eog', 'EEG 059': 'ecg', 'EOG 061': 'seeg'}
-    _set_channels_type(info2, mapping)
-    assert_true(info2['chs'][374]['ch_name'] == 'EEG 060')
-    assert_true(info2['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
-    assert_true(info2['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][374]['coil_type'] == FIFF.FIFFV_COIL_NONE)
-    assert_true(info2['chs'][373]['ch_name'] == 'EEG 059')
-    assert_true(info2['chs'][373]['kind'] == FIFF.FIFFV_ECG_CH)
-    assert_true(info2['chs'][373]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][373]['coil_type'] == FIFF.FIFFV_COIL_NONE)
-    assert_true(info2['chs'][375]['ch_name'] == 'EOG 061')
-    assert_true(info2['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)
-    assert_true(info2['chs'][375]['unit'] == FIFF.FIFF_UNIT_V)
-    assert_true(info2['chs'][375]['coil_type'] == FIFF.FIFFV_COIL_EEG)
+    raw2.set_channel_types(mapping)
+    info = raw2.info
+    assert_true(info['chs'][374]['ch_name'] == 'EEG 060')
+    assert_true(info['chs'][374]['kind'] == FIFF.FIFFV_EOG_CH)
+    assert_true(info['chs'][374]['unit'] == FIFF.FIFF_UNIT_V)
+    assert_true(info['chs'][374]['coil_type'] == FIFF.FIFFV_COIL_NONE)
+    assert_true(info['chs'][373]['ch_name'] == 'EEG 059')
+    assert_true(info['chs'][373]['kind'] == FIFF.FIFFV_ECG_CH)
+    assert_true(info['chs'][373]['unit'] == FIFF.FIFF_UNIT_V)
+    assert_true(info['chs'][373]['coil_type'] == FIFF.FIFFV_COIL_NONE)
+    assert_true(info['chs'][375]['ch_name'] == 'EOG 061')
+    assert_true(info['chs'][375]['kind'] == FIFF.FIFFV_SEEG_CH)
+    assert_true(info['chs'][375]['unit'] == FIFF.FIFF_UNIT_V)
+    assert_true(info['chs'][375]['coil_type'] == FIFF.FIFFV_COIL_EEG)
 
 
 def test_read_ch_connectivity():

@@ -89,6 +89,8 @@ Changelog
 
    - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
 
+   - `rename_channels` and `set_channel_types` added as methods to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_ 
+
 
 BUG
 ~~~

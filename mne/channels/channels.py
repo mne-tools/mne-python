@@ -186,6 +186,88 @@ class SetChannelsMixin(object):
                        % name)
                 raise ValueError(msg)
 
+    def set_channel_types(self, mapping):
+        """Define the sensor type of channels.
+
+        Note: The following sensor types are accepted:
+            ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst
+
+        Parameters
+        ----------
+        mapping : dict
+            a dictionary mapping a channel to a sensor type (str)
+            {'EEG061': 'eog'}.
+        """
+        human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
+                      'eeg': FIFF.FIFFV_EEG_CH,
+                      'emg': FIFF.FIFFV_EMG_CH,
+                      'eog': FIFF.FIFFV_EOG_CH,
+                      'exci': FIFF.FIFFV_EXCI_CH,
+                      'ias': FIFF.FIFFV_IAS_CH,
+                      'misc': FIFF.FIFFV_MISC_CH,
+                      'resp': FIFF.FIFFV_RESP_CH,
+                      'seeg': FIFF.FIFFV_SEEG_CH,
+                      'stim': FIFF.FIFFV_STIM_CH,
+                      'syst': FIFF.FIFFV_SYST_CH}
+
+        human2unit = {'ecg': FIFF.FIFF_UNIT_V,
+                      'eeg': FIFF.FIFF_UNIT_V,
+                      'emg': FIFF.FIFF_UNIT_V,
+                      'eog': FIFF.FIFF_UNIT_V,
+                      'exci': FIFF.FIFF_UNIT_NONE,
+                      'ias': FIFF.FIFF_UNIT_NONE,
+                      'misc': FIFF.FIFF_UNIT_NONE,
+                      'resp': FIFF.FIFF_UNIT_NONE,
+                      'seeg': FIFF.FIFF_UNIT_V,
+                      'stim': FIFF.FIFF_UNIT_NONE,
+                      'syst': FIFF.FIFF_UNIT_NONE}
+
+        unit2human = {FIFF.FIFF_UNIT_V: 'V',
+                      FIFF.FIFF_UNIT_NONE: 'NA'}
+        ch_names = info['ch_names']
+
+        # first check and assemble clean mappings of index and name
+        for ch_name, ch_type in mapping.items():
+            if ch_name not in ch_names:
+                raise ValueError("This channel name (%s) doesn't exist in info."
+                                 % ch_name)
+
+            c_ind = ch_names.index(ch_name)
+            if ch_type not in human2fiff:
+                raise ValueError('This function cannot change to this '
+                                 'channel type: %s. Accepted channel types are '
+                                 '%s.' % (ch_type, ", ".join(human2unit.keys())))
+            # Set sensor type
+            info['chs'][c_ind]['kind'] = human2fiff[ch_type]
+            unit_old = info['chs'][c_ind]['unit']
+            unit_new = human2unit[ch_type]
+            if unit_old != human2unit[ch_type]:
+                warnings.warn("The unit for Channel %s has changed "
+                              "from %s to %s." % (ch_name,
+                                                  unit2human[unit_old],
+                                                  unit2human[unit_new]))
+            info['chs'][c_ind]['unit'] = human2unit[ch_type]
+            if ch_type in ['eeg', 'seeg']:
+                info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+            else:
+                info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+
+    def rename_channels(self, mapping):
+        """Rename channels.
+
+        Note : The ability to change sensor types has been deprecated in favor of
+        `set_channels_type`. Please use this function if you would changing or
+        defining sensor type.
+
+
+        Parameters
+        ----------
+        mapping : dict
+            a dictionary mapping the old channel to a new channel name
+            e.g. {'EEG061' : 'EEG161'}.
+        """
+        rename_channels(self.info, mapping)
+
 
 class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR
@@ -405,75 +487,6 @@ def rename_channels(info, mapping):
 
     # assert channel names are unique
     assert len(info['ch_names']) == np.unique(info['ch_names']).shape[0]
-
-
-def _set_channels_type(info, mapping):
-    """Define the sensor type of channels.
-
-    Note: The following sensor types are accepted:
-        ecg, eeg, emg, eog, exci, ias, misc, resp, seeg, stim, syst
-
-    Parameters
-    ----------
-    info : dict
-        Measurement info.
-    mapping : dict
-        a dictionary mapping a channel to a sensor type (str)
-        {'EEG061': 'eog'}.
-    """
-    human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
-                  'eeg': FIFF.FIFFV_EEG_CH,
-                  'emg': FIFF.FIFFV_EMG_CH,
-                  'eog': FIFF.FIFFV_EOG_CH,
-                  'exci': FIFF.FIFFV_EXCI_CH,
-                  'ias': FIFF.FIFFV_IAS_CH,
-                  'misc': FIFF.FIFFV_MISC_CH,
-                  'resp': FIFF.FIFFV_RESP_CH,
-                  'seeg': FIFF.FIFFV_SEEG_CH,
-                  'stim': FIFF.FIFFV_STIM_CH,
-                  'syst': FIFF.FIFFV_SYST_CH}
-
-    human2unit = {'ecg': FIFF.FIFF_UNIT_V,
-                  'eeg': FIFF.FIFF_UNIT_V,
-                  'emg': FIFF.FIFF_UNIT_V,
-                  'eog': FIFF.FIFF_UNIT_V,
-                  'exci': FIFF.FIFF_UNIT_NONE,
-                  'ias': FIFF.FIFF_UNIT_NONE,
-                  'misc': FIFF.FIFF_UNIT_NONE,
-                  'resp': FIFF.FIFF_UNIT_NONE,
-                  'seeg': FIFF.FIFF_UNIT_V,
-                  'stim': FIFF.FIFF_UNIT_NONE,
-                  'syst': FIFF.FIFF_UNIT_NONE}
-
-    unit2human = {FIFF.FIFF_UNIT_V: 'V',
-                  FIFF.FIFF_UNIT_NONE: 'NA'}
-    ch_names = info['ch_names']
-
-    # first check and assemble clean mappings of index and name
-    for ch_name, ch_type in mapping.items():
-        if ch_name not in ch_names:
-            raise ValueError("This channel name (%s) doesn't exist in info."
-                             % ch_name)
-
-        c_ind = ch_names.index(ch_name)
-        if ch_type not in human2fiff:
-            raise ValueError('This function cannot change to this '
-                             'channel type: %s. Accepted channel types are '
-                             '%s.' % (ch_type, ", ".join(human2unit.keys())))
-        # Set sensor type
-        info['chs'][c_ind]['kind'] = human2fiff[ch_type]
-        unit_old = info['chs'][c_ind]['unit']
-        unit_new = human2unit[ch_type]
-        if unit_old != human2unit[ch_type]:
-            warnings.warn("The unit for Channel %s has changed "
-                          "from %s to %s." % (ch_name,
-                                              unit2human[unit_old],
-                                              unit2human[unit_new]))
-        info['chs'][c_ind]['unit'] = human2unit[ch_type]
-        if ch_type in ['eeg', 'seeg']:
-            info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
-        else:
-            info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
 
 
 def _recursive_flatten(cell, dtype):
