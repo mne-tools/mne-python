@@ -52,7 +52,7 @@ def init_cuda(ignore_config=False):
     # Triage possible errors for informative messaging
     _cuda_capable = False
     try:
-        from pycuda import gpuarray, driver
+        from pycuda import gpuarray, driver  # noqa
         from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         logger.warning('module pycuda not found, CUDA not enabled')
