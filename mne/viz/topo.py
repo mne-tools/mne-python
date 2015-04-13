@@ -864,7 +864,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     """
     scalings = _mutable_defaults(('scalings', scalings))[0]
     data = epochs.get_data()
-    from numpy import percentile
     if vmin is None:
         vmin = -np.max(np.abs(data))
     if vmax is None:
