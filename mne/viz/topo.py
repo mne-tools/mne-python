@@ -293,7 +293,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
                   for x in np.linspace(*endpoints, num=5)][1:-1]
         if plot_type is None:
             yticks = list(set([int(x) for x in yticks]))
-        if 0.0 in yticks:# and (plot_type == 'evoked' or endpoints[0] == 0):
+        if 0.0 in yticks:  # and (plot_type == 'evoked' or endpoints[0] == 0):
             del yticks[yticks.index(0.0)]
     if any(np.abs(x) > 20 for x in yticks):
         yticks = [round(5 * round(float(x) / 5), 2)
@@ -377,7 +377,7 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax)[1:-1:2])
-        ax = plt.axes((0.875  * layout_scale, 0.75  * layout_scale,
+        ax = plt.axes((0.875 * layout_scale, 0.75 * layout_scale,
                       0.1 * layout_scale, 0.25 * layout_scale))
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
@@ -388,11 +388,13 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     if external_legend is True:
         legend_ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
 
-        #if plot_type == 'evoked':
+        # if plot_type == 'evoked':
         legend_ax.plot((tmin, tmax), ylim_dict["dummy"])
         legend_ax.lines.pop()
-        #else:
-#            legend_ax.imshow(np.zeros((2,2)), extent=[tmin, tmax, 0, ylim_dict["dummy"]], alpha=0, aspect='auto', origin='lower')
+        # else:
+        #    legend_ax.imshow(np.zeros((2,2)), extent=[tmin, tmax, 0,
+        #                     ylim_dict["dummy"]], alpha=0, aspect='auto',
+        #                     origin='lower')
 
         _plot_spines(legend_ax, (tmin, tmax), ylim_dict["dummy"],
                      x_label, y_label, xticks, yticks, linewidth,
