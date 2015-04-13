@@ -5,8 +5,6 @@
 #
 # License: BSD (3-clause)
 
-import multiprocessing
-
 import numpy as np
 import warnings
 from scipy import stats
