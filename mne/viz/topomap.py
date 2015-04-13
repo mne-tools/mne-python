@@ -88,7 +88,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
     if has_virt_ch is True:
         ch_type = 'mag' if ch_type == 'grad' else 'grad'
 
-    return picks, pos, merge_grads, ch_names, ch_type
+    return picks, pos, merge_grads, ch_names, ch_type, has_virt_ch
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -672,8 +672,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
-    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
-                                                                layout)
+    data_picks, pos, merge_grads, names, _, _ = _prepare_topo_plot(ica,
+                                                                   ch_type,
+                                                                   layout)
     pos, outlines = _check_outlines(pos, outlines)
     if outlines not in (None, 'head'):
         image_mask, pos = _make_image_mask(outlines, pos, res)
@@ -826,8 +827,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
-                                                           layout)
+    picks, pos, merge_grads, names, _, _ = _prepare_topo_plot(tfr, ch_type,
+                                                              layout)
     if not show_names:
         names = None
 
@@ -917,7 +918,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
-        layout is automatically generated from the sensor locations.
+        layout is automatically generated from the sensor locations. For
+        interpolated 'grad', the absolute value is plotted.
     vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -1020,7 +1022,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
 
-    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
+    picks, pos, merge_grads, names, ch_type, has_virt_ch = _prepare_topo_plot(
         evoked, ch_type, layout)
 
     if ch_type.startswith('planar'):
@@ -1074,6 +1076,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
+
+    if has_virt_ch is True and ch_type == 'grad':
+        data = np.abs(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 

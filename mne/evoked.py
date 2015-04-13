@@ -455,7 +455,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             instant.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. For 'grad', the gradiometers are collec-
-            ted in pairs and the RMS for each pair is plotted.
+            ted in pairs and the RMS for each pair is plotted. For interpolated
+            'grad', the absolute value is plotted.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
