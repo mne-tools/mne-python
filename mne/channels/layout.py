@@ -995,8 +995,10 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     -------
     xy : ndarray (N x 2)
         The xy coordinates of sensor locations.
-    w, h : float
-        The width and height of each sensor's axis (between 0 and 1)
+    w : float
+        The width of each sensor's axis (between 0 and 1)
+    h : float
+        The height of each sensor's axis (between 0 and 1)
     pad : float
         Portion of the box to reserve for padding. The value can range between
         0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).
