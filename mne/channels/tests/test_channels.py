@@ -12,8 +12,7 @@ from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
 
-from mne.channels import (rename_channels, set_channels_type,
-                          read_ch_connectivity)
+from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
 from mne.io.constants import FIFF
