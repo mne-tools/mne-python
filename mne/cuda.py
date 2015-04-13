@@ -4,25 +4,33 @@
 
 import numpy as np
 from scipy.fftpack import fft, ifft
-try:
-    import pycuda.gpuarray as gpuarray
-    from pycuda.driver import mem_get_info
-    from scikits.cuda import fft as cudafft
-except (ImportError, OSError):
-    # need OSError because scikits.cuda throws it if cufft not found
-    pass
 
-from .utils import sizeof_fmt, logger
+from .utils import sizeof_fmt, logger, get_config
 
 
 # Support CUDA for FFTs; requires scikits.cuda and pycuda
-cuda_capable = False
-cuda_multiply_inplace_c128 = None
-cuda_halve_c128 = None
-cuda_real_c128 = None
+_cuda_capable = False
+_multiply_inplace_c128 = _halve_c128 = _real_c128 = None
 
 
-def init_cuda():
+def get_cuda_memory():
+    """Get the amount of free memory for CUDA operations
+
+    Returns
+    -------
+    memory : str
+        The amount of available memory as a human-readable string.
+    """
+    if not _cuda_capable:
+        logger.warning('CUDA not enabled, returning zero for memory')
+        mem = 0
+    else:
+        from pycuda.driver import mem_get_info
+        mem = mem_get_info()[0]
+    return sizeof_fmt(mem)
+
+
+def init_cuda(ignore_config=False):
     """Initialize CUDA functionality
 
     This function attempts to load the necessary interfaces
@@ -31,22 +39,21 @@ def init_cuda():
 
     If the config var (set via mne.set_config or in ENV)
     MNE_USE_CUDA == 'true', this function will be executed when
-    importing mne. If this variable is not set, this function can
-    be manually executed.
+    the first CUDA setup is performed. If this variable is not
+    set, this function can be manually executed.
     """
-    global cuda_capable
-    global cuda_multiply_inplace_c128
-    global cuda_halve_c128
-    global cuda_real_c128
-    if cuda_capable is True:
-        logger.info('CUDA previously enabled, currently %s available memory'
-                    % sizeof_fmt(mem_get_info()[0]))
+    global _cuda_capable, _multiply_inplace_c128, _halve_c128, _real_c128
+    if _cuda_capable:
+        return
+    if not ignore_config and (get_config('MNE_USE_CUDA', 'false').lower() !=
+                              'true'):
+        logger.info('CUDA not enabled in config, skipping initialization')
         return
     # Triage possible errors for informative messaging
-    cuda_capable = False
+    _cuda_capable = False
     try:
-        import pycuda.gpuarray
-        import pycuda.driver
+        from pycuda import gpuarray, driver  # noqa
+        from pycuda.elementwise import ElementwiseKernel
     except ImportError:
         logger.warning('module pycuda not found, CUDA not enabled')
         return
@@ -65,16 +72,13 @@ def init_cuda():
                        'enabled')
         return
 
-    # Make our multiply inplace kernel
-    from pycuda.elementwise import ElementwiseKernel
-
     # let's construct our own CUDA multiply in-place function
-    cuda_multiply_inplace_c128 = ElementwiseKernel(
+    _multiply_inplace_c128 = ElementwiseKernel(
         'pycuda::complex<double> *a, pycuda::complex<double> *b',
         'b[i] *= a[i]', 'multiply_inplace')
-    cuda_halve_c128 = ElementwiseKernel(
+    _halve_c128 = ElementwiseKernel(
         'pycuda::complex<double> *a', 'a[i] /= 2.0', 'halve_value')
-    cuda_real_c128 = ElementwiseKernel(
+    _real_c128 = ElementwiseKernel(
         'pycuda::complex<double> *a', 'a[i] = real(a[i])', 'real_value')
 
     # Make sure we can use 64-bit FFTs
@@ -84,10 +88,9 @@ def init_cuda():
         logger.warning('Device does not support 64-bit FFTs, '
                        'CUDA not enabled')
         return
-    cuda_capable = True
+    _cuda_capable = True
     # Figure out limit for CUDA FFT calculations
-    logger.info('Enabling CUDA with %s available memory'
-                % sizeof_fmt(mem_get_info()[0]))
+    logger.info('Enabling CUDA with %s available memory' % get_cuda_memory())
 
 
 ###############################################################################
@@ -140,7 +143,10 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
     cuda_fft_len = int((n_fft - (n_fft % 2)) / 2 + 1)
     if n_jobs == 'cuda':
         n_jobs = 1
-        if cuda_capable:
+        init_cuda()
+        if _cuda_capable:
+            from pycuda import gpuarray
+            from scikits.cuda import fft as cudafft
             # set up all arrays necessary for CUDA
             # try setting up for float64
             try:
@@ -159,7 +165,7 @@ def setup_cuda_fft_multiply_repeated(n_jobs, h_fft):
                             '(arrays may be too large), falling back to '
                             'n_jobs=1')
         else:
-            logger.info('CUDA not used, CUDA has not been initialized, '
+            logger.info('CUDA not used, CUDA could not be initialized, '
                         'falling back to n_jobs=1')
     return n_jobs, cuda_dict, h_fft
 
@@ -185,10 +191,11 @@ def fft_multiply_repeated(h_fft, x, cuda_dict=dict(use_cuda=False)):
         # do the fourier-domain operations
         x = np.real(ifft(h_fft * fft(x), overwrite_x=True)).ravel()
     else:
+        from scikits.cuda import fft as cudafft
         # do the fourier-domain operations, results in second param
         cuda_dict['x'].set(x.astype(np.float64))
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
-        cuda_multiply_inplace_c128(h_fft, cuda_dict['x_fft'])
+        _multiply_inplace_c128(h_fft, cuda_dict['x_fft'])
         # If we wanted to do it locally instead of using our own kernel:
         # cuda_seg_fft.set(cuda_seg_fft.get() * h_fft)
         cudafft.ifft(cuda_dict['x_fft'], cuda_dict['x'],
@@ -251,8 +258,11 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
     cuda_fft_len_y = int((n_fft_y - (n_fft_y % 2)) // 2 + 1)
     if n_jobs == 'cuda':
         n_jobs = 1
-        if cuda_capable:
+        init_cuda()
+        if _cuda_capable:
             # try setting up for float64
+            from pycuda import gpuarray
+            from scikits.cuda import fft as cudafft
             try:
                 # do the IFFT normalization now so we don't have to later
                 W = gpuarray.to_gpu(W[:cuda_fft_len_x]
@@ -271,7 +281,7 @@ def setup_cuda_fft_resample(n_jobs, W, new_len):
                             '(arrays may be too large), falling back to '
                             'n_jobs=1')
         else:
-            logger.info('CUDA not used, CUDA has not been initialized, '
+            logger.info('CUDA not used, CUDA could not be initialized, '
                         'falling back to n_jobs=1')
     return n_jobs, cuda_dict, W
 
@@ -314,18 +324,19 @@ def fft_resample(x, W, new_len, npad, to_remove,
         y_fft[sl_2] = x_fft[sl_2]
         y = np.real(ifft(y_fft, overwrite_x=True)).ravel()
     else:
+        from scikits.cuda import fft as cudafft
         cuda_dict['x'].set(np.concatenate((x, np.zeros(max(new_len - old_len,
                                                            0), x.dtype))))
         # do the fourier-domain operations, results put in second param
         cudafft.fft(cuda_dict['x'], cuda_dict['x_fft'], cuda_dict['fft_plan'])
-        cuda_multiply_inplace_c128(W, cuda_dict['x_fft'])
+        _multiply_inplace_c128(W, cuda_dict['x_fft'])
         # This is not straightforward, but because x_fft and y_fft share
         # the same data (and only one half of the full DFT is stored), we
         # don't have to transfer the slice like we do in scipy. All we
         # need to worry about is the Nyquist component, either halving it
         # or taking just the real component...
         use_len = new_len if shorter else old_len
-        func = cuda_real_c128 if shorter else cuda_halve_c128
+        func = _real_c128 if shorter else _halve_c128
         if use_len % 2 == 0:
             nyq = int((use_len - (use_len % 2)) // 2)
             func(cuda_dict['x_fft'], slice=slice(nyq, nyq + 1))

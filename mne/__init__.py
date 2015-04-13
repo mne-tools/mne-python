@@ -102,7 +102,3 @@ from . import realtime
 # initialize logging
 set_log_level(None, False)
 set_log_file()
-
-# initialize CUDA
-if get_config('MNE_USE_CUDA', 'false').lower() == 'true':
-    cuda.init_cuda()
