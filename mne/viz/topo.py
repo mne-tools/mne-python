@@ -298,8 +298,8 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     if any(np.abs(x) > 20 for x in yticks):
         yticks = [round(5 * round(float(x) / 5), 2)
                   for x in np.linspace(*endpoints, num=len(yticks))]
-        yticks = [(y+5 if y < endpoints[0] else y) for y in yticks]
-        yticks = [(y-5 if y > endpoints[1] else y) for y in yticks]
+        yticks = [(y + 5 if y < endpoints[0] else y) for y in yticks]
+        yticks = [(y - 5 if y > endpoints[1] else y) for y in yticks]
 
     from matplotlib.colors import colorConverter
     import colorsys
@@ -461,15 +461,15 @@ def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
     """ Aux function to show time series on topo """
     import matplotlib.pyplot as plt
     picker_flag = False
-    for i, (data_, color_) in enumerate(zip(data, color)):
+    for ii, (data_, color_) in enumerate(zip(data, color)):
         if not picker_flag:
             # use large tol for picker so we can click anywhere in the axes
             ax.plot(times, data_[ch_idx], color_, picker=1e9,
-                    linewidth=linewidth, zorder=20+i)
+                    linewidth=linewidth, zorder=20 + ii)
             picker_flag = True
         else:
             ax.plot(times, data_[ch_idx], color_, linewidth=linewidth,
-                    zorder=20+i)
+                    zorder=20 + ii)
     if vline:
         cs = cycle(['pink', 'purple', 'green'])
         [plt.axvline(x, color=c,
