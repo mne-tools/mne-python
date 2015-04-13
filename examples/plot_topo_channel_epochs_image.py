@@ -47,9 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 ###############################################################################
 # Show event related fields images
 
-layout = mne.find_layout(epochs.info, 'meg')  # use full layout
-
 title = 'ERF images - MNE sample data'
-mne.viz.plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
+mne.viz.plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
                                colorbar=True, title=title)
 plt.show()

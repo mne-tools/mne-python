@@ -51,12 +51,17 @@ def my_callback(ax, ch_idx):
     ax.set_xlabel = 'Frequency (Hz)'
     ax.set_ylabel = 'Power (dB)'
 
-for ax, idx in iter_topography(raw.info,
-                               fig_facecolor='white',
-                               axis_facecolor='white',
-                               axis_spinecolor='white',
-                               on_pick=my_callback):
-    ax.plot(psds[idx], color='red')
+for ax in iter_topography(info=raw.info, layout_scale=0.945,
+                          fig_facecolor='white',
+                          axis_facecolor='white',
+                          axis_spinecolor='white',
+                          on_pick=my_callback):
+    ax.plot(psds[ax._mne_ch_idx], color='red')
+    plt.setp(list(ax.spines.values()), color='w')
+    ax.set_xticklabels([])
+    ax.set_yticklabels([])
+    plt.setp(ax.get_xticklines(), visible=False)
+    plt.setp(ax.get_yticklines(), visible=False)
 
 plt.gcf().suptitle('Power spectral densities')
 plt.show()
