@@ -109,7 +109,7 @@ def iter_topography(pos=None, info=None, on_pick=None, fig=None,
             yield ax
 
 
-def _scale_layout(layout, layout_scale, ybound, zero=None):
+def _scale_layout(layout, layout_scale, ybound=0, zero=0):
     """Helper function to set scaling factor so subplots don't overlap"""
 
     pos = layout.pos.copy()
@@ -175,9 +175,6 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
 
     ax.patch.set_alpha(0)
 
-    ax.plot(xlim, [y for y in ylim])
-    ax.lines.pop()
-
     if ch_name is not None:
         ax.set_title(ch_name)
         if plot_type == 'evoked':
@@ -185,8 +182,10 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         else:
             ax.title.set_position([0.8, 0.85])
 
-    ax.spines['right'].set_color('none')
-    ax.spines['top'].set_color('none')
+#    ax.spines['right'].set_color('none')
+#    ax.spines['top'].set_color('none')
+    ax.spines['right'].cla()
+    ax.spines['top'].cla()
 
     for pos in ['left', 'bottom']:
         if plot_type == 'evoked':
@@ -195,15 +194,20 @@ def _plot_spines(ax, xlim, ylim, x_label, y_label, xticks, yticks,
         ax.spines[pos].set_color(spine_color)
         ax.spines[pos].set_linewidth(linewidth)
 
+    if plot_type is not 'evoked':
+        ax.spines['bottom'].set_position(('data', ylim[0]))
+
     if plot_type == 'evoked':
         ax.spines['left'].set_bounds(yticks[0], yticks[-1])
+    else:
+        ax.spines['left'].set_bounds(*ylim)
 
     if plot_unit_labels is True:
         ax.set_ylabel(y_label)
         ax.set_xlabel(x_label)
         if plot_type != 'evoked':
-            ax.yaxis.set_label_coords(-0.35, 0.5)
-            ax.xaxis.set_label_coords(0.5, -0.35)
+            ax.yaxis.set_label_coords(-0.25, 0.5)
+            ax.xaxis.set_label_coords(0.5, -0.3)
         elif plot_type == 'evoked':
             ax.yaxis.set_label_coords(-0.25, 0.5)
             ax.xaxis.set_label_coords(0.5, -0.15)
@@ -264,30 +268,38 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
     on_pick = partial(show_func, tmin=tmin, tmax=tmax, vmin=vmin,
                       vmax=vmax, ylim=ylim, colorbar=colorbar)
 
-    if isinstance(xticks, int):
+    if xticks == 2:
+        xticks = [0.0, (tmin if np.abs(tmin) > np.abs(tmax) else tmax) / 2]
+        xticks = [round(.05 * round(float(x) / .05), 2) for x in xticks]
+    elif isinstance(xticks, int):
         endpoints = times[0], times[-1]
         xticks = [round(.05 * round(float(x) / .05), 2)
                   for x in np.linspace(*endpoints, num=xticks + 2)][1:-1]
-        if 0.0 in xticks and plot_type == 'evoked':
+        if 0.0 in xticks and plot_type == 'evoked' and len(xticks) > 1:
             del xticks[xticks.index(0.0)]
-        if plot_type is None:
-            xticks = list(set([int(x) for x in xticks]))
+#        if plot_type is None:
+#            xticks = list(set([float(x) for x in xticks]))
+        if isinstance(xticks, (float, int)):
+            xticks = list(xticks)
 
     if isinstance(ylim_dict, (list, tuple)):
         from collections import defaultdict
         ys = [y for y in ylim_dict]
         ylim_dict = defaultdict(lambda: ys)
 
-    if yticks is None:
-        yticks = list(np.round(np.linspace(np.min(ylim_dict["dummy"]),
-                                           np.max(ylim_dict["dummy"]),
-                                           num=5) * 2) / 2)[1:-1]
+    if yticks is None:  # it would be better to put rounding 1 level up
+        endpoints = (np.min(ylim_dict["dummy"]), np.max(ylim_dict["dummy"]))
+        yticks = [round(.05 * round(float(x) / .05), 2)
+                  for x in np.linspace(*endpoints, num=5)][1:-1]
         if plot_type is None:
             yticks = list(set([int(x) for x in yticks]))
-        if 0.0 in yticks and plot_type == 'evoked':
+        if 0.0 in yticks:# and (plot_type == 'evoked' or endpoints[0] == 0):
             del yticks[yticks.index(0.0)]
     if any(np.abs(x) > 20 for x in yticks):
-        yticks = [int(5 * round(float(x) / 5)) for x in yticks]
+        yticks = [round(5 * round(float(x) / 5), 2)
+                  for x in np.linspace(*endpoints, num=len(yticks))]
+        yticks = [(y+5 if y < endpoints[0] else y) for y in yticks]
+        yticks = [(y-5 if y > endpoints[1] else y) for y in yticks]
 
     from matplotlib.colors import colorConverter
     import colorsys
@@ -303,23 +315,24 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
         show_names = True
 
     if layout_scale is None or layout_scale is 'auto':
-        if plot_type == 'evoked':
-            if len(info["ch_names"]) < 35:
-                layout_scale = 'wide'
-            elif len(info["ch_names"]) >= 35:
-                layout_scale = 'tight'
-        else:
+        if len(info["ch_names"]) < 35:
             layout_scale = 'wide'
+        elif len(info["ch_names"]) >= 35:
+            layout_scale = 'tight'
 
-    zero = (yticks[0] / ylim_dict["dummy"][0]
-            if plot_type == 'evoked' else None)
+    if plot_type is 'evoked':
+        zero = tmin / (tmax - tmin)
+        ybound = yticks[0] / ylim_dict["dummy"][0]
+    else:
+        zero = 0
+        ybound = 0
 
-    pos, layout_scale = _scale_layout(layout, layout_scale,
-                                      tmin / (tmax - tmin), zero=zero)
+    pos, layout_scale = _scale_layout(layout, layout_scale, ybound, zero)
     if fontsize is None:
         fontsize = 9 * layout_scale
 
     my_topo_plot = iter_topography(pos=pos, info=info, on_pick=on_pick,
+                                   layout=layout,
                                    fig=fig, axis_spinecolor=border,
                                    axis_facecolor=axis_facecolor,
                                    fig_facecolor=fig_facecolor)
@@ -357,14 +370,15 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
             plt.ylim(*ylim_)
 
     if title is not None:
-        plt.figtext(0.03, 0.9 * layout_scale, title, color=font_color,
+        plt.figtext(0.01, 1 * layout_scale, title, color=font_color,
                     fontsize=fontsize * 2)
 
     if colorbar:
         norm = normalize_colors(vmin=vmin, vmax=vmax)
         sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array(np.linspace(vmin, vmax)[1:-1:2])
-        ax = plt.subplot(399)
+        ax = plt.axes((0.875  * layout_scale, 0.75  * layout_scale,
+                      0.1 * layout_scale, 0.25 * layout_scale))
         cb = fig.colorbar(sm, ax=ax)
         cb_yticks = plt.getp(cb.ax.axes, 'yticklabels')
         plt.setp(cb_yticks, color=spine_color, fontsize=fontsize)
@@ -373,6 +387,12 @@ def _plot_topo(info=None, times=None, show_func=None, layout=None,
 
     if external_legend is True:
         legend_ax = plt.axes((0.025, 0.025, pos[0][2], pos[0][3]))
+
+        #if plot_type == 'evoked':
+        legend_ax.plot((tmin, tmax), ylim_dict["dummy"])
+        legend_ax.lines.pop()
+        #else:
+#            legend_ax.imshow(np.zeros((2,2)), extent=[tmin, tmax, 0, ylim_dict["dummy"]], alpha=0, aspect='auto', origin='lower')
 
         _plot_spines(legend_ax, (tmin, tmax), ylim_dict["dummy"],
                      x_label, y_label, xticks, yticks, linewidth,
@@ -465,7 +485,7 @@ def plot_topo(evoked, layout=None, layout_scale='auto', color=None,
               border='none', ylim=None, scalings=None, units=None, title=None,
               proj=False, vline=None, fig_facecolor='w', axis_facecolor=None,
               font_color=None, x_label='Time (s)', show_names=None,
-              legend='external', xticks=2, yticks=None,
+              legend='external', xticks=1, yticks=None,
               linewidth=1, fontsize=9, conditions=None):
     """Plot 2D topography of evoked responses.
 
@@ -775,10 +795,10 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
-                           layout_scale='wide', title=None, scalings=None,
+                           layout_scale='tight', title=None, scalings=None,
                            border='none', fig_facecolor='k', font_color=None,
-                           y_label='Epoch', show_names=None,
-                           legend='internal', linewidth=1, fontsize=9):
+                           y_label='Epoch', show_names=None, xticks=2,
+                           legend='both', linewidth=1, fontsize=9):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -842,10 +862,11 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     """
     scalings = _mutable_defaults(('scalings', scalings))[0]
     data = epochs.get_data()
+    from numpy import percentile
     if vmin is None:
-        vmin = data.min()
+        vmin = -np.max(np.abs(data))
     if vmax is None:
-        vmax = data.max()
+        vmax = np.max(np.abs(data))
     if layout is None:
         from ..channels.layout import find_layout
         layout = find_layout(epochs.info)
@@ -869,7 +890,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                                                   ['external', 'both']
                                                   else False),
                                show_names=show_names,
-                               linewidth=linewidth,
+                               linewidth=linewidth, xticks=xticks,
                                fontsize=fontsize)
 
     return fig

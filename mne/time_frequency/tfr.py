@@ -696,7 +696,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                   legend='internal',
                   show_names=None,
                   linewidth=None,
-                  fontsize=9):
+                  fontsize=9,
+                  xticks=2):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -789,8 +790,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                    layout=layout, colorbar=colorbar,
                                    vmin=vmin, vmax=vmax, cmap=cmap,
                                    layout_scale=layout_scale, title=title,
-                                   border=border, x_label='Time (ms)',
-                                   y_label='Freq. (Hz)',
+                                   border=border, x_label='Time (s)',
+                                   y_label='Freq. (Hz)', xticks=xticks,
                                    fig_facecolor=fig_facecolor,
                                    font_color=font_color,
                                    ylim_dict=(min(freqs), max(freqs)),

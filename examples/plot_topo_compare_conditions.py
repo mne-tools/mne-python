@@ -61,13 +61,7 @@ evokeds = [epochs[name].average() for name in ('audio_l', 'visual_r')]
 ###############################################################################
 # Show topography for two different conditions
 
-colors = 'yellow', 'green'
 title = 'MNE sample data - left auditory and visual'
 
-plot_topo(evokeds, color=colors, title=title)
-
-conditions = [e.comment for e in evokeds]
-for cond, col, pos in zip(conditions, colors, (0.025, 0.07)):
-    plt.figtext(0.775, pos, cond, color=col, fontsize=12)
-
+plot_topo(evokeds, conditions=[e.comment for e in evokeds], title=title)
 plt.show()
