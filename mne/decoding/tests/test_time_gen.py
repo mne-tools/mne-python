@@ -198,14 +198,21 @@ def test_generalization_across_time():
 
     # Test combinations of complex scenarios
     # 2 or more distinct classes
-    n_classes = [2]  # 4 tested
+    n_classes = [2, 4]  # 4 tested
     # nicely ordered labels or not
     y = epochs.events[:, 2]
     y[len(y) // 2:] += 2
     ys = (y, y + 1000)
-    # Classifier and regressor
-    svc = SVC(C=1, kernel='linear', probability=True)
-    clfs = [svc]  # SVR tested
+    # Univariate and multivariate prediction
+    svc = SVC(C=1, kernel='linear')
+
+    class SVC_proba(SVC):
+        def predict(self, x):
+            probas = super(SVC_proba, self).predict_proba(x)
+            return probas[:, 0]
+
+    svcp = SVC_proba(C=1, kernel='linear', probability=True)
+    clfs = [svc, svcp]
     # Test all combinations
     for clf_n, clf in enumerate(clfs):
         for y in ys:
