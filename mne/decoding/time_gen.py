@@ -599,7 +599,7 @@ def _score_loop(y_true, y_pred, slices, scorer):
     scores = [0] * n_time
     for t, indices in enumerate(slices):
         # Scores across trials
-        scores[t] = scorer(y_true, y_pred[t], scorer)
+        scores[t] = scorer(y_true, y_pred[t])
     return scores
 
 
