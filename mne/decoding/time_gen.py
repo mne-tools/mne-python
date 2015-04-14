@@ -6,9 +6,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-import warnings
-from scipy import stats
-
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
@@ -98,15 +95,6 @@ class GeneralizationAcrossTime(object):
             Duration of each classifier (in seconds). By default, equals one
             time sample.
         If None, empty dict. Defaults to None.
-    predict_type : {'predict', 'predict_proba', 'decision_function'}
-        Indicates the type of prediction:
-            'predict' : generates a categorical estimate of each trial.
-
-            'predict_proba' : generates a probabilistic estimate of each trial.
-
-            'decision_function' : generates a continuous non-probabilistic
-                estimate of each trial.
-        Default: 'predict'
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -147,8 +135,7 @@ class GeneralizationAcrossTime(object):
     unexpected sounds", PLOS ONE, 2013
     """
     def __init__(self, cv=5, clf=None, train_times=None,
-                 predict_type='predict', predict_mode='cross-validation',
-                 n_jobs=1):
+                 predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.svm import SVC
@@ -166,7 +153,6 @@ class GeneralizationAcrossTime(object):
             svc = SVC(C=1, kernel='linear')
             clf = Pipeline([('scaler', scaler), ('svc', svc)])
         self.clf = clf
-        self.predict_type = predict_type
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
 
@@ -178,8 +164,7 @@ class GeneralizationAcrossTime(object):
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
-            s += (", predict_type : '%s' on %d epochs" % (
-                self.predict_type, len(self.y_pred_)))
+            s += (", predicted %d epochs" % len(self.y_pred_))
         else:
             s += ", no prediction"
         if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
@@ -354,7 +339,7 @@ class GeneralizationAcrossTime(object):
 
         # Loop across estimators (i.e. training times)
         packed = parallel(p_time_gen(X, self.estimators_[t_train], cv,
-                          slices, self.predict_mode, self.predict_type)
+                          slices, self.predict_mode)
                           for t_train, slices in
                           enumerate(test_times_['slices']))
 
@@ -414,7 +399,6 @@ class GeneralizationAcrossTime(object):
         from sklearn.metrics import (roc_auc_score, accuracy_score,
                                      mean_squared_error)
         from sklearn.base import is_classifier
-        from sklearn.preprocessing import LabelEncoder
 
         # Run predictions if not already done
         if epochs is not None:
@@ -444,6 +428,7 @@ class GeneralizationAcrossTime(object):
 
         # Setup default scorer
         if scorer is None:
+            # XXX JRK: need to inherit scorer from clf.
             if is_classifier(self.clf):  # Classification
                 if self.predict_type == 'predict':
                     # By default, use accuracy if categorical prediction
@@ -455,37 +440,13 @@ class GeneralizationAcrossTime(object):
                 scorer = mean_squared_error
         self.scorer_ = scorer
 
-        # Identify training classes
-        training_classes = np.unique(self.y_train_)
-        # Change labels if decision_function with inadequate categorical
-        # classes
-        if (self.predict_type == 'decision_function' and
-            not np.array_equiv(training_classes,
-                               np.arange(0, len(training_classes))) and
-                is_classifier(self.clf)):
-            warnings.warn('Scoring categorical predictions from '
-                          '`decision_function` requires specific labeling. '
-                          'Prefer using a predefined label scheme with '
-                          '`sklearn.preprocessing.LabelEncoder`.')
-            # set sklearn Label encoder
-            le = LabelEncoder()
-            le.fit(training_classes)
-            transform_classes = True
-        else:
-            transform_classes = False
-
-        # Loop across estimators (i.e. training times)
-        y_true = self.y_true_
-        if transform_classes:
-            y_true = le.transform(y_true)
-
         # Preprocessing for parallelization:
         n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
-        scores = parallel(p_time_gen(y_true, self.y_pred_[t_train], slices,
-                                     scorer)
+        scores = parallel(p_time_gen(self.y_true_, self.y_pred_[t_train],
+                                     slices, scorer)
                           for t_train, slices
                           in enumerate(self.test_times_['slices']))
 
@@ -579,7 +540,7 @@ class GeneralizationAcrossTime(object):
                                  legend=legend)
 
 
-def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
+def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
     Run classifiers predictions loop across time samples.
@@ -593,13 +554,6 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_type : {'predict', 'predict_proba', 'decision_function'}
-        Indicates the type of prediction:
-            'predict' : generates a categorical estimate of each trial.
-            'predict_proba' : generates a probabilistic estimate of each trial.
-            'decision_function' : generates a continuous non-probabilistic
-                estimate of each trial.
-        Default: 'predict'
     predict_mode :{'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -637,15 +591,13 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_type):
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain[test, :],
-                                       estimators[k:k + 1], predict_type)
+                    y_pred_ = _predict(Xtrain[test, :], estimators[k:k + 1])
                     y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
                 y_pred[t][test, :] = _predict(Xtrain[test, :],
-                                              estimators[k:k + 1],
-                                              predict_type)
+                                              estimators[k:k + 1])
         elif predict_mode == 'mean-prediction':
-            y_pred[t] = _predict(Xtrain, estimators, predict_type)
+            y_pred[t] = _predict(Xtrain, estimators)
         else:
             raise ValueError('`predict_mode` must be a str, "mean-prediction"'
                              ' or "cross-validation"')
@@ -841,7 +793,7 @@ def _sliding_window(times, window_params):
     return time_pick
 
 
-def _predict(X, estimators, predict_type):
+def _predict(X, estimators):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -854,14 +806,6 @@ def _predict(X, estimators, predict_type):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_type : str, {'predict', 'predict_proba',
-                  'decision_function'}
-        Indicates the type of prediction:
-            'predict' : generates a categorical estimate of each trial.
-            'predict_proba' : generates a probabilistic estimate of each trial.
-            'decision_function' : generates a continuous non-probabilistic
-                estimate of each trial.
-        Default: 'predict'
     Returns
     -------
     y_pred : np.ndarray, shape (n_epochs, m_prediction_dimensions)
@@ -873,43 +817,18 @@ def _predict(X, estimators, predict_type):
     # the y_pred values.
     n_epochs = X.shape[0]
     n_clf = len(estimators)
-    n_class = 1  # initialize
-    if predict_type == 'predict':
-        n_class = 1
-    elif predict_type == 'predict_proba':
-        n_class = estimators[0].predict_proba(X[0, :]).shape[-1]
-    elif predict_type == 'decision_function':
-        shape = estimators[0].decision_function(X[0, :]).shape
-        if len(shape) > 1:  # deal with sklearn APIs
-            n_class = shape[1]
-
-    else:
-        raise ValueError('predict_type must be "predict" or "predict_proba" '
-                         'or "decision_function"')
+    n_class = estimators[0].predict(X[0, :]).shape[-1]  # initialize
     y_pred = np.ones((n_epochs, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        if predict_type == 'predict':
-            # Discrete categorical prediction
-            y_pred[:, 0, fold] = clf.predict(X)
-        elif predict_type == 'predict_proba':
-            # Probabilistic prediction
-            y_pred[:, :, fold] = clf.predict_proba(X)
-        elif predict_type == 'decision_function':
-            # continuous non-probabilistic prediction
-            y_ = clf.decision_function(X)
-            if y_.ndim == 1:  # new sklearn versions seem to return 1d arrays
-                y_ = y_[:, None]
-            y_pred[:, :, fold] = y_
+        y_pred[:, :, fold] = clf.predict(X)
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
-        if predict_type == 'predict':
-            y_pred, _ = stats.mode(y_pred, axis=2)
-        else:
-            y_pred = np.mean(y_pred, axis=2)
+        # XXX JRK: need mode in case discrete prediction. Need extra parameter
+        y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
     y_pred = y_pred.reshape((n_epochs, n_class))
