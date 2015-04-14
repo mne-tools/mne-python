@@ -387,66 +387,46 @@ def figure_nobar(*args, **kwargs):
         mpl.rcParams['toolbar'] = old_val
     return fig
 
-from Tkinter import (Tk, Frame, SUNKEN, HORIZONTAL,
-                     Scrollbar, Canvas, BOTH, ALL)
-from tkFileDialog import askopenfilename
-import Image
-from ImageTk import PhotoImage
-import numpy as np
-import pandas as pd
 
-
-def click_image_positions(file_path):
+class ClickableImage(object):
     """
-    Takes as input the path to a picture.  Displays the picture and lets you
+    Takes as input an image array (can be any array that works with imshow,
+    but will work best with images.  Displays the image and lets you
     click on it.  Stores the xy coordinates of each click, so now you can
     superimpose something on top of it.
 
+    Upon clicking, the x/y coordinate of the cursor will be stored in
+    self.coords, which is a list of (x, y) tuples.
+
     Inputs
     --------
-    file_path: ndarray | string
-        The image that you wish to click on for 2-d points. If an array,
-        it is displayed. If a string, it must be the path to an image file
-        that can be read in with imread.
-
-    Returns
-    --------
-    xy : ndarray
-        The (n_clicks x 2) points corresponding to clicks on the image.
+    imdata: ndarray
+        The image that you wish to click on for 2-d points.
 
     """
+    def __init__(self, imdata):
+        self.coords = []
+        self.imdata = imdata
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111)
+        xaxis = self.imdata.shape[1]
+        yaxis = self.imdata.shape[0]
+        self.im = self.ax.imshow(imdata, origin='lower', aspect='auto',
+                                 extent=(0, xaxis, 0, yaxis), picker=True)
+        self.fig.canvas.mpl_connect('pick_event', self.onclick)
+        plt.show()
 
-    root = Tk()
+    def onclick(self, event):
+        artist = event.artist
+        mouseevent = event.mouseevent
+        self.coords.append((mouseevent.xdata, mouseevent.ydata))
 
-    # setting up a tkinter canvas with scrollbars
-    frame = Frame(root, bd=2, relief=SUNKEN)
-    frame.grid_rowconfigure(0, weight=1)
-    frame.grid_columnconfigure(0, weight=1)
-    xscroll = Scrollbar(frame, orient=HORIZONTAL)
-    xscroll.grid(row=1, column=0, sticky=E+W)
-    yscroll = Scrollbar(frame)
-    yscroll.grid(row=0, column=1, sticky=N+S)
-    canvas = Canvas(frame, bd=0, xscrollcommand=xscroll.set,
-                    yscrollcommand=yscroll.set)
-    canvas.grid(row=0, column=0, sticky=N+S+E+W)
-    xscroll.config(command=canvas.xview)
-    yscroll.config(command=canvas.yview)
-    frame.pack(fill=BOTH, expand=1)
-
-    # adding the image
-    File = file_path
-    img = PhotoImage(file=file_path, master=root)
-    canvas.create_image(0, 0, image=img, anchor="nw")
-    canvas.config(scrollregion=canvas.bbox(ALL))
-
-    # function to be called when mouse is clicked
-    def store_xy_coords(event):
-        xy_coords.append([event.x, event.y])
-
-    # mouseclick event
-    xy_coords = []
-    canvas.bind("<Button 1>", store_xy_coords)
-    root.mainloop()
-
-    xy = np.array(xy)
-    return xy
+    def plot_clicks(self):
+        f, ax = plt.subplots()
+        ax.imshow(self.imdata, origin='lower')
+        xcoords, ycoords = zip(*self.coords)
+        ax.scatter(xcoords, ycoords, c='r')
+        ann_text = np.arange(len(self.coords)).astype(str)
+        for txt, coord in zip(ann_text, self.coords):
+            ax.annotate(txt, coord, fontsize=20, color='r')
+        
