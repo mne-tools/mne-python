@@ -91,7 +91,7 @@ def test_generalization_across_time():
     gat.predict_mode = old_mode
 
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true("accuracy_score" in '%s' % gat.scorer)
+    assert_true("accuracy_score" in '%s' % gat.scorer_)
     epochs2 = epochs.copy()
 
     # check _DecodingTime class

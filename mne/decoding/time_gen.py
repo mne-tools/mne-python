@@ -173,8 +173,8 @@ class GeneralizationAcrossTime(object):
             s += ', '
         if hasattr(self, 'scores_'):
             s += "scored"
-            if callable(self.scorer):
-                s += " (%s)" % (self.scorer.__name__)
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
         else:
             s += "no score"
 
@@ -400,8 +400,9 @@ class GeneralizationAcrossTime(object):
 
         # Check scorer
         if scorer is None:
+            # XXX Need API to identify propper scorer from the clf
             scorer = accuracy_score
-        self.scorer = scorer
+        self.scorer_ = scorer
 
         # Run predictions if not already done
         if epochs is not None:
@@ -781,6 +782,7 @@ def _predict(X, estimators):
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
+        # XXX need API to identify how multiple predictions can be combined?
         if is_classifier(clf):
             y_pred, _ = stats.mode(y_pred, axis=2)
         else:
@@ -838,7 +840,7 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
     scoring : {string, callable, None}, default: "roc_auc"
         A string (see model evaluation documentation in scikit-learn) or
         a scorer callable object / function with signature
-        ``scorer(estimator, X, y)``.
+        ``scorer(y_true, y_pred)``.
     shuffle : bool
         If True, shuffle the epochs before splitting them in folds.
     random_state : None | int
