@@ -396,9 +396,12 @@ class GeneralizationAcrossTime(object):
             need not be regular.
         """
 
-        from sklearn.metrics import (roc_auc_score, accuracy_score,
-                                     mean_squared_error)
-        from sklearn.base import is_classifier
+        from sklearn.metrics import accuracy_score
+
+        # Check scorer
+        if scorer is None:
+            scorer = accuracy_score
+        self.scorer = scorer
 
         # Run predictions if not already done
         if epochs is not None:
@@ -425,20 +428,6 @@ class GeneralizationAcrossTime(object):
                                  'for training. Please explicitly pass your y '
                                  'for scoring.')
         self.y_true_ = y  # true regressor to be compared with y_pred
-
-        # Setup default scorer
-        if scorer is None:
-            # XXX JRK: need to inherit scorer from clf.
-            if is_classifier(self.clf):  # Classification
-                if self.predict_type == 'predict':
-                    # By default, use accuracy if categorical prediction
-                    scorer = accuracy_score
-                else:
-                    # By default, use AUC for continuous output
-                    scorer = roc_auc_score
-            else:  # Regression  XXX ideally, would need an is_regresser()
-                scorer = mean_squared_error
-        self.scorer_ = scorer
 
         # Preprocessing for parallelization:
         n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
@@ -610,45 +599,8 @@ def _score_loop(y_true, y_pred, slices, scorer):
     scores = [0] * n_time
     for t, indices in enumerate(slices):
         # Scores across trials
-        scores[t] = _score(y_true, y_pred[t], scorer)
+        scores[t] = scorer(y_true, y_pred[t], scorer)
     return scores
-
-
-def _score(y, y_pred, scorer):
-    """Aux function of GeneralizationAcrossTime
-
-    Estimate classification score.
-
-    Parameters
-    ----------
-    y : list | np.ndarray, shape (n_epochs,)
-        True model value
-    y_pred : list | np.ndarray, shape (n_epochs,)
-        Classifier prediction of model value.
-    scorer : scorer object
-        scikit-learn scoring object.
-
-    Returns
-    -------
-    score : float
-        Score estimated across all trials for each train/tested time sample.
-    y_pred : np.ndarray, shape (n_slices, n_epochs)
-        Single trial prediction for each train/tested time sample.
-    """
-    classes = np.unique(y)
-    # if binary prediction or discrete prediction
-    if y_pred.shape[1] == 1:
-        # XXX Problem here with scorer when proba=True but y !=  (0 | 1).
-        # Bug Sklearn?
-        score = scorer(y, y_pred)
-    else:
-        # XXX This part is not sufficiently generic to apply to all
-        # classification and regression cases.
-        score = 0.
-        for ii, c in enumerate(classes):
-            score += scorer(y == c, y_pred[:, ii])
-        score /= len(classes)
-    return score
 
 
 def _check_epochs_input(epochs, y, picks):
