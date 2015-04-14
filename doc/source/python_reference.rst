@@ -30,7 +30,7 @@ Classes
    :template: class.rst
 
    io.Raw
-   io.RawFIFF
+   io.RawFIF
    Epochs
    Evoked
    SourceSpaces
