@@ -115,14 +115,7 @@ def test_rap_music():
 def test_rap_music_simulated():
     """Test RAP-MUSIC with simulated evoked
     """
-    evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
-        _get_data()
-
-    n_dipoles = 2
-    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
-                                evoked.times)
-
-    def _check_dipoles(dipoles, fwd, ori=False):
+    def _check_dipoles(dipoles, fwd):
         src = fwd['src']
         pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
                                          stc.vertices[0])]
@@ -135,22 +128,27 @@ def test_rap_music_simulated():
         assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
 
         ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
-                                         stc.vertices[0])]
+                                         stc.vertices[0])[0]][0]
         ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
                                          stc.vertices[1])[0] +
-                                len(src[0]['vertno'])]
+                                len(src[0]['vertno'])][0]
 
-        if ori:
-            # Check the orientation of the two dipoles
-            assert_true(dipoles[0].ori[0] in np.array([ori1, ori2]))
-            assert_true(dipoles[1].ori[0] in np.array([ori1, ori2]))
+        # Check the orientation of the first dipole
+        assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
+                                         np.array([ori1, ori2]).T))) > 0.85)
 
+    evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
+        _get_data()
+
+    n_dipoles = 2
+    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
+                                evoked.times)
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed, ori=True)
+    _check_dipoles(dipoles, forward_fixed)
 
     # Check dipoles for free ori
     dipoles = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_surf_ori)
+    _check_dipoles(dipoles, forward_fixed)

@@ -99,7 +99,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
-                if n_orient == 3 and ori[-1] < 0:
+                if n_orient == 3 and source_ori[-1] < 0:
                     # make sure ori is relative to surface ori
                     source_ori *= -1.
 
@@ -123,7 +123,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         oris[k] = source_ori
         poss[k] = source_pos
         if n_orient == 3:
-            oris[k] = np.dot(forward['source_nn'][idx_k], oris[k])
+            oris[k] = np.dot(forward['source_nn'][idx_k].T, oris[k])
 
         logger.info("source %s found: p = %s" % (k + 1, source_idx))
         if n_orient == 3:
@@ -222,7 +222,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
     (February 1999), 332-340.
     DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
     """
-    _check_reference(evoked)
+    # _check_reference(evoked)
 
     info = evoked.info
     data = evoked.data
