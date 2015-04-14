@@ -142,7 +142,6 @@ def _pick_bad_channels(event, params):
         params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
         params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
         params['vertline_t'].set_text('%0.3f' % x[0])
-        params['vertline_t'].set_x(x[0])
     event.canvas.draw()
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
@@ -546,8 +545,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                        facecolor='w', edgecolor='w')
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
-    hsel_patch = mpl.patches.Rectangle((start, 0), duration, 1, color='k',
-                                       edgecolor=None, alpha=0.25)
+    hsel_patch = mpl.patches.Rectangle((start, 0), duration, 1, edgecolor='k',
+                                       facecolor=(0.75, 0.75, 0.75),
+                                       alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(0, n_times / float(info['sfreq']))
