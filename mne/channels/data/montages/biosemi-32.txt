@@ -31,6 +31,6 @@ AF4	  74	 65
 Fp2	  92	 72
 Fz	  46	 90
 Cz	   0	  0
-nasion	 115	 90
-lpa	-115	  0
-rpa	 115	  0
+Nz	 115	 90
+LPA	-115	  0
+RPA	 115	  0
