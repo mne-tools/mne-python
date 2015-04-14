@@ -229,14 +229,15 @@ class SetChannelsMixin(object):
         # first check and assemble clean mappings of index and name
         for ch_name, ch_type in mapping.items():
             if ch_name not in ch_names:
-                raise ValueError("This channel name (%s) doesn't exist in info."
-                                 % ch_name)
+                raise ValueError("This channel name (%s) doesn't exist in "
+                                 "info." % ch_name)
 
             c_ind = ch_names.index(ch_name)
             if ch_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
-                                 'channel type: %s. Accepted channel types are '
-                                 '%s.' % (ch_type, ", ".join(human2unit.keys())))
+                                 'channel type: %s. Accepted channel types '
+                                 'are %s.' % (ch_type,
+                                              ", ".join(human2unit.keys())))
             # Set sensor type
             self.info['chs'][c_ind]['kind'] = human2fiff[ch_type]
             unit_old = self.info['chs'][c_ind]['unit']
@@ -255,9 +256,9 @@ class SetChannelsMixin(object):
     def rename_channels(self, mapping):
         """Rename channels.
 
-        Note : The ability to change sensor types has been deprecated in favor of
-        `set_channels_type`. Please use this function if you would changing or
-        defining sensor type.
+        Note : The ability to change sensor types has been deprecated in favor
+        of `set_channel_types`. Please use this function if you would changing
+        or defining sensor type.
 
 
         Parameters
@@ -427,8 +428,8 @@ def rename_channels(info, mapping):
     """Rename channels.
 
     Note : The ability to change sensor types has been deprecated in favor of
-    `set_channels_type`. Please use this function if you would changing or
-    defining sensor type.
+    `set_channel_types` method for Raw, Epochs, Evoked . Please use this
+    method if you would changing or defining sensor type.
 
 
     Parameters
