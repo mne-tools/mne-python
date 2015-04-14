@@ -138,8 +138,11 @@ def _pick_bad_channels(event, params):
                         l.set_zorder(0)
                     break
     else:
-        params['ax_vertline'].set_data(np.array([event.xdata] * 2),
-                                       np.array(params['ax'].get_ylim()))
+        x = np.array([event.xdata] * 2)
+        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
+        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
+        params['vertline_t'].set_text(np.round(x[0], 3))
+        params['vertline_t'].set_x(x[0])
     event.canvas.draw()
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
@@ -544,7 +547,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
     hsel_patch = mpl.patches.Rectangle((start, 0), duration, 1, color='k',
-                                       edgecolor=None, alpha=0.5)
+                                       edgecolor=None, alpha=0.25)
     ax_hscroll.add_patch(hsel_patch)
     params['hsel_patch'] = hsel_patch
     ax_hscroll.set_xlim(0, n_times / float(info['sfreq']))
@@ -562,9 +565,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                    for ev_num in sorted(event_color.keys())]
     lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
-    params['ax_vertline'] = ax.plot([0, 0], ylim, color=(0., 0.75, 0.),
+    vertline_color = (0., 0.75, 0.)
+    params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
+    params['vertline_t'] = ax_hscroll.text(0, 0.5, '0.000',
+                                           color=vertline_color,
+                                           verticalalignment='center',
+                                           horizontalalignment='right')
+    params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
+                                                    color=vertline_color,
+                                                    zorder=1)[0]
 
     params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color, lines=lines,
