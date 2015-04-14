@@ -141,7 +141,7 @@ def _pick_bad_channels(event, params):
         x = np.array([event.xdata] * 2)
         params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
         params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
-        params['vertline_t'].set_text(np.round(x[0], 3))
+        params['vertline_t'].set_text('%0.3f' % x[0])
         params['vertline_t'].set_x(x[0])
     event.canvas.draw()
     # update deep-copied info to persistently draw bads
