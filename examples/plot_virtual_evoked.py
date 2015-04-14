@@ -13,20 +13,50 @@ computationally intensive.
 
 # License: BSD (3-clause)
 
-from mne.datasets import sample
-from mne import read_evokeds
+import mne
+from mne.datasets import somato
 from mne.forward import compute_virtual_evoked
+
+import matplotlib.pyplot as plt
 
 print(__doc__)
 
-data_path = sample.data_path()
-evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
-from_type, to_type, condition = 'grad', 'mag', 'Left Auditory'
-evoked = read_evokeds(evoked_fname, condition=condition, baseline=(-0.2, 0.0))
+def add_title(title):
+    """Add nice titles."""
+    plt.suptitle(title, verticalalignment='top', size='x-large')
+    plt.gcf().set_size_inches(12, 2, forward=True)
 
+# reject parameters and data paths
+data_path = somato.data_path()
+raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
+event_id, tmin, tmax = 1, -0.2, 0.5
+reject = dict(mag=4e-12, grad=4000e-13)
+
+# setup for reading the raw data
+raw = mne.io.Raw(raw_fname, proj=False)
+events = mne.find_events(raw)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                    baseline=(None, 0), reject=reject,
+                    preload=True, proj=False)
+evoked = epochs.average()
+
+# go from grad to mag
+from_type, to_type = 'grad', 'mag'
 virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
                                         to_type=to_type)
-
-virtual_evoked.plot_topomap(ch_type=to_type)
 evoked.plot_topomap(ch_type=to_type)
+add_title(to_type + ' (original)')
+virtual_evoked.plot_topomap(ch_type=to_type)
+add_title(to_type + ' (interpolated)')
+
+# go from mag to grad
+from_type, to_type = 'mag', 'grad'
+virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
+                                        to_type=to_type)
+evoked.plot_topomap(ch_type=to_type)
+add_title(to_type + ' (original)')
+virtual_evoked.plot_topomap(ch_type=to_type)
+add_title(to_type + ' (interpolated)')
+
+plt.show()

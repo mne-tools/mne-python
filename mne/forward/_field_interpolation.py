@@ -17,6 +17,7 @@ from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
 from ..evoked import EvokedArray
+from ..io.meas_info import _merge_info
 
 
 def _is_axial_coil(coil):
@@ -90,7 +91,7 @@ def _compute_mapping_matrix(fmd, info):
 
 
 def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
-                           baseline=None, n_jobs=1):
+                           copy=True, baseline=None, n_jobs=1):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -130,7 +131,7 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
                          ref_meg=False)
 
     # find location and normals for virtual channels
-    info_virt = pick_info(evoked.info, pick_from)
+    info_virt = pick_info(evoked.info, pick_from, copy=True)
     pts = np.array([ch['loc'][:3] for ch in info_virt['chs']])
     nn = np.array([ch['loc'][-3:] for ch in info_virt['chs']])
 
@@ -144,9 +145,18 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     surf_virt['rr'], surf_virt['nn'] = pts, nn
     surf_virt['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
-    # pick the complementary channel type which will be used
-    # to compute the fields in the virtual channels.
+    # XXX: hack, don't ask why
+    # interpolate onto magnetometer no matter what the original
+    # channel type was
     info_from = pick_info(evoked.info, pick_to)
+    if to_type == 'mag':
+        mag_coil = info_from['chs'][0]['coil_type']
+    else:
+        mag_coil = info_virt['chs'][0]['coil_type']
+    for ch in info_from['chs']:
+        ch['coil_type'] = mag_coil
+
+    # do the actual interpolation
     field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
                                       trans=None, n_jobs=n_jobs)
 
@@ -164,7 +174,12 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     info_virt['chs'] = chs
     info_virt['ch_names'] = [ch['ch_name'] for ch in info_virt['chs']]
 
-    # TODO: return full evoked instead of only the virtual channels.
+    # Finally combine everything into one evoked
+    # if copy is True:
+    #     evoked = evoked.copy()
+
+    # evoked.data[pick_from] = data
+    # evoked.info = _merge_info([info_from, info_virt])
 
     # create evoked data struct. using data at virtual channels
     mapped_evoked = EvokedArray(data, info_virt, tmin=evoked.times[0])
@@ -235,7 +250,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
+    chs = pick_info(info, picks, copy=True)['chs']
 
     # create coil defs in head coordinates
     if ch_type == 'meg':
