@@ -763,10 +763,9 @@ def _predict(X, estimators):
     y_pred : np.ndarray, shape (n_epochs, m_prediction_dimensions)
         Classifier's prediction for each trial.
     """
+    from scipy import stats
+    from sklearn.base import is_classifier
     # Initialize results:
-    # XXX Here I did not manage to find an efficient and generic way to guess
-    # the number of output provided by predict, and could thus not initalize
-    # the y_pred values.
     n_epochs = X.shape[0]
     n_clf = len(estimators)
     n_class = estimators[0].predict(X[0, :]).shape[-1]  # initialize
@@ -779,8 +778,10 @@ def _predict(X, estimators):
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
-        # XXX JRK: need mode in case discrete prediction. Need extra parameter
-        y_pred = np.mean(y_pred, axis=2)
+        if is_classifier(clf):
+            y_pred, _ = stats.mode(y_pred, axis=2)
+        else:
+            y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
     y_pred = y_pred.reshape((n_epochs, n_class))
