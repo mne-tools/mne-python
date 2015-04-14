@@ -224,7 +224,7 @@ class SetChannelsMixin(object):
 
         unit2human = {FIFF.FIFF_UNIT_V: 'V',
                       FIFF.FIFF_UNIT_NONE: 'NA'}
-        ch_names = info['ch_names']
+        ch_names = self.info['ch_names']
 
         # first check and assemble clean mappings of index and name
         for ch_name, ch_type in mapping.items():
@@ -238,19 +238,19 @@ class SetChannelsMixin(object):
                                  'channel type: %s. Accepted channel types are '
                                  '%s.' % (ch_type, ", ".join(human2unit.keys())))
             # Set sensor type
-            info['chs'][c_ind]['kind'] = human2fiff[ch_type]
-            unit_old = info['chs'][c_ind]['unit']
+            self.info['chs'][c_ind]['kind'] = human2fiff[ch_type]
+            unit_old = self.info['chs'][c_ind]['unit']
             unit_new = human2unit[ch_type]
             if unit_old != human2unit[ch_type]:
                 warnings.warn("The unit for Channel %s has changed "
                               "from %s to %s." % (ch_name,
                                                   unit2human[unit_old],
                                                   unit2human[unit_new]))
-            info['chs'][c_ind]['unit'] = human2unit[ch_type]
+            self.info['chs'][c_ind]['unit'] = human2unit[ch_type]
             if ch_type in ['eeg', 'seeg']:
-                info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
+                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_EEG
             else:
-                info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
+                self.info['chs'][c_ind]['coil_type'] = FIFF.FIFFV_COIL_NONE
 
     def rename_channels(self, mapping):
         """Rename channels.
