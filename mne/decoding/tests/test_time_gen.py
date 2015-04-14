@@ -53,6 +53,7 @@ def test_generalization_across_time():
     """Test time generalization decoding
     """
     from sklearn.svm import SVC
+    from sklearn.preprocessing import LabelEncoder
 
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
@@ -200,7 +201,8 @@ def test_generalization_across_time():
     # 2 or more distinct classes
     n_classes = [2, 4]  # 4 tested
     # nicely ordered labels or not
-    y = epochs.events[:, 2]
+    le = LabelEncoder()
+    y = le.fit_transform(epochs.events[:, 2])
     y[len(y) // 2:] += 2
     ys = (y, y + 1000)
     # Univariate and multivariate prediction
