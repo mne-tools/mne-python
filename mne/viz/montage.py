@@ -38,7 +38,7 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     if show_names:
         if isinstance(montage, Montage):
             ch_names = montage.ch_names
-            for ch_name, x, y, z in zip(ch_names, pos[:, 0], 
+            for ch_name, x, y, z in zip(ch_names, pos[:, 0],
                                         pos[:, 1], pos[:, 2]):
                 ax.text(x, y, z, ch_name)
         elif isinstance(montage, DigMontage):

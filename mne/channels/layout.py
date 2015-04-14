@@ -954,7 +954,7 @@ def apply_montage(info, montage):
 
     With a Montage, this function will replace the EEG channel names and
     locations with the values specified for the particular montage.
-    
+
     With a DigMontage, this function will replace the digitizer info with
     the values specified for the particular montage.
 
@@ -987,7 +987,7 @@ def apply_montage(info, montage):
                              'found in the info structure. Check the channel '
                              'names.')
     elif isinstance(montage, DigMontage):
-        dig = _make_dig_points(nasion=montage.nasion, lpa=montage.lpa, 
+        dig = _make_dig_points(nasion=montage.nasion, lpa=montage.lpa,
                                rpa=montage.rpa, hpi=montage.hpi,
                                dig_points=montage.hsp)
         info['dig'] = dig

@@ -24,6 +24,7 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
+from .kit import read_mrk
 from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose
 from ..fixes import Counter
@@ -1313,8 +1314,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         this corresponds to an array hpi points. These points are in
         device space.
     elp : None | str | array, shape (n_hpi, 3)
-        If str, this corresponds to the filename of hpi points. 
-        This is typically used with the Polhemus FastSCAN system. 
+        If str, this corresponds to the filename of hpi points.
+        This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array hpi points. These points
         are in head space.
     point_names : None | list
