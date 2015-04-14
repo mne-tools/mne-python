@@ -54,6 +54,7 @@ def test_generalization_across_time():
     """
     from sklearn.svm import SVC
     from sklearn.preprocessing import LabelEncoder
+    from sklearn.metrics import mean_squared_error
 
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
@@ -215,12 +216,13 @@ def test_generalization_across_time():
 
     svcp = SVC_proba(C=1, kernel='linear', probability=True)
     clfs = [svc, svcp]
+    scorers = [None, mean_squared_error]
     # Test all combinations
-    for clf_n, clf in enumerate(clfs):
+    for clf, scorer in zip(clfs, scorers):
         for y in ys:
             for n_class in n_classes:
                 y_ = y % n_class
                 with warnings.catch_warnings(record=True):
                     gat = GeneralizationAcrossTime(cv=2, clf=clf)
                     gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_)
+                    gat.score(epochs, y=y_, scorer=scorer)
