@@ -146,8 +146,7 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
         ax.set_xlabel('Time (s)')
     if ylabel is True:
         ax.set_ylabel('Classif. score ({0})'.format(
-                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'
-                      ))
+                      'AUC' if 'roc' in repr(gat.scorer) else r'%'))
     if legend is True:
         ax.legend(loc='best')
     if show is True:
