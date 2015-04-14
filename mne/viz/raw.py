@@ -131,11 +131,16 @@ def _pick_bad_channels(event, params):
                     if this_chan not in bads:
                         bads.append(this_chan)
                         l.set_color(params['bad_color'])
+                        l.set_zorder(-1)
                     else:
                         bads.pop(bads.index(this_chan))
-                        l.set_color(vars(l)['def-color'])
-                event.canvas.draw()
-                break
+                        l.set_color(vars(l)['def_color'])
+                        l.set_zorder(0)
+                    break
+    else:
+        params['ax_vertline'].set_data(np.array([event.xdata] * 2),
+                                       np.array(params['ax'].get_ylim()))
+    event.canvas.draw()
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
 
@@ -258,6 +263,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
             # do NOT operate in-place lest this get screwed up
             this_data = params['data'][inds[ch_ind]]
             this_color = bad_color if ch_name in info['bads'] else color
+            this_z = -1 if ch_name in info['bads'] else 0
             if isinstance(this_color, dict):
                 this_color = this_color[params['types'][inds[ch_ind]]]
 
@@ -265,8 +271,9 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
             lines[ii].set_ydata(offset - this_data)
             lines[ii].set_xdata(params['times'])
             lines[ii].set_color(this_color)
+            lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
-            vars(lines[ii])['def-color'] = color[params['types'][inds[ch_ind]]]
+            vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
         else:
             # "remove" lines
             lines[ii].set_xdata([])
@@ -547,13 +554,17 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # make shells for plotting traces
     offsets = np.arange(n_channels) * 2 + 1
+    ylim = [n_channels * 2 + 1, 0]
     ax.set_yticks(offsets)
-    ax.set_ylim([n_channels * 2 + 1, 0])
+    ax.set_ylim(ylim)
     # plot event_line first so it's in the back
     event_lines = [ax.plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
     lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    params['ax_vertline'] = ax.plot([0, 0], ylim, color=(0., 0.75, 0.),
+                                    zorder=-1)[0]
+    params['ax_vertline'].ch_name = ''
 
     params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color, lines=lines,
