@@ -774,7 +774,7 @@ def _predict(X, estimators):
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        if n_class > 1:
+        if n_class == 1:
             y_pred[:, 0, fold] = clf.predict(X)
         else:
             y_pred[:, :, fold] = clf.predict(X)
