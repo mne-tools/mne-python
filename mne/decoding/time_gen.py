@@ -173,8 +173,8 @@ class GeneralizationAcrossTime(object):
             s += ', '
         if hasattr(self, 'scores_'):
             s += "scored"
-            if callable(self.scorer_):
-                s += " (%s)" % (self.scorer_.__name__)
+            if callable(self.scorer):
+                s += " (%s)" % (self.scorer.__name__)
         else:
             s += "no score"
 
@@ -364,7 +364,7 @@ class GeneralizationAcrossTime(object):
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
         scorer : object
-            scikit-learn Scorer instance.
+            scikit-learn Scorer instance. Default: accuracy_score
         test_times : str | dict | None
             if test_times = 'diagonal', test_times = train_times: decode at
             each time point but does not generalize. If dict, the following

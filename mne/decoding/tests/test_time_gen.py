@@ -74,11 +74,11 @@ def test_generalization_across_time():
                  "prediction, no score>", '%s' % gat)
     gat.predict(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predict on 15 epochs, no score>",
+                 "predicted 15 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predict on 15 epochs,\n scored "
+                 "predicted 15 epochs,\n scored "
                  "(accuracy_score)>", "%s" % gat)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs, y=epochs.events[:, 2])
@@ -89,7 +89,7 @@ def test_generalization_across_time():
     gat.predict_mode = old_mode
 
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true("accuracy_score" in '%s' % gat.scorer_)
+    assert_true("accuracy_score" in '%s' % gat.scorer)
     epochs2 = epochs.copy()
 
     # check _DecodingTime class
