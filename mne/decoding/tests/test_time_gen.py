@@ -74,19 +74,14 @@ def test_generalization_across_time():
                  "prediction, no score>", '%s' % gat)
     gat.predict(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predict_type : 'predict' on 15 epochs, no score>",
+                 "predict on 15 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predict_type : 'predict' on 15 epochs,\n scored "
+                 "predict on 15 epochs,\n scored "
                  "(accuracy_score)>", "%s" % gat)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs, y=epochs.events[:, 2])
-
-    old_type = gat.predict_type
-    gat.predict_type = 'foo'
-    assert_raises(ValueError, gat.predict, epochs)
-    gat.predict_type = old_type
 
     old_mode = gat.predict_mode
     gat.predict_mode = 'super-foo-mode'
@@ -180,8 +175,7 @@ def test_generalization_across_time():
     gat.score(epochs[7:])
 
     svc = SVC(C=1, kernel='linear', probability=True)
-    gat = GeneralizationAcrossTime(clf=svc, predict_type='predict_proba',
-                                   predict_mode='mean-prediction')
+    gat = GeneralizationAcrossTime(clf=svc, predict_mode='mean-prediction')
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
 
@@ -193,30 +187,6 @@ def test_generalization_across_time():
     scores = sum(scores, [])  # flatten
     assert_true(0.0 <= np.min(scores) <= 1.0)
     assert_true(0.0 <= np.max(scores) <= 1.0)
-
-    # test various predict_type
-    gat = GeneralizationAcrossTime(clf=svc, predict_type="predict_proba")
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
-    gat.predict(epochs)
-    # check that 2 class probabilistic estimates are [p, 1-p]
-    assert_true(gat.y_pred_.shape[3] == 2)
-    gat.score(epochs)
-    # check that continuous prediction leads to AUC rather than accuracy
-    assert_true("roc_auc_score" in '%s' % gat.scorer_)
-
-    gat = GeneralizationAcrossTime(predict_type="decision_function")
-    # XXX Sklearn doesn't like non-binary inputs. We could binarize the data,
-    # or change Sklearn default behavior
-    epochs.events[:, 2][epochs.events[:, 2] == 3] = 0
-    with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
-    gat.predict(epochs)
-    # check that 2 class non-probabilistic continuous estimates are [distance]
-    assert_true(gat.y_pred_.shape[3] == 1)
-    gat.score(epochs)
-    # check that continuous prediction leads to AUC rather than accuracy
-    assert_true("roc_auc_score" in '%s' % gat.scorer_)
 
     # Test that gets error if train on one dataset, test on another, and don't
     # specify appropriate cv:
@@ -236,16 +206,12 @@ def test_generalization_across_time():
     # Classifier and regressor
     svc = SVC(C=1, kernel='linear', probability=True)
     clfs = [svc]  # SVR tested
-    # Continuous, and probabilistic estimate
-    predict_types = ['predict_proba', 'decision_function']
     # Test all combinations
     for clf_n, clf in enumerate(clfs):
         for y in ys:
             for n_class in n_classes:
-                for pt in predict_types:
-                    y_ = y % n_class
-                    with warnings.catch_warnings(record=True):
-                        gat = GeneralizationAcrossTime(
-                            cv=2, clf=clf, predict_type=pt)
-                        gat.fit(epochs, y=y_)
-                        gat.score(epochs, y=y_)
+                y_ = y % n_class
+                with warnings.catch_warnings(record=True):
+                    gat = GeneralizationAcrossTime(cv=2, clf=clf)
+                    gat.fit(epochs, y=y_)
+                    gat.score(epochs, y=y_)
