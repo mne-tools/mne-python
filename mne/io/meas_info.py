@@ -1296,7 +1296,7 @@ class DigMontage(object):
 
 
 def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     transform=True):
+                     unit='mm', transform=True):
     """Read montage from a file
 
     Note: Digitized points will be transformed to head-based coordinate system.
@@ -1305,28 +1305,38 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     ----------
     hsp : None | str | array, shape (n_points, 3)
         If str, this corresponds to the filename of the headshape points.
+        This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array of positions of the
         channels in 3d.
-    hpi : None | str | numpy.array, shape (n_channels, 3)
+    hpi : None | str | array, shape (n_hpi, 3)
         If str, this corresponds to the filename of hpi points. If numpy.array,
         this corresponds to an array hpi points. These points are in
         device space.
-    elp : None | str | numpy.array
-        If str, this corresponds to the filename of hpi points. If numpy.array,
-        this corresponds to an array hpi points. These points are in
-        head space.
+    elp : None | str | array, shape (n_hpi, 3)
+        If str, this corresponds to the filename of hpi points. 
+        This is typically used with the Polhemus FastSCAN system. 
+        If numpy.array, this corresponds to an array hpi points. These points
+        are in head space.
     point_names : None | list
         If list, this corresponds to a list of point names. This must be
         specified if elp is defined.
+    unit : 'm' | 'cm' | 'mm'
+        Unit of the input file. If not 'm', coordinates will be rescaled
+        to 'm'. Default is 'mm'.
+    transform : bool
+        If True, points will be transformed to Neuromag space.
+        The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
+        the montage file. Useful for points captured using Polhemus FastSCAN.
+        Default is True.
 
     Returns
     -------
     montage : instance of DigMontage
         The digitizer montage.
     """
-    if isinstance(hsp, str):
+    if isinstance(hsp, string_types):
         hsp = _read_dig_points(hsp)
-    if isinstance(hpi, str):
+    if isinstance(hpi, string_types):
         ext = op.splitext(hpi)[-1]
         if ext == '.txt':
             hpi = _read_dig_points(hpi)
@@ -1334,15 +1344,23 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
             hpi = read_mrk(hpi)
         else:
             raise TypeError('HPI file is not supported.')
-    if isinstance(elp, str):
-        elp_points = _read_dig_points(elp)
-    if len(elp) != len(point_names):
-        raise ValueError("The file %s contains %i points, but %i names were "
-                         "specified." % (elp, len(elp_points),
-                                         len(point_names)))
-    elp = apply_trans(als_ras_trans_mm, elp_points)
+    if isinstance(elp, string_types):
+        elp = _read_dig_points(elp)
+    if elp is not None:
+        if len(elp) != len(point_names):
+            raise ValueError("The elp file contains %i points, but %i names "
+                             "were specified." % (len(elp), len(point_names)))
+        if unit == 'mm':
+            elp *= 1e-3
+            hsp *= 1e-3
+        elif unit == 'cm':
+            elp *= 1e-2
+            hsp *= 1e-2
 
     if transform:
+        if elp is None:
+            raise ValueError("ELP points are not specified. Points are needed "
+                             "for transformation.")
         names_lower = [name.lower() for name in point_names]
 
         # check that all needed points are present
