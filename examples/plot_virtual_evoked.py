@@ -42,21 +42,25 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
 evoked = epochs.average()
 
 # go from grad to mag
+from mne import layouts
+mag_layout = layouts.find_layout(evoked.info, ch_type='mag')
+grad_layout = layouts.find_layout(evoked.info, ch_type='grad')
+
 from_type, to_type = 'grad', 'mag'
 virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
                                         to_type=to_type)
-evoked.plot_topomap(ch_type=to_type)
+evoked.plot_topomap(ch_type=to_type, layout=mag_layout)
 add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type)
+virtual_evoked.plot_topomap(ch_type=to_type, layout=grad_layout)
 add_title(to_type + ' (interpolated)')
 
 # go from mag to grad
 from_type, to_type = 'mag', 'grad'
 virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
                                         to_type=to_type)
-evoked.plot_topomap(ch_type=to_type)
+evoked.plot_topomap(ch_type=to_type, layout=grad_layout)
 add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type)
+virtual_evoked.plot_topomap(ch_type=to_type, layout=mag_layout)
 add_title(to_type + ' (interpolated)')
 
 plt.show()

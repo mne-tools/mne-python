@@ -43,19 +43,20 @@ def _prepare_topo_plot(inst, ch_type, layout):
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
-        layout = find_layout(info)
+        layout = find_layout(info, ch_type=ch_type)
     elif layout == 'auto':
         layout = None
 
-    info['ch_names'] = _clean_names(info['ch_names'])
+    info['ch_names'] = _clean_names(info['ch_names'], remove_whitespace=True)
+    layout.names = _clean_names(layout.names, remove_whitespace=True)
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = info['ch_names'][ii]
+    has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
             np.unique([ch['coil_type'] for ch in info['chs']])):
         from ..channels.layout import _pair_grad_sensors
-        has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
         picks, pos = _pair_grad_sensors(info, layout)
         merge_grads = True
     else:
@@ -66,7 +67,6 @@ def _prepare_topo_plot(inst, ch_type, layout):
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
-        has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 

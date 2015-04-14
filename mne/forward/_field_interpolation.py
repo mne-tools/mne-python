@@ -148,11 +148,13 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     # XXX: hack, don't ask why
     # interpolate onto magnetometer no matter what the original
     # channel type was
-    info_from = pick_info(evoked.info, pick_to)
+    info_from = pick_info(evoked.info, pick_from, copy=True)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
+
     if to_type == 'mag':
-        mag_coil = info_from['chs'][0]['coil_type']
+        mag_coil = info_to['chs'][0]['coil_type']
     else:
-        mag_coil = info_virt['chs'][0]['coil_type']
+        mag_coil = info_from['chs'][0]['coil_type']
     for ch in info_from['chs']:
         ch['coil_type'] = mag_coil
 
@@ -162,7 +164,7 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    data = np.dot(field_map['data'], evoked.data[pick_to])
+    data = np.dot(field_map['data'], evoked.data[pick_from])
 
     # create new info structure for virtual channels
     chs = list()
@@ -170,6 +172,7 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
         ch['unit'] = info_from['chs'][0]['unit']
         ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
         ch['ch_name'] = 'MEG_interp_%s' % ch['ch_name'][3:].strip()
+        ch['coil_type'] = info_to['chs'][0]['coil_type']
         chs.append(ch)
     info_virt['chs'] = chs
     info_virt['ch_names'] = [ch['ch_name'] for ch in info_virt['chs']]
