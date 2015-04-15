@@ -130,10 +130,12 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
                          ref_meg=False)
 
+    info_from = pick_info(evoked.info, pick_from, copy=True)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
+
     # find location and normals for virtual channels
-    info_virt = pick_info(evoked.info, pick_from, copy=True)
-    pts = np.array([ch['loc'][:3] for ch in info_virt['chs']])
-    nn = np.array([ch['loc'][-3:] for ch in info_virt['chs']])
+    pts = np.array([ch['loc'][:3] for ch in info_to['chs']])
+    nn = np.array([ch['loc'][-3:] for ch in info_to['chs']])
 
     # take virtual channels to head coordinates
     trans = evoked.info['dev_head_t']['trans']
@@ -145,19 +147,6 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     surf_virt['rr'], surf_virt['nn'] = pts, nn
     surf_virt['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
-    # XXX: hack, don't ask why
-    # interpolate onto magnetometer no matter what the original
-    # channel type was
-    info_from = pick_info(evoked.info, pick_from, copy=True)
-    info_to = pick_info(evoked.info, pick_to, copy=True)
-
-    if to_type == 'mag':
-        mag_coil = info_to['chs'][0]['coil_type']
-    else:
-        mag_coil = info_from['chs'][0]['coil_type']
-    for ch in info_from['chs']:
-        ch['coil_type'] = mag_coil
-
     # do the actual interpolation
     field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
                                       trans=None, n_jobs=n_jobs)
@@ -167,15 +156,12 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     data = np.dot(field_map['data'], evoked.data[pick_from])
 
     # create new info structure for virtual channels
-    chs = list()
-    for ch in info_virt['chs']:
-        ch['unit'] = info_from['chs'][0]['unit']
-        ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-        ch['ch_name'] = 'MEG_interp_%s' % ch['ch_name'][3:].strip()
-        ch['coil_type'] = info_to['chs'][0]['coil_type']
-        chs.append(ch)
-    info_virt['chs'] = chs
-    info_virt['ch_names'] = [ch['ch_name'] for ch in info_virt['chs']]
+    # for ch in info_to['chs']:
+    #     ch['unit'] = info_from['chs'][0]['unit']
+    #     ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
+    #     ch['ch_name'] = 'MEG_interp_%s' % ch['ch_name'][3:].strip()
+    #     ch['coil_type'] = info_to['chs'][0]['coil_type']
+    # info_from['ch_names'] = [ch['ch_name'] for ch in info_from['chs']]
 
     # Finally combine everything into one evoked
     # if copy is True:
@@ -185,7 +171,7 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     # evoked.info = _merge_info([info_from, info_virt])
 
     # create evoked data struct. using data at virtual channels
-    mapped_evoked = EvokedArray(data, info_virt, tmin=evoked.times[0])
+    mapped_evoked = EvokedArray(data, info_to, tmin=evoked.times[0])
     return mapped_evoked
 
 

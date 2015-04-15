@@ -49,18 +49,18 @@ grad_layout = layouts.find_layout(evoked.info, ch_type='grad')
 from_type, to_type = 'grad', 'mag'
 virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
                                         to_type=to_type)
-evoked.plot_topomap(ch_type=to_type, layout=mag_layout)
+evoked.plot_topomap(ch_type=to_type)
 add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type, layout=grad_layout)
+virtual_evoked.plot_topomap(ch_type=to_type)
 add_title(to_type + ' (interpolated)')
 
 # go from mag to grad
 from_type, to_type = 'mag', 'grad'
 virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
                                         to_type=to_type)
-evoked.plot_topomap(ch_type=to_type, layout=grad_layout)
+evoked.plot_topomap(ch_type=to_type)
 add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type, layout=mag_layout)
+virtual_evoked.plot_topomap(ch_type=to_type)
 add_title(to_type + ' (interpolated)')
 
 plt.show()
