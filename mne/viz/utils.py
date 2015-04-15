@@ -404,29 +404,35 @@ class ClickableImage(object):
         The image that you wish to click on for 2-d points.
 
     """
-    def __init__(self, imdata):
+
+    def __init__(self, imdata, **kwargs):
+        from matplotlib.pyplot import figure, show
         self.coords = []
         self.imdata = imdata
-        self.fig = plt.figure()
+        self.fig = figure()
         self.ax = self.fig.add_subplot(111)
-        xaxis = self.imdata.shape[1]
-        yaxis = self.imdata.shape[0]
-        self.im = self.ax.imshow(imdata, origin='lower', aspect='auto',
-                                 extent=(0, xaxis, 0, yaxis), picker=True)
+        self.ymax = self.imdata.shape[0]
+        self.xmax = self.imdata.shape[1]
+        self.im = self.ax.imshow(imdata, aspect='auto',
+                                 extent=(0, self.xmax, 0, self.ymax),
+                                 picker=True, **kwargs)
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
-        plt.show()
+        show()
 
     def onclick(self, event):
-        artist = event.artist
         mouseevent = event.mouseevent
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
 
-    def plot_clicks(self):
-        f, ax = plt.subplots()
-        ax.imshow(self.imdata, origin='lower')
+    def plot_clicks(self, **kwargs):
+        from matplotlib.pyplot import subplots, show
+        f, ax = subplots()
+        ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
+        xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
         xcoords, ycoords = zip(*self.coords)
         ax.scatter(xcoords, ycoords, c='r')
         ann_text = np.arange(len(self.coords)).astype(str)
         for txt, coord in zip(ann_text, self.coords):
             ax.annotate(txt, coord, fontsize=20, color='r')
-        
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        show()

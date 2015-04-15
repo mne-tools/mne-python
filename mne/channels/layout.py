@@ -1048,8 +1048,6 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
             i_dim -= i_dim.min(0)
             i_dim /= (i_dim.max(0) - i_dim.min(0))
 
-    y = 1-y  # Flip y-axis for image plotting
-
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
     w, h = [np.array(i * x.shape[0]) for i in [[w], [h]]]
