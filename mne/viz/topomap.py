@@ -256,28 +256,6 @@ def _check_outlines(pos, outlines, head_scale=0.85):
     return pos, outlines
 
 
-def _inside_contour(pos, contour):
-    """Aux function"""
-    npos = len(pos)
-    x, y = pos[:, :2].T
-
-    check_mask = np.ones((npos), dtype=bool)
-    check_mask[((x < np.min(x)) | (y < np.min(y)) |
-                (x > np.max(x)) | (y > np.max(y)))] = False
-
-    critval = 0.1
-    sel = np.where(check_mask)[0]
-    for this_sel in sel:
-        contourx = contour[:, 0] - pos[this_sel, 0]
-        contoury = contour[:, 1] - pos[this_sel, 1]
-        angle = np.arctan2(contoury, contourx)
-        angle = np.unwrap(angle)
-        total = np.sum(np.diff(angle))
-        check_mask[this_sel] = np.abs(total) > critval
-
-    return check_mask
-
-
 def _griddata(x, y, v, xi, yi):
     """Aux function"""
     xy = x.ravel() + y.ravel() * -1j
@@ -418,10 +396,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         xlim = np.inf, -np.inf,
         ylim = np.inf, -np.inf,
         mask_ = np.c_[outlines['mask_pos']]
-        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0] * 1.01]),
-                      np.max(np.r_[xlim[1], mask_[:, 0] * 1.01]))
-        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1] * 1.01]),
-                      np.max(np.r_[ylim[1], mask_[:, 1] * 1.01]))
+        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]] * 1.1),
+                      np.max(np.r_[xlim[1], mask_[:, 0]] * 1.1))
+        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]] * 1.1),
+                      np.max(np.r_[ylim[1], mask_[:, 1]] * 1.1))
 
     # interpolate data
     xi = np.linspace(xmin, xmax, res)
@@ -451,12 +429,21 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         raise ValueError('`mask_params` must be of dict-type '
                          'or None')
 
+    # plot outline
+    linewidth = mask_params['markeredgewidth']
+    patch = None
+    if 'patch' in outlines:
+        patch = outlines.pop('patch')
+        patch.set_clip_on(False)
+        ax.add_patch(patch)
+        ax.set_transform(ax.transAxes)
+        ax.set_clip_path(patch)
+
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
-    # plot outline
-    linewidth = mask_params['markeredgewidth']
+
     if isinstance(outlines, dict):
         for k, (x, y) in outlines.items():
             if 'mask' in k:
@@ -481,6 +468,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         patch = patches.Circle((0.5, 0.4687), radius=.46,
                                clip_on=True,
                                transform=ax.transAxes)
+    if _is_default_outlines or patch is not None:
         im.set_clip_path(patch)
         ax.set_clip_path(patch)
         if cont is not None:
@@ -525,14 +513,14 @@ def _make_image_mask(outlines, pos, res):
     ymin, ymax = (np.min(np.r_[np.inf, mask_[:, 1]]),
                   np.max(np.r_[-np.inf, mask_[:, 1]]))
 
-    inside = _inside_contour(pos, mask_)
-    outside = np.invert(inside)
-    outlier_points = pos[outside]
-    while np.any(outlier_points):  # auto shrink
-        pos *= 0.99
-        inside = _inside_contour(pos, mask_)
-        outside = np.invert(inside)
-        outlier_points = pos[outside]
+    # inside = _inside_contour(pos, mask_)
+    # outside = np.invert(inside)
+    # outlier_points = pos[outside]
+    # while np.any(outlier_points):  # auto shrink
+    #     pos *= 0.99
+    #     inside = _inside_contour(pos, mask_)
+    #     outside = np.invert(inside)
+    #     outlier_points = pos[outside]
     image_mask = np.zeros((res, res), dtype=bool)
     xi_mask = np.linspace(xmin, xmax, res)
     yi_mask = np.linspace(ymin, ymax, res)
@@ -543,6 +531,28 @@ def _make_image_mask(outlines, pos, res):
     image_mask[inds.reshape(image_mask.shape)] = True
 
     return image_mask, pos
+
+
+def _inside_contour(pos, contour):
+    """Aux function"""
+    npos = len(pos)
+    x, y = pos[:, :2].T
+
+    check_mask = np.ones((npos), dtype=bool)
+    check_mask[((x < np.min(x)) | (y < np.min(y)) |
+                (x > np.max(x)) | (y > np.max(y)))] = False
+
+    critval = 0.1
+    sel = np.where(check_mask)[0]
+    for this_sel in sel:
+        contourx = contour[:, 0] - pos[this_sel, 0]
+        contoury = contour[:, 1] - pos[this_sel, 1]
+        angle = np.arctan2(contoury, contourx)
+        angle = np.unwrap(angle)
+        total = np.sum(np.diff(angle))
+        check_mask[this_sel] = np.abs(total) > critval
+
+    return check_mask
 
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
