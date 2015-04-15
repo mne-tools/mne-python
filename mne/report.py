@@ -1497,10 +1497,9 @@ def _clean_varnames(s):
     # Remove invalid characters
     s = re.sub('[^0-9a-zA-Z_]', '', s)
 
-    # Remove leading characters until we find a letter or underscore
-    s = re.sub('^[^a-zA-Z_]+', '', s)
-
-    return s
+    # add report_ at the beginning so that the javascript class names
+    # are valid ones
+    return 'report_' + s
 
 
 def _recursive_search(path, pattern):
