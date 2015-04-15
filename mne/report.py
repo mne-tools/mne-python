@@ -673,7 +673,7 @@ class Report(object):
         self._sectionvars = {}  # Section variable names in js
         # boolean to specify if sections should be ordered in natural
         # order of processing (raw -> events ... -> inverse)
-        self._sort = False
+        self._sort_sections = False
 
         self._init_render()  # Initialize the renderer
 
@@ -947,7 +947,7 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
-                     sort=True, verbose=None):
+                     sort_sections=True, verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -964,13 +964,13 @@ class Report(object):
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
-        sort : bool
+        sort_sections : bool
             If True, sort sections in the order: raw -> events -> epochs
              -> evoked -> covariance -> trans -> mri -> forward -> inverse
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
-        self._sort = sort
+        self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
@@ -1091,7 +1091,7 @@ class Report(object):
         global_id = 1
 
         # Reorder self.sections to reflect natural ordering
-        if self._sort:
+        if self._sort_sections:
             sections = list(set(self.sections) & set(SECTION_ORDER))
             custom = [section for section in self.sections if section
                       not in SECTION_ORDER]
