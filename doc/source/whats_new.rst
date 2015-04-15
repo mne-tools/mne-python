@@ -131,7 +131,7 @@ BUG
  
    - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_
 
-   - Fix section ordering if a pre-defined section was used. Pre-defined sections are no longer allowed in custom sections by `Mainak Jas`_ 
+   - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_ 
 
 API
 ~~~
