@@ -24,7 +24,6 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_string, write_dig_point, write_float, write_int,
                     write_coord_trans, write_ch_info, write_name_list,
                     write_julian, write_float_matrix)
-from .kit import read_mrk
 from .proc_history import _read_proc_history, _write_proc_history
 from ..utils import logger, verbose
 from ..fixes import Counter
@@ -1342,6 +1341,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if ext == '.txt':
             hpi = _read_dig_points(hpi)
         elif ext in ('.sqd', '.mrk'):
+            from .kit import read_mrk
             hpi = read_mrk(hpi)
         else:
             raise TypeError('HPI file is not supported.')
