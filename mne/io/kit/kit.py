@@ -21,7 +21,7 @@ from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
-from ...epochs import Epochs
+from ...epochs import EpochsArray
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
@@ -49,18 +49,17 @@ class RawKIT(_BaseRaw):
     hsp : None | str | array, shape = (n_points, 3)
         Digitizer head shape points, or path to head shape file. If more than
         10`000 points are in the head shape, they are automatically decimated.
-    stim : list of int | '<' | '>' | None
+    stim : list of int | '<' | '>'
         Channel-value correspondence when converting KIT trigger channels to a
         Neuromag-style stim channel. For '<', the largest values are assigned
         to the first channel (default). For '>', the largest values are
         assigned to the last channel. Can also be specified as a list of
-        trigger channel indexes. If None, no synthesized channel
-        will be created.
-    slope : '+' | '-' | None
+        trigger channel indexes.
+    slope : '+' | '-'
         How to interpret values on KIT trigger channels when synthesizing a
         Neuromag-style stim channel. With '+', a positive slope (low-to-high)
         is interpreted as an event. With '-', a negative slope (high-to-low)
-        is interpreted as an event. If None, stim must also be set to None.
+        is interpreted as an event.
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event. If None, stim must also be set to None.
@@ -81,9 +80,8 @@ class RawKIT(_BaseRaw):
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info('Creating Raw.info structure...')
-        self.info, self._kit_info = get_kit_info(input_fname)
+        info, self._kit_info = get_kit_info(input_fname)
         self._kit_info['slope'] = slope
-        self._set_stimchannels(stim)
         self._kit_info['stimthresh'] = stimthresh
         self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] != 1:
@@ -91,25 +89,15 @@ class RawKIT(_BaseRaw):
             raise TypeError(err)
         logger.info('Creating Info structure...')
 
-        # Raw attributes
-        self.verbose = verbose
-        self._projector = None
-        self.first_samp = 0
-        self.last_samp = self._kit_info['n_samples'] - 1
-        self.comp = None  # no compensation for KIT
-        self._raw_lengths = np.array([self.n_times])
-        self._first_samps = np.array([self.first_samp])
-        self._last_samps = np.array([self.last_samp])
-        self._filenames = []
-        self.cals = np.ones(self.info['nchan'])
-        self.orig_format = 'int'
-        self.rawdirs = list()
+        last_samps = [self._kit_info['n_samples'] - 1]
+        super(RawKIT, self).__init__(
+            info, last_samps=last_samps, verbose=verbose)
+        self._set_stimchannels(stim)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
-
         if (mrk is not None and elp is not None and hsp is not None):
             dig_points, dev_head_t = _set_dig_kit(mrk, elp, hsp)
             self.info['dig'] = dig_points
@@ -119,11 +107,6 @@ class RawKIT(_BaseRaw):
                    "none)")
             raise ValueError(err)
 
-        # Add time info
-        self._times = np.arange(self.first_samp, self.last_samp + 1,
-                                dtype=np.float64)
-        self._times /= self.info['sfreq']
-
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)
@@ -132,7 +115,7 @@ class RawKIT(_BaseRaw):
 
             logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                         % (self.first_samp, self.last_samp,
-                           self._times[0], self._times[-1]))
+                           self.times[0], self.times[-1]))
         logger.info('Ready.')
 
     def __repr__(self):
@@ -317,7 +300,7 @@ class RawKIT(_BaseRaw):
         return data, times
 
 
-class EpochsKIT(Epochs):
+class EpochsKIT(EpochsArray):
     """Epochs Array object from KIT SQD file
 
     Parameters
@@ -369,7 +352,7 @@ class EpochsKIT(Epochs):
         the window will start with tmin).
     reject_tmax : scalar | None
         End of the time window used to reject epochs (with the default None,
-        the window will end with tmax).    
+        the window will end with tmax).
     mrk : None | str | array_like, shape = (5, 3) | list of str or array_like
         Marker points representing the location of the marker coils with
         respect to the MEG Sensors, or path to a marker file.
@@ -434,14 +417,15 @@ class EpochsKIT(Epochs):
                        '(event id %i)' % (key, val))
                 raise ValueError(msg)
 
-        self._data = self._read_data()
+        data = self._read_data()
         assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
                               self._kit_info['frame_length'])
 
-        super(EpochsKIT, self).__init__(info=self.info, events=events,
-                                        event_id=event_id, tmin=tmin,
-                                        baseline=baseline,  reject=reject,
-                                        flat=flat, reject_tmin=reject_tmin,
+        super(EpochsKIT, self).__init__(data=data, info=self.info,
+                                        events=events, event_id=event_id,
+                                        baseline=baseline, tmin=tmin,
+                                        reject=reject, flat=flat,
+                                        reject_tmin=reject_tmin,
                                         reject_tmax=reject_tmax,
                                         verbose=verbose)
         logger.info('Ready.')
