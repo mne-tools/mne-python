@@ -75,9 +75,10 @@ def calculate_chpi_positions(raw, t_step_min=0.1, t_step_max=10., t_window=0.2,
     Returns
     -------
     quat : ndarray
-        An ``N`` x 10 array with time, 3 quaternions, 3 position values,
-        g-value, error, and velocity. The number of time points ``N`` will
-        depend on the velocity of head movements as well as `t_step`.
+        An array of shape ``(N, 10)`` with time, 3 quaternions, 3 position
+        values, g-value, error, and velocity. The number of time points
+        ``N`` will depend on the velocity of head movements as well as
+        `t_step`.
     """
     from ..forward._make_forward import _prep_channels
     n_window = int(round(t_window * raw.info['sfreq']))
@@ -228,8 +229,7 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
                            chpi=True, exclude=[])
         if len(picks) == 0:
             raise RuntimeError('raw file has no CHPI channels')
-        time_idx = raw.time_as_index(np.arange(0, raw.n_times /
-                                               raw.info['sfreq'], t_step))
+        time_idx = raw.time_as_index(np.arange(0, raw.times[-1], t_step))
         data = [raw[picks, ti] for ti in time_idx]
         t = np.array([d[1] for d in data])
         data = np.array([d[0][:, 0] for d in data])
@@ -242,6 +242,30 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         if t_step is not None:
             raise ValueError('t_step must be None if processing a log')
         data = np.loadtxt(raw, skiprows=1)  # first line is header, skip it
+    return chpi_to_trans_rot_t(data)
+
+
+def chpi_to_trans_rot_t(data):
+    """Convert Maxfilter-formatted head position data
+
+    Parameters
+    ----------
+    data : ndarray
+        Data of shape (N, 10).
+
+    Returns
+    -------
+    translation : ndarray
+        Translations at each time point.
+    rotation : ndarray
+        Rotations at each time point.
+    t : ndarray
+        The time points.
+
+    See also
+    --------
+    calculate_chpi_positions, get_chpi_positions
+    """
     t = data[:, 0]
     translation = data[:, 4:7].copy()
     rotation = _quat_to_rot(data[:, 1:4])

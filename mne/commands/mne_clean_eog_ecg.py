@@ -21,17 +21,17 @@ def clean_ecg_eog(in_fif_fname, out_fif_fname=None, eog=True, ecg=True,
 
     Parameters
     ----------
-    in_fif_fname : string
+    in_fif_fname : str
         Raw fif File
-    eog_event_fname : string
+    eog_event_fname : str
         name of EOG event file required.
     eog : bool
         Reject or not EOG artifacts.
     ecg : bool
         Reject or not ECG artifacts.
-    ecg_event_fname : string
+    ecg_event_fname : str
         name of ECG event file required.
-    in_path :
+    in_path : str
         Path where all the files are.
     """
     if not eog and not ecg:

@@ -277,7 +277,7 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
 
     hsp = 1e3 * np.array(hsp)
 
-    radius, origin_head = _fit_sphere(hsp)
+    radius, origin_head = _fit_sphere(hsp, disp=False)
     # compute origin in device coordinates
     trans = info['dev_head_t']
     if trans['from'] != FIFF.FIFFV_COORD_DEVICE \
@@ -288,17 +288,19 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
     origin_device = 1e3 * np.dot(head_to_dev,
                                  np.r_[1e-3 * origin_head, 1.0])[:3]
 
-    logger.info('Fitted sphere: r = %0.1f mm' % radius)
-    logger.info('Origin head coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_head[0], origin_head[1], origin_head[2]))
-    logger.info('Origin device coordinates: %0.1f %0.1f %0.1f mm' %
-                (origin_device[0], origin_device[1], origin_device[2]))
+    logger.info('Fitted sphere radius:'.ljust(30) + '%0.1f mm' % radius)
+    logger.info('Origin head coordinates:'.ljust(30) +
+                '%0.1f %0.1f %0.1f mm' % tuple(origin_head))
+    logger.info('Origin device coordinates:'.ljust(30) +
+                '%0.1f %0.1f %0.1f mm' % tuple(origin_device))
 
     return radius, origin_head, origin_device
 
 
-def _fit_sphere(points, disp=True):
+def _fit_sphere(points, disp='auto'):
     """Aux function to fit points to a sphere"""
+    if isinstance(disp, string_types) and disp == 'auto':
+        disp = True if logger.level <= 20 else False
     # initial guess for center and radius
     xradius = (np.max(points[:, 0]) - np.min(points[:, 0])) / 2.
     yradius = (np.max(points[:, 1]) - np.min(points[:, 1])) / 2.
