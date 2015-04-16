@@ -188,9 +188,9 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             raise ValueError('Info must not be None for auto mode')
         head_radius_fit, r0_fit = fit_sphere_to_headshape(info)[:2]
         if isinstance(r0, string_types):
-            r0 = r0_fit
+            r0 = r0_fit / 1000.
         if isinstance(head_radius, string_types):
-            head_radius = head_radius_fit
+            head_radius = head_radius_fit / 1000.
     sphere = dict(r0=np.array(r0), is_sphere=True,
                   coord_frame=FIFF.FIFFV_COORD_HEAD)
     sphere['layers'] = []
