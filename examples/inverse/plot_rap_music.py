@@ -48,7 +48,7 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=False,
 # Read noise covariance matrix and regularize it
 noise_cov = mne.read_cov(cov_fname)
 
-dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
+dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=1,
                               return_residual=True, verbose=True)
 trans = forward['mri_head_t']
 plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir)

@@ -135,7 +135,7 @@ def test_rap_music_simulated():
 
         # Check the orientation of the first dipole
         assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                         np.array([ori1, ori2]).T))) > 0.85)
+                                         np.array([ori1, ori2]).T))) > 0.99)
 
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
@@ -149,6 +149,11 @@ def test_rap_music_simulated():
     _check_dipoles(dipoles, forward_fixed)
 
     # Check dipoles for free ori
+    dipoles = rap_music(sim_evoked, forward, noise_cov,
+                        n_dipoles=n_dipoles)
+    _check_dipoles(dipoles, forward_fixed)
+
+    # Check dipoles for free surface ori
     dipoles = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                         n_dipoles=n_dipoles)
     _check_dipoles(dipoles, forward_fixed)

@@ -22,7 +22,7 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-meg, eeg = False, True
+meg, eeg = True, False
 
 
 def read_forward_solution_meg(fname_fwd, **kwargs):
@@ -61,6 +61,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
                                                    (2 * sigma ** 2))
     data = np.array([s1, s2]) * 10e-10
 
+    data = np.array([s1]) * 10e-10
     src = forward['src']
     rng = np.random.RandomState(42)
 
@@ -71,6 +72,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     rh_vertno = src[1]['vertno'][[rndi]]
 
     vertices = [lh_vertno, rh_vertno]
+    vertices = [lh_vertno, np.array([])]
     tmin, tstep = times.min(), 1 / evoked.info['sfreq']
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
@@ -83,7 +85,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
 evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
     _get_data()
 
-n_dipoles = 2
+n_dipoles = 1
 sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
                             evoked.times)
 
@@ -112,19 +114,13 @@ def _check_dipoles(dipoles, fwd, ori=False, n_orient=1):
         assert_true(dipoles[1].ori[0] in np.array([ori1, ori2]))
 
 # Check dipoles for fixed ori
-dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
-                    n_dipoles=n_dipoles)
-_check_dipoles(dipoles, forward_fixed, ori=True)
-
-# Check dipoles for free ori
 dipoles, residual = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                               n_dipoles=n_dipoles, return_residual=True)
-_check_dipoles(dipoles, forward_surf_ori, n_orient=3)
 
-src = forward_fixed['src']
-dipoles[1].pos[0] = dipoles[0].pos[0]
-dipoles[1].ori[0] = forward_fixed['source_nn'][np.where(src[0]['vertno'] ==
-                                                        stc.vertices[0])]
+# src = forward_fixed['src']
+# dipoles[1].pos[0] = dipoles[0].pos[0]
+# dipoles[1].ori[0] = forward_fixed['source_nn'][np.where(src[0]['vertno'] ==
+#                                                         stc.vertices[0])]
 
 from mne.viz import plot_dipoles
 trans = forward['mri_head_t']
@@ -133,5 +129,5 @@ subjects_dir = data_path + '/subjects'
 plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir,
              colors=[(0., 0., 1.), (1., 0., 0.)])
 
-sim_evoked.plot()
-residual.plot()
+sim_evoked.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
+residual.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
