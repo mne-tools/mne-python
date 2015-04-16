@@ -1258,9 +1258,11 @@ class DigMontage(object):
     rpa : array, shape (1, 3)
         The position of the right periauricular fidicual point in
         the RAS head space.
+    dev_head_t : array, shape (4, 4)
+        A Dev-to-Head transformation matrix.
     """
     def __init__(self, hsp, hpi, elp, point_names,
-                 nasion=None, lpa=None, rpa=None):
+                 nasion=None, lpa=None, rpa=None, dev_head_t=None):
         self.hsp = hsp
         self.hpi = hpi
         self.elp = elp
@@ -1269,6 +1271,10 @@ class DigMontage(object):
         self.nasion = nasion
         self.lpa = lpa
         self.rpa = rpa
+        if dev_head_t is None:
+            self.dev_head_t = np.identity(4)
+        else:
+            self.dev_head_t = dev_head_t
 
     def __repr__(self):
         s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
@@ -1295,8 +1301,8 @@ class DigMontage(object):
                             show_names=show_names)
 
 
-def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
-                     unit='mm', transform=True):
+def read_digmontage(hsp=None, hpi=None, elp=None, point_names=None,
+                    unit='mm', transform=True, dev_head_t=False):
     """Read montage from a file
 
     Note: Digitized points will be transformed to head-based coordinate system.
@@ -1312,22 +1318,29 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         If str, this corresponds to the filename of hpi points. If numpy.array,
         this corresponds to an array hpi points. These points are in
         device space.
-    elp : None | str | array, shape (n_hpi, 3)
+    elp : None | str | array, shape (n_fids + n_hpi, 3)
         If str, this corresponds to the filename of hpi points.
         This is typically used with the Polhemus FastSCAN system.
         If numpy.array, this corresponds to an array hpi points. These points
-        are in head space.
+        are in head space. Fiducials should be listed first, then the points
+        corresponding to the hpi.
     point_names : None | list
         If list, this corresponds to a list of point names. This must be
         specified if elp is defined.
     unit : 'm' | 'cm' | 'mm'
         Unit of the input file. If not 'm', coordinates will be rescaled
-        to 'm'. Default is 'mm'.
+        to 'm'. Default is 'mm'. This is applied only for hsp and elp files.
     transform : bool
         If True, points will be transformed to Neuromag space.
         The fidicuals, 'nasion', 'lpa', 'rpa' must be specified in
         the montage file. Useful for points captured using Polhemus FastSCAN.
         Default is True.
+    dev_head_t : bool
+        If True, a Dev-to-Head transformation matrix will be added to the
+        montage. To get a proper `dev_head_t`, the hpi and the elp points
+        must be in the same order. If False, an identity matrix will be added
+        to the montage. Default is False.
+        
 
     Returns
     -------
@@ -1336,6 +1349,11 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     """
     if isinstance(hsp, string_types):
         hsp = _read_dig_points(hsp)
+    if hsp is not None:
+        if unit == 'mm':
+            hsp *= 1e-3
+        if unit == 'cm':
+            hsp *= 1e-2
     if isinstance(hpi, string_types):
         ext = op.splitext(hpi)[-1]
         if ext == '.txt':
@@ -1353,10 +1371,8 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                              "were specified." % (len(elp), len(point_names)))
         if unit == 'mm':
             elp *= 1e-3
-            hsp *= 1e-3
         elif unit == 'cm':
             elp *= 1e-2
-            hsp *= 1e-2
 
     if transform:
         if elp is None:
@@ -1385,5 +1401,10 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         hsp = apply_trans(neuromag_trans, hsp)
     else:
         fids = [None] * 3
+    if dev_head_t:
+        trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+    else:
+        trans = np.identity(4)
 
-    return DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2])
+    return DigMontage(hsp, hpi, elp, point_names, fids[0], fids[1], fids[2],
+                      trans)

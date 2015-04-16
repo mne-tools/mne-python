@@ -7,7 +7,7 @@
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
-                        read_dig_montage)
+                        read_digmontage)
 
 from .proj import make_eeg_average_ref_proj
 from . import array
