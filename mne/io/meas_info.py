@@ -1136,8 +1136,9 @@ def create_info(ch_names, sfreq, ch_types=None):
 
     Parameters
     ----------
-    ch_names : list of str
-        Channel names.
+    ch_names : list of str | int
+        Channel names. If an int, a list of channel names will be created
+        from range(ch_names)
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
@@ -1155,8 +1156,10 @@ def create_info(ch_names, sfreq, ch_types=None):
     Note that the MEG device-to-head transform ``info['dev_head_t']`` will
     be initialized to the identity transform.
     """
+    if isinstance(ch_names, int):
+        ch_names = list(np.arange(ch_names).astype(str))
     if not isinstance(ch_names, (list, tuple)):
-        raise TypeError('ch_names must be a list or tuple')
+        raise TypeError('ch_names must be a list, tuple, or int')
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
