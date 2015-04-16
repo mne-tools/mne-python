@@ -30,12 +30,12 @@ evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 
 # Read the evoked response and crop it
-condition = 'Left Auditory'
+condition = 'Right Auditory'
 evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
-evoked.crop(tmin=40e-3, tmax=120e-3)
+evoked.crop(tmin=50e-3, tmax=150e-3)
 
-left_temporal_channels = mne.read_selection('Right-temporal')
+left_temporal_channels = mne.read_selection('Left-temporal')
 evoked = mne.pick_types_evoked(evoked, meg=False, eeg=False,
                                include=left_temporal_channels)
 
@@ -48,8 +48,9 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 # Read noise covariance matrix and regularize it
 noise_cov = mne.read_cov(cov_fname)
 
-dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=3,
-                              return_residual=True, verbose=True)
+dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=1,
+                              signal_ndim=2, return_residual=True,
+                              verbose=True)
 trans = forward['mri_head_t']
 plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir)
 

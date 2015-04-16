@@ -100,6 +100,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
+                if n_orient == 3 and source_ori[-1] < 0:
+                    # make sure ori is relative to surface ori
+                    source_ori *= -1  # XXX
 
                 source_pos = forward['source_rr'][i_source]
                 if n_orient == 1:
