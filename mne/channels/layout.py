@@ -1028,8 +1028,10 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     if ch_names is None:
         ch_names = ['{0}'.format(i) for i in ch_indices]
 
-    assert len(ch_names) == len(ch_indices), 'Unequal # ch names and indices'
-    assert len(ch_names) == len(xy), 'Unequal # ch names and xy vals'
+    if len(ch_names) != len(ch_indices):
+        raise ValueError('# ch names and indices must be equal')
+    if len(ch_names) != len(xy):
+        raise ValueError('# ch names and xy vals must be equal')
 
     x, y = xy.copy().astype(float).T
 
