@@ -100,9 +100,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
                 subcorr_max = subcorr
                 source_idx = i_source
                 source_ori = ori
-                if n_orient == 3 and source_ori[-1] < 0:
-                    # make sure ori is relative to surface ori
-                    source_ori[-1] *= -1  # XXX
 
                 source_pos = forward['source_rr'][i_source]
                 if n_orient == 1:
@@ -124,13 +121,10 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
 
         oris[k] = source_ori
         poss[k] = source_pos
-        # if n_orient == 3:
-        #     oris[k] = np.dot(forward['source_nn'][idx_k], oris[k])
 
         logger.info("source %s found: p = %s" % (k + 1, source_idx))
         if n_orient == 3:
             logger.info("ori = %s %s %s" % tuple(oris[k]))
-            logger.info("ori = %s %s %s" % tuple(source_ori))
 
         projection = _compute_proj(A[:, :k + 1])
         G_proj = np.dot(projection, G)
@@ -164,17 +158,10 @@ def _make_dipoles(times, src, poss, oris, sol):
 def _compute_subcorr(G, phi_sig):
     """ Compute the subspace correlation
     """
-    # # Ug = linalg.qr(G, mode='economic')[0]
-    # Ug, _, _ = linalg.svd(G, full_matrices=False)
-    # tmp = np.dot(Ug.T.conjugate(), phi_sig)
-    # subcorr = np.dot(tmp, tmp.T.conjugate()).real
-    # eig_vals, eig_vecs = linalg.eigh(subcorr)
-    # return np.sqrt(eig_vals[-1]), eig_vecs[:, -1]
-
     Ug, Sg, Vg = linalg.svd(G, full_matrices=False)
     tmp = np.dot(Ug.T.conjugate(), phi_sig)
     Uc, Sc, Vc = linalg.svd(tmp, full_matrices=False)
-    X = np.dot(np.dot(Vg, np.diag(1. / Sg)), Uc)  # subcorr
+    X = np.dot(np.dot(Vg.T, np.diag(1. / Sg)), Uc)  # subcorr
     return Sc[0], X[:, 0] / linalg.norm(X[:, 0])
 
 

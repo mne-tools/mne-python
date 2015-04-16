@@ -22,11 +22,13 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
+meg, eeg = True, False
+
 
 def read_forward_solution_meg(fname_fwd, **kwargs):
     fwd = mne.read_forward_solution(fname_fwd, **kwargs)
-    return mne.pick_types_forward(fwd, meg=True, eeg=False,
-                                  exclude=['MEG 2443'])
+    return mne.pick_types_forward(fwd, meg=meg, eeg=eeg,
+                                  exclude=['MEG 2443', 'EEG 053'])
 
 
 def _get_data(event_id=1):
@@ -34,7 +36,7 @@ def _get_data(event_id=1):
     """
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, event_id)
-    evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
+    evoked = mne.pick_types_evoked(evoked, meg=meg, eeg=eeg)
     evoked.crop(0, 0.3)
 
     forward = mne.read_forward_solution(fname_fwd)
@@ -59,16 +61,18 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
                                                    (2 * sigma ** 2))
     data = np.array([s1, s2]) * 10e-10
 
+    # data = np.array([s1]) * 10e-10
     src = forward['src']
     rng = np.random.RandomState(42)
 
-    rndi = rng.randint(len(src[0]['vertno']))
+    rndi = 100  # rng.randint(len(src[0]['vertno']))
     lh_vertno = src[0]['vertno'][[rndi]]
 
-    rndi = rng.randint(len(src[1]['vertno']))
+    rndi = 203  # rng.randint(len(src[1]['vertno']))
     rh_vertno = src[1]['vertno'][[rndi]]
 
     vertices = [lh_vertno, rh_vertno]
+    # vertices = [lh_vertno, np.array([])]
     tmin, tstep = times.min(), 1 / evoked.info['sfreq']
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
@@ -78,53 +82,44 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
 
     return sim_evoked, stc
 
+evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
+    _get_data()
 
-@testing.requires_testing_data
-def test_rap_music_simulated():
-    """Test RAP-MUSIC with simulated evoked
-    """
-    def _check_dipoles(dipoles, fwd):
-        src = fwd['src']
-        pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
-                                         stc.vertices[0])]
-        pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
-                                         stc.vertices[1])[0] +
-                                len(src[0]['vertno'])]
+n_dipoles = 2
+sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
+                            evoked.times)
 
-        # Check the position of the two dipoles
-        assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
-        assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
 
-        ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
-                                         stc.vertices[0])[0]][0]
-        ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
-                                         stc.vertices[1])[0] +
-                                len(src[0]['vertno'])][0]
+def _check_dipoles(dipoles, fwd, ori=False, n_orient=1):
+    src = fwd['src']
+    pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
+                                     stc.vertices[0])]
+    pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
+                                     stc.vertices[1])[0] +
+                            len(src[0]['vertno'])]
 
-        # Check the orientation of the first dipole
-        assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                         np.array([ori1, ori2]).T))) > 0.99)
+    # Check the position of the two dipoles
+    assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
+    assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
 
-        assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                         np.array([ori1, ori2]).T))) > 0.99)
+    ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
+                                     stc.vertices[0])[0]]
+    ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
+                                     stc.vertices[1])[0] +
+                            len(src[0]['vertno'])]
 
-    evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
-        _get_data()
+    # Check the orientation of the first dipole
+    assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
+                                     np.array([ori1, ori2]).T))) > 0.99)
 
-    n_dipoles = 2
-    sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
-                                evoked.times)
-    # Check dipoles for fixed ori
-    dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
-                        n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed)
+    assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
+                                     np.array([ori1, ori2]).T))) > 0.99)
 
-    # Check dipoles for free ori
-    dipoles = rap_music(sim_evoked, forward, noise_cov,
-                        n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed)
+# Check dipoles for fixed ori
+dipoles, residual = rap_music(sim_evoked, forward, noise_cov,
+                              n_dipoles=n_dipoles, return_residual=True)
 
-    # Check dipoles for free surface ori
-    dipoles = rap_music(sim_evoked, forward_surf_ori, noise_cov,
-                        n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed)
+sim_evoked.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
+residual.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
+
+print dipoles[0].ori[0]
