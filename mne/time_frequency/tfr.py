@@ -872,7 +872,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, format=None):
+                     axes=None, show=True, format=None, outlines='head'):
         """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
@@ -950,6 +950,15 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The axes to plot to. If None the axes is defined automatically.
         show : bool
             Call pyplot.show() at the end.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', a head scheme will be drawn.
+            If dict, each key refers to a tuple of x and y positions.
+            The values in 'mask_pos' will serve as image mask. If None, nothing
+            will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+            field will, trigger automated shrinking of the positions due to
+            points outside the outline. Moreover, a matplotlib patch object can
+            be passed for advanced masking options, either directly or as a
+            function that returns patches (required for multi-axis plots).
 
         Returns
         -------
@@ -964,7 +973,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                format=format)
+                                format=format, outlines=outlines)
 
     @requires_h5py
     def save(self, fname, overwrite=False):
