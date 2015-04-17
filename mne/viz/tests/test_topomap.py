@@ -127,11 +127,14 @@ def test_plot_topomap():
 
         pos = make_eeg_layout(evoked.info).pos
         pos, outlines = _check_outlines(pos, outlines='head')
+        # test 1: pass custom outlines without patch
 
         def patch():
             return Circle((0.5, 0.4687), radius=.46,
                           clip_on=True, transform=plt.gca().transAxes)
-        import pdb;pdb.set_trace()
+
+        # test 2: pass custom outlines with patch callable
+        outlines['patch'] = patch
         plot_evoked_topomap(evoked, times, ch_type='eeg', outlines='head')
         # Remove digitization points. Now topomap should fail
         evoked.info['dig'] = None
