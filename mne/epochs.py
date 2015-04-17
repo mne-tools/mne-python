@@ -1843,7 +1843,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
     by minimizing the differences in the times of the events in the two sets of
     epochs. For example, if one had event times [1, 2, 3, 4, 120, 121] and the
     other one had [3.5, 4.5, 120.5, 121.5], it would remove events at times
-    [1, 2] in the first epochs and not [20, 21].
+    [1, 2] in the first epochs and not [120, 121].
 
     Note that this operates on the Epochs instances in-place.
 
