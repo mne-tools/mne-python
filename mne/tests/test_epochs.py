@@ -145,6 +145,19 @@ def test_epoch_combine_ids():
         # should probably add test + functionality for non-replacement XXX
 
 
+def test_epoch_hierarchical_ids():
+    """Test multi-index/hierarchical indexing
+    """
+    raw, events, picks = _get_data()
+    for preload in [False]:
+        epochs = Epochs(raw, events, {'a/b/a': 1, 'a/b/b': 2, 'a/c': 3,
+                                      'b/d': 4, 'b/e': 5, 'b/f': 32},
+                        tmin, tmax, picks=picks, preload=preload)
+        epochs_regular = epochs[['a', 'b']]
+        epochs_multi = epochs[['a/b/a', 'a/b/b']]
+        assert_array_equal(epochs_regular.events, epochs_multi.events)
+
+
 def test_read_epochs_bad_events():
     """Test epochs when events are at the beginning or the end of the file
     """
