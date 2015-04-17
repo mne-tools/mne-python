@@ -1402,7 +1402,8 @@ def read_digmontage(hsp=None, hpi=None, elp=None, point_names=None,
     else:
         fids = [None] * 3
     if dev_head_t:
-        trans = fit_matched_points(tgt_pts=elp[3:], src_pts=mrk, out='trans')
+        from ..coreg import fit_matched_points
+        trans = fit_matched_points(tgt_pts=elp[3:], src_pts=hpi, out='trans')
     else:
         trans = np.identity(4)
 
