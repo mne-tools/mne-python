@@ -61,7 +61,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.name = name
 
         if isinstance(event_id, dict):
-            if not all([isinstance(v, int) for v in event_id.values()]):
+            if any([isinstance(v, list) for v in event_id.values()]):
+                for val in event_id.values():
+                    if isinstance(val, list):
+                        if not all([isinstance(v, int) for v in val]):
+                            raise ValueError('Event IDs must be of type integer')
+                    elif not isinstance(v, int):
+                        raise ValueError('Event IDs must be of type integer')
+            elif not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
             if not all([isinstance(k, string_types) for k in event_id]):
                 raise ValueError('Event names must be of type str')
@@ -845,20 +852,24 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
+        values = []
         for key, val in self.event_id.items():
-            if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                if on_missing == 'error':
-                    raise ValueError(msg)
-                elif on_missing == 'warning':
-                    logger.warning(msg)
-                    warnings.warn(msg)
-                else:  # on_missing == 'ignore':
-                    pass
+            if not isinstance(val, list):
+               val = [val]
+            for v in val:         
+                if v not in events[:, 2]:
+                    msg = ('No matching events found for %s '
+                           '(event id %i)' % (key, v))
+                    if on_missing == 'error':
+                        raise ValueError(msg)
+                    elif on_missing == 'warning':
+                        logger.warning(msg)
+                        warnings.warn(msg)
+                    else:  # on_missing == 'ignore':
+                        pass
+                values.append(v)
 
         # Select the desired events
-        values = list(self.event_id.values())
         selected = in1d(events[:, 2], values)
         self.events = events[selected]
 
@@ -1739,10 +1750,17 @@ class EpochsArray(Epochs):
         self.events = events
 
         for key, val in self.event_id.items():
-            if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                raise ValueError(msg)
+            if isinstance(val, list):
+                 for v in val:
+                     if v not in events[:, 2]:
+                         msg = ('No matching events found for %s '
+                                '(event id %i)' % (key, val))
+                         raise ValueError(msg)
+            else:
+                if val not in events[:, 2]:
+                    msg = ('No matching events found for %s '
+                           '(event id %i)' % (key, val))
+                    raise ValueError(msg)
 
         self.baseline = baseline
         self.preload = True
