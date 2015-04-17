@@ -26,32 +26,19 @@ from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
 from ..time_frequency import compute_epochs_psd
 
 
-def _prepare_virt_chs(info, ch_type):
-    """Aux function"""
-    has_virt_ch = False
-    if any([ch_name.find('interp') != -1 for ch_name in info['ch_names']]):
-        has_virt_ch = True
-        ch_type = 'mag' if ch_type == 'grad' else 'grad'
-        info['ch_names'] = [ch_name.replace('_interp_', '') for ch_name
-                            in info['ch_names']]
-    return has_virt_ch, info, ch_type
-
-
 def _prepare_topo_plot(inst, ch_type, layout):
     """"Aux Function"""
     info = copy.deepcopy(inst.info)
 
     if layout is None and ch_type is not 'eeg':
         from ..channels import find_layout
-        layout = find_layout(info, ch_type=ch_type)
+        layout = find_layout(info)
     elif layout == 'auto':
         layout = None
 
-    info['ch_names'] = _clean_names(info['ch_names'], remove_whitespace=True)
-    layout.names = _clean_names(layout.names, remove_whitespace=True)
+    info['ch_names'] = _clean_names(info['ch_names'])
     for ii, this_ch in enumerate(info['chs']):
         this_ch['ch_name'] = info['ch_names'][ii]
-    has_virt_ch, info, ch_type = _prepare_virt_chs(info, ch_type)
 
     # special case for merging grad channels
     if (ch_type == 'grad' and FIFF.FIFFV_COIL_VV_PLANAR_T1 in
@@ -67,6 +54,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         else:
             picks = pick_types(info, meg=ch_type, ref_meg=False,
                                exclude='bads')
+
         if len(picks) == 0:
             raise ValueError("No channels of type %r" % ch_type)
 
@@ -84,11 +72,7 @@ def _prepare_topo_plot(inst, ch_type, layout):
         # instead of MEG0142 or MEG0143 which are the 2 planar grads.
         ch_names = [ch_names[k][:-1] + 'x' for k in range(0, len(ch_names), 2)]
     pos = np.array(pos)[:, :2]  # 2D plot, otherwise interpolation bugs
-
-    if has_virt_ch is True:
-        ch_type = 'mag' if ch_type == 'grad' else 'grad'
-
-    return picks, pos, merge_grads, ch_names, ch_type, has_virt_ch
+    return picks, pos, merge_grads, ch_names, ch_type
 
 
 def _plot_update_evoked_topomap(params, bools):
@@ -672,9 +656,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         raise RuntimeError('The ICA\'s measurement info is missing. Please '
                            'fit the ICA or add the corresponding info object.')
 
-    data_picks, pos, merge_grads, names, _, _ = _prepare_topo_plot(ica,
-                                                                   ch_type,
-                                                                   layout)
+    data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
+                                                                layout)
     pos, outlines = _check_outlines(pos, outlines)
     if outlines not in (None, 'head'):
         image_mask, pos = _make_image_mask(outlines, pos, res)
@@ -827,8 +810,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-    picks, pos, merge_grads, names, _, _ = _prepare_topo_plot(tfr, ch_type,
-                                                              layout)
+    picks, pos, merge_grads, names, _ = _prepare_topo_plot(tfr, ch_type,
+                                                           layout)
     if not show_names:
         names = None
 
@@ -918,8 +901,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout file
         is inferred from the data; if no appropriate layout file was found, the
-        layout is automatically generated from the sensor locations. For
-        interpolated 'grad', the absolute value is plotted.
+        layout is automatically generated from the sensor locations.
     vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -1022,7 +1004,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
             raise ValueError('Times should be between %0.3f and %0.3f. (Got '
                              '%0.3f).' % (tmin, tmax, t))
 
-    picks, pos, merge_grads, names, ch_type, has_virt_ch = _prepare_topo_plot(
+    picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
 
     if ch_type.startswith('planar'):
@@ -1076,9 +1058,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     if merge_grads:
         from ..channels.layout import _merge_grad_data
         data = _merge_grad_data(data)
-
-    if has_virt_ch is True and ch_type == 'grad':
-        data = np.abs(data)
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
