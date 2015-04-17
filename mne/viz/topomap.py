@@ -1055,11 +1055,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
 
     if colorbar is True:
         cax = plt.subplot(1, n + 1, n + 1)
-<<<<<<< HEAD
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
                      format=cbar_fmt)
-=======
->>>>>>> pr/1920
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
