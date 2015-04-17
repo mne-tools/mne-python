@@ -207,7 +207,7 @@ def test_add_htmls_to_section():
     html = '<b>MNE-Python is AWESOME</b>'
     caption, section = 'html', 'html_section'
     report.add_htmls_to_section(html, caption, section)
-    idx = report._sectionlabels.index(section)
+    idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
     assert_equal(html, html_compare)
 
