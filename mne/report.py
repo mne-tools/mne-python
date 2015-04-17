@@ -671,6 +671,9 @@ class Report(object):
         self.sections = []  # List of sections
         self._sectionlabels = []  # Section labels
         self._sectionvars = {}  # Section variable names in js
+        # boolean to specify if sections should be ordered in natural
+        # order of processing (raw -> events ... -> inverse)
+        self._sort_sections = False
 
         self._init_render()  # Initialize the renderer
 
@@ -944,7 +947,7 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
-                     verbose=None):
+                     sort_sections=True, verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -961,9 +964,14 @@ class Report(object):
         mri_decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
+        sort_sections : bool
+            If True, sort sections in the order: raw -> events -> epochs
+             -> evoked -> covariance -> trans -> mri -> forward -> inverse
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
+        self._sort = sort_sections
+
         n_jobs = check_n_jobs(n_jobs)
         self.data_path = data_path
 
@@ -1083,12 +1091,13 @@ class Report(object):
         global_id = 1
 
         # Reorder self.sections to reflect natural ordering
-        sections = list(set(self.sections) & set(SECTION_ORDER))
-        custom = [section for section in self.sections if section
-                  not in SECTION_ORDER]
-        order = [sections.index(section) for section in SECTION_ORDER if
-                 section in sections]
-        self.sections = np.array(sections)[order].tolist() + custom
+        if self._sort_sections:
+            sections = list(set(self.sections) & set(SECTION_ORDER))
+            custom = [section for section in self.sections if section
+                      not in SECTION_ORDER]
+            order = [sections.index(section) for section in SECTION_ORDER if
+                     section in sections]
+            self.sections = np.array(sections)[order].tolist() + custom
 
         # Sort by section
         html, fnames, sectionlabels = [], [], []
