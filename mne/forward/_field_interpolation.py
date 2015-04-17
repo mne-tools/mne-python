@@ -18,7 +18,6 @@ from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
 from ..evoked import EvokedArray
-from ..io.meas_info import _merge_info
 
 
 def _is_axial_coil(coil):
@@ -38,6 +37,23 @@ def _ad_hoc_noise(coils, ch_type='meg'):
         v.fill(1e-12)  # 1e-6 ** 2
     cov = dict(diag=True, data=v, eig=None, eigvec=None)
     return cov
+
+
+def _setup_dots(mode, coils, ch_type):
+    """Setup dot products"""
+    my_origin = np.array([0.0, 0.0, 0.04])
+    int_rad = 0.06
+    noise = _ad_hoc_noise(coils, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+
+    return my_origin, int_rad, noise, lut_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
@@ -92,7 +108,7 @@ def _compute_mapping_matrix(fmd, info):
 
 
 def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
-                           copy=True, baseline=None, n_jobs=1):
+                           copy=True, baseline=None, mode='fast', n_jobs=1):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -122,9 +138,6 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     if from_type == to_type:
         raise ValueError('from_type and to_type cannot be the same.')
 
-    # get surface in head coordinates
-    surf_virt = get_meg_helmet_surf(evoked.info)
-
     # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=from_type, eeg=False,
                            ref_meg=False)
@@ -134,49 +147,24 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     info_from = pick_info(evoked.info, pick_from, copy=True)
     info_to = pick_info(evoked.info, pick_to, copy=True)
 
-    # find location and normals for virtual channels
-    pts = np.array([ch['loc'][:3] for ch in info_to['chs']])
-    nn = np.array([ch['loc'][-3:] for ch in info_to['chs']])
-
-    # take virtual channels to head coordinates
-    trans = evoked.info['dev_head_t']['trans']
-    pts = apply_trans(trans, pts)
-    nn = apply_trans(trans, nn)
-
-    # virtual channels lie on a 'surface' with location and
-    # normals copied from channel info
-    surf_virt['rr'], surf_virt['nn'] = pts, nn
-    surf_virt['coord_frame'] = FIFF.FIFFV_COORD_HEAD
-
-    # do the actual interpolation
-    # field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
-    #                                   trans=None, n_jobs=n_jobs)
-
+    # no need to apply trans because both from and to coils are in device
+    # coordinates
     coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
                                info_from['dev_head_t'], 'meg')
     coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
                              info_to['dev_head_t'], 'meg')
     miss = 1e-4  # Smoothing criterion for MEG
-    ch_type, type_str, mode = 'meg', 'coils', 'fast'
+    ch_type = 'meg'
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = np.array([0.0, 0.0, 0.04])
-    int_rad = 0.06
-    noise = _ad_hoc_noise(coils_from, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
-    logger.info('Computing dot products for %i %s...' %
-                (len(coils_from), type_str))
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
+                                                             ch_type)
+    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
     self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, ch_type,
                               lut_fun, n_fact, n_jobs)
-    logger.info('Computing cross products for coils...')
+    logger.info('Computing cross products for coils %i x %i coils...'
+                % (len(coils_from), len(coils_to)))
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
                                 my_origin, ch_type, lut_fun, n_fact).T
 
@@ -191,21 +179,6 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     data = np.dot(fmd['data'], evoked.data[pick_from])
-
-    # create new info structure for virtual channels
-    # for ch in info_to['chs']:
-    #     ch['unit'] = info_from['chs'][0]['unit']
-    #     ch['coord_frame'] = FIFF.FIFFV_COORD_DEVICE
-    #     ch['ch_name'] = 'MEG_interp_%s' % ch['ch_name'][3:].strip()
-    #     ch['coil_type'] = info_to['chs'][0]['coil_type']
-    # info_from['ch_names'] = [ch['ch_name'] for ch in info_from['chs']]
-
-    # Finally combine everything into one evoked
-    # if copy is True:
-    #     evoked = evoked.copy()
-
-    # evoked.data[pick_from] = data
-    # evoked.info = _merge_info([info_from, info_virt])
 
     # create evoked data struct. using data at virtual channels
     mapped_evoked = EvokedArray(data, info_to, tmin=evoked.times[0])
@@ -293,17 +266,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = np.array([0.0, 0.0, 0.04])
-    int_rad = 0.06
-    noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils,
+                                                             ch_type)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
     self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
                               lut_fun, n_fact, n_jobs)
