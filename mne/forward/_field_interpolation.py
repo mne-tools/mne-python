@@ -8,8 +8,7 @@ from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
-from ..transforms import (transform_surface_to, read_trans, apply_trans,
-                          _find_trans)
+from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate,
@@ -155,6 +154,7 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
                              info_to['dev_head_t'], 'meg')
     miss = 1e-4  # Smoothing criterion for MEG
     ch_type = 'meg'
+
     #
     # Step 2. Calculate the dot products
     #
@@ -174,6 +174,9 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
                surface_dots=cross_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
 
+    #
+    # Step 3. Compute the mapping matrix
+    #
     fmd['data'] = _compute_mapping_matrix(fmd, info_from)
 
     # compute evoked data by multiplying by the 'gain matrix' from

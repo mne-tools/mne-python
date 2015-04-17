@@ -1,3 +1,9 @@
+# Authors: Eric Larson <larsoner@uw.edu>
+#          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
 import os
 from os import path as op
 
@@ -139,7 +145,26 @@ def _comp_sum_eeg(beta, ctheta, lut_fun, n_fact):
 
 
 def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
-    """Lead field dot products using Legendre polynomial (P_n) series"""
+    """Lead field dot products using Legendre polynomial (P_n) series.
+
+    Parameters
+    ----------
+    beta : array, shape (n_points * n_points, 1)
+        Coefficients of the integration.
+    ctheta : array, shape (n_points * n_points, 1)
+        Cosine of the angle between the sensor integration points.
+    lut_fun : object
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
+    volume_integral : bool
+        If True, compute volume integral.
+
+    Returns
+    -------
+    sums : array, shape (4, n_points * n_points)
+        The results.
+    """
     # Compute the sums occurring in the evaluation.
     # Two point magnetometers on the xz plane are assumed.
     # The four sums are:
@@ -162,33 +187,42 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
 
 def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
                         w1, w2, volume_integral, lut, n_fact, ch_type):
-    """Lead field dot product computation for M/EEG in the sphere model
+    """Lead field dot product computation for M/EEG in the sphere model.
+
+    Parameters
+    ----------
     r : float
-        Used to calculate beta coefficients.
-    rr1 :
-        normalized position vector of first sensor.
-    rr2 :
-        normalized position vector of second sensor.
-    lr1 :
-        magnitude of position vector of first sensor.
-    lr2 :
-        magnitude of position vector of second sensor.
-    cosmags1 :
-        direction of first sensor.
-    cosmags2 :
-        direction of second sensor.
-    w1 :
-        weights of the first sensor.
-    w2 :
-        weights of the second sensor.
+        The integration radius. It is used to calculate beta as:
+        beta = (r * r) / (lr1 * lr2).
+    rr1 : array, shape (n_points x 3)
+        Normalized position vectors of integrations points in first sensor.
+    rr2 : array, shape (n_points x 3)
+        Normalized position vector of integration points in second sensor.
+    lr1 : array, shape (n_points x 1)
+        Magnitude of position vector of integration points in first sensor.
+    lr2 : array, shape (n_points x 1)
+        Magnitude of position vector of integration points in second sensor.
+    cosmags1 : array, shape (n_points x 1)
+        Direction of integration points in first sensor.
+    cosmags2 : array, shape (n_points x 1)
+        Direction of integration points in second sensor.
+    w1 : array, shape (n_points x 1)
+        Weights of integration points in the first sensor.
+    w2 : array, shape (n_points x 1)
+        Weights of integration points in the second sensor.
     volume_integral : bool
         If True, compute volume integral.
     lut : object
         Look-up table for evaluating Legendre polynomials.
-    n_fact : numpy array
-        Coefficients in the integration sum
+    n_fact : array
+        Coefficients in the integration sum.
     ch_type : str
-        The channel type. It can be 'meg' or 'eeg'
+        The channel type. It can be 'meg' or 'eeg'.
+
+    Returns
+    -------
+    result : float
+        The integration sum.
     """
     ct = np.einsum('ik,jk->ij', rr1, rr2)  # outer product, sum over coords
 
@@ -248,21 +282,28 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
 
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     """Perform the lead field dot product integrations
-    intrad :
+    intrad : float
+        The integration radius. It is used to calculate beta as:
+        beta = (intrad * intrad) / (r1 * r2).
     volume : bool
         If True, perform volume integral.
     coils : list of dict
         The coils.
-    r0 : numpy array of shape 3 x 1.
+    r0 : array, shape (3 x 1)
         The origin of the sphere.
     ch_type : str
-        The channel type. 'meg' or 'eeg'.
-    lut :
+        The channel type. It can be 'meg' or 'eeg'
+    lut : object
         Look-up table for evaluating Legendre polynomials.
-    n_fact : numpy array
+    n_fact : array
         Coefficients in the integration sum.
     n_jobs : int
         Number of jobs to run in parallel.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
     """
     if ch_type == 'eeg':
         intrad *= 0.7
@@ -299,6 +340,28 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
 
 def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
                    lut, n_fact):
+    """Compute lead field dot product integrations between two coil sets.
+
+    Parameters
+    ----------
+    intrad : float
+        The integration radius. It is used to calculate beta as:
+        beta = (intrad * intrad) / (r1 * r2).
+    volume : bool
+        If True, compute volume integral.
+    coils1 : list of dict
+        The original coils.
+    coils2 : list of dict
+        The coils to which data is being mapped.
+    r0 : array, shape (3 x 1).
+        The origin of the sphere.
+    ch_type : str
+        The channel type. It can be 'meg' or 'eeg'
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
+    """
     rmags1 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils1]
     rmags2 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils2]
 
@@ -328,37 +391,35 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
     """Compute the map construction products
+
+    Parameters
+    ----------
     intrad : float
-        This describes the value of beta for integration.
+        The integration radius. It is used to calculate beta as:
         beta = (intrad * intrad) / (r1 * r2)
     volume : bool
         If True, compute a volume integral.
     coils : list of dist
-        List of coils. Valid for the dictionary entries are:
-        'cosmag' :
-            direction of the coil.
-        'coil_class' :
-        'coord_frame' :
-        'rmag' :
-            position of the coil.
-        'type' :
-        'chname' : str
-            name of the channel
-        'accuracy' :
+        The coils.
     surf : dict
-        The sphere surface
-    sel : numpy array
-        indices of the surfact to select.
-    r0 : numpy array of shape (3 x 1)
+        The surface on which the field is interpolated.
+    sel : array
+        Indices of the surface vertices to select.
+    r0 : array, shape (3 x 1)
         origin of the sphere.
     ch_type : str
-        'meg' or 'eeg'
+        The channel type. It can be 'meg' or 'eeg'.
     lut : object
-        Look-up table for Legendre polynomials
-    n_fact : numpy array
-        Coefficients in the integration sum
+        Look-up table for Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
     n_jobs : int
-        number of parallel jobs
+        Number of jobs to run in parallel.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
     """
     virt_ref = False
     # convert to normalized distances from expansion center
@@ -394,30 +455,38 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
 def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
                             this_nn, cosmags, ws, volume, lut, n_fact, ch_type,
                             idx):
-    """Helper for parallelization
-    refl : numpy array | None
+    """Helper for parallelization.
+
+    Parameters
+    ----------
+    refl : array | None
         If ch_type is 'eeg', the magnitude of position vector of the
-        virtual reference (never uesd).
-    lsurf : numpy array
-        magnitude of position vector of the surface points.
-    rlens : list of numpy arrays of length n_coils
-        magnitude of position vector.
-    this_nn :
-        surface normals
-    cosmags : list of numpy array.
-        Direction of the coils
-    ws : list of numpy array.
-        Integration weights of the coil.
+        virtual reference (never used).
+    lsurf : array
+        Magnitude of position vector of the surface points.
+    rlens : list of arrays of length n_coils
+        Magnitude of position vector.
+    this_nn : array, shape (n_vertices, 3)
+        Surface normals.
+    cosmags : list of array.
+        Direction of the integration points in the coils.
+    ws : list of array
+        Integration weights of the coils.
     volume : bool
         If True, compute volume integral.
     lut : object
         Look-up table for evaluating Legendre polynomials.
-    n_fact : numpy array
-        Coefficients in the integration sum
+    n_fact : array
+        Coefficients in the integration sum.
     ch_type : str
         'meg' or 'eeg'
-    idx : numpy array (shape n_coils x 1)
-        index of coil
+    idx : array, shape (n_coils x 1)
+        Index of coil.
+
+    Returns
+    -------
+    products : array, shape (n_coils, n_coils)
+        The integration products.
     """
     products = np.zeros((len(rsurf), len(rmags)))
     for ci in idx:
