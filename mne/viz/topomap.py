@@ -140,7 +140,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will,
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
         trigger automated shrinking of the positions due to points outside the
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
@@ -353,7 +353,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will,
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
         trigger automated shrinking of the positions due to points outside the
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
@@ -612,7 +612,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will,
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
         trigger automated shrinking of the positions due to points outside the
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
@@ -962,7 +962,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will,
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
         trigger automated shrinking of the positions due to points outside the
         outline. Moreover, a matplotlib patch object can be passed for
         advanced masking options, either directly or as a function that returns
