@@ -986,7 +986,9 @@ def apply_montage(info, montage):
 
 def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
                        ch_indices=None, name='ecog', bg_image=None):
-    '''Generates a 2-D layout for plotting with plot_topo methods and
+    """Generate a custom 2D layout from xy points.
+
+    Generates a 2-D layout for plotting with plot_topo methods and
     functions. XY points will be normalized between 0 and 1, where
     normalization extremes will be either the min/max of xy, or
     the width/height of bg_image.
@@ -1021,8 +1023,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
     layout : Layout
         A Layout object that can be plotted with plot_topo
         functions and methods.
-    '''
-
+    """
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
