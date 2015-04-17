@@ -984,10 +984,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
-    height = size * 1. + max(0, 0.1 * (4 - size))
+    height = size * 1. + max(0, 0.1 * (4 - size)) + bool(title)*0.5
     fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
-    top_frame = max((0.05 if title is None else 0.15), .2 / size)
+    top_frame = max((0.05 if title is None else 0.25), .2 / size)
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
@@ -1049,20 +1049,29 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         if time_format is not None:
             plt.title(time_format % (t * scale_time))
 
-    if colorbar:
+    if title is not None:
+        plt.suptitle(title, verticalalignment='top', size='x-large')
+        tight_layout(pad=size, fig=fig)
+
+    if colorbar is True:
         cax = plt.subplot(1, n + 1, n + 1)
+<<<<<<< HEAD
         plt.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
                      format=cbar_fmt)
+=======
+>>>>>>> pr/1920
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
         if size <= 1:
             cpos.x0 = 1 - (.7 + .1 / size) / nax
         cpos.x1 = cpos.x0 + .1 / nax
-        cpos.y0 = .1
+        cpos.y0 = .2
         cpos.y1 = .7
         cax.set_position(cpos)
         if unit is not None:
             cax.set_title(unit)
+        fig.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
+                     format=format)
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
@@ -1073,10 +1082,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
 
-    if title is not None:
-        plt.suptitle(title, verticalalignment='top', size='x-large')
-        tight_layout(pad=2 * size / 2.0, fig=fig)
-    if show:
+    if show is True:
         plt.show()
 
     return fig
