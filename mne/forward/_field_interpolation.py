@@ -12,7 +12,8 @@ from ..transforms import (transform_surface_to, read_trans, apply_trans,
                           _find_trans)
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
-                         _get_legen_lut_fast, _get_legen_lut_accurate)
+                         _get_legen_lut_fast, _get_legen_lut_accurate,
+                         _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
@@ -148,12 +149,48 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     surf_virt['coord_frame'] = FIFF.FIFFV_COORD_HEAD
 
     # do the actual interpolation
-    field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
-                                      trans=None, n_jobs=n_jobs)
+    # field_map = _make_surface_mapping(info_from, surf_virt, ch_type='meg',
+    #                                   trans=None, n_jobs=n_jobs)
+
+    coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                               info_from['dev_head_t'], 'meg')
+    coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                             info_to['dev_head_t'], 'meg')
+    miss = 1e-4  # Smoothing criterion for MEG
+    ch_type, type_str, mode = 'meg', 'coils', 'fast'
+    #
+    # Step 2. Calculate the dot products
+    #
+    my_origin = np.array([0.0, 0.0, 0.04])
+    int_rad = 0.06
+    noise = _ad_hoc_noise(coils_from, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+    logger.info('Computing dot products for %i %s...' %
+                (len(coils_from), type_str))
+    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, ch_type,
+                              lut_fun, n_fact, n_jobs)
+    logger.info('Computing cross products for coils...')
+    cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
+                                my_origin, ch_type, lut_fun, n_fact).T
+
+    ch_names = [c['ch_name'] for c in info_from['chs']]
+    fmd = dict(kind=ch_type, ch_names=ch_names,
+               origin=my_origin, noise=noise, self_dots=self_dots,
+               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
+    logger.info('Field mapping data ready')
+
+    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    data = np.dot(field_map['data'], evoked.data[pick_from])
+    data = np.dot(fmd['data'], evoked.data[pick_from])
 
     # create new info structure for virtual channels
     # for ch in info_to['chs']:

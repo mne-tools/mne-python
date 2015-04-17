@@ -297,6 +297,34 @@ def _do_self_dots_subset(intrad, rmags, rlens, cosmags, ws, volume, lut,
     return products
 
 
+def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
+                   lut, n_fact):
+    rmags1 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils1]
+    rmags2 = [coil['rmag'] - r0[np.newaxis, :] for coil in coils2]
+
+    rlens1 = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags1]
+    rlens2 = [np.sqrt(np.sum(r * r, axis=1)) for r in rmags2]
+
+    rmags1 = [r / rl[:, np.newaxis] for r, rl in zip(rmags1, rlens1)]
+    rmags2 = [r / rl[:, np.newaxis] for r, rl in zip(rmags2, rlens2)]
+
+    ws1 = [coil['w'] for coil in coils1]
+    ws2 = [coil['w'] for coil in coils2]
+
+    cosmags1 = [coil['cosmag'] for coil in coils1]
+    cosmags2 = [coil['cosmag'] for coil in coils2]
+
+    products = np.zeros((len(rmags1), len(rmags2)))
+    for ci1, coil1 in enumerate(coils1):
+        for ci2, coil2 in enumerate(coils2):
+            res = _fast_sphere_dot_r0(intrad, rmags1[ci1], rmags2[ci2],
+                                      rlens1[ci1], rlens2[ci2], cosmags1[ci1],
+                                      cosmags2[ci2], ws1[ci1], ws2[ci2],
+                                      volume, lut, n_fact, ch_type)
+            products[ci1, ci2] = res
+    return products
+
+
 def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
                      lut, n_fact, n_jobs):
     """Compute the map construction products
