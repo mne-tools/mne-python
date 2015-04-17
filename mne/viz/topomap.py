@@ -246,6 +246,7 @@ def _check_outlines(pos, outlines, head_scale=0.85):
             outlines = dict()
 
         outlines['mask_pos'] = head_x, head_y
+        outlines['autoshrink'] = True
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
             raise ValueError('You must specify the coordinates of the image'
@@ -396,10 +397,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         xlim = np.inf, -np.inf,
         ylim = np.inf, -np.inf,
         mask_ = np.c_[outlines['mask_pos']]
-        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]] * 1.1),
-                      np.max(np.r_[xlim[1], mask_[:, 0]] * 1.1))
-        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]] * 1.1),
-                      np.max(np.r_[ylim[1], mask_[:, 1]] * 1.1))
+        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                      np.max(np.r_[xlim[1], mask_[:, 0]]))
+        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                      np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     # interpolate data
     xi = np.linspace(xmin, xmax, res)
@@ -416,9 +417,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         # prepare masking
         image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    if image_mask is not None and not _is_default_outlines:
-        Zi[~image_mask] = np.nan
-
     if mask_params is None:
         mask_params = DEFAULTS['mask_params'].copy()
     elif isinstance(mask_params, dict):
@@ -433,22 +431,17 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     linewidth = mask_params['markeredgewidth']
     patch = None
     if 'patch' in outlines:
-        patch = outlines.pop('patch')
-        patch.set_clip_on(False)
-        ax.add_patch(patch)
+        patch = outlines['patch']
+        patch_ = patch() if callable(patch) else patch
+        patch_.set_clip_on(False)
+        ax.add_patch(patch_)
         ax.set_transform(ax.transAxes)
-        ax.set_clip_path(patch)
+        ax.set_clip_path(patch_)
 
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
-
-    if isinstance(outlines, dict):
-        for k, (x, y) in outlines.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=linewidth)
 
     # This tackles an incomprehensible matplotlib bug if no contours are
     # drawn. To avoid rescalings, we will always draw contours.
@@ -465,15 +458,15 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     if _is_default_outlines:
         from matplotlib import patches
         # remove nose offset and tweak
-        patch = patches.Circle((0.5, 0.4687), radius=.46,
-                               clip_on=True,
-                               transform=ax.transAxes)
+        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
+                                clip_on=True,
+                                transform=ax.transAxes)
     if _is_default_outlines or patch is not None:
-        im.set_clip_path(patch)
-        ax.set_clip_path(patch)
+        im.set_clip_path(patch_)
+        # ax.set_clip_path(patch_)
         if cont is not None:
             for col in cont.collections:
-                col.set_clip_path(patch)
+                col.set_clip_path(patch_)
 
     if sensors is not False and mask is None:
         _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
@@ -485,6 +478,14 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+
+    if isinstance(outlines, dict):
+        outlines_ = {k: v for k, v in outlines.items() if k not in
+                     ['patch', 'autoshrink']}
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=linewidth)
 
     if show_names:
         if show_names is True:
@@ -513,14 +514,16 @@ def _make_image_mask(outlines, pos, res):
     ymin, ymax = (np.min(np.r_[np.inf, mask_[:, 1]]),
                   np.max(np.r_[-np.inf, mask_[:, 1]]))
 
-    # inside = _inside_contour(pos, mask_)
-    # outside = np.invert(inside)
-    # outlier_points = pos[outside]
-    # while np.any(outlier_points):  # auto shrink
-    #     pos *= 0.99
-    #     inside = _inside_contour(pos, mask_)
-    #     outside = np.invert(inside)
-    #     outlier_points = pos[outside]
+    if outlines.get('autoshrink', False) is not False:
+        inside = _inside_contour(pos, mask_)
+        outside = np.invert(inside)
+        outlier_points = pos[outside]
+        while np.any(outlier_points):  # auto shrink
+            pos *= 0.99
+            inside = _inside_contour(pos, mask_)
+            outside = np.invert(inside)
+            outlier_points = pos[outside]
+
     image_mask = np.zeros((res, res), dtype=bool)
     xi_mask = np.linspace(xmin, xmax, res)
     yi_mask = np.linspace(ymin, ymax, res)
