@@ -1052,7 +1052,8 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     # Create box and pos variable
     box = _box_size(np.vstack([x, y]).T, padding=pad)
-    w, h = [np.array(i * x.shape[0]) for i in [[w], [h]]]
+    box = (0, 0, box[0], box[1])
+    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
     loc_params = np.vstack([x, y, w, h]).T
 
     layout = Layout(box, loc_params, ch_names, ch_indices, name)
