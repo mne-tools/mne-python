@@ -1152,7 +1152,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, ch_type=None,
                             n_overlap=0, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
-                            normalize=False, verbose=None, cbar_fmt='%0.3f'):
+                            normalize=False, verbose=None, cbar_fmt='%0.3f',
+                            outlines='head'):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1209,6 +1210,15 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn.
+        If dict, each key refers to a tuple of x and y positions.
+        The values in 'mask_pos' will serve as image mask. If None, nothing
+        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+        field will, trigger automated shrinking of the positions due to
+        points outside the outline. Moreover, a matplotlib patch object can
+        be passed for advanced masking options, either directly or as a
+        function that returns patches (required for multi-axis plots).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1235,7 +1245,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt)
+        cbar_fmt=cbar_fmt, outlines=outlines)
 
 
 def plot_psds_topomap(
