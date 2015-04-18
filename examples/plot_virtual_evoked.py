@@ -13,7 +13,7 @@ for magnetometer and gradiometers.
 # License: BSD (3-clause)
 
 import mne
-from mne.datasets import somato
+from mne.datasets import sample
 
 import matplotlib.pyplot as plt
 
@@ -25,19 +25,10 @@ def add_title(title):
     plt.suptitle(title, verticalalignment='top', size='x-large')
     plt.gcf().set_size_inches(12, 2, forward=True)
 
-# reject parameters and data paths
-data_path = somato.data_path()
-raw_fname = data_path + '/MEG/somato/sef_raw_sss.fif'
-event_id, tmin, tmax = 1, -0.2, 0.5
-reject = dict(mag=4e-12, grad=4000e-13)
-
-# setup for reading the raw data
-raw = mne.io.Raw(raw_fname, proj=False)
-events = mne.find_events(raw)
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    baseline=(None, 0), reject=reject,
-                    preload=True, proj=False)
-evoked = epochs.average()
+# read the evoked
+data_path = sample.data_path()
+fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
+evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
 # go from grad + mag to mag
 virt_evoked = evoked.as_type('mag', copy=True)
