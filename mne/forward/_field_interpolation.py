@@ -16,7 +16,6 @@ from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
-from ..evoked import EvokedArray
 
 
 def _is_axial_coil(coil):
@@ -176,7 +175,10 @@ def _as_type_evoked(evoked, to_type='grad', mode='fast', copy=True, n_jobs=1):
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     data = np.dot(fmd['data'], evoked.data[pick_from])
-    evoked.data[pick_to] = data
+
+    # keep only the destination channel types
+    evoked.pick_types(meg=to_type, eeg=False, ref_meg=False)
+    evoked.data = data
 
     return evoked
 
