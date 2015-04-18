@@ -88,9 +88,7 @@ class RawBrainVision(_BaseRaw):
         last_samps = [(n_samples //
                       (dtype * self._eeg_info['n_eeg_chan'])) - 1]
         super(RawBrainVision, self).__init__(
-            info, None, np.ones(len(info['chs'])),
-            last_samps=last_samps,
-            verbose=verbose)
+            info, last_samps=last_samps, verbose=verbose)
         self.set_brainvision_events(events)
 
         # load data

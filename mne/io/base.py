@@ -220,17 +220,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
           (only needed for types that support on-demand disk reads)
     """
     @verbose
-    def __init__(self, info, data=None, cals=None,
+    def __init__(self, info, data=None,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
                  orig_format='double', verbose=None):
         self.info = info
         self._data = data
-        if cals is None:
-            cals = np.empty(info['nchan'])
-            for k in range(info['nchan']):
-                cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
+        cals = np.empty(info['nchan'])
+        for k in range(info['nchan']):
+            cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
         self.verbose = verbose
         self._cals = cals
         self._rawdirs = list(rawdirs)

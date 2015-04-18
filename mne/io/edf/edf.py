@@ -88,11 +88,9 @@ class RawEDF(_BaseRaw):
                            "Both 'annot' and 'annotmap' must be specified."))
 
         # Raw attributes
-        cals = np.array([ch['cal'] for ch in info['chs']])
         last_samps = [self._edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
-            info, cals=cals, last_samps=last_samps, orig_format='int',
-            verbose=verbose)
+            info, last_samps=last_samps, orig_format='int', verbose=verbose)
 
         if preload:
             self.preload = preload

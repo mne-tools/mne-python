@@ -318,11 +318,10 @@ class _RawEGI(_BaseRaw):
             info['chs'].append(ch_info)
 
         _check_update_montage(info, montage)
-        cals = np.array([c['cal'] for c in info['chs']])
         orig_format = {'>f4': 'single', '>f4': 'double',
                        '>i2': 'int'}[egi_info['dtype']]
         super(_RawEGI, self).__init__(
-            info, data, cals, orig_format=orig_format, verbose=verbose)
+            info, data, orig_format=orig_format, verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                     % (self.first_samp, self.last_samp,
                        float(self.first_samp) / self.info['sfreq'],

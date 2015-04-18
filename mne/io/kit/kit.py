@@ -90,10 +90,9 @@ class RawKIT(_BaseRaw):
         # meg channels plus synthetic channel
         info['nchan'] = self._sqd_params['nchan'] + 1
 
-        cals = np.ones(info['nchan'])
         last_samps = [self._sqd_params['nsamples'] - 1]
         super(RawKIT, self).__init__(
-            info, cals=cals, last_samps=last_samps, verbose=verbose)
+            info, last_samps=last_samps, verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
