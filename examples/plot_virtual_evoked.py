@@ -5,8 +5,7 @@ Remap MEG channel types
 
 In this example, MEG data are remapped from one
 channel type to another. This is useful for combining statistics
-for magnetometer and gradiometers. This process can be
-computationally intensive.
+for magnetometer and gradiometers.
 """
 
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>
@@ -15,7 +14,6 @@ computationally intensive.
 
 import mne
 from mne.datasets import somato
-from mne.forward import compute_virtual_evoked
 
 import matplotlib.pyplot as plt
 
@@ -41,22 +39,18 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     preload=True, proj=False)
 evoked = epochs.average()
 
-# go from grad to mag
-from_type, to_type = 'grad', 'mag'
-virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
-                                        to_type=to_type)
-evoked.plot_topomap(ch_type=to_type)
-add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type)
-add_title(to_type + ' (interpolated)')
+# go from grad + mag to mag
+virt_evoked = evoked.as_type('mag', copy=True)
+evoked.plot_topomap(ch_type='mag')
+add_title('mag (original)')
+virt_evoked.plot_topomap(ch_type='mag')
+add_title('mag (interpolated from mag + grad)')
 
-# go from mag to grad
-from_type, to_type = 'mag', 'grad'
-virtual_evoked = compute_virtual_evoked(evoked, from_type=from_type,
-                                        to_type=to_type)
-evoked.plot_topomap(ch_type=to_type)
-add_title(to_type + ' (original)')
-virtual_evoked.plot_topomap(ch_type=to_type)
-add_title(to_type + ' (interpolated)')
+# go from grad + mag to grad
+virt_evoked = evoked.as_type('grad', copy=True)
+evoked.plot_topomap(ch_type='grad')
+add_title('grad (original)')
+virt_evoked.plot_topomap(ch_type='grad')
+add_title('grad (interpolated from mag + grad)')
 
 plt.show()

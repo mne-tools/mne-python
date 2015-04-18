@@ -106,16 +106,13 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
-                           copy=True, baseline=None, mode='fast', n_jobs=1):
+def _as_type_evoked(evoked, to_type='grad', mode='fast', copy=True, n_jobs=1):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked object.
-    from_type : str
-        The original channel type. It can be 'mag' or 'grad'.
     to_type : str
         The destination channel type. It can be 'mag' or 'grad'.
     copy : bool
@@ -128,17 +125,14 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     evoked : instance of mne.Evoked
         The transformed evoked object containing only virtual channels.
     """
-    if from_type not in ['mag', 'grad']:
-        raise ValueError('from_type must be "mag" or "grad", not "%s"'
-                         % from_type)
+    if copy:
+        evoked = evoked.copy()
+
     if to_type not in ['mag', 'grad']:
         raise ValueError('to_type must be "mag" or "grad", not "%s"'
                          % to_type)
-    if from_type == to_type:
-        raise ValueError('from_type and to_type cannot be the same.')
-
     # pick the original and destination channels
-    pick_from = pick_types(evoked.info, meg=from_type, eeg=False,
+    pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
     pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
                          ref_meg=False)
@@ -182,10 +176,9 @@ def compute_virtual_evoked(evoked, from_type='mag', to_type='grad',
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     data = np.dot(fmd['data'], evoked.data[pick_from])
+    evoked.data[pick_to] = data
 
-    # create evoked data struct. using data at virtual channels
-    mapped_evoked = EvokedArray(data, info_to, tmin=evoked.times[0])
-    return mapped_evoked
+    return evoked
 
 
 @verbose
