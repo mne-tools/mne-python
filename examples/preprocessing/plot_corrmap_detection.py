@@ -61,7 +61,7 @@ icas = [ICA(n_components=20, random_state=0).fit(epochs)
 #    (or, in the real world, multiple participant data sets)
 
 template = (0, 0)
-corrmap(icas, template=template, label="blinks", copy=True)
+corrmap(icas, template=template, label="blinks")
 
 # 3) Zeroing the identified blink components for all data sets
 #    results in individually cleaned data sets. Specific components

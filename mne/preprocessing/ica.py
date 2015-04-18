@@ -2121,8 +2121,8 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 
 
 @verbose
-def corrmap(icas, template, threshold="auto", label="bads",
-            plot=True, copy=False, ch_type="eeg"):
+def corrmap(icas, template, threshold="auto", label=None,
+            plot=True, ch_type="eeg"):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2158,25 +2158,19 @@ def corrmap(icas, template, threshold="auto", label="bads",
         If float > 1, use find_outliers to identify ICs within subjects (not in
         original Corrmap)
         Defaults to "auto".
-    label : str
-        Categorised ICs are stored in a default dictionary "labels_". This
-        parameter gives the key under which found ICs will be stored.
-        Preexisting entries will be appended to (excluding repeats), not
-        overwritten.
-        Defaults to "bads".
+    label : None | str
+        If not None, categorised ICs are stored in a dictionary "labels_" under
+        the given name. Preexisting entries will be appended to
+        (excluding repeats), not overwritten. If None, a dry run is performed.
     plot : bool
         Should constructed template and selected maps be plotted?
-    copy : bool
-        Should files be modified in place?
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
 
     Returns
     -------
-    new_icas  :  list
-        Returns a list of fitted ICA objects, enrichened with a dictionary
-        containing the indices of the selected maps under a key
-        specified by the label keyword.
+    figs  :  list
+        Figures showing the mean template and the labelled ICs per subject.
     """
 
     def get_ica_map(ica, components=None):
@@ -2270,6 +2264,8 @@ def corrmap(icas, template, threshold="auto", label="bads",
         fig.canvas.draw()
         plt.show()
 
+        return fig
+
     if threshold == "auto":
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
@@ -2277,11 +2273,13 @@ def corrmap(icas, template, threshold="auto", label="bads",
 
     target = all_maps[template[0]][template[1]]
 
+    figs = []
     if plot is True:
         ttl = 'Template from subj. {0}'.format(str(template[0]))
-        icas[template[0]].plot_components(picks=template[1],
-                                          ch_type=ch_type,
-                                          title=ttl)
+        fig = icas[template[0]].plot_components(picks=template[1],
+                                                ch_type=ch_type,
+                                                title=ttl)
+        figs.append(fig)
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
@@ -2317,25 +2315,23 @@ def corrmap(icas, template, threshold="auto", label="bads",
         logger.info("Displaying selected ICs per subject.")
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
-        if copy is False:
-            ica = deepcopy(ica)
-        if not hasattr(ica, 'labels_'):
+        if (label is not None) and (not hasattr(ica, 'labels_')):
             ica.labels_ = {}
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
-            ica.labels_[label] = list(set(list(max_corr) +
+            if label is not None:
+                ica.labels_[label] = list(set(list(max_corr) +
                                           ica.labels_.get(label, [])))
             if plot is True:
                 allmaps.extend(get_ica_map(ica, components=max_corr))
                 subjs.extend([ii] * len(max_corr))
                 indices.extend(max_corr)
             nones.remove(ii)
-        if copy is False:
-            new_icas.append(ica)
 
     if plot is True:
-        _plot_corrmap(allmaps, subjs, indices, ch_type, ica, label)
+        fig = _plot_corrmap(allmaps, subjs, indices, ch_type, ica, label)
+        figs.append(fig)
 
     if nones:
         logger.info("No maps selected for subject(s) " +
@@ -2344,4 +2340,4 @@ def corrmap(icas, template, threshold="auto", label="bads",
     else:
         logger.info("At least 1 IC detected for each subject.")
 
-    return new_icas
+    return figs
