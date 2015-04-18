@@ -50,6 +50,10 @@ def _get_data(event_id=1):
 
 
 def simu_data(evoked, forward, noise_cov, n_dipoles, times):
+    """Simulate an evoked dataset with 2 sources
+
+    One source is put in each hemisphere.
+    """
     # Generate the two dipoles data
     mu, sigma = 0.1, 0.005
     s1 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
