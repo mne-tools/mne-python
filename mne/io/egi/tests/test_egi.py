@@ -24,12 +24,9 @@ def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
     tempdir = _TempDir()
-    params = dict()
-    params['egi'] = dict()
-    params['egi']['include'] = None
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
-        read_raw(egi_fname, params=params)
+        read_raw(egi_fname, include=include)
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'

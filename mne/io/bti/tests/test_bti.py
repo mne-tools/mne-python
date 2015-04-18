@@ -76,7 +76,7 @@ def test_raw():
             params = dict()
             params['bti'] = dict()
             params['bti']['config'] = config
-            with read_raw(pdf, montage=hs, params=params) as ra:
+            with read_raw(pdf, head_shape_fname=hs, config=config) as ra:
                 assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
                 assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                           ra.info['dev_head_t']['trans'], 7)

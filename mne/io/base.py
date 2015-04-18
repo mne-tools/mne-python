@@ -2061,8 +2061,9 @@ def _check_update_montage(info, montage):
                 raise KeyError(err)
 
 
+@verbose
 def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
-             params=None, preload=False, verbose=None):
+             preload=False, **kwargs):
     """Reader function for Raw data
 
     Note: This assumes the default parameters of a given system. This is
@@ -2094,10 +2095,6 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
     reference : bool | str
         If True, add average EEG reference projector (if it's not already
         present).
-    params : None | dict
-        A dict defining the custom parameters for a given system (see
-        system-specific reader for more details). The supported system names
-        are : brainvision, bti, edf, bdf, egi, fif, kit.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -2106,6 +2103,9 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+    **kwargs :
+        Keyword arguments to pass to read_raw_* (see system-specific reader
+        for more details).
 
     Returns
     -------
@@ -2135,114 +2135,43 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
 
     # (MEG) KIT systems
     if ext in ['.con', '.sqd']:
-        elp, hsp, mrk = None, None, montage
-        stim, slope, stimthresh = '>', '-', 1
-        if params is not None:
-            if 'kit' in params:
-                msg = 'You can either specify a DigMontage or elp/hsp/mrk '
-                      'combination, not both.'
-                kit = params['kit']
-                if 'stim' in kit:
-                    stim = kit['stim']
-                if 'slope' in kit:
-                    kit = kit['slope']
-                if 'stimthresh' in kit:
-                    stimthresh = kit['tal_channel']
-                if 'elp' in kit:
-                    if montage is None:
-                        elp = kit['elp']
-                    else:
-                        raise ValueError(msg)
-                if 'hsp' in kit:
-                    if montage is None:
-                        hsp = kit['hsp']
-                    else:
-                        raise ValueError(msg)
-                if 'mrk' in kit:
-                    if montage is None:
-                        mrk = kit['mrk']
-                    else:
-                        raise ValueError(msg)
-        raw = read_raw_kit(input_fname, mrk=mrk, elp=elp, hsp=hsp,
-                           stim=stim, slope=slope, stimthresh=stimthresh,
-                           preload=preload, verbose=verbose)
+        raw = read_raw_kit(input_fname, preload=preload, verbose=verbose,
+                           **kwargs)
         if eog is not None:
             raw.set_channels_type(eog_map)
         if misc is not None:
             raw.set_channels_type(misc_map)
     # (EEG) EDF and Biosemi systems
     elif ext in ['bdf', '.edf']:
-        annot, annotmap, tal_channel, stim_channel = None, None, None, -1
-        if params is not None:
-            if ext in params:
-                edf = params[ext]
-                if 'annot' in edf:
-                    annot = edf['annot']
-                if 'annotmap' in edf:
-                    annotmap = edf['annotmap']
-                if 'tal_channel' in edf:
-                    tal_channel = edf['tal_channel']
-                if 'stim_channel' in edf:
-                    stim_channel = edf['stim_channel']
         raw = read_raw_edf(input_fname, montage=montage, eog=eog, misc=eog,
-                           annot=annot, annotmap=annotmap,
-                           tal_channel=tal_channel, preload=preload,
-                           verbose=verbose)
+                  preload=preload, verbose=verbose, **kwargs)
     # (EEG) EGI systems
     elif ext == '.raw':
-        include, exclude = None, None
-        if 'egi' in params:
-            egi = params['egi']
-            if 'include' in egi:
-                include = kit['include']
-            if 'exclude' in egi:
-                exclude = kit['exclude']
         raw = read_raw_egi(input_fname, montage=montage, eog=eog, misc=misc,
-                  include=include, exclude=exclude, preload=preload,
-                  verbose=verbose)
+                  preload=preload, verbose=verbose, **kwargs)
     # (MEG) Neuromag or converted-to-fif systems
     elif ext == '.fif':
-        if 'fif' in params:
-            fif = params['fif']
-            if 'allow_maxshield' in fif:
-                allow_maxshield = fif['allow_maxshield']
-            if 'compensation' in fif:
-                compensation = fif['compensation']
         raw = read_raw_fif(input_fname, add_eeg_ref=reference,
-                  allow_maxshield=allow_maxshield, compensation=compensation,
-                  preload=preload, verbose=verbose)
+                  preload=preload, verbose=verbose, **kwargs)
         if eog is not None:
             raw.set_channels_type(eog_map)
         if misc is not None:
             raw.set_channels_type(misc_map)
     # (MEG) BTi systems
     elif ext == '':
-        config_fname, rotation_x, ecg_ch = 'config', (0.0, 0.02, 0.11), 'E31'
-        if 'bti' in params:
-            bti = params['bti']
-            if 'config_fname' in bti:
-                config_fname = bti['config_fname']
-            if 'rotation_x' in bti:
-                rotation_x = bti['rotation_x']
-            if 'ecg_ch' in bti:
-                ecg_ch = bti['ecg_ch']
-        raw = read_raw_bti(input_fname, head_shape_fname=montage,
-                  config_fname=config_fname,  rotation_x=rotation_x,
-                  translation=translation, ecg_ch=ecg_ch,
-                  preload=preload, verbose=verbose)
+        if os.path.exists(input_fname):
+            raw = read_raw_bti(input_fname, preload=preload, verbose=verbose,
+                               **kwargs)
+        else:
+            raise IOError('This file does not exist.')
         if eog is not None:
             raw.set_channels_type(eog_map)
         if misc is not None:
             raw.set_channels_type(misc_map)
     # (EEG) Brainvision systems
     elif ext == '.vhdr':
-        scale = 1
-        if 'brainvision' in params:
-            brainvision = params['brainvision']
-            if 'scale' in brainvision:
-                scale = brainvision['scale']
         raw = read_raw_brainvision(input_fname, montage=montage, eog=eog,
-                  misc=misc, reference=reference, scale=scale, preload=preload,
-                  verbose=verbose)
+                  misc=misc, reference=reference, preload=preload,
+                  verbose=verbose, **kwargs)
 
     return raw

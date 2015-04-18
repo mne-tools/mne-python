@@ -109,10 +109,7 @@ def test_read_segment():
     """Test writing raw edf files when preload is False
     """
     tempdir = _TempDir()
-    params = dict()
-    params['edf'] = dict()
-    params['edf']['stim_channel'] = None
-    raw1 = read_raw(edf_path, params=params, preload=False)
+    raw1 = read_raw(edf_path, stim_channel=None, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)

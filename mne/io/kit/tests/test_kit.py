@@ -65,13 +65,8 @@ def test_read_segment():
     """Test writing raw kit files when preload is False
     """
     tempdir = _TempDir()
-    params = dict()
-    params['kit'] = dict()
-    params['mrk'] = mrk_path
-    params['elp'] = elp_path
-    params['hsp'] = hsp_path
-    params['stim'] = '<'
-    raw1 = read_raw(sqd_path, params=params, preload=False)
+    raw1 = read_raw(sqd_path, mrk=mrk_path, elp=elp_path, hsp=hsp_path,
+                    stim='<', preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
     raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
