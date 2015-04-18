@@ -1104,8 +1104,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         cax.set_position(cpos)
         if unit is not None:
             cax.set_title(unit)
-        fig.colorbar(images[-1], ax=cax, cax=cax, ticks=[vmin, 0, vmax],
-                     format=cbar_fmt)
+        cbar = fig.colorbar(images[-1], ax=cax, cax=cax, format=cbar_fmt)
+        cbar.set_ticks([vmin, 0, vmax])
 
     if proj == 'interactive':
         _check_delayed_ssp(evoked)
