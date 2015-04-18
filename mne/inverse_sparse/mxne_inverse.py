@@ -94,11 +94,11 @@ def _prepare_gain_frobenius(forward, info, noise_cov, pca, depth, loose,
     if depth is not None:
         if is_fixed_orient(forward):
             depth_prior = np.sum(gain ** 2, axis=0) ** depth
-            source_weighting = np.sqrt(depth_prior ** -1.)
+            source_weighting = 1. / np.sqrt(depth_prior)
         else:
             depth_prior = np.sum(gain ** 2, axis=0)
             depth_prior = depth_prior.reshape(-1, 3).sum(axis=1) ** depth
-            source_weighting = np.repeat(np.sqrt(depth_prior ** -1.), 3)
+            source_weighting = np.repeat(1. / np.sqrt(depth_prior), 3)
     else:
         source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
 
@@ -222,10 +222,12 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
                                   weights_min)
     else:
         if not isinstance(depth, float):
-            raise Exception('Invalid depth parameter. '
-                            'type(depth)=float is required')
+            raise ValueError('Invalid depth parameter. '
+                             'A float is required (got %s).'
+                             % type(depth))
         elif depth < 0.0:
-            raise Exception('Invalid depth parameter. Got depth = %f' % depth)
+            raise ValueError('Depth parameter must be positive (got %s).'
+                             % depth)
 
         if depth_method == 'fro':
             gain, gain_info, whitener, source_weighting, mask = \
@@ -241,7 +243,9 @@ def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
                                        loose, weights, weights_min,
                                        limit_depth_chs=limit_depth_chs)
         else:
-            raise Exception('Invalid depth method. Got %s' % depth_method)
+            raise ValueError('Invalid depth method. Must be "fro", '
+                             '"col", "sloreta" or "spec". Got %s.'
+                             % depth_method)
 
     return gain, gain_info, whitener, source_weighting, mask
 
@@ -250,10 +254,8 @@ def _reapply_source_weighting(X, source_weighting, depth_method, active_set,
                               n_dip_per_pos):
     if depth_method == 'sloreta':
         for i in range(len(np.where(active_set)[0]) // n_dip_per_pos):
-            idx_s = i * n_dip_per_pos
-            idx_e = (i + 1) * n_dip_per_pos
-            X[idx_s:idx_e] = np.dot(source_weighting[active_set][idx_s:idx_e],
-                                    X[idx_s:idx_e])
+            idx = slice(i * n_dip_per_pos, (i + 1) * n_dip_per_pos)
+            X[idx] = np.dot(source_weighting[active_set][idx], X[idx])
     else:
         X *= source_weighting[active_set][:, None]
 

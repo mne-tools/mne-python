@@ -98,11 +98,11 @@ residual.crop(tmin=-0.05, tmax=0.3)
 
 # Show the evoked response and the residual for gradiometers
 ylim = dict(grad=[-120, 120])
-evoked = mne.pick_types_evoked(evoked, meg='grad', exclude='bads')
+evoked.pick_types(meg='grad', exclude='bads')
 evoked.plot(titles=dict(grad='Evoked Response: Gradiometers'), ylim=ylim,
             proj=True)
 
-residual = mne.pick_types_evoked(residual, meg='grad', exclude='bads')
+residual.pick_types(meg='grad', exclude='bads')
 residual.plot(titles=dict(grad='Residuals: Gradiometers'), ylim=ylim,
               proj=True)
 
