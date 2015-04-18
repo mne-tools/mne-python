@@ -105,7 +105,7 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _as_type_evoked(evoked, to_type='grad', mode='fast', copy=True, n_jobs=1):
+def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -114,8 +114,6 @@ def _as_type_evoked(evoked, to_type='grad', mode='fast', copy=True, n_jobs=1):
         The evoked object.
     to_type : str
         The destination channel type. It can be 'mag' or 'grad'.
-    copy : bool
-        If False evoked is modified in place.
     n_jobs : int
         Number of jobs to run in parallel.
 
@@ -124,8 +122,7 @@ def _as_type_evoked(evoked, to_type='grad', mode='fast', copy=True, n_jobs=1):
     evoked : instance of mne.Evoked
         The transformed evoked object containing only virtual channels.
     """
-    if copy:
-        evoked = evoked.copy()
+    evoked = evoked.copy()
 
     if to_type not in ['mag', 'grad']:
         raise ValueError('to_type must be "mag" or "grad", not "%s"'

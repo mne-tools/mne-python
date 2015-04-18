@@ -31,14 +31,14 @@ fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
 evoked = mne.read_evokeds(fname, condition='Left Auditory', baseline=(None, 0))
 
 # go from grad + mag to mag
-virt_evoked = evoked.as_type('mag', copy=True)
+virt_evoked = evoked.as_type('mag')
 evoked.plot_topomap(ch_type='mag')
 add_title('mag (original)')
 virt_evoked.plot_topomap(ch_type='mag')
 add_title('mag (interpolated from mag + grad)')
 
 # go from grad + mag to grad
-virt_evoked = evoked.as_type('grad', copy=True)
+virt_evoked = evoked.as_type('grad')
 evoked.plot_topomap(ch_type='grad')
 add_title('grad (original)')
 virt_evoked.plot_topomap(ch_type='grad')

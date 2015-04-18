@@ -281,7 +281,10 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
 
 
 def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
-    """Perform the lead field dot product integrations
+    """Perform the lead field dot product integrations.
+
+    Parameters
+    ----------
     intrad : float
         The integration radius. It is used to calculate beta as:
         beta = (intrad * intrad) / (r1 * r2).
@@ -292,7 +295,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
     r0 : array, shape (3 x 1)
         The origin of the sphere.
     ch_type : str
-        The channel type. It can be 'meg' or 'eeg'
+        The channel type. It can be 'meg' or 'eeg'.
     lut : object
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
@@ -357,6 +360,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'
+
     Returns
     -------
     products : array, shape (n_coils, n_coils)
@@ -399,14 +403,14 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
         beta = (intrad * intrad) / (r1 * r2)
     volume : bool
         If True, compute a volume integral.
-    coils : list of dist
+    coils : list of dict
         The coils.
     surf : dict
         The surface on which the field is interpolated.
     sel : array
         Indices of the surface vertices to select.
     r0 : array, shape (3 x 1)
-        origin of the sphere.
+        The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'.
     lut : object

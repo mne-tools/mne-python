@@ -711,8 +711,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         return df
 
-    def as_type(self, to_type='grad', mode='fast', copy=True, n_jobs=1):
+    def as_type(self, to_type='grad', mode='fast', n_jobs=1):
         """Compute virtual evoked using interpolated fields in mag/grad channels.
+
+        .. Warning:: Using virtual evoked to compute inverse can yield
+            unexpected results.
 
         Parameters
         ----------
@@ -720,8 +723,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The evoked object.
         to_type : str
             The destination channel type. It can be 'mag' or 'grad'.
-        copy : bool
-            If False evoked is modified in place.
         n_jobs : int
             Number of jobs to run in parallel.
 
@@ -730,9 +731,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         evoked : instance of mne.Evoked
             The transformed evoked object containing only virtual channels.
         """
-        from .forward import _as_type_evoked
-        return _as_type_evoked(self, to_type=to_type, mode=mode, copy=copy,
-                               n_jobs=n_jobs)
+        from .forward import _as_meg_type_evoked
+        return _as_meg_type_evoked(self, to_type=to_type, mode=mode,
+                                   n_jobs=n_jobs)
 
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample data
