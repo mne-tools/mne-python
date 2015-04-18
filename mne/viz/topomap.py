@@ -1026,8 +1026,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     height = size * 1. + max(0, 0.1 * (4 - size)) + bool(title)*0.5
     fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
-    #top_frame = max((0.05 if title is None else 0.25), .2 / size)
-    top_frame = 0.5
+    top_frame = max((0.05 if title is None else 0.25), .2 / size)
     fig.subplots_adjust(left=w_frame, right=1 - w_frame, bottom=0,
                         top=1 - top_frame)
     time_idx = [np.where(evoked.times >= t)[0][0] for t in times]
