@@ -2152,8 +2152,10 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     Returns
     -------
-    figs  :  list
-        Figures showing the mean template and the labelled ICs per subject.
+    template_fig : fig
+        Figure showing the mean template.
+    labelled_ics : fig
+        Figure showing the labelled ICs per subject.
     """
 
     def get_ica_map(ica, components=None):
@@ -2256,13 +2258,11 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     target = all_maps[template[0]][template[1]]
 
-    figs = []
     if plot is True:
         ttl = 'Template from subj. {0}'.format(str(template[0]))
-        fig = icas[template[0]].plot_components(picks=template[1],
-                                                ch_type=ch_type,
-                                                title=ttl)
-        figs.append(fig)
+        template_fig = icas[template[0]].plot_components(picks=template[1],
+                                                         ch_type=ch_type,
+                                                         title=ttl)
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
@@ -2313,8 +2313,8 @@ def corrmap(icas, template, threshold="auto", label=None,
             nones.remove(ii)
 
     if plot is True:
-        fig = _plot_corrmap(allmaps, subjs, indices, ch_type, ica, label)
-        figs.append(fig)
+        labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
+                                     label)
 
     if nones:
         logger.info("No maps selected for subject(s) " +
@@ -2323,4 +2323,4 @@ def corrmap(icas, template, threshold="auto", label=None,
     else:
         logger.info("At least 1 IC detected for each subject.")
 
-    return figs
+    return template_fig, labelled_ics
