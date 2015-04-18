@@ -153,6 +153,7 @@ def test_limits_to_control_points():
                   colormap=colormap, clim=clim)
 
 
+@testing.requires_testing_data
 @requires_mayavi
 def test_plot_dipoles():
     """Test plotting dipoles
