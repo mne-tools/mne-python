@@ -33,7 +33,7 @@ cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
 condition = 'Right Auditory'
 evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
-evoked.crop(tmin=50e-3, tmax=150e-3)
+evoked.crop(tmin=0.05, tmax=0.15)  # select N100
 
 evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 
@@ -41,7 +41,7 @@ evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
                                     force_fixed=False)
 
-# Read noise covariance matrix and regularize it
+# Read noise covariance matrix
 noise_cov = mne.read_cov(cov_fname)
 
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,

@@ -17,14 +17,13 @@ from ..dipole import Dipole
 from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 
-@verbose
 def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
-                     picks=None, return_explained_data=False, verbose=None):
+                     picks=None, return_explained_data=False):
     """RAP-MUSIC for evoked data
 
     Parameters
     ----------
-    data : array or list / iterable
+    data : array, shape (n_channels, n_times)
         Evoked data.
     info : dict
         Measurement info.
@@ -41,8 +40,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         (without bad channels) will be used.
     return_explained_data : bool
         If True, the explained data is returned as an array.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -85,8 +82,9 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         subcorr_max = -1.
         for i_source in range(G.shape[1] // n_orient):
             idx_k = slice(n_orient * i_source, n_orient * (i_source + 1))
-            Gk = G_proj[:, idx_k] if n_orient == 1 else\
-                np.dot(G_proj[:, idx_k], forward['source_nn'][idx_k])
+            Gk = G_proj[:, idx_k]
+            if n_orient == 3:
+                Gk = np.dot(Gk, forward['source_nn'][idx_k])
 
             subcorr, ori = _compute_subcorr(Gk, phi_sig_proj)
             if subcorr > subcorr_max:
@@ -104,15 +102,16 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         idx_k = slice(n_orient * source_idx, n_orient * (source_idx + 1))
         Ak = G[:, idx_k]
         if n_orient == 3:
-            Ak = np.dot(np.dot(Ak, forward['source_nn'][idx_k]), source_ori)
+            Ak = np.dot(Ak, np.dot(forward['source_nn'][idx_k], source_ori))
 
         A[:, k] = Ak.ravel()
 
         if return_explained_data:
             gain_k = gain[:, idx_k]
             if n_orient == 3:
-                gain_k = np.dot(np.dot(gain_k, forward['source_nn'][idx_k]),
-                                source_ori)
+                gain_k = np.dot(gain_k,
+                                np.dot(forward['source_nn'][idx_k],
+                                       source_ori))
             gain_dip[:, k] = gain_k.ravel()
 
         oris[k] = source_ori
