@@ -1092,7 +1092,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         plt.suptitle(title, verticalalignment='top', size='x-large')
         tight_layout(pad=size, fig=fig)
 
-    if colorbar is True:
+    if colorbar:
         cax = plt.subplot(1, n + 1, n + 1)
         # resize the colorbar (by default the color fills the whole axes)
         cpos = cax.get_position()
@@ -1116,7 +1116,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       plot_update_proj_callback=_plot_update_evoked_topomap)
         _draw_proj_checkbox(None, params)
 
-    if show is True:
+    if show:
         plt.show()
 
     return fig
