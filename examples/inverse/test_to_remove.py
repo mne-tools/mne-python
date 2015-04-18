@@ -22,7 +22,7 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-meg, eeg = True, False
+meg, eeg = False, True
 
 
 def read_forward_solution_meg(fname_fwd, **kwargs):
@@ -59,14 +59,19 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     mu, sigma = 0.075, 0.008
     s2 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
                                                    (2 * sigma ** 2))
-    data = np.array([s1, s2]) * 10e-10
+
+    mu, sigma = 0.15, 0.008
+    s3 = 1 / (sigma * np.sqrt(2 * np.pi)) * np.exp(-(times - mu) ** 2 /
+                                                   (2 * sigma ** 2))
+
+    data = np.array([s1, s2, s3]) * 10e-10
 
     # data = np.array([s1]) * 10e-10
     src = forward['src']
     rng = np.random.RandomState(42)
 
     rndi = 100  # rng.randint(len(src[0]['vertno']))
-    lh_vertno = src[0]['vertno'][[rndi]]
+    lh_vertno = np.array([src[0]['vertno'][[rndi]], src[0]['vertno'][[150]]])
 
     rndi = 203  # rng.randint(len(src[1]['vertno']))
     rh_vertno = src[1]['vertno'][[rndi]]
@@ -85,7 +90,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
 evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
     _get_data()
 
-n_dipoles = 2
+n_dipoles = 3
 sim_evoked, stc = simu_data(evoked, forward_fixed, noise_cov, n_dipoles,
                             evoked.times)
 
@@ -116,10 +121,8 @@ def _check_dipoles(dipoles, fwd, ori=False, n_orient=1):
                                      np.array([ori1, ori2]).T))) > 0.99)
 
 # Check dipoles for fixed ori
-dipoles, residual = rap_music(sim_evoked, forward, noise_cov,
+dipoles, residual = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                               n_dipoles=n_dipoles, return_residual=True)
 
-sim_evoked.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
-residual.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800]))
-
-print dipoles[0].ori[0]
+sim_evoked.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800], eeg=[-5, 15]))
+residual.plot(ylim=dict(grad=[-300, 150], mag=[-800, 800], eeg=[-5, 15]))
