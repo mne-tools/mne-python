@@ -521,7 +521,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             If dict, each key refers to a tuple of x and y positions.
             The values in 'mask_pos' will serve as image mask. If None, nothing
             will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-            field will, trigger automated shrinking of the positions due to
+            field will trigger automated shrinking of the positions due to
             points outside the outline. Moreover, a matplotlib patch object can
             be passed for advanced masking options, either directly or as a
             function that returns patches (required for multi-axis plots).

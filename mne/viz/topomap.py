@@ -792,7 +792,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         If dict, each key refers to a tuple of x and y positions.
         The values in 'mask_pos' will serve as image mask. If None, nothing
         will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will, trigger automated shrinking of the positions due to
+        field will trigger automated shrinking of the positions due to
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
@@ -1215,7 +1215,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         If dict, each key refers to a tuple of x and y positions.
         The values in 'mask_pos' will serve as image mask. If None, nothing
         will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will, trigger automated shrinking of the positions due to
+        field will trigger automated shrinking of the positions due to
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
@@ -1303,10 +1303,11 @@ def plot_psds_topomap(
         If dict, each key refers to a tuple of x and y positions.
         The values in 'mask_pos' will serve as image mask. If None, nothing
         will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
-        field will, trigger automated shrinking of the positions due to
+        field will trigger automated shrinking of the positions due to
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
+
     Returns
     -------
     fig : instance of matplotlib figure
