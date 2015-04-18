@@ -2150,7 +2150,7 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
         raw = read_raw_egi(input_fname, montage=montage, eog=eog, misc=misc,
                   preload=preload, verbose=verbose, **kwargs)
     # (MEG) Neuromag or converted-to-fif systems
-    elif ext == '.fif':
+    elif ext in ['.fif', '.gz']:
         raw = read_raw_fif(input_fname, add_eeg_ref=reference,
                   preload=preload, verbose=verbose, **kwargs)
         if eog is not None:
@@ -2159,7 +2159,7 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
             raw.set_channels_type(misc_map)
     # (MEG) BTi systems
     elif ext == '':
-        if os.path.exists(input_fname):
+        if os.path.isfile(input_fname):
             raw = read_raw_bti(input_fname, preload=preload, verbose=verbose,
                                **kwargs)
         else:
