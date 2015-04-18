@@ -984,7 +984,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                       "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
                       "instead.", DeprecationWarning)
     import matplotlib.pyplot as plt
-    from mpl_toolkits.axes_grid1 import make_axes_locatable
+    from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
 
     if mask_params is None:
         mask_params = DEFAULTS['mask_params'].copy()
@@ -1023,7 +1023,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     n = len(times)
     nax = n + bool(colorbar)
     width = size * nax
-    height = size * 1. + max(0, 0.1 * (4 - size)) + bool(title)*0.5
+    height = size + max(0, 0.1 * (4 - size)) + bool(title) * 0.5
     fig = plt.figure(figsize=(width, height))
     w_frame = plt.rcParams['figure.subplot.wspace'] / (2 * nax)
     top_frame = max((0.05 if title is None else 0.25), .2 / size)
