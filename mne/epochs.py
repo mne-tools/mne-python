@@ -1230,8 +1230,15 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
         if len(self.event_id) > 1:
-            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in sorted(self.event_id.items())]
+            counts = []
+            for key, val in sorted(self.event_id.items()):
+                if isinstance(val, list):
+                    total = 0
+                    for v in val:
+                        total += sum(self.events[:, 2] == v)
+                else:
+                    total = sum(self.events[:, 2] == val)
+                counts.append('%r: %i' % (key, total))
             s += ',\n %s' % ', '.join(counts)
 
         return '<Epochs  |  %s>' % s
