@@ -65,9 +65,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 for val in event_id.values():
                     if isinstance(val, list):
                         if not all([isinstance(v, int) for v in val]):
-                            raise ValueError('Event IDs must be of type integer')
+                            raise ValueError('Event IDs must be of '
+                                             'type integer.')
                     elif not isinstance(v, int):
-                        raise ValueError('Event IDs must be of type integer')
+                        raise ValueError('Event IDs must be of type integer.')
             elif not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
             if not all([isinstance(k, string_types) for k in event_id]):
@@ -855,8 +856,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         values = []
         for key, val in self.event_id.items():
             if not isinstance(val, list):
-               val = [val]
-            for v in val:         
+                val = [val]
+            for v in val:
                 if v not in events[:, 2]:
                     msg = ('No matching events found for %s '
                            '(event id %i)' % (key, v))
@@ -1751,11 +1752,11 @@ class EpochsArray(Epochs):
 
         for key, val in self.event_id.items():
             if isinstance(val, list):
-                 for v in val:
-                     if v not in events[:, 2]:
-                         msg = ('No matching events found for %s '
-                                '(event id %i)' % (key, val))
-                         raise ValueError(msg)
+                for v in val:
+                    if v not in events[:, 2]:
+                        msg = ('No matching events found for %s '
+                               '(event id %i)' % (key, val))
+                        raise ValueError(msg)
             else:
                 if val not in events[:, 2]:
                     msg = ('No matching events found for %s '
