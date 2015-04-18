@@ -2309,7 +2309,7 @@ def corrmap(icas, template, threshold="auto", label=None,
         nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
     nones = list(range(len(icas)))
-    new_icas, allmaps, indices, subjs = [], [], [], []
+    allmaps, indices, subjs = [], [], []
     logger.info("Median correlation with constructed map: %0.3f" % mt)
     if plot:
         logger.info("Displaying selected ICs per subject.")
