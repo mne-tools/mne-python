@@ -2323,4 +2323,4 @@ def corrmap(icas, template, threshold="auto", label=None,
     else:
         logger.info("At least 1 IC detected for each subject.")
 
-    return (None if plot is False else (template_fig, labelled_ics))
+    return None if plot is False else (template_fig, labelled_ics)
