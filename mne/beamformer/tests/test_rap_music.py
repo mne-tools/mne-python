@@ -80,44 +80,45 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     return sim_evoked, stc
 
 
+def _check_dipoles(dipoles, fwd, stc, evoked, residual=None):
+    src = fwd['src']
+    pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
+                                     stc.vertices[0])]
+    pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
+                                     stc.vertices[1])[0] +
+                            len(src[0]['vertno'])]
+
+    # Check the position of the two dipoles
+    assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
+    assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
+
+    ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
+                                     stc.vertices[0])[0]][0]
+    ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
+                                     stc.vertices[1])[0] +
+                            len(src[0]['vertno'])][0]
+
+    # Check the orientation of the dipoles
+    assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
+                                     np.array([ori1, ori2]).T))) > 0.99)
+
+    assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
+                                     np.array([ori1, ori2]).T))) > 0.99)
+
+    if residual is not None:
+        picks_grad = mne.pick_types(residual.info, meg='grad')
+        picks_mag = mne.pick_types(residual.info, meg='mag')
+        rel_tol = 0.02
+        for picks in [picks_grad, picks_mag]:
+            assert_true(linalg.norm(residual.data[picks], ord='fro')
+                        < rel_tol
+                        * linalg.norm(evoked.data[picks], ord='fro'))
+
+
 @testing.requires_testing_data
 def test_rap_music_simulated():
     """Test RAP-MUSIC with simulated evoked
     """
-    def _check_dipoles(dipoles, fwd, residual=None):
-        src = fwd['src']
-        pos1 = fwd['source_rr'][np.where(src[0]['vertno'] ==
-                                         stc.vertices[0])]
-        pos2 = fwd['source_rr'][np.where(src[1]['vertno'] ==
-                                         stc.vertices[1])[0] +
-                                len(src[0]['vertno'])]
-
-        # Check the position of the two dipoles
-        assert_true(dipoles[0].pos[0] in np.array([pos1, pos2]))
-        assert_true(dipoles[1].pos[0] in np.array([pos1, pos2]))
-
-        ori1 = fwd['source_nn'][np.where(src[0]['vertno'] ==
-                                         stc.vertices[0])[0]][0]
-        ori2 = fwd['source_nn'][np.where(src[1]['vertno'] ==
-                                         stc.vertices[1])[0] +
-                                len(src[0]['vertno'])][0]
-
-        # Check the orientation of the dipoles
-        assert_true(np.max(np.abs(np.dot(dipoles[0].ori[0],
-                                         np.array([ori1, ori2]).T))) > 0.99)
-
-        assert_true(np.max(np.abs(np.dot(dipoles[1].ori[0],
-                                         np.array([ori1, ori2]).T))) > 0.99)
-
-        if residual is not None:
-            picks_grad = mne.pick_types(residual.info, meg='grad')
-            picks_mag = mne.pick_types(residual.info, meg='mag')
-            rel_tol = 0.02
-            for picks in [picks_grad, picks_mag]:
-                assert_true(linalg.norm(residual.data[picks], ord='fro')
-                            < rel_tol
-                            * linalg.norm(evoked.data[picks], ord='fro'))
-
     evoked, noise_cov, forward, forward_surf_ori, forward_fixed =\
         _get_data()
 
@@ -127,18 +128,18 @@ def test_rap_music_simulated():
     # Check dipoles for fixed ori
     dipoles = rap_music(sim_evoked, forward_fixed, noise_cov,
                         n_dipoles=n_dipoles)
-    _check_dipoles(dipoles, forward_fixed)
+    _check_dipoles(dipoles, forward_fixed, stc, evoked)
 
     dipoles, residual = rap_music(sim_evoked, forward_fixed, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
 
     # Check dipoles for free ori
     dipoles, residual = rap_music(sim_evoked, forward, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
 
     # Check dipoles for free surface ori
     dipoles, residual = rap_music(sim_evoked, forward_surf_ori, noise_cov,
                                   n_dipoles=n_dipoles, return_residual=True)
-    _check_dipoles(dipoles, forward_fixed, residual)
+    _check_dipoles(dipoles, forward_fixed, stc, evoked, residual)
