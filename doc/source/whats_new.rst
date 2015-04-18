@@ -91,6 +91,8 @@ Changelog
 
    - `rename_channels` and `set_channel_types` added as methods to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_ 
 
+   - Add ``read_raw``, an all-purpose raw data reader by `Teon Brooks`_
+
 
 BUG
 ~~~
