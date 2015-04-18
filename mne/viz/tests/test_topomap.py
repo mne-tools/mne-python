@@ -16,17 +16,19 @@ from nose.tools import assert_true, assert_equal
 
 from mne import io, read_evokeds, read_proj
 from mne.io.constants import FIFF
-from mne.channels import read_layout
+from mne.channels import read_layout, make_eeg_layout
 from mne.datasets import testing
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import slow_test
 
 from mne.viz import plot_evoked_topomap, plot_projs_topomap
+from mne.viz.topomap import _check_outlines
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 import matplotlib.pyplot as plt  # noqa
+from matplotlib.patches import Circle  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -122,8 +124,18 @@ def test_plot_topomap():
         # Remove extra digitization point, so EEG digitization points
         # correspond with the EEG electrodes
         del evoked.info['dig'][85]
-        plot_evoked_topomap(evoked, times, ch_type='eeg')
 
+        pos = make_eeg_layout(evoked.info).pos
+        pos, outlines = _check_outlines(pos, outlines='head')
+        # test 1: pass custom outlines without patch
+
+        def patch():
+            return Circle((0.5, 0.4687), radius=.46,
+                          clip_on=True, transform=plt.gca().transAxes)
+
+        # test 2: pass custom outlines with patch callable
+        outlines['patch'] = patch
+        plot_evoked_topomap(evoked, times, ch_type='eeg', outlines='head')
         # Remove digitization points. Now topomap should fail
         evoked.info['dig'] = None
         assert_raises(RuntimeError, plot_evoked_topomap, evoked,

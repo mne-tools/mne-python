@@ -140,7 +140,11 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -246,6 +250,7 @@ def _check_outlines(pos, outlines, head_scale=0.85):
             outlines = dict()
 
         outlines['mask_pos'] = head_x, head_y
+        outlines['autoshrink'] = True
     elif isinstance(outlines, dict):
         if 'mask_pos' not in outlines:
             raise ValueError('You must specify the coordinates of the image'
@@ -254,28 +259,6 @@ def _check_outlines(pos, outlines, head_scale=0.85):
         raise ValueError('Invalid value for `outlines')
 
     return pos, outlines
-
-
-def _inside_contour(pos, contour):
-    """Aux function"""
-    npos = len(pos)
-    x, y = pos[:, :2].T
-
-    check_mask = np.ones((npos), dtype=bool)
-    check_mask[((x < np.min(x)) | (y < np.min(y)) |
-                (x > np.max(x)) | (y > np.max(y)))] = False
-
-    critval = 0.1
-    sel = np.where(check_mask)[0]
-    for this_sel in sel:
-        contourx = contour[:, 0] - pos[this_sel, 0]
-        contoury = contour[:, 1] - pos[this_sel, 1]
-        angle = np.arctan2(contoury, contourx)
-        angle = np.unwrap(angle)
-        total = np.sum(np.diff(angle))
-        check_mask[this_sel] = np.abs(total) > critval
-
-    return check_mask
 
 
 def _griddata(x, y, v, xi, yi):
@@ -370,7 +353,11 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
     image_mask : ndarray of bool, shape (res, res) | None
         The image mask to cover the interpolated surface. If None, it will be
         computed from the outline.
@@ -418,10 +405,10 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         xlim = np.inf, -np.inf,
         ylim = np.inf, -np.inf,
         mask_ = np.c_[outlines['mask_pos']]
-        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0] * 1.01]),
-                      np.max(np.r_[xlim[1], mask_[:, 0] * 1.01]))
-        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1] * 1.01]),
-                      np.max(np.r_[ylim[1], mask_[:, 1] * 1.01]))
+        xmin, xmax = (np.min(np.r_[xlim[0], mask_[:, 0]]),
+                      np.max(np.r_[xlim[1], mask_[:, 0]]))
+        ymin, ymax = (np.min(np.r_[ylim[0], mask_[:, 1]]),
+                      np.max(np.r_[ylim[1], mask_[:, 1]]))
 
     # interpolate data
     xi = np.linspace(xmin, xmax, res)
@@ -438,9 +425,6 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         # prepare masking
         image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    if image_mask is not None and not _is_default_outlines:
-        Zi[~image_mask] = np.nan
-
     if mask_params is None:
         mask_params = DEFAULTS['mask_params'].copy()
     elif isinstance(mask_params, dict):
@@ -451,17 +435,21 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
         raise ValueError('`mask_params` must be of dict-type '
                          'or None')
 
+    # plot outline
+    linewidth = mask_params['markeredgewidth']
+    patch = None
+    if 'patch' in outlines:
+        patch = outlines['patch']
+        patch_ = patch() if callable(patch) else patch
+        patch_.set_clip_on(False)
+        ax.add_patch(patch_)
+        ax.set_transform(ax.transAxes)
+        ax.set_clip_path(patch_)
+
     # plot map and countour
     im = ax.imshow(Zi, cmap=cmap, vmin=vmin, vmax=vmax, origin='lower',
                    aspect='equal', extent=(xmin, xmax, ymin, ymax),
                    interpolation=image_interp)
-    # plot outline
-    linewidth = mask_params['markeredgewidth']
-    if isinstance(outlines, dict):
-        for k, (x, y) in outlines.items():
-            if 'mask' in k:
-                continue
-            ax.plot(x, y, color='k', linewidth=linewidth)
 
     # This tackles an incomprehensible matplotlib bug if no contours are
     # drawn. To avoid rescalings, we will always draw contours.
@@ -478,14 +466,15 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     if _is_default_outlines:
         from matplotlib import patches
         # remove nose offset and tweak
-        patch = patches.Circle((0.5, 0.4687), radius=.46,
-                               clip_on=True,
-                               transform=ax.transAxes)
-        im.set_clip_path(patch)
-        ax.set_clip_path(patch)
+        patch_ = patches.Circle((0.5, 0.4687), radius=.46,
+                                clip_on=True,
+                                transform=ax.transAxes)
+    if _is_default_outlines or patch is not None:
+        im.set_clip_path(patch_)
+        # ax.set_clip_path(patch_)
         if cont is not None:
             for col in cont.collections:
-                col.set_clip_path(patch)
+                col.set_clip_path(patch_)
 
     if sensors is not False and mask is None:
         _plot_sensors(pos_x, pos_y, sensors=sensors, ax=ax)
@@ -497,6 +486,14 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     elif not sensors and mask is not None:
         idx = np.where(mask)[0]
         ax.plot(pos_x[idx], pos_y[idx], **mask_params)
+
+    if isinstance(outlines, dict):
+        outlines_ = dict([(k, v) for k, v in outlines.items() if k not in
+                          ['patch', 'autoshrink']])
+        for k, (x, y) in outlines_.items():
+            if 'mask' in k:
+                continue
+            ax.plot(x, y, color='k', linewidth=linewidth)
 
     if show_names:
         if show_names is True:
@@ -525,14 +522,16 @@ def _make_image_mask(outlines, pos, res):
     ymin, ymax = (np.min(np.r_[np.inf, mask_[:, 1]]),
                   np.max(np.r_[-np.inf, mask_[:, 1]]))
 
-    inside = _inside_contour(pos, mask_)
-    outside = np.invert(inside)
-    outlier_points = pos[outside]
-    while np.any(outlier_points):  # auto shrink
-        pos *= 0.99
+    if outlines.get('autoshrink', False) is not False:
         inside = _inside_contour(pos, mask_)
         outside = np.invert(inside)
         outlier_points = pos[outside]
+        while np.any(outlier_points):  # auto shrink
+            pos *= 0.99
+            inside = _inside_contour(pos, mask_)
+            outside = np.invert(inside)
+            outlier_points = pos[outside]
+
     image_mask = np.zeros((res, res), dtype=bool)
     xi_mask = np.linspace(xmin, xmax, res)
     yi_mask = np.linspace(ymin, ymax, res)
@@ -543,6 +542,28 @@ def _make_image_mask(outlines, pos, res):
     image_mask[inds.reshape(image_mask.shape)] = True
 
     return image_mask, pos
+
+
+def _inside_contour(pos, contour):
+    """Aux function"""
+    npos = len(pos)
+    x, y = pos[:, :2].T
+
+    check_mask = np.ones((npos), dtype=bool)
+    check_mask[((x < np.min(x)) | (y < np.min(y)) |
+                (x > np.max(x)) | (y > np.max(y)))] = False
+
+    critval = 0.1
+    sel = np.where(check_mask)[0]
+    for this_sel in sel:
+        contourx = contour[:, 0] - pos[this_sel, 0]
+        contoury = contour[:, 1] - pos[this_sel, 1]
+        angle = np.arctan2(contoury, contourx)
+        angle = np.unwrap(angle)
+        total = np.sum(np.diff(angle))
+        check_mask[this_sel] = np.abs(total) > critval
+
+    return check_mask
 
 
 def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
@@ -588,10 +609,14 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     show : bool
         Call pyplot.show() at the end.
     outlines : 'head' | dict | None
-            The outlines to be drawn. If 'head', a head scheme will be drawn.
-            If dict, each key refers to a tuple of x and y positions. The
-            values in 'mask_pos' will serve as image mask. If None,
-            nothing will be drawn. defaults to 'head'.
+        The outlines to be drawn. If 'head', a head scheme will be drawn. If
+        dict, each key refers to a tuple of x and y positions. The values in
+        'mask_pos' will serve as image mask. If None, nothing will be drawn.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -682,7 +707,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, format=None):
+                     axes=None, show=True, format=None, outlines='head'):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -762,6 +787,15 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The axes to plot to. If None the axes is defined automatically.
     show : bool
         Call pyplot.show() at the end.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn.
+        If dict, each key refers to a tuple of x and y positions.
+        The values in 'mask_pos' will serve as image mask. If None, nothing
+        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+        field will trigger automated shrinking of the positions due to
+        points outside the outline. Moreover, a matplotlib patch object can
+        be passed for advanced masking options, either directly or as a
+        function that returns patches (required for multi-axis plots).
 
     Returns
     -------
@@ -928,7 +962,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
         'mask_pos' will serve as image mask. If None, nothing will be drawn.
-        Defaults to 'head'.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
     contours : int | False | None
         The number of contour lines to draw. If 0, no contours will be drawn.
     image_interp : str
@@ -1114,7 +1152,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, ch_type=None,
                             n_overlap=0, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
-                            normalize=False, verbose=None, cbar_fmt='%0.3f'):
+                            normalize=False, verbose=None, cbar_fmt='%0.3f',
+                            outlines='head'):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1171,6 +1210,15 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn.
+        If dict, each key refers to a tuple of x and y positions.
+        The values in 'mask_pos' will serve as image mask. If None, nothing
+        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+        field will trigger automated shrinking of the positions due to
+        points outside the outline. Moreover, a matplotlib patch object can
+        be passed for advanced masking options, either directly or as a
+        function that returns patches (required for multi-axis plots).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1197,12 +1245,13 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt)
+        cbar_fmt=cbar_fmt, outlines=outlines)
 
 
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
-        cmap='RdBu_r', dB=True, normalize=False, cbar_fmt='%0.3f'):
+        cmap='RdBu_r', dB=True, normalize=False, cbar_fmt='%0.3f',
+        outlines='head'):
     """Plot spatial maps of PSDs
 
     psds : np.ndarray of float, shape (n_channels, n_freqs)
@@ -1249,6 +1298,15 @@ def plot_psds_topomap(
         False.
     cbar_fmt : str
         The colorbar format. Defaults to '%0.3f'.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn.
+        If dict, each key refers to a tuple of x and y positions.
+        The values in 'mask_pos' will serve as image mask. If None, nothing
+        will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+        field will trigger automated shrinking of the positions due to
+        points outside the outline. Moreover, a matplotlib patch object can
+        be passed for advanced masking options, either directly or as a
+        function that returns patches (required for multi-axis plots).
 
     Returns
     -------

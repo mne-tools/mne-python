@@ -565,7 +565,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          n_fft=256, ch_type=None,
                          n_overlap=0, layout=None, cmap='RdBu_r',
                          agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         cbar_fmt='%0.3f', verbose=None):
+                         cbar_fmt='%0.3f', outlines='head', verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -621,6 +621,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             False.
         cbar_fmt : str
             The colorbar format. Defaults to '%0.3f'.
+        outlines : 'head' | dict | None
+            The outlines to be drawn. If 'head', a head scheme will be drawn.
+            If dict, each key refers to a tuple of x and y positions.
+            The values in 'mask_pos' will serve as image mask. If None, nothing
+            will be drawn. Defaults to 'head'. If dict, the 'autoshrink' (bool)
+            field will trigger automated shrinking of the positions due to
+            points outside the outline. Moreover, a matplotlib patch object can
+            be passed for advanced masking options, either directly or as a
+            function that returns patches (required for multi-axis plots).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -633,7 +642,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
             ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, verbose=None)
+            cbar_fmt=cbar_fmt, outlines=outlines, verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):
