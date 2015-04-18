@@ -11,7 +11,6 @@ import numpy as np
 from scipy import linalg
 
 from ..io.pick import pick_channels_evoked
-from ..minimum_norm.inverse import _check_reference
 from ..cov import compute_whitener
 from ..utils import logger, verbose
 from ..dipole import Dipole
@@ -19,9 +18,8 @@ from ._lcmv import _prepare_beamformer_input, _setup_picks
 
 
 @verbose
-def _apply_rap_music(data, info, times, forward, noise_cov,
-                     n_dipoles=5, signal_ndim=None, picks=None,
-                     return_explained_data=False, verbose=None):
+def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
+                     picks=None, return_explained_data=False, verbose=None):
     """RAP-MUSIC for evoked data
 
     Parameters
@@ -37,10 +35,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
     noise_cov : instance of Covariance
         The noise covariance.
     n_dipoles : int
-        The number of dipoles to estimate.
-    signal_ndim : int
-        The dimension of the subspace spanning the signal.
-        The default value is the number of dipoles.
+        The number of dipoles to estimate. The default value is 2.
     picks : array-like of int | None
         Indices (in info) of data channels. If None, MEG and EEG data channels
         (without bad channels) will be used.
@@ -58,8 +53,6 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
         selected active dipoles and their estimated orientation.
         Computed only if return_explained_data is True.
     """
-    if signal_ndim is None:
-        signal_ndim = n_dipoles
 
     is_free_ori, ch_names, proj, vertno, G = _prepare_beamformer_input(
         info, forward, label=None, picks=picks, pick_ori=None)
@@ -76,7 +69,7 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
     data = np.dot(whitener, data)
 
     eig_values, eig_vectors = linalg.eigh(np.dot(data, data.T))
-    phi_sig = eig_vectors[:, -signal_ndim:]
+    phi_sig = eig_vectors[:, -n_dipoles:]
 
     n_orient = 3 if is_free_ori else 1
     n_channels = G.shape[0]
@@ -135,18 +128,19 @@ def _apply_rap_music(data, info, times, forward, noise_cov,
 
     sol = linalg.lstsq(A, data)[0]
 
-    explained_data = None
+    gof, explained_data = [], None
     if return_explained_data:
         explained_data = np.dot(gain_dip, sol)
+        gof = (linalg.norm(np.dot(whitener, explained_data)) /
+               linalg.norm(data))
 
     return _make_dipoles(times, forward['src'], poss,
-                         oris, sol), explained_data
+                         oris, sol, gof), explained_data
 
 
-def _make_dipoles(times, src, poss, oris, sol):
+def _make_dipoles(times, src, poss, oris, sol, gof):
     amplitude = sol * 1e9
     oris = np.array(oris)
-    gof = []
 
     dipoles = []
     for i_dip in range(poss.shape[0]):
@@ -177,8 +171,8 @@ def _compute_proj(A):
 
 
 @verbose
-def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
-              return_residual=False, picks=None, verbose=None):
+def rap_music(evoked, forward, noise_cov, n_dipoles=5, return_residual=False,
+              picks=None, verbose=None):
     """RAP-MUSIC source localization method.
 
     Compute Recursively Applied and Projected MUltiple SIgnal Classification
@@ -193,10 +187,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
     noise_cov : instance of Covariance
         The noise covariance.
     n_dipoles : int
-        The number of dipoles to look for. Default value is 5.
-    signal_ndim : int
-        The dimension of the subspace spanning the signal.
-        The default value is the number of dipoles.
+        The number of dipoles to look for. The default value is 5.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
     picks : array-like of int | None
@@ -221,7 +212,6 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
     (February 1999), 332-340.
     DOI=10.1109/78.740118 http://dx.doi.org/10.1109/78.740118
     """
-    _check_reference(evoked)
 
     info = evoked.info
     data = evoked.data
@@ -233,8 +223,7 @@ def rap_music(evoked, forward, noise_cov, n_dipoles=5, signal_ndim=None,
 
     dipoles, explained_data = _apply_rap_music(data, info, times, forward,
                                                noise_cov, n_dipoles,
-                                               signal_ndim, picks,
-                                               return_residual)
+                                               picks, return_residual)
 
     if return_residual:
         residual = evoked.copy()

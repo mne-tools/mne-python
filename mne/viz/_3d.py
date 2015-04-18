@@ -885,10 +885,6 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
 
-    # Normalize the amplitude for the plot
-    mean = amp.mean(axis=1)[:, np.newaxis]
-    std = amp.std(axis=1)[:, np.newaxis]
-    amp = (amp - mean) / std
     for i_dip, color in zip(range(len(dipoles)), colors):
         rgb_color = color_converter.to_rgb(color)
         mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],

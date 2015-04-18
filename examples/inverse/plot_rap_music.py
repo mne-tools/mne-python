@@ -35,11 +35,7 @@ evoked = mne.read_evokeds(evoked_fname, condition=condition,
                           baseline=(None, 0))
 evoked.crop(tmin=50e-3, tmax=150e-3)
 
-left_temporal_channels = mne.read_selection('Left-temporal')
-evoked = mne.pick_types_evoked(evoked, meg=False, eeg=False,
-                               include=left_temporal_channels)
-
-# evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
+evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
 
 # Read the forward solution
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
@@ -48,12 +44,11 @@ forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
 # Read noise covariance matrix and regularize it
 noise_cov = mne.read_cov(cov_fname)
 
-dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=1,
-                              signal_ndim=2, return_residual=True,
-                              verbose=True)
+dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
+                              return_residual=True, verbose=True)
 trans = forward['mri_head_t']
 plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir)
 
 # Plot the evoked data and the residual.
-evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
-residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800]))
+evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
+residual.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))
