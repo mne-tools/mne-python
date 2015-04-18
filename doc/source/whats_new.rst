@@ -9,7 +9,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-   - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
+   - Add support for mayavi figures in ``add_section`` method in Report by `Mainak Jas`_
 
    - Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_
 
@@ -17,7 +17,7 @@ Changelog
 
    - Add support for source estimate for mixed source spaces by `Alan Leggitt`_
 
-   - Add `SourceSpaces.export_volume` method by `Alan Leggitt`_
+   - Add ``SourceSpaces.export_volume`` method by `Alan Leggitt`_
 
    - Automatically compute proper box sizes when generating layouts on the fly by `Marijn van Vliet`_
 
@@ -25,7 +25,7 @@ Changelog
 
    - Add option to Report class to save images as vector graphics (SVG) by `Denis Engemann`_
 
-   - Add events count to `mne.viz.plot_events` by `Denis Engemann`_
+   - Add events count to ``mne.viz.plot_events`` by `Denis Engemann`_
 
    - Add support for stereotactic EEG (sEEG) channel type by `Marmaduke Woodman`_
 
@@ -41,19 +41,19 @@ Changelog
 
    - Add reading and writing support for digitizer data, and function for adding dig points to info by `Teon Brooks`_
 
-   - Add methods `get_channel_positions`, `set_channel_positions` for setting channel positions,
-     and `plot_projs_topomap` to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_
+   - Add methods ``get_channel_positions``, ``set_channel_positions`` for setting channel positions,
+     and ``plot_projs_topomap`` to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
-   - Add EEG bad channel interpolation method (based on spherical splines) to `Raw`, `Epochs` and `Evoked` objects
+   - Add EEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
      by `Denis Engemann`_
 
-   - Add parameter to `whiten_evoked`, `compute_whitener` and `prepare_noise_cov` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
+   - Add parameter to ``whiten_evoked``, ``compute_whitener`` and ``prepare_noise_cov`` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
 
    - Add fiff I/O for processing history and MaxFilter info by `Denis Engemann`_ and `Eric Larson`_
 
    - Add automated regularization with support for multiple sensor types to mne.cov.compute_covariance by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Add ``mne.viz.plot_evoked_white`` function and `Evoked.plot_white` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add ``mne.viz.plot_evoked_white`` function and ``Evoked.plot_white`` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
 
@@ -77,19 +77,19 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
-   - Add `render_bem`, `add_htmls_to_section` methods to `mne.Report` by `Teon Brooks`_
+   - Add ``render_bem``, ``add_htmls_to_section`` methods to ``mne.Report`` by `Teon Brooks`_
 
-   - Add support for adding an empty reference channel to data by `Teon Brooks`_
+   - Add support for adding an empty reference channel to data by ``Teon Brooks``_
 
-   - Add reader function for Raw FIF files by `Teon Brooks`_
+   - Add reader function for Raw FIF files by ``Teon Brooks``_
 
    - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
 
-   - Add plot_psd and plot_psd_topomap methods to epochs by `Yousra Bekhti`_, `Eric Larson`_ and `Denis Engemann`_
+   - Add ``plot_psd`` and ``plot_psd_topomap`` methods to epochs by `Yousra Bekhti`_, `Eric Larson`_ and `Denis Engemann`_
 
-   - `evoked.pick_types`, `epochs.pick_types`, and `tfr.pick_types` added by `Eric Larson`_
+   - ``evoked.pick_types``, ``epochs.pick_types``, and ``tfr.pick_types`` added by `Eric Larson`_
 
-   - `rename_channels` and `set_channel_types` added as methods to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_ 
+   - ``rename_channels`` and ``set_channel_types`` added as methods to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_ 
 
    - Add ``read_raw``, an all-purpose raw data reader by `Teon Brooks`_
 
@@ -99,12 +99,12 @@ BUG
 
    - Fix energy conservation for STFT with tight frames by `Daniel Strohmeier`_
 
-   - Fix incorrect data matrix when tfr was plotted with parameters `tmin`, `tmax`, `fmin` and `fmax` by `Mainak Jas`_
+   - Fix incorrect data matrix when tfr was plotted with parameters ``tmin``, ``tmax``, ``fmin`` and ``fmax`` by `Mainak Jas`_
 
    - Fix channel names in topomaps by `Alex Gramfort`_
 
-   - Fix mapping of `l_trans_bandwidth` (to low frequency) and
-    `h_trans_bandwidth` (to high frequency) in `_BaseRaw.filter` by `Denis Engemann`_
+   - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and
+    ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -122,7 +122,7 @@ BUG
 
    - The API change to the edf, brainvision, and egi break backwards compatibility for when importing eeg data by `Teon Brooks`_
 
-   - Fix bug in `mne.viz.plot_topo` if ylim was passed for single sensor layouts by `Denis Engemann`_
+   - Fix bug in ``mne.viz.plot_topo`` if ylim was passed for single sensor layouts by `Denis Engemann`_
 
    - Average reference projections will no longer by automatically added after applying a custom EEG reference by `Marijn van Vliet`_
 
@@ -130,7 +130,7 @@ BUG
 
    - Fix beamformer code LCMV/DICS for CTF data with reference channels by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Fix scalings for bad EEG channels in `mne.viz.plot_topo` by `Marijn van Vliet`_
+   - Fix scalings for bad EEG channels in ``mne.viz.plot_topo`` by `Marijn van Vliet`_
 
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
@@ -143,45 +143,45 @@ BUG
 API
 ~~~
 
-   - apply_inverse functions have a new boolean parameter `prepared` which saves computation time by calling `prepare_inverse_operator` only if it is False
+   - apply_inverse functions have a new boolean parameter ``prepared`` which saves computation time by calling ``prepare_inverse_operator`` only if it is False
 
-   - find_events and read_events functions have a new parameter `mask` to set some bits to a don't care state by `Teon Brooks`_
+   - find_events and read_events functions have a new parameter ``mask`` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
     `mne.layouts` by `Denis Engemann`_
 
-   - `read_raw_brainvision`, `read_raw_edf`, `read_raw_egi` all use a standard montage import by `Teon Brooks`_
+   - ``read_raw_brainvision``, ``read_raw_edf``, ``read_raw_egi`` all use a standard montage import by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
-   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in `Report.parse_folder()` by `Mainak Jas`_
+   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
 
-   - `read_hsp`, `read_elp`, and `write_hsp`, `write_mrk` were removed and made private by `Teon Brooks`_
+   - ``read_hsp``, ``read_elp``, and ``write_hsp``, ``write_mrk`` were removed and made private by `Teon Brooks`_
 
    - When computing the noise covariance or MNE inverse solutions, the rank is estimated empirically using more sensitive thresholds, which stabilizes results by `Denis Engemann`_ and `Eric Larson`_ and `Alex Gramfort`_
 
    - Raw FIFF files can be preloaded after class instantiation using ``raw.preload_data()``
 
-   - Add `label` parameter to `apply_inverse` by `Teon Brooks`_
+   - Add ``label`` parameter to ``apply_inverse`` by `Teon Brooks`_
 
-   - Deprecated `label_time_courses` for `in_label` method in `SourceEstimate` by `Teon Brooks`_
+   - Deprecated ``label_time_courses`` for ``in_label`` method in `SourceEstimate` by `Teon Brooks`_
 
-   - Deprecated `as_data_frame` for `to_data_frame` by `Chris Holdgraf`_
+   - Deprecated ``as_data_frame`` for ``to_data_frame`` by `Chris Holdgraf`_
 
-   - Add `transform`, `unit` parameters to `read_montage` by `Teon Brooks`_
+   - Add ``transform``, ``unit`` parameters to ``read_montage`` by `Teon Brooks`_
 
-   - Deprecated `fmin, fmid, fmax` in stc.plot and added `clim` by `Mark Wronkiewicz`_
+   - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-   - Use `scipy.signal.welch` instead of matplotlib.psd inside `compute_raw_psd` and `compute_epochs_psd` by `Yousra Bekhti_`
+   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti_`
      `Eric Larson_` and `Denis Engemann_`. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
-   - `Raw` instances returned by `mne.forward.apply_forward_raw` now always have times starting from
-     zero to be consistent with all other `Raw` instances. To get the former `start` and `stop` times,
-     use `raw.first_samp / raw.info['sfreq']` and `raw.last_samp / raw.info['sfreq']`.
+   - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
+     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
+     use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
 
-   - `pick_types_evoked` has been deprecated in favor of `evoked.pick_types`.
+   - ``pick_types_evoked`` has been deprecated in favor of ``evoked.pick_types``.
 
-   - Deprecated changing the sensor type of channels in `rename_channels` by `Teon Brooks`_
+   - Deprecated changing the sensor type of channels in ``rename_channels`` by `Teon Brooks`_
 
    - CUDA is no longer initialized at module import, but only when first used.
 
@@ -195,25 +195,25 @@ Changelog
 
    - Add Python3 support by `Nick Ward`_, `Alex Gramfort`_, `Denis Engemann`_, and `Eric Larson`_
 
-   - Add `get_peak` method for evoked and stc objects by  `Denis Engemann`_
+   - Add ``get_peak`` method for evoked and stc objects by  `Denis Engemann`_
 
-   - Add `iter_topography` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
+   - Add ``iter_topography`` function for radically simplified custom sensor topography plotting by `Denis Engemann`_
 
    - Add field line interpolation by `Eric Larson`_
 
-   - Add full provenance tacking for epochs and improve `drop_log` by `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
+   - Add full provenance tacking for epochs and improve ``drop_log`` by `Tal Linzen`_, `Alex Gramfort`_ and `Denis Engemann`_
 
-   - Add systematic contains method to Raw, Epochs and Evoked for channel type membership testing by `Denis Engemann`_
+   - Add systematic contains method to ``Raw``, ``Epochs`` and ``Evoked`` for channel type membership testing by `Denis Engemann`_
 
    - Add fiff unicode writing and reading support by `Denis Engemann`_
 
    - Add 3D MEG/EEG field plotting function and evoked method by `Denis Engemann`_ and  `Alex Gramfort`_
 
-   - Add consistent channel-dropping methods to Raw, Epochs and Evoked by `Denis Engemann`_ and  `Alex Gramfort`_
+   - Add consistent channel-dropping methods to ``Raw``, ``Epochs`` and ``Evoked`` by `Denis Engemann`_ and  `Alex Gramfort`_
 
-   - Add `equalize_channnels` function to set common channels for a list of Raw, Epochs, or Evoked objects by `Denis Engemann`_
+   - Add ``equalize_channnels`` function to set common channels for a list of ``Raw``, ``Epochs``, or ``Evoked`` objects by `Denis Engemann`_
 
-   - Add `plot_events` function to visually display paradigm by `Alex Gramfort`_
+   - Add ``plot_events`` function to visually display paradigm by `Alex Gramfort`_
 
    - Improved connectivity circle plot by `Martin Luessi`_
 
@@ -223,21 +223,21 @@ Changelog
 
    - Add ability to add patch information to source spaces by `Eric Larson`_
 
-   - Add `split_label` function to divide labels into multiple parts by `Christian Brodbeck`_
+   - Add ``split_label`` function to divide labels into multiple parts by `Christian Brodbeck`_
 
-   - Add `color` attribute to `Label` objects by `Christian Brodbeck`_
+   - Add ``color`` attribute to ``Label`` objects by `Christian Brodbeck`_
 
-   - Add `max` mode for extract_label_time_course by `Mads Jensen`_
+   - Add ``max`` mode for ``extract_label_time_course`` by `Mads Jensen`_
 
-   - Add `rename_channels` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
+   - Add ``rename_channels`` function to change channel names and types in info object by `Dan Wakeman`_ and `Denis Engemann`_
 
-   - Add  `compute_ems` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
+   - Add  ``compute_ems`` function to extract the time course of experimental effects by `Denis Engemann`_, `Sébastien Marti`_ and `Alex Gramfort`_
 
-   - Add option to expand Labels defined in a source space to the original surface (`Label.fill()`) by `Christian Brodbeck`_
+   - Add option to expand Labels defined in a source space to the original surface (``Label.fill()``) by `Christian Brodbeck`_
 
    - GUIs can be invoked form the command line using `$ mne coreg` and `$ mne kit2fiff` by `Christian Brodbeck`_
 
-   - Add `add_channels_epochs` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
+   - Add ``add_channels_epochs`` function to combine different recordings at the Epochs level by `Christian Brodbeck`_ and `Denis Engemann`_
 
    - Add support for EGI Netstation simple binary files by `Denis Engemann`_
 
@@ -251,29 +251,29 @@ Changelog
 
    - Add color and event_id with legend options in plot_events in viz.py by `Cathy Nangini`_
 
-   - Add `events_list` parameter to `mne.concatenate_raws` to concatenate events corresponding to runs by `Denis Engemann`_
+   - Add ``events_list`` parameter to ``mne.concatenate_raws`` to concatenate events corresponding to runs by `Denis Engemann`_
 
-   - Add `read_ch_connectivity` function to read FieldTrip neighbor template .mat files and obtain sensor adjacency matrices by `Denis Engemann`_
+   - Add ``read_ch_connectivity`` function to read FieldTrip neighbor template .mat files and obtain sensor adjacency matrices by `Denis Engemann`_
 
    - Add display of head in helmet from -trans.fif file to check coregistration quality by `Mainak Jas`_
 
-   - Add `raw.add_events` to allow adding events to a raw file by `Eric Larson`_
+   - Add ``raw.add_events`` to allow adding events to a raw file by `Eric Larson`_
 
-   - Add `plot_image` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+   - Add ``plot_image`` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
-   - New ICA API with unified methods for processing Raw, Epochs and Evoked objects by `Denis Engemann`_
+   - New ICA API with unified methods for processing ``Raw``, ``Epochs`` and ``Evoked`` objects by `Denis Engemann`_
 
    - Apply ICA at the evoked stage by `Denis Engemann`_
 
    - New ICA methods for visualizing unmixing quality, artifact detection and rejection by `Denis Engemann`_
 
-   - Add `pick_channels` and `drop_channels` mixin class to pick and drop channels from Raw, Epochs, and Evoked objects by `Andrew Dykstra`_ and `Denis Engemann`_
+   - Add ``pick_channels`` and ``drop_channels`` mixin class to pick and drop channels from ``Raw``, ``Epochs``, and ``Evoked`` objects by `Andrew Dykstra`_ and `Denis Engemann`_
 
-   - Add `EvokedArray` class to create an Evoked object from an array by `Andrew Dykstra`_
+   - Add ``EvokedArray`` class to create an Evoked object from an array by `Andrew Dykstra`_
 
-   - Add `plot_bem` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
+   - Add ``plot_bem`` method to visualize BEM contours on MRI anatomical images by `Mainak Jas`_ and `Alex Gramfort`_
 
    - Add automated ECG detection using cross-trial phase statistics by `Denis Engemann`_ and `Juergen Dammers`_
 
@@ -285,13 +285,13 @@ Changelog
 
    - Add computation of point spread and cross-talk functions for MNE type solutions by `Alex Gramfort`_ and `Olaf Hauk`_
 
-   - Add mask parameter to `plot_evoked_topomap` and `evoked.plot_topomap` by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add mask parameter to `plot_evoked_topomap` and ``evoked.plot_topomap`` by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add infomax and extended infomax ICA by `Denis Engemann`_, `Juergen Dammers`_ and `Lukas Breuer`_ and `Federico Raimondo`_
 
    - Aesthetically redesign interpolated topography plots by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Simplify sensor space time-frequency analysis API with `tfr_morlet` function by `Alex Gramfort`_ and `Denis Engemann`_
+   - Simplify sensor space time-frequency analysis API with ``tfr_morlet`` function by `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add new somatosensory MEG dataset with nice time-frequency content by `Alex Gramfort`_
 
@@ -306,7 +306,7 @@ Changelog
 BUG
 ~~~
 
-   - Fix incorrect `times` attribute when stc was computed using `apply_inverse` after decimation at epochs stage for certain, arbitrary sample frequencies by `Denis Engemann`_
+   - Fix incorrect ``times`` attribute when stc was computed using ``apply_inverse`` after decimation at epochs stage for certain, arbitrary sample frequencies by `Denis Engemann`_
 
    - Fix corner case error for step-down-in-jumps permutation test (when step-down threshold was high enough to include all clusters) by `Eric Larson`_
 
@@ -327,21 +327,21 @@ API
 
    - Deprecate Epochs.drop_picks in favor of a new method called drop_channels
 
-   - Deprecate `labels_from_parc` and `parc_from_labels` in favor of `read_labels_from_annot` and `write_labels_to_annot`
+   - Deprecate ``labels_from_parc`` and ``parc_from_labels`` in favor of ``read_labels_from_annot`` and ``write_labels_to_annot``
 
-   - The default of the new add_dist option of `setup_source_space` to add patch information will change from False to True in MNE-Python 0.9
+   - The default of the new add_dist option of ``setup_source_space`` to add patch information will change from False to True in MNE-Python 0.9
 
-   - Deprecate `read_evoked` and `write_evoked` in favor of `read_evokeds` and `write_evokeds`. read_evokeds will return all Evoked instances in a file by default.
+   - Deprecate ``read_evoked`` and ``write_evoked`` in favor of ``read_evokeds`` and ``write_evokeds``. read_evokeds will return all `Evoked` instances in a file by default.
 
-   - Deprecate `setno` in favor of `condition` in the initialization of an Evoked instance. This affects `mne.fiff.Evoked` and `read_evokeds`, but not `read_evoked`.
+   - Deprecate ``setno`` in favor of ``condition`` in the initialization of an Evoked instance. This affects ``mne.fiff.Evoked`` and ``read_evokeds``, but not ``read_evoked``.
 
-   - Deprecate `mne.fiff` module, use `mne.io` instead e.g. `mne.io.Raw` instead of `mne.fiff.Raw`.
+   - Deprecate ``mne.fiff`` module, use ``mne.io`` instead e.g. ``mne.io.Raw`` instead of ``mne.fiff.Raw``.
 
-   - Pick functions (e.g., `pick_types`) are now in the mne namespace (e.g. use `mne.pick_types`).
+   - Pick functions (e.g., ``pick_types``) are now in the mne namespace (e.g. use ``mne.pick_types``).
 
    - Deprecated ICA methods specific to one container type. Use ICA.fit, ICA.get_sources ICA.apply and ICA.plot_XXX for processing Raw, Epochs and Evoked objects.
 
-   - The default smoothing method for `mne.stc_to_label` will change in v0.9, and the old method is deprecated.
+   - The default smoothing method for ``mne.stc_to_label`` will change in v0.9, and the old method is deprecated.
 
    - As default, for ICA the maximum number of PCA components equals the number of channels passed. The number of PCA components used to reconstruct the sensor space signals now defaults to the maximum number of PCA components estimated.
 
@@ -403,7 +403,7 @@ Changelog
 
    - Decoding with Common Spatial Patterns (CSP) by `Romain Trachel`_ and `Alex Gramfort`_
 
-   - Add ICA plot_topomap function and method for displaying the spatial sensitivity of ICA sources by `Denis Engemann`_
+   - Add ICA ``plot_topomap`` function and method for displaying the spatial sensitivity of ICA sources by `Denis Engemann`_
 
    - Plotting multiple brain views at once by `Eric Larson`_
 
@@ -429,7 +429,7 @@ Changelog
 
    - Add `ico` and `oct` source space creation in native Python by `Eric Larson`_
 
-   - Add interactive rejection of bad trials in `plot_epochs` by `Denis Engemann`_
+   - Add interactive rejection of bad trials in ``plot_epochs`` by `Denis Engemann`_
 
    - Add morph map calculation by `Eric Larson`_ and `Martin Luessi`_
 
@@ -478,7 +478,7 @@ Changelog
 API
 ~~~
 
-   - The pick_normal parameter for minimum norm solvers has been renamed as `pick_ori` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
+   - The pick_normal parameter for minimum norm solvers has been renamed as ``pick_ori`` and normal orientation picking is now achieved by passing the value "normal" for the `pick_ori` parameter.
 
    - ICA objects now expose the measurment info of the object fitted.
 
@@ -486,9 +486,9 @@ API
 
    - Removed deprecated read/write_stc/w, use SourceEstimate methods instead
 
-   - The `chs` argument in `mne.layouts.find_layout` is deprecated and will be removed in MNE-Python 0.9. Use `info` instead.
+   - The ``chs`` argument in ``mne.layouts.find_layout`` is deprecated and will be removed in MNE-Python 0.9. Use ``info`` instead.
 
-   - `plot_evoked` and `Epochs.plot` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
+   - ``plot_evoked`` and ``Epochs.plot`` now open a new figure by default. To plot on an existing figure please specify the `axes` parameter.
 
 
 Authors
@@ -569,7 +569,7 @@ Changelog
 
    - Events now contain the pre-event stim channel value in the middle column, by `Christian Brodbeck`_
 
-   - New function `mne.find_stim_steps` for finding all steps in a stim channel by `Christian Brodbeck`_
+   - New function ``mne.find_stim_steps`` for finding all steps in a stim channel by `Christian Brodbeck`_
 
    - Get information about FIFF files using mne.fiff.show_fiff() by `Eric Larson`_
 
@@ -591,7 +591,7 @@ Changelog
 
    - Support selective parameter updating in functions taking dicts as arguments by `Denis Engemann`_
 
-   - New ICA method `sources_as_epochs` to create Epochs in ICA space by `Denis Engemann`_
+   - New ICA method ``sources_as_epochs`` to create Epochs in ICA space by `Denis Engemann`_
 
    - New method in Evoked and Epoch classes to shift time scale by `Mainak Jas`_
 
@@ -636,7 +636,7 @@ Changelog
 API
 ~~~
 
-   - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), `bads` (bad channels), or a list of string (channel names).
+   - Deprecated use of fiff.pick_types without specifying exclude -- use either [] (none), ``bads`` (bad channels), or a list of string (channel names).
 
    - Depth bias correction in dSPM/MNE/sLORETA make_inverse_operator is now done like in the C code using only gradiometers if present, else magnetometers, and EEG if no MEG channels are present.
 
@@ -953,7 +953,7 @@ of commits):
 
 .. _Simon Kornblith: http://simonster.com
 
-.. _Teon Brooks: https://files.nyu.edu/tlb331/public/
+.. _Teon Brooks: http://sites.google.com/a/nyu.edu/teon/
 
 .. _Mainak Jas: http://ltl.tkk.fi/wiki/Mainak_Jas
 
