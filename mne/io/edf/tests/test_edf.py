@@ -19,7 +19,7 @@ import numpy as np
 from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir
-from mne.io import Raw, read_raw_edf
+from mne.io import Raw, read_raw_edf, read_raw
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -42,8 +42,8 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 def test_bdf_data():
     """Test reading raw bdf files
     """
-    raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
-                          misc=misc, preload=True)
+    raw_py = read_raw(bdf_path, montage=montage_path, eog=eog,
+                      misc=misc, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
@@ -109,7 +109,10 @@ def test_read_segment():
     """Test writing raw edf files when preload is False
     """
     tempdir = _TempDir()
-    raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
+    params = dict()
+    params['edf'] = dict()
+    params['edf']['stim_channel'] = None
+    raw1 = read_raw(edf_path, params=params, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)

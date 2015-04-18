@@ -14,7 +14,7 @@ from nose.tools import assert_true, assert_raises, assert_equal
 from mne.io import Raw as Raw
 from mne.io.bti.bti import (_read_config, _setup_head_shape,
                             _read_data, _read_bti_header)
-from mne.io import read_raw_bti
+from mne.io import read_raw_bti, read_raw
 from mne import concatenate_raws
 
 
@@ -73,7 +73,10 @@ def test_raw():
         if op.exists(tmp_raw_fname):
             os.remove(tmp_raw_fname)
         with Raw(exported, preload=True) as ex:
-            with read_raw_bti(pdf, config, hs) as ra:
+            params = dict()
+            params['bti'] = dict()
+            params['bti']['config'] = config
+            with read_raw(pdf, montage=hs, params=params) as ra:
                 assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
                 assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                           ra.info['dev_head_t']['trans'], 7)

@@ -17,7 +17,7 @@ from mne.utils import _TempDir
 from mne import pick_types, concatenate_raws
 from mne.io.constants import FIFF
 from mne.io import Raw
-from mne.io import read_raw_brainvision
+from mne.io import read_raw_brainvision, read_raw
 
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
@@ -31,7 +31,7 @@ eog = ['HL', 'HR', 'Vb']
 def test_brainvision_data_filters():
     """Test reading raw Brain Vision files
     """
-    raw = read_raw_brainvision(vhdr_highpass_path, montage, eog=eog,
+    raw = read_raw(vhdr_highpass_path, montage, eog=eog,
                                preload=True)
     assert_equal(raw.info['highpass'], 0.1)
     assert_equal(raw.info['lowpass'], 250.)

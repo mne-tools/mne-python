@@ -14,7 +14,7 @@ import scipy.io
 
 from mne import pick_types, concatenate_raws
 from mne.utils import _TempDir
-from mne.io import Raw, read_raw_kit
+from mne.io import Raw, read_raw_kit, read_raw
 from mne.io.kit.coreg import read_sns
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -65,8 +65,13 @@ def test_read_segment():
     """Test writing raw kit files when preload is False
     """
     tempdir = _TempDir()
-    raw1 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
-                        preload=False)
+    params = dict()
+    params['kit'] = dict()
+    params['mrk'] = mrk_path
+    params['elp'] = elp_path
+    params['hsp'] = hsp_path
+    params['stim'] = '<'
+    raw1 = read_raw(sqd_path, params=params, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, buffer_size_sec=.1, overwrite=True)
     raw2 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',

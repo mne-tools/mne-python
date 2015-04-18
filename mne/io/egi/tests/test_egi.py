@@ -10,7 +10,7 @@ from numpy.testing import assert_array_almost_equal, assert_array_equal
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne import find_events, pick_types, concatenate_raws
-from mne.io import read_raw_egi, Raw
+from mne.io import read_raw_egi, Raw, read_raw
 from mne.io.egi import _combine_triggers
 from mne.utils import _TempDir
 
@@ -24,9 +24,12 @@ def test_io_egi():
     """Test importing EGI simple binary files"""
     # test default
     tempdir = _TempDir()
+    params = dict()
+    params['egi'] = dict()
+    params['egi']['include'] = None
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
-        read_raw_egi(egi_fname, include=None)
+        read_raw(egi_fname, params=params)
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'
