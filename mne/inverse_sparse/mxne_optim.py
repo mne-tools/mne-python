@@ -287,11 +287,10 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
 
     for i in range(maxit):
         for j in range(n_positions):
-            ids = j * n_orient
-            ide = ids + n_orient
+            idx = slice(j * n_orient, (j + 1) * n_orient)
 
-            G_j = G[:, ids:ide]
-            X_j = X[ids:ide]
+            G_j = G[:, idx]
+            X_j = X[idx]
 
             X_j_new = np.dot(G_j.T, R) / lipschitz_constant[j]
 
@@ -303,13 +302,14 @@ def _mixed_norm_solver_bcd(M, G, alpha, lipschitz_constant, maxit=200,
             block_norm = linalg.norm(X_j_new, 'fro')
             if block_norm <= alpha_lc[j]:
                 X_j.fill(0.)
+                active_set[idx] = False
             else:
                 shrink = np.maximum(1.0 - alpha_lc[j] / block_norm, 0.0)
                 X_j_new *= shrink
                 R -= np.dot(G_j, X_j_new)
                 X_j[:] = X_j_new
+                active_set[idx] = True
 
-        active_set = np.any(X, axis=1)
         gap, pobj, dobj, _ = dgap_l21(M, G, X[active_set], active_set, alpha,
                                       n_orient)
         E.append(pobj)
@@ -478,7 +478,7 @@ def mixed_norm_solver(M, G, alpha, maxit=3000, tol=1e-8, verbose=None,
         X, active_set, E = l21_solver(M, G, alpha, lc, maxit=maxit,
                                       tol=tol, n_orient=n_orient, init=None)
 
-    if (active_set.sum() > 0) and debias:
+    if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
 
@@ -572,21 +572,19 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
             E.append(p_obj)
 
             # Check convergence
-            if k >= 1:
-                if np.all(active_set == active_set_0):
-                    if np.all(np.abs(X - X0) < tol):
-                        print('Convergence reached after %d reweightings!' % k)
-                        break
+            if ((k >= 1) and np.all(active_set == active_set_0)
+                    and np.all(np.abs(X - X0) < tol)):
+                print('Convergence reached after %d reweightings!' % k)
+                break
         else:
             active_set = np.zeros_like(active_set)
             p_obj = 0.5 * linalg.norm(M) ** 2.
             E.append(p_obj)
             break
 
-    if (active_set.sum() > 0) and debias:
+    if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
-        # X, _, _, _ = linalg.lstsq(G[:, active_set], M)
 
     return X, active_set, E
 
@@ -818,7 +816,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
 
     X = phiT(Z)
 
-    if (active_set.sum() > 0) and debias:
+    if np.any(active_set) and debias:
         bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
         X *= bias[:, np.newaxis]
 

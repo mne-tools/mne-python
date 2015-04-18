@@ -4,10 +4,9 @@
 # License: Simplified BSD
 
 import os.path as op
-import copy
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_allclose
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 
 from mne.datasets import testing
 from mne.label import read_label
@@ -41,7 +40,7 @@ def test_mxne_inverse():
     evoked = read_evokeds(fname_data, condition=0, baseline=(None, 0))
     evoked.crop(tmin=-0.05, tmax=0.2)
 
-    evoked_l21 = copy.deepcopy(evoked)
+    evoked_l21 = evoked.copy()
     evoked_l21.crop(tmin=0.08, tmax=0.1)
     label = read_label(fname_label)
 
@@ -54,8 +53,8 @@ def test_mxne_inverse():
                                              fixed=True)
     stc_dspm = apply_inverse(evoked_l21, inverse_operator, lambda2=1. / 9.,
                              method='dSPM')
-    stc_dspm.data[np.all(np.abs(stc_dspm.data) < 12, axis=1)] = 0.0
-    stc_dspm.data[np.any(np.abs(stc_dspm.data) >= 12, axis=1)] = 1.
+    stc_dspm.data[np.abs(stc_dspm.data) < 12] = 0.0
+    stc_dspm.data[np.abs(stc_dspm.data) >= 12] = 1.
     weights_min = 0.5
 
     # MxNE tests
@@ -98,6 +97,7 @@ def test_mxne_inverse():
                      solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
+    assert_equal(stc.vertices, [[63152], [79017]])
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
