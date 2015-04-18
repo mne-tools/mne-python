@@ -133,11 +133,32 @@ def _apply_rap_music(data, info, times, forward, noise_cov, n_dipoles=2,
         gof = (linalg.norm(np.dot(whitener, explained_data)) /
                linalg.norm(data))
 
-    return _make_dipoles(times, forward['src'], poss,
+    return _make_dipoles(times, poss,
                          oris, sol, gof), explained_data
 
 
-def _make_dipoles(times, src, poss, oris, sol, gof):
+def _make_dipoles(times, poss, oris, sol, gof):
+    """Instanciates a list of Dipoles
+
+    Parameters
+    ----------
+    times : array, shape (n_times,)
+        The time instants.
+    poss : array, shape (n_dipoles, 3)
+        The dipoles' positions.
+    oris : array, shape (n_dipoles, 3)
+        The dipoles' orientations.
+    sol : array, shape (n_times,)
+        The dipoles' amplitudes over time.
+    gof : array, shape (n_times,)
+        The goodness of fit of the dipoles.
+        Shared between all dipoles.
+
+    Returns
+    -------
+    dipoles : list
+        The list of Dipole instances.
+    """
     amplitude = sol * 1e9
     oris = np.array(oris)
 

@@ -1,7 +1,7 @@
 """
-=========================================
+================================
 Compute Rap-Music on evoked data
-=========================================
+================================
 
 Compute a Recursively Applied and Projected MUltiple Signal Classification
 (RAP-MUSIC) on evoked dataset.
@@ -22,6 +22,8 @@ import mne
 from mne.datasets import sample
 from mne.beamformer import rap_music
 from mne.viz import plot_dipoles
+
+print(__doc__)
 
 data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'

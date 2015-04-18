@@ -24,7 +24,7 @@ fname_fwd = op.join(data_path, 'MEG', 'sample',
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-def read_forward_solution_meg(fname_fwd, **kwargs):
+def _read_forward_solution_meg(fname_fwd, **kwargs):
     fwd = mne.read_forward_solution(fname_fwd, **kwargs)
     return mne.pick_types_forward(fwd, meg=True, eeg=False,
                                   exclude=['MEG 2443'])
@@ -35,14 +35,14 @@ def _get_data(event_id=1):
     """
     # Read evoked
     evoked = mne.read_evokeds(fname_ave, event_id)
-    evoked = mne.pick_types_evoked(evoked, meg=True, eeg=False)
+    evoked.pick_types(meg=True, eeg=False)
     evoked.crop(0, 0.3)
 
     forward = mne.read_forward_solution(fname_fwd)
 
-    forward_surf_ori = read_forward_solution_meg(fname_fwd, surf_ori=True)
-    forward_fixed = read_forward_solution_meg(fname_fwd, force_fixed=True,
-                                              surf_ori=True)
+    forward_surf_ori = _read_forward_solution_meg(fname_fwd, surf_ori=True)
+    forward_fixed = _read_forward_solution_meg(fname_fwd, force_fixed=True,
+                                               surf_ori=True)
 
     noise_cov = mne.read_cov(fname_cov)
 
