@@ -28,7 +28,8 @@ from ..externals.six import string_types
 
 @verbose
 def _read_coil_defs(fname=None, verbose=None):
-    """Read a coil definition file
+    """Read a coil definition file.
+
     Parameters
     ----------
     fname : str

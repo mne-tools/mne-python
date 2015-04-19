@@ -345,6 +345,8 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
                    lut, n_fact):
     """Compute lead field dot product integrations between two coil sets.
 
+    The code is a direct translation of MNE-C code found in `mne_map_data`.
+
     Parameters
     ----------
     intrad : float
@@ -360,6 +362,10 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'
+    lut : object
+        Look-up table for evaluating Legendre polynomials.
+    n_fact : array
+        Coefficients in the integration sum.
 
     Returns
     -------

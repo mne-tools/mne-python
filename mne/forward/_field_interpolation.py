@@ -114,6 +114,10 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
         The evoked object.
     to_type : str
         The destination channel type. It can be 'mag' or 'grad'.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
     n_jobs : int
         Number of jobs to run in parallel.
 
@@ -176,6 +180,11 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
     # keep only the destination channel types
     evoked.pick_types(meg=to_type, eeg=False, ref_meg=False)
     evoked.data = data
+
+    # change channel names to emphasize they contain interpolated data
+    for ch in evoked.info['chs']:
+        ch['ch_name'] = ch['ch_name'] + '_virtual'
+    evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
 
     return evoked
 

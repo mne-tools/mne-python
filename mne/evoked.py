@@ -715,7 +715,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Compute virtual evoked using interpolated fields in mag/grad channels.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
-            unexpected results.
+            unexpected results. The virtual channels have `'_virtual'` appended
+            at the end of the names to emphasize that the data contained in
+            them are interpolated.
 
         Parameters
         ----------
@@ -723,6 +725,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The evoked object.
         to_type : str
             The destination channel type. It can be 'mag' or 'grad'.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used. `'fast'` should be sufficient
+            for most applications.
         n_jobs : int
             Number of jobs to run in parallel.
 
