@@ -376,17 +376,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         misc = []
     info = _empty_info()
     info['filename'] = fname
-    # Add info for fif object
-    info['ctf_head_t'] = None
-    info['dev_ctf_t'] = []
-    info['dig'] = None
-    info['dev_head_t'] = None
-    info['proj_id'] = None
-    info['proj_name'] = None
-    info['experimenter'] = None
-    info['line_freq'] = None
-    info['subject_info'] = None
-    info['custom_ref_applied'] = False
 
     edf_info = dict()
     edf_info['annot'] = annot

@@ -1146,6 +1146,9 @@ def create_info(ch_names, sfreq, ch_types=None):
     within the rest of the package. Advanced functionality such as source
     localization can only be obtained through substantial, proper
     modifications of the info structure (not recommended).
+
+    Note that the MEG device-to-head transform ``info['dev_head_t']`` will
+    be initialized to the identity transform.
     """
     if not isinstance(ch_names, (list, tuple)):
         raise TypeError('ch_names must be a list or tuple')
@@ -1196,7 +1199,7 @@ def _empty_info():
     """Create an empty info dictionary"""
     _none_keys = (
         'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
-        'dev_ctf_t', 'dev_head_t', 'dig', 'experimenter',
+        'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
         'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info',
@@ -1212,5 +1215,7 @@ def _empty_info():
         info[k] = list()
     info['custom_ref_applied'] = False
     info['nchan'] = info['sfreq'] = 0
+    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     return info

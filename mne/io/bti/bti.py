@@ -1090,18 +1090,15 @@ class RawBTi(_BaseRaw):
         dev_head_t = _convert_dev_head_t(dev_ctf_t, bti_to_nm,
                                          ctf_head_t)
 
-        info['dev_head_t'] = dict()
-        info['dev_head_t']['from'] = FIFF.FIFFV_COORD_DEVICE
-        info['dev_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['dev_head_t']['trans'] = dev_head_t
-        info['dev_ctf_t'] = dict()
-        info['dev_ctf_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_DEVICE
-        info['dev_ctf_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['dev_ctf_t']['trans'] = dev_ctf_t
-        info['ctf_head_t'] = dict()
-        info['ctf_head_t']['from'] = FIFF.FIFFV_MNE_COORD_CTF_HEAD
-        info['ctf_head_t']['to'] = FIFF.FIFFV_COORD_HEAD
-        info['ctf_head_t']['trans'] = ctf_head_t
+        info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                              'to': FIFF.FIFFV_COORD_HEAD,
+                              'trans': dev_head_t}
+        info['dev_ctf_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_DEVICE,
+                             'to': FIFF.FIFFV_COORD_HEAD,
+                             'trans': dev_ctf_t}
+        info['ctf_head_t'] = {'from': FIFF.FIFFV_MNE_COORD_CTF_HEAD,
+                              'to': FIFF.FIFFV_COORD_HEAD,
+                              'trans': ctf_head_t}
         logger.info('Done.')
 
         if False:  # XXX : reminds us to support this as we go
