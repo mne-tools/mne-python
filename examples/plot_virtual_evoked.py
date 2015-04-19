@@ -4,8 +4,12 @@ Remap MEG channel types
 =======================
 
 In this example, MEG data are remapped from one
-channel type to another. This is useful for combining statistics
-for magnetometer and gradiometers.
+channel type to another. This is useful to:
+
+    - visualize combined magnetometers and gradiometers as magnetometers
+      or gradiometers.
+    - run statistics from both magnetometers and gradiometers while
+      working with a single type of channels.
 """
 
 # Author: Mainak Jas <mainak.jas@telecom-paristech.fr>

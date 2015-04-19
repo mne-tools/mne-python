@@ -177,6 +177,8 @@ def test_as_meg_type_evoked():
     # validation tests
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     assert_raises(ValueError, evoked.as_type, 'meg')
+    assert_raises(ValueError, evoked.copy().pick_types(meg='grad').as_type,
+                  'meg')
 
     # channel names
     ch_names = evoked.info['ch_names']
@@ -186,7 +188,7 @@ def test_as_meg_type_evoked():
 
     # pick from and to channels
     evoked_from = evoked.pick_channels(ch_names=ch_names[2:10:3], copy=True)
-    evoked_to = evoked.pick_channels(ch_names=ch_names[0:10:3])
+    evoked_to = evoked.pick_channels(ch_names=ch_names[0:10:3], copy=True)
 
     info_from, info_to = evoked_from.info, evoked_to.info
 
@@ -199,5 +201,11 @@ def test_as_meg_type_evoked():
     cross_dots2 = _do_cross_dots(**args2)
 
     assert_array_almost_equal(cross_dots1, cross_dots2.T)
+
+    # correlation test
+    evoked = evoked.pick_channels(ch_names=ch_names[:10:]).copy()
+    data1 = evoked.pick_types(meg='grad').data.ravel()
+    data2 = evoked.as_type('grad').data.ravel()
+    assert_true(np.corrcoef(data1, data2)[0, 1] > 0.95)
 
 run_tests_if_main()

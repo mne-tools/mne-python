@@ -711,7 +711,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         return df
 
-    def as_type(self, to_type='grad', mode='fast', n_jobs=1):
+    def as_type(self, to_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad channels.
 
         .. Warning:: Using virtual evoked to compute inverse can yield
@@ -727,8 +727,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Either `'accurate'` or `'fast'`, determines the quality of the
             Legendre polynomial expansion used. `'fast'` should be sufficient
             for most applications.
-        n_jobs : int
-            Number of jobs to run in parallel.
 
         Returns
         -------
@@ -736,8 +734,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The transformed evoked object containing only virtual channels.
         """
         from .forward import _as_meg_type_evoked
-        return _as_meg_type_evoked(self, to_type=to_type, mode=mode,
-                                   n_jobs=n_jobs)
+        return _as_meg_type_evoked(self, to_type=to_type, mode=mode)
 
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample data

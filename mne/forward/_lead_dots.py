@@ -345,7 +345,8 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
                    lut, n_fact):
     """Compute lead field dot product integrations between two coil sets.
 
-    The code is a direct translation of MNE-C code found in `mne_map_data`.
+    The code is a direct translation of MNE-C code found in
+    `mne_map_data/lead_dots.c`.
 
     Parameters
     ----------
@@ -388,7 +389,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
     cosmags2 = [coil['cosmag'] for coil in coils2]
 
     products = np.zeros((len(rmags1), len(rmags2)))
-    for ci1, coil1 in enumerate(coils1):
+    for ci1 in range(len(coils1)):
         for ci2, coil2 in enumerate(coils2):
             res = _fast_sphere_dot_r0(intrad, rmags1[ci1], rmags2[ci2],
                                       rlens1[ci1], rlens2[ci2], cosmags1[ci1],

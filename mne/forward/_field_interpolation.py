@@ -105,7 +105,7 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
+def _as_meg_type_evoked(evoked, to_type='grad', mode='fast'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -118,8 +118,6 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    n_jobs : int
-        Number of jobs to run in parallel.
 
     Returns
     -------
@@ -136,6 +134,13 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
                            ref_meg=False)
     pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
                          ref_meg=False)
+
+    if len(pick_to) == 0:
+        raise ValueError('No channels matching the destination channel type'
+                         ' found in info. Please pass an evoked containing'
+                         'both the original and destination channels. Only the'
+                         ' locations of the destination channels will be used'
+                         ' for interpolation.')
 
     info_from = pick_info(evoked.info, pick_from, copy=True)
     info_to = pick_info(evoked.info, pick_to, copy=True)
@@ -156,7 +161,7 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast', n_jobs=1):
                                                              ch_type)
     logger.info('Computing dot products for %i coils...' % (len(coils_from)))
     self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, ch_type,
-                              lut_fun, n_fact, n_jobs)
+                              lut_fun, n_fact, n_jobs=1)
     logger.info('Computing cross products for coils %i x %i coils...'
                 % (len(coils_from), len(coils_to)))
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
