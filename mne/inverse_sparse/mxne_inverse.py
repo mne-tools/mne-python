@@ -82,183 +82,26 @@ def _prepare_gain_column(forward, info, noise_cov, pca, depth, loose, weights,
     return gain, gain_info, whitener, source_weighting, mask
 
 
-@verbose
-def _prepare_gain_frobenius(forward, info, noise_cov, pca, depth, loose,
-                            weights, weights_min, verbose=None):
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
-                                                       noise_cov, pca)
-
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-
-    if depth is not None:
-        if is_fixed_orient(forward):
-            depth_prior = np.sum(gain ** 2, axis=0) ** depth
-            source_weighting = 1. / np.sqrt(depth_prior)
-        else:
-            depth_prior = np.sum(gain ** 2, axis=0)
-            depth_prior = depth_prior.reshape(-1, 3).sum(axis=1) ** depth
-            source_weighting = np.repeat(1. / np.sqrt(depth_prior), 3)
-    else:
-        source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
-
-    if loose is not None and loose != 1.0:
-        source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
-
-    gain *= source_weighting[None, :]
-
-    if weights is None:
-        mask = None
-    else:
-        gain, source_weighting, mask = _prepare_weights(forward, gain,
-                                                        source_weighting,
-                                                        weights, weights_min)
-
-    return gain, gain_info, whitener, source_weighting, mask
-
-
-@verbose
-def _prepare_gain_spectral(forward, info, noise_cov, pca, depth, loose,
-                           weights, weights_min, limit_depth_chs=True,
-                           verbose=None):
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
-                                                       noise_cov, pca)
-
-    if depth is not None:
-        from ..forward import compute_depth_prior
-        is_fixed_ori = is_fixed_orient(forward)
-        patch_areas = forward.get('patch_areas', None)
-        depth_prior = compute_depth_prior(gain, gain_info,
-                                          is_fixed_ori, exp=depth,
-                                          limit=10.0, patch_areas=patch_areas,
-                                          limit_depth_chs=limit_depth_chs)
-        source_weighting = np.sqrt(depth_prior)
-    else:
-        source_weighting = np.ones(gain.shape[1], dtype=gain.dtype)
-
-    if loose is not None and loose != 1.0:
-        source_weighting *= np.sqrt(compute_orient_prior(forward, loose))
-
-    gain *= source_weighting[None, :]
-
-    if weights is None:
-        mask = None
-    else:
-        gain, source_weighting, mask = _prepare_weights(forward, gain,
-                                                        source_weighting,
-                                                        weights, weights_min)
-
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-
-    return gain, gain_info, whitener, source_weighting, mask
-
-
-@verbose
-def _prepare_gain_sloreta(forward, info, noise_cov, pca, depth, loose,
-                          weights, weights_min, verbose=None):
-    """
-    References:
-
-    S. Haufe, V. V. Nikulin, A. Ziehe, K.-R. Mueller, G. Nolte,
-    Combining sparsity and rotational invariance in EEG/MEG source
-    reconstruction, NeuroImage, Volume 42, 15 August 2008, Pages 726-738,
-    ISSN 1053-8119, DOI: 10.1016/j.neuroimage.2008.04.246.
-
-    """
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, info,
-                                                       noise_cov, pca)
-
-    logger.info('Whitening lead field matrix.')
-    gain = np.dot(whitener, gain)
-
-    n_orient = 1 if is_fixed_orient(forward) else 3
-    n_dipoles = gain.shape[1]
-    n_positions = n_dipoles // n_orient
-
-    W = np.dot(gain.T, linalg.pinv(np.dot(gain, gain.T)))
-
-    source_weighting = np.zeros((n_dipoles, n_orient))
-
-    if loose is not None and loose != 1.0:
-        orient_prior = np.sqrt(compute_orient_prior(forward, loose))
-
-    for i in range(n_positions):
-        idx_s = i * n_orient
-        idx_e = (i + 1) * n_orient
-        Wtmp = np.dot(W[idx_s:idx_e], gain[:, idx_s:idx_e])
-
-        if n_orient == 1:
-            Wtmp = np.sqrt(1. / Wtmp)
-        else:
-            U, S, Vh = linalg.svd(Wtmp)
-            Wtmp = np.dot(U * np.sqrt(1. / S)[None, :], Vh)
-            if loose is not None and loose != 1.0:
-                Wtmp *= orient_prior[idx_s:idx_e][None, :]
-
-        source_weighting[idx_s:idx_e] = Wtmp
-        gain[:, idx_s:idx_e] = np.dot(gain[:, idx_s:idx_e],
-                                      source_weighting[idx_s:idx_e])
-
-    if weights is None:
-        mask = None
-    else:
-        gain, source_weighting, mask = _prepare_weights(forward, gain,
-                                                        source_weighting,
-                                                        weights, weights_min)
-
-    return gain, gain_info, whitener, source_weighting, mask
-
-
 def _prepare_gain(forward, info, noise_cov, pca, depth, loose, weights,
-                  weights_min, depth_method='col', limit_depth_chs=True,
-                  verbose=None):
-    if depth_method == 'sloreta':
-        logger.info('Using sLORETA-type depth bias compensation. '
-                    'depth parameter is ignored.')
-        gain, gain_info, whitener, source_weighting, mask = \
-            _prepare_gain_sloreta(forward, info, noise_cov, pca,
-                                  depth, loose, weights,
-                                  weights_min)
-    else:
-        if not isinstance(depth, float):
-            raise ValueError('Invalid depth parameter. '
-                             'A float is required (got %s).'
-                             % type(depth))
-        elif depth < 0.0:
-            raise ValueError('Depth parameter must be positive (got %s).'
-                             % depth)
+                  weights_min, verbose=None):
+    if not isinstance(depth, float):
+        raise ValueError('Invalid depth parameter. '
+                         'A float is required (got %s).'
+                         % type(depth))
+    elif depth < 0.0:
+        raise ValueError('Depth parameter must be positive (got %s).'
+                         % depth)
 
-        if depth_method == 'fro':
-            gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_frobenius(forward, info, noise_cov, pca, depth,
-                                        loose, weights, weights_min)
-        elif depth_method == 'col':
-            gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_column(forward, info, noise_cov, pca, depth,
-                                     loose, weights, weights_min)
-        elif depth_method == 'spec':
-            gain, gain_info, whitener, source_weighting, mask = \
-                _prepare_gain_spectral(forward, info, noise_cov, pca, depth,
-                                       loose, weights, weights_min,
-                                       limit_depth_chs=limit_depth_chs)
-        else:
-            raise ValueError('Invalid depth method. Must be "fro", '
-                             '"col", "sloreta" or "spec". Got %s.'
-                             % depth_method)
+    gain, gain_info, whitener, source_weighting, mask = \
+        _prepare_gain_column(forward, info, noise_cov, pca, depth,
+                             loose, weights, weights_min)
 
     return gain, gain_info, whitener, source_weighting, mask
 
 
-def _reapply_source_weighting(X, source_weighting, depth_method, active_set,
+def _reapply_source_weighting(X, source_weighting, active_set,
                               n_dip_per_pos):
-    if depth_method == 'sloreta':
-        for i in range(len(np.where(active_set)[0]) // n_dip_per_pos):
-            idx = slice(i * n_dip_per_pos, (i + 1) * n_dip_per_pos)
-            X[idx] = np.dot(source_weighting[active_set][idx], X[idx])
-    else:
-        X *= source_weighting[active_set][:, None]
-
+    X *= source_weighting[active_set][:, None]
     return X
 
 
@@ -320,7 +163,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
                maxit=3000, tol=1e-4, active_set_size=10, pca=True,
                debias=True, time_pca=True, weights=None, weights_min=None,
                solver='auto', n_mxne_iter=1, return_residual=False,
-               depth_method='col', limit_depth_chs=True, verbose=None):
+               verbose=None):
     """Mixed-norm estimate (MxNE) and iterative reweighted MxNE (irMxNE)
 
     Compute L1/L2 mixed-norm solution or L0.5/L2 mixed-norm solution
@@ -384,19 +227,6 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         is applied.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    depth_method : 'col' | 'fro' | 'spec' | 'sloreta'
-        The method to use for depth bias compensation. 'col' (default) stands
-        for normalization of each column of the gain matrix, 'fro' for
-        normalization of the frobenius norm of the sub gain matrix per source
-        location, 'spec' for normalization of the spectral norm of the sub gain
-        matrix per source location, and 'sloreta' uses an sLoreta-type source
-        covariance estimate as described in Haufe et al., NeuroImage, 2008.
-        With this option, the depth parameter is ignored.
-    limit_depth_chs : bool
-        If True, use only grad channels in depth weighting (equivalent to MNE
-        C code). If grad chanels aren't present, only mag channels will be
-        used (if no mag, then eeg). If False, use all channels. This parameter
-        is used only with depth_method = 'spec'.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -430,8 +260,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked[0].info, noise_cov, pca, depth, loose, weights,
-        weights_min, depth_method=depth_method,
-        limit_depth_chs=limit_depth_chs)
+        weights_min)
 
     sel = [all_ch_names.index(name) for name in gain_info['ch_names']]
     M = np.concatenate([e.data[sel] for e in evoked], axis=1)
@@ -479,7 +308,7 @@ def mixed_norm(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
         raise Exception("No active dipoles found. alpha is too big.")
 
     # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting, depth_method,
+    X = _reapply_source_weighting(X, source_weighting,
                                   active_set, n_dip_per_pos)
 
     stcs = list()
@@ -536,8 +365,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02,
-                  return_residual=False, depth_method='col',
-                  limit_depth_chs=True, verbose=None):
+                  return_residual=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
     Compute L1/L2 + L1 mixed-norm solution on time frequency
@@ -607,18 +435,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         Remove coefficient amplitude bias due to L1 penalty.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    depth_method : 'col' | 'fro' | 'spec' | 'sloreta'
-        The method to use for depth bias compensation. 'col' (default) stands
-        for normalization of each column of the gain matrix, 'fro' for
-        normalization of the frobenius norm of the sub gain matrix per source
-        location, 'spec' for normalization of the spectral norm of the sub gain
-        matrix per source location, and 'sloreta' uses an sLoreta-type source
-        covariance estimate as desribed in Haufe et al., NeuroImage, 2008.
-    limit_depth_chs : bool
-        If True, use only grad channels in depth weighting (equivalent to MNE
-        C code). If grad chanels aren't present, only mag channels will be
-        used (if no mag, then eeg). If False, use all channels. This parameter
-        is used only with depth_method = 'spec'.
     verbose: bool
         Verbose output or not.
 
@@ -642,8 +458,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
         forward, evoked.info, noise_cov, pca, depth, loose, weights,
-        weights_min, depth_method=depth_method,
-        limit_depth_chs=limit_depth_chs)
+        weights_min)
 
     if window is not None:
         evoked = _window_evoked(evoked, window)
@@ -680,7 +495,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         del active_set_tmp
 
     # Reapply weights to have correct unit
-    X = _reapply_source_weighting(X, source_weighting, depth_method,
+    X = _reapply_source_weighting(X, source_weighting,
                                   active_set, n_dip_per_pos)
 
     if return_residual:

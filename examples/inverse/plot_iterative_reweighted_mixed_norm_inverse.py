@@ -49,15 +49,13 @@ cov = mne.read_cov(cov_fname)
 # Run solver
 alpha = 60  # regularization parameter between 0 and 100 (100 is high)
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
-depth_method = 'sloreta'
 
 # Compute MxNE inverse solution
 stc_mxne, residual_mxne = mixed_norm(evoked, forward, cov, alpha, loose=loose,
                                      depth=depth, maxit=1000, tol=1e-4,
                                      active_set_size=10, debias=True,
                                      weights=None, weights_min=None,
-                                     n_mxne_iter=1, return_residual=True,
-                                     depth_method=depth_method)
+                                     n_mxne_iter=1, return_residual=True)
 residual_mxne.plot(ylim=ylim, proj=True)
 
 stc_irmxne, residual_irmxne = mixed_norm(evoked, forward, cov, alpha,
@@ -65,8 +63,7 @@ stc_irmxne, residual_irmxne = mixed_norm(evoked, forward, cov, alpha,
                                          tol=1e-4, active_set_size=10,
                                          debias=True, weights=None,
                                          weights_min=None, n_mxne_iter=50,
-                                         return_residual=True,
-                                         depth_method=depth_method)
+                                         return_residual=True)
 residual_irmxne.plot(ylim=ylim, proj=True)
 
 ###############################################################################

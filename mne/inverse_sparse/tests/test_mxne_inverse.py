@@ -86,7 +86,7 @@ def test_mxne_inverse():
     stc, _ = mixed_norm(evoked_l21, forward, cov, alpha, loose=loose,
                         depth=depth, maxit=500, tol=1e-8,
                         active_set_size=10, return_residual=True,
-                        depth_method='sloreta', solver='cd')
+                        solver='cd')
     assert_array_almost_equal(stc.times, evoked_l21.times, 5)
     assert_true(stc.vertices[1][0] in label.vertices)
 
