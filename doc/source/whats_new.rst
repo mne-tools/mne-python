@@ -91,6 +91,8 @@ Changelog
 
    - `rename_channels` and `set_channel_types` added as methods to `Raw`, `Epochs` and `Evoked` objects by `Teon Brooks`_ 
 
+   - Add RAP-MUSIC inverse method by `Yousra Bekhti`_ and `Alex Gramfort`_
+
 
 BUG
 ~~~

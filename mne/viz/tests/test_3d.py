@@ -14,12 +14,14 @@ import numpy as np
 from numpy.testing import assert_raises
 
 from mne import SourceEstimate
-from mne import make_field_map, pick_channels_evoked, read_evokeds
+from mne import (make_field_map, pick_channels_evoked, read_evokeds,
+                 read_trans, read_dipole)
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans)
+                     plot_trans, plot_dipoles)
 from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
+
 
 # Set our plotters to test mode
 import matplotlib
@@ -149,3 +151,15 @@ def test_limits_to_control_points():
     stc._data = np.zeros_like(stc.data)
     assert_raises(ValueError, plot_source_estimates, stc, 'sample',
                   colormap=colormap, clim=clim)
+
+
+@testing.requires_testing_data
+@requires_mayavi
+def test_plot_dipoles():
+    """Test plotting dipoles
+    """
+    fname_dip = op.join(data_dir, 'MEG', 'sample',
+                        'sample_audvis_trunc_set1.dip')
+    dipoles = read_dipole(fname_dip)
+    trans = read_trans(trans_fname)
+    plot_dipoles(dipoles, trans, 'sample', subjects_dir)

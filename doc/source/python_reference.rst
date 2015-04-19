@@ -620,6 +620,7 @@ Functions:
    dics
    dics_epochs
    dics_source_power
+   rap_music
 
 :py:mod:`mne`:
 

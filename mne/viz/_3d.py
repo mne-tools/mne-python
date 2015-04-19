@@ -782,3 +782,124 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     surface.actor.property.shading = True
 
     return surface
+
+
+def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
+                 bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
+                 mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
+                 mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
+    """Plot dipoles.
+
+    Parameters
+    ----------
+    dipoles : list of instances of dipole
+        The dipoles.
+    trans : dict
+        The mri to head trans.
+    subject : str
+        The subject name corresponding to FreeSurfer environment
+        variable SUBJECT.
+    subjects_dir : None | str
+        The path to the freesurfer subjects reconstructions.
+        It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+        The default is None.
+    bgcolor : tuple of length 3
+        Background color in 3D.
+    opacity : float in [0, 1]
+        Opacity of brain mesh.
+    brain_color : tuple of length 3
+        Brain color.
+    mesh_color : tuple of length 3
+        Mesh color.
+    fig_name : tuple of length 2
+        Mayavi figure name.
+    fig_size :
+        Mayavi figure size.
+    mode : str
+        Should be ``'cone'`` or ``'sphere'`` to specify how the
+        dipoles should be shown.
+    scale_factor :
+        The scaling applied to amplitudes for the plot.
+    colors: list of colors | None
+        Color to plot with each dipole. If None defaults colors are used.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    fig : instance of mlab.Figure
+        The mayavi figure.
+    """
+    msg = ('trans must be the transformation between '
+           'the head (coord 4) and the mri (coord 5)')
+    if trans['to'] == FIFF.FIFFV_COORD_HEAD:
+        if trans['from'] == FIFF.FIFFV_COORD_MRI:
+            coord_trans = trans['trans']
+        else:
+            raise ValueError(msg)
+    elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
+        if trans['to'] == FIFF.FIFFV_COORD_MRI:
+            from ..transforms import invert_transform
+            trans = invert_transform(trans)
+            coord_trans = trans['trans']
+        else:
+            raise ValueError(msg)
+    else:
+        raise ValueError(msg)
+
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
+    fname = os.path.join(subjects_dir, subject, 'bem',
+                         'inner_skull.surf')
+
+    from .. import Dipole
+    if isinstance(dipoles, Dipole):
+        dipoles = [dipoles]
+    n_dipoles, n_times = len(dipoles), len(dipoles[0].times)
+
+    if mode not in ['cone', 'sphere']:
+        raise ValueError('mode must be in "cone" or "sphere"')
+
+    if colors is None:
+        colors = cycle(COLORS)
+
+    points, faces = read_surface(fname)
+
+    pos = np.zeros((n_dipoles, n_times, 3))
+    ori = np.zeros((n_dipoles, n_times, 3))
+    amp = np.zeros((n_dipoles, n_times))
+    for i_dip in range(n_dipoles):
+        pos[i_dip], ori[i_dip] = dipoles[i_dip].pos, dipoles[i_dip].ori
+        amp[i_dip] = dipoles[i_dip].amplitude
+
+    from mayavi import mlab
+    import matplotlib.pyplot as plt
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
+
+    fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
+    ax = plt.subplot()
+
+    points *= 1e-03
+    points = apply_trans(coord_trans, points)
+
+    mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                         faces, color=mesh_color, opacity=opacity)
+
+    for i_dip, color in zip(range(len(dipoles)), colors):
+        rgb_color = color_converter.to_rgb(color)
+        mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],
+                      ori[i_dip, 0, 0], ori[i_dip, 0, 1], ori[i_dip, 0, 2],
+                      opacity=1., mode=mode, color=rgb_color,
+                      scalars=dipoles[i_dip].amplitude.max(),
+                      scale_factor=scale_factor)
+
+        # Plot the time-series
+        ax.plot(dipoles[i_dip].times, dipoles[i_dip].amplitude,
+                color=color, linewidth=1.5)
+    ax.set_ylabel('amplitude (nAm)')
+    ax.set_xlabel('times (ms)')
+
+    if fig_name is not None:
+        mlab.title(fig_name)
+
+    return fig
