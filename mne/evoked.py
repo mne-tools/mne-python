@@ -721,8 +721,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Parameters
         ----------
-        evoked : instance of mne.Evoked
-            The evoked object.
         to_type : str
             The destination channel type. It can be 'mag' or 'grad'.
         mode : str
