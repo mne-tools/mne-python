@@ -50,7 +50,7 @@ This also implies that both sensor types are not any longer linearly independent
 These methods for evaluation can be used to assess model violations. Additional
 introductory materials cen be found [here](https://speakerdeck.com/dengemann/eeg-sensor-covariance-using-cross-validation).
 
-For expert use cases or debugging the alternative estimators can also be compareded::
+For expert use cases or debugging the alternative estimators can also be compared::
 
     >>> covs = mne.compute_covariance(epochs, tmax=0., method='auto', return_estimators=True)
     >>> evoked = epochs.average()
