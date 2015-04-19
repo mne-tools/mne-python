@@ -26,6 +26,11 @@ from mne.preprocessing.ica import (score_funcs, _check_n_pca_components,
 from mne.io.meas_info import Info
 from mne.utils import set_log_file, _TempDir, requires_sklearn, slow_test
 
+# Set our plotters to test mode
+import matplotlib
+matplotlib.use('Agg')  # for testing don't use X server
+import matplotlib.pyplot as plt  # noqa
+
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -278,6 +283,7 @@ def test_ica_additional():
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
     assert_true(0 in ica.labels_["blinks"])
+    plt.close('all')
 
     # test warnings on bad filenames
     with warnings.catch_warnings(record=True) as w:
