@@ -19,7 +19,6 @@ The MNE manual suggests regularizing the noise covariance matrix (see
 described in [1, 2, 3, 4]. For this the 'auto' option can be used. With this
 option cross-validation will be used to learn the optimal regularization.
 
-    >>> import numpy as np
     >>> import mne
     >>> epochs = mne.read_epochs(epochs_path)
     >>> cov = mne.compute_covariance(epochs, tmax=0., method='auto')
@@ -40,8 +39,8 @@ This plot displays both, the whitened evoked signals for each channels and
 the whitened GFP. The numbers in the GFP panel represent the estimated rank of
 the data, which amounts to the effective degrees of freedom by which the
 sqaured sum across sensors is devided when computing the whitened GFP [1].
-The whitened GFP also helps detecting spurious late components which are the
-consequence of over- or under-regularization.
+The whitened GFP also helps detecting spurious late evoked components which
+can be the consequence of over- or under-regularization.
 
 Note that if data have been processed using signal space separation (SSS) [5],
 gradiometers and magnetometers will be displayed jointly because both are
