@@ -273,7 +273,7 @@ def test_ica_additional():
 
     # test corrmap
     ica2 = deepcopy(ica)
-    corrmap([ica, ica2], (0, 0), threshold=0.99, label='blinks', plot=True,
+    corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False)
     assert_true(ica.labels_["blinks"] == ica2.labels_["blinks"])
