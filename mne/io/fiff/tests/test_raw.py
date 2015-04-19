@@ -20,7 +20,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import (Raw, concatenate_raws, get_chpi_positions,
-                    read_raw_fif)
+                    read_raw_fif, read_raw)
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
@@ -53,7 +53,7 @@ def test_hash_raw():
     """
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname, preload=True).crop(0, 0.5)
+    raw = read_raw(fif_fname, preload=True).crop(0, 0.5)
     raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible

@@ -105,6 +105,7 @@ Functions:
   :toctree: generated/
   :template: function.rst
 
+  read_raw
   read_raw_bti
   read_raw_edf
   read_raw_kit
