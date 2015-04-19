@@ -135,27 +135,25 @@ def test_epoch_combine_ids():
     """Test combining event ids in epochs compared to events
     """
     raw, events, picks = _get_data()
-    for preload in [False]:
-        epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3,
-                                      'd': 4, 'e': 5, 'f': 32},
-                        tmin, tmax, picks=picks, preload=preload)
-        events_new = merge_events(events, [1, 2], 12)
-        epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
-        assert_array_equal(events_new, epochs_new.events)
-        # should probably add test + functionality for non-replacement XXX
+    epochs = Epochs(raw, events, {'a': 1, 'b': 2, 'c': 3,
+                                  'd': 4, 'e': 5, 'f': 32},
+                    tmin, tmax, picks=picks, preload=False)
+    events_new = merge_events(events, [1, 2], 12)
+    epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
+    assert_array_equal(events_new, epochs_new.events)
+    # should probably add test + functionality for non-replacement XXX
 
 
-def test_epoch_hierarchical_ids():
-    """Test multi-index/hierarchical indexing
+def test_epoch_multi_ids():
+    """Test epoch selection via multiple/partial keys
     """
     raw, events, picks = _get_data()
-    for preload in [False]:
-        epochs = Epochs(raw, events, {'a/b/a': 1, 'a/b/b': 2, 'a/c': 3,
-                                      'b/d': 4, 'b/e': 5, 'b/f': 32},
-                        tmin, tmax, picks=picks, preload=preload)
-        epochs_regular = epochs[['a', 'b']]
-        epochs_multi = epochs[['a/b/a', 'a/b/b']]
-        assert_array_equal(epochs_regular.events, epochs_multi.events)
+    epochs = Epochs(raw, events, {'a/b/a': 1, 'a/b/b': 2, 'a/c': 3,
+                                  'b/d': 4, 'b/e': 5, 'b/f': 32},
+                    tmin, tmax, picks=picks, preload=False)
+    epochs_regular = epochs[['a', 'b']]
+    epochs_multi = epochs[['a/b/a', 'a/b/b']]
+    assert_array_equal(epochs_regular.events, epochs_multi.events)
 
 
 def test_read_epochs_bad_events():

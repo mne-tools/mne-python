@@ -9,6 +9,8 @@ Current
 Changelog
 ~~~~~~~~~
 
+   - Add selecting epochs by multiple and/or partially matching keys by `Jona Sassenhagen`_
+
    - Add support for mayavi figures in `add_section` method in Report by `Mainak Jas`_
 
    - Add extract volumes of interest from freesurfer segmentation and setup as volume source space by `Alan Leggitt`_

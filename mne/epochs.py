@@ -779,16 +779,16 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Return Epochs object with a subset of epochs corresponding to an
         experimental condition as specified by 'name'.
 
-        If conditions are hierarchical (separated by '/', e.g. 'audio/left',
-        'audio/right') and 'name' is not in itself an event key, selects every
-        event whose condition contains 'name' (e.g., 'left' matches
-        'audio/left' and 'visual/left'; but not 'audio_left').
+        If conditions are separated by '/' (e.g. 'audio/left', 'audio/right'), 
+        and 'name' is not in itself an event key, selects every event whose 
+        condition contains 'name' (e.g., 'left' matches 'audio/left' 
+        and 'visual/left'; but not 'audio_left').
 
     epochs[['name_1', 'name_2', ... ]] : Epochs
         Return Epochs object with a subset of epochs corresponding to multiple
         experimental conditions as specified by 'name_1', 'name_2', ... .
 
-        If conditions are hierarchical, selects every item containing every
+        If conditions are separated by '/', selects every item containing every
         list item (e.g. ['audio', 'left'] selects 'audio/left' and
         'audio/center/left', but not 'audio/right').
 
@@ -1249,9 +1249,9 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                            if all([set(k_i.split('/')).issubset(k.split("/"))
                                    for k_i in key])]
                     if len(key) == 0:
-                        raise KeyError('Attempting hierarchical selection '
-                                       'of events, but no event matches all '
-                                       'criteria.')
+                        raise KeyError('Attempting selection of events via '
+                                       'multiple/partial matching, but no '
+                                       'event matches all criteria.')
             select = np.any(np.atleast_2d([epochs._key_match(k)
                                            for k in key]), axis=0)
             epochs.name = ('+'.join(key) if epochs.name == 'Unknown'
