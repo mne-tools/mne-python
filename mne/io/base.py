@@ -2116,7 +2116,7 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
     from mne.io import (read_raw_brainvision, read_raw_bti, read_raw_edf,
                         read_raw_egi, read_raw_fif, read_raw_kit)
 
-    if isinstance(input_fname, str):
+    if isinstance(input_fname, string_types):
         fname, ext = os.path.splitext(input_fname)
     elif isinstance(input_fname, list):
         for f in input_fname:
@@ -2124,14 +2124,14 @@ def read_raw(input_fname, montage=None, eog=[], misc=[], reference=None,
             err = "File must be '.fif', not %s." % ext
             assert_equal(ext, '.fif', err)
 
-        if eog is not None:
-            eog_map = dict()
-            for s in eog:
-                eog_map[s] = 'eog'
-        if misc is not None:
-            misc_map = dict()
-            for s in misc:
-                misc_map[s] = 'misc'
+    if eog is not None:
+        eog_map = dict()
+        for s in eog:
+            eog_map[s] = 'eog'
+    if misc is not None:
+        misc_map = dict()
+        for s in misc:
+            misc_map[s] = 'misc'
 
     # (MEG) KIT systems
     if ext in ['.con', '.sqd']:

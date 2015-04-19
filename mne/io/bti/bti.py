@@ -10,6 +10,7 @@
 import os.path as op
 from itertools import count
 import numpy as np
+import warnings
 
 from ...utils import logger, verbose, sum_squared
 from ..constants import FIFF
@@ -1157,7 +1158,7 @@ class RawBTi(_BaseRaw):
 def read_raw_bti(pdf_fname, config_fname='config',
                  head_shape_fname='hs_file', rotation_x=None,
                  translation=(0.0, 0.02, 0.11), ecg_ch='E31',
-                 eog_ch=('E63', 'E64'), verbose=None):
+                 eog_ch=('E63', 'E64'), verbose=None, **kwargs):
     """ Raw object from 4D Neuroimaging MagnesWH3600 data
 
     Note.
@@ -1204,6 +1205,8 @@ def read_raw_bti(pdf_fname, config_fname='config',
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
+    if 'preload' in kwargs:
+        warnings.warn('Preload is not enabled for this module.')
     return RawBTi(pdf_fname, config_fname=config_fname,
                   head_shape_fname=head_shape_fname,
                   rotation_x=rotation_x, translation=translation,
