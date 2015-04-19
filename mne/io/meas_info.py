@@ -1146,6 +1146,9 @@ def create_info(ch_names, sfreq, ch_types=None):
     within the rest of the package. Advanced functionality such as source
     localization can only be obtained through substantial, proper
     modifications of the info structure (not recommended).
+
+    Note that the MEG device-to-head transform ``info['dev_head_t']`` will
+    be initialized to the identity transform.
     """
     if not isinstance(ch_names, (list, tuple)):
         raise TypeError('ch_names must be a list or tuple')
@@ -1164,6 +1167,8 @@ def create_info(ch_names, sfreq, ch_types=None):
     info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
+    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
