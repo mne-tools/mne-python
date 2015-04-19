@@ -90,22 +90,12 @@ class RawKIT(_BaseRaw):
         # meg channels plus synthetic channel
         info['nchan'] = self._sqd_params['nchan'] + 1
 
-        cals = np.ones(info['nchan'])
         last_samps = [self._sqd_params['nsamples'] - 1]
-        super(RawKIT, self).__init__(
-            info, cals=cals, last_samps=last_samps, verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
                    else marker for marker in mrk]
             mrk = np.mean(mrk, axis=0)
-
-        if (mrk is not None and elp is not None and hsp is not None):
-            self._set_dig_kit(mrk, elp, hsp)
-        elif (mrk is not None or elp is not None or hsp is not None):
-            err = ("mrk, elp and hsp need to be provided as a group (all or "
-                   "none)")
-            raise ValueError(err)
 
         # Creates a list of dicts of meg channels for raw.info
         logger.info('Setting channel info structure...')
@@ -118,7 +108,7 @@ class RawKIT(_BaseRaw):
         locs = self._sqd_params['sensor_locs']
         chan_locs = apply_trans(als_ras_trans, locs[:, :3])
         chan_angles = locs[:, 3:]
-        self.info['chs'] = []
+        info['chs'] = []
         for idx, ch_info in enumerate(zip(ch_names['MEG'], chan_locs,
                                           chan_angles), 1):
             ch_name, ch_loc, ch_angles = ch_info
@@ -167,7 +157,7 @@ class RawKIT(_BaseRaw):
             vecs = apply_trans(als_ras_trans, vecs)
             chan_info['loc'] = np.vstack((ch_loc, vecs)).ravel()
             chan_info['coil_trans'] = _loc_to_trans(chan_info['loc'])
-            self.info['chs'].append(chan_info)
+            info['chs'].append(chan_info)
 
         # label trigger and misc channels
         for idy, ch_name in enumerate(ch_names['MISC'] + ch_names['STIM'],
@@ -187,11 +177,21 @@ class RawKIT(_BaseRaw):
                 chan_info['kind'] = FIFF.FIFFV_STIM_CH
             else:
                 chan_info['kind'] = FIFF.FIFFV_MISC_CH
-            self.info['chs'].append(chan_info)
-        self.info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
-                                 ch_names['STIM'])
+            info['chs'].append(chan_info)
+        info['ch_names'] = (ch_names['MEG'] + ch_names['MISC'] +
+                            ch_names['STIM'])
 
+        super(RawKIT, self).__init__(
+            info, last_samps=last_samps, verbose=verbose)
         self._set_stimchannels(stim, slope)
+
+        if (mrk is not None and elp is not None and hsp is not None):
+            self._set_dig_kit(mrk, elp, hsp)
+        elif (mrk is not None or elp is not None or hsp is not None):
+            err = ("mrk, elp and hsp need to be provided as a group (all or "
+                   "none)")
+            raise ValueError(err)
+
         if preload:
             self.preload = preload
             logger.info('Reading raw data from %s...' % input_fname)

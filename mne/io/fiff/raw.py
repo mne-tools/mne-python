@@ -114,7 +114,7 @@ class RawFIF(_BaseRaw):
         _check_raw_compatibility(raws)
 
         super(RawFIF, self).__init__(
-            copy.deepcopy(raws[0].info), None, raws[0]._cals,
+            copy.deepcopy(raws[0].info), None,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._rawdir for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
