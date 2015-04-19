@@ -779,9 +779,9 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Return Epochs object with a subset of epochs corresponding to an
         experimental condition as specified by 'name'.
 
-        If conditions are separated by '/' (e.g. 'audio/left', 'audio/right'), 
-        and 'name' is not in itself an event key, selects every event whose 
-        condition contains 'name' (e.g., 'left' matches 'audio/left' 
+        If conditions are separated by '/' (e.g. 'audio/left', 'audio/right'),
+        and 'name' is not in itself an event key, selects every event whose
+        condition contains 'name' (e.g., 'left' matches 'audio/left'
         and 'visual/left'; but not 'audio_left').
 
     epochs[['name_1', 'name_2', ... ]] : Epochs
