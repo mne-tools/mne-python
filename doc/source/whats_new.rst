@@ -93,6 +93,7 @@ Changelog
 
    - Add RAP-MUSIC inverse method by `Yousra Bekhti`_ and `Alex Gramfort`_
 
+   - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
 BUG
 ~~~
