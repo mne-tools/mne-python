@@ -1167,8 +1167,6 @@ def create_info(ch_names, sfreq, ch_types=None):
     info['sfreq'] = sfreq
     info['ch_names'] = ch_names
     info['nchan'] = nchan
-    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
-                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     loc = np.concatenate((np.zeros(3), np.eye(3).ravel())).astype(np.float32)
     for ci, (name, kind) in enumerate(zip(ch_names, ch_types)):
         if not isinstance(name, string_types):
@@ -1201,7 +1199,7 @@ def _empty_info():
     """Create an empty info dictionary"""
     _none_keys = (
         'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
-        'dev_ctf_t', 'dev_head_t', 'dig', 'experimenter',
+        'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
         'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
         'subject_info',
@@ -1217,5 +1215,7 @@ def _empty_info():
         info[k] = list()
     info['custom_ref_applied'] = False
     info['nchan'] = info['sfreq'] = 0
+    info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                          'to': FIFF.FIFFV_COORD_HEAD, 'trans': np.eye(4)}
     assert set(info.keys()) == set(RAW_INFO_FIELDS)
     return info
