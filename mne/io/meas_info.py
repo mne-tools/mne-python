@@ -1278,7 +1278,8 @@ class DigMontage(object):
 
     def __repr__(self):
         s = '<DigMontage | %d Dig Points, %d HPI points: %s ...>'
-        s %= self.kind, len(self.ch_names), ', '.join(self.point_names[:3])
+        s %= (len(self.hsp), len(self.point_names),
+              ', '.join(self.point_names[:3]))
         return s
 
     def plot(self, scale_factor=1.5, show_names=False):
@@ -1397,7 +1398,6 @@ def read_digmontage(hsp=None, hpi=None, elp=None, point_names=None,
         fids = np.array([nasion, lpa, rpa])
         fids = apply_trans(neuromag_trans, fids)
         elp = apply_trans(neuromag_trans, elp)
-        hsp = apply_trans(als_ras_trans_mm, hsp)
         hsp = apply_trans(neuromag_trans, hsp)
     else:
         fids = [None] * 3

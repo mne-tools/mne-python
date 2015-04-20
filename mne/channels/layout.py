@@ -991,6 +991,7 @@ def apply_montage(info, montage):
                                rpa=montage.rpa, hpi=montage.hpi,
                                dig_points=montage.hsp)
         info['dig'] = dig
+        info['dev_head_t']['trans'] = montage.dev_head_t
     else:
         raise TypeError("Montage must be a 'Montage' or 'DigMontage' "
                         "instead of '%s'." % type(montage))

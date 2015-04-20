@@ -8,11 +8,11 @@ from numpy.testing import (assert_array_equal, assert_almost_equal,
 
 from mne.channels import apply_montage
 from mne.io.meas_info import read_digmontage, _read_dig_points
-from mne.utils import _TempDir
+from mne.io.constants import FIFF
 from mne import create_info
-from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 from mne.coreg import fit_matched_points
 from mne.io.kit import read_mrk
+from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 
 
 FILE = inspect.getfile(inspect.currentframe())
@@ -21,6 +21,7 @@ elp = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_elp.txt')
 hsp = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_hsp.txt')
 hpi = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_mrk.sqd')
 elp_names = []
+
 
 def test_read_digmontage():
     """Test read_digmontage"""
@@ -50,3 +51,42 @@ def test_read_digmontage():
     dev_head_t = fit_matched_points(tgt_pts=montage.elp[3:],
                                     src_pts=montage.hpi, out='trans')
     assert_array_equal(montage.dev_head_t, dev_head_t)
+
+
+def test_apply_digmontage():
+    """Test apply_montage
+    
+    Extensive testing of applying `dig` to info is done in test_meas_info
+    with `test_make_dig_points`.
+    """
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    hsp_points = _read_dig_points(hsp)
+    elp_points = _read_dig_points(elp)
+    hpi_points = read_mrk(hpi)
+    p0, p1, p2 = elp_points[:3]
+    nm_trans = get_ras_to_neuromag_trans(p0, p1, p2)
+    elp_points = apply_trans(nm_trans, elp_points)
+    nasion_point, lpa_point, rpa_point = elp_points[:3]
+    hsp_points = apply_trans(nm_trans, hsp_points)
+
+    montage = read_digmontage(hsp, hpi, elp, names, unit='m', transform=True)
+    info = create_info(['Test Ch'], 1e3, ['eeg'])
+    apply_montage(info, montage)
+    hs = np.array([point['r'] for i, point in enumerate(info['dig']) 
+                   if point['kind'] == FIFF.FIFFV_POINT_EXTRA])
+    nasion_dig = np.array([point['r'] for point in info['dig']
+                           if all([point['ident'] == FIFF.FIFFV_POINT_NASION,
+                                   point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    lpa_dig = np.array([point['r'] for point in info['dig']
+                        if all([point['ident'] == FIFF.FIFFV_POINT_LPA,
+                                point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    rpa_dig = np.array([point['r'] for point in info['dig']
+                        if all([point['ident'] == FIFF.FIFFV_POINT_RPA,
+                                point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    hpi_dig = np.array([point['r'] for point in info['dig']
+                        if point['kind'] == FIFF.FIFFV_POINT_HPI])
+    assert_array_equal(hs, hsp_points)
+    assert_array_equal(nasion_dig.ravel(), nasion_point)
+    assert_array_equal(lpa_dig.ravel(), lpa_point)
+    assert_array_equal(rpa_dig.ravel(), rpa_point)
+    assert_array_equal(montage.dev_head_t, info['dev_head_t']['trans'])

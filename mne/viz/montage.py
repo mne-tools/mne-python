@@ -1,3 +1,6 @@
+import numpy as np
+
+
 """Functions to plot EEG sensor montages or digitizer montages
 """
 
@@ -29,26 +32,28 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
 
-    pos = montage.pos
-    ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
-    ax.set_xlabel('x')
-    ax.set_ylabel('y')
-    ax.set_zlabel('z')
-
-    if show_names:
-        if isinstance(montage, Montage):
+    if isinstance(montage, Montage):
+        pos = montage.pos
+        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
+        if show_names:
             ch_names = montage.ch_names
             for ch_name, x, y, z in zip(ch_names, pos[:, 0],
                                         pos[:, 1], pos[:, 2]):
                 ax.text(x, y, z, ch_name)
-        elif isinstance(montage, DigMontage):
-            if montage.hpi_names:
-                hpi_names = montage.hpi_names
-                for hpi_name, x, y, z in zip(hpi_names, pos[:, 0],
-                                             pos[:, 1], pos[:, 2]):
+    elif isinstance(montage, DigMontage):
+        pos = np.vstack((montage.hsp, montage.elp))
+        ax.scatter(pos[:, 0], pos[:, 1], pos[:, 2])
+        if show_names:
+            if montage.point_names:
+                hpi_names = montage.point_names
+                for hpi_name, x, y, z in zip(hpi_names, montage.elp[:, 0],
+                                             montage.elp[:, 1],
+                                             montage.elp[:, 2]):
                     ax.text(x, y, z, hpi_name)
-            else:
-                raise ValueError('There are no hpi points to show names of.')
+
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_zlabel('z')
 
     if show:
         plt.show()
