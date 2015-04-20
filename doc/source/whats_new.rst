@@ -95,6 +95,8 @@ Changelog
 
    - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
 
+   - Add capability to apply rejection parameters after loading epochs by `Mainak Jas`_ and `Denis Engemann`_
+
 BUG
 ~~~
 

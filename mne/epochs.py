@@ -849,7 +849,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
         proj = proj or raw.proj  # proj is on when applied in Raw
 
-        if self._check_delayed(proj):
+        if self._check_delayed(proj, check_reject=False):
             logger.info('Entering delayed SSP mode.')
 
         activate = False if self._check_delayed() else proj
@@ -900,8 +900,23 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         else:
             self._data = None
 
-    def drop_bad_epochs(self):
-        """Drop bad epochs without retaining the epochs data.
+    def _drop_preloaded_epochs(self):
+        drop_inds = list()
+        for i_epoch, epoch in enumerate(self):
+            is_good, chan = self._is_good_epoch(epoch,
+                                                verbose=self.verbose)
+            if not is_good:
+                drop_inds.append(i_epoch)
+                self.drop_log[i_epoch].extend(chan)
+        if drop_inds:
+            select = np.ones(len(self.events), dtype=np.bool)
+            select[drop_inds] = False
+            self.events = self.events[select]
+            self._data = self._data[select]
+            self.selection[select]
+
+    def drop_bad_epochs(self, reject=None, flat=None):
+        """Drop bad epochs and apply rejection post-hoc.
 
         Should be used before slicing operations.
 
@@ -909,8 +924,62 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             disk. To avoid reading epochs form disk multiple times, initialize
             Epochs object with preload=True.
 
+        Parameters
+        ----------
+        reject : dict | None
+            Rejection parameters based on peak-to-peak amplitude.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            If reject is None then no rejection is done. Example::
+
+                reject = dict(grad=4000e-13, # T / m (gradiometers)
+                              mag=4e-12, # T (magnetometers)
+                              eeg=40e-6, # uV (EEG channels)
+                              eog=250e-6 # uV (EOG channels)
+                              )
+
+        flat : dict | None
+            Rejection parameters based on flatness of signal.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+            are floats that set the minimum acceptable peak-to-peak amplitude.
+            If flat is None then no rejection is done.
+
+        Notes
+        -----
+        - This method can be called multiple times (to make sure that epochs
+          have been rejected). However, epochs will be rejected only the first
+          call where reject parameters are not None.
+        - When the preload=True, the epochs are rejected on the data that is
+          already in memory. However, for preload=False, epochs are rejected
+          by reading epochs from disk. If reject is not None in the constructor
+          (for preload=False), they will be rejected when the epochs object is
+          used and has to be loaded from disk on-demand on to memory. They will
+          *not* be rejected when the epochs object is instantiated. Invoking
+          this method loads the epochs from disk on-demand and rejects them.
+        - If proj='delayed', and the reject parameters are set, projection will
+          be applied after rejection if preload=False.
+
+          XXX: But for preload=True, projection is not applied??
         """
-        self._get_data_from_disk(out=False)
+        if (reject is not None and self.reject is not None) or \
+                (flat is not None and self.flat is not None):
+            raise RuntimeError('reject and flat parameters have already been'
+                               ' set')
+
+        # update reject and flat attributes if supplied by user
+        # and do not update them once they have been set
+        if reject is not None:
+            self.reject = reject
+        if flat is not None:
+            self.flat = flat
+
+        # drop epochs only if they have not been dropped and
+        # at least one of the reject params have been set
+        if self._bad_dropped is False:
+            self._reject_setup()
+            if self.preload:
+                self._drop_preloaded_epochs()
+            else:
+                self._get_data_from_disk(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -969,12 +1038,12 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                              color=color, width=width, ignore=ignore,
                              show=show, return_fig=return_fig)
 
-    def _check_delayed(self, proj=None):
+    def _check_delayed(self, proj=None, check_reject=True):
         """ Aux method
         """
         is_delayed = False
         if proj == 'delayed':
-            if self.reject is None:
+            if self.reject is None and check_reject:
                 raise RuntimeError('The delayed SSP mode was requested '
                                    'but no rejection parameters are present. '
                                    'Please add rejection parameters before '
@@ -1137,7 +1206,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
             self.selection = self.selection[good_events]
             self.events = np.atleast_2d(self.events[good_events])
-            self._bad_dropped = True
+            if self.reject is not None or self.flat is not None:
+                self._bad_dropped = True
             logger.info("%d bad epochs dropped"
                         % (n_events - len(good_events)))
             if not out:
@@ -1789,20 +1859,8 @@ class EpochsArray(Epochs):
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self._reject_setup()
-        drop_inds = list()
         if self.reject is not None or self.flat is not None:
-            for i_epoch, epoch in enumerate(self):
-                is_good, chan = self._is_good_epoch(epoch,
-                                                    verbose=self.verbose)
-                if not is_good:
-                    drop_inds.append(i_epoch)
-                    self.drop_log[i_epoch].extend(chan)
-        if drop_inds:
-            select = np.ones(len(events), dtype=np.bool)
-            select[drop_inds] = False
-            self.events = self.events[select]
-            self._data = self._data[select]
-            self.selection[select]
+            self._drop_preloaded_epochs()
         if baseline is not None:
             rescale(self._data, self.times, baseline, mode='mean', copy=False)
 

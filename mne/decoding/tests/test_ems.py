@@ -46,7 +46,7 @@ def test_ems():
                     baseline=(None, 0), preload=True)
     epochs.equalize_event_counts(epochs.event_id, copy=False)
 
-    n_expected = sum([len(epochs[k]) for k in ['aud_l', 'vis_l']])
+    n_expected = sum([len(epochs[k].events) for k in ['aud_l', 'vis_l']])
 
     assert_raises(ValueError, compute_ems, epochs)
     surrogates, filters, conditions = compute_ems(epochs, ['aud_r', 'vis_l'])

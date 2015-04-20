@@ -448,6 +448,54 @@ def test_reject_epochs():
     n_events = len(epochs.events)
     data = epochs.get_data()
     n_clean_epochs = len(data)
+
+    # apply rejection through constructor and drop_bad_epochs() method and
+    # check if they match, preload=False
+    epochs_noreject = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                             baseline=(None, 0))
+    epochs_noreject.drop_bad_epochs()
+    epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
+    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+
+    # try rejection again with same parameters, preload=False
+    epochs_noreject.drop_bad_epochs()
+    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+    assert_raises(RuntimeError, epochs_noreject.drop_bad_epochs, reject=reject)
+
+    # don't allow rejection again
+    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
+    assert_raises(RuntimeError, epochs.drop_bad_epochs, reject=reject_crazy)
+
+    # test drop_bad_epochs() method with preload=True
+    epochs_noreject = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                             baseline=(None, 0), preload=True)
+    epochs_noreject.drop_bad_epochs()
+    epochs_noreject.drop_bad_epochs(reject=reject, flat=flat)
+    assert_array_equal(epochs_noreject.get_data(), epochs.get_data())
+
+    # test drop_bad_epochs() method with proj='delayed', preload=True
+    epochs1 = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), preload=True, proj='delayed')
+    epochs1.drop_bad_epochs(reject=reject, flat=flat)
+
+    epochs2 = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), preload=True, proj='delayed',
+                     reject=reject, flat=flat)
+    assert_array_equal(epochs1.get_data(), epochs2.get_data())
+
+    # test drop_bad_epochs() method with proj='delayed', preload=False
+    epochs3 = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), preload=False, proj='delayed')
+    epochs3.drop_bad_epochs(reject=reject, flat=flat)
+
+    epochs4 = Epochs(raw, events1, event_id, tmin, tmax, picks=picks,
+                     baseline=(None, 0), proj='delayed',
+                     reject=reject, flat=flat)
+    assert_array_equal(epochs3.get_data(), epochs4.get_data())
+
+    # XXX: needs to work too
+    # assert_array_equal(epochs2.get_data(), epochs3.get_data())
+
     # Should match
     # mne_process_raw --raw test_raw.fif --projoff \
     #   --saveavetag -ave --ave test.ave --filteroff
@@ -459,7 +507,6 @@ def test_reject_epochs():
     # Ensure epochs are not dropped based on a bad channel
     raw_2 = raw.copy()
     raw_2.info['bads'] = ['MEG 2443']
-    reject_crazy = dict(grad=1000e-15, mag=4e-15, eeg=80e-9, eog=150e-9)
     epochs = Epochs(raw_2, events1, event_id, tmin, tmax, baseline=(None, 0),
                     reject=reject_crazy, flat=flat)
     epochs.drop_bad_epochs()
