@@ -61,13 +61,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.name = name
 
         if isinstance(event_id, dict):
-            if not all([isinstance(v, int) for v in event_id.values()]):
+            if not all(isinstance(v, int) for v in event_id.values()):
                 raise ValueError('Event IDs must be of type integer')
-            if not all([isinstance(k, string_types) for k in event_id]):
+            if not all(isinstance(k, string_types) for k in event_id):
                 raise ValueError('Event names must be of type str')
             self.event_id = event_id
         elif isinstance(event_id, list):
-            if not all([isinstance(v, int) for v in event_id]):
+            if not all(isinstance(v, int) for v in event_id):
                 raise ValueError('Event IDs must be of type integer')
             self.event_id = dict(zip((str(i) for i in event_id), event_id))
         elif isinstance(event_id, int):
@@ -788,9 +788,20 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Return Epochs object with a subset of epochs corresponding to an
         experimental condition as specified by 'name'.
 
+        If conditions are tagged by names separated by '/' (e.g. 'audio/left',
+        'audio/right'), and 'name' is not in itself an event key, this selects
+        every event whose condition contains the 'name' tag (e.g., 'left'
+        matches 'audio/left' and 'visual/left'; but not 'audio_left'). Note
+        that tags like 'auditory/left' and 'left/auditory' will be treated the
+        same way when accessed using tags.
+
     epochs[['name_1', 'name_2', ... ]] : Epochs
         Return Epochs object with a subset of epochs corresponding to multiple
         experimental conditions as specified by 'name_1', 'name_2', ... .
+
+        If conditions are separated by '/', selects every item containing every
+        list tag (e.g. ['audio', 'left'] selects 'audio/left' and
+        'audio/center/left', but not 'audio/right').
 
     See also
     --------
@@ -1242,6 +1253,17 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             key = [key]
 
         if isinstance(key, (list, tuple)) and isinstance(key[0], string_types):
+            if any('/' in k_i for k_i in epochs.event_id.keys()):
+                if any(k_e not in epochs.event_id for k_e in key):
+                    # Select a given key if the requested set of
+                    # '/'-separated types are a subset of the types in that key
+                    key = [k for k in epochs.event_id.keys()
+                           if all(set(k_i.split('/')).issubset(k.split('/'))
+                                  for k_i in key)]
+                    if len(key) == 0:
+                        raise KeyError('Attempting selection of events via '
+                                       'multiple/partial matching, but no '
+                                       'event matches all criteria.')
             select = np.any(np.atleast_2d([epochs._key_match(k)
                                            for k in key]), axis=0)
             epochs.name = ('+'.join(key) if epochs.name == 'Unknown'
@@ -1869,7 +1891,7 @@ def equalize_epoch_counts(epochs_list, method='mintime'):
         list. If 'mintime', timing differences between each event list will be
         minimized.
     """
-    if not all([isinstance(e, Epochs) for e in epochs_list]):
+    if not all(isinstance(e, Epochs) for e in epochs_list):
         raise ValueError('All inputs must be Epochs instances')
 
     # make sure bad epochs are dropped
@@ -2204,7 +2226,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs : Epochs
         Concatenated epochs.
     """
-    if not np.all([e.preload for e in epochs_list]):
+    if not all(e.preload for e in epochs_list):
         raise ValueError('All epochs must be preloaded.')
 
     info = _merge_info([epochs.info for epochs in epochs_list])
@@ -2222,9 +2244,9 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
         raise RuntimeError(err)
 
     events = epochs_list[0].events.copy()
-    all_same = np.all([np.array_equal(events, epochs.events)
-                       for epochs in epochs_list[1:]], axis=0)
-    if not np.all(all_same):
+    all_same = all(np.array_equal(events, epochs.events)
+                   for epochs in epochs_list[1:])
+    if not all_same:
         raise ValueError('Events must be the same.')
 
     proj = any(e.proj for e in epochs_list) or add_eeg_ref
