@@ -89,6 +89,7 @@ def _get_data(tmin=-0.11, tmax=0.15, read_all_forward=True, compute_csds=True):
 def test_dics():
     """Test DICS with evoked data and single trials
     """
+    warnings.simplefilter('error')
     raw, epochs, evoked, data_csd, noise_csd, label, forward,\
         forward_surf_ori, forward_fixed, forward_vol = _get_data()
 

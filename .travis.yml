@@ -7,12 +7,11 @@ env:
     #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
-    # Note that we don't run coverage on Py3k because it slows our tests
-    # by a factor of 2 (!)
+    # Note that we don't run coverage on Py3k anyway because it slows our tests
+    # by a factor of 2 (!), so we make this our "from install dir" run.
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
-    - PYTHON=2.7 DEPS=full TEST_LOCATION=install
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
-    - PYTHON=3.4 DEPS=full TEST_LOCATION=src
+    - PYTHON=3.4 DEPS=full TEST_LOCATION=install
     - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.6" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
@@ -67,7 +66,7 @@ install:
     - cd ~
     # Trigger download of testing data. Note that
     # the testing dataset has been constructed to contain the necessary
-    # files to be act as a FREESURFER_HOME for the coreg tests
+    # files to act as a FREESURFER_HOME for the coreg tests
     - if [ "${DEPS}" != "nodata" ]; then
         python -c 'import mne; mne.datasets.testing.data_path(verbose=True)';
         if [ "${DEPS}" == "full" ]; then
@@ -100,7 +99,7 @@ install:
       fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
+    - nosetests --with-timer --timer-top-n 30 --verbosity=2 -x $COVERAGE
     - if [ "${DEPS}" == "nodata" ]; then
         make flake;
       fi;

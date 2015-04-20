@@ -133,6 +133,7 @@ def test_cov_estimation_on_raw_segment():
     assert_true(len(w) == 1)
 
 
+@slow_test
 def test_cov_estimation_with_triggers():
     """Test estimation from raw with triggers
     """
