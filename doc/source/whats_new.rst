@@ -79,9 +79,7 @@ Changelog
 
    - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
-   - Add support for adding an empty reference channel to data by `Teon Brooks`_
-
-   - Add reader function for Raw FIF files by `Teon Brooks`_
+   - Add reader function ``mne.io.read_raw_fif`` for Raw FIF files by `Teon Brooks`_
 
    - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
 
@@ -100,6 +98,7 @@ Changelog
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
    - Add whitening plots for evokeds to ``mne.Report`` by `Mainak Jas`_
+   - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_
 
 
    - Add support for capturing cursor positions when clicking on an image by `Chris Holdgraf`_
