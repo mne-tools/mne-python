@@ -788,7 +788,9 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
                  bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
                  mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
                  mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
-    """Plot dipoles.
+    """Plot dipoles
+
+    Only the first time point of each dipole is shown.
 
     Parameters
     ----------
@@ -830,6 +832,10 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
+    from mayavi import mlab
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
+
     trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
@@ -838,7 +844,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     from .. import Dipole
     if isinstance(dipoles, Dipole):
         dipoles = [dipoles]
-    n_dipoles, n_times = len(dipoles), len(dipoles[0].times)
+    n_dipoles = len(dipoles)
 
     if mode not in ['cone', 'sphere']:
         raise ValueError('mode must be in "cone" or "sphere"')
@@ -848,20 +854,12 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
 
     points, faces = read_surface(fname)
 
-    pos = np.zeros((n_dipoles, n_times, 3))
-    ori = np.zeros((n_dipoles, n_times, 3))
-    amp = np.zeros((n_dipoles, n_times))
+    pos = np.zeros((n_dipoles, 3))
+    ori = np.zeros((n_dipoles, 3))
     for i_dip in range(n_dipoles):
-        pos[i_dip], ori[i_dip] = dipoles[i_dip].pos, dipoles[i_dip].ori
-        amp[i_dip] = dipoles[i_dip].amplitude
-
-    from mayavi import mlab
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
-    color_converter = ColorConverter()
+        pos[i_dip], ori[i_dip] = dipoles[i_dip].pos[0], dipoles[i_dip].ori[0]
 
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
-    ax = plt.subplot()
 
     points *= 1e-03
     points = apply_trans(trans['trans'], points)
@@ -871,19 +869,14 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
 
     for i_dip, color in zip(range(len(dipoles)), colors):
         rgb_color = color_converter.to_rgb(color)
-        mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],
-                      ori[i_dip, 0, 0], ori[i_dip, 0, 1], ori[i_dip, 0, 2],
+        mlab.quiver3d(pos[i_dip, 0], pos[i_dip, 1], pos[i_dip, 2],
+                      ori[i_dip, 0], ori[i_dip, 1], ori[i_dip, 2],
                       opacity=1., mode=mode, color=rgb_color,
                       scalars=dipoles[i_dip].amplitude.max(),
                       scale_factor=scale_factor)
 
-        # Plot the time-series
-        ax.plot(dipoles[i_dip].times, dipoles[i_dip].amplitude,
-                color=color, linewidth=1.5)
-    ax.set_ylabel('amplitude (nAm)')
-    ax.set_xlabel('times (ms)')
-
     if fig_name is not None:
         mlab.title(fig_name)
     fig.scene.x_plus_view()
+
     return fig
