@@ -121,9 +121,15 @@ def compute_bias(M, G, X, max_iter=1000, tol=1e-6, n_orient=1, verbose=None):
         Y.fill(0.0)
         dt = (t0 - 1.0) / t
         Y = D + dt * (D - D0)
-        if linalg.norm(D - D0, np.inf) < tol:
-            logger.info("Debiasing converged after %d iterations" % i)
+
+        Ddiff = linalg.norm(D - D0, np.inf)
+
+        if Ddiff < tol:
+            logger.info("Debiasing converged after %d iterations "
+                        "max(|D - D0| = %e < %e)" % (i, Ddiff, tol))
             break
     else:
-        logger.info("Debiasing did not converge")
+        Ddiff = linalg.norm(D - D0, np.inf)
+        logger.info("Debiasing did not converge after %d iterations! "
+                    "max(|D - D0| = %e >= %e)" % (max_iter, Ddiff, tol))
     return D

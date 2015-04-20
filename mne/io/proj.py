@@ -137,8 +137,8 @@ class ProjMixin(object):
             del self._delayed_proj
 
         if all([p['active'] for p in self.info['projs']]):
-            logger.info('Projections have already been applied. Doing '
-                        'nothing.')
+            logger.info('Projections have already been applied. '
+                        'Setting proj attribute to True.')
             return self
 
         _projector, info = setup_proj(deepcopy(self.info), activate=True,

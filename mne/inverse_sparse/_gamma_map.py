@@ -7,10 +7,12 @@ import numpy as np
 from scipy import linalg
 
 from ..forward import is_fixed_orient, _to_fixed_ori
-from ..io.pick import pick_channels_evoked
-from ..minimum_norm.inverse import _prepare_forward, _check_reference
+
+from ..minimum_norm.inverse import _check_reference
 from ..utils import logger, verbose
-from .mxne_inverse import _make_sparse_stc, _prepare_gain
+from ..externals.six.moves import xrange as range
+from .mxne_inverse import (_make_sparse_stc, _prepare_gain,
+                           _reapply_source_weighting, _compute_residual)
 
 
 @verbose
@@ -87,7 +89,7 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
         def denom_fun(x):
             return x
 
-    for itno in np.arange(maxit):
+    for itno in range(maxit):
         gammas[np.isnan(gammas)] = 0.0
 
         gidx = (np.abs(gammas) > eps)
@@ -168,7 +170,8 @@ def _gamma_map_opt(M, G, alpha, maxit=10000, tol=1e-6, update_mode=1,
 @verbose
 def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
               xyz_same_gamma=True, maxit=10000, tol=1e-6, update_mode=1,
-              gammas=None, pca=True, return_residual=False, verbose=None):
+              gammas=None, pca=True, return_residual=False,
+              verbose=None):
     """Hierarchical Bayes (Gamma-MAP) sparse source localization method
 
     Models each source time course using a zero-mean Gaussian prior with an
@@ -244,18 +247,15 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     else:
         group_size = 3
 
-    gain_info, gain, _, whitener, _ = _prepare_forward(forward, evoked.info,
-                                                       noise_cov, pca)
+    gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
+        forward, evoked.info, noise_cov, pca, depth, loose, None, None)
 
     # get the data
     sel = [evoked.ch_names.index(name) for name in gain_info['ch_names']]
     M = evoked.data[sel]
 
-    # whiten and prepare gain matrix
-    gain, source_weighting, mask = _prepare_gain(gain, forward, whitener,
-                                                 depth, loose, None,
-                                                 None)
     # whiten the data
+    logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
     # run the optimization
@@ -266,17 +266,14 @@ def gamma_map(evoked, forward, noise_cov, alpha, loose=0.2, depth=0.8,
     if len(active_set) == 0:
         raise Exception("No active dipoles found. alpha is too big.")
 
-    # reapply weights to have correct unit
-    X /= source_weighting[active_set][:, None]
+    # Reapply weights to have correct unit
+    n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
+    X = _reapply_source_weighting(X, source_weighting,
+                                  active_set, n_dip_per_pos)
 
     if return_residual:
-        sel = [forward['sol']['row_names'].index(c)
-               for c in gain_info['ch_names']]
-        residual = evoked.copy()
-        residual = pick_channels_evoked(residual,
-                                        include=gain_info['ch_names'])
-        residual.data -= np.dot(forward['sol']['data'][sel, :][:, active_set],
-                                X)
+        residual = _compute_residual(forward, evoked, X, active_set,
+                                     gain_info)
 
     if group_size == 1 and not is_fixed_orient(forward):
         # make sure each source has 3 components

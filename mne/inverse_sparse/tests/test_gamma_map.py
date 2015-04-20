@@ -27,6 +27,7 @@ subjects_dir = op.join(data_path, 'subjects')
 @testing.requires_testing_data
 def test_gamma_map():
     """Test Gamma MAP inverse"""
+
     forward = read_forward_solution(fname_fwd, force_fixed=False,
                                     surf_ori=True)
     forward = pick_types_forward(forward, meg=False, eeg=True)
@@ -40,11 +41,13 @@ def test_gamma_map():
     alpha = 0.2
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=True, update_mode=1, verbose=False)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertices)[idx] == 96397)
 
     stc = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                     xyz_same_gamma=False, update_mode=1, verbose=False)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     assert_true(np.concatenate(stc.vertices)[idx] == 82010)
 
@@ -52,6 +55,7 @@ def test_gamma_map():
     stc, res = gamma_map(evoked, forward, cov, alpha, tol=1e-5,
                          xyz_same_gamma=False, update_mode=2,
                          loose=None, return_residual=True, verbose=False)
+    assert_array_almost_equal(stc.times, evoked.times, 5)
     idx = np.argmax(np.sum(stc.data ** 2, axis=1))
     # assert_true(np.concatenate(stc.vertices)[idx] == 83398)  # XXX FIX
     assert_array_almost_equal(evoked.times, res.times)
