@@ -2,12 +2,15 @@
 ==========================================================
 Identify similar ICs across multiple datasets via CORRMAP
 ==========================================================
-After fitting ICA to multiple data sets, CORRMAP[1]
+After fitting ICA to multiple data sets, CORRMAP [1]_
 automatically identifies similar ICs in all sets based
 on a manually selected template. These ICs can then be
 removed, or further investigated.
-[1] Viola FC, et al. Semi-automatic identification of independent components
-representing EEG artifact. Clin Neurophysiol 2009, May; 120(5): 868-77.
+
+References
+----------
+.. [1] Viola FC, et al. Semi-automatic identification of independent components
+       representing EEG artifact. Clin Neurophysiol 2009, May; 120(5): 868-77.
 """
 
 # Authors: Jona Sassenhagen <jona.sassenhagen@gmail.com>
