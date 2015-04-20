@@ -13,7 +13,6 @@ from mne.utils import requires_scipy_version, run_tests_if_main
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -49,6 +48,7 @@ def _get_events():
 def test_plot_raw():
     """Test plotting of raw data
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     events = _get_events()
     plt.close('all')  # ensure all are closed

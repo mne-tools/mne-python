@@ -23,7 +23,6 @@ from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -76,6 +75,7 @@ def _get_epochs_delayed_ssp():
 def test_plot_epochs():
     """ Test plotting epochs
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
@@ -101,6 +101,7 @@ def test_plot_epochs():
 def test_plot_image_epochs():
     """Test plotting of epochs image
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     plot_image_epochs(epochs, picks=[1, 2])
     plt.close('all')
@@ -109,6 +110,7 @@ def test_plot_image_epochs():
 def test_plot_drop_log():
     """Test plotting a drop log
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.drop_bad_epochs()
 

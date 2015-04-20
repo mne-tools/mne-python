@@ -23,7 +23,8 @@ from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, _BaseEpochs)
 from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
-                       clean_warning_registry, run_tests_if_main)
+                       clean_warning_registry, run_tests_if_main,
+                       requires_scipy_version)
 
 from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
@@ -68,7 +69,8 @@ def test_base_epochs():
     assert_equal(epochs.__iter__()._current, 0)
 
 
-def test_filter():
+@requires_scipy_version('0.14')
+def test_savgol_filter():
     """Test savgol filtering
     """
     h_freq = 10.

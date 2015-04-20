@@ -24,7 +24,6 @@ from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -99,6 +98,7 @@ def test_plot_topo():
 def test_plot_topo_image_epochs():
     """Test plotting of epochs image topography
     """
+    import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
     plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,

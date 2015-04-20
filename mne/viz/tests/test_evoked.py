@@ -21,7 +21,6 @@ from mne.channels import read_layout
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -76,6 +75,7 @@ def _get_epochs_delayed_ssp():
 def test_plot_evoked():
     """Test plotting of evoked
     """
+    import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
         evoked.plot(proj=True, hline=[1])

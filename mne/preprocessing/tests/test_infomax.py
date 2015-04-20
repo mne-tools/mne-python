@@ -86,7 +86,7 @@ def test_infomax_simple(add_noise=False):
 
 @requires_sklearn
 def test_non_square_infomax(add_noise=False):
-    """ Test the infomax algorithm on very simple data.
+    """ Test non-square infomax
     """
     from sklearn.decomposition import RandomizedPCA
 

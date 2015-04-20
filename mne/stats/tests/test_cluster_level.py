@@ -410,6 +410,7 @@ def test_permutation_connectivity_equiv():
                 assert_array_equal(stat_map, this_stat_map)
 
 
+@slow_test
 def spatio_temporal_cluster_test_connectivity():
     """Test spatio-temporal cluster permutations
     """
