@@ -2262,7 +2262,7 @@ def corrmap(icas, template, threshold="auto", label=None,
             ax.set_xticks([])
             ax.set_frame_on(False)
         tight_layout(fig=fig)
-        fig.subplots_adjust(top=0.95)
+        fig.subplots_adjust(top=0.8)
         fig.canvas.draw()
         plt.show()
 
@@ -2280,6 +2280,8 @@ def corrmap(icas, template, threshold="auto", label=None,
         template_fig = icas[template[0]].plot_components(picks=template[1],
                                                          ch_type=ch_type,
                                                          title=ttl)
+        template_fig.subplots_adjust(top=0.8)
+        template_fig.canvas.draw()
 
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
