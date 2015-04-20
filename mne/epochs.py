@@ -838,7 +838,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
         proj = proj or raw.proj  # proj is on when applied in Raw
 
-        if self._check_delayed(proj):
+        if self._check_delayed(proj, check_reject=False):
             logger.info('Entering delayed SSP mode.')
 
         activate = False if self._check_delayed() else proj
@@ -932,6 +932,22 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             are floats that set the minimum acceptable peak-to-peak amplitude.
             If flat is None then no rejection is done.
 
+        Notes
+        -----
+        - This method can be called multiple times (to make sure that epochs
+          have been rejected). However, epochs will be rejected only the first
+          call where reject parameters are not None.
+        - When the preload=True, the epochs are rejected on the data that is
+          already in memory. However, for preload=False, epochs are rejected
+          by reading epochs from disk. If reject is not None in the constructor
+          (for preload=False), they will be rejected when the epochs object is
+          used and has to be loaded from disk on-demand on to memory. They will
+          *not* be rejected when the epochs object is instantiated. Invoking
+          this method loads the epochs from disk on-demand and rejects them.
+        - If proj='delayed', and the reject parameters are set, projection will
+          be applied after rejection if preload=False.
+
+          XXX: But for preload=True, projection is not applied??
         """
         if (reject is not None and self.reject is not None) or \
                 (flat is not None and self.flat is not None):
@@ -1011,12 +1027,12 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                              color=color, width=width, ignore=ignore,
                              show=show, return_fig=return_fig)
 
-    def _check_delayed(self, proj=None):
+    def _check_delayed(self, proj=None, check_reject=True):
         """ Aux method
         """
         is_delayed = False
         if proj == 'delayed':
-            if self.reject is None:
+            if self.reject is None and check_reject:
                 raise RuntimeError('The delayed SSP mode was requested '
                                    'but no rejection parameters are present. '
                                    'Please add rejection parameters before '
