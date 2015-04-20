@@ -3,8 +3,8 @@
 # License: BSD 3 clause
 
 import numpy as np
-import logging
 from numpy.testing import assert_almost_equal
+
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import rotation
@@ -69,29 +69,23 @@ def test_fit_sphere_to_headshape():
 
     #  # Test with 4 points that match a perfect sphere
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA)
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
-                                        verbose=logging.ERROR)
-    r /= 1000.
-    oh /= 1000.
-    od /= 1000.
-    assert_almost_equal(r, 1.0, decimal=10)
-    assert_almost_equal(oh, [0.0, 0.0, 0.0], decimal=10)
-    assert_almost_equal(od, [0.0, 0.0, 0.0], decimal=10)
+    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
+    assert_almost_equal(r / 1000., 1.0, decimal=10)
+    assert_almost_equal(oh / 1000., [0.0, 0.0, 0.0], decimal=10)
+    assert_almost_equal(od / 1000., [0.0, 0.0, 0.0], decimal=10)
 
     # Test with all points. Digitization points are no longer perfect, so
     # allow for a wider margin of error.
     dig_kinds = (FIFF.FIFFV_POINT_CARDINAL, FIFF.FIFFV_POINT_EXTRA,
                  FIFF.FIFFV_POINT_EXTRA)
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
-                                        verbose=logging.ERROR)
-    assert_almost_equal(r, 1.0, decimal=3)
-    assert_almost_equal(oh, [0.0, 0.0, 0.0], decimal=3)
-    assert_almost_equal(od, [0.0, 0.0, 0.0], decimal=3)
+    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
+    assert_almost_equal(r / 1000., 1.0, decimal=3)
+    assert_almost_equal(oh / 1000., [0.0, 0.0, 0.0], decimal=3)
+    assert_almost_equal(od / 1000., [0.0, 0.0, 0.0], decimal=3)
 
     # Test with some noisy EEG points only.
     dig_kinds = (FIFF.FIFFV_POINT_EEG,)
-    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds,
-                                        verbose=logging.ERROR)
-    assert_almost_equal(r, 1.0, decimal=2)
-    assert_almost_equal(oh, [0.0, 0.0, 0.0], decimal=2)
-    assert_almost_equal(od, [0.0, 0.0, 0.0], decimal=2)
+    r, oh, od = fit_sphere_to_headshape(info, dig_kinds=dig_kinds)
+    assert_almost_equal(r / 1000., 1.0, decimal=2)
+    assert_almost_equal(oh / 1000., [0.0, 0.0, 0.0], decimal=2)
+    assert_almost_equal(od / 1000., [0.0, 0.0, 0.0], decimal=2)
