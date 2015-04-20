@@ -153,7 +153,7 @@ def _comp_sums_meg(beta, ctheta, lut_fun, n_fact, volume_integral):
         Coefficients of the integration.
     ctheta : array, shape (n_points * n_points, 1)
         Cosine of the angle between the sensor integration points.
-    lut_fun : object
+    lut_fun : callable
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
@@ -212,7 +212,7 @@ def _fast_sphere_dot_r0(r, rr1, rr2, lr1, lr2, cosmags1, cosmags2,
         Weights of integration points in the second sensor.
     volume_integral : bool
         If True, compute volume integral.
-    lut : object
+    lut : callable
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
@@ -296,7 +296,7 @@ def _do_self_dots(intrad, volume, coils, r0, ch_type, lut, n_fact, n_jobs):
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'.
-    lut : object
+    lut : callable
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
@@ -363,7 +363,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'
-    lut : object
+    lut : callable
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
@@ -390,7 +390,7 @@ def _do_cross_dots(intrad, volume, coils1, coils2, r0, ch_type,
 
     products = np.zeros((len(rmags1), len(rmags2)))
     for ci1 in range(len(coils1)):
-        for ci2, coil2 in enumerate(coils2):
+        for ci2 in range(len(coils2)):
             res = _fast_sphere_dot_r0(intrad, rmags1[ci1], rmags2[ci2],
                                       rlens1[ci1], rlens2[ci2], cosmags1[ci1],
                                       cosmags2[ci2], ws1[ci1], ws2[ci2],
@@ -420,7 +420,7 @@ def _do_surface_dots(intrad, volume, coils, surf, sel, r0, ch_type,
         The origin of the sphere.
     ch_type : str
         The channel type. It can be 'meg' or 'eeg'.
-    lut : object
+    lut : callable
         Look-up table for Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.
@@ -485,7 +485,7 @@ def _do_surface_dots_subset(intrad, rsurf, rmags, rref, refl, lsurf, rlens,
         Integration weights of the coils.
     volume : bool
         If True, compute volume integral.
-    lut : object
+    lut : callable
         Look-up table for evaluating Legendre polynomials.
     n_fact : array
         Coefficients in the integration sum.

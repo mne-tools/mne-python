@@ -105,14 +105,14 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _as_meg_type_evoked(evoked, to_type='grad', mode='fast'):
+def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
     ----------
     evoked : instance of mne.Evoked
         The evoked object.
-    to_type : str
+    ch_type : str
         The destination channel type. It can be 'mag' or 'grad'.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
@@ -126,13 +126,13 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast'):
     """
     evoked = evoked.copy()
 
-    if to_type not in ['mag', 'grad']:
+    if ch_type not in ['mag', 'grad']:
         raise ValueError('to_type must be "mag" or "grad", not "%s"'
-                         % to_type)
+                         % ch_type)
     # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
-    pick_to = pick_types(evoked.info, meg=to_type, eeg=False,
+    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
                          ref_meg=False)
 
     if len(pick_to) == 0:
@@ -152,23 +152,22 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast'):
     coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
                              info_to['dev_head_t'], 'meg')
     miss = 1e-4  # Smoothing criterion for MEG
-    ch_type = 'meg'
 
     #
     # Step 2. Calculate the dot products
     #
     my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
-                                                             ch_type)
+                                                             'meg')
     logger.info('Computing dot products for %i coils...' % (len(coils_from)))
-    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, ch_type,
+    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
                               lut_fun, n_fact, n_jobs=1)
     logger.info('Computing cross products for coils %i x %i coils...'
                 % (len(coils_from), len(coils_to)))
     cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
-                                my_origin, ch_type, lut_fun, n_fact).T
+                                my_origin, 'meg', lut_fun, n_fact).T
 
     ch_names = [c['ch_name'] for c in info_from['chs']]
-    fmd = dict(kind=ch_type, ch_names=ch_names,
+    fmd = dict(kind='meg', ch_names=ch_names,
                origin=my_origin, noise=noise, self_dots=self_dots,
                surface_dots=cross_dots, int_rad=int_rad, miss=miss)
     logger.info('Field mapping data ready')
@@ -183,12 +182,12 @@ def _as_meg_type_evoked(evoked, to_type='grad', mode='fast'):
     data = np.dot(fmd['data'], evoked.data[pick_from])
 
     # keep only the destination channel types
-    evoked.pick_types(meg=to_type, eeg=False, ref_meg=False)
+    evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
     evoked.data = data
 
     # change channel names to emphasize they contain interpolated data
     for ch in evoked.info['chs']:
-        ch['ch_name'] = ch['ch_name'] + '_virtual'
+        ch['ch_name'] += '_virtual'
     evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
 
     return evoked

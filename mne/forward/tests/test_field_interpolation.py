@@ -160,6 +160,7 @@ def test_make_field_map_meg():
 
 
 def _setup_args(info):
+    """Helper to test_as_meg_type_evoked."""
     coils = _create_coils(info['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
                           info['dev_head_t'], 'meg')
     my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots('fast',
