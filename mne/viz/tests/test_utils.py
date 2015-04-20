@@ -10,7 +10,6 @@ from mne.viz.utils import compare_fiff
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -22,5 +21,6 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 def test_compare_fiff():
     """Test comparing fiff files
     """
+    import matplotlib.pyplot as plt
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
     plt.close('all')

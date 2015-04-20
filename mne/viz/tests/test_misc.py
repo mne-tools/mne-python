@@ -24,7 +24,6 @@ from mne.utils import requires_nibabel, run_tests_if_main
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -53,7 +52,6 @@ def test_plot_cov():
     raw = _get_raw()
     cov = read_cov(cov_fname)
     fig1, fig2 = cov.plot(raw.info, proj=True, exclude=raw.ch_names[6:])
-    plt.close('all')
 
 
 @testing.requires_testing_data

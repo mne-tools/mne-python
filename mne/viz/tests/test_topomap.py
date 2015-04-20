@@ -27,8 +27,6 @@ from mne.viz.topomap import _check_outlines
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
-from matplotlib.patches import Circle  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -54,6 +52,8 @@ def _get_raw():
 def test_plot_topomap():
     """Test topomap plotting
     """
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Circle
     # evoked
     warnings.simplefilter('always', UserWarning)
     res = 16

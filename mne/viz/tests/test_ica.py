@@ -16,7 +16,6 @@ from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
-import matplotlib.pyplot as plt  # noqa
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -53,6 +52,7 @@ def _get_epochs():
 def test_plot_ica_components():
     """Test plotting of ICA solutions
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
@@ -71,6 +71,7 @@ def test_plot_ica_components():
 def test_plot_ica_sources():
     """Test plotting of ICA panel
     """
+    import matplotlib.pyplot as plt
     raw = io.Raw(raw_fname, preload=True)
     picks = _get_picks(raw)
     epochs = _get_epochs()
@@ -91,6 +92,7 @@ def test_plot_ica_sources():
 def test_plot_ica_overlay():
     """Test plotting of ICA cleaning
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw(preload=True)
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
@@ -110,6 +112,7 @@ def test_plot_ica_overlay():
 def test_plot_ica_scores():
     """Test plotting of ICA scores
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
