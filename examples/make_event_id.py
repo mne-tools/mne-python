@@ -30,10 +30,10 @@ event_id = {'aud-l': 1,
             'aud': [1, 2],
             'vis': [3, 4]}
 
-# Make Raw instance
+# Read Raw data
 raw = mne.io.read_raw_fif(raw_fname)
 
 # Make Epochs instance
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax)
 
-print epochs
+print(epochs)

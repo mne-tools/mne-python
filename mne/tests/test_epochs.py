@@ -145,6 +145,24 @@ def test_epoch_combine_ids():
         # should probably add test + functionality for non-replacement XXX
 
 
+def test_epoch_event_id():
+    """Test combining event ids in epochs compared to events
+    """
+    raw, events, picks = _get_data()
+    for preload in [False]:
+        event_id = {'odd': [1, 3, 5], 'even': [2, 4, 32],
+                    '1': 1, '3': 3, '5': 5}
+        epochs = Epochs(raw, events, event_id,
+                        tmin, tmax, picks=picks, preload=preload)
+        total = epochs['odd'].events.shape[0]
+        parts = (epochs['1'].events.shape[0] + epochs['3'].events.shape[0] +
+                 epochs['5'].events.shape[0])
+        assert_equal(total, parts)
+        # insert value not in range
+        event_id = {'odd': [1, 3, 5, 7]}
+        assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax)
+
+
 def test_read_epochs_bad_events():
     """Test epochs when events are at the beginning or the end of the file
     """

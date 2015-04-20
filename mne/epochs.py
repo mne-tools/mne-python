@@ -67,7 +67,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                         if not all([isinstance(v, int) for v in val]):
                             raise ValueError('Event IDs must be of '
                                              'type integer.')
-                    elif not isinstance(v, int):
+                    elif not isinstance(val, int):
                         raise ValueError('Event IDs must be of type integer.')
             elif not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
@@ -853,7 +853,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
-        values = []
+        values = list()
         for key, val in self.event_id.items():
             if not isinstance(val, list):
                 val = [val]
@@ -1230,14 +1230,14 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
         if len(self.event_id) > 1:
-            counts = []
+            counts = list()
             for key, val in sorted(self.event_id.items()):
                 if isinstance(val, list):
                     total = 0
                     for v in val:
-                        total += sum(self.events[:, 2] == v)
+                        total += np.sum(self.events[:, 2] == v)
                 else:
-                    total = sum(self.events[:, 2] == val)
+                    total = np.sum(self.events[:, 2] == val)
                 counts.append('%r: %i' % (key, total))
             s += ',\n %s' % ', '.join(counts)
 
@@ -1247,7 +1247,13 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         """Helper function for event dict use"""
         if key not in self.event_id:
             raise KeyError('Event "%s" is not in Epochs.' % key)
-        return self.events[:, 2] == self.event_id[key]
+        if isinstance(self.event_id[key], list):
+            idx = list()
+            for val in self.event_id[key]:
+                idx.append(self.events[:, 2] == val)
+            return np.any(np.atleast_2d(idx), axis=0)
+        else:
+            return self.events[:, 2] == self.event_id[key]
 
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
