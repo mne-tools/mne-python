@@ -28,7 +28,25 @@ from ..externals.six import string_types
 
 @verbose
 def _read_coil_defs(fname=None, verbose=None):
-    """Read a coil definition file"""
+    """Read a coil definition file.
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file from which coil definitions are read.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    res : list of dict
+        The coils. It is a dictionary with valid keys:
+        'cosmag' | 'coil_class' | 'coord_frame' | 'rmag' | 'type' |
+        'chname' | 'accuracy'.
+        cosmag contains the direction of the coils and rmag contains the
+        position vector.
+    """
     if fname is None:
         fname = op.join(op.split(__file__)[0], '..', 'data', 'coil_def.dat')
     big_val = 0.5

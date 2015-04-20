@@ -711,6 +711,31 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         return df
 
+    def as_type(self, ch_type='grad', mode='fast'):
+        """Compute virtual evoked using interpolated fields in mag/grad channels.
+
+        .. Warning:: Using virtual evoked to compute inverse can yield
+            unexpected results. The virtual channels have `'_virtual'` appended
+            at the end of the names to emphasize that the data contained in
+            them are interpolated.
+
+        Parameters
+        ----------
+        ch_type : str
+            The destination channel type. It can be 'mag' or 'grad'.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used. `'fast'` should be sufficient
+            for most applications.
+
+        Returns
+        -------
+        evoked : instance of mne.Evoked
+            The transformed evoked object containing only virtual channels.
+        """
+        from .forward import _as_meg_type_evoked
+        return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
+
     def resample(self, sfreq, npad=100, window='boxcar'):
         """Resample data
 

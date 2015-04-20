@@ -11,7 +11,8 @@ from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
 from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
-                         _get_legen_lut_fast, _get_legen_lut_accurate)
+                         _get_legen_lut_fast, _get_legen_lut_accurate,
+                         _do_cross_dots)
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
@@ -34,6 +35,23 @@ def _ad_hoc_noise(coils, ch_type='meg'):
         v.fill(1e-12)  # 1e-6 ** 2
     cov = dict(diag=True, data=v, eig=None, eigvec=None)
     return cov
+
+
+def _setup_dots(mode, coils, ch_type):
+    """Setup dot products"""
+    my_origin = np.array([0.0, 0.0, 0.04])
+    int_rad = 0.06
+    noise = _ad_hoc_noise(coils, ch_type)
+    if mode == 'fast':
+        # Use 50 coefficients with nearest-neighbor interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 50)
+        lut_fun = partial(_get_legen_lut_fast, lut=lut)
+    else:  # 'accurate'
+        # Use 100 coefficients with linear interpolation
+        lut, n_fact = _get_legen_table(ch_type, False, 100)
+        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+
+    return my_origin, int_rad, noise, lut_fun, n_fact
 
 
 def _compute_mapping_matrix(fmd, info):
@@ -85,6 +103,94 @@ def _compute_mapping_matrix(fmd, info):
             logger.info('The map will have average electrode reference')
             mapping_mat -= np.mean(mapping_mat, axis=0)[np.newaxis, :]
     return mapping_mat
+
+
+def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+    """Compute virtual evoked using interpolated fields in mag/grad channels.
+
+    Parameters
+    ----------
+    evoked : instance of mne.Evoked
+        The evoked object.
+    ch_type : str
+        The destination channel type. It can be 'mag' or 'grad'.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+
+    Returns
+    -------
+    evoked : instance of mne.Evoked
+        The transformed evoked object containing only virtual channels.
+    """
+    evoked = evoked.copy()
+
+    if ch_type not in ['mag', 'grad']:
+        raise ValueError('to_type must be "mag" or "grad", not "%s"'
+                         % ch_type)
+    # pick the original and destination channels
+    pick_from = pick_types(evoked.info, meg=True, eeg=False,
+                           ref_meg=False)
+    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
+                         ref_meg=False)
+
+    if len(pick_to) == 0:
+        raise ValueError('No channels matching the destination channel type'
+                         ' found in info. Please pass an evoked containing'
+                         'both the original and destination channels. Only the'
+                         ' locations of the destination channels will be used'
+                         ' for interpolation.')
+
+    info_from = pick_info(evoked.info, pick_from, copy=True)
+    info_to = pick_info(evoked.info, pick_to, copy=True)
+
+    # no need to apply trans because both from and to coils are in device
+    # coordinates
+    coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                               info_from['dev_head_t'], 'meg')
+    coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                             info_to['dev_head_t'], 'meg')
+    miss = 1e-4  # Smoothing criterion for MEG
+
+    #
+    # Step 2. Calculate the dot products
+    #
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
+                                                             'meg')
+    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
+    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
+                              lut_fun, n_fact, n_jobs=1)
+    logger.info('Computing cross products for coils %i x %i coils...'
+                % (len(coils_from), len(coils_to)))
+    cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
+                                my_origin, 'meg', lut_fun, n_fact).T
+
+    ch_names = [c['ch_name'] for c in info_from['chs']]
+    fmd = dict(kind='meg', ch_names=ch_names,
+               origin=my_origin, noise=noise, self_dots=self_dots,
+               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
+    logger.info('Field mapping data ready')
+
+    #
+    # Step 3. Compute the mapping matrix
+    #
+    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
+
+    # compute evoked data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    data = np.dot(fmd['data'], evoked.data[pick_from])
+
+    # keep only the destination channel types
+    evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
+    evoked.data = data
+
+    # change channel names to emphasize they contain interpolated data
+    for ch in evoked.info['chs']:
+        ch['ch_name'] += '_virtual'
+    evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
+
+    return evoked
 
 
 @verbose
@@ -151,7 +257,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         logger.info('Prepare EEG mapping...')
     if len(picks) == 0:
         raise RuntimeError('cannot map, no channels found')
-    chs = pick_info(info, picks)['chs']
+    chs = pick_info(info, picks, copy=True)['chs']
 
     # create coil defs in head coordinates
     if ch_type == 'meg':
@@ -168,17 +274,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
     #
     # Step 2. Calculate the dot products
     #
-    my_origin = np.array([0.0, 0.0, 0.04])
-    int_rad = 0.06
-    noise = _ad_hoc_noise(coils, ch_type)
-    if mode == 'fast':
-        # Use 50 coefficients with nearest-neighbor interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 50)
-        lut_fun = partial(_get_legen_lut_fast, lut=lut)
-    else:  # 'accurate'
-        # Use 100 coefficients with linear interpolation
-        lut, n_fact = _get_legen_table(ch_type, False, 100)
-        lut_fun = partial(_get_legen_lut_accurate, lut=lut)
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils,
+                                                             ch_type)
     logger.info('Computing dot products for %i %s...' % (len(coils), type_str))
     self_dots = _do_self_dots(int_rad, False, coils, my_origin, ch_type,
                               lut_fun, n_fact, n_jobs)
