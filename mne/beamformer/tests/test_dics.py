@@ -1,5 +1,6 @@
 from __future__ import print_function
 import warnings
+import os
 import os.path as op
 import copy as cp
 
@@ -12,7 +13,7 @@ from mne.datasets import testing
 from mne.beamformer import dics, dics_epochs, dics_source_power, tf_dics
 from mne.time_frequency import compute_epochs_csd
 from mne.externals.six import advance_iterator
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, clean_warning_registry
 
 # Note that this is the first test file, this will apply to all subsequent
 # tests in a full nosetest:
@@ -28,6 +29,9 @@ fname_event = op.join(data_path, 'MEG', 'sample',
                       'sample_audvis_trunc_raw-eve.fif')
 label = 'Aud-lh'
 fname_label = op.join(data_path, 'MEG', 'sample', 'labels', '%s.label' % label)
+
+# bit of a hack to deal with old scipy/numpy throwing warnings in tests
+clean_warning_registry()
 
 
 def read_forward_solution_meg(*args, **kwargs):

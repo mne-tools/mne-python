@@ -1560,6 +1560,14 @@ def clean_warning_registry():
     for mod in list(sys.modules.values()):
         if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
             getattr(mod, reg).clear()
+    # hack to deal with old scipy/numpy in tests
+    if os.getenv('TRAVIS') == 'true':
+        warnings.simplefilter('default')
+        try:
+            np.rank([])
+        except Exception:
+            pass
+        warnings.simplefilter('always')
 
 
 def _check_type_picks(picks):

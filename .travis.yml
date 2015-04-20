@@ -10,13 +10,10 @@ env:
     #
     # Note that we don't run coverage on Py3k anyway because it slows our tests
     # by a factor of 2 (!), so we make this our "from install dir" run.
-    #
-    # Numpy 1.7 is as far back as we can go because 1.6 throws a ton of
-    # warnings about using np.rank instead of ndim in scipy.sparse functions.
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=install
-    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
+    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.6" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
 # Setup anaconda
