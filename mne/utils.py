@@ -1561,7 +1561,7 @@ def clean_warning_registry():
         if mod.__class__.__name__ not in bad_names and hasattr(mod, reg):
             getattr(mod, reg).clear()
     # hack to deal with old scipy/numpy in tests
-    if os.getenv('TRAVIS') == 'true':
+    if os.getenv('TRAVIS') == 'true' and sys.version.startswith('2.6'):
         warnings.simplefilter('default')
         try:
             np.rank([])

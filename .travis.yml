@@ -10,6 +10,9 @@ env:
     #
     # Note that we don't run coverage on Py3k anyway because it slows our tests
     # by a factor of 2 (!), so we make this our "from install dir" run.
+    #
+    # If we change the old-version run to be a different Python version
+    # from 2.6, then we need to update mne.utils.clean_warning_registry.
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=install

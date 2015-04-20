@@ -20,7 +20,8 @@ from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
 from mne.evoked import _get_peak, EvokedArray, merge_evoked
 from mne.epochs import EpochsArray
 
-from mne.utils import _TempDir, requires_pandas, requires_nitime, slow_test
+from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
+                       requires_scipy_version)
 
 from mne.io.meas_info import create_info
 from mne.externals.six.moves import cPickle as pickle
@@ -33,7 +34,8 @@ fname_gz = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
                    'test-ave.fif.gz')
 
 
-def test_filter():
+@requires_scipy_version('0.14')
+def test_savgol_filter():
     """Test savgol filtering
     """
     h_freq = 10.
