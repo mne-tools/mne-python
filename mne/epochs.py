@@ -788,9 +788,18 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Return Epochs object with a subset of epochs corresponding to an
         experimental condition as specified by 'name'.
 
+        If conditions are separated by '/' (e.g. 'audio/left', 'audio/right'),
+        and 'name' is not in itself an event key, selects every event whose
+        condition contains 'name' (e.g., 'left' matches 'audio/left'
+        and 'visual/left'; but not 'audio_left').
+
     epochs[['name_1', 'name_2', ... ]] : Epochs
         Return Epochs object with a subset of epochs corresponding to multiple
         experimental conditions as specified by 'name_1', 'name_2', ... .
+
+        If conditions are separated by '/', selects every item containing every
+        list item (e.g. ['audio', 'left'] selects 'audio/left' and
+        'audio/center/left', but not 'audio/right').
 
     See also
     --------
@@ -1242,6 +1251,16 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             key = [key]
 
         if isinstance(key, (list, tuple)) and isinstance(key[0], string_types):
+            if any(["/" in k_i for k_i in epochs.event_id.keys()]):
+                if any([k_e not in list(epochs.event_id.keys())
+                       for k_e in key]):
+                    key = [k for k in list(epochs.event_id.keys())
+                           if all([set(k_i.split('/')).issubset(k.split("/"))
+                                   for k_i in key])]
+                    if len(key) == 0:
+                        raise KeyError('Attempting selection of events via '
+                                       'multiple/partial matching, but no '
+                                       'event matches all criteria.')
             select = np.any(np.atleast_2d([epochs._key_match(k)
                                            for k in key]), axis=0)
             epochs.name = ('+'.join(key) if epochs.name == 'Unknown'
