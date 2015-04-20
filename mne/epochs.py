@@ -61,7 +61,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.name = name
 
         if isinstance(event_id, dict):
-            if not all([isinstance(v, int) for v in event_id.values()]):
+            if any([isinstance(v, list) for v in event_id.values()]):
+                for val in event_id.values():
+                    if isinstance(val, list):
+                        if not all([isinstance(v, int) for v in val]):
+                            raise ValueError('Event IDs must be of '
+                                             'type integer.')
+                    elif not isinstance(val, int):
+                        raise ValueError('Event IDs must be of type integer.')
+            elif not all([isinstance(v, int) for v in event_id.values()]):
                 raise ValueError('Event IDs must be of type integer')
             if not all([isinstance(k, string_types) for k in event_id]):
                 raise ValueError('Event names must be of type str')
@@ -845,20 +853,24 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         self._projector, self.info = setup_proj(self.info, add_eeg_ref,
                                                 activate=activate)
 
+        values = list()
         for key, val in self.event_id.items():
-            if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                if on_missing == 'error':
-                    raise ValueError(msg)
-                elif on_missing == 'warning':
-                    logger.warning(msg)
-                    warnings.warn(msg)
-                else:  # on_missing == 'ignore':
-                    pass
+            if not isinstance(val, list):
+                val = [val]
+            for v in val:
+                if v not in events[:, 2]:
+                    msg = ('No matching events found for %s '
+                           '(event id %i)' % (key, v))
+                    if on_missing == 'error':
+                        raise ValueError(msg)
+                    elif on_missing == 'warning':
+                        logger.warning(msg)
+                        warnings.warn(msg)
+                    else:  # on_missing == 'ignore':
+                        pass
+                values.append(v)
 
         # Select the desired events
-        values = list(self.event_id.values())
         selected = in1d(events[:, 2], values)
         self.events = events[selected]
 
@@ -1218,8 +1230,15 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
         if len(self.event_id) > 1:
-            counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
-                      for k, v in sorted(self.event_id.items())]
+            counts = list()
+            for key, val in sorted(self.event_id.items()):
+                if isinstance(val, list):
+                    total = 0
+                    for v in val:
+                        total += np.sum(self.events[:, 2] == v)
+                else:
+                    total = np.sum(self.events[:, 2] == val)
+                counts.append('%r: %i' % (key, total))
             s += ',\n %s' % ', '.join(counts)
 
         return '<Epochs  |  %s>' % s
@@ -1228,7 +1247,13 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         """Helper function for event dict use"""
         if key not in self.event_id:
             raise KeyError('Event "%s" is not in Epochs.' % key)
-        return self.events[:, 2] == self.event_id[key]
+        if isinstance(self.event_id[key], list):
+            idx = list()
+            for val in self.event_id[key]:
+                idx.append(self.events[:, 2] == val)
+            return np.any(np.atleast_2d(idx), axis=0)
+        else:
+            return self.events[:, 2] == self.event_id[key]
 
     def __getitem__(self, key):
         """Return an Epochs object with a subset of epochs
@@ -1739,10 +1764,17 @@ class EpochsArray(Epochs):
         self.events = events
 
         for key, val in self.event_id.items():
-            if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                raise ValueError(msg)
+            if isinstance(val, list):
+                for v in val:
+                    if v not in events[:, 2]:
+                        msg = ('No matching events found for %s '
+                               '(event id %i)' % (key, val))
+                        raise ValueError(msg)
+            else:
+                if val not in events[:, 2]:
+                    msg = ('No matching events found for %s '
+                           '(event id %i)' % (key, val))
+                    raise ValueError(msg)
 
         self.baseline = baseline
         self.preload = True
