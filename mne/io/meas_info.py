@@ -29,8 +29,7 @@ from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
-from ..transforms import (als_ras_trans_mm, get_ras_to_neuromag_trans,
-                          apply_trans)
+from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
 
 _kind_dict = dict(
@@ -1341,7 +1340,7 @@ def read_digmontage(hsp=None, hpi=None, elp=None, point_names=None,
         montage. To get a proper `dev_head_t`, the hpi and the elp points
         must be in the same order. If False, an identity matrix will be added
         to the montage. Default is False.
-        
+
 
     Returns
     -------

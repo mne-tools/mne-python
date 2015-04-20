@@ -55,7 +55,7 @@ def test_read_digmontage():
 
 def test_apply_digmontage():
     """Test apply_montage
-    
+
     Extensive testing of applying `dig` to info is done in test_meas_info
     with `test_make_dig_points`.
     """
@@ -72,21 +72,22 @@ def test_apply_digmontage():
     montage = read_digmontage(hsp, hpi, elp, names, unit='m', transform=True)
     info = create_info(['Test Ch'], 1e3, ['eeg'])
     apply_montage(info, montage)
-    hs = np.array([point['r'] for i, point in enumerate(info['dig']) 
-                   if point['kind'] == FIFF.FIFFV_POINT_EXTRA])
-    nasion_dig = np.array([point['r'] for point in info['dig']
-                           if all([point['ident'] == FIFF.FIFFV_POINT_NASION,
-                                   point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    lpa_dig = np.array([point['r'] for point in info['dig']
-                        if all([point['ident'] == FIFF.FIFFV_POINT_LPA,
-                                point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    rpa_dig = np.array([point['r'] for point in info['dig']
-                        if all([point['ident'] == FIFF.FIFFV_POINT_RPA,
-                                point['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
-    hpi_dig = np.array([point['r'] for point in info['dig']
-                        if point['kind'] == FIFF.FIFFV_POINT_HPI])
+    hs = np.array([p['r'] for i, p in enumerate(info['dig'])
+                   if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
+    nasion_dig = np.array([p['r'] for p in info['dig']
+                           if all([p['ident'] == FIFF.FIFFV_POINT_NASION,
+                                   p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    lpa_dig = np.array([p['r'] for p in info['dig']
+                        if all([p['ident'] == FIFF.FIFFV_POINT_LPA,
+                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    rpa_dig = np.array([p['r'] for p in info['dig']
+                        if all([p['ident'] == FIFF.FIFFV_POINT_RPA,
+                                p['kind'] == FIFF.FIFFV_POINT_CARDINAL])])
+    hpi_dig = np.array([p['r'] for p in info['dig']
+                        if p['kind'] == FIFF.FIFFV_POINT_HPI])
     assert_array_equal(hs, hsp_points)
     assert_array_equal(nasion_dig.ravel(), nasion_point)
     assert_array_equal(lpa_dig.ravel(), lpa_point)
     assert_array_equal(rpa_dig.ravel(), rpa_point)
+    assert_array_equal(hpi_dig, hpi_points)
     assert_array_equal(montage.dev_head_t, info['dev_head_t']['trans'])

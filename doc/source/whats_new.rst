@@ -79,6 +79,8 @@ Changelog
 
    - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
+   - Add support for adding an empty reference channel to data by `Teon Brooks`_
+
    - Add reader function for Raw FIF files by `Teon Brooks`_
 
    - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
