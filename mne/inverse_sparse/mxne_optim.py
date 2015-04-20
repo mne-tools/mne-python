@@ -549,7 +549,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         active_set_0 = active_set.copy()
         G_tmp = G[:, active_set] * weights[np.newaxis, :]
 
-        if k == 0:
+        if np.sum(active_set) > (active_set_size * n_orient):
             X, _active_set, _ = mixed_norm_solver(
                 M, G_tmp, alpha, debias=False, n_orient=n_orient, maxit=maxit,
                 tol=tol, active_set_size=active_set_size, solver=solver,
