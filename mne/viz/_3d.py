@@ -29,7 +29,7 @@ from ..io.pick import pick_types
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
-                          combine_transforms)
+                          combine_transforms, _get_mri_head_t)
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -821,7 +821,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     scale_factor :
         The scaling applied to amplitudes for the plot.
     colors: list of colors | None
-        Color to plot with each dipole. If None defaults colors are used.
+        Color to plot with each dipole. If None default colors are used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -830,23 +830,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    msg = ('trans must be the transformation between '
-           'the head (coord 4) and the mri (coord 5)')
-    if trans['to'] == FIFF.FIFFV_COORD_HEAD:
-        if trans['from'] == FIFF.FIFFV_COORD_MRI:
-            coord_trans = trans['trans']
-        else:
-            raise ValueError(msg)
-    elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
-        if trans['to'] == FIFF.FIFFV_COORD_MRI:
-            from ..transforms import invert_transform
-            trans = invert_transform(trans)
-            coord_trans = trans['trans']
-        else:
-            raise ValueError(msg)
-    else:
-        raise ValueError(msg)
-
+    trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
                          'inner_skull.surf')
@@ -880,7 +864,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     ax = plt.subplot()
 
     points *= 1e-03
-    points = apply_trans(coord_trans, points)
+    points = apply_trans(trans['trans'], points)
 
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
@@ -901,5 +885,5 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
 
     if fig_name is not None:
         mlab.title(fig_name)
-
+    fig.scene.x_plus_view()
     return fig

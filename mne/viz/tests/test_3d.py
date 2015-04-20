@@ -17,7 +17,7 @@ from mne import SourceEstimate
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole)
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, plot_dipoles)
+                     plot_trans)
 from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -162,4 +162,4 @@ def test_plot_dipoles():
                         'sample_audvis_trunc_set1.dip')
     dipoles = read_dipole(fname_dip)
     trans = read_trans(trans_fname)
-    plot_dipoles(dipoles, trans, 'sample', subjects_dir)
+    dipoles.plot(trans, 'sample', subjects_dir)
