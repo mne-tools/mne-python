@@ -320,7 +320,7 @@ def dics_source_power(info, forward, noise_csds, data_csds, reg=0.01,
         return tuple(c.data.shape for c in x)
 
     if (csd_shapes(data_csds) != csd_shapes(noise_csds) or
-       any([len(set(csd_shapes(c))) > 1 for c in [data_csds, noise_csds]])):
+       any(len(set(csd_shapes(c))) > 1 for c in [data_csds, noise_csds])):
         raise ValueError('One noise CSD matrix should be provided for each '
                          'data CSD matrix and vice versa. All CSD matrices '
                          'should have identical shape.')

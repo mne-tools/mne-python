@@ -148,7 +148,7 @@ def show_fiff(fname, indent='    ', read_limit=np.inf, max_str=30,
 def _find_type(value, fmts=['FIFF_'], exclude=['FIFF_UNIT']):
     """Helper to find matching values"""
     vals = [k for k, v in six.iteritems(FIFF)
-            if v == value and any([fmt in k for fmt in fmts]) and
+            if v == value and any(fmt in k for fmt in fmts) and
             not any(exc in k for exc in exclude)]
     return vals
 

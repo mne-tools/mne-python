@@ -352,13 +352,12 @@ def find_layout(info, ch_type=None, exclude='bads'):
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
-    has_vv_mag = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_MAG_T1,
-                                                FIFF.FIFFV_COIL_VV_MAG_T2,
-                                                FIFF.FIFFV_COIL_VV_MAG_T3]])
-    has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]]
-                      )
+    has_vv_mag = any(k in coil_types for k in
+                     [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
+                      FIFF.FIFFV_COIL_VV_MAG_T3])
+    has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T2,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T3])
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -370,13 +369,13 @@ def find_layout(info, ch_type=None, exclude='bads'):
                        FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
     has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
                     (FIFF.FIFFV_MEG_CH in channel_types and
-                     any([k in ctf_other_types for k in coil_types])))
+                     any(k in ctf_other_types for k in coil_types)))
     # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = len([ch for ch in chs
-                       if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
+    n_kit_grads = len(ch for ch in chs
+                      if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD)
 
-    has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
-                       n_kit_grads])
+    has_any_meg = any(has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
+                      n_kit_grads)
     has_eeg_coils = (FIFF.FIFFV_COIL_EEG in coil_types and
                      FIFF.FIFFV_EEG_CH in channel_types)
     has_eeg_coils_and_meg = has_eeg_coils and has_any_meg
@@ -389,7 +388,7 @@ def find_layout(info, ch_type=None, exclude='bads'):
         raise RuntimeError('No EEG channels present. Cannot find EEG layout.')
 
     if ((has_vv_meg and ch_type is None) or
-            (any([has_vv_mag, has_vv_grad]) and ch_type == 'meg')):
+            (any(has_vv_mag, has_vv_grad) and ch_type == 'meg')):
         layout_name = 'Vectorview-all'
     elif has_vv_only_mag or (has_vv_meg and ch_type == 'mag'):
         layout_name = 'Vectorview-mag'

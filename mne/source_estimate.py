@@ -325,7 +325,7 @@ def read_source_estimate(fname, subject=None):
     if ftype != 'volume':
         # Make sure the vertices are ordered
         vertices = kwargs['vertices']
-        if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+        if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
             sidx = [np.argsort(verts) for verts in vertices]
             vertices = [verts[idx] for verts, idx in zip(vertices, sidx)]
             data = kwargs['data'][np.r_[sidx[0], len(sidx[0]) + sidx[1]]]
@@ -438,7 +438,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
                 raise ValueError('Vertices, if a list, must contain numpy '
                                  'arrays')
 
-            if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+            if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
 
@@ -2798,7 +2798,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         if len(stc.vertices[0]) != nvert[0] or \
                 len(stc.vertices[1]) != nvert[1]:
             raise ValueError('stc not compatible with source space')
-        if any([np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)]):
+        if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
 
         logger.info('Extracting time courses for %d labels (mode: %s)'

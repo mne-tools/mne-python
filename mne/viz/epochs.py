@@ -158,7 +158,7 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
         raise ValueError('drop_log must be a list of lists')
 
     perc = 100 * np.mean([len(d) > 0 for d in drop_log
-                          if not any([r in ignore for r in d])])
+                          if not any(r in ignore for r in d)])
 
     return perc
 
@@ -388,7 +388,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     bad_ch_idx = None
     ch_names = epochs.ch_names
     bads = epochs.info['bads']
-    if any([ch_names[k] in bads for k in picks]):
+    if any(ch_names[k] in bads for k in picks):
         ch_picked = [k for k in ch_names if ch_names.index(k) in picks]
         bad_ch_idx = [ch_picked.index(k) for k in bads if k in ch_names]
         good_ch_idx = [p for p in picks if p not in bad_ch_idx]

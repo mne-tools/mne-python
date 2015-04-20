@@ -64,7 +64,7 @@ def _rename_channels(names, ecg_ch='E31', eog_ch=('E63', 'E64')):
             name = 'STI 013'
         elif name == 'TRIGGER':
             name = 'STI 014'
-        elif any([name == k for k in eog_ch]):
+        elif any(name == k for k in eog_ch):
             name = 'EOG %3.3d' % six.advance_iterator(eog)
         elif name == ecg_ch:
             name = 'ECG 001'
@@ -1025,7 +1025,7 @@ class RawBTi(_BaseRaw):
             chan_info['scanno'] = idx + 1
             chan_info['cal'] = bti_info['chs'][idx]['scale']
 
-            if any([chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')]):
+            if any(chan_vv.startswith(k) for k in ('MEG', 'RFG', 'RFM')):
                 t, loc = bti_info['chs'][idx]['coil_trans'], None
                 if t is not None:
                     t, loc = _convert_coil_trans(t.astype('>f8'), dev_ctf_t,

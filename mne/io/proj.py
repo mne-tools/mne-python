@@ -709,7 +709,7 @@ def _uniquify_projs(projs):
     """Aux function"""
     final_projs = []
     for proj in projs:  # flatten
-        if not any([proj_equal(p, proj) for p in final_projs]):
+        if not any(proj_equal(p, proj) for p in final_projs):
             final_projs.append(proj)
 
     my_count = count(len(final_projs))

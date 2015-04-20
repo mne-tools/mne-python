@@ -2213,7 +2213,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         s['dist_limit'] = np.array([dist_limit], np.float32)
 
     # Let's see if our distance was sufficient to allow for patch info
-    if not any([np.any(np.isinf(md)) for md in min_dists]):
+    if not any(np.any(np.isinf(md)) for md in min_dists):
         # Patch info can be added!
         for s, min_dist, min_idx in zip(src, min_dists, min_idxs):
             s['nearest'] = min_idx

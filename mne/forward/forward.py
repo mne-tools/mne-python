@@ -1602,11 +1602,11 @@ def average_forward_solutions(fwds, weights=None):
                            'entries, cannot compute average.')
 
     # check forward solution compatibility
-    if any([fwd['sol'][k] != fwds[0]['sol'][k]
-            for fwd in fwds[1:] for k in ['nrow', 'ncol']]):
+    if any(fwd['sol'][k] != fwds[0]['sol'][k]
+           for fwd in fwds[1:] for k in ['nrow', 'ncol']):
         raise ValueError('Forward solutions have incompatible dimensions')
-    if any([fwd[k] != fwds[0][k] for fwd in fwds[1:]
-            for k in ['source_ori', 'surf_ori', 'coord_frame']]):
+    if any(fwd[k] != fwds[0][k] for fwd in fwds[1:]
+           for k in ['source_ori', 'surf_ori', 'coord_frame']):
         raise ValueError('Forward solutions have incompatible orientations')
 
     # actually average them (solutions and gradients)
