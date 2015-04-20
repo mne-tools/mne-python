@@ -129,7 +129,7 @@ def _check_delayed_ssp(container):
     """ Aux function to be used for interactive SSP selection
     """
     if container.proj is True or\
-       all([p['active'] for p in container.info['projs']]):
+       all(p['active'] for p in container.info['projs']):
         raise RuntimeError('Projs are already applied. Please initialize'
                            ' the data with proj set to False.')
     elif len(container.info['projs']) < 1:

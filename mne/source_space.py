@@ -1458,7 +1458,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         logger.info('BEM file              : %s', bem)
     elif surface is not None:
         if isinstance(surface, dict):
-            if not all([key in surface for key in ['rr', 'tris']]):
+            if not all(key in surface for key in ['rr', 'tris']):
                 raise KeyError('surface, if dict, must have entries "rr" '
                                'and "tris"')
             # let's make sure we have geom info
@@ -1476,7 +1476,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     # triage pos argument
     if isinstance(pos, dict):
-        if not all([key in pos for key in ['rr', 'nn']]):
+        if not all(key in pos for key in ['rr', 'nn']):
             raise KeyError('pos, if dict, must contain "rr" and "nn"')
         pos_extra = 'dict()'
     else:  # pos should be float-like
@@ -2167,7 +2167,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
-    if not all([s['type'] == 'surf' for s in src]):
+    if not all(s['type'] == 'surf' for s in src):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
 

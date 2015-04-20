@@ -302,7 +302,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         if not isinstance(threshold, dict):
             raise TypeError('threshold must be a number, or a dict for '
                             'threshold-free cluster enhancement')
-        if not all([key in threshold for key in ['start', 'step']]):
+        if not all(key in threshold for key in ['start', 'step']):
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True

@@ -324,7 +324,7 @@ def test_show_fiff():
     keys = ['FIFF_EPOCH', 'FIFFB_HPI_COIL', 'FIFFB_PROJ_ITEM',
             'FIFFB_PROCESSED_DATA', 'FIFFB_EVOKED', 'FIFF_NAVE',
             'FIFF_EPOCH']
-    assert_true(all([key in info for key in keys]))
+    assert_true(all(key in info for key in keys))
     info = show_fiff(fname_raw, read_limit=1024)
 
 

@@ -1597,7 +1597,7 @@ def average_forward_solutions(fwds, weights=None):
         check_keys = ['info', 'sol_grad', 'nchan', 'src', 'source_nn', 'sol',
                       'source_rr', 'source_ori', 'surf_ori', 'coord_frame',
                       'mri_head_t', 'nsource']
-        if not all([key in fwd for key in check_keys]):
+        if not all(key in fwd for key in check_keys):
             raise KeyError('forward solution dict does not have all standard '
                            'entries, cannot compute average.')
 

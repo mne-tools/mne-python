@@ -1111,7 +1111,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
-            not all([b in noise_cov['bads'] for b in info['bads']]):
+            not all(b in noise_cov['bads'] for b in info['bads']):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both')
 

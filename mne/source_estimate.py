@@ -373,8 +373,8 @@ def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
     if len(a.vertices) == len(b.vertices):
-        if all([np.array_equal(av, vv)
-                for av, vv in zip(a.vertices, b.vertices)]):
+        if all(np.array_equal(av, vv)
+               for av, vv in zip(a.vertices, b.vertices)):
             compat = True
     if not compat:
         raise ValueError('Cannot combine SourceEstimates that do not have the '
@@ -434,7 +434,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not all([isinstance(v, np.ndarray) for v in vertices]):
+            if not all(isinstance(v, np.ndarray) for v in vertices):
                 raise ValueError('Vertices, if a list, must contain numpy '
                                  'arrays')
 

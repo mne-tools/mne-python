@@ -464,8 +464,8 @@ def test_reject_epochs():
                     reject=reject_crazy, flat=flat)
     epochs.drop_bad_epochs()
 
-    assert_true(all(['MEG 2442' in e for e in epochs.drop_log]))
-    assert_true(all(['MEG 2443' not in e for e in epochs.drop_log]))
+    assert_true(all('MEG 2442' in e for e in epochs.drop_log))
+    assert_true(all('MEG 2443' not in e for e in epochs.drop_log))
 
     # Invalid reject_tmin/reject_tmax/detrend
     assert_raises(ValueError, Epochs, raw, events1, event_id, tmin, tmax,

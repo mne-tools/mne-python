@@ -60,7 +60,7 @@ class ProjMixin(object):
     """
     @property
     def proj(self):
-        return all([p['active'] for p in self.info['projs']])
+        return all(p['active'] for p in self.info['projs'])
 
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
@@ -81,7 +81,7 @@ class ProjMixin(object):
             projs = [projs]
 
         if (not isinstance(projs, list) and
-                not all([isinstance(p, Projection) for p in projs])):
+                not all(isinstance(p, Projection) for p in projs)):
             raise ValueError('Only projs can be added. You supplied '
                              'something else.')
 
@@ -136,7 +136,7 @@ class ProjMixin(object):
             logger.info('Leaving delayed SSP mode.')
             del self._delayed_proj
 
-        if all([p['active'] for p in self.info['projs']]):
+        if all(p['active'] for p in self.info['projs']):
             logger.info('Projections have already been applied. '
                         'Setting proj attribute to True.')
             return self

@@ -225,7 +225,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
         A n_vertices x n_sensors array that remaps the MEG or EEG data,
         as `new_data = np.dot(mapping, data)`.
     """
-    if not all([key in surf for key in ['rr', 'nn']]):
+    if not all(key in surf for key in ['rr', 'nn']):
         raise KeyError('surf must have both "rr" and "nn"')
     if 'coord_frame' not in surf:
         raise KeyError('The surface coordinate frame must be specified '

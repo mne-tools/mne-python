@@ -59,7 +59,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
-              all([isinstance(ch, string_types) for ch in exclude])):
+              all(isinstance(ch, string_types) for ch in exclude)):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
