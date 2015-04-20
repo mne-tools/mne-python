@@ -760,7 +760,7 @@ class ICA(ContainsMixin):
             Callable taking as arguments either two input arrays
             (e.g. Pearson correlation) or one input
             array (e. g. skewness) and returns a float. For convenience the
-            most common score_funcs are available via string labels_:
+            most common score_funcs are available via string labels:
             Currently, all distance metrics from scipy.spatial and All
             functions from scipy.stats taking compatible input arguments are
             supported. These function have been modified to support iteration
