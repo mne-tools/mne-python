@@ -149,7 +149,7 @@ def test_epoch_multi_ids():
     """
     raw, events, picks = _get_data()
     epochs = Epochs(raw, events, {'a/b/a': 1, 'a/b/b': 2, 'a/c': 3,
-                                  'b/d': 4, 'b/e': 5, 'b/f': 32},
+                                  'b/d': 4, 'a_b': 5},
                     tmin, tmax, picks=picks, preload=False)
     epochs_regular = epochs[['a', 'b']]
     epochs_multi = epochs[['a/b/a', 'a/b/b']]

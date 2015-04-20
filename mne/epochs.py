@@ -1243,9 +1243,8 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
         if isinstance(key, (list, tuple)) and isinstance(key[0], string_types):
             if any(["/" in k_i for k_i in epochs.event_id.keys()]):
-                if any([k_e not in list(epochs.event_id.keys())
-                       for k_e in key]):
-                    key = [k for k in list(epochs.event_id.keys())
+                if any([k_e not in epochs.event_id for k_e in key]):
+                    key = [k for k in epochs.event_id.keys()
                            if all([set(k_i.split('/')).issubset(k.split("/"))
                                    for k_i in key])]
                     if len(key) == 0:
