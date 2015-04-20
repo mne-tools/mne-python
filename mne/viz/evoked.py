@@ -109,7 +109,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if len(idx) > 0:
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                if any([i in bad_ch_idx for i in idx]):
+                if any(i in bad_ch_idx for i in idx):
                     colors = ['k'] * len(idx)
                     for i in bad_ch_idx:
                         if i in idx:
