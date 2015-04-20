@@ -549,15 +549,22 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
         active_set_0 = active_set.copy()
         G_tmp = G[:, active_set] * weights[np.newaxis, :]
 
-        if np.sum(active_set) > (active_set_size * n_orient):
-            X, _active_set, _ = mixed_norm_solver(
-                M, G_tmp, alpha, debias=False, n_orient=n_orient, maxit=maxit,
-                tol=tol, active_set_size=active_set_size, solver=solver,
-                verbose=verbose)
+        if active_set_size is not None:
+            if np.sum(active_set) > (active_set_size * n_orient):
+                X, _active_set, _ = mixed_norm_solver(
+                    M, G_tmp, alpha, debias=False, n_orient=n_orient,
+                    maxit=maxit, tol=tol, active_set_size=active_set_size,
+                    solver=solver, verbose=verbose)
+            else:
+                X, _active_set, _ = mixed_norm_solver(
+                    M, G_tmp, alpha, debias=False, n_orient=n_orient,
+                    maxit=maxit, tol=tol, active_set_size=None, solver=solver,
+                    verbose=verbose)
         else:
             X, _active_set, _ = mixed_norm_solver(
-                M, G_tmp, alpha, debias=False, n_orient=n_orient, maxit=maxit,
-                tol=tol, active_set_size=None, solver=solver, verbose=verbose)
+                M, G_tmp, alpha, debias=False, n_orient=n_orient,
+                maxit=maxit, tol=tol, active_set_size=None, solver=solver,
+                verbose=verbose)
 
         logger.info('active set size %d' % (_active_set.sum() / n_orient))
 
