@@ -20,8 +20,8 @@ and the number of samples available. The MNE manual therefore suggests to regula
 :ref:`CBBHEGAB`), especially if only few samples are available. Unfortunately
 it is not easy to tell the effective number of samples, hence, to chose the appropriate regularization.
 In MNE-Python, regularization is done using advanced regularization methods
-described in [1]. For this the 'auto' option can be used. With this
-option cross-validation will be used to learn the optimal regularization.
+described in [1]_. For this the 'auto' option can be used. With this
+option cross-validation will be used to learn the optimal regularization::
 
     >>> import mne
     >>> epochs = mne.read_epochs(epochs_path)
