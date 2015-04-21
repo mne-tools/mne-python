@@ -42,12 +42,10 @@ install:
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
-        pip install -q joblib;
+        pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
-          pip install -q nibabel;
           conda install --yes --quiet ipython > /dev/null;
         else
-          pip install -q git+git://github.com/nipy/nibabel.git;
           conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then

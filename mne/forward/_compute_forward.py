@@ -414,6 +414,47 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 
 
 # #############################################################################
+# MAGNETIC DIPOLE (e.g. CHPI)
+
+def _magnetic_dipole_field_vec(rrs, coils):
+    """Compute an MEG forward solution for a set of magnetic dipoles"""
+    fwd = np.empty((3 * len(rrs), len(coils)))
+    # The code below is a more efficient version (~30x) of this:
+    # for ri, rr in enumerate(rrs):
+    #     for k in range(len(coils)):
+    #         this_coil = coils[k]
+    #         # Go through all points
+    #         diff = this_coil['rmag'] - rr
+    #         dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
+    #         dist = np.sqrt(dist2)
+    #         if (dist < 1e-5).any():
+    #             raise RuntimeError('Coil too close')
+    #         dist5 = dist2 * dist2 * dist
+    #         sum_ = (3 * diff * np.sum(diff * this_coil['cosmag'],
+    #                                   axis=1)[:, np.newaxis] -
+    #                 dist2 * this_coil['cosmag']) / dist5
+    #         fwd[3*ri:3*ri+3, k] = 1e-7 * np.dot(this_coil['w'], sum_)
+
+    fwd = np.empty((3 * len(rrs), len(coils)))
+    rmags, cosmags, ws, counts = _concatenate_coils(coils)
+    bins = np.repeat(np.arange(len(counts)), counts)
+    for ri, rr in enumerate(rrs):
+        diff = rmags - rr
+        dist2 = np.sum(diff * diff, axis=1)[:, np.newaxis]
+        dist = np.sqrt(dist2)
+        if (dist < 1e-5).any():
+            raise RuntimeError('Coil too close (dist = %g m)' % dist.min())
+        sum_ = ws[:, np.newaxis] * (3 * diff * np.sum(diff * cosmags,
+                                                      axis=1)[:, np.newaxis] -
+                                    dist2 * cosmags) / (dist2 * dist2 * dist)
+        for ii in range(3):
+            fwd[3 * ri + ii] = np.bincount(bins, weights=sum_[:, ii],
+                                           minlength=len(counts))
+    fwd *= 1e-7
+    return fwd
+
+
+# #############################################################################
 # MAIN TRIAGING FUNCTION
 
 @verbose

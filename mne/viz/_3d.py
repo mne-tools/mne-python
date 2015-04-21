@@ -29,7 +29,7 @@ from ..io.pick import pick_types
 from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
                        transform_surface_to)
 from ..transforms import (read_trans, _find_trans, apply_trans,
-                          combine_transforms)
+                          combine_transforms, _get_mri_head_t)
 from ..utils import get_subjects_dir, logger, _check_subject
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
@@ -784,16 +784,19 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
     return surface
 
 
-def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
-                 bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
-                 mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
-                 mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
-    """Plot dipoles.
+def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
+                          bgcolor=(1, 1, 1), opacity=0.3,
+                          brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
+                          fig_name=None, fig_size=(600, 600), mode='cone',
+                          scale_factor=0.1e-1, colors=None, verbose=None):
+    """Plot dipole locations
+
+    Only the location of the first time point of each dipole is shown.
 
     Parameters
     ----------
-    dipoles : list of instances of dipole
-        The dipoles.
+    dipoles : list of instances of Dipole | Dipole
+        The dipoles to plot.
     trans : dict
         The mri to head trans.
     subject : str
@@ -811,17 +814,17 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
         Brain color.
     mesh_color : tuple of length 3
         Mesh color.
-    fig_name : tuple of length 2
+    fig_name : str
         Mayavi figure name.
-    fig_size :
+    fig_size : tuple of length 2
         Mayavi figure size.
     mode : str
         Should be ``'cone'`` or ``'sphere'`` to specify how the
         dipoles should be shown.
-    scale_factor :
+    scale_factor : float
         The scaling applied to amplitudes for the plot.
     colors: list of colors | None
-        Color to plot with each dipole. If None defaults colors are used.
+        Color to plot with each dipole. If None default colors are used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -830,31 +833,20 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    msg = ('trans must be the transformation between '
-           'the head (coord 4) and the mri (coord 5)')
-    if trans['to'] == FIFF.FIFFV_COORD_HEAD:
-        if trans['from'] == FIFF.FIFFV_COORD_MRI:
-            coord_trans = trans['trans']
-        else:
-            raise ValueError(msg)
-    elif trans['from'] == FIFF.FIFFV_COORD_HEAD:
-        if trans['to'] == FIFF.FIFFV_COORD_MRI:
-            from ..transforms import invert_transform
-            trans = invert_transform(trans)
-            coord_trans = trans['trans']
-        else:
-            raise ValueError(msg)
-    else:
-        raise ValueError(msg)
+    from mayavi import mlab
+    from matplotlib.colors import ColorConverter
+    color_converter = ColorConverter()
 
+    trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     fname = os.path.join(subjects_dir, subject, 'bem',
                          'inner_skull.surf')
+    points, faces = read_surface(fname)
+    points = apply_trans(trans['trans'], points * 1e-3)
 
     from .. import Dipole
     if isinstance(dipoles, Dipole):
         dipoles = [dipoles]
-    n_dipoles, n_times = len(dipoles), len(dipoles[0].times)
 
     if mode not in ['cone', 'sphere']:
         raise ValueError('mode must be in "cone" or "sphere"')
@@ -862,44 +854,20 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
     if colors is None:
         colors = cycle(COLORS)
 
-    points, faces = read_surface(fname)
-
-    pos = np.zeros((n_dipoles, n_times, 3))
-    ori = np.zeros((n_dipoles, n_times, 3))
-    amp = np.zeros((n_dipoles, n_times))
-    for i_dip in range(n_dipoles):
-        pos[i_dip], ori[i_dip] = dipoles[i_dip].pos, dipoles[i_dip].ori
-        amp[i_dip] = dipoles[i_dip].amplitude
-
-    from mayavi import mlab
-    import matplotlib.pyplot as plt
-    from matplotlib.colors import ColorConverter
-    color_converter = ColorConverter()
-
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
-    ax = plt.subplot()
-
-    points *= 1e-03
-    points = apply_trans(coord_trans, points)
-
     mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
                          faces, color=mesh_color, opacity=opacity)
 
-    for i_dip, color in zip(range(len(dipoles)), colors):
+    for dip, color in zip(dipoles, colors):
         rgb_color = color_converter.to_rgb(color)
-        mlab.quiver3d(pos[i_dip, 0, 0], pos[i_dip, 0, 1], pos[i_dip, 0, 2],
-                      ori[i_dip, 0, 0], ori[i_dip, 0, 1], ori[i_dip, 0, 2],
+        mlab.quiver3d(dip.pos[0, 0], dip.pos[0, 1], dip.pos[0, 2],
+                      dip.ori[0, 0], dip.ori[0, 1], dip.ori[0, 2],
                       opacity=1., mode=mode, color=rgb_color,
-                      scalars=dipoles[i_dip].amplitude.max(),
-                      scale_factor=scale_factor)
-
-        # Plot the time-series
-        ax.plot(dipoles[i_dip].times, dipoles[i_dip].amplitude,
-                color=color, linewidth=1.5)
-    ax.set_ylabel('amplitude (nAm)')
-    ax.set_xlabel('times (ms)')
+                      scalars=dip.amplitude.max(), scale_factor=scale_factor)
 
     if fig_name is not None:
         mlab.title(fig_name)
+    if fig.scene is not None:  # safe for Travis
+        fig.scene.x_plus_view()
 
     return fig

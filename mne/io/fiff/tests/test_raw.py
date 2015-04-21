@@ -19,8 +19,7 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import (Raw, concatenate_raws, get_chpi_positions,
-                    read_raw_fif)
+from mne.io import Raw, concatenate_raws, read_raw_fif
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels)
 from mne.utils import (_TempDir, requires_nitime, requires_pandas,
@@ -90,24 +89,6 @@ def test_subject_info():
     raw_read.save(out_fname_anon, overwrite=True)
     raw_read = Raw(out_fname_anon)
     assert_true(raw_read.info.get('subject_info') is None)
-
-
-@testing.requires_testing_data
-def test_get_chpi():
-    """Test CHPI position computation
-    """
-    trans0, rot0, _ = get_chpi_positions(hp_fname)
-    raw = Raw(hp_fif_fname)
-    out = get_chpi_positions(raw)
-    trans1, rot1, t1 = out
-    trans1 = trans1[2:]
-    rot1 = rot1[2:]
-    # these will not be exact because they don't use equiv. time points
-    assert_allclose(trans0, trans1, atol=1e-6, rtol=1e-1)
-    assert_allclose(rot0, rot1, atol=1e-6, rtol=1e-1)
-    # run through input checking
-    assert_raises(TypeError, get_chpi_positions, 1)
-    assert_raises(ValueError, get_chpi_positions, hp_fname, [1])
 
 
 @testing.requires_testing_data

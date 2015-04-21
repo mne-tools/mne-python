@@ -5,6 +5,7 @@
 
 import numpy as np
 from scipy import optimize, linalg
+from copy import deepcopy
 import re
 
 from .cov import read_cov, _get_whitener_data
@@ -41,15 +42,15 @@ class Dipole(object):
     Parameters
     ----------
     times : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted.
+        The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
+        The dipoles positions (m).
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
+        The amplitude of the dipoles (nAm).
     ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
+        The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)
-        The goodness of fit
+        The goodness of fit.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
         self.times = times
@@ -100,8 +101,92 @@ class Dipole(object):
             End time of selection in seconds.
         """
         mask = _time_mask(self.times, tmin, tmax)
-        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori', 'gof'):
+        for attr in ('times', 'pos', 'gof', 'amplitude', 'ori'):
             setattr(self, attr, getattr(self, attr)[mask])
+
+    def copy(self):
+        """Copy the Dipoles object
+
+        Returns
+        -------
+        dip : instance of Dipole
+            The copied dipole instance.
+        """
+        return deepcopy(self)
+
+    @verbose
+    def plot_locations(self, trans, subject, subjects_dir=None,
+                       bgcolor=(1, 1, 1) * 3, opacity=0.3,
+                       brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
+                       fig_name=None, fig_size=(600, 600), mode='cone',
+                       scale_factor=0.1e-1, colors=None, verbose=None):
+        """Plot dipole locations as arrows
+
+        Parameters
+        ----------
+        trans : dict
+            The mri to head trans.
+        subject : str
+            The subject name corresponding to FreeSurfer environment
+            variable SUBJECT.
+        subjects_dir : None | str
+            The path to the freesurfer subjects reconstructions.
+            It corresponds to Freesurfer environment variable SUBJECTS_DIR.
+            The default is None.
+        bgcolor : tuple of length 3
+            Background color in 3D.
+        opacity : float in [0, 1]
+            Opacity of brain mesh.
+        brain_color : tuple of length 3
+            Brain color.
+        mesh_color : tuple of length 3
+            Mesh color.
+        fig_name : tuple of length 2
+            Mayavi figure name.
+        fig_size : tuple of length 2
+            Mayavi figure size.
+        mode : str
+            Should be ``'cone'`` or ``'sphere'`` to specify how the
+            dipoles should be shown.
+        scale_factor : float
+            The scaling applied to amplitudes for the plot.
+        colors: list of colors | None
+            Color to plot with each dipole. If None defaults colors are used.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        fig : instance of mlab.Figure
+            The mayavi figure.
+        """
+        from .viz import plot_dipole_locations
+        dipoles = []
+        for t in self.times:
+            dipoles.append(self.copy())
+            dipoles[-1].crop(t, t)
+        return plot_dipole_locations(
+            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
+            brain_color, mesh_color, fig_name, fig_size, mode, scale_factor,
+            colors)
+
+    def plot_amplitudes(self, color='k', show=True):
+        """Plot the dipole amplitudes as a function of time
+
+        Parameters
+        ----------
+        color: matplotlib Color
+            Color to use for the trace.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure object containing the plot.
+        """
+        from .viz import plot_dipole_amplitudes
+        return plot_dipole_amplitudes([self], [color], show)
 
 
 # #############################################################################
@@ -150,16 +235,8 @@ def read_dipole(fname, verbose=None):
 
     Returns
     -------
-    time : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted (in sec).
-    pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
-    amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
-    ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape (n_dipoles,)
-        The goodness of fit (in percent).
+    dipole : instance of Dipole
+        The dipole.
     """
     try:
         data = np.loadtxt(fname, comments='%')
@@ -184,8 +261,7 @@ def read_dipole(fname, verbose=None):
     norm[norm == 0] = 1
     ori = data[:, 6:9] / norm[:, np.newaxis]
     gof = data[:, 9]
-    dipole = Dipole(times, pos, amplitude, ori, gof, name)
-    return dipole
+    return Dipole(times, pos, amplitude, ori, gof, name)
 
 
 # #############################################################################

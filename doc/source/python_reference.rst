@@ -275,6 +275,8 @@ Visualization
    mne_analyze_colormap
    plot_connectivity_circle
    plot_cov
+   plot_dipole_amplitudes
+   plot_dipole_locations
    plot_drop_log
    plot_evoked
    plot_evoked_image

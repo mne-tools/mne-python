@@ -17,7 +17,7 @@ from mne import SourceEstimate
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
                  read_trans, read_dipole)
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
-                     plot_trans, plot_dipoles)
+                     plot_trans)
 from mne.utils import requires_mayavi, requires_pysurfer
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
@@ -31,8 +31,9 @@ data_dir = testing.data_path(download=False)
 subjects_dir = op.join(data_dir, 'subjects')
 trans_fname = op.join(data_dir, 'MEG', 'sample',
                       'sample_audvis_trunc-trans.fif')
-src_fname = op.join(data_dir, 'subjects', 'sample',
-                    'bem', 'sample-oct-6-src.fif')
+src_fname = op.join(data_dir, 'subjects', 'sample', 'bem',
+                    'sample-oct-6-src.fif')
+dip_fname = op.join(data_dir, 'MEG', 'sample', 'sample_audvis_trunc_set1.dip')
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 evoked_fname = op.join(base_dir, 'test-ave.fif')
@@ -155,11 +156,11 @@ def test_limits_to_control_points():
 
 @testing.requires_testing_data
 @requires_mayavi
-def test_plot_dipoles():
-    """Test plotting dipoles
+def test_plot_dipole_locations():
+    """Test plotting dipole locations
     """
-    fname_dip = op.join(data_dir, 'MEG', 'sample',
-                        'sample_audvis_trunc_set1.dip')
-    dipoles = read_dipole(fname_dip)
+    dipoles = read_dipole(dip_fname)
     trans = read_trans(trans_fname)
-    plot_dipoles(dipoles, trans, 'sample', subjects_dir)
+    dipoles.plot_locations(trans, 'sample', subjects_dir, fig_name='foo')
+    assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
+                  subjects_dir, mode='foo')

@@ -185,7 +185,8 @@ def _create_coils(chs, acc=None, t=None, coil_type='meg', coilset=None):
     return coils
 
 
-def _setup_bem(bem, bem_extra, neeg, mri_head_t):
+@verbose
+def _setup_bem(bem, bem_extra, neeg, mri_head_t, verbose=None):
     """Set up a BEM for forward computation"""
     logger.info('')
     if isinstance(bem, string_types):
@@ -216,8 +217,9 @@ def _setup_bem(bem, bem_extra, neeg, mri_head_t):
     return bem
 
 
+@verbose
 def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
-                   accurate=True):
+                   accurate=True, verbose=None):
     """Prepare coil definitions for forward calculation"""
     # accuracy param only affects MEG channels
     if accurate:
@@ -252,10 +254,10 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
                            'reference channels. Consider using '
                            '"ignore_ref=True" in calculation')
                     raise NotImplementedError(err)
-            _print_coord_trans(info['dev_head_t'])
-            # make info structure to allow making compensator later
         else:
             ncomp = 0
+        _print_coord_trans(info['dev_head_t'])
+        # make info structure to allow making compensator later
         ncomp_data = len(info['comps'])
         ref_meg = True if not ignore_ref else False
         picks = pick_types(info, meg=True, ref_meg=ref_meg, exclude=exclude)

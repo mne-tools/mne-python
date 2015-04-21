@@ -21,7 +21,7 @@ import mne
 
 from mne.datasets import sample
 from mne.beamformer import rap_music
-from mne.viz import plot_dipoles
+from mne.viz import plot_dipole_locations, plot_dipole_amplitudes
 
 print(__doc__)
 
@@ -49,7 +49,8 @@ noise_cov = mne.read_cov(cov_fname)
 dipoles, residual = rap_music(evoked, forward, noise_cov, n_dipoles=2,
                               return_residual=True, verbose=True)
 trans = forward['mri_head_t']
-plot_dipoles(dipoles, trans, subject='sample', subjects_dir=subjects_dir)
+plot_dipole_locations(dipoles, trans, 'sample', subjects_dir=subjects_dir)
+plot_dipole_amplitudes(dipoles)
 
 # Plot the evoked data and the residual.
 evoked.plot(ylim=dict(grad=[-300, 300], mag=[-800, 800], eeg=[-6, 8]))

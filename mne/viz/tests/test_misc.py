@@ -14,7 +14,7 @@ import numpy as np
 from numpy.testing import assert_raises
 
 from mne import (io, read_events, read_cov, read_source_spaces, read_evokeds,
-                 SourceEstimate)
+                 read_dipole, SourceEstimate)
 from mne.datasets import testing
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
@@ -32,10 +32,12 @@ subjects_dir = op.join(data_path, 'subjects')
 inv_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-4-meg-inv.fif')
 evoked_fname = op.join(data_path, 'MEG', 'sample', 'sample_audvis-ave.fif')
+dip_fname = op.join(data_path, 'MEG', 'sample',
+                    'sample_audvis_trunc_set1.dip')
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 cov_fname = op.join(base_dir, 'test-cov.fif')
-event_name = op.join(base_dir, 'test-eve.fif')
+event_fname = op.join(base_dir, 'test-eve.fif')
 
 
 def _get_raw():
@@ -43,7 +45,7 @@ def _get_raw():
 
 
 def _get_events():
-    return read_events(event_name)
+    return read_events(event_fname)
 
 
 def test_plot_cov():
@@ -121,5 +123,12 @@ def test_plot_snr():
     evoked = read_evokeds(evoked_fname, baseline=(None, 0))[0]
     plot_snr_estimate(evoked, inv)
 
+
+@testing.requires_testing_data
+def test_plot_dipole_amplitudes():
+    """Test plotting dipole amplitudes
+    """
+    dipoles = read_dipole(dip_fname)
+    dipoles.plot_amplitudes(show=False)
 
 run_tests_if_main()

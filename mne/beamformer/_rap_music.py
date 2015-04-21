@@ -166,7 +166,7 @@ def _make_dipoles(times, poss, oris, sol, gof):
     for i_dip in range(poss.shape[0]):
         i_pos = poss[i_dip][np.newaxis, :].repeat(len(times), axis=0)
         i_ori = oris[i_dip][np.newaxis, :].repeat(len(times), axis=0)
-        dipoles.append(Dipole(times * 1e3, i_pos, amplitude[i_dip],
+        dipoles.append(Dipole(times, i_pos, amplitude[i_dip],
                               i_ori, gof))
 
     return dipoles

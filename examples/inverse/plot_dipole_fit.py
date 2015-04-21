@@ -39,37 +39,5 @@ evoked.crop(0.07, 0.08)
 # Fit a dipole
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
-###############################################################################
-# Show result on 3D source space
-from mayavi import mlab  # noqa
-
-rh_points, rh_faces = mne.read_surface(fname_surf_lh)
-rh_points /= 1000.
-coord_trans = mne.transforms.invert_transform(mne.read_trans(fname_trans))
-coord_trans = coord_trans['trans']
-rh_points = mne.transforms.apply_trans(coord_trans, rh_points)
-mlab.figure(size=(600, 600), bgcolor=(1, 1, 1), fgcolor=(0, 0, 0))
-
-# show brain surface after proper coordinate system transformation
-brain_surface = mne.read_bem_surfaces(fname_bem, patch_stats=True)[0]
-points = brain_surface['rr']
-faces = brain_surface['tris']
-points = mne.transforms.apply_trans(coord_trans, points)
-mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                     faces, color=(1, 1, 0), opacity=0.1)
-
-# show one cortical surface
-mlab.triangular_mesh(rh_points[:, 0], rh_points[:, 1], rh_points[:, 2],
-                     rh_faces, color=(0.7, ) * 3, opacity=0.3)
-
-# show dipole as small cones
-dipoles = mlab.quiver3d(dip.pos[:, 0], dip.pos[:, 1], dip.pos[:, 2],
-                        dip.ori[:, 0], dip.ori[:, 1], dip.ori[:, 2],
-                        opacity=0.8, scale_factor=4e-3, scalars=dip.times,
-                        mode='cone', colormap='RdBu')
-# revert colormap
-dipoles.module_manager.scalar_lut_manager.reverse_lut = True
-mlab.colorbar(dipoles, title='Dipole fit time (ms)')
-
-# proper 3D orientation
-mlab.get_engine().scenes[0].scene.x_plus_view()
+# Plot the result
+dip.plot_locations(fname_trans, 'sample', subjects_dir)
