@@ -37,8 +37,10 @@ def test_read_config():
     # for config in config_fname, config_solaris_fname:
     for config in config_fnames:
         cfg = _read_config(config)
-        assert_true(all(all(k not in block.lower() for k in ['', 'unknown']
-                    for block in cfg['user_blocks'])))
+        assert_true(all([
+            all('unknown' not in block.lower() and block != ''
+                for block in cfg['user_blocks'])
+        ]))
 
 
 def test_read_pdf():

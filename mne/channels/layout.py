@@ -371,8 +371,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
                     (FIFF.FIFFV_MEG_CH in channel_types and
                      any(k in ctf_other_types for k in coil_types)))
     # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = len(ch for ch in chs
-                      if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD)
+    n_kit_grads = len([ch for ch in chs
+                       if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
                        n_kit_grads])
