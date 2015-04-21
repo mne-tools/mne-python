@@ -44,11 +44,11 @@ class Dipole(object):
     times : array, shape (n_dipoles,)
         The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
+        The dipoles positions (m).
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles (nA).
+        The amplitude of the dipoles (nAm).
     ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nA.
+        The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)
         The goodness of fit.
     """
@@ -235,16 +235,8 @@ def read_dipole(fname, verbose=None):
 
     Returns
     -------
-    time : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted (in sec).
-    pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
-    amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
-    ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape (n_dipoles,)
-        The goodness of fit (in percent).
+    dipole : instance of Dipole
+        The dipole.
     """
     try:
         data = np.loadtxt(fname, comments='%')
@@ -269,8 +261,7 @@ def read_dipole(fname, verbose=None):
     norm[norm == 0] = 1
     ori = data[:, 6:9] / norm[:, np.newaxis]
     gof = data[:, 9]
-    dipole = Dipole(times, pos, amplitude, ori, gof, name)
-    return dipole
+    return Dipole(times, pos, amplitude, ori, gof, name)
 
 
 # #############################################################################
