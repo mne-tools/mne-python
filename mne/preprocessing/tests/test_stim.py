@@ -58,7 +58,7 @@ def test_fix_stim_artifact():
 
     assert_raises(ValueError, fix_stim_artifact, raw, events=np.array([]))
     raw = fix_stim_artifact(raw, events=None, event_id=1, tmin=tmin,
-                            tmax=tmax, mode='linear')
+                            tmax=tmax, mode='linear', stim_channel='STI 014')
     data, times = raw[:, (tidx + tmin_samp):(tidx + tmax_samp)]
     diff_data0 = np.diff(data[0])
     diff_data0 -= np.mean(diff_data0)

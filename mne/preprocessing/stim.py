@@ -105,7 +105,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', copy=False):
+                      tmax=0.01, mode='linear', stim_channel=None, copy=False):
     """Eliminate stimulation's artifacts from instance
 
     Parameters
@@ -125,6 +125,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         Way to fill the artifacted time interval.
         'linear' does linear interpolation
         'window' applies a (1 - hanning) window.
+    stim_channel : str | None
+        Stim channel to use.
     copy : bool
         If True, data will be copied. Else data may be modified in place.
 
@@ -152,7 +154,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     if isinstance(inst, Raw):
         _check_preload(inst)
         if events is None:
-            events = find_events(inst)
+            events = find_events(inst, stim_channel=stim_channel)
         if len(events) == 0:
             raise ValueError('No events are found')
         if event_id is None:

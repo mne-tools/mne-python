@@ -8,6 +8,7 @@ import os.path as op
 from copy import deepcopy
 
 import numpy as np
+import warnings
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
 from scipy.io import savemat
@@ -23,6 +24,8 @@ from mne import pick_types
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 
+warnings.simplefilter('always')
+
 
 def test_rename_channels():
     """Test rename channels
@@ -34,13 +37,16 @@ def test_rename_channels():
     assert_raises(ValueError, rename_channels, info, mapping)
     # Test change to EEG channel
     mapping = {'EOG 061': ('EEG 061', 'eeg')}
-    assert_raises(ValueError, rename_channels, info, mapping)
+    with warnings.catch_warnings(record=True):
+        assert_raises(ValueError, rename_channels, info, mapping)
     # Test change to illegal channel type
     mapping = {'EOG 061': ('MEG 061', 'meg')}
-    assert_raises(ValueError, rename_channels, info, mapping)
+    with warnings.catch_warnings(record=True):
+        assert_raises(ValueError, rename_channels, info, mapping)
     # Test channel type which you are changing from e.g. MEG
     mapping = {'MEG 2641': ('MEG2641', 'eeg')}
-    assert_raises(ValueError, rename_channels, info, mapping)
+    with warnings.catch_warnings(record=True):
+        assert_raises(ValueError, rename_channels, info, mapping)
     # Test improper mapping configuration
     mapping = {'MEG 2641': 1.0}
     assert_raises(ValueError, rename_channels, info, mapping)
@@ -58,8 +64,8 @@ def test_rename_channels():
     assert_true('EOG061' in info2['bads'])
 
 
-def test_set_channels_type():
-    """Test Set Channels Type
+def test_set_channel_types():
+    """Test set_channel_types
     """
     raw = Raw(raw_fname)
     # Error Tests
