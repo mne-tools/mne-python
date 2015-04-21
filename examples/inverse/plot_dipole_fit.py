@@ -40,4 +40,4 @@ evoked.crop(0.07, 0.08)
 dip = mne.fit_dipole(evoked, fname_cov, fname_bem, fname_trans)[0]
 
 # Plot the result
-dip.plot(fname_trans, 'sample', subjects_dir)
+dip.plot_locations(fname_trans, 'sample', subjects_dir)

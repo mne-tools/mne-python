@@ -42,15 +42,15 @@ class Dipole(object):
     Parameters
     ----------
     times : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted.
+        The time instants at which each dipole was fitted (sec).
     pos : array, shape (n_dipoles, 3)
         The dipoles positions in meters
     amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
+        The amplitude of the dipoles (nA).
     ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
+        The dipolar moments. Amplitude of the moment is in nA.
     gof : array, shape (n_dipoles,)
-        The goodness of fit
+        The goodness of fit.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
         self.times = times
@@ -115,11 +115,12 @@ class Dipole(object):
         return deepcopy(self)
 
     @verbose
-    def plot(self, trans, subject, subjects_dir=None,
-             bgcolor=(1, ) * 3, opacity=0.3, brain_color=(0.7, ) * 3,
-             mesh_color=(1, 1, 0), fig_name=None, fig_size=(600, 600),
-             mode='cone', scale_factor=0.1e-1, colors=None, verbose=None):
-        """Plot the dipole time points as arrows
+    def plot_locations(self, trans, subject, subjects_dir=None,
+                       bgcolor=(1, 1, 1) * 3, opacity=0.3,
+                       brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
+                       fig_name=None, fig_size=(600, 600), mode='cone',
+                       scale_factor=0.1e-1, colors=None, verbose=None):
+        """Plot dipole locations as arrows
 
         Parameters
         ----------
@@ -142,12 +143,12 @@ class Dipole(object):
             Mesh color.
         fig_name : tuple of length 2
             Mayavi figure name.
-        fig_size :
+        fig_size : tuple of length 2
             Mayavi figure size.
         mode : str
             Should be ``'cone'`` or ``'sphere'`` to specify how the
             dipoles should be shown.
-        scale_factor :
+        scale_factor : float
             The scaling applied to amplitudes for the plot.
         colors: list of colors | None
             Color to plot with each dipole. If None defaults colors are used.
@@ -159,14 +160,33 @@ class Dipole(object):
         fig : instance of mlab.Figure
             The mayavi figure.
         """
-        from .viz import plot_dipoles
+        from .viz import plot_dipole_locations
         dipoles = []
         for t in self.times:
             dipoles.append(self.copy())
             dipoles[-1].crop(t, t)
-        return plot_dipoles(dipoles, trans, subject, subjects_dir, bgcolor,
-                            opacity, brain_color, mesh_color, fig_name,
-                            fig_size, mode, scale_factor, colors)
+        return plot_dipole_locations(
+            dipoles, trans, subject, subjects_dir, bgcolor, opacity,
+            brain_color, mesh_color, fig_name, fig_size, mode, scale_factor,
+            colors)
+
+    def plot_amplitudes(self, color='k', show=True):
+        """Plot the dipole amplitudes as a function of time
+
+        Parameters
+        ----------
+        color: matplotlib Color
+            Color to use for the trace.
+        show : bool
+            Show figure if True.
+
+        Returns
+        -------
+        fig : matplotlib.figure.Figure
+            The figure object containing the plot.
+        """
+        from .viz import plot_dipole_amplitudes
+        return plot_dipole_amplitudes([self], [color], show)
 
 
 # #############################################################################

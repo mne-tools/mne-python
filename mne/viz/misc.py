@@ -536,3 +536,37 @@ def _get_presser(fig):
             break
     assert func is not None
     return func
+
+
+def plot_dipole_amplitudes(dipoles, colors=None, show=True):
+    """Plot the amplitude traces of a set of dipoles
+
+    Parameters
+    ----------
+    dipoles : list of instance of Dipoles
+        The dipoles whose amplitudes should be shown.
+    colors: list of colors | None
+        Color to plot with each dipole. If None default colors are used.
+    show : bool
+        Show figure if True.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot.
+    """
+    import matplotlib.pyplot as plt
+    if colors is None:
+        colors = cycle(COLORS)
+    fig, ax = plt.subplots(1, 1)
+    xlim = [np.inf, -np.inf]
+    for dip, color in zip(dipoles, colors):
+        ax.plot(dip.times, dip.amplitude, color=color, linewidth=1.5)
+        xlim[0] = min(xlim[0], dip.times[0])
+        xlim[1] = max(xlim[1], dip.times[-1])
+    ax.set_xlim(xlim)
+    ax.set_xlabel('Time (sec)')
+    ax.set_ylabel('Amplitude (nA)')
+    if show:
+        fig.show()
+    return fig

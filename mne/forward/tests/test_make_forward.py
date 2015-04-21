@@ -10,17 +10,17 @@ import numpy as np
 from numpy.testing import (assert_equal, assert_allclose)
 
 from mne.datasets import testing
-from mne.io import Raw
-from mne.io import read_raw_kit
-from mne.io import read_raw_bti
+from mne.io import Raw, read_raw_kit, read_raw_bti, read_info
 from mne.io.constants import FIFF
 from mne import (read_forward_solution, make_forward_solution,
                  do_forward_solution, read_trans,
                  convert_forward_solution, setup_volume_source_space,
                  read_source_spaces, make_sphere_model,
-                 pick_types_forward)
+                 pick_types_forward, pick_info, pick_types)
 from mne.utils import (requires_mne, requires_nibabel, _TempDir,
                        run_tests_if_main, slow_test, run_subprocess)
+from mne.forward._make_forward import _create_coils
+from mne.forward._compute_forward import _magnetic_dipole_field_vec
 from mne.forward import Forward
 from mne.source_space import (get_volume_labels_from_aseg,
                               _compare_source_spaces, setup_source_space)
@@ -78,6 +78,25 @@ def _compare_forwards(fwd, fwd_py, n_sensors, n_src,
                             fwd_py['sol']['data'][306:],
                             rtol=eeg_rtol, atol=eeg_atol,
                             err_msg='EEG mismatch')
+
+
+def test_magnetic_dipole():
+    """Basic test for magnetic dipole forward calculation
+    """
+    trans = {'to': FIFF.FIFFV_COORD_HEAD, 'from': FIFF.FIFFV_COORD_MRI,
+             'trans': np.eye(4)}
+    info = read_info(fname_raw)
+    picks = pick_types(info, meg=True, eeg=False, exclude=[])
+    info = pick_info(info, picks[:12])
+    coils = _create_coils(info['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL, trans)
+    # magnetic dipole at device origin
+    r0 = np.array([0., 13., -6.])
+    for ch, coil in zip(info['chs'], coils):
+        rr = (ch['coil_trans'][:3, 3] + r0) / 2.
+        far_fwd = _magnetic_dipole_field_vec(r0[np.newaxis, :], [coil])
+        near_fwd = _magnetic_dipole_field_vec(rr[np.newaxis, :], [coil])
+        ratio = 8. if ch['ch_name'][-1] == '1' else 16.  # grad vs mag
+        assert_allclose(np.median(near_fwd / far_fwd), ratio, atol=1e-1)
 
 
 @testing.requires_testing_data
