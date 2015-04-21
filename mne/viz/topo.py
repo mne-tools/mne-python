@@ -307,12 +307,12 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         color = cycle([color])
 
     times = evoked[0].times
-    if not all([(e.times == times).all() for e in evoked]):
+    if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
     info = evoked[0].info
     ch_names = evoked[0].ch_names
-    if not all([e.ch_names == ch_names for e in evoked]):
+    if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
 
@@ -344,7 +344,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         for pick, t in zip(picks, types_used):
             e.data[pick] = e.data[pick] * scalings[t]
 
-    if proj is True and all([e.proj is not True for e in evoked]):
+    if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
     elif proj == 'interactive':  # let it fail early.
         for e in evoked:

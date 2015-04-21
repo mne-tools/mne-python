@@ -196,7 +196,7 @@ def read_bem_solution(fname, verbose=None):
         needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
                            FIFF.FIFFV_BEM_SURF_ID_SKULL,
                            FIFF.FIFFV_BEM_SURF_ID_BRAIN])
-        if not all([x['id'] in needed for x in bem_surfs]):
+        if not all(x['id'] in needed for x in bem_surfs):
             raise RuntimeError('Could not find necessary BEM surfaces')
         # reorder surfaces as necessary (shouldn't need to?)
         reorder = [None] * 3

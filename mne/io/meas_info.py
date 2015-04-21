@@ -994,8 +994,8 @@ def _is_equal_dict(dicts):
     is_equal = []
     for d in tests:
         k0, v0 = d[0]
-        is_equal.append(all([np.all(k == k0) and
-                        np.all(v == v0) for k, v in d]))
+        is_equal.append(all(np.all(k == k0) and
+                        np.all(v == v0) for k, v in d))
     return all(is_equal)
 
 
@@ -1047,7 +1047,7 @@ def _merge_dict_values(dicts, key, verbose=None):
             raise RuntimeError(msg)
     # ndarray
     elif _check_isinstance(values, np.ndarray, all):
-        is_qual = all([np.all(values[0] == x) for x in values[1:]])
+        is_qual = all(np.all(values[0] == x) for x in values[1:])
         if is_qual:
             return values[0]
         elif key == 'meas_date':
@@ -1103,10 +1103,10 @@ def _merge_info(infos, verbose=None):
             info[trans_name] = None
         elif len(trans) == 1:
             info[trans_name] = trans[0]
-        elif all([np.all(trans[0]['trans'] == x['trans']) and
-                  trans[0]['from'] == x['from'] and
-                  trans[0]['to'] == x['to']
-                  for x in trans[1:]]):
+        elif all(np.all(trans[0]['trans'] == x['trans']) and
+                 trans[0]['from'] == x['from'] and
+                 trans[0]['to'] == x['to']
+                 for x in trans[1:]):
             info[trans_name] = trans[0]
         else:
             msg = ("Measurement infos provide mutually inconsistent %s" %

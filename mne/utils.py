@@ -1453,7 +1453,7 @@ def _get_stim_channel(stim_channel):
             if not isinstance(stim_channel, string_types):
                 raise TypeError('stim_channel must be a str, list, or None')
             stim_channel = [stim_channel]
-        if not all([isinstance(s, string_types) for s in stim_channel]):
+        if not all(isinstance(s, string_types) for s in stim_channel):
             raise TypeError('stim_channel list must contain all strings')
         return stim_channel
 
@@ -1576,7 +1576,7 @@ def _check_type_picks(picks):
     if picks is None:
         pass
     elif isinstance(picks, list):
-        if not all([isinstance(i, int) for i in picks]):
+        if not all(isinstance(i, int) for i in picks):
             raise ValueError(err_msg)
         picks = np.array(picks)
     elif isinstance(picks, np.ndarray):

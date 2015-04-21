@@ -419,7 +419,7 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     if outlines is None:
         _is_default_outlines = False
     elif isinstance(outlines, dict):
-        _is_default_outlines = any([k.startswith('head') for k in outlines])
+        _is_default_outlines = any(k.startswith('head') for k in outlines)
 
     if _is_default_outlines and image_mask is None:
         # prepare masking

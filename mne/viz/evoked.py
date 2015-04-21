@@ -59,7 +59,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
-              all([isinstance(ch, string_types) for ch in exclude])):
+              all(isinstance(ch, string_types) for ch in exclude)):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
@@ -109,7 +109,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if len(idx) > 0:
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                if any([i in bad_ch_idx for i in idx]):
+                if any(i in bad_ch_idx for i in idx):
                     colors = ['k'] * len(idx)
                     for i in bad_ch_idx:
                         if i in idx:

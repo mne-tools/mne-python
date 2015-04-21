@@ -101,8 +101,8 @@ def equalize_channels(candidates, verbose=None):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all([isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
-                for c in candidates]):
+    if not all(isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
+               for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
 

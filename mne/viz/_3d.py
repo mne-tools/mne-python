@@ -527,7 +527,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         # make sure it is of the correct type
         if not isinstance(figure, list):
             figure = [figure]
-        if not all([isinstance(f, mayavi.core.scene.Scene) for f in figure]):
+        if not all(isinstance(f, mayavi.core.scene.Scene) for f in figure):
             raise TypeError('figure must be a mayavi scene or list of scenes')
         # make sure we have the right number of figures
         n_fig = len(figure)
@@ -558,7 +558,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     # Otherwise, use new cmap behavior
     else:
-        if any([f is not None for f in [fmin, fmid, fmax]]):
+        if any(f is not None for f in [fmin, fmid, fmax]):
             warnings.warn('"clim" overrides fmin, fmid, fmax')
         ctrl_pts = _limits_to_control_points(clim, stc.data, colormap)
 

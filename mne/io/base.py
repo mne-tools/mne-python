@@ -194,7 +194,7 @@ class ToDataFrameMixin(object):
                 logger.info('Converting time column to int64...')
                 df['time'] = df['time'].astype(np.int64)
             df.set_index(index, inplace=True)
-        if all([i in default_index for i in index]):
+        if all(i in default_index for i in index):
             df.columns.name = 'signal'
         return df
 
@@ -1900,7 +1900,7 @@ def _check_raw_compatibility(raw):
         if not all(proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
-    if not all([r.orig_format == raw[0].orig_format for r in raw]):
+    if not all(r.orig_format == raw[0].orig_format for r in raw):
         warnings.warn('raw files do not all have the same data format, '
                       'could result in precision mismatch. Setting '
                       'raw.orig_format="unknown"')
