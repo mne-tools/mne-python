@@ -69,11 +69,8 @@ for pick_ori, name, desc, color in zip(pick_oris, names, descriptions, colors):
     stc = lcmv(evoked, forward, noise_cov, data_cov, reg=0.01,
                pick_ori=pick_ori)
 
-    # Save result in stc files
-    stc.save('lcmv-' + name)
-
     # View activation time-series
-    label = mne.read_label(fname_label, "lcmv-" + name + "-lh.stc")
+    label = mne.read_label(fname_label)
     stc_label = stc.in_label(label)
     plt.plot(1e3 * stc_label.times, np.mean(stc_label.data, axis=0), color,
              hold=True, label=desc)
