@@ -877,6 +877,7 @@ def plot_dipoles(dipoles, trans, subject, subjects_dir=None,
 
     if fig_name is not None:
         mlab.title(fig_name)
-    fig.scene.x_plus_view()
+    if fig.scene is not None:  # safe for Travis
+        fig.scene.x_plus_view()
 
     return fig

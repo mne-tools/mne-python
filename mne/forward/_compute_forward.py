@@ -416,7 +416,7 @@ def _eeg_spherepot_coil(rrs, coils, sphere):
 # #############################################################################
 # MAGNETIC DIPOLE (e.g. CHPI)
 
-def _mag_dipole_field_vec(rrs, coils):
+def _magnetic_dipole_field_vec(rrs, coils):
     """Compute an MEG forward solution for a set of magnetic dipoles"""
     fwd = np.empty((3 * len(rrs), len(coils)))
     # The code below is a more efficient version (~30x) of this:
