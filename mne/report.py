@@ -861,7 +861,7 @@ class Report(object):
                                              img_klass=img_klass,
                                              caption=caption,
                                              width=scale,
-                                             comments=comments,   
+                                             comments=comments,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
