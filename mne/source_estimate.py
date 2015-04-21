@@ -1932,7 +1932,7 @@ def mesh_dist(tris, vert):
 
 @verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  verbose=None):
+                  warn=True, verbose=None):
     """Morph data from one subject's source space to another
 
     Parameters
@@ -1952,6 +1952,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Vertices on the destination surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2018,7 +2020,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         data.data /= data_sum.repeat(np.diff(data.indptr))
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
-    if len(idx_use) != len(data_sum):
+    if len(idx_use) != len(data_sum) and warn:
         warnings.warn('%s/%s vertices not included in smoothing, consider '
                       'increasing the number of steps'
                       % (len(idx_use), len(data_sum)))
@@ -2115,7 +2117,8 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
+               verbose=None):
     """Morph a source estimate from one subject to another
 
     Parameters
@@ -2147,6 +2150,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Saves memory when morphing long time intervals.
     n_jobs : int
         Number of jobs to run in parallel
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2183,7 +2188,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             continue
         data_morphed[hemi] = np.concatenate(
             parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                     n_vertices, nearest[hemi], maps[hemi])
+                                     n_vertices, nearest[hemi], maps[hemi],
+                                     warn=warn)
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 

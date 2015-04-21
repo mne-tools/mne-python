@@ -463,7 +463,7 @@ def rename_channels(info, mapping):
 
         elif isinstance(new_name, tuple):  # name and type change
             warnings.warn("Changing sensor type is now deprecated. Please use "
-                          "'set_channels_type' instead.", DeprecationWarning)
+                          "'set_channel_types' instead.", DeprecationWarning)
             new_name, new_type = new_name  # unpack
             if new_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
