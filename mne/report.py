@@ -1059,6 +1059,8 @@ class Report(object):
 
         if self.cov_fname is not None:
             cov = Covariance(self.cov_fname)
+        else:
+            cov = None
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info('Iterating over %s potential files (this may take some '
