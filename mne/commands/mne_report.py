@@ -31,6 +31,9 @@ def run():
     parser.add_option("-i", "--info", dest="info_fname",
                       help="File from which info dictionary is to be read",
                       metavar="FILE")
+    parser.add_option("-c", "--cov", dest="cov_fname",
+                      help="File from which noise covariance is to be read",
+                      metavar="FILE")
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",
@@ -53,6 +56,7 @@ def run():
         parser.print_help()
         sys.exit(1)
     info_fname = options.info_fname
+    cov_fname = options.cov_fname
     subjects_dir = options.subjects_dir
     subject = options.subject
     mri_decim = int(options.mri_decim)
@@ -62,8 +66,8 @@ def run():
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
     t0 = time.time()
-    report = Report(info_fname, subjects_dir=subjects_dir, subject=subject,
-                    verbose=verbose)
+    report = Report(info_fname, cov_fname, subjects_dir=subjects_dir,
+                    subject=subject, verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)

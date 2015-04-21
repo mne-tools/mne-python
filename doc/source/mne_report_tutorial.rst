@@ -45,6 +45,12 @@ To properly render `trans` and `covariance` files, add the measurement informati
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
         --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
+To render whitened `evoked` files, add the noise covariance file::
+    
+    mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+        --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --subject sample \
+        --subjects-dir MNE-sample-data/subjects --verbose
+
 To generate the report in parallel::
 
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 

@@ -29,6 +29,7 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
+from .cov import regularize, whiten_evoked
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
@@ -136,6 +137,9 @@ def _is_bad_fname(fname):
     """Auxiliary function for identifying bad file naming patterns
        and highlighting them in red in the TOC.
     """
+    if fname.endswith('(whitened)'):
+        fname = fname[:-11]
+
     if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
         return 'red'
     else:
@@ -187,6 +191,10 @@ def _get_toc_property(fname):
         div_klass = 'mri'
         tooltip = 'MRI'
         text = 'MRI'
+    elif fname.endswith('(whitened)'):
+        div_klass = 'evoked'
+        tooltip = fname
+        text = op.basename(fname[:-11]) + '(whitened)'
     else:
         div_klass = fname.split('-#-')[1]
         tooltip = fname.split('-#-')[0]
@@ -195,7 +203,7 @@ def _get_toc_property(fname):
     return div_klass, tooltip, text
 
 
-def _iterate_files(report, fnames, info, sfreq):
+def _iterate_files(report, fnames, info, cov, sfreq):
     """Auxiliary function to parallel process in batch mode.
     """
     htmls, report_fnames, report_sectionlabels = [], [], []
@@ -217,6 +225,18 @@ def _iterate_files(report, fnames, info, sfreq):
                 html = report._render_inverse(fname)
                 report_fname = fname
                 report_sectionlabel = 'inverse'
+            elif fname.endswith(('-ave.fif', '-ave.fif.gz')) and \
+                    cov is not None:
+                html = report._render_whitened_evoked(fname, cov)
+                report_fname = fname + ' (whitened)'
+                report_sectionlabel = 'evoked'
+                htmls.append(html)
+                report_fnames.append(report_fname)
+                report_sectionlabels.append(report_sectionlabel)
+
+                html = report._render_evoked(fname)
+                report_fname = fname
+                report_sectionlabel = 'evoked'
             elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
                 html = report._render_evoked(fname)
                 report_fname = fname
@@ -657,6 +677,8 @@ class Report(object):
     ----------
     info_fname : str
         Name of the file containing the info dictionary.
+    cov_fname : str
+        Name of the file containing the noise covariance.
     subjects_dir : str | None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -668,10 +690,11 @@ class Report(object):
         If not None, override default verbose level (see mne.verbose).
     """
 
-    def __init__(self, info_fname=None, subjects_dir=None, subject=None,
-                 title=None, verbose=None):
+    def __init__(self, info_fname=None, cov_fname=None, subjects_dir=None,
+                 subject=None, title=None, verbose=None):
 
         self.info_fname = info_fname
+        self.cov_fname = cov_fname
         self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
         self.subject = subject
         self.title = title
@@ -1034,12 +1057,15 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             info, sfreq = None, None
 
+        if self.cov_fname is not None:
+            cov = Covariance(self.cov_fname)
+
         # render plots in parallel; check that n_jobs <= # of files
         logger.info('Iterating over %s potential files (this may take some '
                     'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        r = parallel(p_fun(self, fname, info, sfreq) for fname in
+        r = parallel(p_fun(self, fname, info, cov, sfreq) for fname in
                      np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
@@ -1157,6 +1183,22 @@ class Report(object):
                     if fname.endswith(('-ave.fif', '-ave.fif.gz')):
                         # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
+
+                        html_toc += toc_list.substitute(
+                            div_klass=div_klass, id=None, tooltip=fname,
+                            color='#428bca', text=os.path.basename(fname))
+
+                        html_toc += u'<li class="evoked"><ul>'
+                        for ev in evokeds:
+                            html_toc += toc_list.substitute(
+                                div_klass=div_klass, id=global_id,
+                                tooltip=fname, color=color, text=ev.comment)
+                            global_id += 1
+                        html_toc += u'</ul></li>'
+
+                    if fname.endswith('(whitened)'):
+                        # XXX: remove redundant read_evokeds
+                        evokeds = read_evokeds(fname[:-11], verbose=False)
 
                         html_toc += toc_list.substitute(
                             div_klass=div_klass, id=None, tooltip=fname,
@@ -1453,6 +1495,33 @@ class Report(object):
                                          caption=caption,
                                          show=show)
         return html
+
+    def _render_whitened_evoked(self, evoked_fname, noise_cov):
+        """Show whitened evoked.
+        """
+        global_id = self._get_id()
+
+        evokeds = read_evokeds(evoked_fname, verbose=False)
+
+        html = []
+        for ev in evokeds:
+            noise_cov = regularize(noise_cov, ev.info)
+            ev_white = whiten_evoked(ev, noise_cov, diag=True)
+            global_id = self._get_id()
+
+            kwargs = dict(unit=False, hline=[-2, 2], show=False)
+            img = _fig_to_img(ev_white.plot, **kwargs)
+
+            caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
+            div_klass = 'whitened-evoked'
+            img_klass = 'whitened-evoked'
+            show = True
+            html.append(image_template.substitute(img=img, id=global_id,
+                                                  div_klass=div_klass,
+                                                  img_klass=img_klass,
+                                                  caption=caption,
+                                                  show=show))
+        return '\n'.join(html)
 
     def _render_trans(self, trans, path, info, subject,
                       subjects_dir, image_format='png'):
