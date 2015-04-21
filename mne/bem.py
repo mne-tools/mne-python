@@ -152,7 +152,8 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 
 @verbose
 def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
-                      verbose=None):
+                      relative_radii=(0.90, 0.92, 0.97, 1.0),
+                      sigmas=(0.33, 1.0, 0.004, 0.33), verbose=None):
     """Create a spherical model for forward solution calculation
 
     Parameters
@@ -167,6 +168,10 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     info : instance of mne.io.meas_info.Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.
+    relative_radii : array-like
+        Relative radii for the spherical shells.
+    sigmas : array-like
+        Sigma values for the spherical shells.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -196,14 +201,16 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere['layers'] = []
     if head_radius is not None:
         # Eventually these could be configurable...
-        relative_radii = [0.90, 0.92, 0.97, 1.0]
-        sigmas = [0.33, 1.0, 0.004, 0.33]
+        relative_radii = np.array(relative_radii, float)
+        sigmas = np.array(sigmas, float)
         order = np.argsort(relative_radii)
+        relative_radii = relative_radii[order]
+        sigmas = sigmas[order]
         layers = sphere['layers']
-        for k in range(len(relative_radii)):
+        for rel_rad, sig in zip(relative_radii, sigmas):
             # sort layers by (relative) radius, and scale radii
-            layer = dict(rad=relative_radii[order[k]], sigma=sigmas[order[k]])
-            layer['rel_rad'] = layer['rad'] = relative_radii[k]
+            layer = dict(rad=rel_rad, sigma=sig)
+            layer['rel_rad'] = layer['rad'] = rel_rad
             layers.append(layer)
 
         # scale the radii
