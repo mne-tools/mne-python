@@ -477,6 +477,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if envelope:
             self.apply_function(_envelope, picks, None, n_jobs)
         else:
+            from scipy.signal import hilbert
             self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
     @verbose

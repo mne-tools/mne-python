@@ -82,6 +82,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     n_channels = np.zeros(noise.info['nchan'])
     n_samples = evoked.data.shape[1]
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
+    c = (c + c.T) / 2.  # force positive semi-definite
     noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
     if iir_filter is not None:
         noise.data = lfilter([1], iir_filter, noise.data, axis=-1)

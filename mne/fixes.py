@@ -342,8 +342,8 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
     A lowpass FIR filter with a response that is 1 on [0.0, 0.5], and
     that decreases linearly on [0.5, 1.0] from 1 to 0:
 
-    >>> taps = firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])
-    >>> print(taps[72:78])
+    >>> taps = firwin2(150, [0.0, 0.5, 1.0], [1.0, 1.0, 0.0])  # doctest: +SKIP
+    >>> print(taps[72:78])  # doctest: +SKIP
     [-0.02286961 -0.06362756  0.57310236  0.57310236 -0.06362756 -0.02286961]
 
     See also
@@ -443,23 +443,25 @@ def get_firwin2():
     return firwin2
 
 
+def _filtfilt(*args, **kwargs):
+    """wrap filtfilt, excluding padding arguments"""
+    from scipy.signal import filtfilt
+    # cut out filter args
+    if len(args) > 4:
+        args = args[:4]
+    if 'padlen' in kwargs:
+        del kwargs['padlen']
+    return filtfilt(*args, **kwargs)
+
+
 def get_filtfilt():
     """Helper to get filtfilt from scipy"""
     from scipy.signal import filtfilt
 
-    # wrap filtfilt, excluding padding arguments
-    def _filtfilt(*args, **kwargs):
-        # cut out filter args
-        if len(args) > 4:
-            args = args[:4]
-        if 'padlen' in kwargs:
-            del kwargs['padlen']
-        return filtfilt(*args, **kwargs)
-
-    if 'padlen' not in inspect.getargspec(filtfilt)[0]:
-        return _filtfilt
-    else:
+    if 'padlen' in inspect.getargspec(filtfilt)[0]:
         return filtfilt
+
+    return _filtfilt
 
 
 ###############################################################################

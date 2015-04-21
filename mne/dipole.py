@@ -352,11 +352,11 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd):
 def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
                  proj_op, n_jobs):
     """Fit a single dipole to the given whitened, projected data"""
-    from scipy import optimize
+    from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(_fit_dipole, n_jobs)
     # parallel over time points
     res = parallel(p_fun(B, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
-                         optimize)
+                         fmin_cobyla)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
@@ -367,7 +367,7 @@ def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
 
 
 def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
-                optimize):
+                fmin_cobyla):
     """Fit a single bit of data"""
     logger.info('---- Fitting : %7.1f ms' % (1000 * t,))
     B = np.dot(whitener, B_orig)
@@ -405,8 +405,8 @@ def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
     # Several were similar, but COBYLA won for having a handy constraint
     # function we can use to ensure we stay inside the inner skull /
     # smallest sphere
-    rd_final = optimize.fmin_cobyla(fun, x0, (constraint,), consargs=(),
-                                    rhobeg=5e-2, rhoend=1e-4, disp=False)
+    rd_final = fmin_cobyla(fun, x0, (constraint,), consargs=(),
+                           rhobeg=5e-2, rhoend=1e-4, disp=False)
 
     # Compute the dipole moment at the final point
     Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,

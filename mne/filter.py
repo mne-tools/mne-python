@@ -1027,7 +1027,8 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
-    from scipy.stats.f import ppf
+    from scipy import stats
+    ppf = stats.f.ppf
     iir_params = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:

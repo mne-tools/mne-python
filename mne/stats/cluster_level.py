@@ -293,7 +293,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     sums: array
         Sum of x values in clusters.
     """
-    from scipy import ndimage
+    from scipy import ndimage, sparse
     if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
@@ -367,7 +367,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(x, x_in, connectivity,
                                                 max_step, partitions, t_power,
-                                                ndimage)
+                                                ndimage, sparse)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
         if tfce is True:
@@ -407,12 +407,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
 
 def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
-                              t_power, ndimage):
+                              t_power, ndimage, sparse):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
-                                             t_power, ndimage)
+                                             t_power, ndimage, sparse)
     else:
         # cluster each partition separately
         clusters = list()
@@ -420,14 +420,15 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
             out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power,
-                                      ndimage)
+                                      ndimage, sparse)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage,
+                        sparse):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -1008,7 +1009,8 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
-    from scipy.stats.f import ppf
+    from scipy import stats
+    ppf = stats.f.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples_per_group = [len(x) for x in X]
@@ -1142,7 +1144,8 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
-    from scipy.stats.t import ppf
+    from scipy import stats
+    ppf = stats.t.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples = len(X)

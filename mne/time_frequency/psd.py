@@ -148,7 +148,7 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     freqs : ndarray (n_freqs)
         The frequencies.
     """
-
+    from scipy.signal import welch
     n_fft = int(n_fft)
     Fs = epochs.info['sfreq']
     if picks is None:
@@ -177,7 +177,8 @@ def compute_epochs_psd(epochs, picks=None, fmin=0, fmax=np.inf, n_fft=256,
     for idx, fepochs in zip(np.array_split(np.arange(len(data)), n_jobs),
                             parallel(my_pwelch(epoch, noverlap=n_overlap,
                                                nfft=n_fft, fs=Fs,
-                                               freq_mask=freq_mask)
+                                               freq_mask=freq_mask,
+                                               welch_fun=welch)
                                      for epoch in np.array_split(data,
                                                                  n_jobs))):
         for i_epoch, f_epoch in zip(idx, fepochs):
