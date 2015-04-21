@@ -576,15 +576,16 @@ copyreg.pickle(partial, _reduce_partial)
 def normalize_colors(vmin, vmax, clip=False):
     """Helper to handle matplotlib API"""
     import matplotlib.pyplot as plt
-    if 'Normalize' in vars(plt):
+    try:
         return plt.Normalize(vmin, vmax, clip=clip)
-    else:
+    except AttributeError:
         return plt.normalize(vmin, vmax, clip=clip)
 
 
-def assert_true(expr, msg=''):
+def assert_true(expr, msg='False is not True'):
     """Fake assert_true without message"""
-    assert expr, msg
+    if not expr:
+        raise AssertionError(msg)
 
 
 def assert_is(expr1, expr2, msg=None):
@@ -594,7 +595,7 @@ def assert_is(expr1, expr2, msg=None):
 
 def assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
-    assert_true(expr2 is not expr2, msg)
+    assert_true(expr1 is not expr2, msg)
 
 
 def _sparse_block_diag(mats, format=None, dtype=None):

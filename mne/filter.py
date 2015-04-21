@@ -1027,8 +1027,6 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
     & Hemant Bokil, Oxford University Press, New York, 2008. Please
     cite this in publications if method 'spectrum_fit' is used.
     """
-    from scipy import stats
-    ppf = stats.f.ppf
     iir_params = _check_method(method, iir_params, ['spectrum_fit'])
 
     if freqs is not None:
@@ -1059,17 +1057,19 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
         highs = [freq + nw / 2.0 + tb_2
                  for freq, nw in zip(freqs, notch_widths)]
         xf = band_stop_filter(x, Fs, lows, highs, filter_length, tb_2, tb_2,
-                              method, iir_params, picks, n_jobs, copy, ppf)
+                              method, iir_params, picks, n_jobs, copy)
     elif method == 'spectrum_fit':
         xf = _mt_spectrum_proc(x, Fs, freqs, notch_widths, mt_bandwidth,
-                               p_value, picks, n_jobs, copy, ppf)
+                               p_value, picks, n_jobs, copy)
 
     return xf
 
 
 def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
-                      p_value, picks, n_jobs, copy, ppf):
+                      p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
+    from scipy import stats
+    ppf = stats.f.ppf
     # set up array for filtering, reshape to 2D, operate on last axis
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
@@ -1079,12 +1079,12 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
             if ii in picks:
                 x[ii], f = _mt_spectrum_remove(x_, sfreq, line_freqs,
                                                notch_widths, mt_bandwidth,
-                                               p_value)
+                                               p_value, ppf)
                 freq_list.append(f)
     else:
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
-                                  mt_bandwidth, p_value)
+                                  mt_bandwidth, p_value, ppf)
                             for xi, x_ in enumerate(x)
                             if xi in picks)
         freq_list = [d[1] for d in data_new]
@@ -1105,7 +1105,7 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
 
 
 def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
-                        mt_bandwidth, p_value):
+                        mt_bandwidth, p_value, ppf):
     """Use MT-spectrum to remove line frequencies
 
     Based on Chronux. If line_freqs is specified, all freqs within notch_width

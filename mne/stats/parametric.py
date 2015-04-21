@@ -71,7 +71,8 @@ def _f_oneway(*args):
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
-    from scipy.stats.f import sf
+    from scipy import stats
+    sf = stats.f.sf
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
