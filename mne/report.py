@@ -528,6 +528,7 @@ image_template = Template(u"""
 {{default id = False}}
 {{default image_format = 'png'}}
 {{default scale = None}}
+{{default comments = None}}
 
 <li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
 {{if not show}}style="display: none"{{endif}}>
@@ -550,11 +551,11 @@ image_template = Template(u"""
             {{img}}
         </div>
     {{endif}}
-    {{if textbox is not None}}
+    {{if comments is not None}}
         <br><br>
-        <div class="textbox">
+        <div class="comments">
         <div style="text-align:center;">
-            {{textbox}}
+            {{comments}}
         </div>
     {{endif}}
     </div>
@@ -710,7 +711,7 @@ class Report(object):
         return items, captions
 
     def _add_figs_to_section(self, figs, captions, section='custom',
-                             image_format='png', scale=None, textbox=None):
+                             image_format='png', scale=None, comments=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
         from scipy.misc import imread
@@ -748,15 +749,15 @@ class Report(object):
 
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
-            if isinstance(textbox, list):
-                textbox = '<br>'.join(textbox)
+            if isinstance(comments, list):
+                comments = '<br>'.join(comments)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale, textbox=textbox)
+                                             width=scale, comments=comments)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -782,7 +783,7 @@ class Report(object):
                                          section=section)
 
     def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None, image_format='png', textbox=None):
+                            scale=None, image_format='png', comments=None):
         """Append custom user-defined figures.
 
         Parameters
@@ -804,17 +805,18 @@ class Report(object):
             Defaults to None.
         image_format : {'png', 'svg'}
             The image format to be used for the report. Defaults to 'png'.
-        textbox : None | str | list of str
+        comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
-            the image.
+            the figure. If list of str, each element will appear on a
+            new line.
         """
         return self._add_figs_to_section(figs=figs, captions=captions,
                                          section=section, scale=scale,
                                          image_format=image_format,
-                                         textbox=textbox)
+                                         comments=comments)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom', textbox=None):
+                              section='custom', comments=None):
         """Append custom user-defined images.
 
         Parameters
@@ -829,17 +831,18 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
-        textbox : None | str | list of str
+        comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
-            the image.
+            the image. If list of str, each element will appear on a
+            new line.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
         from PIL import Image
         fnames, captions = self._validate_input(fnames, captions, section)
-        if isinstance(textbox, list):
-            textbox = '<br>'.join(textbox)
+        if isinstance(comments, list):
+            comments = '<br>'.join(comments)
 
         for fname, caption in zip(fnames, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -858,7 +861,7 @@ class Report(object):
                                              img_klass=img_klass,
                                              caption=caption,
                                              width=scale,
-                                             textbox=textbox,   
+                                             comments=comments,   
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
