@@ -29,7 +29,7 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
-from .cov import regularize, whiten_evoked
+from .cov import regularize
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
@@ -677,8 +677,6 @@ class Report(object):
     ----------
     info_fname : str
         Name of the file containing the info dictionary.
-    cov_fname : str
-        Name of the file containing the noise covariance.
     subjects_dir : str | None
         Path to the SUBJECTS_DIR. If None, the path is obtained by using
         the environment variable SUBJECTS_DIR.
@@ -686,12 +684,14 @@ class Report(object):
         Subject name.
     title : str
         Title of the report.
+    cov_fname : str
+        Name of the file containing the noise covariance.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
 
-    def __init__(self, info_fname=None, cov_fname=None, subjects_dir=None,
-                 subject=None, title=None, verbose=None):
+    def __init__(self, info_fname=None, subjects_dir=None,
+                 subject=None, title=None, cov_fname=None, verbose=None):
 
         self.info_fname = info_fname
         self.cov_fname = cov_fname
@@ -1506,11 +1506,10 @@ class Report(object):
         html = []
         for ev in evokeds:
             noise_cov = regularize(noise_cov, ev.info)
-            ev_white = whiten_evoked(ev, noise_cov, diag=True)
             global_id = self._get_id()
 
-            kwargs = dict(unit=False, hline=[-2, 2], show=False)
-            img = _fig_to_img(ev_white.plot, **kwargs)
+            kwargs = dict(noise_cov=noise_cov, show=False)
+            img = _fig_to_img(ev.plot_white, **kwargs)
 
             caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
             div_klass = 'whitened-evoked'

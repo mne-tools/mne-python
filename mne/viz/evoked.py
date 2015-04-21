@@ -426,7 +426,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     axes_evoked = None
 
-    def whitened_gfp(x, rank=None):
+    def whitened_gfp(x, rank=None, show=True):
         """Whitened Global Field Power
 
         The MNE inverse solver assumes zero mean whitened data as input.
@@ -477,7 +477,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
-                              hline=[-1.96, 1.96], show=False)
+                              hline=[-1.96, 1.96], show=show)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
@@ -499,7 +499,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                                 ' method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
-            gfp = whitened_gfp(data, rank=this_rank)
+            gfp = whitened_gfp(data, rank=this_rank, show=show)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])

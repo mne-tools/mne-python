@@ -66,8 +66,8 @@ def run():
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
     t0 = time.time()
-    report = Report(info_fname, cov_fname, subjects_dir=subjects_dir,
-                    subject=subject, verbose=verbose)
+    report = Report(info_fname, subjects_dir=subjects_dir,
+                    subject=subject, cov_fname=cov_fname, verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)
