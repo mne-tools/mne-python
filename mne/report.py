@@ -20,7 +20,7 @@ from datetime import datetime as dt
 
 import numpy as np
 
-from . import read_evokeds, read_events, pick_types, Covariance
+from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
 from .utils import _TempDir, logger, verbose, get_subjects_dir, deprecated
 from .viz import plot_events, plot_trans, plot_cov
@@ -29,7 +29,6 @@ from .forward import read_forward_solution
 from .epochs import read_epochs
 from .minimum_norm import read_inverse_operator
 from .parallel import parallel_func, check_n_jobs
-from .cov import regularize
 
 from .externals.tempita import HTMLTemplate, Template
 from .externals.six import BytesIO
@@ -1061,7 +1060,7 @@ class Report(object):
             info, sfreq = None, None
 
         if self.cov_fname is not None:
-            cov = Covariance(self.cov_fname)
+            cov = read_cov(self.cov_fname)
         else:
             cov = None
 
@@ -1487,7 +1486,7 @@ class Report(object):
         """Render cov.
         """
         global_id = self._get_id()
-        cov = Covariance(cov_fname)
+        cov = read_cov(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
         img = _fig_to_img(fig=fig)
         caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
@@ -1510,7 +1509,6 @@ class Report(object):
 
         html = []
         for ev in evokeds:
-            noise_cov = regularize(noise_cov, ev.info)
             global_id = self._get_id()
 
             kwargs = dict(noise_cov=noise_cov, show=False)
