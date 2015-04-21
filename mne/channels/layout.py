@@ -15,7 +15,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy.spatial.distance import pdist
 
 from .channels import _contains_ch_type
 from ..io.pick import pick_types
@@ -444,6 +443,8 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
+    from scipy.spatial.distance import pdist
+
     def xdiff(a, b):
         return np.abs(a[0] - b[0])
 
@@ -555,6 +556,8 @@ def _auto_topomap_coords(info, picks):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
+    from scipy.spatial.distance import pdist
+
     chs = [info['chs'][i] for i in picks]
 
     # Use channel locations if available

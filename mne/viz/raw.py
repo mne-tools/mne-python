@@ -10,7 +10,6 @@ import copy
 from functools import partial
 
 import numpy as np
-from scipy.signal import butter, filtfilt
 
 from ..externals.six import string_types
 from ..io.pick import pick_types
@@ -35,6 +34,7 @@ def _plot_update_raw_proj(params, bools):
 
 def _update_raw_data(params):
     """Helper only needs to be called when time or proj is changed"""
+    from scipy.signal import filtfilt
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
@@ -400,6 +400,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
+    from scipy.signal import butter
     color, scalings = _mutable_defaults(('color', color),
                                         ('scalings_plot_raw', scalings))
 

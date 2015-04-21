@@ -3,7 +3,6 @@
 # License : BSD 3-clause
 
 import numpy as np
-from scipy.signal import welch
 
 from ..parallel import parallel_func
 from ..io.proj import make_projector_info
@@ -52,6 +51,7 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
     freqs: array of float
         The frequencies
     """
+    from scipy.signal import welch
     start, stop = raw.time_as_index([tmin, tmax])
     if picks is not None:
         data, times = raw[picks, start:(stop + 1)]
@@ -80,16 +80,16 @@ def compute_raw_psd(raw, tmin=0., tmax=np.inf, picks=None, fmin=0,
 
     psds = np.array(parallel(my_pwelch([channel],
                                        noverlap=n_overlap, nfft=n_fft, fs=Fs,
-                                       freq_mask=freq_mask)
+                                       freq_mask=freq_mask, welch_fun=welch)
                              for channel in data))[:, 0, :]
 
     return psds, freqs
 
 
-def _pwelch(epoch, noverlap, nfft, fs, freq_mask):
+def _pwelch(epoch, noverlap, nfft, fs, freq_mask, welch_fun):
     """Aux function"""
-    return welch(epoch, nperseg=nfft, noverlap=noverlap,
-                 nfft=nfft, fs=fs)[1][..., freq_mask]
+    return welch_fun(epoch, nperseg=nfft, noverlap=noverlap,
+                     nfft=nfft, fs=fs)[1][..., freq_mask]
 
 
 def _compute_psd(data, fmin, fmax, Fs, n_fft, psd, n_overlap, pad_to):

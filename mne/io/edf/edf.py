@@ -15,7 +15,6 @@ import warnings
 from math import ceil, floor
 
 import numpy as np
-from scipy.interpolate import interp1d
 
 from ...utils import verbose, logger
 from ..base import _BaseRaw, _check_update_montage
@@ -137,6 +136,7 @@ class RawEDF(_BaseRaw):
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
+        from scipy.interpolate import interp1d
         if sel is None:
             sel = list(range(self.info['nchan']))
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:

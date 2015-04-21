@@ -1,16 +1,12 @@
-import numpy as np
-from scipy import stats
-from scipy.stats import f
-from scipy.signal import detrend
-from ..fixes import matrix_rank
-from functools import reduce
-fprob = f.sf  # stats.fprob is deprecated
-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Eric Larson <larson.eric.d@gmail.com>
 #
 # License: Simplified BSD
+
+import numpy as np
+from ..fixes import matrix_rank
+from functools import reduce
 
 defaults_twoway_rm = {
     'parse': {
@@ -75,6 +71,7 @@ def _f_oneway(*args):
     .. [2] Heiman, G.W.  Research Methods in Statistics. 2002.
 
     """
+    from scipy.stats.f import sf
     n_classes = len(args)
     n_samples_per_class = np.array([len(a) for a in args])
     n_samples = np.sum(n_samples_per_class)
@@ -94,7 +91,7 @@ def _f_oneway(*args):
     msb = ssbn / float(dfbn)
     msw = sswn / float(dfwn)
     f = msb / msw
-    prob = fprob(dfbn, dfwn, f)
+    prob = sf(dfbn, dfwn, f)
     return f, prob
 
 
@@ -114,6 +111,7 @@ def _check_effects(effects):
 
 def _iter_contrasts(n_subjects, factor_levels, effect_picks):
     """ Aux Function: Setup contrasts """
+    from scipy.signal import detrend
     sc, sy, = [], []
 
     # prepare computation of Kronecker products
@@ -167,12 +165,13 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
         list of f-values for each effect if the number of effects
         requested > 2, else float.
     """
+    from scipy.stats import f
     effect_picks = _check_effects(effects)
 
     f_threshold = []
     for _, df1, df2 in _iter_contrasts(n_subjects, factor_levels,
                                        effect_picks):
-        f_threshold.append(stats.f(df1, df2).isf(pvalue))
+        f_threshold.append(f(df1, df2).isf(pvalue))
 
     return f_threshold if len(f_threshold) > 1 else f_threshold[0]
 
@@ -224,6 +223,7 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
     """
+    from scipy.stats import f
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
@@ -258,7 +258,7 @@ def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
             df1, df2 = [d[None, :] * eps for d in (df1, df2)]
 
         if return_pvals:
-            pvals = stats.f(df1, df2).sf(fvals)
+            pvals = f(df1, df2).sf(fvals)
         else:
             pvals = np.empty(0)
         pvalues.append(pvals)

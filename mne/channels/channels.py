@@ -11,7 +11,6 @@ import os.path as op
 import warnings
 
 import numpy as np
-from scipy.io import loadmat
 from scipy import sparse
 
 from ..externals.six import string_types
@@ -520,6 +519,7 @@ def read_ch_connectivity(fname, picks=None):
     ch_names : list
         The list of channel names present in connectivity matrix.
     """
+    from scipy.io import loadmat
     if not op.isabs(fname):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
                                             'data', 'neighbors'))

@@ -3,7 +3,6 @@
 
 
 import numpy as np
-from scipy import stats
 
 
 def find_outliers(X, threshold=3.0, max_iter=2):
@@ -27,10 +26,11 @@ def find_outliers(X, threshold=3.0, max_iter=2):
     bad_idx : np.ndarray of int, shape (n_features)
         The outlier indices.
     """
+    from scipy.stats import zscore
     my_mask = np.zeros(len(X), dtype=np.bool)
     for _ in range(max_iter):
         X = np.ma.masked_array(X, my_mask)
-        this_z = np.abs(stats.zscore(X))
+        this_z = np.abs(zscore(X))
         local_bad = this_z > threshold
         my_mask = np.max([my_mask, local_bad], 0)
         if not np.any(local_bad):

@@ -14,7 +14,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy.signal import hilbert
 from scipy import linalg
 
 from .constants import FIFF
@@ -1877,6 +1876,7 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
 
 def _envelope(x):
     """ Compute envelope signal """
+    from scipy.signal import hilbert
     return np.abs(hilbert(x))
 
 

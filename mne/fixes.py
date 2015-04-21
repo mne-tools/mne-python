@@ -23,7 +23,6 @@ import scipy
 from scipy import linalg, sparse
 from math import ceil, log
 from numpy.fft import irfft
-from scipy.signal import filtfilt as sp_filtfilt
 from distutils.version import LooseVersion
 from functools import partial
 from .externals import six
@@ -283,21 +282,6 @@ else:
     safe_copy = np.copy
 
 
-# wrap filtfilt, excluding padding arguments
-def _filtfilt(*args, **kwargs):
-    # cut out filter args
-    if len(args) > 4:
-        args = args[:4]
-    if 'padlen' in kwargs:
-        del kwargs['padlen']
-    return sp_filtfilt(*args, **kwargs)
-
-if 'padlen' not in inspect.getargspec(sp_filtfilt)[0]:
-    filtfilt = _filtfilt
-else:
-    filtfilt = sp_filtfilt
-
-
 ###############################################################################
 # Back porting firwin2 for older scipy
 
@@ -449,10 +433,33 @@ def _firwin2(numtaps, freq, gain, nfreqs=None, window='hamming', nyq=1.0):
 
     return out
 
-if hasattr(scipy.signal, 'firwin2'):
-    from scipy.signal import firwin2
-else:
-    firwin2 = _firwin2
+
+def get_firwin2():
+    """Helper to get firwin2"""
+    try:
+        from scipy.signal import firwin2
+    except ImportError:
+        firwin2 = _firwin2
+    return firwin2
+
+
+def get_filtfilt():
+    """Helper to get filtfilt from scipy"""
+    from scipy.signal import filtfilt
+
+    # wrap filtfilt, excluding padding arguments
+    def _filtfilt(*args, **kwargs):
+        # cut out filter args
+        if len(args) > 4:
+            args = args[:4]
+        if 'padlen' in kwargs:
+            del kwargs['padlen']
+        return filtfilt(*args, **kwargs)
+
+    if 'padlen' not in inspect.getargspec(filtfilt)[0]:
+        return _filtfilt
+    else:
+        return filtfilt
 
 
 ###############################################################################
@@ -573,30 +580,19 @@ def normalize_colors(vmin, vmax, clip=False):
         return plt.normalize(vmin, vmax, clip=clip)
 
 
-def _assert_true(expr, msg):
+def assert_true(expr, msg=''):
     """Fake assert_true without message"""
-    assert expr
-
-try:
-    from nose.tools import assert_true
-except ImportError:
-    assert_true = _assert_true
+    assert expr, msg
 
 
-def _assert_is(expr1, expr2, msg=None):
+def assert_is(expr1, expr2, msg=None):
     """Fake assert_is without message"""
     assert_true(expr2 is expr2, msg)
 
 
-def _assert_is_not(expr1, expr2, msg=None):
+def assert_is_not(expr1, expr2, msg=None):
     """Fake assert_is_not without message"""
     assert_true(expr2 is not expr2, msg)
-
-try:
-    from nose.tools import assert_is, assert_is_not
-except ImportError:
-    assert_is = _assert_is
-    assert_is_not = _assert_is_not
 
 
 def _sparse_block_diag(mats, format=None, dtype=None):

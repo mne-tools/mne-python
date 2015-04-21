@@ -6,7 +6,7 @@
 from warnings import warn
 
 import numpy as np
-from scipy import linalg, signal, fftpack
+from scipy import linalg, fftpack
 import warnings
 
 from ..io.constants import FIFF
