@@ -15,7 +15,6 @@ import warnings
 
 import numpy as np
 from scipy import linalg
-from matplotlib.patches import Circle
 
 from ..baseline import rescale
 from ..io.constants import FIFF
@@ -295,6 +294,7 @@ def _griddata(x, y, v, xi, yi):
 
 def _plot_sensors(pos_x, pos_y, sensors, ax):
     """Aux function"""
+    from matplotlib.patches import Circle
     if sensors is True:
         for x, y in zip(pos_x, pos_y):
             ax.add_artist(Circle(xy=(x, y), radius=0.003, color='k'))
