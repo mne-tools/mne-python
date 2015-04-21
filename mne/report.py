@@ -207,6 +207,13 @@ def _iterate_files(report, fnames, info, cov, sfreq):
     """Auxiliary function to parallel process in batch mode.
     """
     htmls, report_fnames, report_sectionlabels = [], [], []
+
+    def _update_html(html, report_fname, report_sectionlabel):
+        """Update the lists above."""
+        htmls.append(html)
+        report_fnames.append(report_fname)
+        report_sectionlabels.append(report_sectionlabel)
+
     for fname in fnames:
         logger.info("Rendering : %s"
                     % op.join('...' + report.data_path[-20:],
@@ -230,9 +237,7 @@ def _iterate_files(report, fnames, info, cov, sfreq):
                 html = report._render_whitened_evoked(fname, cov)
                 report_fname = fname + ' (whitened)'
                 report_sectionlabel = 'evoked'
-                htmls.append(html)
-                report_fnames.append(report_fname)
-                report_sectionlabels.append(report_sectionlabel)
+                _update_html(html, report_fname, report_sectionlabel)
 
                 html = report._render_evoked(fname)
                 report_fname = fname
@@ -271,9 +276,7 @@ def _iterate_files(report, fnames, info, cov, sfreq):
             html = None
             report_fname = None
             report_sectionlabel = None
-        htmls.append(html)
-        report_fnames.append(report_fname)
-        report_sectionlabels.append(report_sectionlabel)
+        _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
 
