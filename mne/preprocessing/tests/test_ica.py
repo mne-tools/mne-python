@@ -10,7 +10,6 @@ import os.path as op
 import warnings
 
 from nose.tools import assert_true, assert_raises, assert_equal
-from copy import deepcopy
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_array_equal,
                            assert_allclose)
@@ -261,7 +260,7 @@ def test_ica_additional():
     epochs_eog = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks2,
                         baseline=(None, 0), preload=True)
 
-    test_cov2 = deepcopy(test_cov)
+    test_cov2 = test_cov.copy()
     ica = ICA(noise_cov=test_cov2, n_components=3, max_pca_components=4,
               n_pca_components=4)
     assert_true(ica.info is None)
@@ -277,7 +276,7 @@ def test_ica_additional():
         ica.fit(raw, picks=[1, 2, 3, 4, 5], start=start, stop=stop2)
 
     # test corrmap
-    ica2 = deepcopy(ica)
+    ica2 = ica.copy()
     corrmap([ica, ica2], (0, 0), threshold='auto', label='blinks', plot=True,
             ch_type="mag")
     corrmap([ica, ica2], (0, 0), threshold=2, plot=False)

@@ -416,7 +416,7 @@ def test_check_type_picks():
 
 
 def test_compute_corr():
-    """Anscombe's Quartett
+    """Test Anscombe's Quartett
     """
     x = np.array([10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5])
     y = np.array([[8.04, 6.95, 7.58, 8.81, 8.33, 9.96,
@@ -432,9 +432,10 @@ def test_compute_corr():
     r = compute_corr(x, y.T).round(3)
     r2 = np.array([np.corrcoef(x, y[i])[0, 1]
                    for i in range(len(y))]).round(3)
-    assert(r[3] != r[0] == r[1] == r[2] != r[4])
+    assert_true(r[3] != r[0] == r[1] == r[2] != r[4])
     for r_v, r2_v in zip(r, r2):
-        assert(r_v == r2_v)
+        assert_equal(r_v, r2_v)
+    assert_raises(ValueError, compute_corr, [1, 2], [])
 
 
 def test_create_slices():
