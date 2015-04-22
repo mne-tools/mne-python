@@ -115,7 +115,11 @@ def _read_lay(fname):
         names, pos, ids = [], [], []
         for line in f:
             splits = line.split()
-            cid, x, y, dx, dy, name = splits
+            if len(splits) == 7:
+                cid, x, y, dx, dy, chkind, nb = splits
+                name = chkind + ' ' + nb
+            else:
+                cid, x, y, dx, dy, name = splits
             pos.append(np.array([x, y, dx, dy], dtype=np.float))
             names.append(name)
             ids.append(int(cid))
@@ -196,8 +200,8 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
         Height of sensor axes as a fraction of main figure height. By default,
         this will be the maximum height possible withough axes overlapping.
     exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        List of channels to exclude. If empty do not exclude any.
+        If 'bads', exclude channels in info['bads'] (default).
     Returns
     -------
     layout : Layout
@@ -405,6 +409,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'CTF-275'
     elif n_kit_grads == 157:
         layout_name = 'KIT-157'
+    elif n_kit_grads == 208:
+        layout_name = 'KIT-AD'
     else:
         return None
 
