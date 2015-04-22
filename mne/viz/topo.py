@@ -289,6 +289,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -388,7 +389,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         _draw_proj_checkbox(None, params)
 
     if show:
-        fig.show()
+        plt.show()
 
     return fig
 
@@ -508,6 +509,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
+    import matplotlib.pyplot as plt
     scalings = _mutable_defaults(('scalings', scalings))[0]
     data = epochs.get_data()
     if vmin is None:
@@ -530,5 +532,5 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      font_color=font_color, border=border,
                      x_label='Time (s)', y_label='Epoch')
     if show:
-        fig.show()
+        plt.show()
     return fig

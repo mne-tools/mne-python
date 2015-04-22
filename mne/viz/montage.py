@@ -38,6 +38,6 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
             ax.text(x, y, z, ch_name)
 
     if show:
-        fig.show()
+        plt.show()
 
     return fig
