@@ -12,6 +12,7 @@
 import numpy as np
 import warnings
 import logging
+from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
@@ -200,7 +201,6 @@ def _get_clusters_st(x_in, neighbors, max_step=1):
 
 def _get_components(x_in, connectivity, return_list=True):
     """get connected components from a mask and a connectivity matrix"""
-    from scipy import sparse
     try:
         from sklearn.utils._csgraph import cs_graph_components
     except ImportError:
@@ -293,7 +293,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     sums: array
         Sum of x values in clusters.
     """
-    from scipy import ndimage, sparse
+    from scipy import ndimage
     if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
@@ -367,7 +367,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(x, x_in, connectivity,
                                                 max_step, partitions, t_power,
-                                                ndimage, sparse)
+                                                ndimage)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
         if tfce is True:
@@ -407,12 +407,12 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
 
 def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
-                              t_power, ndimage, sparse):
+                              t_power, ndimage):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
-                                             t_power, ndimage, sparse)
+                                             t_power, ndimage)
     else:
         # cluster each partition separately
         clusters = list()
@@ -420,15 +420,14 @@ def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
             out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power,
-                                      ndimage, sparse)
+                                      ndimage)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage,
-                        sparse):
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -1459,7 +1458,6 @@ def _st_mask_from_s_inds(n_times, n_vertices, vertices, set_as=True):
 def _get_partitions_from_connectivity(connectivity, n_times, verbose=None):
     """Use indices to specify disjoint subsets (e.g., hemispheres) based on
     connectivity"""
-    from scipy import sparse
     if isinstance(connectivity, list):
         test = np.ones(len(connectivity))
         test_conn = np.zeros((len(connectivity), len(connectivity)),
