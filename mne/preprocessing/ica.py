@@ -936,7 +936,7 @@ class ICA(ContainsMixin):
         # sort indices by scores
         ecg_idx = ecg_idx[np.abs(scores[ecg_idx]).argsort()[::-1]]
         if not hasattr(self, 'labels_'):
-            self.labels_ = {}
+            self.labels_ = dict()
         self.labels_['ecg'] = list(ecg_idx)
         return self.labels_['ecg'], scores
 
@@ -1024,7 +1024,7 @@ class ICA(ContainsMixin):
             scores = scores[0]
 
         if not hasattr(self, 'labels_'):
-            self.labels_ = {}
+            self.labels_ = dict()
         self.labels_['eog'] = list(eog_idx)
         return self.labels_['eog'], scores
 
@@ -2278,7 +2278,7 @@ def corrmap(icas, template, threshold="auto", label=None,
     template_fig : fig
         Figure showing the mean template.
     labelled_ics : fig
-        Figure showing the labelled ICs per subject.
+        Figure showing the labelled ICs in all ICA decompositions.
     """
     if threshold == "auto":
         threshold = np.arange(60, 95, dtype=np.float64) / 100.

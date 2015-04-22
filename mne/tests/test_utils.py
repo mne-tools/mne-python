@@ -1,4 +1,4 @@
-from numpy.testing import assert_equal, assert_array_equal
+from numpy.testing import assert_equal, assert_array_equal, assert_allclose
 from nose.tools import assert_true, assert_raises, assert_not_equal
 from copy import deepcopy
 import os.path as op
@@ -429,12 +429,10 @@ def test_compute_corr():
                   [6.58, 5.76, 7.71, 8.84, 8.47, 7.04,
                    5.25, 12.50, 5.56, 7.91, 6.89]])
 
-    r = compute_corr(x, y.T).round(3)
+    r = compute_corr(x, y.T)
     r2 = np.array([np.corrcoef(x, y[i])[0, 1]
-                   for i in range(len(y))]).round(3)
-    assert_true(r[3] != r[0] == r[1] == r[2] != r[4])
-    for r_v, r2_v in zip(r, r2):
-        assert_equal(r_v, r2_v)
+                   for i in range(len(y))])
+    assert_allclose(r, r2, atol=1e-3)
     assert_raises(ValueError, compute_corr, [1, 2], [])
 
 
