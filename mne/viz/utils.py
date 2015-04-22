@@ -389,7 +389,10 @@ def figure_nobar(*args, **kwargs):
 
 
 class ClickableImage(object):
+
     """
+    Display an image so you can click on it and store x/y positions.
+
     Takes as input an image array (can be any array that works with imshow,
     but will work best with images.  Displays the image and lets you
     click on it.  Stores the xy coordinates of each click, so now you can
@@ -406,6 +409,7 @@ class ClickableImage(object):
     """
 
     def __init__(self, imdata, **kwargs):
+        """Display the image for clicking."""
         from matplotlib.pyplot import figure, show
         self.coords = []
         self.imdata = imdata
@@ -420,10 +424,12 @@ class ClickableImage(object):
         show()
 
     def onclick(self, event):
+        """Mouse click handler."""
         mouseevent = event.mouseevent
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
 
     def plot_clicks(self, **kwargs):
+        """Plot the x/y positions stored in self.coords."""
         from matplotlib.pyplot import subplots, show
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
