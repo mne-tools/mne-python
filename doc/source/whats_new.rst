@@ -95,6 +95,9 @@ Changelog
 
    - Add ``add_bem_to_section``, ``add_htmls_to_section`` methods to ``mne.Report`` by `Teon Brooks`_
 
+   - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
+
+
 BUG
 ~~~
 
