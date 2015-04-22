@@ -2,7 +2,7 @@
 """
 
 
-def plot_montage(montage, scale_factor=1.5, show_names=False):
+def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     """Plot EEG sensor montage
 
     Parameters
@@ -13,6 +13,8 @@ def plot_montage(montage, scale_factor=1.5, show_names=False):
         Determines the size of the points. Defaults to 1.5.
     show_names : bool
         Whether to show the channel names. Defaults to False.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -34,5 +36,8 @@ def plot_montage(montage, scale_factor=1.5, show_names=False):
         ch_names = montage.ch_names
         for ch_name, x, y, z in zip(ch_names, pos[:, 0], pos[:, 1], pos[:, 2]):
             ax.text(x, y, z, ch_name)
+
+    if show:
+        fig.show()
 
     return fig

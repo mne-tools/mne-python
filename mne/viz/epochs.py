@@ -16,7 +16,7 @@ from functools import partial
 import numpy as np
 from scipy import ndimage
 
-from ..utils import create_chunks
+from ..utils import create_chunks, verbose
 from ..io.pick import pick_types, channel_type
 from ..fixes import Counter
 from ..time_frequency import compute_epochs_psd
@@ -54,7 +54,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         passed are the times vector and the data as 2d array
         (data.shape[1] == len(times)
     show : bool
-        Show or not the figure at the end
+        Show figure if True.
     units : dict | None
         The units of the channel types used for axes lables. If None,
         defaults to `units=dict(eeg='uV', grad='fT/cm', mag='fT')`.
@@ -216,13 +216,13 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
 
-    if show:
-        plt.show()
-
     if not return_fig:
         msg = ("'return_fig=False' will be deprecated in v0.10. "
                "Use 'Epochs.drop_log_stats' to get percentages instead.")
         warnings.warn(msg, DeprecationWarning)
+
+    if show:
+        plt.show()
 
     return fig
 
@@ -336,7 +336,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
         The string formatting to use for axes titles. If None, no titles
         will be shown. Defaults expand to ``#001, #002, ...``
     show : bool
-        Whether to show the figure or not.
+        Show figure if True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on a
@@ -445,15 +445,16 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     navigation.canvas.mpl_connect('button_press_event',
                                   partial(_epochs_navigation_onclick,
                                           params=params))
-    if show is True:
+    if show:
         plt.show(block=block)
     return fig
 
 
+@verbose
 def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                     picks=None, ax=None, color='black', area_mode='std',
                     area_alpha=0.33, n_overlap=0,
-                    dB=True, n_jobs=1, verbose=None):
+                    dB=True, n_jobs=1, show=True, verbose=None):
     """Plot the power spectral density across epochs
 
     Parameters
@@ -487,6 +488,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
         If True, transform data to decibels.
     n_jobs : int
         Number of jobs to run in parallel.
+    show : bool
+        Show figure if True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -538,6 +541,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-
-    plt.show()
+    if show:
+        plt.show()
     return fig

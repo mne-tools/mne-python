@@ -20,7 +20,7 @@ from matplotlib.patches import Circle
 from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
-from ..utils import _clean_names, _time_mask
+from ..utils import _clean_names, _time_mask, verbose
 from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
 from ..time_frequency import compute_epochs_psd
@@ -135,7 +135,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         Side length of the topomaps in inches (only applies when plotting
         multiple topomaps at a time).
     show : bool
-        Show figures if True
+        Show figure if True.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -305,7 +305,7 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
 def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
-                 contours=6, image_interp='bilinear'):
+                 contours=6, image_interp='bilinear', show=True):
     """Plot a topographic map as image
 
     Parameters
@@ -366,6 +366,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -508,7 +510,8 @@ def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                     verticalalignment='center', size='x-small')
 
     plt.subplots_adjust(top=.95)
-
+    if show:
+        plt.show()
     return im, cont
 
 
@@ -607,7 +610,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     res : int
         The resolution of the topomap image (n pixels along each side).
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -786,7 +789,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     axes : instance of Axis | None
         The axes to plot to. If None the axes is defined automatically.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn.
         If dict, each key refers to a tuple of x and y positions.
@@ -941,7 +944,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         a check box for reversible selection of SSP projection vectors will
         be show.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
     show_names : bool | callable
         If True, show channel names on top of the map. If a callable is
         passed, channel names will be formatted using the callable; e.g., to
@@ -1150,12 +1153,13 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
         cbar.ax.tick_params(labelsize=8)
 
 
+@verbose
 def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
                             proj=False, n_fft=256, ch_type=None,
                             n_overlap=0, layout=None,
                             cmap='RdBu_r', agg_fun=None, dB=False, n_jobs=1,
-                            normalize=False, verbose=None, cbar_fmt='%0.3f',
-                            outlines='head'):
+                            normalize=False, cbar_fmt='%0.3f',
+                            outlines='head', show=True, verbose=None):
     """Plot the topomap of the power spectral density across epochs
 
     Parameters
@@ -1221,6 +1225,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
+    show : bool
+        Show figure if True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -1247,13 +1253,13 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     return plot_psds_topomap(
         psds=psds, freqs=freqs, pos=pos, agg_fun=agg_fun, vmin=vmin,
         vmax=vmax, bands=bands, cmap=cmap, dB=dB, normalize=normalize,
-        cbar_fmt=cbar_fmt, outlines=outlines)
+        cbar_fmt=cbar_fmt, outlines=outlines, show=show)
 
 
 def plot_psds_topomap(
         psds, freqs, pos, agg_fun=None, vmin=None, vmax=None, bands=None,
         cmap='RdBu_r', dB=True, normalize=False, cbar_fmt='%0.3f',
-        outlines='head'):
+        outlines='head', show=True):
     """Plot spatial maps of PSDs
 
     psds : np.ndarray of float, shape (n_channels, n_freqs)
@@ -1309,6 +1315,8 @@ def plot_psds_topomap(
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -1351,5 +1359,6 @@ def plot_psds_topomap(
                                  colorbar=True, unit=unit, cbar_fmt=cbar_fmt)
     tight_layout(fig=fig)
     fig.canvas.draw()
-    plt.show()
+    if show:
+        plt.show()
     return fig
