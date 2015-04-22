@@ -1069,22 +1069,46 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
     from scipy import stats
-    ppf = stats.f.ppf
     # set up array for filtering, reshape to 2D, operate on last axis
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
+
+    # XXX need to implement the moving window version for raw files
+    n_times = x.shape[1]
+
+    # max taper size chosen because it has an max error < 1e-3:
+    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
+    # 0.00099972447657578449
+    # so we use 1000 because it's the first "nice" number bigger than 953:
+    dpss_n_times_max = 1000
+
+    # figure out what tapers to use
+    if mt_bandwidth is not None:
+        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
+    else:
+        half_nbw = 4
+
+    # compute dpss windows
+    n_tapers_max = int(2 * half_nbw)
+    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                       low_bias=False,
+                                       interp_from=min(n_times,
+                                                       dpss_n_times_max))
+    # F-stat of 1-p point
+    threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
+
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
             if ii in picks:
                 x[ii], f = _mt_spectrum_remove(x_, sfreq, line_freqs,
-                                               notch_widths, mt_bandwidth,
-                                               p_value, ppf)
+                                               notch_widths, window_fun,
+                                               threshold)
                 freq_list.append(f)
     else:
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
-                                  mt_bandwidth, p_value, ppf)
+                                  window_fun, threshold)
                             for xi, x_ in enumerate(x)
                             if xi in picks)
         freq_list = [d[1] for d in data_new]
@@ -1105,34 +1129,12 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
 
 
 def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
-                        mt_bandwidth, p_value, ppf):
+                        window_fun, threshold):
     """Use MT-spectrum to remove line frequencies
 
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
-    # XXX need to implement the moving window version for raw files
-    n_times = x.size
-
-    # max taper size chosen because it has an max error < 1e-3:
-    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-    # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953:
-    dpss_n_times_max = 1000
-
-    # figure out what tapers to use
-    if mt_bandwidth is not None:
-        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    # compute dpss windows
-    n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=False,
-                                       interp_from=min(n_times,
-                                                       dpss_n_times_max))
-
     # drop the even tapers
     n_tapers = len(window_fun)
     tapers_odd = np.arange(0, n_tapers, 2)
@@ -1146,7 +1148,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     H0_sq = sum_squared(H0)
 
     # make "time" vector
-    rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
+    rads = 2 * np.pi * (np.arange(x.size) / float(sfreq))
 
     # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
     x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
@@ -1171,8 +1173,6 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
                np.sum(np.abs(x_p[:, tapers_even, :]) ** 2, 1))
         den[den == 0] = np.inf
         f_stat = num / den
-        # F-stat of 1-p point
-        threshold = ppf(1 - p_value / n_times, 2, 2 * n_tapers - 2)
 
         # find frequencies to remove
         indices = np.where(f_stat > threshold)[1]
