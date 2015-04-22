@@ -34,6 +34,9 @@ def run():
     parser.add_option("-c", "--cov", dest="cov_fname",
                       help="File from which noise covariance is to be read",
                       metavar="FILE")
+    parser.add_option("-b", "--baseline", dest="baseline",
+                      help="Whether to baseline correct the evokeds for "
+                      "whitening plots (True/False/auto)", default="auto")
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",
@@ -64,10 +67,13 @@ def run():
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
+    option2baseline = dict(True=True, False=False, auto='auto')
+    baseline = option2baseline[options.baseline]
 
     t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir,
-                    subject=subject, cov_fname=cov_fname, verbose=verbose)
+                    subject=subject, baseline=baseline,
+                    cov_fname=cov_fname, verbose=verbose)
     report.parse_folder(path, verbose=verbose, n_jobs=n_jobs,
                         mri_decim=mri_decim)
     log_elapsed(time.time() - t0, verbose=verbose)

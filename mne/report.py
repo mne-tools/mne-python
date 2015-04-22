@@ -202,7 +202,7 @@ def _get_toc_property(fname):
     return div_klass, tooltip, text
 
 
-def _iterate_files(report, fnames, info, cov, sfreq):
+def _iterate_files(report, fnames, info, cov, baseline, sfreq):
     """Auxiliary function to parallel process in batch mode.
     """
     htmls, report_fnames, report_sectionlabels = [], [], []
@@ -233,7 +233,7 @@ def _iterate_files(report, fnames, info, cov, sfreq):
                 report_sectionlabel = 'inverse'
             elif fname.endswith(('-ave.fif', '-ave.fif.gz')) and \
                     cov is not None:
-                html = report._render_whitened_evoked(fname, cov)
+                html = report._render_whitened_evoked(fname, cov, baseline)
                 report_fname = fname + ' (whitened)'
                 report_sectionlabel = 'evoked'
                 _update_html(html, report_fname, report_sectionlabel)
@@ -688,15 +688,20 @@ class Report(object):
         Title of the report.
     cov_fname : str
         Name of the file containing the noise covariance.
+    baseline : str | bool
+        If True, apply baseline. If 'auto', baseline correct only if highpass
+        filter has not been applied or is less than 1.0 Hz.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
 
     def __init__(self, info_fname=None, subjects_dir=None,
-                 subject=None, title=None, cov_fname=None, verbose=None):
+                 subject=None, title=None, cov_fname=None, baseline='auto',
+                 verbose=None):
 
         self.info_fname = info_fname
         self.cov_fname = cov_fname
+        self.baseline = baseline
         self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
         self.subject = subject
         self.title = title
@@ -1063,14 +1068,15 @@ class Report(object):
             cov = read_cov(self.cov_fname)
         else:
             cov = None
+        baseline = self.baseline
 
         # render plots in parallel; check that n_jobs <= # of files
         logger.info('Iterating over %s potential files (this may take some '
                     'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        r = parallel(p_fun(self, fname, info, cov, sfreq) for fname in
-                     np.array_split(fnames, use_jobs))
+        r = parallel(p_fun(self, fname, info, cov, baseline, sfreq) for
+                     fname in np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered
@@ -1500,7 +1506,7 @@ class Report(object):
                                          show=show)
         return html
 
-    def _render_whitened_evoked(self, evoked_fname, noise_cov):
+    def _render_whitened_evoked(self, evoked_fname, noise_cov, apply_baseline):
         """Show whitened evoked.
         """
         global_id = self._get_id()
@@ -1509,6 +1515,14 @@ class Report(object):
 
         html = []
         for ev in evokeds:
+
+            highpass = ev.info['highpass']
+            baseline = (None, 0) if apply_baseline == 'auto' \
+                and (highpass is None or highpass < 1.) else None
+
+            ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
+                              verbose=False)
+
             global_id = self._get_id()
 
             kwargs = dict(noise_cov=noise_cov, show=False)
