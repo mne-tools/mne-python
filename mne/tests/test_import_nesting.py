@@ -11,7 +11,8 @@ import sys
 import mne
 
 # check scipy
-ok_scipy_submodules = set(['version', 'fftpack', 'sparse', 'lib', 'linalg'])
+ok_scipy_submodules = set(['fftpack', 'lib', 'linalg',
+                           'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x)
 bad = scipy_submodules - ok_scipy_submodules
