@@ -43,12 +43,6 @@ logger = logging.getLogger('mne')  # one selection here used across mne-python
 logger.propagate = False  # don't propagate (in case of multiple imports)
 
 
-try:
-    from nose.plugins.skip import SkipTest
-except ImportError:
-    SkipTest = RuntimeError
-
-
 def _memory_usage(*args, **kwargs):
     if isinstance(args[0], tuple):
         args[0][0](*args[0][1], **args[0][2])
@@ -586,6 +580,11 @@ def requires_scipy_version(min_version):
 
 def requires_module(function, name, call):
     """Decorator to skip test if package is not available"""
+    try:
+        from nose.plugins.skip import SkipTest
+    except ImportError:
+        SkipTest = AssertionError
+
     @wraps(function)
     def dec(*args, **kwargs):
         skip = False

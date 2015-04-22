@@ -9,7 +9,6 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
-from scipy.spatial.distance import cdist
 from copy import deepcopy
 
 from .io.constants import FIFF
@@ -2285,6 +2284,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     """
     from nose.tools import assert_equal, assert_true
     from numpy.testing import assert_allclose, assert_array_equal
+    from scipy.spatial.distance import cdist
     if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
         raise RuntimeError('unknown mode %s' % mode)
 

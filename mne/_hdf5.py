@@ -14,6 +14,15 @@ from .externals.six import string_types, text_type
 # WRITE
 
 
+def _check_h5py():
+    """Helper to check if h5py is installed"""
+    try:
+        import h5py
+    except ImportError:
+        raise ImportError('the h5py module is required to use HDF5 I/O')
+    return h5py
+
+
 def _create_titled_group(root, key, title):
     """Helper to create a titled group in h5py"""
     out = root.create_group(key)
@@ -45,7 +54,7 @@ def write_hdf5(fname, data, overwrite=False, compression=4):
     compression : int
         Compression level to use (0-9) to compress data using gzip.
     """
-    import h5py
+    h5py = _check_h5py()
     if op.isfile(fname) and not overwrite:
         raise IOError('file "%s" exists, use overwrite=True to overwrite'
                       % fname)
@@ -116,7 +125,7 @@ def read_hdf5(fname):
     data : object
         The loaded data. Can be of any type supported by ``write_hdf5``.
     """
-    import h5py
+    h5py = _check_h5py()
     if not op.isfile(fname):
         raise IOError('file "%s" not found' % fname)
     with h5py.File(fname, mode='r') as fid:

@@ -13,7 +13,6 @@ from struct import pack
 from glob import glob
 
 import numpy as np
-from scipy.spatial.distance import cdist
 from scipy import sparse
 
 from .io.constants import FIFF
@@ -609,6 +608,7 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
             nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
             return nearest
     else:
+        from scipy.spatial.distance import cdist
         if return_dists:
             nearest = list()
             dists = list()

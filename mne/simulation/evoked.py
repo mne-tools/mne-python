@@ -6,7 +6,6 @@
 import copy
 
 import numpy as np
-from scipy import signal
 
 from ..io.pick import pick_channels_cov
 from ..forward import apply_forward
@@ -76,6 +75,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     noise : evoked object
         an instance of evoked
     """
+    from scipy.signal import lfilter
     noise = copy.deepcopy(evoked)
     noise_cov = pick_channels_cov(cov, include=noise.info['ch_names'])
     rng = check_random_state(random_state)
@@ -84,7 +84,7 @@ def generate_noise_evoked(evoked, cov, iir_filter=None, random_state=None):
     c = np.diag(noise_cov.data) if noise_cov['diag'] else noise_cov.data
     noise.data = rng.multivariate_normal(n_channels, c, n_samples).T
     if iir_filter is not None:
-        noise.data = signal.lfilter([1], iir_filter, noise.data, axis=-1)
+        noise.data = lfilter([1], iir_filter, noise.data, axis=-1)
     return noise
 
 

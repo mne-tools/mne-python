@@ -5,7 +5,7 @@
 from warnings import warn
 
 import numpy as np
-from scipy import fftpack, linalg, interpolate
+from scipy import fftpack, linalg
 import warnings
 
 from ..parallel import parallel_func
@@ -147,6 +147,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
     uncertainty V: The discrete case. Bell System Technical Journal,
     Volume 57 (1978), 1371430
     """
+    from scipy.interpolate import interp1d
     Kmax = int(Kmax)
     W = float(half_nbw) / N
     nidx = np.arange(N, dtype='d')
@@ -163,7 +164,7 @@ def dpss_windows(N, half_nbw, Kmax, low_bias=True, interp_from=None,
         d, e = dpss_windows(interp_from, half_nbw, Kmax, low_bias=False)
         for this_d in d:
             x = np.arange(this_d.shape[-1])
-            I = interpolate.interp1d(x, this_d, kind=interp_kind)
+            I = interp1d(x, this_d, kind=interp_kind)
             d_temp = I(np.arange(0, this_d.shape[-1] - 1,
                                  float(this_d.shape[-1] - 1) / N))
 

@@ -14,7 +14,6 @@ from itertools import cycle
 from functools import partial
 
 import numpy as np
-from scipy import ndimage
 
 # XXX : don't import pyplot here or you will break the doc
 
@@ -421,7 +420,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                      x_label=None, y_label=None, colorbar=False,
                      cmap='RdBu_r'):
     """Aux function to plot erfimage on sensor topography"""
-
+    from scipy import ndimage
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)

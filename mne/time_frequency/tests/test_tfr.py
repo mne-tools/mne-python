@@ -5,7 +5,7 @@ from nose.tools import assert_true, assert_false, assert_equal, assert_raises
 
 import mne
 from mne import io, Epochs, read_events, pick_types, create_info, EpochsArray
-from mne.utils import _TempDir, run_tests_if_main, slow_test
+from mne.utils import _TempDir, run_tests_if_main, slow_test, requires_h5py
 from mne.time_frequency import single_trial_power
 from mne.time_frequency.tfr import cwt_morlet, morlet, tfr_morlet
 from mne.time_frequency.tfr import _dpss_wavelet, tfr_multitaper
@@ -193,6 +193,7 @@ def test_crop():
     assert_equal(tfr.data.shape[-1], 2)
 
 
+@requires_h5py
 def test_io():
     """Test TFR IO capacities"""
 

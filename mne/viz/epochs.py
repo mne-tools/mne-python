@@ -14,7 +14,6 @@ from collections import deque
 from functools import partial
 
 import numpy as np
-from scipy import ndimage
 
 from ..utils import create_chunks
 from ..io.pick import pick_types, channel_type
@@ -69,6 +68,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
     figs : the list of matplotlib figures
         One figure per channel displayed
     """
+    from scipy import ndimage
     units, scalings = _mutable_defaults(('units', units),
                                         ('scalings', scalings))
 

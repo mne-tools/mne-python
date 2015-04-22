@@ -7,7 +7,6 @@
 #
 # License: BSD (3-clause)
 
-from math import floor, ceil
 import copy
 from copy import deepcopy
 import warnings
@@ -15,7 +14,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy.signal import hilbert
 from scipy import linalg
 
 from .constants import FIFF
@@ -479,6 +477,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if envelope:
             self.apply_function(_envelope, picks, None, n_jobs)
         else:
+            from scipy.signal import hilbert
             self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
     @verbose
@@ -981,19 +980,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         #
 
         #   Convert to samples
-        start = int(floor(tmin * self.info['sfreq']))
+        start = int(np.floor(tmin * self.info['sfreq']))
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
         else:
-            stop = int(floor(tmax * self.info['sfreq']))
+            stop = int(np.floor(tmax * self.info['sfreq']))
 
         if buffer_size_sec is None:
             if 'buffer_size_sec' in self.info:
                 buffer_size_sec = self.info['buffer_size_sec']
             else:
                 buffer_size_sec = 10.0
-        buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
+        buffer_size = int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
         # write the raw file
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
@@ -1880,6 +1879,7 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
 
 def _envelope(x):
     """ Compute envelope signal """
+    from scipy.signal import hilbert
     return np.abs(hilbert(x))
 
 

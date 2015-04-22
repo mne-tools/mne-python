@@ -4,11 +4,9 @@ from .externals.six import string_types, integer_types
 import warnings
 import numpy as np
 from scipy.fftpack import fft, ifftshift, fftfreq
-from scipy.signal import freqz, iirdesign, iirfilter, filter_dict, get_window
-from scipy import signal, stats
 from copy import deepcopy
 
-from .fixes import firwin2, filtfilt  # back port for old scipy
+from .fixes import get_firwin2, get_filtfilt
 from .time_frequency.multitaper import dpss_windows, _mt_spectra
 from .parallel import parallel_func, check_n_jobs
 from .cuda import (setup_cuda_fft_multiply_repeated, fft_multiply_repeated,
@@ -189,7 +187,7 @@ def _1d_overlap_filter(x, h_fft, n_edge, n_fft, zero_phase, n_segments, n_seg,
 
 def _filter_attenuation(h, freq, gain):
     """Compute minimum attenuation at stop frequency"""
-
+    from scipy.signal import freqz
     _, filt_resp = freqz(h.ravel(), worN=np.pi * freq)
     filt_resp = np.abs(filt_resp)  # use amplitude response
     filt_resp /= np.max(filt_resp)
@@ -283,6 +281,7 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
     xf : array
         x filtered.
     """
+    firwin2 = get_firwin2()
     # set up array for filtering, reshape to 2D, operate on last axis
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
 
@@ -359,7 +358,8 @@ def _filter(x, Fs, freq, gain, filter_length='10s', picks=None, n_jobs=1,
 
 def _check_coefficients(b, a):
     """Check for filter stability"""
-    z, p, k = signal.tf2zpk(b, a)
+    from scipy.signal import tf2zpk
+    z, p, k = tf2zpk(b, a)
     if np.any(np.abs(p) > 1.0):
         raise RuntimeError('Filter poles outside unit circle, filter will be '
                            'unstable. Consider using different filter '
@@ -369,6 +369,7 @@ def _check_coefficients(b, a):
 def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
     """Helper to more easily call filtfilt"""
     # set up array for filtering, reshape to 2D, operate on last axis
+    filtfilt = get_filtfilt()
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
     _check_coefficients(b, a)
@@ -387,9 +388,10 @@ def _filtfilt(x, b, a, padlen, picks, n_jobs, copy):
 
 def _estimate_ringing_samples(b, a):
     """Helper function for determining IIR padding"""
+    from scipy.signal import lfilter
     x = np.zeros(1000)
     x[0] = 1
-    h = signal.lfilter(b, a, x)
+    h = lfilter(b, a, x)
     return np.where(np.abs(h) > 0.001 * np.max(np.abs(h)))[0][-1]
 
 
@@ -478,6 +480,7 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     (array([ 1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.,  1.]), [1, 0], 0)
 
     """  # noqa
+    from scipy.signal import filter_dict, iirfilter, iirdesign
     a = None
     b = None
     # if the filter has been designed, we're good to go
@@ -1065,21 +1068,47 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
 def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
                       p_value, picks, n_jobs, copy):
     """Helper to more easily call _mt_spectrum_remove"""
+    from scipy import stats
     # set up array for filtering, reshape to 2D, operate on last axis
     n_jobs = check_n_jobs(n_jobs)
     x, orig_shape, picks = _prep_for_filtering(x, copy, picks)
+
+    # XXX need to implement the moving window version for raw files
+    n_times = x.shape[1]
+
+    # max taper size chosen because it has an max error < 1e-3:
+    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
+    # 0.00099972447657578449
+    # so we use 1000 because it's the first "nice" number bigger than 953:
+    dpss_n_times_max = 1000
+
+    # figure out what tapers to use
+    if mt_bandwidth is not None:
+        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
+    else:
+        half_nbw = 4
+
+    # compute dpss windows
+    n_tapers_max = int(2 * half_nbw)
+    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
+                                       low_bias=False,
+                                       interp_from=min(n_times,
+                                                       dpss_n_times_max))
+    # F-stat of 1-p point
+    threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * len(window_fun) - 2)
+
     if n_jobs == 1:
         freq_list = list()
         for ii, x_ in enumerate(x):
             if ii in picks:
                 x[ii], f = _mt_spectrum_remove(x_, sfreq, line_freqs,
-                                               notch_widths, mt_bandwidth,
-                                               p_value)
+                                               notch_widths, window_fun,
+                                               threshold)
                 freq_list.append(f)
     else:
         parallel, p_fun, _ = parallel_func(_mt_spectrum_remove, n_jobs)
         data_new = parallel(p_fun(x_, sfreq, line_freqs, notch_widths,
-                                  mt_bandwidth, p_value)
+                                  window_fun, threshold)
                             for xi, x_ in enumerate(x)
                             if xi in picks)
         freq_list = [d[1] for d in data_new]
@@ -1100,34 +1129,12 @@ def _mt_spectrum_proc(x, sfreq, line_freqs, notch_widths, mt_bandwidth,
 
 
 def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
-                        mt_bandwidth, p_value):
+                        window_fun, threshold):
     """Use MT-spectrum to remove line frequencies
 
     Based on Chronux. If line_freqs is specified, all freqs within notch_width
     of each line_freq is set to zero.
     """
-    # XXX need to implement the moving window version for raw files
-    n_times = x.size
-
-    # max taper size chosen because it has an max error < 1e-3:
-    # >>> np.max(np.diff(dpss_windows(953, 4, 100)[0]))
-    # 0.00099972447657578449
-    # so we use 1000 because it's the first "nice" number bigger than 953:
-    dpss_n_times_max = 1000
-
-    # figure out what tapers to use
-    if mt_bandwidth is not None:
-        half_nbw = float(mt_bandwidth) * n_times / (2 * sfreq)
-    else:
-        half_nbw = 4
-
-    # compute dpss windows
-    n_tapers_max = int(2 * half_nbw)
-    window_fun, eigvals = dpss_windows(n_times, half_nbw, n_tapers_max,
-                                       low_bias=False,
-                                       interp_from=min(n_times,
-                                                       dpss_n_times_max))
-
     # drop the even tapers
     n_tapers = len(window_fun)
     tapers_odd = np.arange(0, n_tapers, 2)
@@ -1141,7 +1148,7 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
     H0_sq = sum_squared(H0)
 
     # make "time" vector
-    rads = 2 * np.pi * (np.arange(n_times) / float(sfreq))
+    rads = 2 * np.pi * (np.arange(x.size) / float(sfreq))
 
     # compute mt_spectrum (returning n_ch, n_tapers, n_freq)
     x_p, freqs = _mt_spectra(x[np.newaxis, :], window_fun, sfreq)
@@ -1166,8 +1173,6 @@ def _mt_spectrum_remove(x, sfreq, line_freqs, notch_widths,
                np.sum(np.abs(x_p[:, tapers_even, :]) ** 2, 1))
         den[den == 0] = np.inf
         f_stat = num / den
-        # F-stat of 1-p point
-        threshold = stats.f.ppf(1 - p_value / n_times, 2, 2 * n_tapers - 2)
 
         # find frequencies to remove
         indices = np.where(f_stat > threshold)[1]
@@ -1243,6 +1248,7 @@ def resample(x, up, down, npad=100, axis=-1, window='boxcar', n_jobs=1,
     current implementation is functionally equivalent to passing
     up=up/down and down=1.
     """
+    from scipy.signal import get_window
     # check explicitly for backwards compatibility
     if not isinstance(axis, int):
         err = ("The axis parameter needs to be an integer (got %s). "
@@ -1336,6 +1342,7 @@ def detrend(x, order=1, axis=-1):
         >>> (detrend(x) - noise).max() < 0.01
         True
     """
+    from scipy.signal import detrend
     if axis > len(x.shape):
         raise ValueError('x does not have %d axes' % axis)
     if order == 0:
@@ -1345,7 +1352,7 @@ def detrend(x, order=1, axis=-1):
     else:
         raise ValueError('order must be 0 or 1')
 
-    y = signal.detrend(x, axis=axis, type=fit)
+    y = detrend(x, axis=axis, type=fit)
 
     return y
 
