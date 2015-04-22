@@ -67,8 +67,13 @@ def run():
     open_browser = False if options.no_browser is not None else True
     overwrite = True if options.overwrite is not None else False
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
-    option2baseline = dict(True=True, False=False, auto='auto')
-    baseline = option2baseline[options.baseline]
+
+    if options.baseline == 'True':
+        baseline = True
+    elif options.baseline == 'False':
+        baseline = False
+    elif options.baseline == 'auto':
+        baseline = 'auto'
 
     t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir,
