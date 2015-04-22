@@ -130,7 +130,7 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
                              fontsize_title=12, fontsize_names=8,
                              fontsize_colorbar=8, padding=6.,
                              fig=None, subplot=111, interactive=True,
-                             node_linewidth=2.):
+                             node_linewidth=2., show=True):
     """Visualize connectivity as a circular graph.
 
     Note: This code is based on the circle graph example by Nicolas P. Rougier
@@ -202,6 +202,8 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
         node. Right-click shows all connections.
     node_linewidth : float
         Line with for nodes.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
@@ -407,4 +409,6 @@ def plot_connectivity_circle(con, node_names, indices=None, n_lines=None,
 
         fig.canvas.mpl_connect('button_press_event', callback)
 
+    if show:
+        plt.show()
     return fig, axes

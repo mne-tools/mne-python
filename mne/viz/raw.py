@@ -363,7 +363,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         The title of the window. If None, and either the filename of the
         raw object or '<unknown>' will be displayed as title.
     show : bool
-        Show figure if True
+        Show figure if True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
@@ -711,7 +711,7 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     dB : bool
         If True, transform data to decibels.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None

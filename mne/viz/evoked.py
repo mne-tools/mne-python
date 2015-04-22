@@ -192,7 +192,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
-        Call pyplot.show() as the end or not.
+        Show figure if True.
     ylim : dict | None
         ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
@@ -242,7 +242,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
-        Call pyplot.show() as the end or not.
+        Show figure if True.
     clim : dict | None
         clim for plots. e.g. clim = dict(eeg=[-200e-6, 200e6])
         Valid keys are eeg, mag, grad, misc. If None, the clim parameter
@@ -320,7 +320,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     noise_cov : list | instance of Covariance
         The noise covariance as computed by ``mne.cov.compute_covariance``.
     show : bool
-        Whether to show the figure or not. Defaults to True.
+        Show figure if True.
 
     Returns
     -------
@@ -539,7 +539,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     inv : instance of InverseOperator
         The minimum-norm inverse operator.
     show : bool
-        Whether to show the figure or not. Defaults to True.
+        Show figure if True.
 
     Returns
     -------
