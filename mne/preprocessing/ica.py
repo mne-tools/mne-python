@@ -48,15 +48,7 @@ from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
 
-from ..utils import compute_corr
-
-def _get_fast_dot():
-    """"Helper to get fast dot"""
-    try:
-        from sklearn.utils.extmath import fast_dot
-    except ImportError:
-        fast_dot = np.dot
-    return fast_dot
+from ..utils import compute_corr, _get_fast_dot
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -2135,6 +2127,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 # CORRMAP
 
 def _get_ica_map(ica, components=None):
+    fast_dot = _get_fast_dot()
     if components is None:
         components = list(range(ica.n_components_))
     maps = fast_dot(ica.mixing_matrix_[:, components].T,
