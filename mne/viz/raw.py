@@ -670,7 +670,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
     """Plot the power spectral density across channels
 
     Parameters
@@ -709,6 +709,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         is 0 (no overlap).
     dB : bool
         If True, transform data to decibels.
+    show : bool
+        Call pyplot.show() at the end.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -758,7 +760,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt.show()
+    if show is True:
+        plt.show()
     return fig
 
 
