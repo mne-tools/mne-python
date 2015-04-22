@@ -867,6 +867,28 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
+    def add_htmls_to_section(self, htmls, captions, section='custom'):
+        """Append htmls to the report.
+
+        Parameters
+        ----------
+        htmls : str | list of str
+            An html str or a list of html str.
+        captions : str | list of str
+            A caption or a list of captions to the htmls.
+        section : str
+            Name of the section. If section already exists, the images
+            will be appended to the end of the section.
+        """
+        htmls, captions = self._validate_input(htmls, captions, section)
+        for html, caption in zip(htmls, captions):
+            caption = 'custom plot' if caption == '' else caption
+            sectionvar = self._sectionvars[section]
+
+            self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
+            self._sectionlabels.append(sectionvar)
+            self.html.append(html)
+
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
         """Renders a bem slider html str.
