@@ -35,3 +35,12 @@ maps = make_field_map(evoked, trans_fname, subject='sample',
 
 # explore several points in time
 [evoked.plot_field(maps, time=time) for time in [0.09, .11]]
+
+# # Compute the field maps to project MEG and EEG fields both in
+# # scalp surface
+# maps = make_field_map(evoked, trans_fname, subject='sample',
+#                       subjects_dir=subjects_dir, n_jobs=1, head_surf=True)
+
+# # explore several points in time
+# labels = ['eeg', 'meg']
+# [evoked.plot_field([maps[ind]], 0.11, labels[ind]) for ind in range(2)]
