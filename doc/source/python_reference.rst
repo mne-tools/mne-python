@@ -693,8 +693,6 @@ Time-Frequency
    tfr_multitaper
    single_trial_power
    yule_walker
-   ar_raw
-   iir_filter_raw
    stft
    istft
    stftfreq
