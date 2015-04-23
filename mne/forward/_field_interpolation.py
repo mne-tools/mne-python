@@ -6,6 +6,7 @@ import warnings
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info, pick_channels
 from ..surface import get_head_surf, get_meg_helmet_surf
+from ..channels.interpolation import _do_interp_dots
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
@@ -219,7 +220,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     return evoked
 
 
-def _interpolate_bads_meg(inst, mode='fast', verbose=None):
+def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     """Interpolate bad channels from data in good channels.
 
     Parameters
@@ -228,8 +229,8 @@ def _interpolate_bads_meg(inst, mode='fast', verbose=None):
         The data to interpolate. Must be preloaded.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used. `'fast'` should be sufficient
-        for most applications.
+        Legendre polynomial expansion used for interpolation. `'fast'` should
+        be sufficient for most applications.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -241,31 +242,22 @@ def _interpolate_bads_meg(inst, mode='fast', verbose=None):
 
     inst = inst.copy()
 
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
+    if getattr(inst, 'preload', None) is False:
+        raise ValueError('Data must be preloaded.')
 
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
-    # return without doing anything if there are no meg channels
-    if len(picks_meg) == 0:
-        return inst
-
     ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
     picks_bad = pick_channels(ch_names, inst.info['bads'],
                               exclude=[])
 
+    # return without doing anything if there are no meg channels
+    if len(picks_meg) == 0 or len(picks_bad) == 0:
+        return inst
+
     mapping = _map_meg_channels(inst, picks_good, picks_bad, mode='fast')
 
-    # compute evoked data by multiplying by the 'gain matrix' from
-    # original sensors to virtual sensors
-    if isinstance(inst, _BaseRaw):
-        inst._data[picks_bad] = np.dot(mapping, inst.data[picks_good])
-    elif isinstance(inst, _BaseEpochs):
-        inst._data = np.dot(np.dot(mapping[:, np.newaxis, :],
-                            inst.data[:, picks_bad, :])).transpose((1, 0, 2))
-    elif isinstance(inst, Evoked):
-        inst.data[picks_bad] = np.dot(mapping, inst.data[picks_good])
+    _do_interp_dots(inst, mapping, picks_good, picks_bad)
 
     return inst
 

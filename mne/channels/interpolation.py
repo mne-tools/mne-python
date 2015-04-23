@@ -104,8 +104,33 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     return interpolation
 
 
+def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
+    """Dot product of channel mapping matrix to channel data
+    """
+    from mne.io.base import _BaseRaw
+    from mne.epochs import _BaseEpochs
+    from mne.evoked import Evoked
+
+    if isinstance(inst, _BaseRaw):
+        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
+    elif isinstance(inst, _BaseEpochs):
+        tmp = np.dot(interpolation[:, np.newaxis, :],
+                     inst._data[:, goods_idx, :])
+        if np.sum(bads_idx) == 1:
+            tmp = tmp[0]
+        else:
+            tmp = tmp[:, 0, ...]
+        inst._data[:, bads_idx, :] = np.transpose(tmp, (1, 0, 2))
+    elif isinstance(inst, Evoked):
+        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
+    else:
+        raise ValueError('Inputs of type {0} are not supported'
+                         .format(type(inst)))
+    return inst
+
+
 def _interpolate_bads_eeg(inst):
-    """Interpolate bad channels
+    """Interpolate bad EEG channels
 
     Operates in place.
 
@@ -114,16 +139,8 @@ def _interpolate_bads_eeg(inst):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
-
     inst = inst.copy()
 
-    if 'eeg' not in inst:
-        raise ValueError('This interpolation function requires EEG channels.')
-    if len(inst.info['bads']) == 0:
-        raise ValueError('No bad channels to interpolate.')
     if getattr(inst, 'preload', None) is False:
         raise ValueError('Data must be preloaded.')
 
@@ -132,6 +149,10 @@ def _interpolate_bads_eeg(inst):
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
+
+    if len(picks) == 0 or len(bads_idx) == 0:
+        return inst
+
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
@@ -158,22 +179,4 @@ def _interpolate_bads_eeg(inst):
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded')
-
-    if isinstance(inst, _BaseRaw):
-        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
-    elif isinstance(inst, _BaseEpochs):
-        tmp = np.dot(interpolation[:, np.newaxis, :],
-                     inst._data[:, goods_idx, :])
-        if np.sum(bads_idx) == 1:
-            tmp = tmp[0]
-        else:
-            tmp = tmp[:, 0, ...]
-        inst._data[:, bads_idx, :] = np.transpose(tmp, (1, 0, 2))
-    elif isinstance(inst, Evoked):
-        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
-    else:
-        raise ValueError('Inputs of type {0} are not supported'
-                         .format(type(inst)))
-    return inst
+    return _do_interp_dots(inst, interpolation, goods_idx, bads_idx)

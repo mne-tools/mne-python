@@ -43,8 +43,13 @@ Changelog
 
    - Add  ``plot_projs_topomap`` method to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
+<<<<<<< HEAD
    - Add EEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
     by `Denis Engemann`_
+=======
+   - Add EEG and MEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
+     by `Denis Engemann`_ and `Mainak Jas`_
+>>>>>>> Improve docs + make drier
 
    - Add parameter to ``whiten_evoked``, ``compute_whitener`` and ``prepare_noise_cov`` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
 

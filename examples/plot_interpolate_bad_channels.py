@@ -3,7 +3,7 @@
 Interpolate bad channels using spherical splines
 ================================================
 
-This example shows how to interpolate bad EEG channels using spherical
+This example shows how to interpolate bad MEG/EEG channels using spherical
 splines as described in [1].
 
 References
@@ -13,6 +13,7 @@ References
     Electroencephalography and Clinical Neurophysiology, Feb; 72(2):184-7.
 """
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
+#          Mainak Jas <mainak.jas@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
 
@@ -40,9 +41,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0),
-                    reject=dict(eog=150e-6, eeg=80e-6),
-                    preload=True)
+                    baseline=(None, 0), reject=None, preload=True)
 
 # plot with bads
 evoked_before = epochs.average()
