@@ -2127,6 +2127,7 @@ def _band_pass_filter(ica, sources, target, l_freq, h_freq, verbose=None):
 # CORRMAP
 
 def _get_ica_map(ica, components=None):
+    """Get ICA topomap for components"""
     fast_dot = _get_fast_dot()
     if components is None:
         components = list(range(ica.n_components_))
@@ -2136,6 +2137,7 @@ def _get_ica_map(ica, components=None):
 
 
 def _find_max_corrs(all_maps, target, threshold):
+    """Compute correlations betwen template and target components"""
     all_corrs = [compute_corr(target, subj.T) for subj in all_maps]
     abs_corrs = [np.abs(a) for a in all_corrs]
     corr_polarities = [np.sign(a) for a in all_corrs]
@@ -2174,6 +2176,7 @@ def _find_max_corrs(all_maps, target, threshold):
 
 
 def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show):
+    """Customized ica.plot_components for corrmap"""
     import matplotlib.pyplot as plt
 
     title = 'Detected components of type ' + label
