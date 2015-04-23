@@ -41,6 +41,7 @@ maps = make_field_map(evoked, trans_fname, subject='sample',
 maps = make_field_map(evoked, trans_fname, subject='sample',
                       subjects_dir=subjects_dir, n_jobs=1, meg_surf='head')
 
-# Plot both M/EEG fields in scalp surface separately
+# Plot both M/EEG fields in scalp surface separately to not have
+# the M/EEG fields overlapped on the head surf.
 labels = ['eeg', 'meg']
 [evoked.plot_field([maps[ind]], 0.11, labels[ind]) for ind in range(2)]

@@ -307,7 +307,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   eeg_surf='head', n_jobs=1, trans_fname=None):
+                   n_jobs=1, trans_fname=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -335,8 +335,6 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     meg_surf : str
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
         to plot the MEG field map. The default value is ``'helmet'``
-    eeg_surf : str
-        Must be ``'head'`` to plot the EEG field map in the head surface.
     n_jobs : int
         The number of jobs to run in parallel.
 
@@ -376,11 +374,8 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         trans = read_trans(trans)
 
     if meg_surf not in ['helmet', 'head']:
-        raise ValueError('Surface to plot MEG fields must be in '
+        raise ValueError('Surface to plot MEG fields must be '
                          '"helmet" or "head"')
-
-    if eeg_surf is not 'head':
-        raise ValueError('Surface to plot EEG fields must be "head"')
 
     surfs = []
     for this_type in types:
