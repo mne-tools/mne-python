@@ -239,12 +239,6 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The interpolated data.
     """
-
-    inst = inst.copy()
-
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded.')
-
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
     ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')

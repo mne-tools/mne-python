@@ -1,6 +1,6 @@
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_array_almost_equal, assert_allclose,
+from numpy.testing import (assert_allclose,
                            assert_array_equal)
 from nose.tools import assert_raises, assert_equal
 
@@ -51,33 +51,21 @@ def test_interplation():
 
     assert_allclose(ave_before, ave_after, atol=2e-6)
 
-    epochs.info['bads'] = []
-    assert_raises(ValueError, epochs.interpolate_bads_eeg)
-
     epochs.info['bads'] = ['EEG 012']
     epochs.preload = False
-    assert_raises(ValueError,  epochs.interpolate_bads_eeg)
+    assert_raises(ValueError,  epochs.interpolate_bads)
     epochs.preload = True
-
-    epochs2.info['bads'] = ['EEG 012', 'MEG 1711']
-
-    epochs2.interpolate_bads_eeg()
-    ave_after2 = epochs2.average().data[n_meg + np.where(bads_idx)[0]]
-
-    assert_array_almost_equal(ave_after, ave_after2, decimal=16)
 
     raw = io.RawArray(data=epochs._data[0], info=epochs.info)
     raw_before = raw._data[bads_idx]
-    raw.interpolate_bads_eeg()
-    raw_after = raw._data[bads_idx]
+    raw_after = raw.interpolate_bads()._data[bads_idx]
     assert_equal(np.all(raw_before == raw_after), False)
 
     evoked = epochs.average()
-    evoked.interpolate_bads_eeg()
-    assert_array_equal(ave_after, evoked.data[bads_idx])
+    assert_array_equal(ave_after, evoked.interpolate_bads().data[bads_idx])
 
     for inst in [raw, epochs]:
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        assert_raises(ValueError, inst.interpolate_bads_eeg)
+        assert_raises(ValueError, inst.interpolate_bads)

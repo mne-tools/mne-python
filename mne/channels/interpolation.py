@@ -139,11 +139,6 @@ def _interpolate_bads_eeg(inst):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    inst = inst.copy()
-
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded.')
-
     bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 

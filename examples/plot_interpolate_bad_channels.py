@@ -41,7 +41,7 @@ picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
 
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=None, preload=True)
+                    baseline=(None, 0), reject=None, preload=False)
 
 # plot with bads
 evoked_before = epochs.average()
