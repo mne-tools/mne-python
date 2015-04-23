@@ -4,7 +4,7 @@ from copy import deepcopy
 import warnings
 
 from ..io.constants import FIFF
-from ..io.pick import pick_types, pick_info
+from ..io.pick import pick_types, pick_info, pick_channels
 from ..surface import get_head_surf, get_meg_helmet_surf
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
@@ -105,6 +105,65 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
+def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+    """Find mapping from one set of channels to another.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    pick_from : array-like of int
+        The channels from which to interpolate.
+    pick_to : array-like of int
+        The channels to which to interpolate.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+
+    Returns
+    -------
+    mapping : array
+        A mapping matrix of shape len(pick_from) x len(pick_to).
+    """
+    info_from = pick_info(inst.info, pick_from, copy=True)
+    info_to = pick_info(inst.info, pick_to, copy=True)
+
+    # no need to apply trans because both from and to coils are in device
+    # coordinates
+    coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                               info_from['dev_head_t'], 'meg')
+    coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
+                             info_to['dev_head_t'], 'meg')
+    miss = 1e-4  # Smoothing criterion for MEG
+
+    #
+    # Step 2. Calculate the dot products
+    #
+    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
+                                                             'meg')
+    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
+    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
+                              lut_fun, n_fact, n_jobs=1)
+    logger.info('Computing cross products for coils %i x %i coils...'
+                % (len(coils_from), len(coils_to)))
+    cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
+                                my_origin, 'meg', lut_fun, n_fact).T
+
+    ch_names = [c['ch_name'] for c in info_from['chs']]
+    fmd = dict(kind='meg', ch_names=ch_names,
+               origin=my_origin, noise=noise, self_dots=self_dots,
+               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
+    logger.info('Field mapping data ready')
+
+    #
+    # Step 3. Compute the mapping matrix
+    #
+    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
+
+    return fmd['data']
+
+
 def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
@@ -142,44 +201,11 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    info_from = pick_info(evoked.info, pick_from, copy=True)
-    info_to = pick_info(evoked.info, pick_to, copy=True)
-
-    # no need to apply trans because both from and to coils are in device
-    # coordinates
-    coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
-                               info_from['dev_head_t'], 'meg')
-    coils_to = _create_coils(info_to['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
-                             info_to['dev_head_t'], 'meg')
-    miss = 1e-4  # Smoothing criterion for MEG
-
-    #
-    # Step 2. Calculate the dot products
-    #
-    my_origin, int_rad, noise, lut_fun, n_fact = _setup_dots(mode, coils_from,
-                                                             'meg')
-    logger.info('Computing dot products for %i coils...' % (len(coils_from)))
-    self_dots = _do_self_dots(int_rad, False, coils_from, my_origin, 'meg',
-                              lut_fun, n_fact, n_jobs=1)
-    logger.info('Computing cross products for coils %i x %i coils...'
-                % (len(coils_from), len(coils_to)))
-    cross_dots = _do_cross_dots(int_rad, False, coils_from, coils_to,
-                                my_origin, 'meg', lut_fun, n_fact).T
-
-    ch_names = [c['ch_name'] for c in info_from['chs']]
-    fmd = dict(kind='meg', ch_names=ch_names,
-               origin=my_origin, noise=noise, self_dots=self_dots,
-               surface_dots=cross_dots, int_rad=int_rad, miss=miss)
-    logger.info('Field mapping data ready')
-
-    #
-    # Step 3. Compute the mapping matrix
-    #
-    fmd['data'] = _compute_mapping_matrix(fmd, info_from)
+    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    data = np.dot(fmd['data'], evoked.data[pick_from])
+    data = np.dot(mapping, evoked.data[pick_from])
 
     # keep only the destination channel types
     evoked.pick_types(meg=ch_type, eeg=False, ref_meg=False)
@@ -191,6 +217,57 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
 
     return evoked
+
+
+def _interpolate_bads_meg(inst, mode='fast', verbose=None):
+    """Interpolate bad channels from data in good channels.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used. `'fast'` should be sufficient
+        for most applications.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The interpolated data.
+    """
+
+    inst = inst.copy()
+
+    from mne.io.base import _BaseRaw
+    from mne.epochs import _BaseEpochs
+    from mne.evoked import Evoked
+
+    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
+    # return without doing anything if there are no meg channels
+    if len(picks_meg) == 0:
+        return inst
+
+    ch_names = [inst.info['ch_names'][p] for p in picks_meg]
+    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    picks_bad = pick_channels(ch_names, inst.info['bads'],
+                              exclude=[])
+
+    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode='fast')
+
+    # compute evoked data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    if isinstance(inst, _BaseRaw):
+        inst._data[picks_bad] = np.dot(mapping, inst.data[picks_good])
+    elif isinstance(inst, _BaseEpochs):
+        inst._data = np.dot(np.dot(mapping[:, np.newaxis, :],
+                            inst.data[:, picks_bad, :])).transpose((1, 0, 2))
+    elif isinstance(inst, Evoked):
+        inst.data[picks_bad] = np.dot(mapping, inst.data[picks_good])
+
+    return inst
 
 
 @verbose

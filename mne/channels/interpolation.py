@@ -118,6 +118,8 @@ def _interpolate_bads_eeg(inst):
     from mne.epochs import _BaseEpochs
     from mne.evoked import Evoked
 
+    inst = inst.copy()
+
     if 'eeg' not in inst:
         raise ValueError('This interpolation function requires EEG channels.')
     if len(inst.info['bads']) == 0:
@@ -133,12 +135,7 @@ def _interpolate_bads_eeg(inst):
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    if len(bads_idx) != len(inst.info['bads']):
-        logger.warning('Channel interpolation is currently only implemented '
-                       'for EEG. The MEG channels marked as bad will remain '
-                       'untouched.')
-
-    pos = inst._get_channel_positions(picks)
+    pos = inst.get_channel_positions(picks)
 
     # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]

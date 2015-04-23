@@ -34,10 +34,8 @@ event_id, tmin, tmax = 1, -0.2, 0.5
 raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
-raw.info['bads'] = ['EEG 053']  # mark bad channels
-
 # pick EEG channels and keep bads for interpolation
-picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True,
+picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
                        exclude=[])
 
 # Read epochs
@@ -51,7 +49,7 @@ evoked_before = epochs.average()
 evoked_before.plot(exclude=[])
 
 # compute interpolation (also works with Raw and Epochs objects)
-evoked_after = evoked_before.copy().interpolate_bads_eeg()
+evoked_after = evoked_before.interpolate_bads()
 
-# plot interpolated (prevsious bads)
+# plot interpolated (previous bads)
 evoked_after.plot(exclude=[])

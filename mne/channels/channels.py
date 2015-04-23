@@ -456,18 +456,17 @@ class PickDropChannelsMixin(object):
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def interpolate_bads_eeg(self):
-        """Interpolate bad channels
 
-        Operates in place.
+    def interpolate_bads(self):
+        """Interpolate bad channels.
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
         from .interpolation import _interpolate_bads_eeg
-        _interpolate_bads_eeg(self)
-        return self
+        from ..forward import _interpolate_bads_meg
+        return _interpolate_bads_meg(_interpolate_bads_eeg(self.copy()))
 
 
 def rename_channels(info, mapping):

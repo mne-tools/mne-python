@@ -10,5 +10,6 @@ from .forward import (Forward, read_forward_solution, write_forward_solution,
                       _subject_from_forward, convert_forward_solution,
                       _to_fixed_ori, prepare_bem_model)
 from ._make_forward import make_forward_solution
-from ._field_interpolation import _make_surface_mapping, make_field_map, _as_meg_type_evoked
+from ._field_interpolation import (_make_surface_mapping, make_field_map,
+                                   _as_meg_type_evoked, _interpolate_bads_meg)
 from . import _lead_dots  # for testing purposes
