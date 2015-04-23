@@ -116,7 +116,7 @@ class Dipole(object):
 
     @verbose
     def plot_locations(self, trans, subject, subjects_dir=None,
-                       bgcolor=(1, 1, 1) * 3, opacity=0.3,
+                       bgcolor=(1, 1, 1), opacity=0.3,
                        brain_color=(0.7, 0.7, 0.7), mesh_color=(1, 1, 0),
                        fig_name=None, fig_size=(600, 600), mode='cone',
                        scale_factor=0.1e-1, colors=None, verbose=None):
