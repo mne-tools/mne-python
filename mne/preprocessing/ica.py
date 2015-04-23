@@ -2175,7 +2175,7 @@ def _find_max_corrs(all_maps, target, threshold):
     return newtarget, median_corr_with_target, sim_i_o, max_corrs
 
 
-def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show):
+def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines):
     """Customized ica.plot_components for corrmap"""
     import matplotlib.pyplot as plt
 
@@ -2194,7 +2194,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show):
 
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
         ica, ch_type, None)
-    pos, outlines = _check_outlines(pos, 'head')
+    pos, outlines = _check_outlines(pos, outlines)
 
     data = np.atleast_2d(data)
     data = data[:, data_picks]
@@ -2205,8 +2205,8 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show):
 
     if merge_grads:
         from ..channels.layout import _merge_grad_data
-    for ii, data_, ax, s, i in zip(picks, data, axes, subjs, indices):
-        ttl = 'Subj. {0}, IC {1}'.format(s, i)
+    for ii, data_, ax, subject, idx in zip(picks, data, axes, subjs, indices):
+        ttl = 'Subj. {0}, IC {1}'.format(subject, idx)
         ax.set_title(ttl, fontsize=12)
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
@@ -2220,14 +2220,15 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show):
     tight_layout(fig=fig)
     fig.subplots_adjust(top=0.8)
     fig.canvas.draw()
-    if show:
+    if show is True:
         plt.show()
     return fig
 
 
 @verbose
 def corrmap(icas, template, threshold="auto", label=None,
-            ch_type="eeg", plot=True, show=True, verbose=None):
+            ch_type="eeg", plot=True, show=True, verbose=None, outlines='head',
+            layout=None, sensors=True, contours=6, cmap='RdBu_r'):
     """Find similar Independent Components across subjects by map similarity.
 
     Corrmap (Viola et al. 2009 Clin Neurophysiol) identifies the best group
@@ -2273,6 +2274,38 @@ def corrmap(icas, template, threshold="auto", label=None,
         Should constructed template and selected maps be plotted?
     show : bool
         Show figures if True.
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
+    outlines : 'head' | dict | None
+        The outlines to be drawn. If 'head', a head scheme will be drawn. If
+        dict, each key refers to a tuple of x and y positions. The values in
+        'mask_pos' will serve as image mask. If None, nothing will be drawn.
+        Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+        trigger automated shrinking of the positions due to points outside the
+        outline. Moreover, a matplotlib patch object can be passed for
+        advanced masking options, either directly or as a function that returns
+        patches (required for multi-axis plots).
+    layout : None | Layout | list of Layout
+        Layout instance specifying sensor positions (does not need to be
+        specified for Neuromag data). Or a list of Layout if projections
+        are from different sensor types.
+    cmap : matplotlib colormap
+        Colormap.
+    sensors : bool | str
+        Add markers for sensor locations to the plot. Accepts matplotlib plot
+        format string (e.g., 'r+' for red plusses). If True, a circle will be
+        used (via .add_artist). Defaults to True.
+    contours : int | False | None
+        The number of contour lines to draw. If 0, no contours will be drawn.
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2283,7 +2316,7 @@ def corrmap(icas, template, threshold="auto", label=None,
     labelled_ics : fig
         Figure showing the labelled ICs in all ICA decompositions.
     """
-    if threshold == "auto":
+    if threshold == 'auto':
         threshold = np.arange(60, 95, dtype=np.float64) / 100.
 
     all_maps = [_get_ica_map(ica) for ica in icas]
@@ -2292,9 +2325,9 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     if plot is True:
         ttl = 'Template from subj. {0}'.format(str(template[0]))
-        template_fig = icas[template[0]].plot_components(picks=template[1],
-                                                         ch_type=ch_type,
-                                                         title=ttl)
+        template_fig = icas[template[0]].plot_components(
+            picks=template[1], ch_type=ch_type, title=ttl, outlines=outlines,
+            cmap=cmap, contours=contours, layout=layout, show=show)
         template_fig.subplots_adjust(top=0.8)
         template_fig.canvas.draw()
 
@@ -2323,20 +2356,20 @@ def corrmap(icas, template, threshold="auto", label=None,
         # find iteration with highest avg correlation with target
         nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
-    allmaps, indices, subjs, nones = [], [], [], []
+    allmaps, indices, subjs, nones = [list() for _ in range(4)]
     logger.info('Median correlation with constructed map: %0.3f' % mt)
     if plot:
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
         if (label is not None) and (not hasattr(ica, 'labels_')):
-            ica.labels_ = {}
+            ica.labels_ = dict()
         if len(max_corr) > 0:
             if isinstance(max_corr[0], np.ndarray):
                 max_corr = max_corr[0]
             if label is not None:
                 ica.labels_[label] = list(set(list(max_corr) +
-                                          ica.labels_.get(label, [])))
+                                          ica.labels_.get(label, list())))
             if plot is True:
                 allmaps.extend(_get_ica_map(ica, components=max_corr))
                 subjs.extend([ii] * len(max_corr))
@@ -2353,6 +2386,8 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     if plot:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
-                                     label, show=show)
+                                     label, outlines=outlines, cmap=cmap,
+                                     contours=contours, layout=layout,
+                                     show=show)
 
-    return None if plot is False else (template_fig, labelled_ics)
+    return None if plot is False else template_fig, labelled_ics
