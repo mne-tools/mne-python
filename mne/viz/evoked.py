@@ -450,7 +450,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
                     'and global field power '
                     '(right, comparison of estimators)' %
-                    noise_cov[0]['method'])
+                    noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
     ax_gfp = None
@@ -477,7 +477,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
-                              hline=[-1.96, 1.96])
+                              hline=[-1.96, 1.96], show=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
@@ -492,7 +492,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             title = '{0} ({2}{1})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     this_rank, 'rank ' if n_columns > 1 else '')
-            label = noise_cov['method']
+            label = noise_cov.get('method', 'empirical')
 
             ax_gfp[i].set_title(title if n_columns > 1 else
                                 'whitened global field power (GFP),'
