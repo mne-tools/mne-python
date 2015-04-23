@@ -5,7 +5,6 @@
 import math
 
 import numpy as np
-from scipy.signal import hilbert
 
 
 def _compute_normalized_phase(data):
@@ -21,6 +20,7 @@ def _compute_normalized_phase(data):
     phase_angles : ndarray, shape (n_epochs, n_sources, n_times)
         The normalized phase angles.
     """
+    from scipy.signal import hilbert
     return (np.angle(hilbert(data)) + np.pi) / (2 * np.pi)
 
 

@@ -77,8 +77,6 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
-   - Add ``render_bem``, ``add_htmls_to_section`` methods to ``mne.Report`` by `Teon Brooks`_
-
    - Add support for adding an empty reference channel to data by ``Teon Brooks``_
 
    - Add reader function for Raw FIF files by ``Teon Brooks``_
@@ -94,6 +92,11 @@ Changelog
    - Add RAP-MUSIC inverse method by `Yousra Bekhti`_ and `Alex Gramfort`_
 
    - Add ``evoked.as_type`` to  allow remapping data in MEG channels to virtual magnetometer or gradiometer channels by `Mainak Jas`_
+
+   - Add ``add_bem_to_section``, ``add_htmls_to_section`` methods to ``mne.Report`` by `Teon Brooks`_
+
+   - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
+
 
 BUG
 ~~~
@@ -185,6 +188,8 @@ API
    - Deprecated changing the sensor type of channels in ``rename_channels`` by `Teon Brooks`_
 
    - CUDA is no longer initialized at module import, but only when first used.
+
+   - ``add_figs_to_section`` and ``add_images_to_section`` now have a ``textbox`` parameter to add comments to the image by `Teon Brooks`_
 
 .. _changes_0_8:
 

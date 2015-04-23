@@ -59,7 +59,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if isinstance(exclude, string_types) and exclude == 'bads':
             exclude = bad_ch_idx
         elif (isinstance(exclude, list) and
-              all([isinstance(ch, string_types) for ch in exclude])):
+              all(isinstance(ch, string_types) for ch in exclude)):
             exclude = [evoked.ch_names.index(ch) for ch in exclude]
         else:
             raise ValueError('exclude has to be a list of channel names or '
@@ -109,7 +109,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         if len(idx) > 0:
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
-                if any([i in bad_ch_idx for i in idx]):
+                if any(i in bad_ch_idx for i in idx):
                     colors = ['k'] * len(idx)
                     for i in bad_ch_idx:
                         if i in idx:
@@ -192,7 +192,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
-        Call pyplot.show() as the end or not.
+        Show figure if True.
     ylim : dict | None
         ylim for plots. e.g. ylim = dict(eeg=[-200e-6, 200e6])
         Valid keys are eeg, mag, grad, misc. If None, the ylim parameter
@@ -242,7 +242,7 @@ def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
     unit : bool
         Scale plot with channel (SI) unit.
     show : bool
-        Call pyplot.show() as the end or not.
+        Show figure if True.
     clim : dict | None
         clim for plots. e.g. clim = dict(eeg=[-200e-6, 200e6])
         Valid keys are eeg, mag, grad, misc. If None, the clim parameter
@@ -320,7 +320,7 @@ def plot_evoked_white(evoked, noise_cov, show=True):
     noise_cov : list | instance of Covariance
         The noise covariance as computed by ``mne.cov.compute_covariance``.
     show : bool
-        Whether to show the figure or not. Defaults to True.
+        Show figure if True.
 
     Returns
     -------
@@ -450,7 +450,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         suptitle = ('Whitened evoked (left, best estimator = "%s")\n'
                     'and global field power '
                     '(right, comparison of estimators)' %
-                    noise_cov[0]['method'])
+                    noise_cov[0].get('method', 'empirical'))
         fig.suptitle(suptitle)
 
     ax_gfp = None
@@ -477,7 +477,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
-                              hline=[-1.96, 1.96])
+                              hline=[-1.96, 1.96], show=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
@@ -492,7 +492,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
             title = '{0} ({2}{1})'.format(
                     titles_[ch] if n_columns > 1 else ch,
                     this_rank, 'rank ' if n_columns > 1 else '')
-            label = noise_cov['method']
+            label = noise_cov.get('method', 'empirical')
 
             ax_gfp[i].set_title(title if n_columns > 1 else
                                 'whitened global field power (GFP),'
@@ -539,7 +539,7 @@ def plot_snr_estimate(evoked, inv, show=True):
     inv : instance of InverseOperator
         The minimum-norm inverse operator.
     show : bool
-        Whether to show the figure or not. Defaults to True.
+        Show figure if True.
 
     Returns
     -------

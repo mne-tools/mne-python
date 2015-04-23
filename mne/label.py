@@ -575,7 +575,7 @@ class Label(object):
                              subject=subject_from)
         stc = morph_data(subject_from, subject_to, stc, grade=grade,
                          smooth=smooth, subjects_dir=subjects_dir,
-                         n_jobs=n_jobs)
+                         warn=False, n_jobs=n_jobs)
         inds = np.nonzero(stc.data)[0]
         if copy is True:
             label = self.copy()

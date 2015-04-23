@@ -11,7 +11,6 @@ import os.path as op
 import warnings
 
 import numpy as np
-from scipy.io import loadmat
 from scipy import sparse
 
 from ..externals.six import string_types
@@ -101,8 +100,8 @@ def equalize_channels(candidates, verbose=None):
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all([isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
-                for c in candidates]):
+    if not all(isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
+               for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
 
@@ -463,7 +462,7 @@ def rename_channels(info, mapping):
 
         elif isinstance(new_name, tuple):  # name and type change
             warnings.warn("Changing sensor type is now deprecated. Please use "
-                          "'set_channels_type' instead.", DeprecationWarning)
+                          "'set_channel_types' instead.", DeprecationWarning)
             new_name, new_type = new_name  # unpack
             if new_type not in human2fiff:
                 raise ValueError('This function cannot change to this '
@@ -520,6 +519,7 @@ def read_ch_connectivity(fname, picks=None):
     ch_names : list
         The list of channel names present in connectivity matrix.
     """
+    from scipy.io import loadmat
     if not op.isabs(fname):
         templates_dir = op.realpath(op.join(op.dirname(__file__),
                                             'data', 'neighbors'))

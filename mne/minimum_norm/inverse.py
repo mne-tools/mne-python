@@ -9,7 +9,6 @@ from copy import deepcopy
 from math import sqrt
 import numpy as np
 from scipy import linalg
-from scipy.stats import chi2
 
 from ..io.constants import FIFF
 from ..io.open import fiff_open
@@ -1111,7 +1110,7 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
-            not all([b in noise_cov['bads'] for b in info['bads']]):
+            not all(b in noise_cov['bads'] for b in info['bads']):
         logger.info('info["bads"] and noise_cov["bads"] do not match, '
                     'excluding bad channels from both')
 
@@ -1514,6 +1513,7 @@ def estimate_snr(evoked, inv, verbose=None):
     biggest regularization that achieves a :math:`\\chi^2`-test significance
     of 0.001.
     """  # noqa
+    from scipy.stats import chi2
     _check_reference(evoked)
     _check_ch_names(inv, evoked.info)
     inv = prepare_inverse_operator(inv, evoked.nave, 1. / 9., 'MNE')

@@ -9,7 +9,6 @@ import numpy as np
 import os
 import os.path as op
 from scipy import sparse, linalg
-from scipy.spatial.distance import cdist
 from copy import deepcopy
 
 from .io.constants import FIFF
@@ -1458,7 +1457,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
         logger.info('BEM file              : %s', bem)
     elif surface is not None:
         if isinstance(surface, dict):
-            if not all([key in surface for key in ['rr', 'tris']]):
+            if not all(key in surface for key in ['rr', 'tris']):
                 raise KeyError('surface, if dict, must have entries "rr" '
                                'and "tris"')
             # let's make sure we have geom info
@@ -1476,7 +1475,7 @@ def setup_volume_source_space(subject, fname=None, pos=5.0, mri=None,
 
     # triage pos argument
     if isinstance(pos, dict):
-        if not all([key in pos for key in ['rr', 'nn']]):
+        if not all(key in pos for key in ['rr', 'nn']):
             raise KeyError('pos, if dict, must contain "rr" and "nn"')
         pos_extra = 'dict()'
     else:  # pos should be float-like
@@ -2167,7 +2166,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         raise RuntimeError('scipy >= 0.11 must be installed (or > 0.13 '
                            'if dist_limit < np.inf')
 
-    if not all([s['type'] == 'surf' for s in src]):
+    if not all(s['type'] == 'surf' for s in src):
         raise RuntimeError('Currently all source spaces must be of surface '
                            'type')
 
@@ -2213,7 +2212,7 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         s['dist_limit'] = np.array([dist_limit], np.float32)
 
     # Let's see if our distance was sufficient to allow for patch info
-    if not any([np.any(np.isinf(md)) for md in min_dists]):
+    if not any(np.any(np.isinf(md)) for md in min_dists):
         # Patch info can be added!
         for s, min_dist, min_idx in zip(src, min_dists, min_idxs):
             s['nearest'] = min_idx
@@ -2285,6 +2284,7 @@ def _compare_source_spaces(src0, src1, mode='exact'):
     """
     from nose.tools import assert_equal, assert_true
     from numpy.testing import assert_allclose, assert_array_equal
+    from scipy.spatial.distance import cdist
     if mode != 'exact' and 'approx' not in mode:  # 'nointerp' can be appended
         raise RuntimeError('unknown mode %s' % mode)
 

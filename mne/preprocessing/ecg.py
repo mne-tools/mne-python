@@ -286,7 +286,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
 def _make_ecg(inst, start, stop, verbose=None):
     """Create ECG signal from cross channel average
     """
-    if not any([c in inst for c in ['mag', 'grad']]):
+    if not any(c in inst for c in ['mag', 'grad']):
         raise ValueError('Unable to generate artifical ECG channel')
     for ch in ['mag', 'grad']:
         if ch in inst:

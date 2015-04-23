@@ -7,7 +7,6 @@
 #
 # License: BSD (3-clause)
 
-from math import floor, ceil
 import copy
 from copy import deepcopy
 import warnings
@@ -15,7 +14,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy.signal import hilbert
 from scipy import linalg
 
 from .constants import FIFF
@@ -194,7 +192,7 @@ class ToDataFrameMixin(object):
                 logger.info('Converting time column to int64...')
                 df['time'] = df['time'].astype(np.int64)
             df.set_index(index, inplace=True)
-        if all([i in default_index for i in index]):
+        if all(i in default_index for i in index):
             df.columns.name = 'signal'
         return df
 
@@ -479,6 +477,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if envelope:
             self.apply_function(_envelope, picks, None, n_jobs)
         else:
+            from scipy.signal import hilbert
             self.apply_function(hilbert, picks, np.complex64, n_jobs)
 
     @verbose
@@ -981,19 +980,19 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         #
 
         #   Convert to samples
-        start = int(floor(tmin * self.info['sfreq']))
+        start = int(np.floor(tmin * self.info['sfreq']))
 
         if tmax is None:
             stop = self.last_samp + 1 - self.first_samp
         else:
-            stop = int(floor(tmax * self.info['sfreq']))
+            stop = int(np.floor(tmax * self.info['sfreq']))
 
         if buffer_size_sec is None:
             if 'buffer_size_sec' in self.info:
                 buffer_size_sec = self.info['buffer_size_sec']
             else:
                 buffer_size_sec = 10.0
-        buffer_size = int(ceil(buffer_size_sec * self.info['sfreq']))
+        buffer_size = int(np.ceil(buffer_size_sec * self.info['sfreq']))
 
         # write the raw file
         _write_raw(fname, self, info, picks, fmt, data_type, reset_range,
@@ -1088,7 +1087,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_psd(self, tmin=0.0, tmax=60.0, fmin=0, fmax=np.inf,
                  proj=False, n_fft=2048, picks=None, ax=None,
                  color='black', area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
         """Plot the power spectral density across channels
 
         Parameters
@@ -1125,6 +1124,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             is 0 (no overlap).
         dB : bool
             If True, transform data to decibels.
+        show : bool
+            Call pyplot.show() at the end.
         n_jobs : int
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
@@ -1138,8 +1139,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_raw_psd(self, tmin=tmin, tmax=tmax, fmin=fmin, fmax=fmax,
                             proj=proj, n_fft=n_fft, picks=picks, ax=ax,
                             color=color, area_mode=area_mode,
-                            area_alpha=area_alpha,
-                            n_overlap=n_overlap, dB=dB, n_jobs=n_jobs)
+                            area_alpha=area_alpha, n_overlap=n_overlap,
+                            dB=dB, show=show, n_jobs=n_jobs)
 
     @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
                 "instead")
@@ -1878,6 +1879,7 @@ def _write_raw_buffer(fid, buf, cals, fmt, inv_comp):
 
 def _envelope(x):
     """ Compute envelope signal """
+    from scipy.signal import hilbert
     return np.abs(hilbert(x))
 
 
@@ -1900,7 +1902,7 @@ def _check_raw_compatibility(raw):
         if not all(proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
-    if not all([r.orig_format == raw[0].orig_format for r in raw]):
+    if not all(r.orig_format == raw[0].orig_format for r in raw):
         warnings.warn('raw files do not all have the same data format, '
                       'could result in precision mismatch. Setting '
                       'raw.orig_format="unknown"')

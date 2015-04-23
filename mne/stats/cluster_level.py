@@ -10,9 +10,9 @@
 # License: Simplified BSD
 
 import numpy as np
-from scipy import stats, sparse, ndimage
 import warnings
 import logging
+from scipy import sparse
 
 from .parametric import f_oneway
 from ..parallel import parallel_func, check_n_jobs
@@ -293,6 +293,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
     sums: array
         Sum of x values in clusters.
     """
+    from scipy import ndimage
     if tail not in [-1, 0, 1]:
         raise ValueError('invalid tail parameter')
 
@@ -302,7 +303,7 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         if not isinstance(threshold, dict):
             raise TypeError('threshold must be a number, or a dict for '
                             'threshold-free cluster enhancement')
-        if not all([key in threshold for key in ['start', 'step']]):
+        if not all(key in threshold for key in ['start', 'step']):
             raise KeyError('threshold, if dict, must have at least '
                            '"start" and "step"')
         tfce = True
@@ -365,7 +366,8 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
         for x_in in x_ins:
             if np.any(x_in):
                 out = _find_clusters_1dir_parts(x, x_in, connectivity,
-                                                max_step, partitions, t_power)
+                                                max_step, partitions, t_power,
+                                                ndimage)
                 clusters += out[0]
                 sums = np.concatenate((sums, out[1]))
         if tfce is True:
@@ -405,26 +407,27 @@ def _find_clusters(x, threshold, tail=0, connectivity=None, max_step=1,
 
 
 def _find_clusters_1dir_parts(x, x_in, connectivity, max_step, partitions,
-                              t_power):
+                              t_power, ndimage):
     """Deal with partitions, and pass the work to _find_clusters_1dir
     """
     if partitions is None:
         clusters, sums = _find_clusters_1dir(x, x_in, connectivity, max_step,
-                                             t_power)
+                                             t_power, ndimage)
     else:
         # cluster each partition separately
         clusters = list()
         sums = list()
         for p in range(np.max(partitions) + 1):
             x_i = np.logical_and(x_in, partitions == p)
-            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power)
+            out = _find_clusters_1dir(x, x_i, connectivity, max_step, t_power,
+                                      ndimage)
             clusters += out[0]
             sums.append(out[1])
         sums = np.concatenate(sums)
     return clusters, sums
 
 
-def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power):
+def _find_clusters_1dir(x, x_in, connectivity, max_step, t_power, ndimage):
     """Actually call the clustering algorithm"""
     if connectivity is None:
         labels, n_labels = ndimage.label(x_in)
@@ -1005,11 +1008,12 @@ def permutation_cluster_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    from scipy import stats
+    ppf = stats.f.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples_per_group = [len(x) for x in X]
-        threshold = stats.distributions.f.ppf(1. - p_thresh,
-                                              *n_samples_per_group)
+        threshold = ppf(1. - p_thresh, *n_samples_per_group)
         if np.sign(tail) < 0:
             threshold = -threshold
 
@@ -1139,10 +1143,12 @@ def permutation_cluster_1samp_test(X, threshold=None, n_permutations=1024,
     Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
     doi:10.1016/j.jneumeth.2007.03.024
     """
+    from scipy import stats
+    ppf = stats.t.ppf
     if threshold is None:
         p_thresh = 0.05 / (1 + (tail == 0))
         n_samples = len(X)
-        threshold = -stats.distributions.t.ppf(p_thresh, n_samples - 1)
+        threshold = -ppf(p_thresh, n_samples - 1)
         if np.sign(tail) < 0:
             threshold = -threshold
 

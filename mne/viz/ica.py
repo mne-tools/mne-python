@@ -68,7 +68,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     title : str | None
         The figure title. If None a default is provided.
     show : bool
-        If True, all open plots will be shown.
+        Show figure if True.
 
     Returns
     -------
@@ -196,7 +196,7 @@ def _plot_ica_sources_evoked(evoked, exclude, title, show):
     title : str
         The figure title.
     show : bool
-        If True, all open plots will be shown.
+        Show figure if True.
     """
     import matplotlib.pyplot as plt
     if title is None:
@@ -248,7 +248,7 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     figsize : tuple of int
         The figure size. Defaults to (12, 6).
     show : bool
-        If True, all open plots will be shown.
+        Show figure if True.
 
     Returns
     -------
@@ -286,12 +286,12 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
         ax.set_xlabel('ICA components')
         ax.set_xlim(0, len(this_scores))
 
-    if show:
-        plt.show()
-
     tight_layout(fig=fig)
     if len(axes) > 1:
         plt.subplots_adjust(top=0.9)
+
+    if show:
+        plt.show()
     return fig
 
 
@@ -325,7 +325,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     title : str
         The figure title.
     show : bool
-        If True, all open plots will be shown.
+        Show figure if True.
 
     Returns
     -------
@@ -382,7 +382,7 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     epochs : instance of mne.Epochs
         The Epochs to be regarded.
     show : bool
-        If True, all open plots will be shown.
+        Show figure if True.
 
     Returns
     -------
@@ -414,11 +414,11 @@ def _plot_ica_overlay_raw(data, data_cln, times, title, ch_types_used, show):
     ax2.set_xlim(times[0], times[-1])
     tight_layout(fig=fig)
 
-    if show:
-        plt.show()
-
     fig.subplots_adjust(top=0.90)
     fig.canvas.draw()
+
+    if show:
+        plt.show()
 
     return fig
 
@@ -460,9 +460,10 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     evoked_cln.plot(axes=axes, show=show)
     tight_layout(fig=fig)
 
+    fig.subplots_adjust(top=0.90)
+    fig.canvas.draw()
+
     if show:
         plt.show()
 
-    fig.subplots_adjust(top=0.90)
-    fig.canvas.draw()
     return fig

@@ -738,6 +738,7 @@ def _compute_covariance_auto(data, method, info, method_params, cv,
     _apply_scaling_array(data.T, picks_list=picks_list, scalings=scalings)
     estimator_cov_info = list()
     msg = 'Estimating covariance using %s'
+    _RegCovariance, _ShrunkCovariance = _get_covariance_classes()
     for this_method in method:
         data_ = data.copy()
         name = this_method.__name__ if callable(this_method) else this_method
@@ -921,7 +922,7 @@ def _auto_low_rank_model(data, mode, n_jobs, method_params, cv,
     return est, runtime_info
 
 
-if check_sklearn_version('0.15') is True:
+def _get_covariance_classes():
     """Prepare special cov estimators"""
     from sklearn.covariance import (EmpiricalCovariance, shrunk_covariance,
                                     ShrunkCovariance)
@@ -1030,13 +1031,12 @@ if check_sklearn_version('0.15') is True:
                 test_cov[self.zero_cross_cov_] = 0.
             res = log_likelihood(test_cov, self.get_precision())
             return res
-else:
-    _RegCovariance = None
-    _ShrunkCovariance = None
+
+    return _RegCovariance, _ShrunkCovariance
+
 
 ###############################################################################
 # Writing
-
 
 def write_cov(fname, cov):
     """Write a noise covariance matrix

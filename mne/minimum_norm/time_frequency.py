@@ -6,7 +6,7 @@
 from warnings import warn
 
 import numpy as np
-from scipy import linalg, signal, fftpack
+from scipy import linalg, fftpack
 import warnings
 
 from ..io.constants import FIFF
@@ -397,6 +397,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
     stc : SourceEstimate | VolSourceEstimate
         The PSD (in dB) of each of the sources.
     """
+    from scipy.signal import hanning
     pick_ori = _check_ori(pick_ori, pick_normal)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
@@ -438,7 +439,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         stop = raw.time_as_index(tmax)[0] + 1
     n_fft = int(n_fft)
     Fs = raw.info['sfreq']
-    window = signal.hanning(n_fft)
+    window = hanning(n_fft)
     freqs = fftpack.fftfreq(n_fft, 1. / Fs)
     freqs_mask = (freqs >= 0) & (freqs >= fmin) & (freqs <= fmax)
     freqs = freqs[freqs_mask]

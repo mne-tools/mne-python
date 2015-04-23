@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import signal, interpolate
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..io import Raw
@@ -16,9 +15,10 @@ from ..io.pick import pick_channels
 
 def _get_window(start, end):
     """Return window which has length as much as parameter start - end"""
-    window = 1 - np.r_[signal.hann(4)[:2],
+    from scipy.signal import hann
+    window = 1 - np.r_[hann(4)[:2],
                        np.ones(np.abs(end - start) - 4),
-                       signal.hann(4)[-2:]].T
+                       hann(4)[-2:]].T
     return window
 
 
@@ -32,9 +32,10 @@ def _check_preload(inst):
 
 def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     """Modify original data by using parameter data"""
+    from scipy.interpolate import interp1d
     if mode == 'linear':
         x = np.array([first_samp, last_samp])
-        f = interpolate.interp1d(x, data[:, (first_samp, last_samp)])
+        f = interp1d(x, data[:, (first_samp, last_samp)])
         xnew = np.arange(first_samp, last_samp)
         interp_data = f(xnew)
         data[picks, first_samp:last_samp] = interp_data
@@ -73,6 +74,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
     raw: Raw object
         raw data object.
     """
+    from scipy.interpolate import interp1d
     if not raw.preload:
         raise RuntimeError('Modifying data of Raw is only supported '
                            'when preloading is used. Use preload=True '
@@ -95,7 +97,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
         data, _ = raw[picks, first_samp:last_samp]
         if mode == 'linear':
             x = np.array([first_samp, last_samp])
-            f = interpolate.interp1d(x, data[:, (0, -1)])
+            f = interp1d(x, data[:, (0, -1)])
             xnew = np.arange(first_samp, last_samp)
             interp_data = f(xnew)
             raw[picks, first_samp:last_samp] = interp_data
@@ -105,7 +107,7 @@ def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
-                      tmax=0.01, mode='linear', copy=False):
+                      tmax=0.01, mode='linear', stim_channel=None, copy=False):
     """Eliminate stimulation's artifacts from instance
 
     Parameters
@@ -125,6 +127,8 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
         Way to fill the artifacted time interval.
         'linear' does linear interpolation
         'window' applies a (1 - hanning) window.
+    stim_channel : str | None
+        Stim channel to use.
     copy : bool
         If True, data will be copied. Else data may be modified in place.
 
@@ -152,7 +156,7 @@ def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,
     if isinstance(inst, Raw):
         _check_preload(inst)
         if events is None:
-            events = find_events(inst)
+            events = find_events(inst, stim_channel=stim_channel)
         if len(events) == 0:
             raise ValueError('No events are found')
         if event_id is None:

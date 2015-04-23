@@ -10,7 +10,6 @@ import copy
 from functools import partial
 
 import numpy as np
-from scipy.signal import butter, filtfilt
 
 from ..externals.six import string_types
 from ..io.pick import pick_types
@@ -35,6 +34,7 @@ def _plot_update_raw_proj(params, bools):
 
 def _update_raw_data(params):
     """Helper only needs to be called when time or proj is changed"""
+    from scipy.signal import filtfilt
     start = params['t_start']
     stop = params['raw'].time_as_index(start + params['duration'])[0]
     start = params['raw'].time_as_index(start)[0]
@@ -363,7 +363,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         The title of the window. If None, and either the filename of the
         raw object or '<unknown>' will be displayed as title.
     show : bool
-        Show figure if True
+        Show figure if True.
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
@@ -400,6 +400,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
+    from scipy.signal import butter
     color, scalings = _mutable_defaults(('color', color),
                                         ('scalings_plot_raw', scalings))
 
@@ -670,7 +671,7 @@ def _set_psd_plot_params(info, proj, picks, ax, area_mode):
 def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
                  n_fft=2048, picks=None, ax=None, color='black',
                  area_mode='std', area_alpha=0.33,
-                 n_overlap=0, dB=True, n_jobs=1, verbose=None):
+                 n_overlap=0, dB=True, show=True, n_jobs=1, verbose=None):
     """Plot the power spectral density across channels
 
     Parameters
@@ -709,6 +710,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
         is 0 (no overlap).
     dB : bool
         If True, transform data to decibels.
+    show : bool
+        Show figure if True.
     n_jobs : int
         Number of jobs to run in parallel.
     verbose : bool, str, int, or None
@@ -758,7 +761,8 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
             ax.set_xlim(freqs[0], freqs[-1])
     if make_label:
         tight_layout(pad=0.1, h_pad=0.1, w_pad=0.1, fig=fig)
-    plt.show()
+    if show is True:
+        plt.show()
     return fig
 
 

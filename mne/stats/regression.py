@@ -9,7 +9,7 @@ from inspect import isgenerator
 import warnings
 
 import numpy as np
-from scipy import linalg, stats
+from scipy import linalg
 
 from ..source_estimate import SourceEstimate
 from ..epochs import _BaseEpochs
@@ -102,6 +102,7 @@ def linear_regression(inst, design_matrix, names=None):
 
 def _fit_lm(data, design_matrix, names):
     """Aux function"""
+    from scipy import stats
     n_samples = len(data)
     n_features = np.product(data.shape[1:])
     if design_matrix.ndim != 2:

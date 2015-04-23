@@ -16,8 +16,6 @@ from warnings import warn
 
 import numpy as np
 from numpy import dot
-from scipy.optimize import leastsq
-from scipy.spatial.distance import cdist
 
 from .io.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
@@ -189,6 +187,7 @@ def _decimate_points(pts, res=10):
     pts : array, shape = (n_points, 3)
         The decimated points.
     """
+    from scipy.spatial.distance import cdist
     pts = np.asarray(pts)
 
     # find the bin edges for the voxel space
@@ -309,6 +308,7 @@ def fit_matched_points(src_pts, tgt_pts, rotate=True, translate=True,
         A single tuple containing the translation, rotation and scaling
         parameters in that order.
     """
+    from scipy.optimize import leastsq
     src_pts = np.atleast_2d(src_pts)
     tgt_pts = np.atleast_2d(tgt_pts)
     if src_pts.shape != tgt_pts.shape:
@@ -400,6 +400,7 @@ def _point_cloud_error(src_pts, tgt_pts):
         For each point in ``src_pts``, the distance to the closest point in
         ``tgt_pts``.
     """
+    from scipy.spatial.distance import cdist
     Y = cdist(src_pts, tgt_pts, 'euclidean')
     dist = Y.min(axis=1)
     return dist
@@ -470,6 +471,7 @@ def fit_point_cloud(src_pts, tgt_pts, rotate=True, translate=True,
     the distance of each src_pt to the closest tgt_pt can be used as an
     estimate of the distance of src_pt to tgt_pts.
     """
+    from scipy.optimize import leastsq
     kwargs = {'epsfcn': 0.01}
     kwargs.update(leastsq_args)
 

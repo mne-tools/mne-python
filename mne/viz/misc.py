@@ -46,7 +46,7 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
     proj : bool
         Apply projections or not.
     show : bool
-        Call pyplot.show() as the end or not.
+        Show figure if True.
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor
         type. We show square roots ie. standard deviations.
@@ -258,7 +258,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
     slices : list of int
         Slice indices.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------
@@ -330,9 +330,9 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
                               surf['tris'], surf['rr'][:, 0],
                               levels=[sl], colors='yellow', linewidths=2.0)
 
+    plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
+                        hspace=0.)
     if show:
-        plt.subplots_adjust(left=0., bottom=0., right=1., top=1., wspace=0.,
-                            hspace=0.)
         plt.show()
 
     return fig
@@ -354,7 +354,7 @@ def plot_bem(subject=None, subjects_dir=None, orientation='coronal',
     slices : list of int
         Slice indices.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------
@@ -420,7 +420,7 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     equal_spacing : bool
         Use equal spacing between events in y-axis.
     show : bool
-        Call pyplot.show() at the end.
+        Show figure if True.
 
     Returns
     -------

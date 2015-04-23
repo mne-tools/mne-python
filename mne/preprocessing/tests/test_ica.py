@@ -21,7 +21,7 @@ from mne import io, Epochs, read_events, pick_types
 from mne.cov import read_cov
 from mne.preprocessing import (ICA, ica_find_ecg_events, ica_find_eog_events,
                                read_ica, run_ica)
-from mne.preprocessing.ica import score_funcs, _check_n_pca_components
+from mne.preprocessing.ica import get_score_funcs, _check_n_pca_components
 from mne.io.meas_info import Info
 from mne.utils import set_log_file, _TempDir, requires_sklearn, slow_test
 
@@ -379,7 +379,7 @@ def test_ica_additional():
 
     os.remove(test_ica_fname)
     # check scrore funcs
-    for name, func in score_funcs.items():
+    for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
         scores = ica.score_sources(raw, target='EOG 061', score_func=func,
@@ -419,7 +419,7 @@ def test_ica_additional():
         assert_equal(len(scores[0]), ica.n_components_)
 
     # check score funcs
-    for name, func in score_funcs.items():
+    for name, func in get_score_funcs().items():
         if name in score_funcs_unsuited:
             continue
         scores = ica.score_sources(epochs_eog, target='EOG 061',

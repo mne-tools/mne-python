@@ -1,11 +1,12 @@
 # TODO inspect for Cython (see sagenb.misc.sageinspect)
 from __future__ import print_function
 
+from nose.plugins.skip import SkipTest
 from os import path as op
 import inspect
 import warnings
 import imp
-from mne.utils import run_tests_if_main, SkipTest
+from mne.utils import run_tests_if_main
 
 public_modules = [
     # the list of modules users need to access for all functionality

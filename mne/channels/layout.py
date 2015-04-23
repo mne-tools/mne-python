@@ -15,7 +15,6 @@ import os
 import os.path as op
 
 import numpy as np
-from scipy.spatial.distance import pdist
 
 from .channels import _contains_ch_type
 from ..io.pick import pick_types
@@ -116,7 +115,11 @@ def _read_lay(fname):
         names, pos, ids = [], [], []
         for line in f:
             splits = line.split()
-            cid, x, y, dx, dy, name = splits
+            if len(splits) == 7:
+                cid, x, y, dx, dy, chkind, nb = splits
+                name = chkind + ' ' + nb
+            else:
+                cid, x, y, dx, dy, name = splits
             pos.append(np.array([x, y, dx, dy], dtype=np.float))
             names.append(name)
             ids.append(int(cid))
@@ -197,8 +200,8 @@ def make_eeg_layout(info, radius=0.5, width=None, height=None, exclude='bads'):
         Height of sensor axes as a fraction of main figure height. By default,
         this will be the maximum height possible withough axes overlapping.
     exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads'].
+        List of channels to exclude. If empty do not exclude any.
+        If 'bads', exclude channels in info['bads'] (default).
     Returns
     -------
     layout : Layout
@@ -352,13 +355,12 @@ def find_layout(info, ch_type=None, exclude='bads'):
     coil_types = set([ch['coil_type'] for ch in chs])
     channel_types = set([ch['kind'] for ch in chs])
 
-    has_vv_mag = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_MAG_T1,
-                                                FIFF.FIFFV_COIL_VV_MAG_T2,
-                                                FIFF.FIFFV_COIL_VV_MAG_T3]])
-    has_vv_grad = any([k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T2,
-                                                 FIFF.FIFFV_COIL_VV_PLANAR_T3]]
-                      )
+    has_vv_mag = any(k in coil_types for k in
+                     [FIFF.FIFFV_COIL_VV_MAG_T1, FIFF.FIFFV_COIL_VV_MAG_T2,
+                      FIFF.FIFFV_COIL_VV_MAG_T3])
+    has_vv_grad = any(k in coil_types for k in [FIFF.FIFFV_COIL_VV_PLANAR_T1,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T2,
+                                                FIFF.FIFFV_COIL_VV_PLANAR_T3])
     has_vv_meg = has_vv_mag and has_vv_grad
     has_vv_only_mag = has_vv_mag and not has_vv_grad
     has_vv_only_grad = has_vv_grad and not has_vv_mag
@@ -370,10 +372,10 @@ def find_layout(info, ch_type=None, exclude='bads'):
                        FIFF.FIFFV_COIL_CTF_OFFDIAG_REF_GRAD)
     has_CTF_grad = (FIFF.FIFFV_COIL_CTF_GRAD in coil_types or
                     (FIFF.FIFFV_MEG_CH in channel_types and
-                     any([k in ctf_other_types for k in coil_types])))
+                     any(k in ctf_other_types for k in coil_types)))
     # hack due to MNE-C bug in IO of CTF
-    n_kit_grads = len([ch for ch in chs
-                       if ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD])
+    n_kit_grads = sum(ch['coil_type'] == FIFF.FIFFV_COIL_KIT_GRAD
+                      for ch in chs)
 
     has_any_meg = any([has_vv_mag, has_vv_grad, has_4D_mag, has_CTF_grad,
                        n_kit_grads])
@@ -407,6 +409,8 @@ def find_layout(info, ch_type=None, exclude='bads'):
         layout_name = 'CTF-275'
     elif n_kit_grads == 157:
         layout_name = 'KIT-157'
+    elif n_kit_grads == 208:
+        layout_name = 'KIT-AD'
     else:
         return None
 
@@ -444,6 +448,8 @@ def _box_size(points, width=None, height=None, padding=0.0):
     height : float
         Height of the box
     """
+    from scipy.spatial.distance import pdist
+
     def xdiff(a, b):
         return np.abs(a[0] - b[0])
 
@@ -555,6 +561,8 @@ def _auto_topomap_coords(info, picks):
     locs : array, shape = (n_sensors, 2)
         An array of positions of the 2 dimensional map.
     """
+    from scipy.spatial.distance import pdist
+
     chs = [info['chs'][i] for i in picks]
 
     # Use channel locations if available

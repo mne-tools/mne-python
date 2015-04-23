@@ -747,12 +747,12 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                    for mtype in con_method_types]
 
     # we only support 3 or 5 arguments
-    if any([n not in (3, 5) for n in n_comp_args]):
+    if any(n not in (3, 5) for n in n_comp_args):
         raise ValueError('The compute_con function needs to have either '
                          '3 or 5 arguments')
 
     # if none of the comp_con functions needs the PSD, we don't estimate it
-    accumulate_psd = any([n == 5 for n in n_comp_args])
+    accumulate_psd = any(n == 5 for n in n_comp_args)
 
     if isinstance(data, Epochs):
         times_in = data.times  # input times for Epochs input type

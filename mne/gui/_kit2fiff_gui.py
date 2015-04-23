@@ -10,7 +10,8 @@ from scipy.linalg import inv
 from threading import Thread
 
 from ..externals.six.moves import queue
-from ..io.meas_info import _read_dig_points
+from ..io.meas_info import _read_dig_points, _make_dig_points
+from ..io.constants import FIFF
 
 
 # allow import without traits
@@ -277,8 +278,12 @@ class Kit2FiffModel(HasPrivateTraits):
                      slope=self.stim_slope)
 
         if np.any(self.fid):
-            raw._set_dig_neuromag(self.fid, self.elp, self.hsp,
-                                  self.dev_head_trans)
+            raw.info['dig'] = _make_dig_points(self.fid[0], self.fid[1],
+                                               self.fid[2], self.elp,
+                                               self.hsp)
+            raw.info['dev_head_t'] = {'from': FIFF.FIFFV_COORD_DEVICE,
+                                      'to': FIFF.FIFFV_COORD_HEAD,
+                                      'trans': self.dev_head_trans}
         return raw
 
 

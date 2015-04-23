@@ -14,7 +14,6 @@ from itertools import cycle
 from functools import partial
 
 import numpy as np
-from scipy import ndimage
 
 # XXX : don't import pyplot here or you will break the doc
 
@@ -236,7 +235,7 @@ def _check_vlim(vlim):
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
               vline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              font_color='w'):
+              font_color='w', show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -281,12 +280,15 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
         The color of text in the colorbar and title. Defaults to white.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
+    import matplotlib.pyplot as plt
 
     if not type(evoked) in (tuple, list):
         evoked = [evoked]
@@ -307,12 +309,12 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         color = cycle([color])
 
     times = evoked[0].times
-    if not all([(e.times == times).all() for e in evoked]):
+    if not all((e.times == times).all() for e in evoked):
         raise ValueError('All evoked.times must be the same')
 
     info = evoked[0].info
     ch_names = evoked[0].ch_names
-    if not all([e.ch_names == ch_names for e in evoked]):
+    if not all(e.ch_names == ch_names for e in evoked):
         raise ValueError('All evoked.picks must be the same')
     ch_names = _clean_names(ch_names)
 
@@ -344,7 +346,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         for pick, t in zip(picks, types_used):
             e.data[pick] = e.data[pick] * scalings[t]
 
-    if proj is True and all([e.proj is not True for e in evoked]):
+    if proj is True and all(e.proj is not True for e in evoked):
         evoked = [e.apply_proj() for e in evoked]
     elif proj == 'interactive':  # let it fail early.
         for e in evoked:
@@ -385,6 +387,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                       projs=evoked[0].info['projs'], fig=fig)
         _draw_proj_checkbox(None, params)
 
+    if show:
+        plt.show()
+
     return fig
 
 
@@ -421,7 +426,7 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
                      x_label=None, y_label=None, colorbar=False,
                      cmap='RdBu_r'):
     """Aux function to plot erfimage on sensor topography"""
-
+    from scipy import ndimage
     import matplotlib.pyplot as plt
     this_data = data[:, ch_idx, :].copy()
     ch_type = channel_type(epochs.info, ch_idx)
@@ -452,7 +457,8 @@ def _erfimage_imshow(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None,
 def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                            vmax=None, colorbar=True, order=None, cmap='RdBu_r',
                            layout_scale=.95, title=None, scalings=None,
-                           border='none', fig_facecolor='k', font_color='w'):
+                           border='none', fig_facecolor='k', font_color='w',
+                           show=True):
     """Plot Event Related Potential / Fields image on topographies
 
     Parameters
@@ -494,12 +500,15 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         The figure face color. Defaults to black.
     font_color : str | obj
         The color of tick labels in the colorbar. Defaults to white.
+    show : bool
+        Show figure if True.
 
     Returns
     -------
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
+    import matplotlib.pyplot as plt
     scalings = _mutable_defaults(('scalings', scalings))[0]
     data = epochs.get_data()
     if vmin is None:
@@ -521,5 +530,6 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
                      fig_facecolor=fig_facecolor,
                      font_color=font_color, border=border,
                      x_label='Time (s)', y_label='Epoch')
-
+    if show:
+        plt.show()
     return fig

@@ -535,8 +535,11 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     E : list
         The value of the objective function over the iterations.
     """
-    g = lambda w: np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
-    gprime = lambda w: 2. * np.repeat(g(w), n_orient).ravel()
+    def g(w):
+        return np.sqrt(np.sqrt(groups_norm2(w.copy(), n_orient)))
+
+    def gprime(w):
+        return 2. * np.repeat(g(w), n_orient).ravel()
 
     E = list()
 
@@ -579,8 +582,8 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
             E.append(p_obj)
 
             # Check convergence
-            if ((k >= 1) and np.all(active_set == active_set_0)
-                    and np.all(np.abs(X - X0) < tol)):
+            if ((k >= 1) and np.all(active_set == active_set_0) and
+                    np.all(np.abs(X - X0) < tol)):
                 print('Convergence reached after %d reweightings!' % k)
                 break
         else:

@@ -1,4 +1,3 @@
-
 """Tools for creating Raw objects from numpy arrays"""
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>

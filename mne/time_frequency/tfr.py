@@ -18,7 +18,7 @@ from scipy.fftpack import fftn, ifftn
 from ..fixes import partial
 from ..baseline import rescale
 from ..parallel import parallel_func
-from ..utils import logger, verbose, requires_h5py, _time_mask
+from ..utils import logger, verbose, _time_mask
 from ..channels.channels import ContainsMixin, PickDropChannelsMixin
 from ..io.pick import pick_info, pick_types
 from ..utils import check_fname
@@ -975,7 +975,6 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 title=title, axes=axes, show=show,
                                 format=format, outlines=outlines)
 
-    @requires_h5py
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file
 
@@ -996,7 +995,6 @@ def _prepare_write_tfr(tfr, condition):
                             comment=tfr.comment, method=tfr.method))
 
 
-@requires_h5py
 def write_tfrs(fname, tfr, overwrite=False):
     """Write a TFR dataset to hdf5.
 
@@ -1020,7 +1018,6 @@ def write_tfrs(fname, tfr, overwrite=False):
     write_hdf5(fname, out, overwrite=overwrite)
 
 
-@requires_h5py
 def read_tfrs(fname, condition=None):
     """
     Read TFR datasets from hdf5 file.

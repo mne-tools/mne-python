@@ -12,8 +12,6 @@ import os
 import json
 
 import numpy as np
-from scipy import stats
-from scipy.spatial import distance
 from scipy import linalg
 
 from .ecg import (qrs_detector, _get_ecg_channel_index, _make_ecg,
@@ -45,10 +43,14 @@ from .bads import find_outliers
 from .ctps_ import ctps
 from ..externals.six import string_types, text_type
 
-try:
-    from sklearn.utils.extmath import fast_dot
-except ImportError:
-    fast_dot = np.dot
+
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
 
 
 def _make_xy_sfunc(func, ndim_output=False):
@@ -63,25 +65,28 @@ def _make_xy_sfunc(func, ndim_output=False):
     sfunc.__doc__ = func.__doc__
     return sfunc
 
+
 # makes score funcs attr accessible for users
-score_funcs = Bunch()
+def get_score_funcs():
+    """Helper to get the score functions"""
+    from scipy import stats
+    from scipy.spatial import distance
+    score_funcs = Bunch()
+    xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items()
+                         if isfunction(f) and not n.startswith('_')]
+    xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
+                          if isfunction(f) and not n.startswith('_')]
+    score_funcs.update(dict((n, _make_xy_sfunc(f))
+                            for n, f in xy_arg_dist_funcs
+                            if getargspec(f).args == ['u', 'v']))
+    score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
+                            for n, f in xy_arg_stats_funcs
+                            if getargspec(f).args == ['x', 'y']))
+    return score_funcs
 
-xy_arg_dist_funcs = [(n, f) for n, f in vars(distance).items()
-                     if isfunction(f) and not n.startswith('_')]
 
-xy_arg_stats_funcs = [(n, f) for n, f in vars(stats).items()
-                      if isfunction(f) and not n.startswith('_')]
-
-score_funcs.update(dict((n, _make_xy_sfunc(f)) for n, f in xy_arg_dist_funcs
-                   if getargspec(f).args == ['u', 'v']))
-
-score_funcs.update(dict((n, _make_xy_sfunc(f, ndim_output=True))
-                   for n, f in xy_arg_stats_funcs
-                   if getargspec(f).args == ['x', 'y']))
-
-
-__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events', 'score_funcs',
-           'read_ica', 'run_ica']
+__all__ = ['ICA', 'ica_find_ecg_events', 'ica_find_eog_events',
+           'get_score_funcs', 'read_ica', 'run_ica']
 
 
 class ICA(ContainsMixin):
@@ -408,6 +413,7 @@ class ICA(ContainsMixin):
 
     def _pre_whiten(self, data, info, picks):
         """Aux function"""
+        fast_dot = _get_fast_dot()
         has_pre_whitener = hasattr(self, '_pre_whitener')
         if not has_pre_whitener and self.noise_cov is None:
             # use standardization as whitener
@@ -503,6 +509,7 @@ class ICA(ContainsMixin):
 
     def _transform(self, data):
         """Compute sources from data (operates inplace)"""
+        fast_dot = _get_fast_dot()
         if self.pca_mean_ is not None:
             data -= self.pca_mean_[:, None]
 
@@ -1165,6 +1172,7 @@ class ICA(ContainsMixin):
 
     def _pick_sources(self, data, include, exclude):
         """Aux function"""
+        fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
         else:
@@ -1658,7 +1666,7 @@ def _get_target_ch(container, target):
 def _find_sources(sources, target, score_func):
     """Aux function"""
     if isinstance(score_func, string_types):
-        score_func = score_funcs.get(score_func, score_func)
+        score_func = get_score_funcs().get(score_func, score_func)
 
     if not callable(score_func):
         raise ValueError('%s is not a valid score_func.' % score_func)
@@ -1877,6 +1885,7 @@ def _detect_artifacts(ica, raw, start_find, stop_find, ecg_ch, ecg_score_func,
                       skew_criterion, kurt_criterion, var_criterion,
                       add_nodes):
     """Aux Function"""
+    from scipy import stats
 
     nodes = []
     if ecg_ch is not None:

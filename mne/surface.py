@@ -13,7 +13,6 @@ from struct import pack
 from glob import glob
 
 import numpy as np
-from scipy.spatial.distance import cdist
 from scipy import sparse
 
 from .io.constants import FIFF
@@ -196,7 +195,7 @@ def read_bem_solution(fname, verbose=None):
         needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
                            FIFF.FIFFV_BEM_SURF_ID_SKULL,
                            FIFF.FIFFV_BEM_SURF_ID_BRAIN])
-        if not all([x['id'] in needed for x in bem_surfs]):
+        if not all(x['id'] in needed for x in bem_surfs):
             raise RuntimeError('Could not find necessary BEM surfaces')
         # reorder surfaces as necessary (shouldn't need to?)
         reorder = [None] * 3
@@ -609,6 +608,7 @@ def _compute_nearest(xhs, rr, use_balltree=True, return_dists=False):
             nearest = ball_tree.query(rr, k=1, return_distance=False)[:, 0]
             return nearest
     else:
+        from scipy.spatial.distance import cdist
         if return_dists:
             nearest = list()
             dists = list()

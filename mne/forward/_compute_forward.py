@@ -517,6 +517,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
 @verbose
 def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
     # Now, actually compute MEG and EEG solutions
+    n_jobs = max(min(n_jobs, len(rr)), 1)
     Bs = list()
     # The dipole location and orientation must be transformed
     mri_rr = None

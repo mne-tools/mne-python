@@ -2,6 +2,8 @@ from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 import numpy as np
 from numpy import zeros, array
+import warnings
+
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels)
 from mne.io.meas_info import create_info
@@ -22,6 +24,8 @@ def test_pick_channels_regexp():
 
 
 def test_pick_seeg():
+    """Test picking with SEEG
+    """
     names = 'A1 A2 Fz O OTp1 OTp2 OTp3'.split()
     types = 'mag mag eeg eeg seeg seeg seeg'.split()
     info = create_info(names, 1024., types)
@@ -50,6 +54,8 @@ def _check_fwd_n_chan_consistent(fwd, n_expected):
 
 @testing.requires_testing_data
 def test_pick_forward_seeg():
+    """Test picking forward with SEEG
+    """
     fwd = read_forward_solution(test_forward.fname_meeg)
     counts = channel_indices_by_type(fwd['info'])
     for key in counts.keys():
@@ -64,7 +70,8 @@ def test_pick_forward_seeg():
                   seeg=True)
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
-    rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
+    with warnings.catch_warnings(record=True):
+        rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
     fwd['sol']['row_names'][-1] = fwd['info']['chs'][-1]['ch_name']
     counts['eeg'] -= 1
     counts['seeg'] += 1

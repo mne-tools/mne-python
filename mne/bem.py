@@ -5,7 +5,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy import linalg, optimize
+from scipy import linalg
 
 from .fixes import partial
 from .utils import verbose, logger
@@ -108,6 +108,7 @@ def _one_step(mu, u):
 
 def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     """Fit the Berg-Scherg equivalent spherical model dipole parameters"""
+    from scipy.optimize import minimize
     assert nfit >= 2
     u = dict(y=np.zeros(nterms - 1), resi=np.zeros(nterms - 1),
              nfit=nfit, nterms=nterms, M=np.zeros((nterms - 1, nfit - 1)))
@@ -135,8 +136,7 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
                          'fun': lambda x: np.array([val * x[ii] + 1.]),
                          'jac': lambda x: np.array([0.] * ii + [val] +
                                                    [0.] * (nfit - ii - 1))})
-    mu = optimize.minimize(fun, mu_0, constraints=cons, method='COBYLA',
-                           tol=1e-2).x
+    mu = minimize(fun, mu_0, constraints=cons, method='COBYLA', tol=1e-2).x
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
@@ -152,7 +152,8 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
 
 @verbose
 def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
-                      verbose=None):
+                      relative_radii=(0.90, 0.92, 0.97, 1.0),
+                      sigmas=(0.33, 1.0, 0.004, 0.33), verbose=None):
     """Create a spherical model for forward solution calculation
 
     Parameters
@@ -167,6 +168,10 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     info : instance of mne.io.meas_info.Info | None
         Measurement info. Only needed if ``r0`` or ``head_radius`` are
         ``'auto'``.
+    relative_radii : array-like
+        Relative radii for the spherical shells.
+    sigmas : array-like
+        Sigma values for the spherical shells.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -196,14 +201,16 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     sphere['layers'] = []
     if head_radius is not None:
         # Eventually these could be configurable...
-        relative_radii = [0.90, 0.92, 0.97, 1.0]
-        sigmas = [0.33, 1.0, 0.004, 0.33]
+        relative_radii = np.array(relative_radii, float)
+        sigmas = np.array(sigmas, float)
         order = np.argsort(relative_radii)
+        relative_radii = relative_radii[order]
+        sigmas = sigmas[order]
         layers = sphere['layers']
-        for k in range(len(relative_radii)):
+        for rel_rad, sig in zip(relative_radii, sigmas):
             # sort layers by (relative) radius, and scale radii
-            layer = dict(rad=relative_radii[order[k]], sigma=sigmas[order[k]])
-            layer['rel_rad'] = layer['rad'] = relative_radii[k]
+            layer = dict(rad=rel_rad, sigma=sig)
+            layer['rel_rad'] = layer['rad'] = rel_rad
             layers.append(layer)
 
         # scale the radii
@@ -299,6 +306,7 @@ def fit_sphere_to_headshape(info, dig_kinds=(FIFF.FIFFV_POINT_EXTRA,),
 
 def _fit_sphere(points, disp='auto'):
     """Aux function to fit points to a sphere"""
+    from scipy.optimize import fmin_powell
     if isinstance(disp, string_types) and disp == 'auto':
         disp = True if logger.level <= 20 else False
     # initial guess for center and radius
@@ -315,8 +323,7 @@ def _fit_sphere(points, disp='auto'):
         return np.sum((np.sqrt(np.sum((points - x[:3]) ** 2, axis=1)) -
                       x[3]) ** 2)
 
-    x_opt = optimize.fmin_powell(cost_fun, x0, args=(points,),
-                                 disp=disp)
+    x_opt = fmin_powell(cost_fun, x0, args=(points,), disp=disp)
 
     origin = x_opt[:3]
     radius = x_opt[3]

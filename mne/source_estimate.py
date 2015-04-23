@@ -325,7 +325,7 @@ def read_source_estimate(fname, subject=None):
     if ftype != 'volume':
         # Make sure the vertices are ordered
         vertices = kwargs['vertices']
-        if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+        if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
             sidx = [np.argsort(verts) for verts in vertices]
             vertices = [verts[idx] for verts, idx in zip(vertices, sidx)]
             data = kwargs['data'][np.r_[sidx[0], len(sidx[0]) + sidx[1]]]
@@ -373,8 +373,8 @@ def _verify_source_estimate_compat(a, b):
     """Make sure two SourceEstimates are compatible for arith. operations"""
     compat = False
     if len(a.vertices) == len(b.vertices):
-        if all([np.array_equal(av, vv)
-                for av, vv in zip(a.vertices, b.vertices)]):
+        if all(np.array_equal(av, vv)
+               for av, vv in zip(a.vertices, b.vertices)):
             compat = True
     if not compat:
         raise ValueError('Cannot combine SourceEstimates that do not have the '
@@ -434,11 +434,11 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
                                  'dimensions')
 
         if isinstance(vertices, list):
-            if not all([isinstance(v, np.ndarray) for v in vertices]):
+            if not all(isinstance(v, np.ndarray) for v in vertices):
                 raise ValueError('Vertices, if a list, must contain numpy '
                                  'arrays')
 
-            if any([np.any(np.diff(v.astype(int)) <= 0) for v in vertices]):
+            if any(np.any(np.diff(v.astype(int)) <= 0) for v in vertices):
                 raise ValueError('Vertices must be ordered in increasing '
                                  'order.')
 
@@ -1932,7 +1932,7 @@ def mesh_dist(tris, vert):
 
 @verbose
 def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
-                  verbose=None):
+                  warn=True, verbose=None):
     """Morph data from one subject's source space to another
 
     Parameters
@@ -1952,6 +1952,8 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         Vertices on the destination surface to use.
     maps : sparse matrix
         Morph map from one subject to the other.
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2018,7 +2020,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
         data.data /= data_sum.repeat(np.diff(data.indptr))
     else:
         data[idx_use, :] /= data_sum[idx_use][:, None]
-    if len(idx_use) != len(data_sum):
+    if len(idx_use) != len(data_sum) and warn:
         warnings.warn('%s/%s vertices not included in smoothing, consider '
                       'increasing the number of steps'
                       % (len(idx_use), len(data_sum)))
@@ -2115,7 +2117,8 @@ def _morph_sparse(stc, subject_from, subject_to, subjects_dir=None):
 
 @verbose
 def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
-               subjects_dir=None, buffer_size=64, n_jobs=1, verbose=None):
+               subjects_dir=None, buffer_size=64, n_jobs=1, warn=True,
+               verbose=None):
     """Morph a source estimate from one subject to another
 
     Parameters
@@ -2147,6 +2150,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
         Saves memory when morphing long time intervals.
     n_jobs : int
         Number of jobs to run in parallel
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2183,7 +2188,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
             continue
         data_morphed[hemi] = np.concatenate(
             parallel(my_morph_buffer(data_buffer, idx_use, e, smooth,
-                                     n_vertices, nearest[hemi], maps[hemi])
+                                     n_vertices, nearest[hemi], maps[hemi],
+                                     warn=warn)
                      for data_buffer
                      in np.array_split(data[hemi], n_chunks, axis=1)), axis=1)
 
@@ -2798,7 +2804,7 @@ def _gen_extract_label_time_course(stcs, labels, src, mode='mean',
         if len(stc.vertices[0]) != nvert[0] or \
                 len(stc.vertices[1]) != nvert[1]:
             raise ValueError('stc not compatible with source space')
-        if any([np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)]):
+        if any(np.any(svn != vn) for svn, vn in zip(stc.vertices, vertno)):
             raise ValueError('stc not compatible with source space')
 
         logger.info('Extracting time courses for %d labels (mode: %s)'
