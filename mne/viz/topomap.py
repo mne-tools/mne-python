@@ -203,16 +203,15 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
             plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res, outlines=outlines,
                          contours=contours, image_interp=image_interp,
-                         show=show)
+                         show=False)
             if colorbar:
                 plt.colorbar()
         else:
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
-    fig = ax.get_figure()
+    tight_layout(fig=ax.get_figure())
     if show and plt.get_backend() != 'agg':
-        fig.show()
-    tight_layout(fig=fig)
+        plt.show()
 
     return fig
 
