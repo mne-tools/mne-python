@@ -202,7 +202,8 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
                          sensors=sensors, res=res, outlines=outlines,
-                         contours=contours, image_interp=image_interp)
+                         contours=contours, image_interp=image_interp,
+                         show=show)
             if colorbar:
                 plt.colorbar()
         else:
