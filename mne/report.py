@@ -553,7 +553,6 @@ image_template = Template(u"""
     {{endif}}
     {{if comments is not None}}
         <br><br>
-        <div class="comments">
         <div style="text-align:center;">
             {{comments}}
         </div>
