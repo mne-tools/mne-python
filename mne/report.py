@@ -528,6 +528,7 @@ image_template = Template(u"""
 {{default id = False}}
 {{default image_format = 'png'}}
 {{default scale = None}}
+{{default comments = None}}
 
 <li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
 {{if not show}}style="display: none"{{endif}}>
@@ -550,6 +551,14 @@ image_template = Template(u"""
             {{img}}
         </div>
     {{endif}}
+    {{if comments is not None}}
+        <br><br>
+        <div class="comments">
+        <div style="text-align:center;">
+            {{comments}}
+        </div>
+    {{endif}}
+    </div>
 {{else}}
     <center>{{interactive}}</center>
 {{endif}}
@@ -702,7 +711,7 @@ class Report(object):
         return items, captions
 
     def _add_figs_to_section(self, figs, captions, section='custom',
-                             image_format='png', scale=None):
+                             image_format='png', scale=None, comments=None):
         """Auxiliary method for `add_section` and `add_figs_to_section`.
         """
         from scipy.misc import imread
@@ -740,13 +749,15 @@ class Report(object):
 
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
+            if isinstance(comments, list):
+                comments = '<br>'.join(comments)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale)
+                                             width=scale, comments=comments)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -772,7 +783,7 @@ class Report(object):
                                          section=section)
 
     def add_figs_to_section(self, figs, captions, section='custom',
-                            scale=None, image_format='png'):
+                            scale=None, image_format='png', comments=None):
         """Append custom user-defined figures.
 
         Parameters
@@ -794,13 +805,18 @@ class Report(object):
             Defaults to None.
         image_format : {'png', 'svg'}
             The image format to be used for the report. Defaults to 'png'.
+        comments : None | str | list of str
+            A string of text or a list of strings of text to be appended after
+            the figure. If list of str, each element will appear on a
+            new line.
         """
         return self._add_figs_to_section(figs=figs, captions=captions,
                                          section=section, scale=scale,
-                                         image_format=image_format)
+                                         image_format=image_format,
+                                         comments=comments)
 
     def add_images_to_section(self, fnames, captions, scale=None,
-                              section='custom'):
+                              section='custom', comments=None):
         """Append custom user-defined images.
 
         Parameters
@@ -815,12 +831,18 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
+        comments : None | str | list of str
+            A string of text or a list of strings of text to be appended after
+            the image. If list of str, each element will appear on a
+            new line.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
         from PIL import Image
         fnames, captions = self._validate_input(fnames, captions, section)
+        if isinstance(comments, list):
+            comments = '<br>'.join(comments)
 
         for fname, caption in zip(fnames, captions):
             caption = 'custom plot' if caption == '' else caption
@@ -839,6 +861,7 @@ class Report(object):
                                              img_klass=img_klass,
                                              caption=caption,
                                              width=scale,
+                                             comments=comments,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
@@ -866,13 +889,19 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
-    def render_bem(self, subject, decim=2, n_jobs=1, subjects_dir=None):
+    def add_bem_to_section(self, subject, caption='BEM', section='bem',
+                           decim=2, n_jobs=1, subjects_dir=None):
         """Renders a bem slider html str.
 
         Parameters
         ----------
         subject : str
             Subject name.
+        caption : str
+            A caption for the bem.
+        section : str
+            Name of the section. If section already exists, the bem
+            will be appended to the end of the section.
         decim : int
             Use this decimation factor for generating MRI/BEM images
             (since it can be time consuming).
@@ -881,14 +910,18 @@ class Report(object):
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
-
-        Returns
-        -------
-        html : str
-            An html str that can be added to the report.
         """
-        return self._render_bem(subject=subject, subjects_dir=subjects_dir,
-                                decim=decim, n_jobs=n_jobs)
+        caption = 'custom plot' if caption == '' else caption
+        html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
+                                decim=decim, n_jobs=n_jobs, section=section,
+                                caption=caption)
+        html, caption = self._validate_input(html, caption, section)
+        sectionvar = self._sectionvars[section]
+
+        self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
+        self._sectionlabels.append(sectionvar)
+        self.html.extend(html)
+        return
 
     ###########################################################################
     # HTML rendering
@@ -1440,7 +1473,8 @@ class Report(object):
                                              show=show)
             return html
 
-    def _render_bem(self, subject, subjects_dir, decim, n_jobs):
+    def _render_bem(self, subject, subjects_dir, decim, n_jobs,
+                    section='mri', caption='BEM'):
         """Render mri+bem.
         """
         import nibabel as nib
@@ -1480,11 +1514,11 @@ class Report(object):
 
         global_id = self._get_id()
 
-        if 'mri' not in self.sections:
+        if section == 'mri' and 'mri' not in self.sections:
             self.sections.append('mri')
             self._sectionvars['mri'] = 'mri'
 
-        name = 'BEM'
+        name = caption
 
         html += u'<li class="mri" id="%d">\n' % global_id
         html += u'<h2>%s</h2>\n' % name
