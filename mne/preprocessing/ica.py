@@ -2301,8 +2301,8 @@ def corrmap(icas, template, threshold="auto", label=None,
     # first run: use user-selected map
     if isinstance(threshold, (int, float)):
         if len(all_maps) == 0 or len(target) == 0:
-            logger.info("No component detected using find_outliers."
-                        " Consider using threshold='auto'")
+            logger.info('No component detected using find_outliers.'
+                        ' Consider using threshold="auto"')
             return icas
         nt, mt, s, mx = _find_max_corrs(all_maps, target, threshold)
     elif len(threshold) > 1:
@@ -2314,8 +2314,8 @@ def corrmap(icas, template, threshold="auto", label=None,
     if isinstance(threshold, (int, float)):
         if len(all_maps) == 0 or len(nt) == 0:
             if threshold > 1:
-                logger.info("No component detected using find_outliers. "
-                            "Consider using threshold='auto'")
+                logger.info('No component detected using find_outliers. '
+                            'Consider using threshold="auto"')
             return icas
         nt, mt, s, mx = _find_max_corrs(all_maps, nt, threshold)
     elif len(threshold) > 1:
@@ -2324,9 +2324,9 @@ def corrmap(icas, template, threshold="auto", label=None,
         nt, mt, s, mx = paths[np.argmax([path[1] for path in paths])]
 
     allmaps, indices, subjs, nones = [], [], [], []
-    logger.info("Median correlation with constructed map: %0.3f" % mt)
+    logger.info('Median correlation with constructed map: %0.3f' % mt)
     if plot:
-        logger.info("Displaying selected ICs per subject.")
+        logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
         if (label is not None) and (not hasattr(ica, 'labels_')):
@@ -2345,11 +2345,11 @@ def corrmap(icas, template, threshold="auto", label=None,
             nones.append(ii)
 
     if len(nones) == 0:
-        logger.info("At least 1 IC detected for each subject.")
+        logger.info('At least 1 IC detected for each subject.')
     else:
-        logger.info("No maps selected for subject(s) " +
-                    ", ".join([str(x) for x in nones]) +
-                    ", consider a more liberal threshold.")
+        logger.info('No maps selected for subject(s) ' +
+                    ', '.join([str(x) for x in nones]) +
+                    ', consider a more liberal threshold.')
 
     if plot:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
