@@ -160,7 +160,7 @@ def test_make_field_map_meg():
 
     # now test the make_field_map on head surf for MEG
     evoked.pick_types(meg=True, eeg=False)
-    fmd = make_field_map(evoked, meg_surf='head',
+    fmd = make_field_map(evoked, trans_fname, meg_surf='head',
                          subject='sample', subjects_dir=subjects_dir)
     assert_true(len(fmd) == 1)
     assert_array_equal(fmd[0]['data'].shape, (642, 106))  # maps data onto surf
