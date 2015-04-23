@@ -168,8 +168,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    fig = plt.gcf()
-    fig.clear()
+    fig = plt.figure()
     for k, proj in enumerate(projs):
 
         ch_names = _clean_names(proj['data']['col_names'])
