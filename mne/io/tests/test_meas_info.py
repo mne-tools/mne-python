@@ -107,7 +107,9 @@ def test_io_dig_points():
     points = _read_dig_points(hsp_fname)
 
     dest = op.join(tempdir, 'test.txt')
+    dest_bad = op.join(tempdir, 'test.mne')
     assert_raises(ValueError, _write_dig_points, dest, points[:, :2])
+    assert_raises(ValueError, _write_dig_points, dest_bad, points)
     _write_dig_points(dest, points)
     points1 = _read_dig_points(dest)
     err = "Dig points diverged after writing and reading."
