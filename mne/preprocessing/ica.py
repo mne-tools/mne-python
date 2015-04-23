@@ -2175,7 +2175,8 @@ def _find_max_corrs(all_maps, target, threshold):
     return newtarget, median_corr_with_target, sim_i_o, max_corrs
 
 
-def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines):
+def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines,
+                  layout, cmap, contours):
     """Customized ica.plot_components for corrmap"""
     import matplotlib.pyplot as plt
 
@@ -2193,7 +2194,7 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines):
         picks = [picks]
 
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(
-        ica, ch_type, None)
+        ica, ch_type, layout)
     pos, outlines = _check_outlines(pos, outlines)
 
     data = np.atleast_2d(data)
@@ -2211,8 +2212,8 @@ def _plot_corrmap(data, subjs, indices, ch_type, ica, label, show, outlines):
         data_ = _merge_grad_data(data_) if merge_grads else data_
         vmin_, vmax_ = _setup_vmin_vmax(data_, None, None)
         plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
-                     res=64, axis=ax, cmap='RdBu_r', outlines='head',
-                     image_mask=None, contours=6,
+                     res=64, axis=ax, cmap=cmap, outlines=outlines,
+                     image_mask=None, contours=contours,
                      image_interp='bilinear')[0]
         ax.set_yticks([])
         ax.set_xticks([])
@@ -2271,7 +2272,8 @@ def corrmap(icas, template, threshold="auto", label=None,
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. Defaults to 'eeg'.
     plot : bool
-        Should constructed template and selected maps be plotted?
+        Should constructed template and selected maps be plotted? Defaults
+        to True.
     show : bool
         Show figures if True.
     layout : None | Layout | list of Layout
@@ -2358,7 +2360,7 @@ def corrmap(icas, template, threshold="auto", label=None,
 
     allmaps, indices, subjs, nones = [list() for _ in range(4)]
     logger.info('Median correlation with constructed map: %0.3f' % mt)
-    if plot:
+    if plot is True:
         logger.info('Displaying selected ICs per subject.')
 
     for ii, (ica, max_corr) in enumerate(zip(icas, mx)):
@@ -2384,7 +2386,7 @@ def corrmap(icas, template, threshold="auto", label=None,
                     ', '.join([str(x) for x in nones]) +
                     ', consider a more liberal threshold.')
 
-    if plot:
+    if plot is True:
         labelled_ics = _plot_corrmap(allmaps, subjs, indices, ch_type, ica,
                                      label, outlines=outlines, cmap=cmap,
                                      contours=contours, layout=layout,
