@@ -460,8 +460,21 @@ class InterpolationMixin(object):
     def interpolate_bads(self):
         """Interpolate bad channels.
 
+        Parameters
+        ----------
+        inst : mne.io.Raw, mne.Epochs or mne.Evoked
+            The data to interpolate.
+
+        Returns
+        -------
+        inst : mne.io.Raw, mne.Epochs or mne.Evoked
+            The interpolated data.
+
         Notes
         -----
+        The bad channels will still be marked as bad. Only the data in
+        those channels will be modified.
+
         .. versionadded:: 0.9.0
         """
         from .interpolation import _interpolate_bads_eeg
