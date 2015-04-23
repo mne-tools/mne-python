@@ -306,8 +306,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
 
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
-                   ch_type=None, mode='fast', head_surf=False, n_jobs=1,
-                   trans_fname=None):
+                   ch_type=None, mode='fast', meg_surf='helmet',
+                   eeg_surf='head', n_jobs=1, trans_fname=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -332,8 +332,11 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
-    head_surf : bool
-        Get the subject head surface if True.
+    meg_surf : str
+        Should be ``'helmet'`` or ``'head'`` to specify in which surface
+        to plot the MEG field map. The default value is ``'helmet'``
+    eeg_surf : str
+        Must be ``'head'`` to plot the EEG field map in the head surface.
     n_jobs : int
         The number of jobs to run in parallel.
 
@@ -372,12 +375,17 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     if trans is not None:
         trans = read_trans(trans)
 
+    if meg_surf not in ['helmet', 'head']:
+        raise ValueError('Surface to plot MEG fields must be in '
+                         '"helmet" or "head"')
+
+    if eeg_surf is not 'head':
+        raise ValueError('Surface to plot EEG fields must be "head"')
+
     surfs = []
     for this_type in types:
-        if this_type == 'meg':
-            surf = (get_head_surf(subject, source='bem',
-                                  subjects_dir=subjects_dir)
-                    if head_surf else get_meg_helmet_surf(info, trans))
+        if this_type == 'meg' and meg_surf == 'helmet':
+            surf = get_meg_helmet_surf(info, trans)
         else:
             surf = get_head_surf(subject, subjects_dir=subjects_dir)
         surfs.append(surf)
