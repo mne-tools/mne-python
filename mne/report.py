@@ -554,7 +554,12 @@ image_template = Template(u"""
     {{if comment is not None}}
         <br><br>
         <div style="text-align:center;">
-            {{comment}}
+            <style>
+                p.test {word-wrap: break-word;}
+            </style>
+            <p class="test">
+                {{comment}}
+            </p>
         </div>
     {{endif}}
 {{else}}
