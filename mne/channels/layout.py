@@ -25,7 +25,6 @@ from ..viz import plot_montage
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
                           _cartesian_to_sphere, apply_trans,
                           get_ras_to_neuromag_trans)
-from scipy.ndimage import imread
 
 
 class Layout(object):
@@ -1024,6 +1023,8 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         A Layout object that can be plotted with plot_topo
         functions and methods.
     """
+    from scipy.ndimage import imread
+
     if ch_indices is None:
         ch_indices = np.arange(xy.shape[0])
     if ch_names is None:
