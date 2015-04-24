@@ -139,7 +139,7 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_channel_positions(self, picks=None):
+    def _get_channel_positions(self, picks=None):
         """Gets channel locations from info
 
         Parameters
@@ -162,7 +162,7 @@ class SetChannelsMixin(object):
                              '{} channels'.format(n_zero))
         return pos
 
-    def set_channel_positions(self, pos, names):
+    def _set_channel_positions(self, pos, names):
         """Update channel locations in info
 
         Parameters

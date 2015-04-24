@@ -289,6 +289,7 @@ Functions:
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
+   plot_events
    plot_evoked
    plot_evoked_image
    plot_evoked_topomap
@@ -299,10 +300,10 @@ Functions:
    plot_ica_scores
    plot_ica_overlay
    plot_image_epochs
+   plot_montage
    plot_projs_topomap
    plot_raw
    plot_raw_psd
-   plot_events
    plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
@@ -347,7 +348,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    :template: function.rst
 
    read_montage
-   apply_montage
+   set_montage
    read_layout
    find_layout
    make_eeg_layout
@@ -388,6 +389,7 @@ EEG referencing:
    :toctree: generated/
    :template: function.rst
 
+   add_reference_channels
    set_bipolar_reference
    set_eeg_reference
 

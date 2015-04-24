@@ -1,3 +1,7 @@
+# Author: Teon Brooks <teon.brooks@gmail.com>
+#
+# License: BSD (3-clause)
+
 import os.path as op
 import inspect
 from nose.tools import assert_equal
@@ -6,8 +10,8 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose)
 
-from mne.channels import apply_montage
-from mne.io.meas_info import read_digmontage, _read_dig_points
+from mne.channels import set_montage
+from mne.io.meas_info import read_dig_montage, _read_dig_points
 from mne.io.constants import FIFF
 from mne import create_info
 from mne.coreg import fit_matched_points
@@ -23,10 +27,10 @@ hpi = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_mrk.sqd')
 elp_names = []
 
 
-def test_read_digmontage():
-    """Test read_digmontage"""
+def test_read_dig_montage():
+    """Test read_dig_montage"""
     names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
-    montage = read_digmontage(hsp, hpi, elp, names, unit='m', transform=False)
+    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=False)
     elp_points = _read_dig_points(elp)
     hsp_points = _read_dig_points(hsp)
     hpi_points = read_mrk(hpi)
@@ -35,7 +39,7 @@ def test_read_digmontage():
     assert_array_equal(montage.hsp, hsp_points)
     assert_array_equal(montage.hpi, hpi_points)
     assert_array_equal(montage.dev_head_t, np.identity(4))
-    montage = read_digmontage(hsp, hpi, elp, names,
+    montage = read_dig_montage(hsp, hpi, elp, names,
                               transform=True, dev_head_t=True)
     # check coordinate transformation
     # nasion
@@ -53,8 +57,8 @@ def test_read_digmontage():
     assert_array_equal(montage.dev_head_t, dev_head_t)
 
 
-def test_apply_digmontage():
-    """Test apply_montage
+def test_set_dig_montage():
+    """Test applying DigMontage to inst
 
     Extensive testing of applying `dig` to info is done in test_meas_info
     with `test_make_dig_points`.
@@ -69,9 +73,9 @@ def test_apply_digmontage():
     nasion_point, lpa_point, rpa_point = elp_points[:3]
     hsp_points = apply_trans(nm_trans, hsp_points)
 
-    montage = read_digmontage(hsp, hpi, elp, names, unit='m', transform=True)
+    montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=True)
     info = create_info(['Test Ch'], 1e3, ['eeg'])
-    apply_montage(info, montage)
+    set_montage(info, montage)
     hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                    if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
     nasion_dig = np.array([p['r'] for p in info['dig']

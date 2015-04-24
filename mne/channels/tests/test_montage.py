@@ -5,7 +5,7 @@ from nose.tools import assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.channels import read_montage, apply_montage
+from mne.channels import read_montage, set_montage
 from mne.utils import _TempDir
 from mne import create_info
 from mne.transforms import (apply_trans, get_ras_to_neuromag_trans)
@@ -107,7 +107,7 @@ def test_montage():
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
-    apply_montage(info, montage)
+    set_montage(info, montage)
     pos2 = np.array([c['loc'][:3] for c in info['chs']])
     pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
     assert_array_equal(pos2, montage.pos)

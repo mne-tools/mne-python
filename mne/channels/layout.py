@@ -949,7 +949,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     return Montage(pos=pos, ch_names=ch_names_, kind=kind, selection=selection)
 
 
-def apply_montage(info, montage):
+def set_montage(info, montage):
     """Apply montage to data.
 
     With a Montage, this function will replace the EEG channel names and

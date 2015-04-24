@@ -1301,8 +1301,8 @@ class DigMontage(object):
                             show_names=show_names)
 
 
-def read_digmontage(hsp=None, hpi=None, elp=None, point_names=None,
-                    unit='mm', transform=True, dev_head_t=False):
+def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
+                     unit='mm', transform=True, dev_head_t=False):
     """Read montage from a file
 
     Note: Digitized points will be transformed to head-based coordinate system.

@@ -7,7 +7,7 @@
 
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import (read_fiducials, write_fiducials, read_info, write_info,
-                        read_digmontage)
+                        read_dig_montage)
 
 from .proj import make_eeg_average_ref_proj
 from . import array
@@ -36,4 +36,4 @@ from .base import concatenate_raws
 from .chpi import  get_chpi_positions
 from .reference import set_eeg_reference, set_bipolar_reference, add_reference_channels
 
-from ..channels.layout import apply_montage
+from ..channels.layout import set_montage
