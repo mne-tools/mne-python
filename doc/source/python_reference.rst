@@ -348,7 +348,6 @@ Manipulate channels and set sensors locations for processing and plotting:
    :template: function.rst
 
    read_montage
-   set_montage
    read_layout
    find_layout
    make_eeg_layout

@@ -5,9 +5,9 @@ from nose.tools import assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.channels import read_montage, set_montage
+from mne.channels.layout import read_montage, _set_montage
 from mne.utils import _TempDir
-from mne import create_info
+from mne import create_info, EvokedArray
 from mne.transforms import (apply_trans, get_ras_to_neuromag_trans)
 
 
@@ -102,14 +102,27 @@ def test_montage():
     idx = montage.ch_names.index('3')
     assert_array_equal(montage.pos[idx, [1, 2]], [0, 0])
     pos = np.array([-95.0, -31.0, -3.0])
-    montage = read_montage(op.join(tempdir, 'test_fid.hpts'), unit='mm')
+    montage_fname = op.join(tempdir, 'test_fid.hpts')
+    montage = read_montage(montage_fname, unit='mm')
     assert_array_equal(montage.pos[0], pos * 1e-3)
 
     # test with last
     info = create_info(montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
-    set_montage(info, montage)
+    _set_montage(info, montage)
     pos2 = np.array([c['loc'][:3] for c in info['chs']])
     pos3 = np.array([c['eeg_loc'][:, 0] for c in info['chs']])
     assert_array_equal(pos2, montage.pos)
     assert_array_equal(pos3, montage.pos)
     assert_equal(montage.ch_names, info['ch_names'])
+
+    info = create_info(
+        montage.ch_names, 1e3, ['eeg'] * len(montage.ch_names))
+
+    evoked = EvokedArray(
+        data=np.zeros((len(montage.ch_names), 1)), info=info, tmin=0)
+    evoked.set_montage(montage)
+    pos4 = np.array([c['loc'][:3] for c in evoked.info['chs']])
+    pos5 = np.array([c['eeg_loc'][:, 0] for c in evoked.info['chs']])
+    assert_array_equal(pos4, montage.pos)
+    assert_array_equal(pos5, montage.pos)
+    assert_equal(montage.ch_names, evoked.info['ch_names'])

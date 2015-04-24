@@ -86,7 +86,7 @@ Changelog
 
    - ``evoked.pick_types``, ``epochs.pick_types``, and ``tfr.pick_types`` added by `Eric Larson`_
 
-   - ``rename_channels`` and ``set_channel_types`` added as methods to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_ 
+   - ``rename_channels`` and ``set_channel_types`` added as methods to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
    - Add RAP-MUSIC inverse method by `Yousra Bekhti`_ and `Alex Gramfort`_
 
@@ -145,10 +145,10 @@ BUG
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
    - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
- 
+
    - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_
 
-   - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_ 
+   - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
 
 API
 ~~~

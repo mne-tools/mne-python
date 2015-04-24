@@ -284,6 +284,20 @@ class SetChannelsMixin(object):
         """
         rename_channels(self.info, mapping)
 
+    def set_montage(self, montage):
+        """Set EEG sensor configuration
+
+        Note. Operates in place.
+
+        Parameters
+        ----------
+        montage : instance of mne.channels.Montage or
+                  mne.io.meas_info.DigMontage
+            The MNE montage object.
+        """
+        from .layout import _set_montage
+        _set_montage(self.info, montage)
+
 
 class PickDropChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR

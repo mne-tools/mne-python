@@ -10,7 +10,7 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose)
 
-from mne.channels import set_montage
+from mne.channels.layout import _set_montage
 from mne.io.meas_info import read_dig_montage, _read_dig_points
 from mne.io.constants import FIFF
 from mne import create_info
@@ -40,7 +40,7 @@ def test_read_dig_montage():
     assert_array_equal(montage.hpi, hpi_points)
     assert_array_equal(montage.dev_head_t, np.identity(4))
     montage = read_dig_montage(hsp, hpi, elp, names,
-                              transform=True, dev_head_t=True)
+                               transform=True, dev_head_t=True)
     # check coordinate transformation
     # nasion
     assert_almost_equal(montage.elp[0, 0], 0)
@@ -75,7 +75,7 @@ def test_set_dig_montage():
 
     montage = read_dig_montage(hsp, hpi, elp, names, unit='m', transform=True)
     info = create_info(['Test Ch'], 1e3, ['eeg'])
-    set_montage(info, montage)
+    _set_montage(info, montage)
     hs = np.array([p['r'] for i, p in enumerate(info['dig'])
                    if p['kind'] == FIFF.FIFFV_POINT_EXTRA])
     nasion_dig = np.array([p['r'] for p in info['dig']
