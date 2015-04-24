@@ -334,7 +334,7 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         for most applications.
     meg_surf : str
         Should be ``'helmet'`` or ``'head'`` to specify in which surface
-        to plot the MEG field map. The default value is ``'helmet'``
+        to compute the MEG field map. The default value is ``'helmet'``
     n_jobs : int
         The number of jobs to run in parallel.
 
