@@ -9,7 +9,7 @@ import numpy as np
 from mne.viz.utils import compare_fiff, ClickableImage
 from numpy.testing import assert_allclose
 from nose.tools import assert_true
-from test_raw import _fake_click
+from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
 import matplotlib

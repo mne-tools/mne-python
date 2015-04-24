@@ -442,3 +442,17 @@ class ClickableImage(object):
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         show()
+
+
+def _fake_click(fig, ax, point, xform='ax'):
+    """Helper to fake a click at a relative point within axes."""
+    if xform == 'ax':
+        x, y = ax.transAxes.transform_point(point)
+    elif xform == 'data':
+        x, y = ax.transData.transform_point(point)
+    else:
+        raise ValueError('unknown transform')
+    try:
+        fig.canvas.button_press_event(x, y, 1, False, None)
+    except:  # for old MPL
+        fig.canvas.button_press_event(x, y, 1, False)
