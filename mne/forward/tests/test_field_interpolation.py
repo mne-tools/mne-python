@@ -167,7 +167,8 @@ def test_make_field_map_meg():
     assert_array_equal(fmd[0]['data'].shape, (642, 106))  # maps data onto surf
     assert_true(len(fmd[0]['ch_names']), 106)
 
-    assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar')
+    assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar',
+                  subjects_dir=subjects_dir)
 
 
 def _setup_args(info):
