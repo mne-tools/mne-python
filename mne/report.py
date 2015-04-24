@@ -698,7 +698,11 @@ class Report(object):
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
         if not isinstance(comments, (list, tuple)):
-            comments = [comments]
+            if comments is None:
+                comments = [comments] * len(captions)
+        elif not len(comment) == len(items):
+            raise ValueError('Comments and report items must have the same'
+                             ' length.')
         if not len(items) == len(captions):
             raise ValueError('Captions and report items must have the same'
                              ' length.')
