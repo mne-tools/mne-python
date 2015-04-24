@@ -41,7 +41,7 @@ def test_interplation():
     evoked = epochs.average()
     ave_before = evoked.data[bads_idx]
 
-    pos = epochs.get_channel_positions()
+    pos = epochs._get_channel_positions()
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
