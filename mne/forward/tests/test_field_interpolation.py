@@ -120,6 +120,7 @@ def test_make_field_map_eeg():
     assert_true(len(fmd[0]['ch_names']), 59)
 
 
+@testing.requires_testing_data
 @slow_test
 def test_make_field_map_meg():
     """Test interpolation of MEG field onto helmet | head
