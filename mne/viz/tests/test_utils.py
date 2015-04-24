@@ -34,7 +34,15 @@ def test_clickable_image():
     im = np.random.randn(100, 100)
     clk = ClickableImage(im)
     clicks = [(12, 8), (46, 48), (10, 24)]
+
+    # Generate clicks
     for click in clicks:
         _fake_click(clk.fig, clk.ax, click, xform='data')
     assert_allclose(np.array(clicks), np.array(clk.coords))
     assert_true(len(clicks) == len(clk.coords))
+
+    # Exporting to layout
+    lt = clk.to_layout()
+    assert_true(lt.pos.shape[0] == len(clicks))
+    assert_allclose(lt.pos[1, 0] / lt.pos[2, 0],
+                    clicks[1][0] / float(clicks[2][0]))

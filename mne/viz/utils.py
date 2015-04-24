@@ -17,7 +17,6 @@ import difflib
 import webbrowser
 from warnings import warn
 import tempfile
-
 import numpy as np
 
 from ..io import show_fiff
@@ -442,6 +441,16 @@ class ClickableImage(object):
         ax.set_xlim(xlim)
         ax.set_ylim(ylim)
         show()
+
+    def to_layout(self, **kwargs):
+        """Turn coordinates into an MNE Layout object.
+
+        Normalizes by the image you used to generate clicks
+        """
+        from mne.channels.layout import generate_2d_layout
+        coords = np.array(self.coords)
+        lt = generate_2d_layout(coords, bg_image=self.imdata, **kwargs)
+        return lt
 
 
 def _fake_click(fig, ax, point, xform='ax'):
