@@ -139,7 +139,7 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_channel_positions(self, picks=None):
+    def _get_channel_positions(self, picks=None):
         """Gets channel locations from info
 
         Parameters
@@ -158,7 +158,7 @@ class SetChannelsMixin(object):
                              '{} channels'.format(n_zero))
         return pos
 
-    def set_channel_positions(self, pos, names):
+    def _set_channel_positions(self, pos, names):
         """Update channel locations in info
 
         Parameters
@@ -267,6 +267,19 @@ class SetChannelsMixin(object):
             e.g. {'EEG061' : 'EEG161'}.
         """
         rename_channels(self.info, mapping)
+
+    def set_montage(self, montage):
+        """Set EEG sensor configuration
+
+        Note. Operates in place.
+
+        Parameters
+        ----------
+        montage : instance of mne.channels.Montage
+            The MNE montage object.
+        """
+        from .layout import _set_montage
+        _set_montage(self.info, montage)
 
 
 class PickDropChannelsMixin(object):

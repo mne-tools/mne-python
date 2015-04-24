@@ -138,7 +138,7 @@ def _interpolate_bads_eeg(inst):
                        'for EEG. The MEG channels marked as bad will remain '
                        'untouched.')
 
-    pos = inst.get_channel_positions(picks)
+    pos = inst._get_channel_positions(picks)
 
     # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]
