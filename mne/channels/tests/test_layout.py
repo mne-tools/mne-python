@@ -356,7 +356,7 @@ def test_generate_2d_layout():
     """Test creation of a layout from 2d points."""
     snobg = 10
     sbg = 15
-    square = np.meshgrid(*[np.arange(snobg)]*2, indexing='xy')
+    square = np.meshgrid(*[np.arange(snobg)] * 2, indexing='xy')
     bg_image = np.random.randn(sbg, sbg)
     w, h = [.2, .5]
 
