@@ -554,7 +554,12 @@ image_template = Template(u"""
     {{if comment is not None}}
         <br><br>
         <div style="text-align:center;">
-            {{comment}}
+            <style>
+                p.test {word-wrap: break-word;}
+            </style>
+            <p class="test">
+                {{comment}}
+            </p>
         </div>
     {{endif}}
 {{else}}
@@ -698,10 +703,16 @@ class Report(object):
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
         if not isinstance(comments, (list, tuple)):
-            comments = [comments]
-        if not len(items) == len(captions):
-            raise ValueError('Captions and report items must have the same'
-                             ' length.')
+            if comments is None:
+                comments = [comments] * len(captions)
+            else:
+                comments = [comments]
+        if len(comments) != len(items):
+            raise ValueError('Comments and report items must have the same '
+                             'length or comments should be None.')
+        elif len(captions) != len(items):
+            raise ValueError('Captions and report items must have the same '
+                             'length.')
 
         # Book-keeping of section names
         if section not in self.sections:
