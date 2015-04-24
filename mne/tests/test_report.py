@@ -212,4 +212,21 @@ def test_add_htmls_to_section():
     assert_equal(html, html_compare)
 
 
+def test_validate_input():
+    report = Report()
+    items = ['a', 'b', 'c']
+    captions = ['Letter A', 'Letter B', 'Letter C']
+    section = 'ABCs'
+    comments = ['First letter of the alphabet.',
+                'Second letter of the alphabet',
+                'Third letter of the alphabet']
+    assert_raises(ValueError, report._validate_input, items, captions[:-1],
+                  section, comments=None)
+    assert_raises(ValueError, report._validate_input, items, captions, section,
+                  comments=comments[:-1])
+    values = report._validate_input(items, captions, section, comments=None)
+    items_new, captions_new, comments_new = values
+    assert_equal(len(comments_new), len(items))
+
+
 run_tests_if_main()
