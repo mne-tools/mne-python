@@ -23,8 +23,6 @@ cov_fname = op.join(base_dir, 'test-cov.fif')
 
 
 def test_compare_fiff():
-    """Test comparing fiff files
-    """
     import matplotlib.pyplot as plt
     compare_fiff(raw_fname, cov_fname, read_limit=0, show=False)
     plt.close('all')
