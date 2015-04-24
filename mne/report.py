@@ -528,7 +528,7 @@ image_template = Template(u"""
 {{default id = False}}
 {{default image_format = 'png'}}
 {{default scale = None}}
-{{default comments = None}}
+{{default comment = None}}
 
 <li class="{{div_klass}}" {{if id}}id="{{id}}"{{endif}}
 {{if not show}}style="display: none"{{endif}}>
@@ -551,14 +551,12 @@ image_template = Template(u"""
             {{img}}
         </div>
     {{endif}}
-    {{if comments is not None}}
+    {{if comment is not None}}
         <br><br>
-        <div class="comments">
         <div style="text-align:center;">
-            {{comments}}
+            {{comment}}
         </div>
     {{endif}}
-    </div>
 {{else}}
     <center>{{interactive}}</center>
 {{endif}}
@@ -692,13 +690,15 @@ class Report(object):
         self.initial_id += 1
         return self.initial_id
 
-    def _validate_input(self, items, captions, section):
+    def _validate_input(self, items, captions, section, comments=None):
         """Validate input.
         """
         if not isinstance(items, (list, tuple)):
             items = [items]
         if not isinstance(captions, (list, tuple)):
             captions = [captions]
+        if not isinstance(comments, (list, tuple)):
+            comments = [comments]
         if not len(items) == len(captions):
             raise ValueError('Captions and report items must have the same'
                              ' length.')
@@ -708,7 +708,7 @@ class Report(object):
             self.sections.append(section)
             self._sectionvars[section] = _clean_varnames(section)
 
-        return items, captions
+        return items, captions, comments
 
     def _add_figs_to_section(self, figs, captions, section='custom',
                              image_format='png', scale=None, comments=None):
@@ -725,8 +725,9 @@ class Report(object):
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
-        figs, captions = self._validate_input(figs, captions, section)
-        for fig, caption in zip(figs, captions):
+        figs, captions, comments = self._validate_input(figs, captions,
+                                                        section, comments)
+        for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
             global_id = self._get_id()
@@ -749,15 +750,13 @@ class Report(object):
 
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
-            if isinstance(comments, list):
-                comments = '<br>'.join(comments)
             html = image_template.substitute(img=img, id=global_id,
                                              div_klass=div_klass,
                                              img_klass=img_klass,
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale, comments=comments)
+                                             width=scale, comment=comment)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -807,8 +806,7 @@ class Report(object):
             The image format to be used for the report. Defaults to 'png'.
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
-            the figure. If list of str, each element will appear on a
-            new line.
+            the figure.
         """
         return self._add_figs_to_section(figs=figs, captions=captions,
                                          section=section, scale=scale,
@@ -833,18 +831,16 @@ class Report(object):
             will be appended to the end of the section.
         comments : None | str | list of str
             A string of text or a list of strings of text to be appended after
-            the image. If list of str, each element will appear on a
-            new line.
+            the image.
         """
         # Note: using scipy.misc is equivalent because scipy internally
         # imports PIL anyway. It's not possible to redirect image output
         # to binary string using scipy.misc.
         from PIL import Image
-        fnames, captions = self._validate_input(fnames, captions, section)
-        if isinstance(comments, list):
-            comments = '<br>'.join(comments)
+        fnames, captions, comments = self._validate_input(fnames, captions,
+                                                          section, comments)
 
-        for fname, caption in zip(fnames, captions):
+        for fname, caption, comment in zip(fnames, captions, comments):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
             global_id = self._get_id()
@@ -861,7 +857,7 @@ class Report(object):
                                              img_klass=img_klass,
                                              caption=caption,
                                              width=scale,
-                                             comments=comments,
+                                             comment=comment,
                                              show=True)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
@@ -880,7 +876,7 @@ class Report(object):
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
         """
-        htmls, captions = self._validate_input(htmls, captions, section)
+        htmls, captions, _ = self._validate_input(htmls, captions, section)
         for html, caption in zip(htmls, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
