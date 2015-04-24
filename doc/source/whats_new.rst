@@ -41,8 +41,7 @@ Changelog
 
    - Add reading and writing support for digitizer data, and function for adding dig points to info by `Teon Brooks`_
 
-   - Add methods ``_get_channel_positions``, ``_set_channel_positions`` for setting channel positions,
-     and ``plot_projs_topomap`` to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
+   - Add methods ``plot_projs_topomap`` to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
    - Add EEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
      by `Denis Engemann`_
