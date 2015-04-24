@@ -1,7 +1,7 @@
 """
-================================================
-Interpolate bad channels using spherical splines
-================================================
+=============================================
+Interpolate bad channels for MEG/EEG channels
+=============================================
 
 This example shows how to interpolate bad MEG/EEG channels
     - Using spherical splines as described in [1] for EEG data.

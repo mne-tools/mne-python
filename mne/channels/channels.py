@@ -458,7 +458,7 @@ class InterpolationMixin(object):
     """
 
     def interpolate_bads(self):
-        """Interpolate bad channels.
+        """Interpolate bad MEG and EEG channels.
 
         Parameters
         ----------

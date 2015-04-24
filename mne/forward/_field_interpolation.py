@@ -125,7 +125,7 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     Returns
     -------
     mapping : array
-        A mapping matrix of shape len(pick_from) x len(pick_to).
+        A mapping matrix of shape len(pick_to) x len(pick_from).
     """
     info_from = pick_info(inst.info, pick_from, copy=True)
     info_to = pick_info(inst.info, pick_to, copy=True)
