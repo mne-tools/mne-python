@@ -168,7 +168,7 @@ def test_make_field_map_meg():
     assert_true(len(fmd[0]['ch_names']), 106)
 
     assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar',
-                  subjects_dir=subjects_dir)
+                  subjects_dir=subjects_dir, trans=trans_fname)
 
 
 def _setup_args(info):
