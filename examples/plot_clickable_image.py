@@ -9,6 +9,9 @@ Then, we use generate_2d_layout to turn those xy positions into a layout
 for use with plotting topo maps. In this way, you can take arbitrary xy
 positions and turn them into a plottable layout.
 """
+# Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
+#
+# License: BSD (3-clause)
 
 from scipy.ndimage import imread
 import numpy as np
@@ -17,6 +20,8 @@ import mne
 from mne.viz.utils import ClickableImage
 from mne.channels.layout import generate_2d_layout
 from os import path as op
+
+print(__doc__)
 
 # Set parameters and paths
 plt.rcParams['image.cmap'] = 'gray'
@@ -27,6 +32,7 @@ im_path = op.join(op.dirname(__file__), '..', 'mne', 'data',
 layout_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', '')
 layout_name = 'custom_layout.lout'
 
+###############################################################################
 # Load data and click
 im = imread(im_path)
 
