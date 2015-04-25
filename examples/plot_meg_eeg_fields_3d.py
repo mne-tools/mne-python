@@ -33,5 +33,14 @@ evoked = read_evokeds(evoked_fname, condition=condition, baseline=(-0.2, 0.0))
 maps = make_field_map(evoked, trans_fname, subject='sample',
                       subjects_dir=subjects_dir, n_jobs=1)
 
-# explore several points in time
-[evoked.plot_field(maps, time=time) for time in [0.09, .11]]
+# Plot MEG and EEG fields in the helmet and scalp surface in the same figure.
+evoked.plot_field(maps, time=0.11)
+
+# Compute the MEG fields in the scalp surface
+evoked.pick_types(meg=True, eeg=False)
+maps_head = make_field_map(evoked, trans_fname, subject='sample',
+                           subjects_dir=subjects_dir, n_jobs=1,
+                           meg_surf='head')
+
+# Plot MEG fields both in scalp surface and the helmet in the same figure.
+evoked.plot_field([maps_head[0], maps[1]], time=0.11)

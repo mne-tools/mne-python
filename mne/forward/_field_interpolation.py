@@ -306,7 +306,8 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
 
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
-                   ch_type=None, mode='fast', n_jobs=1, trans_fname=None):
+                   ch_type=None, mode='fast', meg_surf='helmet',
+                   n_jobs=1, trans_fname=None):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -331,6 +332,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
         for most applications.
+    meg_surf : str
+        Should be ``'helmet'`` or ``'head'`` to specify in which surface
+        to compute the MEG field map. The default value is ``'helmet'``
     n_jobs : int
         The number of jobs to run in parallel.
 
@@ -369,9 +373,13 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     if trans is not None:
         trans = read_trans(trans)
 
+    if meg_surf not in ['helmet', 'head']:
+        raise ValueError('Surface to plot MEG fields must be '
+                         '"helmet" or "head"')
+
     surfs = []
     for this_type in types:
-        if this_type == 'meg':
+        if this_type == 'meg' and meg_surf == 'helmet':
             surf = get_meg_helmet_surf(info, trans)
         else:
             surf = get_head_surf(subject, subjects_dir=subjects_dir)
