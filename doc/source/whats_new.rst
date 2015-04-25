@@ -44,7 +44,7 @@ Changelog
    - Add  ``plot_projs_topomap`` method to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
    - Add EEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
-     by `Denis Engemann`_
+    by `Denis Engemann`_
 
    - Add parameter to ``whiten_evoked``, ``compute_whitener`` and ``prepare_noise_cov`` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
 
@@ -97,10 +97,14 @@ Changelog
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
    - Add whitening plots for evokeds to ``mne.Report`` by `Mainak Jas`_
-   - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_
 
+   - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_ and `Christian Brodbeck`_
+
+   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks` and `Denis Engemann`_
 
    - Add support for capturing cursor positions when clicking on an image by `Chris Holdgraf`_
+
+   - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
@@ -114,7 +118,7 @@ BUG
    - Fix channel names in topomaps by `Alex Gramfort`_
 
    - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and
-     ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
+    ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -158,7 +162,7 @@ API
    - find_events and read_events functions have a new parameter ``mask`` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-     `mne.layouts` by `Denis Engemann`_
+    `mne.layouts` by `Denis Engemann`_
 
    - ``read_raw_brainvision``, ``read_raw_edf``, ``read_raw_egi`` all use a standard montage import by `Teon Brooks`_
 
@@ -183,11 +187,11 @@ API
    - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
    - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_
-     `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
+    `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
-     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
-     use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
+    zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
+    use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
 
    - ``pick_types_evoked`` has been deprecated in favor of ``evoked.pick_types``.
 
@@ -721,7 +725,7 @@ Changelog
    - ICA computation on Raw and Epochs with automatic component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Saving ICA sources to fif files and creating ICA topography layouts by
-     `Denis Engemann`_
+    `Denis Engemann`_
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 
@@ -909,8 +913,8 @@ Authors
 The committer list for this release is the following (preceded by number
 of commits):
 
-    * 80  Alexandre Gramfort
-    * 51  Martin Luessi
+   * 80  Alexandre Gramfort
+   * 51  Martin Luessi
 
 Version 0.2
 -----------
@@ -946,10 +950,10 @@ Authors
 The committer list for this release is the following (preceded by number
 of commits):
 
-    * 33  Alexandre Gramfort
-    * 12  Martin Luessi
-    *  2  Yaroslav Halchenko
-    *  1  Manfred Kitzbichler
+   * 33  Alexandre Gramfort
+   * 12  Martin Luessi
+   *  2  Yaroslav Halchenko
+   *  1  Manfred Kitzbichler
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
