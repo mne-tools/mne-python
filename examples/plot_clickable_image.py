@@ -16,13 +16,15 @@ from matplotlib import pyplot as plt
 import mne
 from mne.viz.utils import ClickableImage
 from mne.channels.layout import generate_2d_layout
+from os import path as op
 
 # Set parameters and paths
 plt.rcParams['image.cmap'] = 'gray'
-im_path = '/Users/choldgraf/github/mne-python/mne/data/image/mni_brain.gif'
+im_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', 'mni_brain.gif')
 
 # We've already clicked and exported
-layout_path = '/Users/choldgraf/github/mne-python/mne/data/image/custom_layout.lout'
+layout_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', '')
+layout_name = 'custom_layout.lout'
 
 # Load data and click
 im = imread(im_path)
@@ -41,7 +43,7 @@ lt = generate_2d_layout(np.vstack(coords), bg_image=im)
 lt.save(layout_path)  # To save if we want
 """
 # We've already got the layout, load it
-lt = mne.channels.read_layout(layout_path, scale=False)
+lt = mne.channels.read_layout(layout_name, path=layout_path, scale=False)
 
 # Create some fake data
 nchans = len(lt.pos)
