@@ -35,7 +35,7 @@ layout_name = 'custom_layout.lout'
 ###############################################################################
 # Load data and click
 im = imread(im_path)
-
+plt.imshow(im)
 """
 This code opens the image so you can click on it. Commented out
 because we've stored the clicks as a layout file already.
@@ -63,10 +63,7 @@ data = np.random.randn(nepochs, nchans, sr * nsec)
 info = mne.create_info(nchans, sr, ch_types='eeg')
 epochs = mne.EpochsArray(data, info, events)
 
-# Using the native plot_topo function
-f = mne.viz.plot_topo(epochs.average(), layout=lt)
-
-# Now with the image plotted in the background
+# Using the native plot_topo function with the image plotted in the background
 f = mne.viz.plot_topo(epochs.average(), layout=lt)
 ax = f.add_axes([0, 0, 1, 1])
 ax.imshow(im)
