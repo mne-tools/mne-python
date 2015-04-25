@@ -295,7 +295,7 @@ class SetChannelsMixin(object):
                   mne.io.meas_info.DigMontage
             The MNE montage object.
         """
-        from .layout import _set_montage
+        from .montage import _set_montage
         _set_montage(self.info, montage)
 
 

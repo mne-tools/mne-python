@@ -22,7 +22,7 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.layout import read_montage, _set_montage, Montage
+from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -37,6 +37,9 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
+from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
+                          _cartesian_to_sphere, apply_trans,
+                          get_ras_to_neuromag_trans)
 from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events
