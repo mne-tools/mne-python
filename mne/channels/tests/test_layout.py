@@ -356,12 +356,12 @@ def test_generate_2d_layout():
     """Test creation of a layout from 2d points."""
     snobg = 10
     sbg = 15
-    square = np.meshgrid(*[np.arange(snobg)] * 2, indexing='xy')
+    side = range(snobg)
     bg_image = np.random.randn(sbg, sbg)
     w, h = [.2, .5]
 
     # Generate fake data
-    xy = np.array(zip(*[i.ravel() for i in square]))
+    xy = np.array([(i, j) for i in side for j in side])
     lt = generate_2d_layout(xy, w=w, h=h)
 
     # Correct points ordering / minmaxing
@@ -379,3 +379,6 @@ def test_generate_2d_layout():
     # Make sure background image normalizing is correct
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
+if '__name__' == '__main__':
+    test_generate_2d_layout()
