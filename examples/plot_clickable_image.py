@@ -20,7 +20,8 @@ from os import path as op
 
 # Set parameters and paths
 plt.rcParams['image.cmap'] = 'gray'
-im_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', 'mni_brain.gif')
+im_path = op.join(op.dirname(__file__), '..', 'mne', 'data',
+                  'image', 'mni_brain.gif')
 
 # We've already clicked and exported
 layout_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', '')
