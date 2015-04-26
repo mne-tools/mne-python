@@ -22,6 +22,7 @@ from mne.io import read_raw_brainvision
 FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 vhdr_path = op.join(data_dir, 'test.vhdr')
+vmrk_path = op.join(data_dir, 'test.vmrk')
 vhdr_highpass_path = op.join(data_dir, 'test_highpass.vhdr')
 montage = op.join(data_dir, 'test.hpts')
 eeg_bin = op.join(data_dir, 'test_bin_raw.fif')
@@ -42,6 +43,7 @@ def test_brainvision_data_filters():
 def test_brainvision_data():
     """Test reading raw Brain Vision files
     """
+    assert_raises(IOError, read_raw_brainvision, vmrk_path)
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="0")
     raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
