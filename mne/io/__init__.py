@@ -8,7 +8,7 @@
 from .open import fiff_open, show_fiff, _fiff_get_fid
 from .meas_info import read_fiducials, write_fiducials, read_info, write_info
 
-from .proj import proj_equal, make_eeg_average_ref_proj
+from .proj import make_eeg_average_ref_proj
 from . import array
 from . import base
 from . import brainvision

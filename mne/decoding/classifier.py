@@ -88,6 +88,8 @@ class Scaler(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data.
+        y : None
+            Not used.
 
         Returns
         -------
@@ -150,6 +152,8 @@ class ConcatenateChannels(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data.
+        y : None
+            Not used.
 
         Returns
         -------
@@ -238,6 +242,8 @@ class PSDEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data
+        y : None
+            Not used.
 
         Returns
         -------
@@ -389,6 +395,8 @@ class FilterEstimator(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data.
+        y : None
+            Not used.
 
         Returns
         -------

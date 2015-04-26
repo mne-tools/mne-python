@@ -452,6 +452,8 @@ def tf_dics(epochs, forward, noise_csds, tmin, tmax, tstep, win_lengths,
         tf source grid.
     mode : str
         Spectrum estimation mode can be either: 'multitaper' or 'fourier'.
+    n_ffts : list | None
+        FFT lengths to use for each frequency bin.
     mt_bandwidths : list of float
         The bandwidths of the multitaper windowing function in Hz. Only used in
         'multitaper' mode. One value should be provided for each frequency bin.

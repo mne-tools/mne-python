@@ -52,10 +52,10 @@ def source_band_induced_power(epochs, inverse_operator, bands, label=None,
         Number of cycles. Fixed number or one per frequency.
     df : float
         delta frequency within bands.
-    decim : int
-        Temporal decimation factor.
     use_fft : bool
         Do convolutions in time or frequency domain with FFT.
+    decim : int
+        Temporal decimation factor.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)

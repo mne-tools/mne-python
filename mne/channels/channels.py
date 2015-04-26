@@ -289,14 +289,14 @@ class PickDropChannelsMixin(object):
             gradiometer.
         eeg : bool
             If True include EEG channels.
+        stim : bool
+            If True include stimulus channels.
         eog : bool
             If True include EOG channels.
         ecg : bool
             If True include ECG channels.
         emg : bool
             If True include EMG channels.
-        stim : bool
-            If True include stimulus channels.
         ref_meg: bool | str
             If True include CTF / 4D reference channels. If 'auto', the
             reference channels are only included if compensations are present.

@@ -28,6 +28,8 @@ def get_chpi_positions(raw, t_step=None, verbose=None):
         1 second is used if processing a raw data. If processing a
         Maxfilter log file, this must be None because the log file
         itself will determine the sampling interval.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

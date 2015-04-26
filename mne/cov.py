@@ -14,7 +14,7 @@ import numpy as np
 from scipy import linalg
 
 from .io.write import start_file, end_file
-from .io.proj import (make_projector, proj_equal, activate_proj,
+from .io.proj import (make_projector, _proj_equal, activate_proj,
                       _has_eeg_average_ref_proj)
 from .io import fiff_open
 from .io.pick import (pick_types, channel_indices_by_type, pick_channels_cov,
@@ -97,7 +97,13 @@ class Covariance(dict):
         return self['nfree']
 
     def save(self, fname):
-        """Save covariance matrix in a FIF file"""
+        """Save covariance matrix in a FIF file
+
+        Parameters
+        ----------
+        fname : str
+            Output filename.
+        """
         check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 
         fid = start_file(fname)
@@ -188,11 +194,11 @@ class Covariance(dict):
             Show colorbar or not.
         proj : bool
             Apply projections or not.
-        show : bool
-            Call pyplot.show() as the end or not.
         show_svd : bool
             Plot also singular values of the noise covariance for each sensor
             type. We show square roots ie. standard deviations.
+        show : bool
+            Call pyplot.show() as the end or not.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -587,7 +593,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
             if epochs_t.proj != epochs[0].proj:
                 raise ValueError('Epochs must agree on the use of projections')
             for proj_a, proj_b in zip(epochs_t.info['projs'], projs):
-                if not proj_equal(proj_a, proj_b):
+                if not _proj_equal(proj_a, proj_b):
                     raise ValueError('Epochs must have same projectors')
     else:
         projs = cp.deepcopy(projs)

@@ -20,6 +20,8 @@ class RawArray(_BaseRaw):
     info : instance of Info
         Info dictionary. Consider using ``create_info`` to populate
         this structure.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
     """
     @verbose
     def __init__(self, data, info, verbose=None):

@@ -16,7 +16,7 @@ from scipy import signal
 import matplotlib.pyplot as plt
 
 import mne
-from mne.time_frequency import ar_raw
+from mne.time_frequency import fit_iir_model_raw
 from mne.datasets import sample
 
 print(__doc__)
@@ -38,14 +38,11 @@ order = 5  # define model order
 picks = picks[:5]
 
 # Estimate AR models on raw data
-coefs = ar_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
-mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
-
-filt = np.r_[1, -mean_coefs]  # filter coefficient
+b, a = fit_iir_model_raw(raw, order=order, picks=picks, tmin=60, tmax=180)
 d, times = raw[0, 1e4:2e4]  # look at one channel from now on
 d = d.ravel()  # make flat vector
-innovation = signal.convolve(d, filt, 'valid')
-d_ = signal.lfilter([1], filt, innovation)  # regenerate the signal
+innovation = signal.convolve(d, a, 'valid')
+d_ = signal.lfilter(b, a, innovation)  # regenerate the signal
 d_ = np.r_[d_[0] * np.ones(order), d_]  # dummy samples to keep signal length
 
 ###############################################################################

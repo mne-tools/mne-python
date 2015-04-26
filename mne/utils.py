@@ -428,6 +428,11 @@ class deprecated(object):
 
     >>> @deprecated()
     ... def some_function(): pass
+
+    Parameters
+    ----------
+    extra: string
+      to be added to the deprecation messages
     """
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
@@ -436,16 +441,16 @@ class deprecated(object):
     # sklearn or scikits.learn, so a self-contained example is used above
 
     def __init__(self, extra=''):
-        """
-        Parameters
-        ----------
-        extra: string
-          to be added to the deprecation messages
-
-        """
         self.extra = extra
 
     def __call__(self, obj):
+        """Call
+
+        Parameters
+        ----------
+        obj : object
+            Object to call.
+        """
         if isinstance(obj, type):
             return self._decorate_class(obj)
         else:

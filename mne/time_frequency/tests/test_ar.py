@@ -1,10 +1,10 @@
 import os.path as op
 import numpy as np
 from numpy.testing import assert_array_almost_equal
-from nose.tools import assert_true
+from nose.tools import assert_true, assert_equal
 
 from mne import io, pick_types
-from mne.time_frequency import yule_walker, ar_raw
+from mne.time_frequency.ar import yule_walker, fit_iir_model_raw
 from mne.utils import requires_statsmodels, requires_patsy
 
 
@@ -29,16 +29,10 @@ def test_ar_raw():
     """Test fitting AR model on raw data
     """
     raw = io.Raw(raw_fname)
-
-    # picks MEG gradiometers
+    # pick MEG gradiometers
     picks = pick_types(raw.info, meg='grad', exclude='bads')
-
     picks = picks[:2]
-
-    tmin, tmax = 0, 10  # use the first s of data
-    order = 2
-    coefs = ar_raw(raw, picks=picks, order=order, tmin=tmin, tmax=tmax)
-    mean_coefs = np.mean(coefs, axis=0)
-
-    assert_true(coefs.shape == (len(picks), order))
-    assert_true(0.9 < mean_coefs[0] < 1.1)
+    tmin, tmax, order = 0, 10, 2
+    coefs = fit_iir_model_raw(raw, order, picks, tmin, tmax)[1][1:]
+    assert_equal(coefs.shape, (order,))
+    assert_true(0.9 < -coefs[0] < 1.1)

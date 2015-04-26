@@ -368,10 +368,10 @@ def cross_talk_function(inverse_operator, forward, labels,
     forward : dict
         Forward solution. Note: (Bad) channels not included in forward
         solution will not be used in CTF computation.
-    method : 'MNE' | 'dSPM' | 'sLORETA'
-        Inverse method for which CTFs shall be computed.
     labels : list of Label
         Labels for which CTFs shall be computed.
+    method : 'MNE' | 'dSPM' | 'sLORETA'
+        Inverse method for which CTFs shall be computed.
     lambda2 : float
         The regularization parameter.
     signed : bool

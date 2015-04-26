@@ -258,20 +258,20 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         automatically drawn.
     border : str
         matplotlib borders style to be used for each sensor plot.
-    scalings : dict | None
-        The scalings of the channel types to be applied for plotting. If None,`
-        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
     ylim : dict | None
         ylim for plots. The value determines the upper and lower subplot
         limits. e.g. ylim = dict(eeg=[-200e-6, 200e6]). Valid keys are eeg,
         mag, grad, misc. If None, the ylim parameter for each channel is
         determined by the maximum absolute peak.
+    scalings : dict | None
+        The scalings of the channel types to be applied for plotting. If None,`
+        defaults to `dict(eeg=1e6, grad=1e13, mag=1e15)`.
+    title : str
+        Title of the figure.
     proj : bool | 'interactive'
         If true SSP projections are applied before display. If 'interactive',
         a check box for reversible selection of SSP projection vectors will
         be shown.
-    title : str
-        Title of the figure.
     vline : list of floats | None
         The values at which to show a vertical line.
     fig_facecolor : str | obj

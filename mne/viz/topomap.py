@@ -301,7 +301,7 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
         ax.plot(pos_x, pos_y, sensors)
 
 
-def plot_topomap(data, pos, vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
+def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
                  contours=6, image_interp='bilinear', show=True):
@@ -585,6 +585,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
+    res : int
+        The resolution of the topomap image (n pixels along each side).
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout is
@@ -606,8 +608,8 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         will be used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
-    res : int
-        The resolution of the topomap image (n pixels along each side).
+    title : str | None
+        Title to use.
     show : bool
         Show figure if True.
     outlines : 'head' | dict | None

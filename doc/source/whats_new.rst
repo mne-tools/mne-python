@@ -191,6 +191,8 @@ API
 
    - ``add_figs_to_section`` and ``add_images_to_section`` now have a ``textbox`` parameter to add comments to the image by `Teon Brooks`_
 
+   - Deprecated ``iir_filter_raw`` for ``fit_iir_model_raw``.
+
 .. _changes_0_8:
 
 Version 0.8
