@@ -103,6 +103,11 @@ class Info(dict):
 def read_fiducials(fname):
     """Read fiducials from a fiff file
 
+    Parameters
+    ----------
+    fname : str
+        The filename to read.
+
     Returns
     -------
     pts : list of dicts

@@ -735,9 +735,9 @@ def _subject_from_inverse(inverse_operator):
 
 
 @verbose
-def apply_inverse(evoked, inverse_operator, lambda2, method="dSPM",
-                  pick_ori=None, pick_normal=None, prepared=False,
-                  label=None, verbose=None):
+def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
+                  method="dSPM", pick_ori=None, pick_normal=None,
+                  prepared=False, label=None, verbose=None):
     """Apply inverse operator to evoked data
 
     Parameters

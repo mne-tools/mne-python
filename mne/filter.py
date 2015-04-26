@@ -426,6 +426,8 @@ def construct_iir_filter(iir_params=dict(b=[1, 0], a=[1, 0], padlen=0),
     f_stop : float or list of float
         Stop-band frequency (same size as f_pass). Not used if 'order' is
         specified in iir_params.
+    sfreq : float | None
+        The sample rate.
     btype : str
         Type of filter. Should be 'lowpass', 'highpass', or 'bandpass'
         (or analogous string representations known to scipy.signal).

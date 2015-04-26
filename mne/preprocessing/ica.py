@@ -1267,6 +1267,8 @@ class ICA(ContainsMixin):
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
+        res : int
+            The resolution of the topomap image (n pixels along each side).
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout is
@@ -1288,8 +1290,8 @@ class ICA(ContainsMixin):
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        res : int
-            The resolution of the topomap image (n pixels along each side).
+        title : str | None
+            Title to use.
         show : bool
             Call pyplot.show() at the end.
         outlines : 'head' | dict | None
@@ -1336,13 +1338,13 @@ class ICA(ContainsMixin):
         picks : ndarray | None.
             The components to be displayed. If None, plot will show the
             sources in the order as fitted.
+        exclude : array_like of int
+            The components marked for exclusion. If None (default), ICA.exclude
+            will be used.
         start : int
             X-axis start index. If None from the beginning.
         stop : int
             X-axis stop index. If None to the end.
-        exclude : array_like of int
-            The components marked for exclusion. If None (default), ICA.exclude
-            will be used.
         title : str | None
             The figure title. If None a default is provided.
         show : bool
@@ -1572,12 +1574,12 @@ def ica_find_ecg_events(raw, ecg_source, event_id=999,
 
     Parameters
     ----------
+    raw : instance of Raw
+        Raw object to draw sources from.
     ecg_source : ndarray
         ICA source resembling ECG to find peaks from.
     event_id : int
         The index to assign to found events.
-    raw : instance of Raw
-        Raw object to draw sources from.
     tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
@@ -1967,6 +1969,10 @@ def run_ica(raw, n_components, max_pca_components=100,
         smaller then max_pca_components. If None, all PCA components will be
         used. If float between 0 and 1 components can will be selected by the
         cumulative percentage of explained variance.
+    max_pca_components : int | None
+        The number of components used for PCA decomposition. If None, no
+        dimension reduction will be applied and max_pca_components will equal
+        the number of channels supplied on decomposing data.
     n_pca_components
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
@@ -1975,10 +1981,6 @@ def run_ica(raw, n_components, max_pca_components=100,
         'n_components_' PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
-    max_pca_components : int | None
-        The number of components used for PCA decomposition. If None, no
-        dimension reduction will be applied and max_pca_components will equal
-        the number of channels supplied on decomposing data.
     noise_cov : None | instance of mne.cov.Covariance
         Noise covariance used for whitening. If None, channels are just
         z-scored.

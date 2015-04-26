@@ -19,7 +19,7 @@ from scipy import linalg
 from .constants import FIFF
 from .pick import pick_types, channel_type, pick_channels, pick_info
 from .meas_info import write_meas_info
-from .proj import setup_proj, activate_proj, proj_equal, ProjMixin
+from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
 from ..channels.layout import read_montage, apply_montage, Montage
@@ -1187,8 +1187,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                               use_first_samp)
 
     def estimate_rank(self, tstart=0.0, tstop=30.0, tol=1e-4,
-                      scalings='norm',
-                      return_singular=False, picks=None):
+                      return_singular=False, picks=None, scalings='norm'):
         """Estimate rank of the raw data
 
         This function is meant to provide a reasonable estimate of the rank.
@@ -1899,7 +1898,7 @@ def _check_raw_compatibility(raw):
             raise ValueError('raw[%d]._cals must match' % ri)
         if len(raw[0].info['projs']) != len(raw[ri].info['projs']):
             raise ValueError('SSP projectors in raw files must be the same')
-        if not all(proj_equal(p1, p2) for p1, p2 in
+        if not all(_proj_equal(p1, p2) for p1, p2 in
                    zip(raw[0].info['projs'], raw[ri].info['projs'])):
             raise ValueError('SSP projectors in raw files must be the same')
     if not all(r.orig_format == raw[0].orig_format for r in raw):

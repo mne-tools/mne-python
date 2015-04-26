@@ -695,6 +695,10 @@ class BiHemiLabel(object):
         Label for the right hemisphere.
     name : None | str
         name for the label
+    color : None | matplotlib color
+        Label color and alpha (e.g., ``(1., 0., 0., 1.)`` for red).
+        Note that due to file specification limitations, the color isn't saved
+        to or loaded from files written to disk.
 
     Attributes
     ----------

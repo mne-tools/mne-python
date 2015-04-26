@@ -174,7 +174,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
 
 
 def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
-                ylim=None, proj=False, xlim='tight', hline=None, units=None,
+                ylim=None, xlim='tight', proj=False, hline=None, units=None,
                 scalings=None, titles=None, axes=None):
     """Plot evoked data
 
@@ -226,7 +226,7 @@ def plot_evoked(evoked, picks=None, exclude='bads', unit=True, show=True,
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,
-                      clim=None, proj=False, xlim='tight', units=None,
+                      clim=None, xlim='tight', proj=False, units=None,
                       scalings=None, titles=None, axes=None, cmap='RdBu_r'):
     """Plot evoked data as images
 

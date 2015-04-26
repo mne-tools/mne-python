@@ -345,7 +345,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                dtype=np.float) / sfreq
 
     def plot(self, picks=None, exclude='bads', unit=True, show=True, ylim=None,
-             proj=False, xlim='tight', hline=None, units=None, scalings=None,
+             xlim='tight', proj=False, hline=None, units=None, scalings=None,
              titles=None, axes=None):
         """Plot evoked data as butterfly plots
 
@@ -393,7 +393,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            titles=titles, axes=axes)
 
     def plot_image(self, picks=None, exclude='bads', unit=True, show=True,
-                   clim=None, proj=False, xlim='tight', units=None,
+                   clim=None, xlim='tight', proj=False, units=None,
                    scalings=None, titles=None, axes=None, cmap='RdBu_r'):
         """Plot evoked data as images
 
@@ -484,6 +484,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             for grad and 1e15 for mag.
         scale_time : float | None
             Scale the time labels. Defaults to 1e3 (ms).
+        unit : str | None
+            The unit of the channel type used for colorbar labels.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -575,7 +577,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return plot_evoked_field(self, surf_maps, time=time,
                                  time_label=time_label, n_jobs=n_jobs)
 
-    def plot_white(self, noise_cov, scalings=None, show=True):
+    def plot_white(self, noise_cov, show=True):
         """Plot whitened evoked response
 
         Plots the whitened evoked response and the whitened GFP as described in

@@ -578,6 +578,8 @@ Functions:
    apply_inverse
    apply_inverse_epochs
    apply_inverse_raw
+   compute_source_psd
+   compute_source_psd_epochs
    compute_rank_inverse
    estimate_snr
    make_inverse_operator
@@ -679,26 +681,40 @@ Time-Frequency
 
 .. currentmodule:: mne.time_frequency
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   AverageTFR
+
+Functions that operate on mne-python objects:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
 
-   ar_raw
-   compute_raw_psd
+   compute_epochs_csd
    compute_epochs_psd
-   cwt_morlet
-   iir_filter_raw
-   morlet
+   compute_raw_psd
+   fit_iir_model_raw
    tfr_morlet
    tfr_multitaper
+   tfr_stockwell
+   read_tfrs
+   write_tfrs
+
+Functions that operate on ``np.ndarray`` objects:
+
+   cwt_morlet
+   dpss_windows
+   morlet
+   multitaper_psd
    single_trial_power
-   yule_walker
    stft
    istft
    stftfreq
-   tfr_stockwell
-   write_tfrs
-   read_tfrs
 
 
 Connectivity Estimation

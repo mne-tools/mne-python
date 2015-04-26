@@ -52,18 +52,53 @@ def get_name(func):
     return '.'.join(parts)
 
 
+# functions to ignore # of args b/c we deprecated a name and moved it
+# to the end
+_deprecation_ignores = [
+    'mne.evoked.Evoked.plot_topomap',  # format
+    'mne.evoked.EvokedArray.plot_topomap',  # format
+    'mne.forward._field_interpolation.make_field_map',
+    'mne.forward._make_forward.make_forward_solution',  # mri
+    'mne.forward.forward.do_forward_solution',  # mri
+    'mne.source_estimate.SourceEstimate.plot',  # fmin/fmid/fmax
+    'mne.source_space.read_source_spaces',  # add_geom
+    'mne.surface.read_bem_surfaces',  # add_geom
+    'as_data_frame',  # dep
+    'to_nitime',  # dep
+    'mne.utils.label_time_courses',  # dep
+    'mne.utils.pick_types_evoked',  # dep
+    'mne.utils.read_dip',  # dep
+    'mne.utils.plot_raw_psds',  # dep
+    'mne.utils.iir_filter_raw',  # dep
+    'mne.utils.time_generalization',  # dep
+    'mne.utils.Report.add_section',  # dep
+    'plot_psds',  # dep
+    'RawArray.save',  # format
+    'RawFIF.save',  # format
+    'mne.minimum_norm.inverse.apply_inverse',  # pick_normal
+    'mne.minimum_norm.time_frequency.compute_source_psd',  # pick_normal
+    'mne.minimum_norm.time_frequency.source_induced_power',  # pick_normal
+    'mne.viz.topomap.plot_evoked_topomap',  # format
+    'mne.viz.topomap.plot_tfr_topomap',  # format
+    'mne.viz._3d.plot_trans',  # trans_fname
+    'mne.viz._3d.plot_source_estimates',  # fmin/fmid/fmax
+    'mne.time_frequency.tfr.single_trial_power',  # Fs
+    'mne.time_frequency.tfr.morlet',  # Fs
+    'mne.time_frequency.tfr.cwt_morlet',  # Fs
+    'mne.time_frequency.tfr.AverageTFR.plot_topomap',  # format
+    'mne.stats.cluster_level.summarize_clusters_stc',  # vertno
+]
+
+
 def check_parameters_match(func, doc=None):
     """Helper to check docstring, returns list of incorrect results"""
     incorrect = []
     name_ = get_name(func)
-    if not name_.startswith('mne.'):
+    if not name_.startswith('mne.') or name_.startswith('mne.externals'):
         return incorrect
     if inspect.isdatadescriptor(func):
         return incorrect
-    try:
-        args, varargs, varkw, defaults = inspect.getargspec(func)
-    except TypeError:
-        return incorrect
+    args, varargs, varkw, defaults = inspect.getargspec(func)
     # drop self
     if len(args) > 0 and args[0] == 'self':
         args = args[1:]
@@ -78,26 +113,15 @@ def check_parameters_match(func, doc=None):
     # clean up some docscrape output:
     param_names = [name.split(':')[0].strip('` ') for name in param_names]
     param_names = [name for name in param_names if '*' not in name]
-    try:
-        args_set = set(args)
-    except TypeError:
-        # TODO: handle arg tuples
-        return incorrect
-    extra_params = set(param_names) - args_set
-    if extra_params and not varkw:
-        incorrect += [get_name(func) + ' in doc ' + str(sorted(extra_params))]
-
-    if defaults:
-        none_defaults = [arg for arg, default in zip(args[-len(defaults):],
-                                                     defaults)
-                         if default is None]
+    if len(param_names) != len(args):
+        bad = str(sorted(list(set(param_names) - set(args)) +
+                         list(set(args) - set(param_names))))
+        if not any(d in name_ for d in _deprecation_ignores):
+            incorrect += [name_ + ' arg mismatch: ' + bad]
     else:
-        none_defaults = []
-    extra_args = args_set - set(param_names) - set(none_defaults)
-    if param_names and extra_args:
-        incorrect += [get_name(func) + ' in argspec ' +
-                      str(sorted(extra_args))]
-    # check order?
+        for n1, n2 in zip(param_names, args):
+            if n1 != n2:
+                incorrect += [name_ + ' ' + n1 + ' != ' + n2]
     return incorrect
 
 
@@ -108,6 +132,8 @@ def test_docstring_parameters():
     incorrect = []
     for name in public_modules:
         module = __import__(name, globals())
+        for submod in name.split('.')[1:]:
+            module = getattr(module, submod)
         classes = inspect.getmembers(module, inspect.isclass)
         for cname, cls in classes:
             if cname.startswith('_'):
@@ -129,9 +155,9 @@ def test_docstring_parameters():
             if fname.startswith('_'):
                 continue
             incorrect += check_parameters_match(func)
-    if len(incorrect) > 0:
-        print('\n'.join(sorted(incorrect)))
-        raise AssertionError('%s docstring errors' % len(incorrect))
+    msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
+    if len(incorrect) > 1:
+        raise AssertionError(msg)
 
 
 run_tests_if_main()

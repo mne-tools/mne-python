@@ -172,8 +172,6 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
         are floats that set the minimum acceptable peak-to-peak amplitude.
         If flat is None then no rejection is done.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
     baseline : tuple or list of length 2, or None
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -182,6 +180,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
         and if b is None then b is set to the end of the interval.
         If baseline is equal ot (None, None) all the time
         interval is used. If None, no correction is applied.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

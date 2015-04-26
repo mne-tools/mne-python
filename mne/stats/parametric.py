@@ -181,8 +181,10 @@ def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
 # and Python code from the pvttble toolbox by Roger Lew.
 def f_twoway_rm(data, factor_levels, effects='A*B', alpha=0.05,
                 correction=False, return_pvals=True):
-    """ 2 way repeated measures ANOVA for fully balanced designs
+    """2-way repeated measures ANOVA for fully balanced designs
 
+    Parameters
+    ----------
     data : ndarray
         3D array where the first two dimensions are compliant
         with a subjects X conditions scheme:

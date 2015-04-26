@@ -243,7 +243,7 @@ class ProjMixin(object):
         return fig
 
 
-def proj_equal(a, b):
+def _proj_equal(a, b):
     """ Test if two projectors are equal """
 
     equal = (a['active'] == b['active'] and
@@ -709,7 +709,7 @@ def _uniquify_projs(projs):
     """Aux function"""
     final_projs = []
     for proj in projs:  # flatten
-        if not any(proj_equal(p, proj) for p in final_projs):
+        if not any(_proj_equal(p, proj) for p in final_projs):
             final_projs.append(proj)
 
     my_count = count(len(final_projs))
