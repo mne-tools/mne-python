@@ -502,7 +502,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
     scalings : dict
-        Defaults to ``dict(grad=1e-13, mag=4e-15, eeg=1e-6)``.
+        Defaults to ``dict(grad=1e-13, mag=1e-15, eeg=1e-6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
     n_jobs : int
@@ -1679,7 +1679,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
+def _estimate_rank_meeg_signals(data, info, scalings=None, tol=1e-4,
                                 return_singular=False, copy=True):
     """Estimate rank for M/EEG data.
 
@@ -1713,6 +1713,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
+    if scalings is None:
+        scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
     _apply_scaling_array(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
