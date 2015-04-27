@@ -12,12 +12,13 @@ positions and turn them into a plottable layout.
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)
-
+import sys
+sys.path.insert(0, '../')
 from scipy.ndimage import imread
 import numpy as np
 from matplotlib import pyplot as plt
 import mne
-from mne.viz.utils import ClickableImage
+from mne.viz.utils import ClickableImage, add_background_image
 from mne.channels.layout import generate_2d_layout
 from os import path as op
 
@@ -47,7 +48,7 @@ coords = click.coords
 
 # Generate a layout from our clicks and normalize by the image
 lt = generate_2d_layout(np.vstack(coords), bg_image=im)
-lt.save(layout_path)  # To save if we want
+lt.save(layout_path + layout_name)  # To save if we want
 """
 # We've already got the layout, load it
 lt = mne.channels.read_layout(layout_name, path=layout_path, scale=False)
@@ -65,7 +66,5 @@ epochs = mne.EpochsArray(data, info, events)
 
 # Using the native plot_topo function with the image plotted in the background
 f = mne.viz.plot_topo(epochs.average(), layout=lt)
-ax = f.add_axes([0, 0, 1, 1])
-ax.imshow(im)
-ax.set_zorder(-1)
+add_background_image(f, im)
 plt.show()
