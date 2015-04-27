@@ -50,6 +50,7 @@ def test_clickable_image():
 
 def test_add_background_image():
     """Test adding background image to a figure."""
+    import matplotlib.pyplot as plt
     f, axs = plt.subplots(1, 2)
     x, y = np.random.randn(2, 10)
     im = np.random.randn(10, 10)
