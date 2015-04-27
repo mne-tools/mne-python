@@ -255,12 +255,12 @@ These steps can be broken out to be more explicit as:
 
    Your fork is now set up correctly.
 
-#. Install mne with editing permissions to the installed folder::
+#. Install mne with editing permissions to the installed folder:
 
    To be able to conveniently edit your files after installing mne-python,
    install using the following setting::
 
-       python setup.py develop --user
+       $ python setup.py develop --user
 
    To make changes in the code, edit the relevant files and restart the
    ipython kernel for changes to take effect.
@@ -271,7 +271,7 @@ These steps can be broken out to be more explicit as:
    html files in the ``doc/`` directory can be built without errors. To build
    the html files, first go the ``doc/`` directory and then type::
 
-       make html
+       $ make html
 
    Once it is compiled for the first time, subsequent compiles will only
    recompile what has changed. That's it! You are now ready to hack away.

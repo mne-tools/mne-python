@@ -42,10 +42,9 @@ def phase_slope_index(data, indices=None, sfreq=2 * np.pi,
 
     Parameters
     ----------
-    data : array, shape=(n_epochs, n_signals, n_times)
-           or list/generator of array, shape =(n_signals, n_times)
-           or list/generator of SourceEstimate
-           or Epochs
+    data : array-like, shape=(n_epochs, n_signals, n_times)
+        Can also be a list/generator of array, shape =(n_signals, n_times);
+        list/generator of SourceEstimate; or Epochs.
         The data from which to compute connectivity. Note that it is also
         possible to combine multiple signals by providing a list of tuples,
         e.g., data = [(arr_0, stc_0), (arr_1, stc_1), (arr_2, stc_2)],

@@ -1018,3 +1018,5 @@ of commits):
 .. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
+
+.. _Jona Sassenhagen: http://www.researchgate.net/profile/Jona_Sassenhagen

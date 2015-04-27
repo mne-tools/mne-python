@@ -997,7 +997,7 @@ class Report(object):
             created.
         pattern : str | list of str
             Filename pattern(s) to include in the report.
-            Example: [*raw.fif, *ave.fif] will include Raw as well as Evoked
+            Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
             files.
         n_jobs : int
           Number of jobs to run in parallel.

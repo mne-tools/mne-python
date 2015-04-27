@@ -380,7 +380,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
+        evoked : instance of Evoked
             The averaged epochs.
         """
 
@@ -397,7 +397,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
+        evoked : instance of Evoked
             The standard error over epochs.
         """
         return self._compute_mean_or_stderr(picks, 'stderr')

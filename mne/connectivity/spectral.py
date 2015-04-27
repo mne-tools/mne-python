@@ -537,84 +537,86 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     connectivity matrix). If one is only interested in the connectivity
     between some signals, the "indices" parameter can be used. For example,
     to compute the connectivity between the signal with index 0 and signals
-    "2, 3, 4" (a total of 3 connections) one can use the following:
+    "2, 3, 4" (a total of 3 connections) one can use the following::
 
-    indices = (np.array([0, 0, 0],    # row indices
-               np.array([2, 3, 4])))  # col indices
+        indices = (np.array([0, 0, 0],    # row indices
+                   np.array([2, 3, 4])))  # col indices
 
-    con_flat = spectral_connectivity(data, method='coh', indices=indices, ...)
+        con_flat = spectral_connectivity(data, method='coh',
+                                         indices=indices, ...)
 
     In this case con_flat.shape = (3, n_freqs). The connectivity scores are
     in the same order as defined indices.
 
-    Supported Connectivity Measures:
+    **Supported Connectivity Measures**
 
     The connectivity method(s) is specified using the "method" parameter. The
-    following methods are supported (note: E[] denotes average over epochs).
-    Multiple measures can be computed at once by using a list/tuple, e.g.
-    "['coh', 'pli']" to compute coherence and PLI.
+    following methods are supported (note: ``E[]`` denotes average over
+    epochs). Multiple measures can be computed at once by using a list/tuple,
+    e.g., ``['coh', 'pli']`` to compute coherence and PLI.
 
-    'coh' : Coherence given by
+        'coh' : Coherence given by::
 
-                 | E[Sxy] |
-        C = ---------------------
-            sqrt(E[Sxx] * E[Syy])
+                     | E[Sxy] |
+            C = ---------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'cohy' : Coherency given by
+        'cohy' : Coherency given by::
 
-                   E[Sxy]
-        C = ---------------------
-            sqrt(E[Sxx] * E[Syy])
+                       E[Sxy]
+            C = ---------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'imcoh' : Imaginary coherence [1] given by
+        'imcoh' : Imaginary coherence [1]_ given by::
 
-                  Im(E[Sxy])
-        C = ----------------------
-            sqrt(E[Sxx] * E[Syy])
+                      Im(E[Sxy])
+            C = ----------------------
+                sqrt(E[Sxx] * E[Syy])
 
-    'plv' : Phase-Locking Value (PLV) [2] given by
+        'plv' : Phase-Locking Value (PLV) [2]_ given by::
 
-        PLV = |E[Sxy/|Sxy|]|
+            PLV = |E[Sxy/|Sxy|]|
 
-    'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator of squared
-            PLV [3].
+        'ppc' : Pairwise Phase Consistency (PPC), an unbiased estimator
+        of squared PLV [3]_.
 
-    'pli' : Phase Lag Index (PLI) [4] given by
+        'pli' : Phase Lag Index (PLI) [4]_ given by::
 
-        PLI = |E[sign(Im(Sxy))]|
+            PLI = |E[sign(Im(Sxy))]|
 
-    'pli2_unbiased' : Unbiased estimator of squared PLI [5].
+        'pli2_unbiased' : Unbiased estimator of squared PLI [5]_.
 
-    'wpli' : Weighted Phase Lag Index (WPLI) [5] given by
+        'wpli' : Weighted Phase Lag Index (WPLI) [5]_ given by::
 
-                  |E[Im(Sxy)]|
-        WPLI = ------------------
-                  E[|Im(Sxy)|]
+                      |E[Im(Sxy)]|
+            WPLI = ------------------
+                      E[|Im(Sxy)|]
 
-    'wpli2_debiased' : Debiased estimator of squared WPLI [5].
+        'wpli2_debiased' : Debiased estimator of squared WPLI [5].
 
     References
     ----------
 
-    [1] Nolte et al. "Identifying true brain interaction from EEG data using
-        the imaginary part of coherency" Clinical neurophysiology, vol. 115,
-        no. 10, pp. 2292-2307, Oct. 2004.
+    .. [1] Nolte et al. "Identifying true brain interaction from EEG data using
+           the imaginary part of coherency" Clinical neurophysiology, vol. 115,
+           no. 10, pp. 2292-2307, Oct. 2004.
 
-    [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human brain
-        mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
+    .. [2] Lachaux et al. "Measuring phase synchrony in brain signals" Human
+           brain mapping, vol. 8, no. 4, pp. 194-208, Jan. 1999.
 
-    [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
-        rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
-        pp. 112-122, May 2010.
+    .. [3] Vinck et al. "The pairwise phase consistency: a bias-free measure of
+           rhythmic neuronal synchronization" NeuroImage, vol. 51, no. 1,
+           pp. 112-122, May 2010.
 
-    [4] Stam et al. "Phase lag index: assessment of functional connectivity
-        from multi channel EEG and MEG with diminished bias from common
-        sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
-        Nov. 2007.
+    .. [4] Stam et al. "Phase lag index: assessment of functional connectivity
+           from multi channel EEG and MEG with diminished bias from common
+           sources" Human brain mapping, vol. 28, no. 11, pp. 1178-1193,
+           Nov. 2007.
 
-    [5] Vinck et al. "An improved index of phase-synchronization for electro-
-        physiological data in the presence of volume-conduction, noise and
-        sample-size bias" NeuroImage, vol. 55, no. 4, pp. 1548-1565, Apr. 2011.
+    .. [5] Vinck et al. "An improved index of phase-synchronization for
+           electro-physiological data in the presence of volume-conduction,
+           noise and sample-size bias" NeuroImage, vol. 55, no. 4, 
+           pp. 1548-1565, Apr. 2011.
 
     Parameters
     ----------

@@ -607,7 +607,8 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
 
     Notes
     -----
-    The frequency response is (approximately) given by
+    The frequency response is (approximately) given by::
+
                      ----------
                    /|         | \
                   / |         |  \
@@ -617,9 +618,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                     |         |
               Fs1  Fp1       Fp2   Fs2
 
-    Where
-    Fs1 = Fp1 - l_trans_bandwidth in Hz
-    Fs2 = Fp2 + h_trans_bandwidth in Hz
+    Where:
+
+        Fs1 = Fp1 - l_trans_bandwidth in Hz
+        Fs2 = Fp2 + h_trans_bandwidth in Hz
     """
     iir_params = _check_method(method, iir_params, [])
 
@@ -710,7 +712,8 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
 
     Notes
     -----
-    The frequency response is (approximately) given by
+    The frequency response is (approximately) given by::
+
       ----------                   ----------
                |\                 /|
                | \               / |
@@ -720,9 +723,10 @@ def band_stop_filter(x, Fs, Fp1, Fp2, filter_length='10s',
                |    |         |    |
               Fp1  Fs1       Fs2  Fp2
 
-    Where
-    Fs1 = Fp1 + l_trans_bandwidth in Hz
-    Fs2 = Fp2 - h_trans_bandwidth in Hz
+    Where:
+
+        Fs1 = Fp1 + l_trans_bandwidth in Hz
+        Fs2 = Fp2 - h_trans_bandwidth in Hz
 
     Note that multiple stop bands can be specified using arrays.
     """
@@ -818,7 +822,8 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 
     Notes
     -----
-    The frequency response is (approximately) given by
+    The frequency response is (approximately) given by::
+
       -------------------------
                               | \
                               |  \
@@ -903,17 +908,18 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
 
     Notes
     -----
-    The frequency response is (approximately) given by
-                   -----------------------
-                 /|
-                / |
-               /  |
-              /   |
-    ----------    |
-                  |
-           Fstop  Fp
+    The frequency response is (approximately) given by::
 
-    where Fstop = Fp - trans_bandwidth
+                       -----------------------
+                     /|
+                    / |
+                   /  |
+                  /   |
+        ----------    |
+                      |
+               Fstop  Fp
+
+    Where Fstop = Fp - trans_bandwidth.
     """
     iir_params = _check_method(method, iir_params, [])
     Fs = float(Fs)
@@ -1008,7 +1014,8 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
 
     Notes
     -----
-    The frequency response is (approximately) given by
+    The frequency response is (approximately) given by::
+
       ----------         -----------
                |\       /|
                | \     / |
@@ -1019,8 +1026,9 @@ def notch_filter(x, Fs, freqs, filter_length='10s', notch_widths=None,
               Fp1 freq  Fp2
 
     For each freq in freqs, where:
-    Fp1 = freq - trans_bandwidth / 2 in Hz
-    Fs2 = freq + trans_bandwidth / 2 in Hz
+
+        Fp1 = freq - trans_bandwidth / 2 in Hz
+        Fs2 = freq + trans_bandwidth / 2 in Hz
 
     References
     ----------

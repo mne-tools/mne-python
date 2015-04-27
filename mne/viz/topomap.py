@@ -345,9 +345,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         Indices set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
-        Default (None) equals:
-        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
-             markersize=4)
+        Default (None) equals::
+
+           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                linewidth=0, markersize=4)
+
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -959,9 +961,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Indicies set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
-        Default (None) equals:
-        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
-             markersize=4)
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                 linewidth=0, markersize=4)
+
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in

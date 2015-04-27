@@ -277,12 +277,11 @@ class PickDropChannelsMixin(object):
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, include=[], exclude='bads', selection=None,
                    copy=False):
-
         """Pick some channels by type and names
 
         Parameters
         ----------
-        meg : bool or string
+        meg : bool | str
             If True include all MEG channels. If False include None
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
             only magnetometers, all gradiometers, or a specific type of
@@ -314,13 +313,13 @@ class PickDropChannelsMixin(object):
         syst : bool
             System status channel information (on Triux systems only).
         seeg : bool
-            Stereotactic EEG channels
+            Stereotactic EEG channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.
         exclude : list of string | str
             List of channels to exclude. If 'bads' (default), exclude channels
-            in info['bads'].
+            in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
         copy : bool

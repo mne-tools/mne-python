@@ -483,12 +483,25 @@ def read_tag(fid, pos=None, shape=None, rlims=None):
 
 def find_tag(fid, node, findkind):
     """Find Tag in an open FIF file descriptor
+
+    Parameters
+    ----------
+    fid : file-like
+        Open file.
+    node : dict
+        Node to search.
+    findkind : int
+        Tag kind to find.
+
+    Returns
+    -------
+    tag : instance of Tag
+        The first tag found.
     """
     for p in range(node['nent']):
         if node['directory'][p].kind == findkind:
             return read_tag(fid, node['directory'][p].pos)
-    tag = None
-    return tag
+    return None
 
 
 def has_tag(node, kind):

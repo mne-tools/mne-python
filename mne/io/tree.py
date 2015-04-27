@@ -14,11 +14,19 @@ from ..utils import logger, verbose
 
 
 def dir_tree_find(tree, kind):
-    """[nodes] = dir_tree_find(tree,kind)
+    """Find nodes of the given kind from a directory tree structure
 
-       Find nodes of the given kind from a directory tree structure
+    Parameters
+    ----------
+    tree : dict
+        Directory tree.
+    kind : int
+        Kind to find.
 
-       Returns a list of matching nodes
+    Returns
+    -------
+    nodes : list
+        List of matching nodes.
     """
     nodes = []
 

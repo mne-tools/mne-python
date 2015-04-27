@@ -338,9 +338,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     bgcolor : color object
         Color of the background.
     color : dict | color object | None
-        Color for the data traces. If None, defaults to:
-        `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
-             ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
+        Color for the data traces. If None, defaults to::
+        
+            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+                 emg='k', ref_meg='steelblue', misc='k', stim='k',
+                 resp='k', chpi='k')
+
     bad_color : color object
         Color to make bad channels.
     event_color : color object | dict
@@ -348,9 +351,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         ``{event_number: color}`` pairings. Use ``event_number==-1`` for
         any event numbers in the events list that are not in the dictionary.
     scalings : dict | None
-        Scale factors for the traces. If None, defaults to:
-        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+        Scale factors for the traces. If None, defaults to::
+
+            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                 resp=1, chpi=1e-4)
+
     remove_dc : bool
         If True remove DC component when plotting data.
     order : 'type' | 'original' | array

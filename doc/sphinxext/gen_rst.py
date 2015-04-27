@@ -123,7 +123,7 @@ def _get_data(url):
 
 try:
     import joblib
-    mem = joblib.Memory(cachedir='_build')
+    mem = joblib.Memory(cachedir='build')
     get_data = mem.cache(_get_data)
 except ImportError:
     get_data = _get_data

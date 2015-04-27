@@ -281,13 +281,14 @@ class FilterEstimator(TransformerMixin):
 
     l_freq and h_freq are the frequencies below which and above which,
     respectively, to filter out of the data. Thus the uses are:
-        l_freq < h_freq: band-pass filter
-        l_freq > h_freq: band-stop filter
-        l_freq is not None, h_freq is None: low-pass filter
-        l_freq is None, h_freq is not None: high-pass filter
 
-    Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-          additional time points need to be temporarily stored in memory.
+        - l_freq < h_freq: band-pass filter
+        - l_freq > h_freq: band-stop filter
+        - l_freq is not None, h_freq is None: low-pass filter
+        - l_freq is None, h_freq is not None: high-pass filter
+
+    If n_jobs > 1, more memory is required as "len(picks) * n_times"
+    additional time points need to be temporarily stored in memory.
 
     Parameters
     ----------
