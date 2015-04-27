@@ -301,6 +301,8 @@ Visualization
    plot_topo_image_epochs
    plot_topomap
    compare_fiff
+   ClickableImage
+   add_background_image
 
 .. currentmodule:: mne.io
 
@@ -344,6 +346,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    read_ch_connectivity
    equalize_channels
    rename_channels
+   generate_2d_layout
 
 :py:mod:`mne.preprocessing`:
 

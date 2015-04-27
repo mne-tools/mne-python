@@ -8,6 +8,9 @@ Current
 
 Changelog
 ~~~~~~~~~
+   - Add support for capturing cursor positions when clicking on an image by `Chris Holdgraf`_
+
+   - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
    - Add support for mayavi figures in ``add_section`` method in Report by `Mainak Jas`_
 
