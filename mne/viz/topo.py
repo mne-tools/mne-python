@@ -276,6 +276,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The values at which to show a vertical line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
+    fig_background : None | numpy ndarray
+        A background image for the figure. This must work with a call to
+        plt.imshow. Defaults to None.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
@@ -380,7 +383,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      title=title, x_label='Time (s)', vline=vline)
 
     if fig_background is not None:
-        ax = add_background_image(fig, fig_background)
+        add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
