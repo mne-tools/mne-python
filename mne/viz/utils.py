@@ -441,7 +441,13 @@ class ClickableImage(object):
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
 
     def plot_clicks(self, **kwargs):
-        """Plot the x/y positions stored in self.coords."""
+        """Plot the x/y positions stored in self.coords.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Arguments are passed to imshow in displaying the bg image.
+        """
         from matplotlib.pyplot import subplots, show
         f, ax = subplots()
         ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
@@ -457,6 +463,11 @@ class ClickableImage(object):
 
     def to_layout(self, **kwargs):
         """Turn coordinates into an MNE Layout object.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Arguments are passed to generate_2d_layout
 
         Normalizes by the image you used to generate clicks
         """
