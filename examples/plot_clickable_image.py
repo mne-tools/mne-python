@@ -1,7 +1,7 @@
 """
-=========================================
+================================================================
 Demonstration of how to use ClickableImage / generate_2d_layout.
-=========================================
+================================================================
 
 In this example, we open an image file, then use ClickableImage to
 return 2D locations of mouse clicks (or load a file already created).
@@ -12,15 +12,13 @@ positions and turn them into a plottable layout.
 # Authors: Christopher Holdgraf <choldgraf@berkeley.edu>
 #
 # License: BSD (3-clause)
-import sys
-sys.path.insert(0, '../')
 from scipy.ndimage import imread
 import numpy as np
 from matplotlib import pyplot as plt
+from os import path as op
 import mne
 from mne.viz.utils import ClickableImage, add_background_image
-from mne.channels.layout import generate_2d_layout
-from os import path as op
+from mne.channels import generate_2d_layout
 
 print(__doc__)
 
@@ -30,7 +28,7 @@ im_path = op.join(op.dirname(__file__), '..', 'mne', 'data',
                   'image', 'mni_brain.gif')
 
 # We've already clicked and exported
-layout_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image', '')
+layout_path = op.join(op.dirname(__file__), '..', 'mne', 'data', 'image')
 layout_name = 'custom_layout.lout'
 
 ###############################################################################
