@@ -2316,6 +2316,10 @@ def concatenate_epochs(epochs_list):
     -------
     epochs : instance of Epochs
         The result of the concatenation (first Epochs instance passed in).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     out = epochs_list[0]
     data = [out.get_data()]

@@ -17,7 +17,7 @@ Changelog
 
    - Add support for source estimate for mixed source spaces by `Alan Leggitt`_
 
-   - Add ``SourceSpaces.export_volume`` method by `Alan Leggitt`_
+   - Add ``SourceSpaces.save_as_volume`` method by `Alan Leggitt`_
 
    - Automatically compute proper box sizes when generating layouts on the fly by `Marijn van Vliet`_
 
@@ -51,9 +51,9 @@ Changelog
 
    - Add fiff I/O for processing history and MaxFilter info by `Denis Engemann`_ and `Eric Larson`_
 
-   - Add automated regularization with support for multiple sensor types to mne.cov.compute_covariance by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add automated regularization with support for multiple sensor types to ``compute_covariance`` by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Add ``mne.viz.plot_evoked_white`` function and ``Evoked.plot_white`` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add ``Evoked.plot_white`` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
 
@@ -1007,6 +1007,8 @@ of commits):
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 
+.. _Jona Sassenhagen: https://github.com/jona-sassenhagen
+
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Chris Holdgraf: http://chrisholdgraf.com
@@ -1018,5 +1020,3 @@ of commits):
 .. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
-
-.. _Jona Sassenhagen: http://www.researchgate.net/profile/Jona_Sassenhagen

@@ -447,6 +447,10 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     residual : ndarray, shape (n_meeg_channels, n_times)
         The good M-EEG data channels with the fitted dipolar activity
         removed.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:

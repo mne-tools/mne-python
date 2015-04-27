@@ -1596,6 +1596,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -1665,6 +1669,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         save_stc_as_volume(fname, self, src, dest=dest,
                            mri_resolution=mri_resolution)
@@ -1689,6 +1697,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
@@ -1778,6 +1790,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,

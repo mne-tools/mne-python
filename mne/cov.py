@@ -256,6 +256,10 @@ def make_ad_hoc_cov(info, verbose=None):
     -------
     cov : instance of Covariance
         The ad hoc diagonal noise covariance for the M/EEG data channels.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     info = pick_info(info, pick_types(info, meg=True, eeg=True))
 
@@ -476,6 +480,8 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         'factor_analysis', respectively. They are not included to avoid
         redundancy. In most cases 'shrunk' and 'factor_analysis' represent
         more appropriate default choices.
+
+        .. versionadded:: 0.9.0
 
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if

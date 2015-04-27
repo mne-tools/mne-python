@@ -545,6 +545,10 @@ def plot_snr_estimate(evoked, inv, show=True):
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr

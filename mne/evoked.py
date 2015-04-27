@@ -581,7 +581,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Plot whitened evoked response
 
         Plots the whitened evoked response and the whitened GFP as described in
-        [1]. If one single covariance object is passed, the GFP panel (bottom)
+        [1]_. If one single covariance object is passed, the GFP panel (bottom)
         will depict different sensor types. If multiple covariance objects are
         passed as a list, the left column will display the whitened evoked
         responses for each channel based on the whitener from the noise
@@ -606,9 +606,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         References
         ----------
-        [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-            covariance estimation and spatial whitening of MEG and EEG signals,
-            vol. 108, 328-342, NeuroImage.
+        .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+               covariance estimation and spatial whitening of MEG and EEG
+               signals, vol. 108, 328-342, NeuroImage.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
@@ -734,6 +738,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -------
         evoked : instance of mne.Evoked
             The transformed evoked object containing only virtual channels.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
@@ -1011,6 +1019,10 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     -------
     grand_average : Evoked
         The grand average data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(e, Evoked) for e in all_evoked):
@@ -1076,6 +1088,10 @@ def combine_evoked(all_evoked, weights='nave'):
     -------
     evoked : Evoked
         The new evoked data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):

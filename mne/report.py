@@ -886,6 +886,10 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         htmls, captions, _ = self._validate_input(htmls, captions, section)
         for html, caption in zip(htmls, captions):
@@ -917,6 +921,10 @@ class Report(object):
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         caption = 'custom plot' if caption == '' else caption
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
@@ -928,7 +936,6 @@ class Report(object):
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
         self._sectionlabels.append(sectionvar)
         self.html.extend(html)
-        return
 
     ###########################################################################
     # HTML rendering

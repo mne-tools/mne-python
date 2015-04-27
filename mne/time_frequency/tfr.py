@@ -1010,6 +1010,10 @@ def write_tfrs(fname, tfr, overwrite=False):
         based on the order in which the TFR objects are passed
     overwrite : bool
         If True, overwrite file (if it exists). Defaults to False.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     out = []
     if not isinstance(tfr, (list, tuple)):
@@ -1037,6 +1041,10 @@ def read_tfrs(fname, condition=None):
     tfrs : list of instances of AverageTFR | instance of AverageTFR
         Depending on `condition` either the TFR object or a list of multiple
         TFR objects.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     check_fname(fname, 'tfr', ('-tfr.h5',))
@@ -1218,6 +1226,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     itc : AverageTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     data = _get_data(inst, return_itc)

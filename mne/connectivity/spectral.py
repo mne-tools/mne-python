@@ -615,7 +615,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
 
     .. [5] Vinck et al. "An improved index of phase-synchronization for
            electro-physiological data in the presence of volume-conduction,
-           noise and sample-size bias" NeuroImage, vol. 55, no. 4, 
+           noise and sample-size bias" NeuroImage, vol. 55, no. 4,
            pp. 1548-1565, Apr. 2011.
 
     Parameters

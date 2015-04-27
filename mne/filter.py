@@ -1431,6 +1431,9 @@ class FilterMixin(object):
 
             https://gist.github.com/Eric89GXL/bbac101d50176611136b
 
+
+        .. versionadded:: 0.9.0
+
         Examples
         --------
         >>> import mne

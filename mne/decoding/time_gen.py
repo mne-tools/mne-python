@@ -133,9 +133,11 @@ class GeneralizationAcrossTime(object):
     -----
     The function implements the method used in:
 
-    Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
-    unexpected sounds", PLOS ONE, 2013
+        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+        detection of unexpected sounds", PLOS ONE, 2013
+
+    .. versionadded:: 0.9.0
     """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None,
                  predict_mode='cross-validation', n_jobs=1):

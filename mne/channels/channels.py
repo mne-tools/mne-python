@@ -147,6 +147,10 @@ class SetChannelsMixin(object):
         picks : array-like of int | None
             Indices of channels to include. If None (default), all meg and eeg
             channels that are available are returned (bad channels excluded).
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
@@ -167,6 +171,10 @@ class SetChannelsMixin(object):
             The channel positions to be set.
         names : list of str
             The names of the channels to be set.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         if len(pos) != len(names):
             raise ValueError('Number of channel positions not equal to '
@@ -196,6 +204,10 @@ class SetChannelsMixin(object):
         mapping : dict
             a dictionary mapping a channel to a sensor type (str)
             {'EEG061': 'eog'}.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                       'eeg': FIFF.FIFFV_EEG_CH,
@@ -265,6 +277,10 @@ class SetChannelsMixin(object):
         mapping : dict
             a dictionary mapping the old channel to a new channel name
             e.g. {'EEG061' : 'EEG161'}.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         rename_channels(self.info, mapping)
 
@@ -325,6 +341,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
         idx = pick_types(
@@ -345,6 +365,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
 
@@ -363,6 +387,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
 
@@ -416,6 +444,10 @@ class InterpolationMixin(object):
         """Interpolate bad channels
 
         Operates in place.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .interpolation import _interpolate_bads_eeg
         _interpolate_bads_eeg(self)

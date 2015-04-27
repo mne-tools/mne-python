@@ -154,6 +154,10 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     -------
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
 

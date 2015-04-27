@@ -833,6 +833,10 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     from mayavi import mlab
     from matplotlib.colors import ColorConverter
