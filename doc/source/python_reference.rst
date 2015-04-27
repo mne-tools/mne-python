@@ -144,6 +144,7 @@ Functions:
    read_cov
    read_dipole
    read_epochs
+   read_epochs_kit
    read_events
    read_evokeds
    read_forward_solution
@@ -657,7 +658,7 @@ Source Space Data
    morph_data
    morph_data_precomputed
    read_labels_from_annot
-   read_dip
+   read_dipole
    read_label
    read_source_estimate
    save_stc_as_volume
@@ -706,6 +707,10 @@ Functions that operate on mne-python objects:
    write_tfrs
 
 Functions that operate on ``np.ndarray`` objects:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
 
    cwt_morlet
    dpss_windows

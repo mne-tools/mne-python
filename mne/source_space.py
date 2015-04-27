@@ -2263,6 +2263,10 @@ def get_volume_labels_from_aseg(mgz_fname):
     -------
     label_names : list of str
         The names of segmented volumes included in this mgz file.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import nibabel as nib
 

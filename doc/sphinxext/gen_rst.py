@@ -123,7 +123,7 @@ def _get_data(url):
 
 try:
     import joblib
-    mem = joblib.Memory(cachedir='_build')
+    mem = joblib.Memory(cachedir='build')
     get_data = mem.cache(_get_data)
 except ImportError:
     get_data = _get_data
@@ -786,7 +786,9 @@ def get_short_module_name(module_name, obj_name):
         short_name = '.'.join(parts[:i])
         try:
             exec('from %s import %s' % (short_name, obj_name))
-        except ImportError:
+        # we actually want to catch SystemExit as well b/c mayavi can
+        # throw it via wx, so don't except Exception here :(
+        except:
             # get the last working module name
             short_name = '.'.join(parts[:(i + 1)])
             break

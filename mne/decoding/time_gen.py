@@ -78,32 +78,36 @@ class GeneralizationAcrossTime(object):
         If None the classifier will be a standard pipeline including
         StandardScaler and a linear SVM with default parameters.
     train_times : dict | None
-        A dictionary to configure the training times.
-        'slices' : np.ndarray, shape (n_clfs,)
-            Array of time slices (in indices) used for each classifier.
-            If not given, computed from 'start', 'stop', 'length', 'step'.
-        'start' : float
-            Time at which to start decoding (in seconds). By default,
-            min(epochs.times).
-        'stop' : float
-            Maximal time at which to stop decoding (in seconds). By default,
-            max(times).
-        'step' : float
-            Duration separating the start of subsequent classifiers (in
-            seconds). By default, equals one time sample.
-        'length' : float
-            Duration of each classifier (in seconds). By default, equals one
-            time sample.
+        A dictionary to configure the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``start`` : float
+                Time at which to start decoding (in seconds). By default,
+                min(epochs.times).
+            ``stop`` : float
+                Maximal time at which to stop decoding (in seconds). By
+                default, max(times).
+            ``step`` : float
+                Duration separating the start of subsequent classifiers (in
+                seconds). By default, equals one time sample.
+            ``length`` : float
+                Duration of each classifier (in seconds). By default, equals
+                one time sample.
+
         If None, empty dict. Defaults to None.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
-            'cross-validation' : estimates a single prediction per sample based
-                on the unique independent classifier fitted in the cross-
-                validation.
-            'mean-prediction' : estimates k predictions per sample, based on
+
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
+
         Default: 'cross-validation'
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
@@ -114,8 +118,7 @@ class GeneralizationAcrossTime(object):
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs,
-                           n_prediction_dims)
+    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
     scores_ : list of lists of float
         The scores (mean accuracy of self.predict(X) wrt. y.).
@@ -130,10 +133,12 @@ class GeneralizationAcrossTime(object):
     -----
     The function implements the method used in:
 
-    Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
-    unexpected sounds", PLOS ONE, 2013
-    """
+        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+        detection of unexpected sounds", PLOS ONE, 2013
+
+    .. versionadded:: 0.9.0
+    """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None,
                  predict_mode='cross-validation', n_jobs=1):
 
@@ -361,7 +366,7 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs | None
             The epochs. Can be similar to fitted epochs or not. See independent
             parameter.
-            If None, it relies on the y_pred_ generated from predit()
+            If None, it relies on the ``y_pred_`` generated from predit()
         y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
@@ -370,7 +375,7 @@ class GeneralizationAcrossTime(object):
         test_times : str | dict | None
             if test_times = 'diagonal', test_times = train_times: decode at
             each time point but does not generalize. If dict, the following
-            structure is expected.
+            structure is expected:
 
             'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.

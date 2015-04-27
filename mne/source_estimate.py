@@ -581,7 +581,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         Returns
         -------
         stc : instance of SourceEstimate
-            The modified stc (note: method operates inplace).
+            The modified stc (method operates inplace).
         """
         data = self.data
         tmax = self.tmin + self.tstep * data.shape[1]
@@ -672,7 +672,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         return self
 
     def sqrt(self):
-        """Return copy of SourceEstimate with sqrt(data)."""
+        """Take the square root
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A copy of the SourceEstimate with sqrt(data).
+        """
         return self ** (0.5)
 
     def copy(self):
@@ -734,7 +740,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         ----------
         func : callable
             The transform to be applied, including parameters (see, e.g.,
-            mne.fixes.partial). The first parameter of the function is the
+            `mne.fixes.partial`). The first parameter of the function is the
             input data. The first return value is the transformed data,
             remaining outputs are ignored. The first dimension of the
             transformed data has to be the same as the first dimension of the
@@ -754,12 +760,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         data_t : ndarray
             The transformed data.
 
-        .. note::
-            Applying transforms can be significantly faster if the
-            SourceEstimate object was created using "(kernel, sens_data)", for
-            the "data" parameter as the transform is applied in sensor space.
-            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-            this automatically (if possible).
+        Notes
+        -----
+        Applying transforms can be significantly faster if the
+        SourceEstimate object was created using "(kernel, sens_data)", for
+        the "data" parameter as the transform is applied in sensor space.
+        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+        this automatically (if possible).
         """
 
         if idx is None:
@@ -1400,6 +1407,7 @@ class SourceEstimate(_BaseSourceEstimate):
         clim : str | dict
             Colorbar properties specification. If 'auto', set clim
             automatically based on data percentiles. If dict, should contain:
+
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
                 lims : list | np.ndarray | tuple of float, 3 elements
@@ -1588,6 +1596,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -1657,6 +1669,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         save_stc_as_volume(fname, self, src, dest=dest,
                            mri_resolution=mri_resolution)
@@ -1681,6 +1697,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
@@ -1770,6 +1790,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -1918,6 +1942,7 @@ def mesh_dist(tris, vert):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
+
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix

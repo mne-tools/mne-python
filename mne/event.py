@@ -516,20 +516,20 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
     Consider data with a stim channel that looks like: [0, 32, 32, 33, 32, 0]
 
     By default, find_events returns all samples at which the value of the
-    stim channel increases:
+    stim channel increases::
 
         >>> print(find_events(raw)) # doctest: +SKIP
         [[ 1  0 32]
          [ 3 32 33]]
 
     If consecutive is False, find_events only returns the samples at which
-    the stim channel changes from zero to a non-zero value:
+    the stim channel changes from zero to a non-zero value::
 
         >>> print(find_events(raw, consecutive=False)) # doctest: +SKIP
         [[ 1  0 32]]
 
     If consecutive is True, find_events returns samples at which the
-    event changes, regardless of whether it first returns to zero:
+    event changes, regardless of whether it first returns to zero::
 
         >>> print(find_events(raw, consecutive=True)) # doctest: +SKIP
         [[ 1  0 32]
@@ -537,7 +537,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
          [ 4 33 32]]
 
     If output is 'offset', find_events returns the last sample of each event
-    instead of the first one:
+    instead of the first one::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   output='offset'))
@@ -546,7 +546,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
          [ 4  0 32]]
 
     If output is 'step', find_events returns the samples at which an event
-    starts or ends:
+    starts or ends::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   output='step'))
@@ -557,7 +557,7 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     To ignore spurious events, it is also possible to specify a minimum
     event duration. Assuming our events channel has a sample rate of
-    1000 Hz:
+    1000 Hz::
 
         >>> print(find_events(raw, consecutive=True, # doctest: +SKIP
         ...                   min_duration=0.002))
@@ -565,9 +565,9 @@ def find_events(raw, stim_channel=None, verbose=None, output='onset',
 
     For the digital mask, it will take the binary representation of the
     digital mask, e.g. 5 -> '00000101', and will block the values
-    where mask is one.
+    where mask is one, e.g.::
 
-    e.g.      7 '0000111' <- trigger value
+              7 '0000111' <- trigger value
              37 '0100101' <- mask
          ----------------
               2 '0000010'

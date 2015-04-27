@@ -480,12 +480,13 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     clim : str | dict
         Colorbar properties specification. If 'auto', set clim automatically
         based on data percentiles. If dict, should contain:
-            kind : str
+
+            ``kind`` : str
                 Flag to specify type of limits. 'value' or 'percent'.
-            lims : list | np.ndarray | tuple of float, 3 elements
+            ``lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is not 'mne_analyze'.
                 Left, middle, and right bound for colormap.
-            pos_lims : list | np.ndarray | tuple of float, 3 elements
+            ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
                 Note: Only use this if 'colormap' is 'mne_analyze'.
                 Left, middle, and right bound for colormap. Positive values
                 will be mirrored directly across zero during colormap
@@ -668,7 +669,7 @@ def plot_sparse_source_estimates(src, stcs, colors=None, linewidth=2,
         List of floating point scale factors for the markers.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    kwargs : kwargs
+    **kwargs : kwargs
         Keyword arguments to pass to mlab.triangular_mesh.
     """
     known_modes = ['cone', 'sphere']
@@ -832,6 +833,10 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     from mayavi import mlab
     from matplotlib.colors import ColorConverter

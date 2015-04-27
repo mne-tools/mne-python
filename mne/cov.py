@@ -256,6 +256,10 @@ def make_ad_hoc_cov(info, verbose=None):
     -------
     cov : instance of Covariance
         The ad hoc diagonal noise covariance for the M/EEG data channels.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     info = pick_info(info, pick_types(info, meg=True, eeg=True))
 
@@ -468,7 +472,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         (see scikit-learn documentation on covariance estimation), 'pca',
         probabilistic PCA with low rank
         (see [3]), and, 'factor_analysis', Factor Analysis with low rank
-        (see [4]). If 'auto', expands to:
+        (see [4]). If 'auto', expands to::
 
              ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis']
 
@@ -477,12 +481,13 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         redundancy. In most cases 'shrunk' and 'factor_analysis' represent
         more appropriate default choices.
 
+        .. versionadded:: 0.9.0
+
     method_params : dict
         Additional parameters to the estimation procedure. Only considered if
         method is not None. Keys must correspond to the value(s) of `method`.
-        If None (default), expands to:
+        If None (default), expands to::
 
-        {
             'empirical': {'store_precision': False, 'assume_centered': True},
             'diagonal_fixed': {'grad': 0.01, 'mag': 0.01, 'eeg': 0.0,
                                'store_precision': False,
@@ -492,7 +497,6 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
                        'store_precision': False, 'assume_centered': True},
             'pca': {'iter_n_components': None},
             'factor_analysis': {'iter_n_components': None}
-        }
 
     cv : int | sklearn cross_validation object
         The cross validation method. Defaults to 3, which will

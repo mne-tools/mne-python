@@ -472,7 +472,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
-            Colormap. Defaults to 'RdBu_r'
+            Colormap. Defaults to 'RdBu_r'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
@@ -494,7 +494,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         cbar_fmt : str
             String format for colorbar values.
         time_format : str
-            String format for topomap values. Defaults to "%01d ms"
+            String format for topomap values. Defaults to ``"%01d ms"``.
         proj : bool | 'interactive'
             If true SSP projections are applied before display. If
             'interactive', a check box for reversible selection of SSP
@@ -516,8 +516,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals:
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+            ``dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+            linewidth=0, markersize=4)``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', a head scheme will be drawn.
             If dict, each key refers to a tuple of x and y positions.
@@ -581,7 +581,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Plot whitened evoked response
 
         Plots the whitened evoked response and the whitened GFP as described in
-        [1]. If one single covariance object is passed, the GFP panel (bottom)
+        [1]_. If one single covariance object is passed, the GFP panel (bottom)
         will depict different sensor types. If multiple covariance objects are
         passed as a list, the left column will display the whitened evoked
         responses for each channel based on the whitener from the noise
@@ -606,9 +606,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         References
         ----------
-        [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-            covariance estimation and spatial whitening of MEG and EEG signals,
-            vol. 108, 328-342, NeuroImage.
+        .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+               covariance estimation and spatial whitening of MEG and EEG
+               signals, vol. 108, 328-342, NeuroImage.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
@@ -734,6 +738,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -------
         evoked : instance of mne.Evoked
             The transformed evoked object containing only virtual channels.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
@@ -1011,6 +1019,10 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     -------
     grand_average : Evoked
         The grand average data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(e, Evoked) for e in all_evoked):
@@ -1076,6 +1088,10 @@ def combine_evoked(all_evoked, weights='nave'):
     -------
     evoked : Evoked
         The new evoked data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):

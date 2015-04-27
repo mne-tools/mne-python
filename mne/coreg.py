@@ -865,7 +865,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     pattern : str | None
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "lh.BA3a.label" will scale
-        "fsaverage/label/lh.BA3a.label"; "aparc/*.label" will find all labels
+        "fsaverage/label/lh.BA3a.label"; "aparc/\*.label" will find all labels
         in the "fsaverage/label/aparc" directory). With None, scale all labels.
     overwrite : bool
         Overwrite any label file that already exists for subject_to (otherwise

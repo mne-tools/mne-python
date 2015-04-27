@@ -420,19 +420,20 @@ class deprecated(object):
 
     The optional extra argument will be appended to the deprecation message
     and the docstring. Note: to use this with the default value for extra, put
-    in an empty of parentheses:
+    in an empty of parentheses::
 
-    >>> from mne.utils import deprecated
-    >>> deprecated() # doctest: +ELLIPSIS
-    <mne.utils.deprecated object at ...>
+        >>> from mne.utils import deprecated
+        >>> deprecated() # doctest: +ELLIPSIS
+        <mne.utils.deprecated object at ...>
 
-    >>> @deprecated()
-    ... def some_function(): pass
+        >>> @deprecated()
+        ... def some_function(): pass
+
 
     Parameters
     ----------
     extra: string
-      to be added to the deprecation messages
+        To be added to the deprecation messages.
     """
     # Adapted from http://wiki.python.org/moin/PythonDecoratorLibrary,
     # but with many changes.
@@ -548,6 +549,18 @@ def slow_test(f):
 
 
 def has_nibabel(vox2ras_tkr=False):
+    """Determine if nibabel is installed
+
+    Parameters
+    ----------
+    vox2ras_tkr : bool
+        If True, require nibabel has vox2ras_tkr support.
+
+    Returns
+    -------
+    has : bool
+        True if the user has nibabel.
+    """
     try:
         import nibabel
         out = True
@@ -841,7 +854,9 @@ def set_log_file(fname=None, output_format='%(message)s', overwrite=None):
         To suppress log outputs, use set_log_level('WARN').
     output_format : str
         Format of the output messages. See the following for examples:
+
             https://docs.python.org/dev/howto/logging.html
+
         e.g., "%(asctime)s - %(levelname)s - %(message)s".
     overwrite : bool, or None
         Overwrite the log file (if it exists). Otherwise, statements

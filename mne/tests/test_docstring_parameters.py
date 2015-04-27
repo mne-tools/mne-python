@@ -28,6 +28,8 @@ public_modules = [
     'mne.realtime',
     'mne.report',
     'mne.simulation',
+    'mne.source_estimate',
+    'mne.source_space',
     'mne.stats',
     'mne.time_frequency',
     'mne.viz',
@@ -87,6 +89,7 @@ _deprecation_ignores = [
     'mne.time_frequency.tfr.cwt_morlet',  # Fs
     'mne.time_frequency.tfr.AverageTFR.plot_topomap',  # format
     'mne.stats.cluster_level.summarize_clusters_stc',  # vertno
+    'mne.io.write',  # always ignore these
 ]
 
 
@@ -156,7 +159,7 @@ def test_docstring_parameters():
                 continue
             incorrect += check_parameters_match(func)
     msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
-    if len(incorrect) > 1:
+    if len(incorrect) > 0:
         raise AssertionError(msg)
 
 

@@ -620,6 +620,10 @@ def read_raw_fif(fnames, allow_maxshield=False, preload=False,
     -------
     raw : Instance of RawFIF
         A Raw object containing FIF data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     return RawFIF(fnames=fnames, allow_maxshield=allow_maxshield,
                   preload=preload, proj=proj, compensation=compensation,

@@ -76,7 +76,7 @@ class ToDataFrameMixin(object):
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
         start : int | None
@@ -494,16 +494,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         l_freq and h_freq are the frequencies below which and above which,
         respectively, to filter out of the data. Thus the uses are:
+
             l_freq < h_freq: band-pass filter
             l_freq > h_freq: band-stop filter
             l_freq is not None, h_freq is None: high-pass filter
             l_freq is None, h_freq is not None: low-pass filter
 
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              additional time points need to be temporarily stored in memory.
+        If n_jobs > 1, more memory is required as "len(picks) * n_times"
+        additional time points need to be temporarily stored in memory.
 
-        Note: self.info['lowpass'] and self.info['highpass'] are only updated
-              with picks=None.
+        self.info['lowpass'] and self.info['highpass'] are only updated
+        with picks=None.
 
         Parameters
         ----------
@@ -883,8 +884,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fmt : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
-            16-bit integers, respectively. It is STRONGLY recommended to use
-            'single', as this is backward-compatible, and is standard for
+            16-bit integers, respectively. It is **strongly** recommended to
+            use 'single', as this is backward-compatible, and is standard for
             maintaining precision. Note that using 'short' or 'int' may result
             in loss of precision, complex data cannot be saved as 'short',
             and neither complex data types nor real data stored as 'double'
@@ -905,9 +906,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Notes
         -----
-        If Raw is a concatenation of several raw files, *be warned* that only
-        the measurement information from the first raw file is stored. This
-        likely means that certain operations with external tools may not
+        If Raw is a concatenation of several raw files, **be warned** that
+        only the measurement information from the first raw file is stored.
+        This likely means that certain operations with external tools may not
         work properly on a saved concatenated file (e.g., probably some
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
@@ -1019,18 +1020,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
-            Color for the data traces. If None, defaults to:
-            `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
-                 ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
+            Color for the data traces. If None, defaults to::
+
+                dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+                     emg='k', ref_meg='steelblue', misc='k', stim='k',
+                     resp='k', chpi='k')
+
         bad_color : color object
             Color to make bad channels.
         event_color : color object
             Color to use for events.
         scalings : dict | None
-            Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6,
-                  eog=150e-6, ecg=5e-4, emg=1e-3,
-                  ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+            Scale factors for the traces. If None, defaults to::
+
+                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                     resp=1, chpi=1e-4)
+
         remove_dc : bool
             If True remove DC component when plotting data.
         order : 'type' | 'original' | array
@@ -1436,7 +1442,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.

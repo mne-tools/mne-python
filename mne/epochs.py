@@ -380,8 +380,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
-            The averaged epochs
+        evoked : instance of Evoked
+            The averaged epochs.
         """
 
         return self._compute_mean_or_stderr(picks, 'ave')
@@ -397,8 +397,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
-            The standard error over epochs
+        evoked : instance of Evoked
+            The standard error over epochs.
         """
         return self._compute_mean_or_stderr(picks, 'stderr')
 
@@ -477,7 +477,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True, block=False):
-        """ Visualize single trials using Trellis plot.
+        """Visualize single trials using Trellis plot.
 
         Parameters
         ----------
@@ -488,13 +488,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Channels to be included. If None only good data channels are used.
             Defaults to None
         scalings : dict | None
-            Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1,
-                  chpi=1e-4)`
+            Scale factors for the traces. If None, defaults to
+            ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+            emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
         title_str : None | str
             The string formatting to use for axes titles. If None, no titles
-            will be shown. Defaults expand to ``#001, #002, ...``
+            will be shown. Defaults expand to ``#001, #002, ...``.
         show : bool
             Whether to show the figure or not.
         block : bool
@@ -1495,7 +1494,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
 
@@ -2317,6 +2316,10 @@ def concatenate_epochs(epochs_list):
     -------
     epochs : instance of Epochs
         The result of the concatenation (first Epochs instance passed in).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     out = epochs_list[0]
     data = [out.get_data()]

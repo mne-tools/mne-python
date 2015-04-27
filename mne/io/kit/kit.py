@@ -872,6 +872,15 @@ def read_epochs_kit(input_fname, events, event_id=None,
         10`000 points are in the head shape, they are automatically decimated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The epochs.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     epochs = EpochsKIT(input_fname=input_fname, events=events,
                        event_id=event_id, mrk=mrk, elp=elp, hsp=hsp,

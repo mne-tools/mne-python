@@ -16,9 +16,11 @@ def parse_config(fname):
     -------
     conditions : list of dict
         Each condition is indexed by the event type.
-        A condition contains as keys:
+        A condition contains as keys::
+
             tmin, tmax, name, grad_reject, mag_reject,
             eeg_reject, eog_reject
+
     """
     reject_params = read_reject_parameters(fname)
 

@@ -1512,6 +1512,8 @@ def estimate_snr(evoked, inv, verbose=None):
     between unregularized solution and regularized solutions, choosing the
     biggest regularization that achieves a :math:`\\chi^2`-test significance
     of 0.001.
+
+    .. versionadded:: 0.9.0
     """  # noqa
     from scipy.stats import chi2
     _check_reference(evoked)
