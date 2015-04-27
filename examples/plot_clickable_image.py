@@ -63,6 +63,6 @@ info = mne.create_info(nchans, sr, ch_types='eeg')
 epochs = mne.EpochsArray(data, info, events)
 
 # Using the native plot_topo function with the image plotted in the background
-f = mne.viz.plot_topo(epochs.average(), layout=lt)
+f = mne.viz.plot_topo(epochs.average(), layout=lt, show=False)
 ax = add_background_image(f, im)
 plt.show()
