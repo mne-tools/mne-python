@@ -64,5 +64,5 @@ epochs = mne.EpochsArray(data, info, events)
 
 # Using the native plot_topo function with the image plotted in the background
 f = mne.viz.plot_topo(epochs.average(), layout=lt)
-add_background_image(f, im)
+ax = add_background_image(f, im)
 plt.show()
