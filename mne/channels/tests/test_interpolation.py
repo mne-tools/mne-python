@@ -1,12 +1,10 @@
 import os.path as op
 import numpy as np
-from numpy.testing import (assert_allclose,
-                           assert_array_equal)
-from nose.tools import assert_raises, assert_equal
+from numpy.testing import (assert_allclose, assert_array_equal)
+from nose.tools import assert_raises, assert_equal, assert_true
 
-from mne import io, pick_types, read_events, Epochs
+from mne import io, pick_types, pick_channels, read_events, Epochs
 from mne.channels.interpolation import _make_interpolation_matrix
-
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
@@ -18,54 +16,84 @@ event_id_2 = 2
 
 raw = io.Raw(raw_fname, add_eeg_ref=False)
 events = read_events(event_name)
-picks = pick_types(raw.info, meg=False, eeg=True, exclude=[])
+picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
+picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])
+picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
 
-reject = dict(eeg=80e-6)
+epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
+                    preload=True, reject=dict(eeg=80e-6))
+epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+                    preload=True, reject=dict(grad=1000e-12, mag=4e-12))
 epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                preload=True, reject=reject)
-
-# make sure it works if MEG channels are present:
-picks2 = np.concatenate([[0, 1, 2], picks])
-n_meg = 3
-epochs2 = Epochs(raw, events[epochs.selection], event_id, tmin, tmax,
-                 picks=picks2, preload=True)
+                preload=True, reject=dict(eeg=80e-6, grad=1000e-12, mag=4e-12))
 
 
 def test_interplation():
     """Test interpolation"""
-    epochs.info['bads'] = []
-    goods_idx = np.ones(len(epochs.ch_names), dtype=bool)
-    goods_idx[epochs.ch_names.index('EEG 012')] = False
+
+    # create good and bad channels for EEG
+    epochs_eeg.info['bads'] = []
+    goods_idx = np.ones(len(epochs_eeg.ch_names), dtype=bool)
+    goods_idx[epochs_eeg.ch_names.index('EEG 012')] = False
     bads_idx = ~goods_idx
 
-    evoked = epochs.average()
+    evoked = epochs_eeg.average()
     ave_before = evoked.data[bads_idx]
 
-    pos = epochs._get_channel_positions()
+    # interpolate bad channels for EEG
+    pos = epochs_eeg.get_channel_positions()
     pos_good = pos[goods_idx]
     pos_bad = pos[bads_idx]
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
-    assert_equal(interpolation.shape, (1, len(epochs.ch_names) - 1))
+    assert_equal(interpolation.shape, (1, len(epochs_eeg.ch_names) - 1))
 
     ave_after = np.dot(interpolation, evoked.data[goods_idx])
 
     assert_allclose(ave_before, ave_after, atol=2e-6)
 
-    epochs.info['bads'] = ['EEG 012']
-    epochs.preload = False
-    assert_raises(ValueError,  epochs.interpolate_bads)
-    epochs.preload = True
+    # check that interpolation fails when preload is False
+    epochs_eeg.info['bads'] = ['EEG 012']
+    epochs_eeg.preload = False
+    assert_raises(ValueError,  epochs_eeg.interpolate_bads)
+    epochs_eeg.preload = True
 
-    raw = io.RawArray(data=epochs._data[0], info=epochs.info)
-    raw_before = raw._data[bads_idx]
-    raw_after = raw.interpolate_bads()._data[bads_idx]
+    # check that interpolation changes the data in raw
+    raw_eeg = io.RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
+    raw_before = raw_eeg._data[bads_idx]
+    raw_after = raw_eeg.interpolate_bads()._data[bads_idx]
     assert_equal(np.all(raw_before == raw_after), False)
 
-    evoked = epochs.average()
+    evoked = epochs_eeg.average()
     assert_array_equal(ave_after, evoked.interpolate_bads().data[bads_idx])
 
+    # check that interpolation fails when preload is False
     for inst in [raw, epochs]:
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
         assert_raises(ValueError, inst.interpolate_bads)
+
+    # check that interpolation works for MEG
+    epochs_meg.info['bads'] = ['MEG 0141']
+    evoked = epochs_meg.average()
+    pick = pick_channels(epochs_meg.info['ch_names'], epochs_meg.info['bads'])
+    thresh = 0.85
+
+    # MEG -- raw
+    raw_meg = io.RawArray(data=epochs_meg._data[0], info=epochs_meg.info)
+    raw_meg.info['bads'] = ['MEG 0141']
+    data1 = raw_meg[pick, :][0][0]
+    raw_interp = raw_meg.interpolate_bads()
+    data2 = raw_interp[pick, :][0][0]
+    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+    assert_true(len(raw_interp.info['bads']) == 0)
+
+    # MEG -- epochs
+    data1 = epochs_meg.get_data()[:, pick, :].ravel()
+    data2 = epochs_meg.interpolate_bads().get_data()[:, pick, :].ravel()
+    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)
+
+    # MEG -- evoked
+    data1 = evoked.data[pick]
+    data2 = evoked.interpolate_bads().data[pick]
+    assert_true(np.corrcoef(data1, data2)[0, 1] > thresh)

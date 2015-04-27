@@ -457,13 +457,15 @@ class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
 
-    def interpolate_bads(self):
+    def interpolate_bads(self, reset_bads=True):
         """Interpolate bad MEG and EEG channels.
 
         Parameters
         ----------
         inst : mne.io.Raw, mne.Epochs or mne.Evoked
             The data to interpolate.
+        reset_bads : bool
+            If True, remove the bads from info.
 
         Returns
         -------
@@ -472,9 +474,6 @@ class InterpolationMixin(object):
 
         Notes
         -----
-        The bad channels will still be marked as bad. Only the data in
-        those channels will be modified.
-
         .. versionadded:: 0.9.0
         """
         from .interpolation import _interpolate_bads_eeg
@@ -483,7 +482,12 @@ class InterpolationMixin(object):
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
 
-        return _interpolate_bads_meg(_interpolate_bads_eeg(self.copy()))
+        inst = _interpolate_bads_meg(_interpolate_bads_eeg(self.copy()))
+
+        if reset_bads is True:
+            inst.info['bads'] = []
+
+        return inst
 
 
 def rename_channels(info, mapping):

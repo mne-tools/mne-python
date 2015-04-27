@@ -52,7 +52,7 @@ evoked_before = epochs.average()
 evoked_before.plot(exclude=[])
 
 # compute interpolation (also works with Raw and Epochs objects)
-evoked_after = evoked_before.interpolate_bads()
+evoked_after = evoked_before.interpolate_bads(reset_bads=False)
 
 # plot interpolated (previous bads)
 evoked_after.plot(exclude=[])
