@@ -231,17 +231,13 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq):
                 html = report._render_inverse(fname)
                 report_fname = fname
                 report_sectionlabel = 'inverse'
-            elif fname.endswith(('-ave.fif', '-ave.fif.gz')) and \
-                    cov is not None:
-                html = report._render_whitened_evoked(fname, cov, baseline)
-                report_fname = fname + ' (whitened)'
-                report_sectionlabel = 'evoked'
-                _update_html(html, report_fname, report_sectionlabel)
-
-                html = report._render_evoked(fname)
-                report_fname = fname
-                report_sectionlabel = 'evoked'
             elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
+                if cov is not None:
+                    html = report._render_whitened_evoked(fname, cov, baseline)
+                    report_fname = fname + ' (whitened)'
+                    report_sectionlabel = 'evoked'
+                    _update_html(html, report_fname, report_sectionlabel)
+
                 html = report._render_evoked(fname)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
@@ -1071,10 +1067,9 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             info, sfreq = None, None
 
+        cov = None
         if self.cov_fname is not None:
             cov = read_cov(self.cov_fname)
-        else:
-            cov = None
         baseline = self.baseline
 
         # render plots in parallel; check that n_jobs <= # of files
@@ -1197,29 +1192,17 @@ class Report(object):
                     div_klass, tooltip, text = _get_toc_property(fname)
 
                     # loop through conditions for evoked
-                    if fname.endswith(('-ave.fif', '-ave.fif.gz')):
+                    if fname.endswith(('-ave.fif', '-ave.fif.gz',
+                                      '(whitened)')):
+                        text = os.path.basename(fname)
+                        if fname.endswith('(whitened)'):
+                            fname = fname[:-11]
                         # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
                         html_toc += toc_list.substitute(
                             div_klass=div_klass, id=None, tooltip=fname,
-                            color='#428bca', text=os.path.basename(fname))
-
-                        html_toc += u'<li class="evoked"><ul>'
-                        for ev in evokeds:
-                            html_toc += toc_list.substitute(
-                                div_klass=div_klass, id=global_id,
-                                tooltip=fname, color=color, text=ev.comment)
-                            global_id += 1
-                        html_toc += u'</ul></li>'
-
-                    if fname.endswith('(whitened)'):
-                        # XXX: remove redundant read_evokeds
-                        evokeds = read_evokeds(fname[:-11], verbose=False)
-
-                        html_toc += toc_list.substitute(
-                            div_klass=div_klass, id=None, tooltip=fname,
-                            color='#428bca', text=os.path.basename(fname))
+                            color='#428bca', text=text)
 
                         html_toc += u'<li class="evoked"><ul>'
                         for ev in evokeds:
