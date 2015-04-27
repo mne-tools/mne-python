@@ -419,6 +419,7 @@ class ClickableImage(object):
         self.im = self.ax.imshow(imdata, aspect='auto',
                                  extent=(0, self.xmax, 0, self.ymax),
                                  picker=True, **kwargs)
+        self.ax.axis('off')
         self.fig.canvas.mpl_connect('pick_event', self.onclick)
         show()
 
@@ -465,3 +466,29 @@ def _fake_click(fig, ax, point, xform='ax'):
         fig.canvas.button_press_event(x, y, 1, False, None)
     except:  # for old MPL
         fig.canvas.button_press_event(x, y, 1, False)
+
+
+def add_background_image(fig, im):
+    """Add a background image to a plot.
+
+    Adds the image specified in `im` to the
+    figure `fig`. This is generally meant to
+    be done with topo plots, though it could work
+    for any plot.
+
+    Note - this sets the aspect ratio of the first
+    axis in "fig" to 'auto'.
+
+    INPUTS
+    --------
+    fig: plt.figure
+        The figure you wish to add a bg image to.
+    im: ndarray
+        A numpy array that works with a call to
+        plt.imshow(im). This will be plotted
+        as the background of the figure.
+    """
+    fig.axes[0].set_aspect('auto')
+    ax_im = fig.add_axes([0, 0, 1, 1])
+    ax_im.imshow(im, aspect='auto')
+    ax_im.set_zorder(-1)
