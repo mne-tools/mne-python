@@ -32,7 +32,6 @@ import numpy as np
 import scipy
 from scipy import linalg, sparse
 
-
 from .externals.six.moves import urllib
 from .externals.six import string_types, StringIO, BytesIO
 from .externals.decorator import decorator
@@ -1743,3 +1742,29 @@ def _time_mask(times, tmin=None, tmax=None, strict=False):
         mask |= isclose(times, tmin)
         mask |= isclose(times, tmax)
     return mask
+
+
+def _get_fast_dot():
+    """"Helper to get fast dot"""
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
+
+
+def compute_corr(x, y):
+    """Compute pearson correlations between a vector and a matrix"""
+    if len(x) == 0 or len(y) == 0:
+        raise ValueError('x or y has zero length')
+    fast_dot = _get_fast_dot()
+    X = np.array(x, float)
+    Y = np.array(y, float)
+    X -= X.mean(0)
+    Y -= Y.mean(0)
+    x_sd = X.std(0, ddof=1)
+    # if covariance matrix is fully expanded, Y needs a transpose / brodcasting
+    # else Y is correct
+    y_sd = Y.std(0, ddof=1)[:, None if X.shape == Y.shape else Ellipsis]
+    out = (fast_dot(X.T, Y) / float(len(X) - 1)) / (x_sd * y_sd)
+    return out
