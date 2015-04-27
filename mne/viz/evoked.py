@@ -477,7 +477,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     if not has_sss:
         evokeds_white[0].plot(unit=False, axes=axes_evoked,
-                              hline=[-1.96, 1.96], show=show)
+                              hline=[-1.96, 1.96], show=False)
     else:
         for ((ch_type, picks), ax) in zip(picks_list, axes_evoked):
             ax.plot(times, evokeds_white[0].data[picks].T, color='k')
