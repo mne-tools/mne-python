@@ -53,8 +53,8 @@ def test_add_background_image():
     f, axs = plt.subplots(1, 2)
     x, y = np.random.randn(2, 10)
     im = np.random.randn(10, 10)
-    _ = axs[0].scatter(x, y)
-    _ = axs[1].scatter(y, x)
+    axs[0].scatter(x, y)
+    axs[1].scatter(y, x)
     for ax in axs:
         ax.set_aspect(1)
 
