@@ -430,7 +430,13 @@ class ClickableImage(object):
         show()
 
     def onclick(self, event):
-        """Mouse click handler."""
+        """Mouse click handler.
+
+        Parameters
+        ----------
+        event: matplotlib event object
+            The matplotlib object that we use to get x/y position.
+        """
         mouseevent = event.mouseevent
         self.coords.append((mouseevent.xdata, mouseevent.ydata))
 
