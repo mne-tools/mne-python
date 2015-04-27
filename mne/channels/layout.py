@@ -755,7 +755,7 @@ class Montage(object):
         s %= self.kind, len(self.ch_names), ', '.join(self.ch_names[:3])
         return s
 
-    def plot(self, scale_factor=1.5, show_names=False):
+    def plot(self, scale_factor=1.5, show_names=False, show=True):
         """Plot EEG sensor montage
 
         Parameters
@@ -764,6 +764,8 @@ class Montage(object):
             Determines the size of the points. Defaults to 1.5
         show_names : bool
             Whether to show the channel names. Defaults to False
+        show : bool
+            Show figure if True.
 
         Returns
         -------
@@ -771,7 +773,7 @@ class Montage(object):
             The figure object.
         """
         return plot_montage(self, scale_factor=scale_factor,
-                            show_names=show_names)
+                            show_names=show_names, show=show)
 
 
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):

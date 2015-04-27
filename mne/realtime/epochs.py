@@ -52,8 +52,6 @@ class RtEpochs(_BaseEpochs):
     sleep_time : float
         Time in seconds to wait between checking for new epochs when epochs
         are requested and the receive queue is empty.
-    name : string
-        Comment that describes the Evoked data created.
     baseline : None (default) or tuple of length 2
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -62,6 +60,10 @@ class RtEpochs(_BaseEpochs):
         and if b is None then b is set to the end of the interval.
         If baseline is equal to (None, None) all the time
         interval is used.
+    picks : array-like of int | None (default)
+        Indices of channels to include (if None, all channels are used).
+    name : string
+        Comment that describes the Evoked data created.
     reject : dict | None
         Rejection parameters based on peak-to-peak amplitude.
         Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
@@ -249,6 +251,18 @@ class RtEpochs(_BaseEpochs):
 
     def next(self, return_event_id=False):
         """To make iteration over epochs easy.
+
+        Parameters
+        ----------
+        return_event_id : bool
+            If True, return both an epoch and and event_id.
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The epoch.
+        event_id : int
+            The event id. Only returned if ``return_event_id`` is ``True``.
         """
         first = True
         while True:

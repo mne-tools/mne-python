@@ -568,6 +568,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     method : str | None
         Comment on the method used to compute the data, e.g., morlet wavelet.
         Defaults to None.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Attributes
     ----------

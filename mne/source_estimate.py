@@ -690,9 +690,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         ----------
         width : scalar
             Width of the individual bins in seconds.
-        func : callable
-            Function that is applied to summarize the data. Needs to accept a
-            numpy.array as first input and an ``axis`` keyword argument.
         tstart : scalar | None
             Time point where the first bin starts. The default is the first
             time point of the stc.
@@ -700,6 +697,9 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
             Last possible time point contained in a bin (if the last bin would
             be shorter than width it is dropped). The default is the last time
             point of the stc.
+        func : callable
+            Function that is applied to summarize the data. Needs to accept a
+            numpy.array as first input and an ``axis`` keyword argument.
 
         Returns
         -------
@@ -1515,6 +1515,8 @@ class SourceEstimate(_BaseSourceEstimate):
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude
 
+        Parameters
+        ----------
         hemi : {'lh', 'rh', None}
             The hemi to be considered. If None, the entire source space is
             considered.
@@ -1701,6 +1703,8 @@ class VolSourceEstimate(_BaseSourceEstimate):
                  vert_as_index=False, time_as_index=False):
         """Get location and latency of peak amplitude
 
+        Parameters
+        ----------
         tmin : float | None
             The minimum point in time to be considered for peak getting.
         tmax : float | None

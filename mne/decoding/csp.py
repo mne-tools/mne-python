@@ -189,6 +189,8 @@ class CSP(TransformerMixin):
         ----------
         epochs_data : array, shape=(n_epochs, n_channels, n_times)
             The data.
+        y : None
+            Not used.
 
         Returns
         -------

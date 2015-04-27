@@ -58,7 +58,13 @@ def parse_config(fname):
 
 
 def read_reject_parameters(fname):
-    """Read rejection parameters from .cov or .ave config file"""
+    """Read rejection parameters from .cov or .ave config file
+
+    Parameters
+    ----------
+    fname : str
+        Filename to read.
+    """
 
     try:
         with open(fname, 'r') as f:

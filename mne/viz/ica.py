@@ -58,17 +58,17 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     picks : ndarray | None.
         The components to be displayed. If None, plot will show the
         sources in the order as fitted.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
     start : int
         X-axis start index. If None from the beginning.
     stop : int
         X-axis stop index. If None to the end.
-    exclude : array_like of int
-        The components marked for exclusion. If None (default), ICA.exclude
-        will be used.
-    title : str | None
-        The figure title. If None a default is provided.
     show : bool
         Show figure if True.
+    title : str | None
+        The figure title. If None a default is provided.
 
     Returns
     -------

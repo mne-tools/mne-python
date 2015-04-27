@@ -396,6 +396,10 @@ def _get_eeg_info(vhdr_fname, eog, misc):
     info['filename'] = vhdr_fname
     eeg_info = {}
 
+    ext = os.path.splitext(vhdr_fname)[-1]
+    if ext != '.vhdr':
+        raise IOError("The header file must be given to read the data, "
+                      "not the '%s' file." % ext)
     with open(vhdr_fname, 'r') as f:
         # extract the first section to resemble a cfg
         l = f.readline().strip()

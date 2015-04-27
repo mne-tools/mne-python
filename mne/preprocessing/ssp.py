@@ -370,10 +370,10 @@ def compute_proj_eog(raw, raw_event=None, tmin=-0.2, tmax=0.2,
         Dictionary of parameters to use for IIR filtering.
         See mne.filter.construct_iir_filter for details. If iir_params
         is None and method="iir", 4th order Butterworth will be used.
-    copy : bool
-        If False, filtering raw data is done in place. Defaults to True.
     ch_name: str | None
         If not None, specify EOG channel name.
+    copy : bool
+        If False, filtering raw data is done in place. Defaults to True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

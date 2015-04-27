@@ -120,9 +120,10 @@ def test_make_field_map_eeg():
     assert_true(len(fmd[0]['ch_names']), 59)
 
 
+@testing.requires_testing_data
 @slow_test
 def test_make_field_map_meg():
-    """Test interpolation of MEG field onto helmet
+    """Test interpolation of MEG field onto helmet | head
     """
     evoked = read_evokeds(evoked_fname, condition='Left Auditory')
     info = evoked.info
@@ -157,6 +158,17 @@ def test_make_field_map_meg():
     assert_true(len(fmd[0]['ch_names']), 106)
 
     assert_raises(ValueError, make_field_map, evoked, ch_type='foobar')
+
+    # now test the make_field_map on head surf for MEG
+    evoked.pick_types(meg=True, eeg=False)
+    fmd = make_field_map(evoked, trans_fname, meg_surf='head',
+                         subject='sample', subjects_dir=subjects_dir)
+    assert_true(len(fmd) == 1)
+    assert_array_equal(fmd[0]['data'].shape, (642, 106))  # maps data onto surf
+    assert_true(len(fmd[0]['ch_names']), 106)
+
+    assert_raises(ValueError, make_field_map, evoked, meg_surf='foobar',
+                  subjects_dir=subjects_dir, trans=trans_fname)
 
 
 def _setup_args(info):

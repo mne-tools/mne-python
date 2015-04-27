@@ -316,6 +316,11 @@ class RtClient(object):
 
     def unregister_receive_callback(self, callback):
         """Unregister a raw buffer receive callback
+
+        Parameters
+        ----------
+        callback : function
+            The callback to unregister.
         """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)

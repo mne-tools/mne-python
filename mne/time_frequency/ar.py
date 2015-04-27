@@ -6,6 +6,9 @@
 import numpy as np
 from scipy.linalg import toeplitz
 
+from ..io.pick import pick_types
+from ..utils import deprecated, verbose
+
 
 # XXX : Back ported from statsmodels
 
@@ -119,6 +122,8 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
     return coefs
 
 
+@deprecated('iir_filter_raw is deprecated and will be removed in v0.10, use '
+            'fit_iir_model_raw instead')
 def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
     """Fits an AR model to raw data and creates the corresponding IIR filter
 
@@ -149,8 +154,47 @@ def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
     a : array
         filter coefficients
     """
-    picks = picks[:5]
+    return fit_iir_model_raw(raw, order, picks, tmin, tmax)[1]
+
+
+@verbose
+def fit_iir_model_raw(raw, order=2, picks=None, tmin=None, tmax=None,
+                      verbose=None):
+    """Fits an AR model to raw data and creates the corresponding IIR filter
+
+    The computed filter is the average filter for all the picked channels.
+    The frequency response is given by:
+
+    .. math::
+
+        H(\\exp^{jw}) = \\frac{1}{a[0] + a[1]\\exp{-jw} + ...
+                                  + a[n]\\exp{-jnw}}
+
+    Parameters
+    ----------
+    raw : Raw object
+        an instance of Raw.
+    order : int
+        order of the FIR filter.
+    picks : array-like of int | None
+        indices of selected channels. If None, MEG and EEG channels are used.
+    tmin : float
+        The beginning of time interval in seconds.
+    tmax : float
+        The end of time interval in seconds.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    b : ndarray
+        Numerator filter coefficients.
+    a : ndarray
+        Denominator filter coefficients
+    """
+    if picks is None:
+        picks = pick_types(raw.info, meg=True, eeg=True)
     coefs = ar_raw(raw, order=order, picks=picks, tmin=tmin, tmax=tmax)
     mean_coefs = np.mean(coefs, axis=0)  # mean model across channels
-    a = np.r_[1, -mean_coefs]  # filter coefficients
-    return a
+    a = np.concatenate(([1.], -mean_coefs))  # filter coefficients
+    return np.array([1.]), a

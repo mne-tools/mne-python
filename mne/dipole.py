@@ -51,6 +51,8 @@ class Dipole(object):
         The dipole orientations (normalized to unit length).
     gof : array, shape (n_dipoles,)
         The goodness of fit.
+    name : str | None
+        Name of the dipole.
     """
     def __init__(self, times, pos, amplitude, ori, gof, name=None):
         self.times = times

@@ -12,7 +12,7 @@ from .. import pick_types, pick_info
 
 
 @verbose
-def compute_ems(epochs, conditions=None, picks=None, verbose=None, n_jobs=1):
+def compute_ems(epochs, conditions=None, picks=None, n_jobs=1, verbose=None):
     """Compute event-matched spatial filter on epochs
 
     This version operates on the entire time course. No time window needs to

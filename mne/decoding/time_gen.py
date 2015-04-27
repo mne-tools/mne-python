@@ -68,15 +68,15 @@ class GeneralizationAcrossTime(object):
 
     Parameters
     ----------
-    clf : object | None
-        An estimator compliant with the scikit-learn API (fit & predict).
-        If None the classifier will be a standard pipeline including
-        StandardScaler and a linear SVM with default parameters.
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
         sklearn.cross_validation module for the list of possible objects.
         Defaults to 5.
+    clf : object | None
+        An estimator compliant with the scikit-learn API (fit & predict).
+        If None the classifier will be a standard pipeline including
+        StandardScaler and a linear SVM with default parameters.
     train_times : dict | None
         A dictionary to configure the training times.
         'slices' : np.ndarray, shape (n_clfs,)
@@ -284,6 +284,8 @@ class GeneralizationAcrossTime(object):
                 one time sample.
 
             If None, empty dict. Defaults to None.
+        picks : np.ndarray (n_selected_chans,) | None
+            Channels to be included.
 
         Returns
         -------

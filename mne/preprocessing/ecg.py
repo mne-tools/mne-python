@@ -211,7 +211,7 @@ def _get_ecg_channel_index(ch_name, inst):
 @verbose
 def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
                       tmin=-0.5, tmax=0.5, l_freq=8, h_freq=16, reject=None,
-                      flat=None, verbose=None, baseline=None):
+                      flat=None, baseline=None, verbose=None):
     """Conveniently generate epochs around ECG artifact events
 
 

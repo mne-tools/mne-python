@@ -26,7 +26,7 @@ from .io.tag import read_tag
 from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels)
-from .io.proj import setup_proj, ProjMixin, proj_equal
+from .io.proj import setup_proj, ProjMixin, _proj_equal
 from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
@@ -514,7 +514,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',
                  area_alpha=0.33, n_overlap=0, dB=True,
-                 n_jobs=1, verbose=None):
+                 n_jobs=1, verbose=None, show=True):
         """Plot the power spectral density across epochs
 
         Parameters
@@ -548,6 +548,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Number of jobs to run in parallel.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+        show : bool
+            Show figure if True.
 
         Returns
         -------
@@ -559,13 +561,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                color=color, area_mode=area_mode,
                                area_alpha=area_alpha,
                                n_overlap=n_overlap, dB=dB, n_jobs=n_jobs,
-                               verbose=None)
+                               verbose=None, show=show)
 
     def plot_psd_topomap(self, bands=None, vmin=None, vmax=None, proj=False,
                          n_fft=256, ch_type=None,
                          n_overlap=0, layout=None, cmap='RdBu_r',
                          agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         cbar_fmt='%0.3f', outlines='head', verbose=None):
+                         cbar_fmt='%0.3f', outlines='head', show=True,
+                         verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -590,14 +593,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Apply projection.
         n_fft : int
             Number of points to use in Welch FFT calculations.
-        n_overlap : int
-            The number of points of overlap between blocks.
         ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
             The channel type to plot. For 'grad', the gradiometers are
             collected in
             pairs and the RMS for each pair is plotted. If None, defaults to
             'mag' if MEG data are present and to 'eeg' if only EEG data are
             present.
+        n_overlap : int
+            The number of points of overlap between blocks.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct layout
@@ -630,6 +633,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             points outside the outline. Moreover, a matplotlib patch object can
             be passed for advanced masking options, either directly or as a
             function that returns patches (required for multi-axis plots).
+        show : bool
+            Show figure if True.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
@@ -642,7 +647,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
             ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, verbose=None)
+            cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):
@@ -668,8 +673,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         Start time before event.
     tmax : float
         End time after event.
-    name : string
-        Comment that describes the Evoked data created.
     baseline : None or tuple of length 2 (default (None, 0))
         The time interval to apply baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -681,8 +684,9 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         The baseline (a, b) includes both endpoints, i.e. all
         timepoints t such that a <= t <= b.
     picks : array-like of int | None (default)
-        Indices of channels to include (if None, all channels
-        are used).
+        Indices of channels to include (if None, all channels are used).
+    name : string
+        Comment that describes the Evoked data created.
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -1191,6 +1195,18 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
     def next(self, return_event_id=False):
         """To make iteration over epochs easy.
+
+        Parameters
+        ----------
+        return_event_id : bool
+            If True, return both an epoch and and event_id.
+
+        Returns
+        -------
+        epoch : instance of Epochs
+            The epoch.
+        event_id : int
+            The event id. Only returned if ``return_event_id`` is ``True``.
         """
         if self.preload:
             if self._current >= len(self._data):
@@ -2284,7 +2300,7 @@ def _compare_epochs_infos(info1, info2, ind):
         raise ValueError('epochs[%d][\'info\'][\'ch_names\'] must match' % ind)
     if len(info2['projs']) != len(info1['projs']):
         raise ValueError('SSP projectors in epochs files must be the same')
-    if not all(proj_equal(p1, p2) for p1, p2 in
+    if not all(_proj_equal(p1, p2) for p1, p2 in
                zip(info2['projs'], info1['projs'])):
         raise ValueError('SSP projectors in epochs files must be the same')
 

@@ -45,11 +45,11 @@ def plot_cov(cov, info, exclude=[], colorbar=True, proj=False, show_svd=True,
         Show colorbar or not.
     proj : bool
         Apply projections or not.
-    show : bool
-        Show figure if True.
     show_svd : bool
         Plot also singular values of the noise covariance for each sensor
         type. We show square roots ie. standard deviations.
+    show : bool
+        Show figure if True.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

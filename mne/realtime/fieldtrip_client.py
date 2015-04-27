@@ -281,7 +281,13 @@ class FieldTripClient(object):
             self._recv_callbacks.append(callback)
 
     def unregister_receive_callback(self, callback):
-        """Unregister a raw buffer receive callback."""
+        """Unregister a raw buffer receive callback
+
+        Parameters
+        ----------
+        callback : callable
+            The callback to unregister.
+        """
         if callback in self._recv_callbacks:
             self._recv_callbacks.remove(callback)
 
