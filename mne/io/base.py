@@ -37,9 +37,6 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
-                          _cartesian_to_sphere, apply_trans,
-                          get_ras_to_neuromag_trans)
 from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
 from ..externals.six import string_types
 from ..event import concatenate_events

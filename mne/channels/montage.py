@@ -15,11 +15,10 @@ import numpy as np
 
 from ..viz import plot_montage
 from .channels import _contains_ch_type
-from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
-                          _cartesian_to_sphere, apply_trans,
+from ..transforms import (_sphere_to_cartesian, apply_trans,
                           get_ras_to_neuromag_trans)
 from ..io.meas_info import _make_dig_points, _read_dig_points
-from ..externals.six import b, BytesIO, string_types, text_type
+from ..externals.six import string_types
 from ..externals.six.moves import map
 
 

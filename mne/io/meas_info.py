@@ -29,7 +29,6 @@ from ..utils import logger, verbose
 from ..fixes import Counter
 from .. import __version__
 from ..externals.six import b, BytesIO, string_types, text_type
-from ..transforms import apply_trans, get_ras_to_neuromag_trans
 
 
 _kind_dict = dict(
