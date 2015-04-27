@@ -22,7 +22,7 @@ from ..fixes import normalize_colors
 from ..utils import _clean_names
 
 from .utils import _mutable_defaults, _check_delayed_ssp, COLORS
-from .utils import _draw_proj_checkbox
+from .utils import _draw_proj_checkbox, add_background_image
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -234,8 +234,8 @@ def _check_vlim(vlim):
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              font_color='w', show=True):
+              vline=[0.0], fig_facecolor='k', fig_background=None,
+              axis_facecolor='k', font_color='w', show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -378,6 +378,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
                      title=title, x_label='Time (s)', vline=vline)
+
+    if fig_background is not None:
+        ax = add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
