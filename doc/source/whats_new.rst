@@ -97,6 +97,8 @@ Changelog
 
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
 
+   - Add whitening plots for evokeds to ``mne.Report`` by `Mainak Jas`_
+
 
 BUG
 ~~~

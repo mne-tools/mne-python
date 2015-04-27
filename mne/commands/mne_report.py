@@ -36,10 +36,10 @@ def run():
                       metavar="FILE")
     parser.add_option("--bmin", dest="bmin",
                       help="Time at which baseline correction starts for "
-                      "whitening plots", default=None)
+                      "evokeds", default=None)
     parser.add_option("--bmax", dest="bmax",
                       help="Time at which baseline correction stops for "
-                      "whitening plots", default=None)
+                      "evokeds", default=None)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",

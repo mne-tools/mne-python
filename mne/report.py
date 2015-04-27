@@ -238,7 +238,7 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq):
                     report_sectionlabel = 'evoked'
                     _update_html(html, report_fname, report_sectionlabel)
 
-                html = report._render_evoked(fname)
+                html = report._render_evoked(fname, baseline)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
             elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
@@ -685,7 +685,7 @@ class Report(object):
     cov_fname : str
         Name of the file containing the noise covariance.
     baseline : None or tuple of length 2 (default (None, 0))
-        The time interval to apply baseline correction for whitened evokeds.
+        The time interval to apply baseline correction for evokeds.
         If None do not apply it. If baseline is (a, b)
         the interval is between "a (s)" and "b (s)".
         If a is None the beginning of the data is used
@@ -1398,10 +1398,10 @@ class Report(object):
                                         repr=repr_inv)
         return html
 
-    def _render_evoked(self, evoked_fname, figsize=None):
+    def _render_evoked(self, evoked_fname, baseline=None, figsize=None):
         """Render evoked.
         """
-        evokeds = read_evokeds(evoked_fname, verbose=False)
+        evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
 
         html = []
         for ev in evokeds:
