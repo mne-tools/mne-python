@@ -18,6 +18,7 @@ from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout)
 from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
+from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import Raw
 from mne.io import read_raw_kit
@@ -380,5 +381,4 @@ def test_generate_2d_layout():
     lt_bg = generate_2d_layout(xy, bg_image=bg_image)
     assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
 
-if '__name__' == '__main__':
-    test_generate_2d_layout()
+run_tests_if_main()
