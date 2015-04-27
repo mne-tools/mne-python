@@ -14,10 +14,11 @@ import os.path as op
 import numpy as np
 
 from ..viz import plot_montage
+from .channels import _contains_ch_type
 from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
                           _cartesian_to_sphere, apply_trans,
                           get_ras_to_neuromag_trans)
-from ..io.meas_info import _make_dig_points
+from ..io.meas_info import _make_dig_points, _read_dig_points
 from ..externals.six import b, BytesIO, string_types, text_type
 from ..externals.six.moves import map
 
@@ -369,7 +370,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
         if ext == '.txt':
             hpi = _read_dig_points(hpi)
         elif ext in ('.sqd', '.mrk'):
-            from .kit import read_mrk
+            from ..io.kit import read_mrk
             hpi = read_mrk(hpi)
         else:
             raise TypeError('HPI file is not supported.')

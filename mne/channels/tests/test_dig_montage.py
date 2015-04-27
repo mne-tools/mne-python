@@ -10,8 +10,8 @@ import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
                            assert_allclose)
 
-from mne.channels.layout import _set_montage
-from mne.io.meas_info import read_dig_montage, _read_dig_points
+from mne.channels.montage import _set_montage, read_dig_montage
+from mne.io.meas_info import _read_dig_points
 from mne.io.constants import FIFF
 from mne import create_info
 from mne.coreg import fit_matched_points
@@ -21,9 +21,9 @@ from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 
 FILE = inspect.getfile(inspect.currentframe())
 p_dir = op.dirname(op.abspath(FILE))
-elp = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_elp.txt')
-hsp = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_hsp.txt')
-hpi = op.join(p_dir, '..', 'kit', 'tests', 'data', 'test_mrk.sqd')
+elp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_elp.txt')
+hsp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_hsp.txt')
+hpi = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_mrk.sqd')
 elp_names = []
 
 

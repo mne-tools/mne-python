@@ -5,7 +5,7 @@ from nose.tools import assert_equal
 import numpy as np
 from numpy.testing import assert_array_equal, assert_array_almost_equal
 
-from mne.channels.layout import read_montage, _set_montage
+from mne.channels.montage import read_montage, _set_montage
 from mne.utils import _TempDir
 from mne import create_info, EvokedArray
 from mne.transforms import (apply_trans, get_ras_to_neuromag_trans)

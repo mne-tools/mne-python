@@ -17,6 +17,9 @@ import os.path as op
 import numpy as np
 
 from .channels import _contains_ch_type
+from ..transforms import (_sphere_to_cartesian, _polar_to_cartesian,
+                          _cartesian_to_sphere, apply_trans,
+                          get_ras_to_neuromag_trans)
 from ..io.pick import pick_types
 from ..io.constants import FIFF
 from ..utils import _clean_names

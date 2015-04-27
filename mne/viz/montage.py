@@ -24,8 +24,7 @@ def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):
     fig : Instance of matplotlib.figure.Figure
         The figure object.
     """
-    from ..channels.layout import Montage
-    from ..io.meas_info import DigMontage
+    from ..channels.montage import Montage, DigMontage
 
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D  # noqa
