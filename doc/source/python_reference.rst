@@ -268,6 +268,16 @@ Visualization
 
 .. currentmodule:: mne.viz
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   ClickableImage
+
+Functions:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
@@ -301,7 +311,6 @@ Visualization
    plot_topo_image_epochs
    plot_topomap
    compare_fiff
-   ClickableImage
    add_background_image
 
 .. currentmodule:: mne.io
