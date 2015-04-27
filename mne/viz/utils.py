@@ -407,7 +407,7 @@ class ClickableImage(object):
 
     Notes
     -----
-        .. versionadded:: 0.9.0
+    .. versionadded:: 0.9.0
 
     """
 
@@ -503,7 +503,7 @@ def add_background_image(fig, im, set_ratios=None):
 
     Notes
     -----
-        .. versionadded:: 0.9.0
+    .. versionadded:: 0.9.0
 
     """
     if set_ratios is not None:

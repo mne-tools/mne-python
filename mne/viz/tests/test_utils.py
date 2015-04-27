@@ -6,10 +6,10 @@ import os.path as op
 import warnings
 import numpy as np
 
-from mne.viz.utils import compare_fiff, ClickableImage, add_background_image
+from mne.viz.utils import compare_fiff, _fake_click
 from numpy.testing import assert_allclose
 from nose.tools import assert_true
-from mne.viz.utils import _fake_click
+from mne.viz import ClickableImage, add_background_image
 
 # Set our plotters to test mode
 import matplotlib

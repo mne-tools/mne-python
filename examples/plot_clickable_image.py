@@ -17,7 +17,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from os import path as op
 import mne
-from mne.viz.utils import ClickableImage, add_background_image  # noqa
+from mne.viz import ClickableImage, add_background_image  # noqa
 from mne.channels import generate_2d_layout  # noqa
 
 print(__doc__)

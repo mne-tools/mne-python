@@ -1025,7 +1025,7 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
 
     Notes
     -----
-        .. versionadded:: 0.9.0
+    .. versionadded:: 0.9.0
 
     """
     from scipy.ndimage import imread
