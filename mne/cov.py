@@ -1679,7 +1679,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
+def _estimate_rank_meeg_signals(data, info, scalings=None, tol=1e-4,
                                 return_singular=False, copy=True):
     """Estimate rank for M/EEG data.
 
@@ -1713,6 +1713,8 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
+    if scalings is None:
+        scalings = dict(mag=1e15, grad=1e13, eeg=1e6)
     _apply_scaling_array(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
