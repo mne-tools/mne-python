@@ -34,9 +34,12 @@ def run():
     parser.add_option("-c", "--cov", dest="cov_fname",
                       help="File from which noise covariance is to be read",
                       metavar="FILE")
-    parser.add_option("-b", "--baseline", dest="baseline",
-                      help="Whether to baseline correct the evokeds for "
-                      "whitening plots (True/False/auto)", default="auto")
+    parser.add_option("--bmin", dest="bmin",
+                      help="Time at which baseline correction starts for "
+                      "whitening plots", default=None)
+    parser.add_option("--bmax", dest="bmax",
+                      help="Time at which baseline correction stops for "
+                      "whitening plots", default=None)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="The subjects directory")
     parser.add_option("-s", "--subject", dest="subject",
@@ -68,12 +71,13 @@ def run():
     overwrite = True if options.overwrite is not None else False
     n_jobs = int(options.n_jobs) if options.n_jobs is not None else 1
 
-    if options.baseline == 'True':
-        baseline = True
-    elif options.baseline == 'False':
-        baseline = False
-    elif options.baseline == 'auto':
-        baseline = 'auto'
+    bmin = float(options.bmin) if options.bmin is not None else None
+    bmax = float(options.bmax) if options.bmax is not None else None
+    # XXX: this means (None, None) cannot be specified through command line
+    if bmin is None and bmax is None:
+        baseline = None
+    else:
+        baseline = (bmin, bmax)
 
     t0 = time.time()
     report = Report(info_fname, subjects_dir=subjects_dir,

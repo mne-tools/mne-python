@@ -688,15 +688,22 @@ class Report(object):
         Title of the report.
     cov_fname : str
         Name of the file containing the noise covariance.
-    baseline : str | bool
-        If True, apply baseline. If 'auto', baseline correct only if highpass
-        filter has not been applied or is less than 1.0 Hz.
+    baseline : None or tuple of length 2 (default (None, 0))
+        The time interval to apply baseline correction for whitened evokeds.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+        The baseline (a, b) includes both endpoints, i.e. all
+        timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
 
     def __init__(self, info_fname=None, subjects_dir=None,
-                 subject=None, title=None, cov_fname=None, baseline='auto',
+                 subject=None, title=None, cov_fname=None, baseline=None,
                  verbose=None):
 
         self.info_fname = info_fname
@@ -1506,7 +1513,7 @@ class Report(object):
                                          show=show)
         return html
 
-    def _render_whitened_evoked(self, evoked_fname, noise_cov, apply_baseline):
+    def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline):
         """Show whitened evoked.
         """
         global_id = self._get_id()
@@ -1515,10 +1522,6 @@ class Report(object):
 
         html = []
         for ev in evokeds:
-
-            highpass = ev.info['highpass']
-            baseline = (None, 0) if apply_baseline == 'auto' \
-                and (highpass is None or highpass < 1.) else None
 
             ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
                               verbose=False)
