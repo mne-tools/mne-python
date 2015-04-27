@@ -52,7 +52,7 @@ See :ref:`getting_started` with Python.
 
     From IPython e.g. say::
 
-    cd examples/preprocessing
+        cd examples/preprocessing
 
 
     %run plot_find_ecg_artifacts.py

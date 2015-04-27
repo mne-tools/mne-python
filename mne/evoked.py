@@ -472,7 +472,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
-            Colormap. Defaults to 'RdBu_r'
+            Colormap. Defaults to 'RdBu_r'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
@@ -494,7 +494,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         cbar_fmt : str
             String format for colorbar values.
         time_format : str
-            String format for topomap values. Defaults to "%01d ms"
+            String format for topomap values. Defaults to ``"%01d ms"``.
         proj : bool | 'interactive'
             If true SSP projections are applied before display. If
             'interactive', a check box for reversible selection of SSP
@@ -516,8 +516,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals:
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+            ``dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+            linewidth=0, markersize=4)``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', a head scheme will be drawn.
             If dict, each key refers to a tuple of x and y positions.

@@ -1400,6 +1400,7 @@ class SourceEstimate(_BaseSourceEstimate):
         clim : str | dict
             Colorbar properties specification. If 'auto', set clim
             automatically based on data percentiles. If dict, should contain:
+
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
                 lims : list | np.ndarray | tuple of float, 3 elements

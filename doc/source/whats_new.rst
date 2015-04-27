@@ -77,9 +77,9 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
-   - Add support for adding an empty reference channel to data by ``Teon Brooks``_
+   - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
-   - Add reader function for Raw FIF files by ``Teon Brooks``_
+   - Add reader function for Raw FIF files by `Teon Brooks`_
 
    - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
 
@@ -108,7 +108,7 @@ BUG
    - Fix channel names in topomaps by `Alex Gramfort`_
 
    - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and
-    ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
+     ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -152,13 +152,13 @@ API
    - find_events and read_events functions have a new parameter ``mask`` to set some bits to a don't care state by `Teon Brooks`_
 
    - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-    `mne.layouts` by `Denis Engemann`_
+     `mne.layouts` by `Denis Engemann`_
 
    - ``read_raw_brainvision``, ``read_raw_edf``, ``read_raw_egi`` all use a standard montage import by `Teon Brooks`_
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
-   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
+   - Allow multiple filename patterns as a list (e.g., \*raw.fif and \*-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
 
    - ``read_hsp``, ``read_elp``, and ``write_hsp``, ``write_mrk`` were removed and made private by `Teon Brooks`_
 
@@ -176,8 +176,8 @@ API
 
    - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti_`
-     `Eric Larson_` and `Denis Engemann_`. As a consquence, `Raw.plot_raw_psds` has been deprecated.
+   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_
+     `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
      zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
@@ -267,7 +267,7 @@ Changelog
 
    - Add ``raw.add_events`` to allow adding events to a raw file by `Eric Larson`_
 
-   - Add ``plot_image`` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+   - Add ``plot_image`` method to Evoked object to display data as images by `Jean-Remi King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
@@ -991,7 +991,7 @@ of commits):
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
-.. _JR King: https://github.com/kingjr
+.. _Jean-Remi King: https://github.com/kingjr
 
 .. _Juergen Dammers: https://github.com/jdammers
 
@@ -1007,10 +1007,14 @@ of commits):
 
 .. _Marmaduke Woodman: https://github.com/maedoc
 
-.. _Jona Sassenhagen: https://github.com/jona-sassenhagen
-
 .. _Hari Bharadwaj: http://www.haribharadwaj.com
 
 .. _Chris Holdgraf: http://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
+
+.. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
+
+.. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
+
+.. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
