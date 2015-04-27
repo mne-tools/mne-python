@@ -472,7 +472,7 @@ def _fake_click(fig, ax, point, xform='ax'):
         fig.canvas.button_press_event(x, y, 1, False)
 
 
-def add_background_image(fig, im):
+def add_background_image(fig, im, set_ratios=None):
     """Add a background image to a plot.
 
     Adds the image specified in `im` to the
@@ -480,8 +480,8 @@ def add_background_image(fig, im):
     be done with topo plots, though it could work
     for any plot.
 
-    Note: this sets the aspect ratio of the first
-    axis in "fig" to 'auto'.
+    Note: This modifies the figure and/or axes
+    in place.
 
     Inputs
     ------
@@ -491,13 +491,26 @@ def add_background_image(fig, im):
         A numpy array that works with a call to
         plt.imshow(im). This will be plotted
         as the background of the figure.
+    set_ratios: str | an input that works with ax.set_aspect
+        Set the aspect ratio of any axes in fig
+        to the value in set_ratios. Defaults to None,
+        which does nothing to axes.
+
+    Returns
+    -------
+    ax_im: instance of the create matplotlib axis object
+        corresponding to the image you added.
 
     Notes
     -----
         .. versionadded:: 0.9.0
 
     """
-    fig.axes[0].set_aspect('auto')
+    if set_ratios is not None:
+        for ax in fig.axes:
+            ax.set_aspect(set_ratios)
+
     ax_im = fig.add_axes([0, 0, 1, 1])
     ax_im.imshow(im, aspect='auto')
     ax_im.set_zorder(-1)
+    return ax_im
