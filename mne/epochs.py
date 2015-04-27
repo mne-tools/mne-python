@@ -567,8 +567,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                          n_fft=256, ch_type=None,
                          n_overlap=0, layout=None, cmap='RdBu_r',
                          agg_fun=None, dB=True, n_jobs=1, normalize=False,
-                         cbar_fmt='%0.3f', outlines='head', verbose=None,
-                         show=True):
+                         cbar_fmt='%0.3f', outlines='head', show=True,
+                         verbose=None):
         """Plot the topomap of the power spectral density across epochs
 
         Parameters
@@ -633,10 +633,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             points outside the outline. Moreover, a matplotlib patch object can
             be passed for advanced masking options, either directly or as a
             function that returns patches (required for multi-axis plots).
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
         show : bool
             Show figure if True.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------
@@ -647,7 +647,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self, bands=bands, vmin=vmin, vmax=vmax, proj=proj, n_fft=n_fft,
             ch_type=ch_type, n_overlap=n_overlap, layout=layout, cmap=cmap,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
-            cbar_fmt=cbar_fmt, outlines=outlines, verbose=None, show=show)
+            cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
 
 class Epochs(_BaseEpochs, ToDataFrameMixin):

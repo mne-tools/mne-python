@@ -444,8 +444,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, format=None,
-                     show=True):
+                     image_interp='bilinear', average=None, format=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -539,8 +538,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
-        show : bool
-            Show figure if True.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -554,7 +551,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, format=format, show=show)
+                                   average=average, format=format)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
