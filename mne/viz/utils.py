@@ -476,7 +476,7 @@ def add_background_image(fig, im):
     be done with topo plots, though it could work
     for any plot.
 
-    Note - this sets the aspect ratio of the first
+    Note: this sets the aspect ratio of the first
     axis in "fig" to 'auto'.
 
     INPUTS
