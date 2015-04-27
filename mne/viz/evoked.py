@@ -426,7 +426,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
 
     axes_evoked = None
 
-    def whitened_gfp(x, rank=None, show=True):
+    def whitened_gfp(x, rank=None):
         """Whitened Global Field Power
 
         The MNE inverse solver assumes zero mean whitened data as input.
@@ -499,7 +499,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
                                 ' method = "%s"' % label)
 
             data = evoked_white.data[sub_picks]
-            gfp = whitened_gfp(data, rank=this_rank, show=show)
+            gfp = whitened_gfp(data, rank=this_rank)
             ax_gfp[i].plot(times, gfp,
                            label=(label if n_columns > 1 else title),
                            color=color if n_columns > 1 else ch_colors[ch])
