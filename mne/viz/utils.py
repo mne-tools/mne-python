@@ -464,12 +464,12 @@ class ClickableImage(object):
     def to_layout(self, **kwargs):
         """Turn coordinates into an MNE Layout object.
 
+        Normalizes by the image you used to generate clicks
+
         Parameters
         ----------
         **kwargs : dict
             Arguments are passed to generate_2d_layout
-
-        Normalizes by the image you used to generate clicks
         """
         from mne.channels.layout import generate_2d_layout
         coords = np.array(self.coords)
