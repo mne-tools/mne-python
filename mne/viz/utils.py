@@ -400,10 +400,12 @@ class ClickableImage(object):
     Upon clicking, the x/y coordinate of the cursor will be stored in
     self.coords, which is a list of (x, y) tuples.
 
-    Inputs
-    ------
+    Parameters
+    ----------
     imdata: ndarray
         The image that you wish to click on for 2-d points.
+    **kwargs : dict
+        Keyword arguments. Passed to ax.imshow.
 
     Notes
     -----
@@ -483,15 +485,15 @@ def add_background_image(fig, im, set_ratios=None):
     Note: This modifies the figure and/or axes
     in place.
 
-    Inputs
-    ------
+    Parameters
+    ----------
     fig: plt.figure
         The figure you wish to add a bg image to.
     im: ndarray
         A numpy array that works with a call to
         plt.imshow(im). This will be plotted
         as the background of the figure.
-    set_ratios: str | an input that works with ax.set_aspect
+    set_ratios: None | str
         Set the aspect ratio of any axes in fig
         to the value in set_ratios. Defaults to None,
         which does nothing to axes.
