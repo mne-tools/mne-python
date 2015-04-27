@@ -502,7 +502,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
     scalings : dict
-        Defaults to ``dict(grad=1e-13, mag=4e-15, eeg=1e-6)``.
+        Defaults to ``dict(grad=1e-13, mag=1e-15, eeg=1e-6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
     n_jobs : int
