@@ -1086,7 +1086,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                               mask_params=mask_params, axis=ax,
                               outlines=outlines, image_mask=image_mask,
                               contours=contours, image_interp=image_interp,
-                              show=show)
+                              show=False)
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
