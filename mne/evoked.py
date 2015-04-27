@@ -582,9 +582,9 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Plots the whitened evoked response and the whitened GFP as described in
         [1]. If one single covariance object is passed, the GFP panel (bottom)
-        will depict different sensor sensor types. If multiple covariance
-        objects are passed as a list, the left column will display the whitened
-        evoked responses for each channel based on the whitener from the noise
+        will depict different sensor types. If multiple covariance objects are
+        passed as a list, the left column will display the whitened evoked
+        responses for each channel based on the whitener from the noise
         covariance that has the highest log-likelihood. The left column will
         depict the whitened GFPs based on each estimator separately for each
         sensor type. Instead of numbers of channels the GFP display shows the
