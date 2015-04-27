@@ -1018,10 +1018,15 @@ def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
         image. If not, xy points will be normalized by their own min/max.
 
     Returns
-    --------
+    -------
     layout : Layout
         A Layout object that can be plotted with plot_topo
         functions and methods.
+
+    Notes
+    -----
+        .. versionadded:: 0.9.0
+
     """
     from scipy.ndimage import imread
 

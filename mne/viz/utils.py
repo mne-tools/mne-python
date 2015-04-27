@@ -401,9 +401,13 @@ class ClickableImage(object):
     self.coords, which is a list of (x, y) tuples.
 
     Inputs
-    --------
+    ------
     imdata: ndarray
         The image that you wish to click on for 2-d points.
+
+    Notes
+    -----
+        .. versionadded:: 0.9.0
 
     """
 
@@ -479,14 +483,19 @@ def add_background_image(fig, im):
     Note: this sets the aspect ratio of the first
     axis in "fig" to 'auto'.
 
-    INPUTS
-    --------
+    Inputs
+    ------
     fig: plt.figure
         The figure you wish to add a bg image to.
     im: ndarray
         A numpy array that works with a call to
         plt.imshow(im). This will be plotted
         as the background of the figure.
+
+    Notes
+    -----
+        .. versionadded:: 0.9.0
+
     """
     fig.axes[0].set_aspect('auto')
     ax_im = fig.add_axes([0, 0, 1, 1])
