@@ -294,7 +294,7 @@ class SetChannelsMixin(object):
         Notes
         -----
         Operates in place.
-        
+
         .. versionadded:: 0.9.0
         """
         from .montage import _set_montage

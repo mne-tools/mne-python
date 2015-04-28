@@ -41,7 +41,7 @@ class Montage(object):
         The indices of the selected channels in the montage file.
 
     Notes
-    -----    
+    -----
     .. versionadded:: 0.9.0
     """
     def __init__(self, pos, ch_names, kind, selection):
@@ -105,7 +105,7 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     Notes
     -----
     Built-in montages are not scaled or transformed by default.
-    
+
     .. versionadded:: 0.9.0
     """
 
@@ -281,7 +281,7 @@ class DigMontage(object):
         A Device-to-Head transformation matrix.
 
     Notes
-    -----    
+    -----
     .. versionadded:: 0.9.0
     """
     def __init__(self, hsp, hpi, elp, point_names,
@@ -368,7 +368,7 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     -------
     montage : instance of DigMontage
         The digitizer montage.
-    
+
     Notes
     -----
     All digitized points will be transformed to head-based coordinate system

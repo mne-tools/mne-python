@@ -3,7 +3,6 @@
 # License: BSD (3-clause)
 
 import os.path as op
-import inspect
 from nose.tools import assert_equal
 
 import numpy as np
