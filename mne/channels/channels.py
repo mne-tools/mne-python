@@ -287,13 +287,15 @@ class SetChannelsMixin(object):
     def set_montage(self, montage):
         """Set EEG sensor configuration
 
-        Note. Operates in place.
-
         Parameters
         ----------
-        montage : instance of mne.channels.Montage or
-                  mne.io.meas_info.DigMontage
-            The MNE montage object.
+        montage : instance of Montage or DigMontage
+
+        Notes
+        -----
+        Operates in place.
+        
+        .. versionadded:: 0.9.0
         """
         from .montage import _set_montage
         _set_montage(self.info, montage)

@@ -1,8 +1,6 @@
-import numpy as np
-
-
 """Functions to plot EEG sensor montages or digitizer montages
 """
+import numpy as np
 
 
 def plot_montage(montage, scale_factor=1.5, show_names=False, show=True):

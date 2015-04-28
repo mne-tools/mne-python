@@ -5,6 +5,7 @@
 #          Marijn van Vliet <w.m.vanvliet@gmail.com>
 #          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 #          Teon Brooks <teon.brooks@gmail.com>
+#          Christian Brodbeck <christianbrodbeck@nyu.edu>
 #
 # License: Simplified BSD
 
@@ -38,6 +39,10 @@ class Montage(object):
         The type of montage (e.g. 'standard_1005').
     selection : array of int
         The indices of the selected channels in the montage file.
+
+    Notes
+    -----    
+    .. versionadded:: 0.9.0
     """
     def __init__(self, pos, ch_names, kind, selection):
         self.pos = pos
@@ -72,8 +77,6 @@ class Montage(object):
 def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     """Read montage from a file
 
-    Note: built-in montages are not scaled or transformed by default.
-
     Parameters
     ----------
     kind : str
@@ -98,7 +101,14 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
     -------
     montage : instance of Montage
         The montage.
+
+    Notes
+    -----
+    Built-in montages are not scaled or transformed by default.
+    
+    .. versionadded:: 0.9.0
     """
+
     if path is None:
         path = op.join(op.dirname(__file__), 'data', 'montages')
     if not op.isabs(kind):
@@ -244,8 +254,8 @@ def read_montage(kind, ch_names=None, path=None, unit='m', transform=False):
 class DigMontage(object):
     """Montage for Digitized data
 
-    Montages are typically loaded from a file using read_montage. Only use this
-    class directly if you're constructing a new montage.
+    Montages are typically loaded from a file using read_dig_montage. Only use
+    this class directly if you're constructing a new montage.
 
     Parameters
     ----------
@@ -268,7 +278,11 @@ class DigMontage(object):
         The position of the right periauricular fidicual point in
         the RAS head space.
     dev_head_t : array, shape (4, 4)
-        A Dev-to-Head transformation matrix.
+        A Device-to-Head transformation matrix.
+
+    Notes
+    -----    
+    .. versionadded:: 0.9.0
     """
     def __init__(self, hsp, hpi, elp, point_names,
                  nasion=None, lpa=None, rpa=None, dev_head_t=None):
@@ -315,8 +329,6 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
                      unit='mm', transform=True, dev_head_t=False):
     """Read montage from a file
 
-    Note: Digitized points will be transformed to head-based coordinate system.
-
     Parameters
     ----------
     hsp : None | str | array, shape (n_points, 3)
@@ -356,6 +368,13 @@ def read_dig_montage(hsp=None, hpi=None, elp=None, point_names=None,
     -------
     montage : instance of DigMontage
         The digitizer montage.
+    
+    Notes
+    -----
+    All digitized points will be transformed to head-based coordinate system
+    if transform is True and fiducials are present.
+
+    .. versionadded:: 0.9.0
     """
     if isinstance(hsp, string_types):
         hsp = _read_dig_points(hsp)

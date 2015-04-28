@@ -19,8 +19,7 @@ from mne.io.kit import read_mrk
 from mne.transforms import apply_trans, get_ras_to_neuromag_trans
 
 
-FILE = inspect.getfile(inspect.currentframe())
-p_dir = op.dirname(op.abspath(FILE))
+p_dir = op.dirname(__file__)
 elp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_elp.txt')
 hsp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_hsp.txt')
 hpi = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_mrk.sqd')
