@@ -244,7 +244,6 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
     picks_bad = pick_channels(ch_names, inst.info['bads'],
                               exclude=[])
-
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return inst

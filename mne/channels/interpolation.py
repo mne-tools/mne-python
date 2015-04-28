@@ -151,7 +151,7 @@ def _interpolate_bads_eeg(inst):
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    pos = inst.get_channel_positions(picks)
+    pos = inst._get_channel_positions(picks)
 
     # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]

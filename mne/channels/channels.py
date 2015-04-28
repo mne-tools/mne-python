@@ -460,6 +460,8 @@ class InterpolationMixin(object):
     def interpolate_bads(self, reset_bads=True):
         """Interpolate bad MEG and EEG channels.
 
+        Operates in place.
+
         Parameters
         ----------
         reset_bads : bool
@@ -480,12 +482,12 @@ class InterpolationMixin(object):
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
 
-        inst = _interpolate_bads_meg(_interpolate_bads_eeg(self.copy()))
+        _interpolate_bads_meg(_interpolate_bads_eeg(self))
 
         if reset_bads is True:
-            inst.info['bads'] = []
+            self.info['bads'] = []
 
-        return inst
+        return self
 
 
 def rename_channels(info, mapping):
