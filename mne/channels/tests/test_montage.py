@@ -8,7 +8,7 @@ from nose.tools import assert_equal
 
 import numpy as np
 from numpy.testing import (assert_array_equal, assert_almost_equal,
-                           assert_allclose)
+                           assert_allclose, assert_array_almost_equal)
 
 from mne.channels.montage import read_montage, _set_montage, read_dig_montage
 from mne.utils import _TempDir

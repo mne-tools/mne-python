@@ -102,11 +102,10 @@ Changelog
 
    - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks` and `Denis Engemann`_
 
-   - Add support for capturing cursor positions when clicking on an image by `Chris Holdgraf`_
+   - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
-   - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
 BUG
 ~~~
