@@ -24,7 +24,6 @@ p_dir = op.dirname(__file__)
 elp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_elp.txt')
 hsp = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_hsp.txt')
 hpi = op.join(p_dir, '..', '..', 'io', 'kit', 'tests', 'data', 'test_mrk.sqd')
-elp_names = []
 
 
 def test_montage():
