@@ -29,30 +29,15 @@ print(__doc__)
 
 data_path = sample.data_path()
 
-###############################################################################
-# Set parameters
-raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
-event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id, tmin, tmax = 1, -0.2, 0.5
-
-#   Setup for reading the raw data
-raw = io.Raw(raw_fname)
-events = mne.read_events(event_fname)
-
-# pick EEG channels and keep bads for interpolation
-picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
-                       exclude=[])
-
-# Read epochs
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), reject=None, preload=False)
+fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
+evoked = mne.read_evokeds(fname, condition='Left Auditory',
+                          baseline=(None, 0))
 
 # plot with bads
-evoked_before = epochs.average()
-evoked_before.plot(exclude=[])
+evoked.plot(exclude=[])
 
 # compute interpolation (also works with Raw and Epochs objects)
-evoked_after = evoked_before.interpolate_bads(reset_bads=False)
+evoked.interpolate_bads(reset_bads=False)
 
 # plot interpolated (previous bads)
-evoked_after.plot(exclude=[])
+evoked.plot(exclude=[])
