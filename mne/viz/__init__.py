@@ -11,7 +11,7 @@ from ._3d import (plot_sparse_source_estimates, plot_source_estimates,
                   plot_trans, plot_evoked_field, plot_dipole_locations)
 from .misc import (plot_cov, plot_bem, plot_events, plot_source_spectrogram,
                    _get_presser, plot_dipole_amplitudes)
-from .utils import _mutable_defaults
+from .utils import _mutable_defaults, ClickableImage, add_background_image
 from .evoked import (plot_evoked, plot_evoked_image, plot_evoked_white,
                      plot_snr_estimate)
 from .circle import plot_connectivity_circle, circular_layout

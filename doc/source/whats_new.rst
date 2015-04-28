@@ -100,6 +100,10 @@ Changelog
    - Add whitening plots for evokeds to ``mne.Report`` by `Mainak Jas`_
 
 
+   - Add support for capturing cursor positions when clicking on an image by `Chris Holdgraf`_
+
+   - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
+
 BUG
 ~~~
 

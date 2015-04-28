@@ -16,7 +16,9 @@ from numpy.testing import (assert_array_almost_equal, assert_array_equal,
 from nose.tools import assert_true, assert_raises
 from mne.channels import (make_eeg_layout, make_grid_layout, read_layout,
                           find_layout)
-from mne.channels.layout import _box_size, _auto_topomap_coords
+from mne.channels.layout import (_box_size, _auto_topomap_coords,
+                                 generate_2d_layout)
+from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
 from mne.io import Raw
 from mne.io import read_raw_kit
@@ -349,3 +351,34 @@ def test_box_size():
     # Create three points. Box size should be a little less than (0.5, 0.5).
     points = [(0.25, 0.25), (0.75, 0.25), (0.5, 0.75)]
     assert_allclose(_box_size(points, padding=0.1), (0.9 * 0.5, 0.9 * 0.5))
+
+
+def test_generate_2d_layout():
+    """Test creation of a layout from 2d points."""
+    snobg = 10
+    sbg = 15
+    side = range(snobg)
+    bg_image = np.random.randn(sbg, sbg)
+    w, h = [.2, .5]
+
+    # Generate fake data
+    xy = np.array([(i, j) for i in side for j in side])
+    lt = generate_2d_layout(xy, w=w, h=h)
+
+    # Correct points ordering / minmaxing
+    comp_1, comp_2 = [(5, 0), (7, 0)]
+    assert_true(lt.pos[:, :2].max() == 1)
+    assert_true(lt.pos[:, :2].min() == 0)
+    assert_allclose(xy[comp_2] / float(xy[comp_1]),
+                    lt.pos[comp_2] / float(lt.pos[comp_1]))
+    assert_allclose(lt.pos[0, [2, 3]], [w, h])
+
+    # Correct number elements
+    assert_true(lt.pos.shape[1] == 4)
+    assert_true(len(lt.box) == 4)
+
+    # Make sure background image normalizing is correct
+    lt_bg = generate_2d_layout(xy, bg_image=bg_image)
+    assert_allclose(lt_bg.pos[:, :2].max(), xy.max() / float(sbg))
+
+run_tests_if_main()

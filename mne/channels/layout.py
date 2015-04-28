@@ -981,3 +981,87 @@ def apply_montage(info, montage):
         raise ValueError('None of the sensors defined in the montage were '
                          'found in the info structure. Check the channel '
                          'names.')
+
+
+def generate_2d_layout(xy, w=.07, h=.05, pad=.02, ch_names=None,
+                       ch_indices=None, name='ecog', bg_image=None):
+    """Generate a custom 2D layout from xy points.
+
+    Generates a 2-D layout for plotting with plot_topo methods and
+    functions. XY points will be normalized between 0 and 1, where
+    normalization extremes will be either the min/max of xy, or
+    the width/height of bg_image.
+
+    Parameters
+    -------
+    xy : ndarray (N x 2)
+        The xy coordinates of sensor locations.
+    w : float
+        The width of each sensor's axis (between 0 and 1)
+    h : float
+        The height of each sensor's axis (between 0 and 1)
+    pad : float
+        Portion of the box to reserve for padding. The value can range between
+        0.0 (boxes will touch, default) to 1.0 (boxes consist of only padding).
+    ch_names : list
+        The names of each channel. Must be a list of strings, with one
+        string per channel.
+    ch_indices : list
+        Index of each channel - must be a collection of unique integers,
+        one index per channel.
+    name : string
+        The name of this layout type.
+    bg_image : str | ndarray
+        The image over which sensor axes will be plotted. Either a path to an
+        image file, or an array that can be plotted with plt.imshow. If
+        provided, xy points will be normalized by the width/height of this
+        image. If not, xy points will be normalized by their own min/max.
+
+    Returns
+    -------
+    layout : Layout
+        A Layout object that can be plotted with plot_topo
+        functions and methods.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+
+    """
+    from scipy.ndimage import imread
+
+    if ch_indices is None:
+        ch_indices = np.arange(xy.shape[0])
+    if ch_names is None:
+        ch_names = ['{0}'.format(i) for i in ch_indices]
+
+    if len(ch_names) != len(ch_indices):
+        raise ValueError('# ch names and indices must be equal')
+    if len(ch_names) != len(xy):
+        raise ValueError('# ch names and xy vals must be equal')
+
+    x, y = xy.copy().astype(float).T
+
+    # Normalize xy to 0-1
+    if bg_image is not None:
+        # Normalize by image dimensions
+        if isinstance(bg_image, str):
+            img = imread(bg_image)
+        else:
+            img = bg_image
+        x /= img.shape[1]
+        y /= img.shape[0]
+    else:
+        # Normalize x and y by their maxes
+        for i_dim in [x, y]:
+            i_dim -= i_dim.min(0)
+            i_dim /= (i_dim.max(0) - i_dim.min(0))
+
+    # Create box and pos variable
+    box = _box_size(np.vstack([x, y]).T, padding=pad)
+    box = (0, 0, box[0], box[1])
+    w, h = [np.array([i] * x.shape[0]) for i in [w, h]]
+    loc_params = np.vstack([x, y, w, h]).T
+
+    layout = Layout(box, loc_params, ch_names, ch_indices, name)
+    return layout
