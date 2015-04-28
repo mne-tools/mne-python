@@ -462,8 +462,6 @@ class InterpolationMixin(object):
 
         Parameters
         ----------
-        inst : mne.io.Raw, mne.Epochs or mne.Evoked
-            The data to interpolate.
         reset_bads : bool
             If True, remove the bads from info.
 
