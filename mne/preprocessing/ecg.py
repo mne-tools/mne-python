@@ -132,10 +132,11 @@ def find_ecg_events(raw, event_id=999, ch_name=None, tstart=0.0,
         The raw data
     event_id : int
         The index to assign to found events
-    ch_name : str
+    ch_name : None | str
         The name of the channel to use for ECG peak detection.
-        The argument is mandatory if the dataset contains no ECG
-        channels.
+        If None (default), a synthetic ECG channel is created from
+        cross channel average. Synthetic channel can only be created from
+        'meg' channels.
     tstart : float
         Start detection after tstart seconds. Useful when beginning
         of run is noisy.
@@ -221,8 +222,9 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
         The raw data
     ch_name : str
         The name of the channel to use for ECG peak detection.
-        The argument is mandatory if the dataset contains no ECG
-        channels.
+        If None (default), a synthetic ECG channel is created from
+        cross channel average. Synthetic channel can only be created from
+        'meg' channels.
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
@@ -264,8 +266,8 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
 
     Returns
     -------
-    eog_epochs : instance of Epochs
-        Data epoched around EOG events.
+    ecg_epochs : instance of Epochs
+        Data epoched around ECG r-peaks.
     """
 
     events, _, _ = find_ecg_events(raw, ch_name=ch_name, event_id=event_id,
