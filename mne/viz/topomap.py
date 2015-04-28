@@ -651,7 +651,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
                                       ch_type=ch_type, res=res, layout=layout,
                                       vmax=vmax, cmap=cmap, sensors=sensors,
                                       colorbar=colorbar, title=title,
-                                      show=False, outlines=outlines,
+                                      show=show, outlines=outlines,
                                       contours=contours,
                                       image_interp=image_interp)
             figs.append(fig)
