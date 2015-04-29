@@ -1,5 +1,5 @@
 from ..channels import (make_eeg_layout, make_grid_layout, read_layout,
-                         find_layout)
+                        find_layout)
 from ..channels import Layout as _Layout
 
 from ..utils import deprecated as dep

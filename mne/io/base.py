@@ -22,7 +22,7 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.layout import read_montage, apply_montage, Montage
+from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -1960,7 +1960,7 @@ def _check_update_montage(info, montage):
         if montage is not None:
             if isinstance(montage, str):
                 montage = read_montage(montage)
-            apply_montage(info, montage)
+            _set_montage(info, montage)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,
