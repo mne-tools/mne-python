@@ -82,11 +82,11 @@ def _scale_mpl_figure(fig, scale):
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
-        try:
-            text.set_fontsize(fs + sfactor)
-        except RuntimeError:
+        new_size = fs + sfactor
+        if new_size <= 0:
             raise ValueError('could not rescale matplotlib fonts, consider '
-                             'using a different value for "scale"')
+                             'increasing "scale"')
+        text.set_fontsize(new_size)
 
     fig.canvas.draw()
 
@@ -672,6 +672,12 @@ toc_list = Template(u"""
 """)
 
 
+def _check_scale(scale):
+    """Helper to ensure valid scale value is passed"""
+    if np.isscalar(scale) and scale <= 0:
+        raise ValueError('scale must be positive, not %s' % scale)
+
+
 class Report(object):
     """Object for rendering HTML
 
@@ -775,6 +781,7 @@ class Report(object):
                           ' will throw an error.')
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
+        _check_scale(scale)
         for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -887,6 +894,7 @@ class Report(object):
         from PIL import Image
         fnames, captions, comments = self._validate_input(fnames, captions,
                                                           section, comments)
+        _check_scale(scale)
 
         for fname, caption, comment in zip(fnames, captions, comments):
             caption = 'custom plot' if caption == '' else caption

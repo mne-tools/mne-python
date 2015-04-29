@@ -136,6 +136,10 @@ def test_render_add_sections():
                   captions='H')
     assert_raises(ValueError, report.add_figs_to_section, figs=fig,
                   captions=['foo'], scale=0, image_format='svg')
+    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+                  captions=['foo'], scale=1e-10, image_format='svg')
+    # need to recreate because calls above change size
+    fig = plt.plot([1, 2], [1, 2])[0].figure
 
     # Check add_images_to_section
     img_fname = op.join(tempdir, 'testimage.png')
