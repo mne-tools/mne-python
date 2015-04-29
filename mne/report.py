@@ -769,6 +769,9 @@ class Report(object):
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
+        if np.isscalar(scale) and scale < 1.:
+            raise ValueError('scale, if float, must be >= 1 not %s'
+                             % scale)
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
         for fig, caption, comment in zip(figs, captions, comments):
@@ -800,7 +803,7 @@ class Report(object):
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale, comment=comment)
+                                             comment=comment)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -842,10 +845,9 @@ class Report(object):
             will be appended to the end of the section
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied.
-            If float, scale will determine the relative width in percent.
-            If function, should take a figure object as input parameter.
-            Defaults to None.
+            If None, no scaling is applied. If float, scale will determine
+            the relative width in percent (must be >= 1). If function,
+            should take a figure object as input parameter. Defaults to None.
         image_format : {'png', 'svg'}
             The image format to be used for the report. Defaults to 'png'.
         comments : None | str | list of str
