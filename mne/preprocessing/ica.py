@@ -875,7 +875,7 @@ class ICA(ContainsMixin):
         Returns
         -------
         ecg_idx : list of int
-            The indices of EOG related components.
+            The indices of ECG related components.
         scores : np.ndarray of float, shape (``n_components_``)
             The correlation scores.
 
@@ -973,7 +973,7 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        ecg_idx : list of int
+        eog_idx : list of int
             The indices of EOG related components, sorted by score.
         scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
