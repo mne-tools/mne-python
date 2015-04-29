@@ -4,7 +4,8 @@ Interpolate bad channels for MEG/EEG channels
 =============================================
 
 This example shows how to interpolate bad MEG/EEG channels
-    - Using spherical splines as described in [1] for EEG data.
+
+    - Using spherical splines as described in [1]_ for EEG data.
     - Using field interpolation for MEG data.
 
 The bad channels will still be marked as bad. Only the data in those channels
@@ -12,9 +13,9 @@ is removed.
 
 References
 ----------
-[1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989) Spherical
-    splines for scalp potential and current density mapping.
-    Electroencephalography and Clinical Neurophysiology, Feb; 72(2):184-7.
+.. [1] Perrin, F., Pernier, J., Bertrand, O. and Echallier, JF. (1989)
+       Spherical splines for scalp potential and current density mapping.
+       Electroencephalography and Clinical Neurophysiology, Feb; 72(2):184-7.
 """
 # Authors: Denis A. Engemann <denis.engemann@gmail.com>
 #          Mainak Jas <mainak.jas@telecom-paristech.fr>

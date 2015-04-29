@@ -469,7 +469,7 @@ class InterpolationMixin(object):
 
         Returns
         -------
-        inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        self : mne.io.Raw, mne.Epochs or mne.Evoked
             The interpolated data.
 
         Notes
