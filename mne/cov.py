@@ -1117,7 +1117,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         Data will be rescaled before rank estimation to improve accuracy.
         If dict, it will override the following dict (default if None):
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(eeg=1e6, grad=1e13, mag=1e15)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1405,7 +1405,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
         rescaling. If dict, it will override the
         following default dict (default if None):
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(eeg=1e6, grad=1e13, mag=1e15)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1666,7 +1666,7 @@ def _undo_scaling_cov(data, picks_list, scalings):
 
 def _check_scaling_inputs(data, picks_list, scalings):
     """Aux function"""
-    rescale_dict_ = dict(mag=1e15, grad=1e13, eeg=1e6)
+    rescale_dict_ = dict(eeg=1e6, grad=1e13, mag=1e15)
 
     scalings_ = None
     if scalings == 'norm':
@@ -1698,7 +1698,7 @@ def _estimate_rank_meeg_signals(data, info, scalings=None, tol=1e-4,
         The rescaling method to be applied. If dict, it will override the
         following default dict:
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(eeg=1e6, grad=1e13, mag=1e15)
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
@@ -1747,7 +1747,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         The rescaling method to be applied. If dict, it will override the
         following default dict:
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(eeg=1e6, grad=1e13, mag=1e15)
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
