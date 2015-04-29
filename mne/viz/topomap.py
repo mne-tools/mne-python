@@ -692,7 +692,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                           res=res, axis=ax, cmap=cmap, outlines=outlines,
                           image_mask=image_mask, contours=contours,
-                          image_interp=image_interp)[0]
+                          image_interp=image_interp, show=False)[0]
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -871,7 +871,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
-                         contours=False, names=names)
+                         contours=False, names=names, show=False)
 
     if colorbar:
         divider = make_axes_locatable(ax)
@@ -1151,7 +1151,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
-                         cmap=cmap, image_interp='bilinear', contours=False)
+                         cmap=cmap, image_interp='bilinear', contours=False,
+                         show=False)
 
     if colorbar is True:
         divider = make_axes_locatable(ax)
