@@ -1,3 +1,9 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import warnings
 from ..externals.six import string_types
 import numpy as np
@@ -220,7 +226,7 @@ def create_ecg_epochs(raw, ch_name=None, event_id=999, picks=None,
     ----------
     raw : instance of Raw
         The raw data
-    ch_name : str
+    ch_name : None | str
         The name of the channel to use for ECG peak detection.
         If None (default), a synthetic ECG channel is created from
         cross channel average. Synthetic channel can only be created from
