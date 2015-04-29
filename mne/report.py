@@ -765,7 +765,7 @@ class Report(object):
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, mlab imported
             import mayavi
-        except ImportError:
+        except:  # on some systems importing Mayavi raises SystemExit (!)
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
