@@ -135,7 +135,7 @@ def test_render_add_sections():
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
     assert_raises(ValueError, report.add_figs_to_section, figs=fig,
-                  captions=['foo'], scale=0.5, image_format='svg')
+                  captions=['foo'], scale=0, image_format='svg')
 
     # Check add_images_to_section
     img_fname = op.join(tempdir, 'testimage.png')
