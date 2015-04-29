@@ -1132,7 +1132,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     if isinstance(scalings, dict):
         _scalings.update(scalings)
     scalings = _scalings
-    
+
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
     if ncomp > 0:
@@ -1439,7 +1439,7 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
     if isinstance(scalings, dict):
         _scalings.update(scalings)
     scalings = _scalings
-    
+
     W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
     return W
 
