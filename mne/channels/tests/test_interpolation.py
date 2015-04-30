@@ -15,22 +15,30 @@ evoked_nf_name = op.join(base_dir, 'test-nf-ave.fif')
 event_id, tmin, tmax = 1, -0.2, 0.5
 event_id_2 = 2
 
-raw = io.Raw(raw_fname, add_eeg_ref=False)
-events = read_events(event_name)
-picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
-picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])
-picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
 
-epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
-                    preload=True, reject=dict(eeg=80e-6))
-epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
-                    preload=True, reject=dict(grad=1000e-12, mag=4e-12))
-epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                preload=True, reject=dict(eeg=80e-6, grad=1000e-12, mag=4e-12))
+def _load_data():
+    """Helper function to load data."""
+    # It is more memory efficient to load data in a separate
+    # function so it's loaded on-demand
+    raw = io.Raw(raw_fname, add_eeg_ref=False)
+    events = read_events(event_name)
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude=[])
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude=[])
+    picks = pick_types(raw.info, meg=True, eeg=True, exclude=[])
+
+    epochs_eeg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_eeg,
+                        preload=True, reject=dict(eeg=80e-6))
+    epochs_meg = Epochs(raw, events, event_id, tmin, tmax, picks=picks_meg,
+                        preload=True, reject=dict(grad=1000e-12, mag=4e-12))
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=True, reject=dict(eeg=80e-6, grad=1000e-12,
+                                              mag=4e-12))
+    return raw, epochs, epochs_eeg, epochs_meg
 
 
 def test_interplation():
     """Test interpolation"""
+    raw, epochs, epochs_eeg, epochs_meg = _load_data()
 
     # create good and bad channels for EEG
     epochs_eeg.info['bads'] = []
