@@ -107,9 +107,9 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
 def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     """Dot product of channel mapping matrix to channel data
     """
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
+    from ..io.base import _BaseRaw
+    from ..epochs import _BaseEpochs
+    from ..evoked import Evoked
 
     if isinstance(inst, _BaseRaw):
         inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
@@ -121,7 +121,6 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     else:
         raise ValueError('Inputs of type {0} are not supported'
                          .format(type(inst)))
-    return inst
 
 
 def _interpolate_bads_eeg(inst):
@@ -169,4 +168,4 @@ def _interpolate_bads_eeg(inst):
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
-    return _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
+    _do_interp_dots(inst, interpolation, goods_idx, bads_idx)

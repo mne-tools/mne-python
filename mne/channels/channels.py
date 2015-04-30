@@ -482,7 +482,8 @@ class InterpolationMixin(object):
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')
 
-        _interpolate_bads_meg(_interpolate_bads_eeg(self))
+        _interpolate_bads_eeg(self)
+        _interpolate_bads_meg(self)
 
         if reset_bads is True:
             self.info['bads'] = []

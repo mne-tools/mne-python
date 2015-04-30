@@ -65,13 +65,13 @@ def test_interplation():
 
     # check that interpolation fails when preload is False
     epochs_eeg.preload = False
-    assert_raises(ValueError,  epochs_eeg.copy().interpolate_bads)
+    assert_raises(ValueError,  epochs_eeg.interpolate_bads)
     epochs_eeg.preload = True
 
     # check that interpolation changes the data in raw
     raw_eeg = io.RawArray(data=epochs_eeg._data[0], info=epochs_eeg.info)
     raw_before = raw_eeg._data[bads_idx]
-    raw_after = raw_eeg.interpolate_bads().copy()._data[bads_idx]
+    raw_after = raw_eeg.interpolate_bads()._data[bads_idx]
     assert_equal(np.all(raw_before == raw_after), False)
 
     # check that interpolation fails when preload is False
@@ -79,7 +79,7 @@ def test_interplation():
         assert hasattr(inst, 'preload')
         inst.preload = False
         inst.info['bads'] = [inst.ch_names[1]]
-        assert_raises(ValueError, inst.copy().interpolate_bads)
+        assert_raises(ValueError, inst.interpolate_bads)
 
     # check that interpolation works for MEG
     epochs_meg.info['bads'] = ['MEG 0141']
