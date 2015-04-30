@@ -114,13 +114,8 @@ def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
     if isinstance(inst, _BaseRaw):
         inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
     elif isinstance(inst, _BaseEpochs):
-        tmp = np.dot(interpolation[:, np.newaxis, :],
-                     inst._data[:, goods_idx, :])
-        if np.sum(bads_idx) == 1:
-            tmp = tmp[0]
-        else:
-            tmp = tmp[:, 0, ...]
-        inst._data[:, bads_idx, :] = np.transpose(tmp, (1, 0, 2))
+        inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
+                                               inst._data[:, goods_idx, :])
     elif isinstance(inst, Evoked):
         inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
     else:
