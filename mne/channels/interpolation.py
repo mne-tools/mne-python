@@ -7,9 +7,10 @@ from numpy.polynomial.legendre import legval
 from scipy import linalg
 
 from ..utils import logger
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_channels
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
+from ..forward import _map_meg_channels
 
 
 def _calc_g(cosang, stiffness=4, num_lterms=50):
@@ -169,3 +170,38 @@ def _interpolate_bads_eeg(inst):
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
     _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
+
+
+def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
+    """Interpolate bad channels from data in good channels.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used for interpolation. `'fast'` should
+        be sufficient for most applications.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The interpolated data.
+    """
+    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
+    ch_names = [inst.info['ch_names'][p] for p in picks_meg]
+    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    picks_bad = pick_channels(ch_names, inst.info['bads'],
+                              exclude=[])
+    # return without doing anything if there are no meg channels
+    if len(picks_meg) == 0 or len(picks_bad) == 0:
+        return inst
+
+    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode='fast')
+
+    _do_interp_dots(inst, mapping, picks_good, picks_bad)
+
+    return inst

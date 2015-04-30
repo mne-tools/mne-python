@@ -476,8 +476,7 @@ class InterpolationMixin(object):
         -----
         .. versionadded:: 0.9.0
         """
-        from .interpolation import _interpolate_bads_eeg
-        from ..forward import _interpolate_bads_meg
+        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
 
         if getattr(self, 'preload', None) is False:
             raise ValueError('Data must be preloaded.')

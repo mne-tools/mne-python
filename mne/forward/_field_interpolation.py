@@ -4,9 +4,8 @@ from copy import deepcopy
 import warnings
 
 from ..io.constants import FIFF
-from ..io.pick import pick_types, pick_info, pick_channels
+from ..io.pick import pick_types, pick_info
 from ..surface import get_head_surf, get_meg_helmet_surf
-from ..channels.interpolation import _do_interp_dots
 
 from ..io.proj import _has_eeg_average_ref_proj, make_projector
 from ..transforms import transform_surface_to, read_trans, _find_trans
@@ -218,41 +217,6 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     evoked.info['ch_names'] = [ch['ch_name'] for ch in evoked.info['chs']]
 
     return evoked
-
-
-def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
-    """Interpolate bad channels from data in good channels.
-
-    Parameters
-    ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    mode : str
-        Either `'accurate'` or `'fast'`, determines the quality of the
-        Legendre polynomial expansion used for interpolation. `'fast'` should
-        be sufficient for most applications.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The interpolated data.
-    """
-    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
-    ch_names = [inst.info['ch_names'][p] for p in picks_meg]
-    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
-    picks_bad = pick_channels(ch_names, inst.info['bads'],
-                              exclude=[])
-    # return without doing anything if there are no meg channels
-    if len(picks_meg) == 0 or len(picks_bad) == 0:
-        return inst
-
-    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode='fast')
-
-    _do_interp_dots(inst, mapping, picks_good, picks_bad)
-
-    return inst
 
 
 @verbose
