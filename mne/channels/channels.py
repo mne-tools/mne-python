@@ -457,7 +457,7 @@ class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
 
-    def interpolate_bads(self, reset_bads=True):
+    def interpolate_bads(self, reset_bads=True, mode='accurate'):
         """Interpolate bad MEG and EEG channels.
 
         Operates in place.
@@ -466,6 +466,10 @@ class InterpolationMixin(object):
         ----------
         reset_bads : bool
             If True, remove the bads from info.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used for interpolation of MEG
+            channels.
 
         Returns
         -------
@@ -482,7 +486,7 @@ class InterpolationMixin(object):
             raise ValueError('Data must be preloaded.')
 
         _interpolate_bads_eeg(self)
-        _interpolate_bads_meg(self)
+        _interpolate_bads_meg(self, mode=mode)
 
         if reset_bads is True:
             self.info['bads'] = []
