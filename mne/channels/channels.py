@@ -456,17 +456,41 @@ class PickDropChannelsMixin(object):
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def interpolate_bads_eeg(self):
-        """Interpolate bad channels
+
+    def interpolate_bads(self, reset_bads=True, mode='accurate'):
+        """Interpolate bad MEG and EEG channels.
 
         Operates in place.
+
+        Parameters
+        ----------
+        reset_bads : bool
+            If True, remove the bads from info.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used for interpolation of MEG
+            channels.
+
+        Returns
+        -------
+        self : mne.io.Raw, mne.Epochs or mne.Evoked
+            The interpolated data.
 
         Notes
         -----
         .. versionadded:: 0.9.0
         """
-        from .interpolation import _interpolate_bads_eeg
+        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
+
+        if getattr(self, 'preload', None) is False:
+            raise ValueError('Data must be preloaded.')
+
         _interpolate_bads_eeg(self)
+        _interpolate_bads_meg(self, mode=mode)
+
+        if reset_bads is True:
+            self.info['bads'] = []
+
         return self
 
 

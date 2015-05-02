@@ -19,7 +19,7 @@ from mne.datasets import testing
 from mne.minimum_norm import read_inverse_operator
 from mne.viz import (plot_bem, plot_events, plot_source_spectrogram,
                      plot_snr_estimate)
-from mne.utils import requires_nibabel, run_tests_if_main
+from mne.utils import requires_nibabel, run_tests_if_main, slow_test
 
 # Set our plotters to test mode
 import matplotlib
@@ -115,6 +115,7 @@ def test_plot_source_spectrogram():
                   [[1, 2], [3, 4]], tmax=7)
 
 
+@slow_test
 @testing.requires_testing_data
 def test_plot_snr():
     """Test plotting SNR estimate

@@ -991,14 +991,13 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evoked, interpolate_bads='eeg'):
+def grand_average(all_evoked, interpolate_bads=True):
     """Make grand average of a list evoked data
 
     The function interpolates bad channels based on `interpolate_bads`
-    parameter. If `interpolate_bads` is equal to 'eeg' the grand average
-    file will only contain the MEG channels that are marked good
-    in all of the evoked datasets. The EEG channels markeds as
-    bad will be interpolated.
+    parameter. If `interpolate_bads` is True, the grand average
+    file will contain good channels and the bad channels interpolated
+    from the good MEG/EEG channels.
 
     The grand_average.nave attribute will be equal the number
     of evoked datasets used to calculate the grand average.
@@ -1009,11 +1008,8 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     ----------
     all_evoked : list of Evoked data
         The evoked datasets.
-    interpolate_bads : str | None
-        The type of bad channels that are interpolated.
-        Currently only EEG channels can be interpolated.
-        If None no channels are interpolated.
-        Defaults to 'eeg'.
+    interpolate_bads : bool
+        If True, bad MEG and EEG channels are interpolated.
 
     Returns
     -------
@@ -1028,15 +1024,12 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     if not all(isinstance(e, Evoked) for e in all_evoked):
         raise ValueError("Not all the elements in list are evoked data")
 
-    if interpolate_bads != 'eeg':
-        raise ValueError('Only EEG channels can be interpolated currently.')
-
     # Copy channels to leave the original evoked datasets intact.
     all_evoked = [e.copy() for e in all_evoked]
 
     # Interpolates if necessary
-    if interpolate_bads == 'eeg':
-        all_evoked = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
+    if interpolate_bads:
+        all_evoked = [e.interpolate_bads() if len(e.info['bads']) > 0
                       else e for e in all_evoked]
 
     equalize_channels(all_evoked)  # apply equalize_channels

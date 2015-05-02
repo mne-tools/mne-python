@@ -8,7 +8,7 @@ from nose.tools import assert_equal, assert_raises
 
 from mne import create_info
 from mne.io import RawArray
-from mne.utils import logger, set_log_file, _TempDir
+from mne.utils import logger, set_log_file, slow_test, _TempDir
 
 
 def bad_1(x):
@@ -24,6 +24,7 @@ def printer(x):
     return x
 
 
+@slow_test
 def test_apply_function_verbose():
     """Test apply function verbosity
     """

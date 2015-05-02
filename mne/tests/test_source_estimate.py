@@ -43,6 +43,7 @@ fname_vsrc = op.join(data_path, 'MEG', 'sample',
                      'sample_audvis_trunc-meg-vol-7-fwd.fif')
 
 
+@slow_test
 @testing.requires_testing_data
 def test_volume_stc():
     """Test volume STCs
