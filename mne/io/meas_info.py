@@ -1131,7 +1131,7 @@ def _merge_info(infos, verbose=None):
     return info
 
 
-def create_info(ch_names, sfreq, ch_types=None):
+def create_info(ch_names, sfreq, ch_types=None, montage=None):
     """Create a basic Info instance suitable for use with create_raw
 
     Parameters
@@ -1145,6 +1145,10 @@ def create_info(ch_names, sfreq, ch_types=None):
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
         If str, then all channels are assumed to be of the same type.
+    montage : None | str | Montage
+        A montage containing channel positions. If str or Montage is
+        specified, the channel info will be updated with the channel
+        positions. Default is None.
 
     Notes
     -----
@@ -1190,6 +1194,16 @@ def create_info(ch_names, sfreq, ch_types=None):
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+    if montage is not None:
+        from ..channels.montage import Montage, _set_montage
+        if isinstance(montage, Montage):
+            _set_montage(info, montage)
+        elif isinstance(montage, string_types):
+            montage = read_montage(montage)
+            _set_montage(info, montage)
+        else:
+            raise TypeError('Montage must be an instance of Montage '
+                             'or filepath, not %s.' % type(montage))
     return info
 
 
