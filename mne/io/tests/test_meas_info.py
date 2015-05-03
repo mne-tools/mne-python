@@ -24,6 +24,15 @@ hsp_fname = op.join(data_dir, 'test_hsp.txt')
 elp_fname = op.join(data_dir, 'test_elp.txt')
 
 
+def test_make_info():
+    """Test some create_info properties
+    """
+    n_ch = 1
+    info = create_info(n_ch, 1000., 'eeg')
+    coil_types = set([ch['coil_type'] for ch in info['chs']])
+    assert_true(FIFF.FIFFV_COIL_EEG in coil_types)
+
+
 def test_fiducials_io():
     """Test fiducials i/o"""
     tempdir = _TempDir()
