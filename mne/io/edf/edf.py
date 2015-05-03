@@ -199,7 +199,6 @@ class RawEDF(_BaseRaw):
             for i in range(blocks):
                 data = np.empty((n_chan, max_samp), dtype=np.int32)
                 for j, samp in enumerate(n_samps):
-                    
                     # bdf data: 24bit data
                     if subtype in ('24BIT', 'bdf'):
                         ch_data = np.fromfile(fid, dtype=np.uint8,
