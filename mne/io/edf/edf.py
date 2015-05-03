@@ -199,11 +199,9 @@ class RawEDF(_BaseRaw):
             for i in range(blocks):
                 data = np.empty((n_chan, max_samp), dtype=np.int32)
                 for j, samp in enumerate(n_samps):
+                    
                     # bdf data: 24bit data
                     if subtype in ('24BIT', 'bdf'):
-                        # sixteen bit trigger mask based on bdf2biosig_events
-                        # from BIOSIG
-                        mask = 2 ** 15 - 1
                         ch_data = np.fromfile(fid, dtype=np.uint8,
                                               count=samp * data_size)
                         ch_data = ch_data.reshape(-1, 3).astype(np.int32)
@@ -214,8 +212,6 @@ class RawEDF(_BaseRaw):
                         ch_data[ch_data >= (1 << 23)] -= (1 << 24)
                     # edf data: 16bit data
                     else:
-                        # eight bit trigger mask
-                        mask = 2 ** 8 - 1
                         ch_data = np.fromfile(fid, dtype='<i2', count=samp)
                     if j == tal_channel:
                         # don't resample tal_channel,
@@ -273,6 +269,8 @@ class RawEDF(_BaseRaw):
                                                   'events not supported.')
                     datas[stim_channel][n_start:n_stop] = evid
             else:
+                # Allows support for up to 16-bit trigger values
+                mask = 2 ** 16 - 1
                 stim = np.array(datas[stim_channel], int)
                 mask = mask * np.ones(stim.shape, int)
                 stim = np.bitwise_and(stim, mask)
