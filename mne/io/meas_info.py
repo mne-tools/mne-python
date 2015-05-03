@@ -1195,15 +1195,20 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
     if montage is not None:
-        from ..channels.montage import Montage, _set_montage
-        if isinstance(montage, Montage):
-            _set_montage(info, montage)
-        elif isinstance(montage, string_types):
-            montage = read_montage(montage)
-            _set_montage(info, montage)
-        else:
-            raise TypeError('Montage must be an instance of Montage '
-                             'or filepath, not %s.' % type(montage))
+        from ..channels.montage import (Montage, DigMontage, _set_montage,
+                                        read_montage)
+        if not isinstance(montage, list):
+            montage = [montage]
+        for m in montage:
+            if isinstance(m, (Montage, DigMontage)):
+                _set_montage(info, m)
+            elif isinstance(m, string_types):
+                m = read_montage(m)
+                _set_montage(info, m)
+            else:
+                raise TypeError('Montage must be an instance of Montage, '
+                                'DigMontage, a list of montages, or filepath, '
+                                'not %s.' % type(montage))
     return info
 
 
