@@ -1145,7 +1145,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
         If str, then all channels are assumed to be of the same type.
-    montage : None | str | Montage | list of Montage
+    montage : None | str | Montage | DigMontage | list of montages
         A montage containing channel positions. If str or Montage is
         specified, the channel info will be updated with the channel
         positions. Default is None. If DigMontage is specified, the
@@ -1201,12 +1201,12 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
                                         read_montage)
         if not isinstance(montage, list):
             montage = [montage]
-        for m in montage:
-            if isinstance(m, (Montage, DigMontage)):
-                _set_montage(info, m)
-            elif isinstance(m, string_types):
-                m = read_montage(m)
-                _set_montage(info, m)
+        for montage_ in montage:
+            if isinstance(montage_, (Montage, DigMontage)):
+                _set_montage(info, montage_)
+            elif isinstance(montage_, string_types):
+                montage_ = read_montage(montage_)
+                _set_montage(info, montage_)
             else:
                 raise TypeError('Montage must be an instance of Montage, '
                                 'DigMontage, a list of montages, or filepath, '

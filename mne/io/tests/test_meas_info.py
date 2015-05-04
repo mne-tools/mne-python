@@ -33,14 +33,18 @@ def test_make_info():
     coil_types = set([ch['coil_type'] for ch in info['chs']])
     assert_true(FIFF.FIFFV_COIL_EEG in coil_types)
 
-    assert_raises(TypeError, create_info, 'Test Ch', 1000, None)
-    assert_raises(ValueError, create_info, ['Test Ch'], -1000, None)
-    assert_raises(ValueError, create_info, ['Test Ch'],  1000, ['eeg', 'eeg'])
-    assert_raises(TypeError, create_info, [np.array([1])], 1000, None)
-    assert_raises(TypeError, create_info, ['Test Ch'], 1000, np.array([1]))
-    assert_raises(KeyError, create_info, ['Test Ch'], 1000, 'awesome')
-    assert_raises(TypeError, create_info, ['Test Ch'], 1000, None,
-                  np.array([1]))
+    assert_raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)
+    assert_raises(ValueError, create_info, ch_names=['Test Ch'], sfreq=-1000)
+    assert_raises(ValueError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types=['eeg', 'eeg'])
+    assert_raises(TypeError, create_info, ch_names=[np.array([1])],
+                  sfreq=1000)
+    assert_raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types=np.array([1]))
+    assert_raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types='awesome')
+    assert_raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
+                  ch_types=None, montage=np.array([1]))
     m = read_montage('biosemi-32')
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)

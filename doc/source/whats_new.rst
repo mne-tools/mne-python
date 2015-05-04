@@ -202,7 +202,7 @@ API
 
    - Deprecated ``iir_filter_raw`` for ``fit_iir_model_raw``.
 
-   - Add ``montage`` parameter to the ``create_info`` function to update the info using montages by `Teon Brooks`_
+   - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
 
 .. _changes_0_8:
 
