@@ -6,6 +6,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import warnings
+from scipy import stats
+
+from ..epochs import equalize_epoch_counts
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
@@ -59,7 +63,36 @@ class _DecodingTime(dict):
         return "<DecodingTime | %s>" % s
 
 
-class GeneralizationAcrossTime(object):
+class _Decoder(object):
+    """
+    Base class for GeneralizationAcrossTime and DecodingTime
+    """
+    def __init__(self, cv=5, clf=None, train_times=None,
+                 predict_type='predict', predict_mode='cross-validation',
+                 n_jobs=1):
+
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.svm import SVC
+        from sklearn.pipeline import Pipeline
+
+        # Store parameters in object
+        self.cv = cv
+        # Define training sliding window
+        self.train_times = (_DecodingTime() if train_times is None
+                            else _DecodingTime(train_times))
+
+        if clf is None:
+            scaler = StandardScaler()
+            svc = SVC(C=1, kernel='linear')
+            clf = Pipeline([('scaler', scaler), ('svc', svc)])
+
+        self.clf = clf
+        self.predict_type = predict_type
+        self.predict_mode = predict_mode
+        self.n_jobs = n_jobs
+
+
+class GeneralizationAcrossTime(_Decoder):
     """Generalize across time and conditions
 
     Creates and estimator object used to 1) fit a series of classifiers on
@@ -141,25 +174,10 @@ class GeneralizationAcrossTime(object):
     """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None,
                  predict_mode='cross-validation', n_jobs=1):
-
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.svm import SVC
-        from sklearn.pipeline import Pipeline
-
-        # Store parameters in object
-        self.cv = cv
-        # Define training sliding window
-        self.train_times = (_DecodingTime() if train_times is None
-                            else _DecodingTime(train_times))
-
-        # Default classification pipeline
-        if clf is None:
-            scaler = StandardScaler()
-            svc = SVC(C=1, kernel='linear')
-            clf = Pipeline([('scaler', scaler), ('svc', svc)])
-        self.clf = clf
-        self.predict_mode = predict_mode
-        self.n_jobs = n_jobs
+        super(GeneralizationAcrossTime, self).__init__(
+            cv=cv, clf=clf, train_times=train_times,
+            predict_type=predict_type, predict_mode=predict_mode,
+            n_jobs=n_jobs)
 
     def __repr__(self):
         s = ''
@@ -914,3 +932,71 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
                       for train, test in cv)
     scores = np.mean(scores, axis=0)
     return scores
+
+
+class TimeDecoding(_Decoder):
+    """Fit a series of estimators across every time point to find the
+    cross-validation score while predicting the event_id for every
+    epoch.
+    """
+
+    def __init__(self, cv=5, clf=None, predict_type='predict',
+                 predict_mode='cross-validation', n_jobs=1):
+        super(TimeDecoding, self).__init__(
+            cv=cv, clf=clf, predict_type=predict_type,
+            predict_mode=predict_mode, n_jobs=n_jobs)
+
+    def fit(self, epochs, y=None, picks=None):
+        """
+        TODO: XXX
+        """
+        from sklearn.base import clone
+        from sklearn.cross_validation import check_cv, StratifiedKFold
+
+        n_jobs = self.n_jobs
+
+        if picks is None:
+            picks = pick_types(epochs.info, meg=True, eeg=True,
+                               exclude='bads')
+
+        event_ids = epochs.event_id
+        epochs_list = [epochs[event] for event in event_ids]
+        equalize_epoch_counts(epochs_list)
+
+        X = [e.get_data()[:, picks, :] for e in epochs_list]
+        if y is None:
+            y = np.concatenate(
+                [k * np.ones(len(this_X)) for k, this_X in enumerate(X)])
+        X = np.concatenate(X)
+
+        # Chunk X for parallelization
+        if n_jobs > 0:
+            n_chunk = n_jobs
+        else:
+            n_chunk = multiprocessing.cpu_count()
+
+        # Avoid splitting the data in more time chunk than there is time points
+        if n_chunk > X.shape[2]:
+            n_chunk = X.shape[2]
+
+        cv = self.cv
+        if isinstance(cv, (int, np.int)):
+            cv = StratifiedKFold(y, cv)
+        cv = check_cv(cv, X, y, classifier=True)
+        self.cv_ = cv  # update CV
+
+        def _cv_constant_time(clf, X, y, cv):
+            estimators = list()
+            for train, test in cv:
+                clf.fit(X[train, :], y[train])
+                estimators.append(clf)
+            return estimators
+
+        parallel, parallel_time, n_jobs = parallel_func(
+            _cv_constant_time, n_jobs)
+
+        n_times = epochs.times.size
+        self.estimators_ = parallel(
+            parallel_time(clone(self.clf), X[:, :, i], y, cv)
+            for i in xrange(n_times))
+        return self
