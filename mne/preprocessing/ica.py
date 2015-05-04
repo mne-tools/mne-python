@@ -1364,7 +1364,7 @@ class ICA(ContainsMixin):
                     show=True):
         """Plot scores related to detected components.
 
-        Use this function to asses how well your score describes outlier
+        Use this function to assess how well your score describes outlier
         sources and how well you were detecting them.
 
         Parameters

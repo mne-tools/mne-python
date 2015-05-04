@@ -1145,7 +1145,7 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
         If str, then all channels are assumed to be of the same type.
-    montage : None | str | Montage | DigMontage | list of montages
+    montage : None | str | Montage | DigMontage | list
         A montage containing channel positions. If str or Montage is
         specified, the channel info will be updated with the channel
         positions. Default is None. If DigMontage is specified, the
