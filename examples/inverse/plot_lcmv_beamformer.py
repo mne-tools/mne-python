@@ -51,9 +51,10 @@ evoked = epochs.average()
 
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
+# Read regularized noise covariance and compute regularized data covariance
 noise_cov = mne.read_cov(fname_cov)
-
-data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
+data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15,
+                                  method='shrunk')
 
 plt.close('all')
 

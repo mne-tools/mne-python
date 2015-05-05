@@ -35,7 +35,7 @@ evoked.crop(tmin=-50e-3, tmax=300e-3)
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
                                     force_fixed=False)
 
-# Read noise covariance matrix
+# Read regularized noise covariance matrix
 cov = mne.read_cov(cov_fname)
 
 # Run the Gamma-MAP method
