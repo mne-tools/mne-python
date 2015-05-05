@@ -149,7 +149,8 @@ def _pick_bad_channels(event, params):
 
 def _mouse_click(event, params):
     """Vertical select callback"""
-    if event.inaxes is None or event.button != 1:
+    # only left and right click handled
+    if event.inaxes is None or (event.button != 1 and event.button != 3):
         return
     plot_fun = params['plot_fun']
     # vertical scrollbar changed
@@ -163,7 +164,38 @@ def _mouse_click(event, params):
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
 
     elif event.inaxes == params['ax']:
-        _pick_bad_channels(event, params)
+        # vertical lines added
+        if event.key == 'shift':
+            if (params['fillarea'] in params['ax'].collections):
+                params['ax'].collections.remove(params['fillarea'])
+            x = np.array([event.xdata] * 2)
+            y = np.array(params['ax'].get_ylim())
+            if event.button == 1:
+                xdata = params['ax_leftline'].get_xdata()
+                if np.abs(xdata[0] - x[0]) < 0.2:
+                    params['ax_leftline'].set_data([0, 0], y)
+                    event.canvas.draw()
+                    return
+                params['ax_leftline'].set_data(x, y)
+                xdata = params['ax_rightline'].get_xdata()
+                params['fillarea'] = params['ax'].fill_betweenx(y, x, xdata,
+                                                                facecolor='y',
+                                                                alpha=0.2)
+            elif event.button == 3:
+                xdata = params['ax_rightline'].get_xdata()
+                if np.abs(xdata[0] - x[0]) < 0.2:
+                    x = params['raw'].index_as_time(params['raw'].last_samp)[0]
+                    params['ax_rightline'].set_data([x, x], y)
+                    event.canvas.draw()
+                    return
+                params['ax_rightline'].set_data(x, y)
+                xdata = params['ax_leftline'].get_xdata()
+                params['fillarea'] = params['ax'].fill_betweenx(y, xdata, x,
+                                                                facecolor='y',
+                                                                alpha=0.2)
+            event.canvas.draw()
+        else:
+            _pick_bad_channels(event, params)
 
 
 def _plot_raw_time(value, params):
@@ -573,6 +605,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
+    params['ax_leftline'] = ax.plot([0, 0], ylim, color=vertline_color,
+                                    zorder=-1)[0]
+    x = params['raw'].index_as_time(params['raw'].last_samp)[0]
+    params['ax_rightline'] = ax.plot([x, x], ylim, color=vertline_color,
+                                     zorder=-1)[0]
+    params['fillarea'] = ax.fill_betweenx([0, 0], [0, 0])
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
