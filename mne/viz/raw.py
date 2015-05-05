@@ -607,9 +607,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     vertline_color = (0., 0.75, 0.)
     params['ax_leftline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
+    params['ax_leftline'].ch_name = ''
     x = params['raw'].index_as_time(params['raw'].last_samp)[0]
     params['ax_rightline'] = ax.plot([x, x], ylim, color=vertline_color,
                                      zorder=-1)[0]
+    params['ax_rightline'].ch_name = ''
     params['fillarea'] = ax.fill_betweenx([0, 0], [0, 0])
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
