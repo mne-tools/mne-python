@@ -1208,9 +1208,9 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     channel type separately. Special care is taken to keep the
     rank of the data constant.
 
-    Note. This function is kept for reasons of backwards-compatibility.
-    Please consider explicitly using the `method` parameter in
-    compute_covariance to directly combine estimation with regularization
+    **Note:** This function is kept for reasons of backward-compatibility.
+    Please consider explicitly using the ``method`` parameter in
+    `compute_covariance` to directly combine estimation with regularization
     in a data-driven fashion.
 
     Parameters

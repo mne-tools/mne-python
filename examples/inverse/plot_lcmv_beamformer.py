@@ -25,7 +25,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_raw-eve.fif'
 fname_fwd = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_cov = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 label_name = 'Aud-lh'
 fname_label = data_path + '/MEG/sample/labels/%s.label' % label_name
 
@@ -52,8 +52,6 @@ evoked = epochs.average()
 forward = mne.read_forward_solution(fname_fwd, surf_ori=True)
 
 noise_cov = mne.read_cov(fname_cov)
-noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 data_cov = mne.compute_covariance(epochs, tmin=0.04, tmax=0.15)
 

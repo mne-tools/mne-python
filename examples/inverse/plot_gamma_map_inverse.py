@@ -23,7 +23,7 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 
 # Read the evoked response and crop it
 condition = 'Left visual'
@@ -35,9 +35,8 @@ evoked.crop(tmin=-50e-3, tmax=300e-3)
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
                                     force_fixed=False)
 
-# Read noise covariance matrix and regularize it
+# Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
-cov = mne.cov.regularize(cov, evoked.info)
 
 # Run the Gamma-MAP method
 alpha = 0.5

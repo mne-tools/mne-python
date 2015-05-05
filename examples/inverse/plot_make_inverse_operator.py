@@ -24,7 +24,7 @@ print(__doc__)
 data_path = sample.data_path()
 fname_fwd_meeg = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 fname_fwd_eeg = data_path + '/MEG/sample/sample_audvis-eeg-oct-6-fwd.fif'
-fname_cov = data_path + '/MEG/sample/sample_audvis-cov.fif'
+fname_cov = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 fname_evoked = data_path + '/MEG/sample/sample_audvis-ave.fif'
 
 snr = 3.0
@@ -34,10 +34,6 @@ lambda2 = 1.0 / snr ** 2
 evoked = mne.read_evokeds(fname_evoked, condition=0, baseline=(None, 0))
 forward_meeg = mne.read_forward_solution(fname_fwd_meeg, surf_ori=True)
 noise_cov = mne.read_cov(fname_cov)
-
-# regularize noise covariance
-noise_cov = mne.cov.regularize(noise_cov, evoked.info,
-                               mag=0.05, grad=0.05, eeg=0.1, proj=True)
 
 # Restrict forward solution as necessary for MEG
 forward_meg = mne.pick_types_forward(forward_meeg, meg=True, eeg=False)
