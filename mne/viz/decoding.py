@@ -152,3 +152,45 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     if show is True:
         plt.show()
     return fig if ax is None else ax.get_figure()
+
+
+def plot_time_decoding_scores(
+    tdec, title=None, xmin=None, xmax=None, ymin=0., ymax=1., ax=None,
+    show=True, color='b', xlabel=True, ylabel=True, legend=True):
+
+    if not hasattr(tdec, 'scores_'):
+        raise RuntimeError('Please score your data before trying to plot '
+                           'scores')
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
+    times = tdec.times_ * 10**3
+    scores = tdec.scores_
+    if xmin is None:
+        xmin = times[0]
+    if xmax is None:
+        xmax = times[-1]
+
+    if xlabel is True:
+        ax.set_xlabel("Time (ms)")
+    if ylabel is True:
+        ax.set_ylabel("CV classification score (% correct)")
+
+    ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
+    ax.axvline(0, color='r', label='stim onset')
+
+    if title is None:
+        title = "Decoding sensor space data."
+    ax.set_title(title)
+    ax.plot(times, scores, color=color, label="Classif. score")
+    ax.set_ylim([ymin, ymax])
+    ax.set_xlim([xmin, xmax])
+
+    if legend is True:
+        ax.legend(loc='best')
+
+    if show is True:
+        plt.show()
+    return fig if ax is None else ax.get_figure()
