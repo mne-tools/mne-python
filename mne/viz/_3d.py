@@ -860,16 +860,18 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
         colors = cycle(COLORS)
 
     fig = mlab.figure(size=fig_size, bgcolor=bgcolor, fgcolor=(0, 0, 0))
-    mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
-                         faces, color=mesh_color, opacity=opacity)
+    with warnings.catch_warnings(record=True):  # FutureWarning in traits
+        mlab.triangular_mesh(points[:, 0], points[:, 1], points[:, 2],
+                             faces, color=mesh_color, opacity=opacity)
 
     for dip, color in zip(dipoles, colors):
         rgb_color = color_converter.to_rgb(color)
-        mlab.quiver3d(dip.pos[0, 0], dip.pos[0, 1], dip.pos[0, 2],
-                      dip.ori[0, 0], dip.ori[0, 1], dip.ori[0, 2],
-                      opacity=1., mode=mode, color=rgb_color,
-                      scalars=dip.amplitude.max(), scale_factor=scale_factor)
-
+        with warnings.catch_warnings(record=True):  # FutureWarning in traits
+            mlab.quiver3d(dip.pos[0, 0], dip.pos[0, 1], dip.pos[0, 2],
+                          dip.ori[0, 0], dip.ori[0, 1], dip.ori[0, 2],
+                          opacity=1., mode=mode, color=rgb_color,
+                          scalars=dip.amplitude.max(),
+                          scale_factor=scale_factor)
     if fig_name is not None:
         mlab.title(fig_name)
     if fig.scene is not None:  # safe for Travis

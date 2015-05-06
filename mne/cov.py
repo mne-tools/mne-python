@@ -27,6 +27,7 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
+from .defaults import _handle_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_sklearn_version, _time_mask)
@@ -502,7 +503,7 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         The cross validation method. Defaults to 3, which will
         internally trigger a default 3-fold shuffle split.
     scalings : dict
-        Defaults to ``dict(grad=1e-13, mag=4e-15, eeg=1e-6)``.
+        Defaults to ``dict(mag=1e15, grad=1e13, eeg=1e6)``.
         These defaults will scale magnetometers and gradiometers
         at the same unit.
     n_jobs : int
@@ -541,14 +542,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
            'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
 
     # scale to natural unit for best stability with MEG/EEG
-    _scalings = dict(grad=1e13, mag=1e15, eeg=1e6)
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
                 raise ValueError('The keys in `scalings` must be "mag" or'
                                  '"grad" or "eeg". You gave me: %s' % k)
-        _scalings.update(scalings)
-    scalings = _scalings
+    scalings = _handle_default('scalings', scalings)
 
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
@@ -1114,7 +1113,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         Data will be rescaled before rank estimation to improve accuracy.
         If dict, it will override the following dict (default if None):
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1125,9 +1124,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     else:
         C = np.diag(noise_cov.data[C_ch_idx])
 
-    scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if isinstance(scalings, dict):
-        scalings_.update(scalings)
+    scalings = _handle_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -1165,7 +1162,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
-            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings_)
+            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
         C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
                                                    rank_meg)
     if has_eeg:
@@ -1174,7 +1171,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
-            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings_)
+            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -1401,7 +1398,7 @@ def whiten_evoked(evoked, noise_cov, picks=None, diag=False, rank=None,
         rescaling. If dict, it will override the
         following default dict (default if None):
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(mag=1e12, grad=1e11, eeg=1e5)
 
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
@@ -1431,11 +1428,8 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
-    scalings_ = dict(mag=1e12, grad=1e11, eeg=1e5)
-    if isinstance(scalings, dict):
-        scalings_.update(scalings)
-
-    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings_)[0]
+    scalings = _handle_default('scalings_cov_rank', scalings)
+    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
     return W
 
 
@@ -1740,7 +1734,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         The rescaling method to be applied. If dict, it will override the
         following default dict:
 
-            dict(mag=1e15, grad=1e13, eeg=1e6)
+            dict(mag=1e12, grad=1e11, eeg=1e5)
 
         If 'norm' data will be scaled by channel-wise norms. If array,
         pre-specified norms will be used. If None, no scaling will be applied.
@@ -1760,6 +1754,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
+    scalings = _handle_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "

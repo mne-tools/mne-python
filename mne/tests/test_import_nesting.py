@@ -14,7 +14,8 @@ import mne
 ok_scipy_submodules = set(['fftpack', 'lib', 'linalg',
                            'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
-                       if x.startswith('scipy.') and '__' not in x)
+                       if x.startswith('scipy.') and '__' not in x and
+                       not x.split('.')[1].startswith('_'))
 bad = scipy_submodules - ok_scipy_submodules
 if len(bad) > 0:
     print('Found un-nested scipy submodules:\\n%s' % bad, end='')

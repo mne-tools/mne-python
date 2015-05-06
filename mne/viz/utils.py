@@ -11,7 +11,6 @@ from __future__ import print_function
 # License: Simplified BSD
 
 import math
-from copy import deepcopy
 from functools import partial
 import difflib
 import webbrowser
@@ -25,49 +24,6 @@ from ..utils import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
-
-DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                           emg='k', ref_meg='steelblue', misc='k', stim='k',
-                           resp='k', chpi='k', exci='k', ias='k', syst='k',
-                           seeg='k'),
-                units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU',
-                           seeg='uV'),
-                scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0,
-                              seeg=1e4),
-                scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
-                                       eog=150e-6, ecg=5e-4, emg=1e-3,
-                                       ref_meg=1e-12, misc=1e-3,
-                                       stim=1, resp=1, chpi=1e-4, exci=1,
-                                       ias=1, syst=1, seeg=1e-5),
-                ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
-                          eeg=(-200., 200.), misc=(-5., 5.),
-                          seeg=(-200., 200.)),
-                titles=dict(eeg='EEG', grad='Gradiometers',
-                            mag='Magnetometers', misc='misc', seeg='sEEG'),
-                mask_params=dict(marker='o',
-                                 markerfacecolor='w',
-                                 markeredgecolor='k',
-                                 linewidth=0,
-                                 markeredgewidth=1,
-                                 markersize=4))
-
-
-def _mutable_defaults(*mappings):
-    """ To avoid dicts as default keyword arguments
-
-    Use this function instead to resolve default dict values.
-    Example usage:
-    scalings, units = _mutable_defaults(('scalings', scalings,
-                                         'units', units))
-    """
-    out = []
-    for k, v in mappings:
-        this_mapping = DEFAULTS[k]
-        if v is not None:
-            this_mapping = deepcopy(DEFAULTS[k])
-            this_mapping.update(v)
-        out += [this_mapping]
-    return out
 
 
 def _setup_vmin_vmax(data, vmin, vmax):
