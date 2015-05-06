@@ -27,15 +27,12 @@ from .io.tag import find_tag
 from .io.tree import dir_tree_find
 from .io.write import (start_block, end_block, write_int, write_name_list,
                        write_double, write_float_matrix, write_string)
+from .defaults import _mutable_default
 from .epochs import _is_good
 from .utils import (check_fname, logger, verbose, estimate_rank,
                     _compute_row_norms, check_sklearn_version, _time_mask)
 
 from .externals.six.moves import zip
-
-
-DEFAULTS = dict(scalings=dict(mag=1e15, grad=1e13, eeg=1e6),
-                scalings_cov_rank=dict(mag=1e12, grad=1e11, eeg=1e5))
 
 
 def _check_covs_algebra(cov1, cov2):
@@ -545,14 +542,12 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
            'in a list) are "%s"' % '" or "'.join(accepted_methods + ('None',)))
 
     # scale to natural unit for best stability with MEG/EEG
-    _scalings = DEFAULTS['scalings']
     if isinstance(scalings, dict):
         for k, v in scalings.items():
             if k not in ('mag', 'grad', 'eeg'):
                 raise ValueError('The keys in `scalings` must be "mag" or'
                                  '"grad" or "eeg". You gave me: %s' % k)
-        _scalings.update(scalings)
-    scalings = _scalings
+    scalings = _mutable_default('scalings', scalings)
 
     _method_params = {
         'empirical': {'store_precision': False, 'assume_centered': True},
@@ -1129,9 +1124,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     else:
         C = np.diag(noise_cov.data[C_ch_idx])
 
-    _scalings = DEFAULTS['scalings_cov_rank']
-    if isinstance(scalings, dict):
-        _scalings.update(scalings)
+    scalings = _mutable_default('scalings_cov_rank', scalings)
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -1169,7 +1162,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
-            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, _scalings)
+            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
         C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
                                                    rank_meg)
     if has_eeg:
@@ -1178,7 +1171,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
-            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, _scalings)
+            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -1435,11 +1428,8 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
         noise_cov = cp.deepcopy(noise_cov)
         noise_cov['data'] = np.diag(np.diag(noise_cov['data']))
 
-    _scalings = DEFAULTS['scalings_cov_rank']
-    if isinstance(scalings, dict):
-        _scalings.update(scalings)
-
-    W = compute_whitener(noise_cov, info, rank=rank, scalings=_scalings)[0]
+    scalings = _mutable_default('scalings_cov_rank', scalings)
+    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
     return W
 
 
@@ -1717,8 +1707,7 @@ def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
-    if scalings is None:
-        scalings = DEFAULTS['scalings']
+    scalings = _mutable_default('scalings', scalings)
     _apply_scaling_array(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "
@@ -1766,8 +1755,7 @@ def _estimate_rank_meeg_cov(data, info, scalings, tol=1e-4,
         thresholded to determine the rank are also returned.
     """
     picks_list = _picks_by_type(info)
-    if scalings is None:
-        scalings = DEFAULTS['scalings_cov_rank']
+    scalings = _mutable_default('scalings_cov_rank', scalings)
     _apply_scaling_cov(data, picks_list, scalings)
     if data.shape[1] < data.shape[0]:
         ValueError("You've got fewer samples than channels, your "

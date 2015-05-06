@@ -16,8 +16,8 @@ from ..io.pick import pick_types
 from ..io.proj import setup_proj
 from ..utils import set_config, get_config, verbose, deprecated
 from ..time_frequency import compute_raw_psd
-from .utils import (figure_nobar, _toggle_options, _mutable_defaults,
-                    _toggle_proj, tight_layout)
+from .utils import figure_nobar, _toggle_options, _toggle_proj, tight_layout
+from ..defaults import _mutable_default
 
 
 def _plot_update_raw_proj(params, bools):
@@ -407,8 +407,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
-    color, scalings = _mutable_defaults(('color', color),
-                                        ('scalings_plot_raw', scalings))
+    color = _mutable_default('color', color)
+    scalings = _mutable_default('scalings_plot_raw', scalings)
 
     if clipping is not None and clipping not in ('clamp', 'transparent'):
         raise ValueError('clipping must be None, "clamp", or "transparent", '

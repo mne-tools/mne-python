@@ -37,12 +37,13 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import (_mutable_defaults, plot_epochs, _drop_log_stats,
-                  plot_epochs_psd, plot_epochs_psd_topomap)
-from .utils import check_fname, logger, verbose
-from .externals import six
+from .defaults import _mutable_default
+from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
+                  plot_epochs_psd_topomap)
+from .utils import (check_fname, logger, verbose, _check_type_picks,
+                    _time_mask, deprecated)
+from .externals.six import iteritems
 from .externals.six.moves import zip
-from .utils import _check_type_picks, _time_mask, deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -1529,7 +1530,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _mutable_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
@@ -1973,7 +1974,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                         for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
-            for key, thresh in six.iteritems(refl):
+            for key, thresh in iteritems(refl):
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
@@ -2152,7 +2153,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     if selection is None:
         selection = np.arange(len(epochs))
     if drop_log is None:
-        drop_log = [[] for _ in range(len(epochs))]  # noqa
+        drop_log = [[] for _ in range(len(epochs))]  # noqa, analysis:ignore
 
     epochs.selection = selection
     epochs.drop_log = drop_log
