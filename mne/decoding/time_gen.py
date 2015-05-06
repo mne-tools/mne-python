@@ -7,7 +7,6 @@
 
 import numpy as np
 import warnings
-from scipy import stats
 
 from ..epochs import equalize_epoch_counts
 from ..viz.decoding import (
@@ -71,7 +70,6 @@ class _Decoder(object):
     def __init__(self, cv=5, clf=None, train_times=None,
                  predict_type='predict', predict_mode='cross-validation',
                  n_jobs=1):
-
         from sklearn.preprocessing import StandardScaler
         from sklearn.svm import SVC
         from sklearn.pipeline import Pipeline
@@ -958,20 +956,117 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
 
 
 class TimeDecoding(_Decoder):
-    """Fit a series of estimators across every time point to find the
-    cross-validation score while predicting the event_id for every
-    epoch.
     """
+    Cross-validate a series of estimators across every time point
+    to decode the event_id of each epoch.
 
+    Parameters
+    ----------
+    cv : int | object
+        If an integer is passed, it is the number of folds.
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects.
+        Defaults to 5.
+
+    clf : object | None
+        An estimator compliant with the scikit-learn API (fit & predict).
+        If None the classifier will be a standard pipeline including
+        StandardScaler and a linear SVM with default parameters.
+
+    predict_type : {'predict', 'predict_proba', 'decision_function'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+
+            'predict_proba' : generates a probabilistic estimate of each trial.
+
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
+        Default: 'predict'
+
+    predict_mode : {'cross-validation', 'mean-prediction'}
+        Indicates how predictions are achieved with regards to the cross-
+        validation procedure:
+
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+
+        Default: 'cross-validation'
+
+    n_jobs : int
+        Number of jobs to run in parallel. Defaults to 1.
+
+    Attributes
+    ----------
+    y_train_ : np.ndarray, shape (n_samples,)
+        The categories used for training.
+
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
+
+    y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+        Class labels for samples in X.
+
+    scores_ : np.ndarray, shape (n_times,)
+        Mean accuracy score for every time.
+
+    cv_ : CrossValidation object
+        The actual CrossValidation input depending on y.
+    """
     def __init__(self, cv=5, clf=None, predict_type='predict',
                  predict_mode='cross-validation', n_jobs=1):
         super(TimeDecoding, self).__init__(
             cv=cv, clf=clf, predict_type=predict_type,
             predict_mode=predict_mode, n_jobs=n_jobs)
 
+    def __repr__(self):
+        s = ''
+        if hasattr(self, "estimators_"):
+            s += ("fitted, %d time points" % len(self.estimators_))
+        else:
+            s += 'no fit'
+        if hasattr(self, 'y_pred_'):
+            s += (", predicted %d epochs" % self.y_pred_.shape[1])
+        else:
+            s += ", no prediction"
+        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
+            s += ',\n '
+        else:
+            s += ', '
+        if hasattr(self, 'scores_'):
+            s += "scored"
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
+        else:
+            s += "no score"
+
+        return "<TimeDecoding | %s>" % s
+
     def fit(self, epochs, y=None, picks=None):
-        """
-        TODO: XXX
+        """ Train a classifier on each time point.
+
+        This method sets the ``y_train_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs.
+
+        y : np.ndarray of int, shape (n_samples,) | None
+            To-be-fitted model values. If None, y = epochs.events[:, 2].
+            Defaults to None.
+
+        picks : np.ndarray of int, shape (n_channels,) | None
+            The channels to be used. If None, defaults to meg and eeg channels.
+            Defaults to None.
+
+        Returns
+        -------
+        self : object
+            Returns self.
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
@@ -1028,9 +1123,28 @@ class TimeDecoding(_Decoder):
         return self
 
     def predict(self, epochs, picks=None, test_times=None):
+        """ Predict the event_id for every epoch for every time point.
+
+        Note. This function sets and updates the ``y_pred_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See independent
+            parameter.
+
+        picks : np.ndarray (n_selected_chans,) | None
+            Channels to be included.
+
+        test_times : None
+            Not to be used.
+
+        Returns
+        -------
+        y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+            Class labels for samples in X.
         """
-        XXX: TODO
-        """
+        from scipy import stats
         n_jobs = self.n_jobs
 
         if not hasattr(self, 'estimators_'):
@@ -1106,6 +1220,32 @@ class TimeDecoding(_Decoder):
         return self.y_pred_
 
     def score(self, epochs=None, y=None, scorer=None):
+        """Score Epochs
+
+        Estimate scores across n_times by comparing the prediction
+        estimated for each trial to its true value.
+
+        Note. The function updates the ``scores_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs | None
+            The epochs. Can be similar to fitted epochs or not. See independent
+            parameter.
+            If None, it relies on the ``y_pred_`` generated from predit()
+
+        y : list | np.ndarray, shape (n_epochs,) | None
+            To-be-fitted model, If None, y = epochs.events[:,2].
+            Defaults to None.
+
+        scorer : object
+            scikit-learn Scorer instance. Default: accuracy_score
+
+        Returns
+        -------
+        scores : np.ndarray (n_times,)
+            Scores obtained across every trial.
+        """
         self._score(epochs, y, scorer)
 
         n_times = self.y_pred_.shape[0]
@@ -1130,6 +1270,40 @@ class TimeDecoding(_Decoder):
     def plot(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
              ax=None, show=True, color='steelblue', xlabel=True,
              ylabel=True, legend=True):
+
+        """Plotting function of TimeDecoding object
+
+        Parameters
+        ----------
+        title : str | None
+            Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
+        ymin : float
+            Min score value. Defaults to 0.
+        ymax : float
+            Max score value. Defaults to 1.
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+            Defaults to None.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str
+            Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
         return plot_time_decoding_scores(
             self, title=title, xmin=xmin, xmax=xmax, ymin=ymin,
             ymax=ymax, ax=ax, show=show, color=color, xlabel=xlabel,

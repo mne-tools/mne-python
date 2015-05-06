@@ -154,9 +154,43 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     return fig if ax is None else ax.get_figure()
 
 
-def plot_time_decoding_scores(
-    tdec, title=None, xmin=None, xmax=None, ymin=0., ymax=1., ax=None,
-    show=True, color='b', xlabel=True, ylabel=True, legend=True):
+def plot_time_decoding_scores(tdec, title=None, xmin=None, xmax=None,
+                              ymin=0., ymax=1., ax=None,
+                              show=True, color='b', xlabel=True,
+                              ylabel=True, legend=True):
+    """Plotting function of TimeDecoding object
+
+    Parameters
+    ----------
+    title : str | None
+        Figure title. Defaults to None.
+    xmin : float | None, optional, defaults to None.
+        Min time value.
+    xmax : float | None, optional, defaults to None.
+        Max time value.
+    ymin : float
+        Min score value. Defaults to 0.
+    ymax : float
+        Max score value. Defaults to 1.
+    ax : object | None
+        Instance of mataplotlib.axes.Axis. If None, generate new figure.
+        Defaults to None.
+    show : bool
+        If True, the figure will be shown. Defaults to True.
+    color : str
+        Score line color. Defaults to 'steelblue'.
+    xlabel : bool
+        If True, the xlabel is displayed. Defaults to True.
+    ylabel : bool
+        If True, the ylabel is displayed. Defaults to True.
+    legend : bool
+        If True, a legend is displayed. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure.
+    """
 
     if not hasattr(tdec, 'scores_'):
         raise RuntimeError('Please score your data before trying to plot '

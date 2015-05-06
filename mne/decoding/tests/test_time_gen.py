@@ -12,7 +12,7 @@ import numpy as np
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, slow_test
 from mne.decoding import time_generalization
-from mne.decoding import GeneralizationAcrossTime
+from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -226,3 +226,36 @@ def test_generalization_across_time():
                     gat = GeneralizationAcrossTime(cv=2, clf=clf)
                     gat.fit(epochs, y=y_)
                     gat.score(epochs, y=y_, scorer=scorer)
+
+@requires_sklearn
+def test_time_decoding():
+    """Test time decoding
+    """
+    from sklearn.svm import SVC
+
+    raw = io.Raw(raw_fname, preload=False)
+    events = read_events(event_name)
+    picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
+                       eog=False, exclude='bads')
+    picks = picks[0:2]
+    decim = 30
+
+    with warnings.catch_warnings(record=True):
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        baseline=(None, 0), preload=True, decim=decim)
+
+    n_times = len(epochs.times)
+    n_epochs = epochs.events.shape[0]
+
+    tc = TimeDecoding()
+    with warnings.catch_warnings(record=True):
+        tc.fit(epochs)
+    assert_equal(len(tc.estimators_), n_times)
+
+    y_pred = tc.predict(epochs)
+    assert_equal(y_pred.shape, (n_times, n_epochs, 1))
+
+    scores = tc.score(epochs)
+    assert_equal(scores.size, n_times)
+    assert_true(0.0 <= np.min(scores) <= 1.0)
+    assert_true(0.0 <= np.max(scores) <= 1.0)
