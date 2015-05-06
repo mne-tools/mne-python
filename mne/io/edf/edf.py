@@ -528,6 +528,7 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
             chan_info['ch_name'] = 'STI 014'
             info['ch_names'][idx] = chan_info['ch_name']
+            units[idx] = 1
             if isinstance(stim_channel, str):
                 stim_channel = idx
         if tal_channel == idx:
