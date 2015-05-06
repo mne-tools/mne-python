@@ -19,7 +19,7 @@ import numpy as np
 from mne.connectivity.cfc import (generate_pac_signal,
                                   phase_amplitude_coupling,
                                   modulation_index)
-from mne.viz.misc import plot_phase_amplitude_coupling
+from mne.viz import plot_phase_amplitude_coupling
 from mne.viz.utils import tight_layout
 
 # First, generate the synthetic data

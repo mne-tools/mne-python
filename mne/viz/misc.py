@@ -545,8 +545,7 @@ def _get_presser(fig):
 
 def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
                                   title=None, show=True):
-    """
-    Plot the phase amplitude plot.
+    """Plot the phase amplitude plot.
 
     Parameters
     ----------
@@ -561,7 +560,8 @@ def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
 
     Returns
     -------
-    None
+    fig : Instance of matplotlib.figure.Figure
+          Figure
     """
     if title is None:
         title = 'Phase amplitude plot'
@@ -580,16 +580,14 @@ def plot_phase_amplitude_coupling(phase_bins, normalized_amplitude,
 
 
 def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
-                                  z_threshold, erp, show=True):
-    """
-    Plot showing cross frequency coupling between evoked related potentials
-    across frequency points.
+                                  z_threshold, avg, show=True):
+    """Plot cross frequency coupling.
 
     Parameters
     ----------
     times : array, shape (n_times,)
         Time points for signal plotting.
-    freqs : array, shape (f_n,)
+    freqs : array, shape (n_freqs,)
         Frequency points across range at which amplitudes are computed.
     traces : ndarray, shape (n_epochs, n_times)
         Normalized amplitude traces.
@@ -597,8 +595,8 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
         Statistically significant amplitude traces.
     z_threshold : float
         Threshold of statistically significant amplitude traces.
-    erp : array, shape (n_times,)
-        Evoked related potential.
+    avg : array, shape (n_times,)
+        Average (or evoked) signal.
     show : bool
         Call pyplot.show() at the end. Default True.
 
@@ -624,10 +622,10 @@ def plot_cross_frequency_coupling(times, freqs, traces, ztraces,
     ax1.axis('tight')
     ax1.set_ylabel('Freq (Hz)')
 
-    ax2.plot(times, erp, 'k')
-    ax2.set_ylim([np.min(erp), np.max(erp)])
+    ax2.plot(times, avg, 'k')
+    ax2.set_ylim([np.min(avg), np.max(avg)])
     ax2.set_xlabel('Times (s)')
-    ax2.set_ylabel('ERP')
+    ax2.set_ylabel('Average')
     tight_layout()
     if show:
         plt.show()

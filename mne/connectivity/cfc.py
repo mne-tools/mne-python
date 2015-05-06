@@ -1,3 +1,4 @@
+""" Cross frequency coupling functions. """
 # Authors: Praveen Sripad <praveen.sripad@rwth-aachen.de>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
@@ -22,13 +23,13 @@ def _abs_cwt(x, W):
     return np.abs(cwt(x, [W], use_fft=False).ravel()).astype(np.float)
 
 
-def make_surrogate_data(data):
-    """ Returns a copy of the shuffled surrogate data.
+def shuffle_data(data):
+    """ Returns a copy of the shuffled data.
 
     Parameters
     ----------
-    data : ndarray, shape (n_epochs, n_times)
-        Data to be shuffled.
+    data : array (n_epochs, n_times)
+        Input array to be shuffled.
 
     Returns
     -------
@@ -70,7 +71,7 @@ def simulate_cfc_data(sfreq, n_epochs, phase_freq, l_amp_freq,
     n_jobs : int
         Number of jobs to run in parallel. Default 1.
     random_state : None | int | instance of np.random.RandomState
-        np.random.RandomState to initialize the noise estimation.
+        np.random.RandomState to initialize the noise generation.
         Default value is None.
     surrogates : bool
         Return shuffled data.
@@ -145,7 +146,7 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
         Constant that determines maximum amplitude of both signals.
         Default value is 1.0.
     random_state : None | int | instance of np.random.RandomState
-        np.random.RandomState to initialize the noise estimation.
+        np.random.RandomState to initialize the noise generation.
         Default value is None.
     mean : float
         Mean of the Gaussian distribution (np.random.normal)
@@ -208,9 +209,7 @@ def generate_pac_signal(sfreq, duration, n_epochs, f_phase, f_amplitude,
 
 
 def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
-                             l_amp_freq, h_amp_freq, n_freqs, alpha=0.001,
-                             n_surrogates=10000, random_state=None,
-                             n_jobs=1):
+                             freqs, tmin, tmax, n_jobs=1):
     """ Compute the cross frequency coupling.
 
     Parameters
@@ -222,20 +221,13 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     phase_freq : float
         The phase modulating frequency in Hz. (eg. 10.)
     n_cycles : float | array of float
-        Number of cycles used to compute morlet wavelets.
-    l_amp_freq : float
-        Lower edge of amplitude modulated frequency band in Hz. (eg. 60.)
-    h_amp_freq : float
-        Upper edge of amplitude modulated frequency band in Hz. (eg. 100.)
-    n_freqs : int
-        Number of frequency points to compute. (eg. 100)
-    alpha : float
-        Error rate allowed. Default 0.001.
-    n_surrogates : int
-        Number of surrogates. Default 10 ** 4.
-    random_state : None | int | instance of np.random.RandomState
-        np.random.RandomState to initialize the noise estimation.
-        Default value is None.
+        Number of cycles used to compute Morlet wavelets.
+    freqs : array
+        Frequency range of interest (1 x Frequencies)
+    tmin : float
+        Start time before event.
+    tmax : float
+        End time after event.
     n_jobs : int
         Number of jobs to run in parallel. Default 1.
 
@@ -243,19 +235,18 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     -------
     times : array, shape (n_times,)
         Time points for signal plotting.
-    freqs : array, shape (n_freqs,)
-        Frequency points across range at which amplitudes are computed.
+    ampmat : ndarray (nfreq, n_samples)
+        Amplitude traces.
     traces : ndarray, shape (n_epochs, n_times)
         Normalized amplitude traces.
-    ztraces : ndarray, shape (n_epochs, n_times)
-        Statistically significant amplitude traces.
-    z_threshold : float
-        Threshold of statistically significant amplitude traces.
-    erp : array, shape (n_times,)
-        Evoked related potential.
+    avg : array, shape (n_times,)
+        Average (or evoked) signal.
+    trigger_inds : array (trigger_inds,)
+        Indices of maxima in the phase signal.
 
-    References:
-    High gamma power is phase-locked to theta oscillations in human neocortex.
+    References
+    ----------
+    [1] High gamma power is phase-locked to theta oscillations in human neocortex.
     Canolty RT1, Edwards E, Dalal SS, Soltani M, Nagarajan SS, Kirsch HE,
     Berger MS, Barbaro NM, Knight RT.
     (Science. 2006)
@@ -272,22 +263,26 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     phases = np.angle(x_low)
     trigger_inds, _ = peak_finder(phases)
 
-    freqs = np.logspace(np.log10(l_amp_freq), np.log10(h_amp_freq), n_freqs)
-
     n_samples = data.size
+    n_freqs = len(freqs)
 
-    # define epoch for averaging:
-    n_times = int(np.round(sfreq))  # +/- 1 second around trigger
+    if tmin >= tmax:
+        raise ValueError('tmin has to be smaller than tmax')
+
+    # obtain min and max indices
+    n_times_min = -1 * int(round(tmin * sfreq))
+    n_times_max = int(round(tmax * sfreq))
+    times = np.arange(-n_times_min, n_times_max, dtype=np.float) / sfreq
 
     # makes sure all triggers allow full epoch, get rid of those that don't:
-    trigger_inds = trigger_inds[trigger_inds > n_times]
-    trigger_inds = trigger_inds[trigger_inds < n_samples - n_times]
+    trigger_inds = trigger_inds[trigger_inds > n_times_min]
+    trigger_inds = trigger_inds[trigger_inds < n_samples - n_times_max]
 
     # Compute filtered data
     Ws = morlet(sfreq, freqs, n_cycles=n_cycles, sigma=None,
                 zero_mean=True)
 
-    parallel, my_abs_cwt, _ = parallel_func(_abs_cwt, n_jobs)
+    parallel, my_abs_cwt, n_jobs = parallel_func(_abs_cwt, n_jobs)
 
     if n_jobs == 1:
         ampmat = np.empty((n_freqs, n_samples), dtype=np.float)
@@ -300,15 +295,54 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     ampmat -= np.mean(ampmat, axis=1)[:, None]
     ampmat /= np.std(ampmat, axis=1)[:, None]
 
-    # phase-triggered ERP of raw signal:
+    # phase-triggered average of raw signal:
     # and phase-triggered time-frequency amplitude values (normalized):
-    erp = np.zeros(2 * n_times)
-    traces = np.zeros((n_freqs, 2 * n_times), dtype=np.float)
+    avg = np.zeros(times.size)
+    traces = np.zeros((n_freqs, times.size), dtype=np.float)
     for ind in trigger_inds:
-        erp += data[0, ind - n_times: ind + n_times]
-        traces += ampmat[:, ind - n_times: ind + n_times]
-    erp /= len(trigger_inds)
+        avg += data[0, ind - n_times_min: ind + n_times_max]
+        traces += ampmat[:, ind - n_times_min: ind + n_times_max]
+    avg /= len(trigger_inds)
     traces /= len(trigger_inds)
+
+    return times, ampmat, traces, avg, trigger_inds
+
+
+def compute_cfc_stats(sfreq, ampmat, traces, freqs, trigger_inds,
+                      n_surrogates=10000, alpha=0.001, random_state=None):
+    """ Stats function for cross frequency coupling.
+
+    Parameters
+    ----------
+    sfreq : float
+        Sampling frequency.
+    ampmat : ndarray, shape (nfreq, n_samples)
+        Amplitude traces.
+    traces : ndarray, shape (n_epochs, n_times)
+        Normalized amplitude traces.
+    freqs : array, shape (n_freqs,)
+        Frequency points across range at which amplitudes are computed.
+    trigger_inds : array (trigger_inds,)
+        Indices of maxima in the phase signal.
+    n_surrogates : int
+        Number of surrogates. Default 10 ** 4.
+    alpha : float
+        Error rate allowed. Default 0.001.
+    random_state : None | int | instance of np.random.RandomState
+        np.random.RandomState to initialize the noise estimation.
+        Default value is None.
+
+    Returns
+    -------
+    ztraces : ndarray, shape (n_freqs, n_times)
+        Z-scored amplitude traces.
+    z_threshold : float
+        FDR corrected threshold for z-scored amplitude traces.
+    """
+
+    n_freqs = len(freqs)
+    n_samples = ampmat.size / n_freqs
+    epoch_length = traces.size / n_freqs
 
     # permutation resampling for statistical significance:
     # only need to compute mean and variance of surrogate distributions at one
@@ -316,9 +350,9 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
     # have occurred at any point
     rng = check_random_state(random_state)
     shifts = np.floor(rng.rand(2 * n_surrogates) * n_samples)
-    # get rid of trigger shifts within one second of actual occurances:
-    shifts = shifts[shifts > sfreq]
-    shifts = shifts[shifts < n_samples - sfreq]
+    # get rid of trigger shifts within one epoch of actual occurence
+    shifts = shifts[shifts > epoch_length]
+    shifts = shifts[shifts < n_samples - epoch_length]
 
     sur_distributions = np.zeros((n_freqs, n_surrogates), dtype=np.float)
     for sur in range(n_surrogates):
@@ -343,10 +377,7 @@ def cross_frequency_coupling(data, sfreq, phase_freq, n_cycles,
                            ' try changing the frequency range.')
     z_threshold = np.abs(ztraces[accept]).min()
 
-    # time points used to plot the ERP signal
-    times = np.arange(-n_times, n_times, dtype=np.float) / sfreq
-
-    return times, freqs, traces, ztraces, z_threshold, erp
+    return ztraces, z_threshold
 
 
 def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
@@ -386,7 +417,8 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     phase_bins : array, shape (number of bins + 1,)
         Binned phase points. Used for plotting.
 
-    References:
+    References
+    ----------
     Measuring phase-amplitude coupling between neuronal oscillations
     of different frequencies.
     Tort ABL, Komorowski R, Eichenbaum H, Kopell N., (J Neurophysiol. 2010)
@@ -424,8 +456,8 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
     amp_envelope_fa = np.abs(hilbert(x_fa))
 
     if surrogates is True:
-        phase_series_fp = make_surrogate_data(phase_series_fp)
-        amp_envelope_fa = make_surrogate_data(amp_envelope_fa)
+        phase_series_fp = shuffle_data(phase_series_fp)
+        amp_envelope_fa = shuffle_data(amp_envelope_fa)
 
     # Bin the phases
     bin_size = 2. * np.pi / bin_num  # 360 degrees divided by number of bins
@@ -433,7 +465,7 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
                            bin_size, bin_size)
     if len(phase_bins) - 1 != bin_num:
         raise RuntimeError('Phase bins are incorrect,'
-                           ' please check the nnumber of bins used.')
+                           ' please check the number of bins used.')
 
     # Initialize the arrays
     digitized = np.zeros(phase_series_fp.shape)
@@ -455,7 +487,7 @@ def phase_amplitude_coupling(data, sfreq, l_phase_freq, h_phase_freq,
         normalized_amplitude[trial] = (amplitude_bin_means[trial] /
                                        np.sum(amplitude_bin_means[trial]))
         assert np.round(normalized_amplitude[trial].sum()) == 1, ('Normalized'
-                        ' amplitudes are incorrect')
+            ' amplitudes are incorrect')
 
     return normalized_amplitude, phase_bins
 
@@ -464,7 +496,7 @@ def modulation_index(amplitude_distribution):
     """ Calculates the normalized modulation index.
 
     Function to compute the normalized modulation index from
-    the amplitdue distribution.
+    the amplitude distribution.
 
     Parameters
     ----------
