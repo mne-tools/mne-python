@@ -19,7 +19,7 @@ from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names
 
-from ..defaults import _mutable_default
+from ..defaults import _handle_default
 from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
                     add_background_image)
 
@@ -342,7 +342,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
-    scalings = _mutable_default('scalings', scalings)
+    scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
     for e in evoked:
         for pick, t in zip(picks, types_used):
@@ -361,7 +361,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
-        ylim_ = _mutable_default('ylim', ylim)
+        ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
         # extra unpack to avoid bug #1700
         if len(ylim_) == 1:
@@ -514,7 +514,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
-    scalings = _mutable_default('scalings', scalings)
+    scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()

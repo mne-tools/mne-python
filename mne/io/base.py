@@ -38,7 +38,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
 from ..viz import plot_raw, plot_raw_psd
-from ..defaults import _mutable_default
+from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -160,7 +160,7 @@ class ToDataFrameMixin(object):
             n_channel_types = 0
             ch_types_used = []
 
-            scalings = _mutable_default('scalings', scalings)
+            scalings = _handle_default('scalings', scalings)
             for t in scalings.keys():
                 if t in types:
                     n_channel_types += 1
@@ -1469,7 +1469,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_default('scalings', scalings)
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1

@@ -35,12 +35,12 @@ DEFAULTS = dict(
 )
 
 
-def _mutable_default(k, v=None):
+def _handle_default(k, v=None):
     """Helper to avoid dicts as default keyword arguments
 
     Use this function instead to resolve default dict values. Example usage::
 
-        scalings = _mutable_default('scalings', scalings)
+        scalings = _handle_default('scalings', scalings)
 
     """
     this_mapping = deepcopy(DEFAULTS[k])

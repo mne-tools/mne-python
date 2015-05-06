@@ -17,7 +17,7 @@ import numpy as np
 
 from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
-from ..defaults import _mutable_default
+from ..defaults import _handle_default
 from .utils import _draw_proj_checkbox, tight_layout, _check_delayed_ssp
 from ..utils import logger
 from ..io.pick import pick_info
@@ -43,9 +43,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
 
-    scalings = _mutable_default('scalings', scalings)
-    titles = _mutable_default('titles', titles)
-    units = _mutable_default('units', units)
+    scalings = _handle_default('scalings', scalings)
+    titles = _handle_default('titles', titles)
+    units = _handle_default('units', units)
     channel_types = set(key for d in [scalings, titles, units] for key in d)
     channel_types = sorted(channel_types)  # to guarantee consistent order
 
@@ -465,7 +465,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         raise RuntimeError('Wrong axes inputs')
 
     times = evoked.times * 1e3
-    titles_ = _mutable_default('titles')
+    titles_ = _handle_default('titles')
     if has_sss:
         titles_['meg'] = 'MEG (combined)'
 

@@ -37,7 +37,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .defaults import _mutable_default
+from .defaults import _handle_default
 from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
                   plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
@@ -1530,7 +1530,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_default('scalings', scalings)
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1

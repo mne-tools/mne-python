@@ -23,7 +23,7 @@ from ..utils import _clean_names, _time_mask, verbose
 from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
 from ..time_frequency import compute_epochs_psd
-from ..defaults import _mutable_default
+from ..defaults import _handle_default
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -433,7 +433,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         # prepare masking
         image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    mask_params = _mutable_default('mask_params', mask_params)
+    mask_params = _handle_default('mask_params', mask_params)
 
     # plot outline
     linewidth = mask_params['markeredgewidth']
@@ -991,7 +991,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
 
-    mask_params = _mutable_default('mask_params', mask_params)
+    mask_params = _handle_default('mask_params', mask_params)
     mask_params['markersize'] *= size / 2.
     mask_params['markeredgewidth'] *= size / 2.
 
@@ -1016,8 +1016,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     else:
         key = ch_type
 
-    scale = _mutable_default('scalings', scale)[key]
-    unit = _mutable_default('units', unit)[key]
+    scale = _handle_default('scalings', scale)[key]
+    unit = _handle_default('units', unit)[key]
 
     if not show_names:
         names = None

@@ -18,7 +18,7 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     object_hash, deprecated, _time_mask)
-from .defaults import _mutable_default
+from .defaults import _handle_default
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image)
 from .viz.evoked import _plot_evoked_white
@@ -691,7 +691,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_default('scalings', scalings)
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1

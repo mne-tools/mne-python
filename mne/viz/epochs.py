@@ -20,7 +20,7 @@ from ..io.pick import pick_types, channel_type
 from ..fixes import Counter
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
-from ..defaults import _mutable_default
+from ..defaults import _handle_default
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
@@ -69,8 +69,8 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         One figure per channel displayed
     """
     from scipy import ndimage
-    units = _mutable_default('units', units)
-    scalings = _mutable_default('scalings', scalings)
+    units = _handle_default('units', units)
+    scalings = _handle_default('scalings', scalings)
 
     import matplotlib.pyplot as plt
     if picks is None:
@@ -349,7 +349,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    scalings = _mutable_default('scalings_plot_raw', scalings)
+    scalings = _handle_default('scalings_plot_raw', scalings)
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if epoch_idx is None:

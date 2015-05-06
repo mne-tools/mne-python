@@ -1,16 +1,16 @@
 from nose.tools import assert_equal, assert_true
 from copy import deepcopy
 
-from mne.defaults import _mutable_default
+from mne.defaults import _handle_default
 
 
-def test_mutable_default():
+def test_handle_default():
     """Test mutable default
     """
-    x = deepcopy(_mutable_default('scalings'))
-    y = _mutable_default('scalings')
-    z = _mutable_default('scalings', dict(mag=1, grad=2))
-    w = _mutable_default('scalings', {})
+    x = deepcopy(_handle_default('scalings'))
+    y = _handle_default('scalings')
+    z = _handle_default('scalings', dict(mag=1, grad=2))
+    w = _handle_default('scalings', {})
     assert_equal(set(x.keys()), set(y.keys()))
     assert_equal(set(x.keys()), set(z.keys()))
     for key in x.keys():
