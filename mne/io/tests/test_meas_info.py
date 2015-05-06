@@ -13,6 +13,7 @@ from mne.io.meas_info import (Info, create_info, _write_dig_points,
                               _read_dig_points, _make_dig_points)
 from mne.utils import _TempDir
 from mne.io.kit.tests import data_dir
+from mne.channels.montage import read_montage, read_dig_montage
 
 base_dir = op.join(op.dirname(__file__), 'data')
 fiducials_fname = op.join(base_dir, 'fsaverage-fiducials.fif')
@@ -31,6 +32,45 @@ def test_make_info():
     info = create_info(n_ch, 1000., 'eeg')
     coil_types = set([ch['coil_type'] for ch in info['chs']])
     assert_true(FIFF.FIFFV_COIL_EEG in coil_types)
+
+    assert_raises(TypeError, create_info, ch_names='Test Ch', sfreq=1000)
+    assert_raises(ValueError, create_info, ch_names=['Test Ch'], sfreq=-1000)
+    assert_raises(ValueError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types=['eeg', 'eeg'])
+    assert_raises(TypeError, create_info, ch_names=[np.array([1])],
+                  sfreq=1000)
+    assert_raises(TypeError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types=np.array([1]))
+    assert_raises(KeyError, create_info, ch_names=['Test Ch'], sfreq=1000,
+                  ch_types='awesome')
+    assert_raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
+                  ch_types=None, montage=np.array([1]))
+    m = read_montage('biosemi-32')
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                       montage=m)
+    ch_pos = [ch['loc'][:3] for ch in info['chs']]
+    assert_array_equal(ch_pos, m.pos)
+
+    names = ['nasion', 'lpa', 'rpa', '1', '2', '3', '4', '5']
+    d = read_dig_montage(hsp_fname, None, elp_fname, names, unit='m',
+                         transform=False)
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                       montage=d)
+    idents = [p['ident'] for p in info['dig']]
+    assert_true(FIFF.FIFFV_POINT_NASION in idents)
+
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                       montage=[d, m])
+    ch_pos = [ch['loc'][:3] for ch in info['chs']]
+    assert_array_equal(ch_pos, m.pos)
+    idents = [p['ident'] for p in info['dig']]
+    assert_true(FIFF.FIFFV_POINT_NASION in idents)
+    info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
+                       montage=[d, 'biosemi-32'])
+    ch_pos = [ch['loc'][:3] for ch in info['chs']]
+    assert_array_equal(ch_pos, m.pos)
+    idents = [p['ident'] for p in info['dig']]
+    assert_true(FIFF.FIFFV_POINT_NASION in idents)
 
 
 def test_fiducials_io():
