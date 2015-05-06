@@ -1132,7 +1132,6 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
     _scalings = DEFAULTS['scalings_cov_rank']
     if isinstance(scalings, dict):
         _scalings.update(scalings)
-    scalings = _scalings
 
     # Create the projection operator
     proj, ncomp, _ = make_projector(info['projs'], ch_names)
@@ -1170,7 +1169,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_meg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_meg_idx)
-            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, scalings)
+            rank_meg = _estimate_rank_meeg_cov(C_meg, this_info, _scalings)
         C_meg_eig, C_meg_eigvec = _get_ch_whitener(C_meg, False, 'MEG',
                                                    rank_meg)
     if has_eeg:
@@ -1179,7 +1178,7 @@ def prepare_noise_cov(noise_cov, info, ch_names, rank=None,
         if rank_eeg is None:
             if len(C_meg_idx) < len(pick_meg):
                 this_info = pick_info(info, C_eeg_idx)
-            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, scalings)
+            rank_eeg = _estimate_rank_meeg_cov(C_eeg, this_info, _scalings)
         C_eeg_eig, C_eeg_eigvec = _get_ch_whitener(C_eeg, False, 'EEG',
                                                    rank_eeg)
         if not _has_eeg_average_ref_proj(info['projs']):
@@ -1439,9 +1438,8 @@ def _get_whitener_data(info, noise_cov, picks, diag=False, rank=None,
     _scalings = DEFAULTS['scalings_cov_rank']
     if isinstance(scalings, dict):
         _scalings.update(scalings)
-    scalings = _scalings
 
-    W = compute_whitener(noise_cov, info, rank=rank, scalings=scalings)[0]
+    W = compute_whitener(noise_cov, info, rank=rank, scalings=_scalings)[0]
     return W
 
 
@@ -1685,7 +1683,7 @@ def _check_scaling_inputs(data, picks_list, scalings):
     return scalings_
 
 
-def _estimate_rank_meeg_signals(data, info, scalings=None, tol=1e-4,
+def _estimate_rank_meeg_signals(data, info, scalings, tol=1e-4,
                                 return_singular=False, copy=True):
     """Estimate rank for M/EEG data.
 
