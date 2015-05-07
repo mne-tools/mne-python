@@ -453,6 +453,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     To mark or un-mark a channel as bad, click on the rather flat segments
     of a channel's time series. The changes will be reflected immediately
     in the raw object's ``raw.info['bads']`` entry.
+    Shift + mouse click can be used to paint an area in the plot. Shift +
+    left click marks the beginning of an area and shift + right click marks the
+    end of the area. The area and the markers can be deleted by clicking the
+    start and end points again.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
