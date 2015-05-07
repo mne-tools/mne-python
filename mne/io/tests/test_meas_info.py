@@ -45,7 +45,7 @@ def test_make_info():
                   ch_types='awesome')
     assert_raises(TypeError, create_info, ['Test Ch'], sfreq=1000,
                   ch_types=None, montage=np.array([1]))
-    m = read_montage('biosemi-32')
+    m = read_montage('biosemi32')
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
                        montage=m)
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
@@ -66,7 +66,7 @@ def test_make_info():
     idents = [p['ident'] for p in info['dig']]
     assert_true(FIFF.FIFFV_POINT_NASION in idents)
     info = create_info(ch_names=m.ch_names, sfreq=1000., ch_types='eeg',
-                       montage=[d, 'biosemi-32'])
+                       montage=[d, 'biosemi32'])
     ch_pos = [ch['loc'][:3] for ch in info['chs']]
     assert_array_equal(ch_pos, m.pos)
     idents = [p['ident'] for p in info['dig']]
