@@ -929,3 +929,268 @@ def _time_gen_one_fold(clf, X, y, train, test, scoring):
             scores[t_test, t_train] += scorer(clf, X_test, y[test])
 
     return scores
+
+
+class TimeDecoding(GeneralizationAcrossTime):
+    """Train and test a classifier at each time point to obtain a score across
+    time.
+
+    Parameters
+    ----------
+    cv : int | object
+        If an integer is passed, it is the number of folds.
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects.
+        Defaults to 5.
+    clf : object | None
+        An estimator compliant with the scikit-learn API (fit & predict).
+        If None the classifier will be a standard pipeline including
+        StandardScaler and a linear SVM with default parameters.
+    train_times : dict | None
+        A dictionary to configure the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``start`` : float
+                Time at which to start decoding (in seconds). By default,
+                min(epochs.times).
+            ``stop`` : float
+                Maximal time at which to stop decoding (in seconds). By
+                default, max(times).
+            ``step`` : float
+                Duration separating the start of subsequent classifiers (in
+                seconds). By default, equals one time sample.
+            ``length`` : float
+                Duration of each classifier (in seconds). By default, equals
+                one time sample.
+
+        If None, empty dict. Defaults to None.
+    predict_mode : {'cross-validation', 'mean-prediction'}
+        Indicates how predictions are achieved with regards to the cross-
+        validation procedure:
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+
+        Default: 'cross-validation'
+    n_jobs : int
+        Number of jobs to run in parallel. Defaults to 1.
+
+    Attributes
+    ----------
+    y_train_ : np.ndarray, shape (n_samples,)
+        The categories used for training.
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
+    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs,
+                                 n_prediction_dims)
+        Class labels for samples in X.
+    scores_ : list of lists of float
+        The scores (mean accuracy of self.predict(X) wrt. y.).
+        It's not an array as the testing times per training time
+        need not be regular.
+    test_times_ : dict
+        The same structure as ``train_times``.
+    cv_ : CrossValidation object
+        The actual CrossValidation input depending on y.
+
+    Notes
+    -----
+    The function implements the method used in:
+
+        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+        detection of unexpected sounds", PLOS ONE, 2013
+
+    .. versionadded:: 0.9.0
+
+    Returns
+    -------
+    """
+
+    def predict(self, X, test_times='diagonal', **kwargs):
+        """ Test each classifier at each time point.
+
+        Note. This function sets and updates the ``y_pred_`` and the
+        ``test_times`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See independent
+            parameter.
+        test_times : str | dict | None
+            A dict to configure the testing times.
+            If test_times = 'diagonal', test_times = train_times: decode at
+            each time point but does not generalize.
+
+            'slices' : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            'start' : float
+                Time at which to start decoding (in seconds). By default,
+                min(epochs.times).
+            'stop' : float
+                Maximal time at which to stop decoding (in seconds). By
+                default, max(times).
+            'step' : float
+                Duration separating the start of to subsequent classifiers (in
+                seconds). By default, equals one time sample.
+            'length' : float
+                Duration of each classifier (in seconds). By default, equals
+                one time sample.
+
+            If None, empty dict. Defaults to None.
+        picks : np.ndarray (n_selected_chans,) | None
+            Channels to be included.
+
+        Returns
+        -------
+        y_pred_ : np.ndarray, shape (n_train_time, n_test_time, n_epochs,
+                               n_prediction_dim)
+            Class labels for samples in X.
+        """
+        super(TimeDecoding, self).predict(X, test_times, **kwargs)
+
+    def plot(self, **kwargs):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Predict each classifier. If multiple classifiers are passed, average
+        prediction across all classifiers to result in a single prediction per
+        classifier.
+
+        Parameters
+        ----------
+        title : str | None
+            Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
+        ymin : float
+            Min score value. Defaults to 0.
+        ymax : float
+            Max score value. Defaults to 1.
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+            Defaults to None.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str
+            Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        super(TimeDecoding, self).plot_diagonal(**kwargs)
+
+
+@deprecated("'time_generalization' will be removed"
+            " in MNE v0.10. Use 'GeneralizationAcrossTime' instead.")
+@verbose
+def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
+                        shuffle=True, random_state=None, n_jobs=1,
+                        verbose=None):
+    """Fit decoder at each time instant and test at all others
+
+    The function returns the cross-validation scores when the train set
+    is from one time instant and the test from all others.
+
+    The decoding will be done using all available data channels, but
+    will only work if 1 type of channel is availalble. For example
+    epochs should contain only gradiometers.
+
+    Parameters
+    ----------
+    epochs_list : list of Epochs
+        The epochs in all the conditions.
+    clf : object | None
+        A object following scikit-learn estimator API (fit & predict).
+        If None the classifier will be a linear SVM (C=1.) after
+        feature standardization.
+    cv : integer or cross-validation generator
+        If an integer is passed, it is the number of folds (default 5).
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects.
+    scoring : {string, callable, None}, default: "roc_auc"
+        A string (see model evaluation documentation in scikit-learn) or
+        a scorer callable object / function with signature
+        ``scorer(y_true, y_pred)``.
+    shuffle : bool
+        If True, shuffle the epochs before splitting them in folds.
+    random_state : None | int
+        The random state used to shuffle the epochs. Ignored if
+        shuffle is False.
+    n_jobs : int
+        Number of jobs to run in parallel. Each fold is fit
+        in parallel.
+
+    Returns
+    -------
+    scores : np.ndarray, shape (n_times, n_times)
+        The scores averaged across folds. scores[i, j] contains
+        the generalization score when learning at time j and testing
+        at time i. The diagonal is the cross-validation score
+        at each time-independent instant.
+
+    Notes
+    -----
+    The function implements the method used in:
+
+    Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
+    unexpected sounds", PLOS ONE, 2013
+    """
+    from sklearn.base import clone
+    from sklearn.utils import check_random_state
+    from sklearn.svm import SVC
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+    from sklearn.cross_validation import check_cv
+
+    if clf is None:
+        scaler = StandardScaler()
+        svc = SVC(C=1, kernel='linear')
+        clf = Pipeline([('scaler', scaler), ('svc', svc)])
+
+    info = epochs_list[0].info
+    data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
+
+    # Make arrays X and y such that :
+    # X is 3d with X.shape[0] is the total number of epochs to classify
+    # y is filled with integers coding for the class to predict
+    # We must have X.shape[0] equal to y.shape[0]
+    X = [e.get_data()[:, data_picks, :] for e in epochs_list]
+    y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
+    X = np.concatenate(X)
+    y = np.concatenate(y)
+
+    cv = check_cv(cv, X, y, classifier=True)
+
+    ch_types = set(channel_type(info, idx) for idx in data_picks)
+    logger.info('Running time generalization on %s epochs using %s.' %
+                (len(X), ' and '.join(ch_types)))
+
+    if shuffle:
+        rng = check_random_state(random_state)
+        order = np.argsort(rng.randn(len(X)))
+        X = X[order]
+        y = y[order]
+
+    parallel, p_time_gen, _ = parallel_func(_time_gen_one_fold, n_jobs)
+    scores = parallel(p_time_gen(clone(clf), X, y, train, test, scoring)
+                      for train, test in cv)
+    scores = np.mean(scores, axis=0)
+    return scores
