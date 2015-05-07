@@ -6,7 +6,11 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
+import warnings
+
+from ..epochs import equalize_epoch_counts
+from ..viz.decoding import (
+    plot_gat_matrix, plot_gat_diagonal, plot_time_decoding_scores)
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
 from ..io.pick import channel_type, pick_types
@@ -59,7 +63,81 @@ class _DecodingTime(dict):
         return "<DecodingTime | %s>" % s
 
 
-class GeneralizationAcrossTime(object):
+class _Decoder(object):
+    """
+    Base class for GeneralizationAcrossTime and DecodingTime
+    """
+    def __init__(self, cv=5, clf=None, train_times=None,
+                 predict_type='predict', predict_mode='cross-validation',
+                 n_jobs=1):
+        from sklearn.preprocessing import StandardScaler
+        from sklearn.svm import SVC
+        from sklearn.pipeline import Pipeline
+
+        # Store parameters in object
+        self.cv = cv
+        # Define training sliding window
+        self.train_times = (_DecodingTime() if train_times is None
+                            else _DecodingTime(train_times))
+
+        predict_type_list = ["predict", "decision_function", "predict_proba"]
+        if predict_type not in predict_type_list:
+            raise ValueError(
+                "Got predict_type=%s, expected 'decision_function', "
+                "'predict' or 'predict_proba'." % predict_type)
+
+        if predict_mode not in ["cross-validation", "mean-prediction"]:
+            raise ValueError(
+                "Got predict_mode=%s, expected 'cross-validation' or "
+                "'mean-prediction'." % predict_mode)
+
+        if clf is None:
+            scaler = StandardScaler()
+            svc = SVC(C=1, kernel='linear')
+            clf = Pipeline([('scaler', scaler), ('svc', svc)])
+
+        self.clf = clf
+        self.predict_type = predict_type
+        self.predict_mode = predict_mode
+        self.n_jobs = n_jobs
+
+    def _score(self, epochs=None, y=None, scorer=None, test_times=None):
+        from sklearn.metrics import accuracy_score
+
+        # Check scorer
+        if scorer is None:
+            # XXX Need API to identify propper scorer from the clf
+            scorer = accuracy_score
+        self.scorer_ = scorer
+
+        # Run predictions if not already done
+        if epochs is not None:
+            self.predict(epochs, test_times=test_times)
+        else:
+            if not hasattr(self, 'y_pred_'):
+                raise RuntimeError('Please predit() epochs first or pass '
+                                   'epochs to score()')
+
+        # If no regressor is passed, use default epochs events
+        if y is None:
+            if self.predict_mode == 'cross-validation':
+                y = self.y_train_
+            else:
+                if epochs is not None:
+                    y = epochs.events[:, 2]
+                else:
+                    raise RuntimeError('y is undefined because'
+                                       'predict_mode="mean-prediction" and '
+                                       'epochs are missing. You need to '
+                                       'explicitly specify y.')
+            if not np.all(np.unique(y) == np.unique(self.y_train_)):
+                raise ValueError('Classes (y) passed differ from classes used '
+                                 'for training. Please explicitly pass your y '
+                                 'for scoring.')
+        self.y_true_ = y  # true regressor to be compared with y_pred
+
+
+class GeneralizationAcrossTime(_Decoder):
     """Generalize across time and conditions
 
     Creates and estimator object used to 1) fit a series of classifiers on
@@ -95,8 +173,16 @@ class GeneralizationAcrossTime(object):
             ``length`` : float
                 Duration of each classifier (in seconds). By default, equals
                 one time sample.
-
         If None, empty dict. Defaults to None.
+    predict_type : {'predict', 'predict_proba', 'decision_function'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+
+            'predict_proba' : generates a probabilistic estimate of each trial.
+
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
+        Default: 'predict'
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -140,26 +226,12 @@ class GeneralizationAcrossTime(object):
     .. versionadded:: 0.9.0
     """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None,
+                 predict_type='predict',
                  predict_mode='cross-validation', n_jobs=1):
-
-        from sklearn.preprocessing import StandardScaler
-        from sklearn.svm import SVC
-        from sklearn.pipeline import Pipeline
-
-        # Store parameters in object
-        self.cv = cv
-        # Define training sliding window
-        self.train_times = (_DecodingTime() if train_times is None
-                            else _DecodingTime(train_times))
-
-        # Default classification pipeline
-        if clf is None:
-            scaler = StandardScaler()
-            svc = SVC(C=1, kernel='linear')
-            clf = Pipeline([('scaler', scaler), ('svc', svc)])
-        self.clf = clf
-        self.predict_mode = predict_mode
-        self.n_jobs = n_jobs
+        super(GeneralizationAcrossTime, self).__init__(
+            cv=cv, clf=clf, train_times=train_times,
+            predict_type=predict_type, predict_mode=predict_mode,
+            n_jobs=n_jobs)
 
     def __repr__(self):
         s = ''
@@ -403,47 +475,14 @@ class GeneralizationAcrossTime(object):
             need not be regular.
         """
 
-        from sklearn.metrics import accuracy_score
-
-        # Check scorer
-        if scorer is None:
-            # XXX Need API to identify propper scorer from the clf
-            scorer = accuracy_score
-        self.scorer_ = scorer
-
-        # Run predictions if not already done
-        if epochs is not None:
-            self.predict(epochs, test_times=test_times)
-        else:
-            if not hasattr(self, 'y_pred_'):
-                raise RuntimeError('Please predit() epochs first or pass '
-                                   'epochs to score()')
-
-        # If no regressor is passed, use default epochs events
-        if y is None:
-            if self.predict_mode == 'cross-validation':
-                y = self.y_train_
-            else:
-                if epochs is not None:
-                    y = epochs.events[:, 2]
-                else:
-                    raise RuntimeError('y is undefined because'
-                                       'predict_mode="mean-prediction" and '
-                                       'epochs are missing. You need to '
-                                       'explicitly specify y.')
-            if not np.all(np.unique(y) == np.unique(self.y_train_)):
-                raise ValueError('Classes (y) passed differ from classes used '
-                                 'for training. Please explicitly pass your y '
-                                 'for scoring.')
-        self.y_true_ = y  # true regressor to be compared with y_pred
-
+        self._score(epochs, y, scorer)
         # Preprocessing for parallelization:
         n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
         scores = parallel(p_time_gen(self.y_true_, self.y_pred_[t_train],
-                                     slices, scorer)
+                                     slices, self.scorer_)
                           for t_train, slices
                           in enumerate(self.test_times_['slices']))
 
@@ -914,3 +953,358 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
                       for train, test in cv)
     scores = np.mean(scores, axis=0)
     return scores
+
+
+class TimeDecoding(_Decoder):
+    """
+    Cross-validate a series of estimators across every time point
+    to decode the event_id of each epoch.
+
+    Parameters
+    ----------
+    cv : int | object
+        If an integer is passed, it is the number of folds.
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects.
+        Defaults to 5.
+
+    clf : object | None
+        An estimator compliant with the scikit-learn API (fit & predict).
+        If None the classifier will be a standard pipeline including
+        StandardScaler and a linear SVM with default parameters.
+
+    predict_type : {'predict', 'predict_proba', 'decision_function'}
+        Indicates the type of prediction:
+            'predict' : generates a categorical estimate of each trial.
+
+            'predict_proba' : generates a probabilistic estimate of each trial.
+
+            'decision_function' : generates a continuous non-probabilistic
+                estimate of each trial.
+        Default: 'predict'
+
+    predict_mode : {'cross-validation', 'mean-prediction'}
+        Indicates how predictions are achieved with regards to the cross-
+        validation procedure:
+
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+
+        Default: 'cross-validation'
+
+    n_jobs : int
+        Number of jobs to run in parallel. Defaults to 1.
+
+    Attributes
+    ----------
+    y_train_ : np.ndarray, shape (n_samples,)
+        The categories used for training.
+
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
+
+    y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+        Class labels for samples in X.
+
+    scores_ : np.ndarray, shape (n_times,)
+        Mean accuracy score for every time.
+
+    cv_ : CrossValidation object
+        The actual CrossValidation input depending on y.
+    """
+    def __init__(self, cv=5, clf=None, predict_type='predict',
+                 predict_mode='cross-validation', n_jobs=1):
+        super(TimeDecoding, self).__init__(
+            cv=cv, clf=clf, predict_type=predict_type,
+            predict_mode=predict_mode, n_jobs=n_jobs)
+
+    def __repr__(self):
+        s = ''
+        if hasattr(self, "estimators_"):
+            s += ("fitted, %d time points" % len(self.estimators_))
+        else:
+            s += 'no fit'
+        if hasattr(self, 'y_pred_'):
+            s += (", predicted %d epochs" % self.y_pred_.shape[1])
+        else:
+            s += ", no prediction"
+        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
+            s += ',\n '
+        else:
+            s += ', '
+        if hasattr(self, 'scores_'):
+            s += "scored"
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
+        else:
+            s += "no score"
+
+        return "<TimeDecoding | %s>" % s
+
+    def fit(self, epochs, y=None, picks=None):
+        """ Train a classifier on each time point.
+
+        This method sets the ``y_train_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs.
+
+        y : np.ndarray of int, shape (n_samples,) | None
+            To-be-fitted model values. If None, y = epochs.events[:, 2].
+            Defaults to None.
+
+        picks : np.ndarray of int, shape (n_channels,) | None
+            The channels to be used. If None, defaults to meg and eeg channels.
+            Defaults to None.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+        """
+        from sklearn.base import clone
+        from sklearn.cross_validation import check_cv, StratifiedKFold
+
+        n_jobs = self.n_jobs
+
+        if picks is None:
+            picks = pick_types(epochs.info, meg=True, eeg=True,
+                               exclude='bads')
+
+        event_ids = epochs.event_id
+        epochs_list = [epochs[event] for event in event_ids]
+        equalize_epoch_counts(epochs_list)
+
+        self.times_ = epochs.times
+        X = [e.get_data()[:, picks, :] for e in epochs_list]
+        if y is None:
+            y = np.concatenate(
+                [k * np.ones(len(this_X)) for k, this_X in enumerate(X)])
+        self.y_train_ = y
+        X = np.concatenate(X)
+
+        # Chunk X for parallelization
+        if n_jobs > 0:
+            n_chunk = n_jobs
+        else:
+            n_chunk = multiprocessing.cpu_count()
+
+        # Avoid splitting the data in more time chunk than there is time points
+        if n_chunk > X.shape[2]:
+            n_chunk = X.shape[2]
+
+        cv = self.cv
+        if isinstance(cv, (int, np.int)):
+            cv = StratifiedKFold(y, cv)
+        cv = check_cv(cv, X, y, classifier=True)
+        self.cv_ = cv  # update CV
+
+        def _cv_constant_time(clf, X, y, cv):
+            estimators = list()
+            for train, test in cv:
+                clf.fit(X[train, :], y[train])
+                estimators.append(clf)
+            return estimators
+
+        parallel, parallel_time, n_jobs = parallel_func(
+            _cv_constant_time, n_jobs)
+
+        # Parallelize across n_times.
+        n_times = epochs.times.size
+        self.estimators_ = parallel(
+            parallel_time(clone(self.clf), X[:, :, i], y, cv)
+            for i in xrange(n_times))
+        return self
+
+    def predict(self, epochs, picks=None, test_times=None):
+        """ Predict the event_id for every epoch for every time point.
+
+        Note. This function sets and updates the ``y_pred_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See independent
+            parameter.
+
+        picks : np.ndarray (n_selected_chans,) | None
+            Channels to be included.
+
+        test_times : None
+            Not to be used.
+
+        Returns
+        -------
+        y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+            Class labels for samples in X.
+        """
+        from scipy import stats
+        n_jobs = self.n_jobs
+
+        if not hasattr(self, 'estimators_'):
+            raise ValueError("Estimators have to be fit before predicting.")
+
+        if picks is None:
+            picks = pick_types(epochs.info, meg=True, eeg=True,
+                               exclude='bads')
+
+        event_ids = epochs.event_id
+        epochs_list = [epochs[event] for event in event_ids]
+        equalize_epoch_counts(epochs_list)
+        X = np.concatenate(
+            [e.get_data()[:, picks, :] for e in epochs_list])
+
+        if len(X) == len(self.estimators_):
+            raise ValueError("Number of time points should be consistent with "
+                             "the fit data.")
+
+        def _predict(estimator_folds, X):
+            n_epochs = X.shape[0]
+            n_cv = len(estimator_folds)
+            n_classes = len(estimator_folds[0].classes_)
+
+            # Initialization
+            if self.predict_mode == "mean-prediction":
+                if self.predict_type == "predict_proba":
+                    predicted = np.zeros((n_epochs, n_classes, n_cv))
+                else:
+                    predicted = np.zeros((n_epochs, 1, n_cv))
+
+            else:
+                if self.predict_type == "predict_proba":
+                    predicted = np.zeros((n_epochs, n_classes))
+                else:
+                    predicted = np.zeros((n_epochs, 1))
+
+            if self.predict_mode == "mean-prediction":
+                for i, estimator in enumerate(estimator_folds):
+                    if self.predict_type == "predict":
+                        predicted[:, :, i] = np.reshape(
+                            estimator.predict(X), (-1, 1))
+                    elif self.predict_type == "predict_proba":
+                        predicted[:, :, i] = estimator.predict_proba(X)
+                    else:
+                        predicted[:, :, i] = np.reshape(
+                            estimator.decision_function(X), (-1, 1))
+
+                if self.predict_type == "predict":
+                    return stats.mode(predicted, axis=2)[0][:, :, 0]
+                else:
+                    return np.mean(predicted, axis=2)
+
+            if self.predict_mode == "cross-validation":
+                for i, (train, test) in enumerate(self.cv_):
+                    estimator = estimator_folds[i]
+                    if self.predict_type == "predict":
+                        predicted[test, :] = estimator.predict(
+                            X[test, :])[:, None]
+                    elif self.predict_type == "predict_proba":
+                        predicted[test, :] = estimator.predict_proba(
+                            X[test, :])
+                    else:
+                        predicted[test, :] = estimator.decision_function(
+                            X[test, :])[:, None]
+                return predicted
+
+        parallel, p_predict, _ = parallel_func(_predict, n_jobs)
+        decoded_epochs = parallel(
+            p_predict(estimator, X[:, :, i])
+            for i, estimator in enumerate(self.estimators_))
+        self.y_pred_ = np.asarray(decoded_epochs)
+        return self.y_pred_
+
+    def score(self, epochs=None, y=None, scorer=None):
+        """Score Epochs
+
+        Estimate scores across n_times by comparing the prediction
+        estimated for each trial to its true value.
+
+        Note. The function updates the ``scores_`` attribute.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs | None
+            The epochs. Can be similar to fitted epochs or not. See independent
+            parameter.
+            If None, it relies on the ``y_pred_`` generated from predit()
+
+        y : list | np.ndarray, shape (n_epochs,) | None
+            To-be-fitted model, If None, y = epochs.events[:,2].
+            Defaults to None.
+
+        scorer : object
+            scikit-learn Scorer instance. Default: accuracy_score
+
+        Returns
+        -------
+        scores : np.ndarray (n_times,)
+            Scores obtained across every trial.
+        """
+        self._score(epochs, y, scorer)
+
+        n_times = self.y_pred_.shape[0]
+
+        def _score(y_true, y_pred):
+            if self.predict_mode == "mean-prediction":
+                return self.scorer_(y_true, y_pred)
+            else:
+                scores = np.zeros(y_true.shape[0])
+                for train, test in self.cv_:
+                    scores[test] = self.scorer_(y_true[test], y_pred[test])
+                return np.mean(scores)
+
+        parallel, p_score, _ = parallel_func(_score, self.n_jobs)
+
+        scores = parallel(
+            p_score(self.y_true_, self.y_pred_[time][:, 0])
+            for time in xrange(n_times))
+        self.scores_ = np.asarray(scores)
+        return self.scores_
+
+    def plot(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
+             ax=None, show=True, color='steelblue', xlabel=True,
+             ylabel=True, legend=True):
+
+        """Plotting function of TimeDecoding object
+
+        Parameters
+        ----------
+        title : str | None
+            Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
+        ymin : float
+            Min score value. Defaults to 0.
+        ymax : float
+            Max score value. Defaults to 1.
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+            Defaults to None.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str
+            Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        return plot_time_decoding_scores(
+            self, title=title, xmin=xmin, xmax=xmax, ymin=ymin,
+            ymax=ymax, ax=ax, show=show, color=color, xlabel=xlabel,
+            ylabel=ylabel, legend=legend)

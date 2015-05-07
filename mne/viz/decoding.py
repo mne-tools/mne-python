@@ -152,3 +152,79 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
     if show is True:
         plt.show()
     return fig if ax is None else ax.get_figure()
+
+
+def plot_time_decoding_scores(tdec, title=None, xmin=None, xmax=None,
+                              ymin=0., ymax=1., ax=None,
+                              show=True, color='b', xlabel=True,
+                              ylabel=True, legend=True):
+    """Plotting function of TimeDecoding object
+
+    Parameters
+    ----------
+    title : str | None
+        Figure title. Defaults to None.
+    xmin : float | None, optional, defaults to None.
+        Min time value.
+    xmax : float | None, optional, defaults to None.
+        Max time value.
+    ymin : float
+        Min score value. Defaults to 0.
+    ymax : float
+        Max score value. Defaults to 1.
+    ax : object | None
+        Instance of mataplotlib.axes.Axis. If None, generate new figure.
+        Defaults to None.
+    show : bool
+        If True, the figure will be shown. Defaults to True.
+    color : str
+        Score line color. Defaults to 'steelblue'.
+    xlabel : bool
+        If True, the xlabel is displayed. Defaults to True.
+    ylabel : bool
+        If True, the ylabel is displayed. Defaults to True.
+    legend : bool
+        If True, a legend is displayed. Defaults to True.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+        The figure.
+    """
+
+    if not hasattr(tdec, 'scores_'):
+        raise RuntimeError('Please score your data before trying to plot '
+                           'scores')
+    import matplotlib.pyplot as plt
+
+    if ax is None:
+        fig, ax = plt.subplots(1, 1)
+
+    times = tdec.times_ * 10**3
+    scores = tdec.scores_
+    if xmin is None:
+        xmin = times[0]
+    if xmax is None:
+        xmax = times[-1]
+
+    if xlabel is True:
+        ax.set_xlabel("Time (ms)")
+    if ylabel is True:
+        ax.set_ylabel("CV classification score (% correct)")
+
+    ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
+    ax.axvline(0, color='r', label='stim onset')
+
+    if title is None:
+        title = "Decoding sensor space data."
+    ax.set_title(title)
+    ax.plot(times, scores, color=color, label="Classif. score")
+    ax.set_ylim([ymin, ymax])
+    ax.set_xlim([xmin, xmax])
+
+    if legend is True:
+        ax.legend(loc='best')
+
+    if show is True:
+        plt.show()
+    return fig if ax is None else ax.get_figure()
