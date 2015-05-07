@@ -1208,10 +1208,12 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     channel type separately. Special care is taken to keep the
     rank of the data constant.
 
-    Note. This function is kept for reasons of backwards-compatibility.
-    Please consider explicitly using the `method` parameter in
-    compute_covariance to directly combine estimation with regularization
-    in a data-driven fashion.
+    **Note:** This function is kept for reasons of backward-compatibility.
+    Please consider explicitly using the ``method`` parameter in
+    `compute_covariance` to directly combine estimation with regularization
+    in a data-driven fashion see the
+    `faq <http://martinos.org/mne/dev/faq.html#how-should-i-regularize-the-covariance-matrix>`_
+    for more information.
 
     Parameters
     ----------
@@ -1237,7 +1239,7 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     -------
     reg_cov : Covariance
         The regularized covariance matrix.
-    """
+    """  # noqa
     cov = cp.deepcopy(cov)
 
     if exclude is None:

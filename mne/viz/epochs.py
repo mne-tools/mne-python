@@ -77,7 +77,7 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    if list(units.keys()) != list(scalings.keys()):
+    if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
