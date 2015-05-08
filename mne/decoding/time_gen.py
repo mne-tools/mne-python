@@ -108,9 +108,6 @@ class GeneralizationAcrossTime(object):
                 these predictions into a single estimate per sample.
 
         Default: 'cross-validation'
-    predict_shape : int
-        Dimensionality of clf.predict().
-        Default : 1
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
@@ -143,7 +140,7 @@ class GeneralizationAcrossTime(object):
 
     .. versionadded:: 0.9.0
     """  # noqa
-    def __init__(self, cv=5, clf=None, train_times=None, predict_shape=1,
+    def __init__(self, cv=5, clf=None, train_times=None,
                  predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
@@ -164,7 +161,6 @@ class GeneralizationAcrossTime(object):
         self.clf = clf
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
-        self.predict_shape = predict_shape
 
     def __repr__(self):
         s = ''
@@ -340,7 +336,7 @@ class GeneralizationAcrossTime(object):
 
         # Loop across estimators (i.e. training times)
         packed = parallel(p_time_gen(X, self.estimators_[t_train], cv,
-                          slices, self.predict_mode, self.predict_shape)
+                          slices, self.predict_mode)
                           for t_train, slices in
                           enumerate(test_times_['slices']))
 
@@ -531,7 +527,7 @@ class GeneralizationAcrossTime(object):
                                  legend=legend)
 
 
-def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_shape):
+def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     """Aux function of GeneralizationAcrossTime
 
     Run classifiers predictions loop across time samples.
@@ -555,8 +551,6 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_shape):
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
         Default: 'cross-validation'
-    predict_shape : int
-        Dimensionality of estimator.predict()
     """
     n_epochs = len(X)
     # Loop across testing slices
@@ -584,15 +578,13 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode, predict_shape):
                 # its size depends on the the type of predictor and the
                 # number of class.
                 if k == 0:
-                    y_pred_ = _predict(Xtrain[test, :], estimators[k:k + 1],
-                                       predict_shape)
+                    y_pred_ = _predict(Xtrain[test, :], estimators[k:k + 1])
                     y_pred[t] = np.empty((n_epochs, y_pred_.shape[1]))
                     y_pred[t][test, :] = y_pred_
                 y_pred[t][test, :] = _predict(Xtrain[test, :],
-                                              estimators[k:k + 1],
-                                              predict_shape)
+                                              estimators[k:k + 1])
         elif predict_mode == 'mean-prediction':
-            y_pred[t] = _predict(Xtrain, estimators, predict_shape)
+            y_pred[t] = _predict(Xtrain, estimators)
         else:
             raise ValueError('`predict_mode` must be a str, "mean-prediction"'
                              ' or "cross-validation"')
@@ -747,7 +739,7 @@ def _sliding_window(times, window_params):
     return time_pick
 
 
-def _predict(X, estimators, predict_shape):
+def _predict(X, estimators):
     """Aux function of GeneralizationAcrossTime
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -760,8 +752,6 @@ def _predict(X, estimators, predict_shape):
         Array of scikit-learn classifiers to predict data.
     X : np.ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
-    predict_shape : int,
-        Dimension of estimator.predict(X[0, :])
     Returns
     -------
     y_pred : np.ndarray, shape (n_epochs, m_prediction_dimensions)
@@ -772,15 +762,19 @@ def _predict(X, estimators, predict_shape):
     # Initialize results:
     n_epochs = X.shape[0]
     n_clf = len(estimators)
-    y_pred = np.ones((n_epochs, predict_shape, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        if predict_shape == 1:
-            y_pred[:, 0, fold] = clf.predict(X)
+        predict = clf.predict(X)
+        # initialize predict_results array
+        if fold == 0:
+            predict_size = predict.shape[1] if len(predict.shape) > 1 else 1
+            y_pred = np.ones((n_epochs, predict_size, n_clf))
+        if predict_size == 1:
+            y_pred[:, 0, fold] = predict
         else:
-            y_pred[:, :, fold] = clf.predict(X)
+            y_pred[:, :, fold] = predict
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
@@ -791,7 +785,7 @@ def _predict(X, estimators, predict_shape):
             y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
-    y_pred = y_pred.reshape((n_epochs, predict_shape))
+    y_pred = y_pred.reshape((n_epochs, predict_size))
     return y_pred
 
 
