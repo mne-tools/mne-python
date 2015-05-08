@@ -10,7 +10,7 @@ from __future__ import print_function
 import numpy as np
 
 
-def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
+def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
                     ax=None, cmap='RdBu_r', show=True, colorbar=True,
                     xlabel=True, ylabel=True):
     """Plotting function of GeneralizationAcrossTime object
@@ -25,14 +25,16 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         The gat object.
     title : str | None
         Figure title. Defaults to None.
-    vmin : float
-        Min color value for score. Defaults to 0.
-    vmax : float
-        Max color value for score. Defaults to 1.
+    vmin : float | None
+        Min color value for score. If None, sets to min(gat.scores_).
+        Defaults to None.
+    vmax : float | None
+        Max color value for score. If None, sets to max(gat.scores_).
+        Defaults to None.
     tlim : array-like, (4,) | None
         The temporal boundaries. If None, expands to
         [tmin_train, tmax_train, tmin_test, tmax_test]
-        Default : None.
+        Defaults to None.
     ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
@@ -57,6 +59,12 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     import matplotlib.pyplot as plt
     if ax is None:
         fig, ax = plt.subplots(1, 1)
+
+    # Define color limits
+    if vmin is None:
+        vmin = np.min(gat.scores_)
+    if vmax is None:
+        vmax = np.max(gat.scores_)
 
     # Define time limits
     if tlim is None:
