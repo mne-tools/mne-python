@@ -32,7 +32,7 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
     tlim : array-like, (4,) | None
         The temporal boundaries. If None, expands to
         [tmin_train, tmax_train, tmin_test, tmax_test]
-        Defaults to None.
+        Default : None.
     ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
@@ -75,6 +75,8 @@ def plot_gat_matrix(gat, title=None, vmin=0., vmax=1., tlim=None,
         ax.set_title(title)
     ax.axvline(0, color='k')
     ax.axhline(0, color='k')
+    ax.set_xlim(tlim[:2])
+    ax.set_ylim(tlim[2:])
     if colorbar is True:
         plt.colorbar(im, ax=ax)
     if show is True:
