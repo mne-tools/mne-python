@@ -15,6 +15,7 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
+from mne.viz.utils import _fake_click
 from mne.utils import slow_test
 from mne.channels import read_layout
 
@@ -78,7 +79,11 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
-        evoked.plot(proj=True, hline=[1])
+        fig = evoked.plot(proj=True, hline=[1])
+        # Test a click
+        line = fig.get_axes()[0].lines[0]
+        _fake_click(fig, fig.get_axes()[0],
+                    [line.get_xdata()[0], line.get_ydata()[0]], 'data')
         # plot with bad channels excluded
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'])  # does the same thing
