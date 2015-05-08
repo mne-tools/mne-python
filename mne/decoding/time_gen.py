@@ -143,7 +143,7 @@ class GeneralizationAcrossTime(object):
                  predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
-        from sklearn.svm import SVC
+        from sklearn.linear_model import SGDClassifier
         from sklearn.pipeline import Pipeline
 
         # Store parameters in object
@@ -155,7 +155,7 @@ class GeneralizationAcrossTime(object):
         # Default classification pipeline
         if clf is None:
             scaler = StandardScaler()
-            svc = SVC(C=1, kernel='linear')
+            svc = SGDClassifier()
             clf = Pipeline([('scaler', scaler), ('svc', svc)])
         self.clf = clf
         self.predict_mode = predict_mode
