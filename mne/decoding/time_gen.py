@@ -9,7 +9,6 @@ import numpy as np
 from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
-from ..io.pick import channel_type, pick_types
 
 
 class _DecodingTime(dict):
@@ -185,7 +184,7 @@ class GeneralizationAcrossTime(object):
 
         return "<GAT | %s>" % s
 
-    def fit(self, epochs, y=None, picks=None):
+    def fit(self, epochs, y=None):
         """ Train a classifier on each specified time slice.
 
         Parameters
@@ -194,9 +193,6 @@ class GeneralizationAcrossTime(object):
             The epochs.
         y : np.ndarray of int, shape (n_samples,) | None
             To-be-fitted model values. If None, y = epochs.events[:, 2].
-            Defaults to None.
-        picks : np.ndarray of int, shape (n_channels,) | None
-            The channels to be used. If None, defaults to meg and eeg channels.
             Defaults to None.
 
         Returns
@@ -215,12 +211,8 @@ class GeneralizationAcrossTime(object):
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
         n_jobs = self.n_jobs
-        # Default channel selection
-        if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True,
-                               exclude='bads')
         # Extract data from MNE structure
-        X, y = _check_epochs_input(epochs, y, picks)
+        X, y = _check_epochs_input(epochs, y)
         cv = self.cv
         if isinstance(cv, (int, np.int)):
             cv = StratifiedKFold(y, cv)
@@ -256,7 +248,7 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, list())
         return self
 
-    def predict(self, epochs, test_times=None, picks=None):
+    def predict(self, epochs, test_times=None):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
@@ -289,8 +281,6 @@ class GeneralizationAcrossTime(object):
                 one time sample.
 
             If None, empty dict. Defaults to None.
-        picks : np.ndarray (n_selected_chans,) | None
-            Channels to be included.
 
         Returns
         -------
@@ -298,11 +288,8 @@ class GeneralizationAcrossTime(object):
                                n_prediction_dim)
             Class labels for samples in X.
         """
-        if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True,
-                               exclude='bads')
         n_jobs = self.n_jobs
-        X, y = _check_epochs_input(epochs, None, picks)
+        X, y = _check_epochs_input(epochs, None)
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
@@ -611,7 +598,7 @@ def _score_loop(y_true, y_pred, slices, scorer):
     return scores
 
 
-def _check_epochs_input(epochs, y, picks):
+def _check_epochs_input(epochs, y):
     """Aux function of GeneralizationAcrossTime
 
     Format MNE data into scikit-learn X and y
@@ -622,8 +609,6 @@ def _check_epochs_input(epochs, y, picks):
             The epochs.
     y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
         To-be-fitted model. If y is None, y == epochs.events
-    picks : np.ndarray (n_selected_chans,) | None
-        Channels to be included in scikit-learn model fitting.
 
     Returns
     -------
@@ -631,14 +616,12 @@ def _check_epochs_input(epochs, y, picks):
         To-be-fitted data.
     y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
-    picks : np.ndarray, shape (n_channels,)
-        The channels to be used.
     """
     if y is None:
         y = epochs.events[:, 2]
 
     # Convert MNE data into trials x features x time matrix
-    X = epochs.get_data()[:, picks, :]
+    X = epochs.get_data()
     # Check data sets
     assert X.shape[0] == y.shape[0]
     return X, y
@@ -886,22 +869,19 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
         clf = Pipeline([('scaler', scaler), ('svc', svc)])
 
     info = epochs_list[0].info
-    data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     # Make arrays X and y such that :
     # X is 3d with X.shape[0] is the total number of epochs to classify
     # y is filled with integers coding for the class to predict
     # We must have X.shape[0] equal to y.shape[0]
-    X = [e.get_data()[:, data_picks, :] for e in epochs_list]
+    X = [e.get_data() for e in epochs_list]
     y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
     X = np.concatenate(X)
     y = np.concatenate(y)
 
     cv = check_cv(cv, X, y, classifier=True)
 
-    ch_types = set(channel_type(info, idx) for idx in data_picks)
-    logger.info('Running time generalization on %s epochs using %s.' %
-                (len(X), ' and '.join(ch_types)))
+    logger.info('Running time generalization on %s epochs' % len(X))
 
     if shuffle:
         rng = check_random_state(random_state)
