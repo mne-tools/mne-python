@@ -147,7 +147,7 @@ class GeneralizationAcrossTime(object):
                  predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
-        from sklearn.linear_model import SGDClassifier
+        from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import Pipeline
 
         # Store parameters in object
@@ -159,8 +159,8 @@ class GeneralizationAcrossTime(object):
         # Default classification pipeline
         if clf is None:
             scaler = StandardScaler()
-            svc = SGDClassifier()
-            clf = Pipeline([('scaler', scaler), ('svc', svc)])
+            estimator = LogisticRegression()
+            clf = Pipeline([('scaler', scaler), ('estimator', estimator)])
         self.clf = clf
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
