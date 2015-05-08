@@ -862,6 +862,7 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
     and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
     unexpected sounds", PLOS ONE, 2013
     """
+    from ..io.pick import channel_type, pick_types
     from sklearn.base import clone
     from sklearn.utils import check_random_state
     from sklearn.svm import SVC
@@ -875,19 +876,22 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
         clf = Pipeline([('scaler', scaler), ('svc', svc)])
 
     info = epochs_list[0].info
+    data_picks = pick_types(info, meg=True, eeg=True, exclude='bads')
 
     # Make arrays X and y such that :
     # X is 3d with X.shape[0] is the total number of epochs to classify
     # y is filled with integers coding for the class to predict
     # We must have X.shape[0] equal to y.shape[0]
-    X = [e.get_data() for e in epochs_list]
+    X = [e.get_data()[:, data_picks, :] for e in epochs_list]
     y = [k * np.ones(len(this_X)) for k, this_X in enumerate(X)]
     X = np.concatenate(X)
     y = np.concatenate(y)
 
     cv = check_cv(cv, X, y, classifier=True)
 
-    logger.info('Running time generalization on %s epochs' % len(X))
+    ch_types = set(channel_type(info, idx) for idx in data_picks)
+    logger.info('Running time generalization on %s epochs using %s.' % (
+        len(X), ' and '.join(ch_types)))
 
     if shuffle:
         rng = check_random_state(random_state)
