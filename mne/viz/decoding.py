@@ -143,7 +143,16 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
     if np.all(np.unique([len(t) for t in gat.test_times_['times_']]) == 1):
         scores = gat.scores_
     else:
-        scores = np.diag(gat.scores_)
+        # Get scores from identical training and testing times even if GAT
+        # is not square.
+        scores = np.zeros(len(gat.scores_))
+        for i, T in enumerate(gat.train_times['times_']):
+            for t in gat.test_times_['times_']:
+                # find closest testing time from train_time
+                j = np.abs(t - T).argmin()
+                # check that not more than 1 classifier away
+                if T - t[j] <= gat.train_times['step']:
+                    scores[i] = gat.scores_[i][j]
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
     ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
