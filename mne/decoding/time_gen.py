@@ -127,6 +127,8 @@ class GeneralizationAcrossTime(object):
         The same structure as ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
+    ch_names : np.array, shape (n_channels)
+        Names of the channels used for training.
 
     Notes
     -----
@@ -212,6 +214,7 @@ class GeneralizationAcrossTime(object):
         from sklearn.cross_validation import check_cv, StratifiedKFold
         n_jobs = self.n_jobs
         # Extract data from MNE structure
+        self.ch_names = epochs.ch_names
         X, y = _check_epochs_input(epochs, y)
         cv = self.cv
         if isinstance(cv, (int, np.int)):
