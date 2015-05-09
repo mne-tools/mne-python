@@ -7,7 +7,8 @@ import numpy as np
 
 from ...utils import verbose, get_config
 from ...fixes import partial
-from ..utils import has_dataset, _data_path, _doc
+from ..utils import (has_dataset, _data_path, _data_path_doc,
+                     _get_version, _version_doc)
 
 
 has_testing_data = partial(has_dataset, name='testing')
@@ -24,8 +25,14 @@ def data_path(path=None, force_update=False, update_path=True,
                       update_path=update_path, name='testing',
                       download=download)
 
-data_path.__doc__ = _doc.format(name='testing',
-                                conf='MNE_DATASETS_TESTING_PATH')
+data_path.__doc__ = _data_path_doc.format(name='testing',
+                                          conf='MNE_DATASETS_TESTING_PATH')
+
+
+def get_version():
+    return _get_version('testing')
+
+get_version.__doc__ = _version_doc.format(name='testing')
 
 
 # Allow forcing of testing dataset skip (for Debian tests) using:

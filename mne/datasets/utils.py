@@ -17,7 +17,7 @@ from ..externals.six import string_types
 from ..externals.six.moves import input
 
 
-_doc = """Get path to local copy of {name} dataset
+_data_path_doc = """Get path to local copy of {name} dataset
 
     Parameters
     ----------
@@ -49,6 +49,16 @@ _doc = """Get path to local copy of {name} dataset
 """
 
 
+_version_doc = """Get version of the local {name} dataset
+
+    Returns
+    -------
+    version : str | None
+        Version of the {name} local dataset, or None if the dataset
+        does not exist locally.
+"""
+
+
 def _dataset_version(path, name):
     """Get the version of the dataset"""
     ver_fname = op.join(path, 'version.txt')
@@ -64,7 +74,7 @@ def _dataset_version(path, name):
 
 
 def _data_path(path=None, force_update=False, update_path=True, download=True,
-               name=None, check_version=True):
+               name=None, check_version=False, return_version=False):
     """Aux function
     """
     key = {'sample': 'MNE_DATASETS_SAMPLE_PATH',
@@ -229,8 +239,14 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
                  'you may need to update the {name} dataset by using '
                  'mne.datasets.{name}.data_path(force_update=True)'.format(
                      name=name, current=data_version, newest=mne_version))
+    return (path, data_version) if return_version else path
 
-    return path
+
+def _get_version(name):
+    """Helper to get a dataset version"""
+    if not has_dataset(name):
+        return None
+    return _data_path(name=name, return_version=True)[1]
 
 
 def has_dataset(name):
