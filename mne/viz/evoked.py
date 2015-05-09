@@ -157,6 +157,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 lines.append(ax.plot(times, D.T, picker=3.))
                 ax.set_ylabel('data (%s)' % ch_unit)
+                # for old matplotlib, we actually need this to
+                # have a bounding box (!), so we use ' ' instead
+                # of ''
                 texts.append(ax.text(0, 0, '', zorder=2,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
