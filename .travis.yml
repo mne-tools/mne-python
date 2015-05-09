@@ -37,6 +37,8 @@ install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
     - source activate testenv &> /dev/null
     - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL > /dev/null
+	# We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
+	# are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
         curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
@@ -61,6 +63,19 @@ install:
         pip install -q flake8 > /dev/null;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
+	# check our versions for the major packages
+	- NP_VERSION=`python -c "import numpy; print(numpy.__version__)[:3]"`
+	- if [ -n "$NUMPY" && ${NUMPY: -3} != $NP_VERSION ]; then
+	    echo Incorrect numpy version $NP_VERSION;
+      fi;
+	- SP_VERSION=`python -c "import scipy; print(scipy.__version__)[:4]"`
+	- if [ -n "$SCIPY" && ${SCIPY: -4} != $SP_VERSION ]; then
+	    echo Incorrect scipy version $SP_VERSION;
+      fi;
+	- MPL_VERSION=`python -c "import matplotlib; print(matplotlib.__version__)[:3]"`
+	- if [ -n "$MPL" && ${MPL: -3} != $MPL_VERSION ]; then
+	    echo Incorrect matplotlib version $MPL_VERSION;
+      fi;
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
     - python setup.py build > /dev/null
