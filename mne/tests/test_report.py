@@ -73,7 +73,7 @@ def test_render_report():
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        report.parse_folder(data_path=tempdir)
+        report.parse_folder(data_path=tempdir, on_error='raise')
     assert_true(len(w) >= 1)
 
     # Check correct paths and filenames

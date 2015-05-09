@@ -130,7 +130,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     texts = []
     idxs = []
     lines = []
-    path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
+    path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
+                                           alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
         this_scaling = scalings[t]
