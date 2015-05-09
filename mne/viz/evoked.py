@@ -66,6 +66,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         interactive.
     """
     import matplotlib.pyplot as plt
+    from matplotlib import patheffects
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
@@ -129,6 +130,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
     texts = []
     idxs = []
     lines = []
+    path_effects = [patheffects.withStroke(linewidth=2, foreground="w", alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
         this_scaling = scalings[t]
@@ -154,10 +156,11 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 lines.append(ax.plot(times, D.T, picker=3.))
                 ax.set_ylabel('data (%s)' % ch_unit)
-                texts.append(ax.text(0, 0, '', zorder=1,
+                texts.append(ax.text(0, 0, '', zorder=2,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
-                                     fontweight='bold'))
+                                     fontweight='bold',
+                                     path_effects=path_effects))
             elif plot_type == 'image':
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
@@ -186,7 +189,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines, idx=idx,
-                      ch_names=evoked.ch_names, idxs=idxs)
+                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
         fig.canvas.mpl_connect('button_press_event',
