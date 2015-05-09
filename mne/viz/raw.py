@@ -370,9 +370,6 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         raw object or '<unknown>' will be displayed as title.
     show : bool
         Show figure if True.
-    block : bool
-        Whether to halt program execution until the figure is closed.
-        Useful for setting bad channels on the fly by clicking on a line.
     highpass : float | None
         Highpass to apply when displaying data.
     lowpass : float | None
@@ -404,6 +401,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     of a channel's time series. The changes will be reflected immediately
     in the raw object's ``raw.info['bads']`` entry.
     """
+    if block:
+        warnings.warn('block is deprecated and will be removed in v0.10, '
+                      'manually call plt.show(block=True) instead')
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
@@ -623,7 +623,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         _toggle_options(None, params)
 
     if show:
-        plt.show(block=block)
+        try:
+            plt.show(block=block)
+        except TypeError:  # not all versions have this
+            plt.show()
 
     return fig
 
