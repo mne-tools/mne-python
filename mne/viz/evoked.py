@@ -38,6 +38,8 @@ def _butterfly_onpick(event, params):
     text.set_y(y)
     text.set_text(ch_name)
     text.set_color(event.artist.get_color())
+    text.set_alpha(1.)
+    text.set_path_effects(params['path_effects'])
     # do NOT redraw here, since for butterfly plots hundreds of lines could
     # potentially be picked -- use on_button_press (happens once per click)
     # to do the drawing
@@ -47,6 +49,13 @@ def _butterfly_on_button_press(event, params):
     """Helper to only draw once for picking"""
     if params['need_draw']:
         event.canvas.draw()
+    else:
+        idx = np.where([event.inaxes is ax for ax in params['axes']])[0]
+        if len(idx) == 1:
+            text = params['texts'][idx[0]]
+            text.set_alpha(0.)
+            text.set_path_effects([])
+            event.canvas.draw()
     params['need_draw'] = False
 
 
@@ -157,14 +166,13 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             if plot_type == 'butterfly':
                 lines.append(ax.plot(times, D.T, picker=3.))
                 ax.set_ylabel('data (%s)' % ch_unit)
-                # for old matplotlib, we actually need this to
-                # have a bounding box (!), so we use ' ' instead
-                # of ''
-                texts.append(ax.text(0, 0, '', zorder=2,
+                # for old matplotlib, we actually need this to have a bounding
+                # box (!), so we have to put some valid text here, change
+                # alpha and  path effects later
+                texts.append(ax.text(0, 0, 'blank', zorder=2,
                                      verticalalignment='baseline',
                                      horizontalalignment='left',
-                                     fontweight='bold',
-                                     path_effects=path_effects))
+                                     fontweight='bold', alpha=0))
             elif plot_type == 'image':
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
@@ -193,7 +201,8 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
     if plot_type == 'butterfly':
         params = dict(axes=axes, texts=texts, lines=lines, idx=idx,
-                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False)
+                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
+                      path_effects=path_effects)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
         fig.canvas.mpl_connect('button_press_event',
