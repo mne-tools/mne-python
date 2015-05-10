@@ -180,9 +180,9 @@ def _make_ctf_comp_coils(info, coils):
 # #############################################################################
 # BEM COMPUTATION
 
-_MAG_FACTOR = 1e-7  # from C code
+_MAG_FACTOR = 1e-7  # μ_0 / (4π)
 
-# def _bem_inf_pot(rd, Q, rp):
+# def _bem_inf_pot(rd, Q, rp)*pi:
 #     """The infinite medium potential in one direction"""
 #     # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
 #     diff = rp - rd
@@ -213,7 +213,13 @@ def _bem_inf_pots(rr, surf_rr, Q=None):
 
 
 def _bem_inf_fields(rr, rp, c):
-    """Infinite-medium magnetic field in all 3 basis directions"""
+    """Infinite-medium magnetic field in all 3 basis directions
+    rr : n x 3 array
+        dipole locations
+    rp : n x 3 array?
+        coil 'rmag'
+    c : coil 'cosmag'
+    """
     # Knowing that we're doing all directions, the above can be refactored:
     diff = rp.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
     diff_norm = np.sum(diff * diff, axis=1)
@@ -222,6 +228,7 @@ def _bem_inf_fields(rr, rp, c):
     # This is the result of cross-prod calcs with basis vectors,
     # as if we had taken (Q=np.eye(3)), then multiplied by the cosmags (c)
     # factor, and then summed across directions
+    # Equation (19) in Mosher, 1999
     x = np.array([diff[:, 1] * c[:, 2] - diff[:, 2] * c[:, 1],
                   diff[:, 2] * c[:, 0] - diff[:, 0] * c[:, 2],
                   diff[:, 0] * c[:, 1] - diff[:, 1] * c[:, 0]])
