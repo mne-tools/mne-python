@@ -46,12 +46,12 @@ install:
         source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
-        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY;
+        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
           conda install --yes --quiet ipython > /dev/null;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS > /dev/null;
+          conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
@@ -65,7 +65,7 @@ install:
     - pip install -q coverage coveralls nose-timer > /dev/null
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
-    - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION\:\:3}" ]; then
+    - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
         echo "Incorrect numpy version $NP_VERSION";
         exit 1;
       fi;
