@@ -71,6 +71,7 @@ if __name__ == "__main__":
                     'mne.datasets.somato',
                     'mne.datasets.spm_face',
                     'mne.datasets.testing',
+                    'mne.datasets.tests',
                     'mne.externals',
                     'mne.io', 'mne.io.tests',
                     'mne.io.array', 'mne.io.array.tests',
