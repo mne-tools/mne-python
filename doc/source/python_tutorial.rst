@@ -266,7 +266,7 @@ It is also possible to read evoked data stored in a fif file:
             t =    -199.80 ...     499.49 ms (Left Auditory)
             0 CTF compensation matrices available
             nave = 55 - aspect type = 100
-    Projections have already been applied. Doing nothing.
+    Projections have already been applied. Setting proj attribute to True.
     Applying baseline correction ... (mode: mean)
 
 Or another one stored in the same file:
