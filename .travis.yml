@@ -46,12 +46,12 @@ install:
         source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
-        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
+        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
           conda install --yes --quiet ipython > /dev/null;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
+          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS > /dev/null;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
