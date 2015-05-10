@@ -340,55 +340,6 @@ def _meshgrid(*xi, **kwargs):
         or ``(N2, N1, N3,...Nn)`` shaped arrays if indexing='xy'
         with the elements of `xi` repeated to fill the matrix along
         the first dimension for `x1`, the second for `x2` and so on.
-    Notes
-    -----
-    This function supports both indexing conventions through the indexing
-    keyword argument.  Giving the string 'ij' returns a meshgrid with
-    matrix indexing, while 'xy' returns a meshgrid with Cartesian indexing.
-    In the 2-D case with inputs of length M and N, the outputs are of shape
-    (N, M) for 'xy' indexing and (M, N) for 'ij' indexing.  In the 3-D case
-    with inputs of length M, N and P, outputs are of shape (N, M, P) for
-    'xy' indexing and (M, N, P) for 'ij' indexing.  The difference is
-    illustrated by the following code snippet::
-        xv, yv = meshgrid(x, y, sparse=False, indexing='ij')
-        for i in range(nx):
-            for j in range(ny):
-                # treat xv[i,j], yv[i,j]
-        xv, yv = meshgrid(x, y, sparse=False, indexing='xy')
-        for i in range(nx):
-            for j in range(ny):
-                # treat xv[j,i], yv[j,i]
-    In the 1-D and 0-D case, the indexing and sparse keywords have no effect.
-    See Also
-    --------
-    index_tricks.mgrid : Construct a multi-dimensional "meshgrid"
-                     using indexing notation.
-    index_tricks.ogrid : Construct an open multi-dimensional "meshgrid"
-                     using indexing notation.
-    Examples
-    --------
-    >>> nx, ny = (3, 2)
-    >>> x = np.linspace(0, 1, nx)
-    >>> y = np.linspace(0, 1, ny)
-    >>> xv, yv = meshgrid(x, y)
-    >>> xv
-    array([[ 0. ,  0.5,  1. ],
-           [ 0. ,  0.5,  1. ]])
-    >>> yv
-    array([[ 0.,  0.,  0.],
-           [ 1.,  1.,  1.]])
-    >>> xv, yv = meshgrid(x, y, sparse=True)  # make sparse output arrays
-    >>> xv
-    array([[ 0. ,  0.5,  1. ]])
-    >>> yv
-    array([[ 0.],
-           [ 1.]])
-    `meshgrid` is very useful to evaluate functions on a grid.
-    >>> x = np.arange(-5, 5, 0.1)
-    >>> y = np.arange(-5, 5, 0.1)
-    >>> xx, yy = meshgrid(x, y, sparse=True)
-    >>> z = np.sin(xx**2 + yy**2) / (xx**2 + yy**2)
-    >>> h = plt.contourf(x,y,z)
     """
     ndim = len(xi)
 

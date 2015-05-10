@@ -4,7 +4,7 @@ from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true
 
 from mne import io, pick_types, Epochs, read_events
-from mne.utils import requires_scipy_version
+from mne.utils import requires_scipy_version, slow_test
 from mne.time_frequency import compute_raw_psd, compute_epochs_psd
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -94,6 +94,7 @@ def test_psd_epochs():
     assert_true(np.sum(psds < 0) == 0)
 
 
+@slow_test
 @requires_scipy_version('0.12')
 def test_compares_psd():
     """Test PSD estimation on raw for plt.psd and scipy.signal.welch
