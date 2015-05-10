@@ -766,15 +766,15 @@ def _predict(X, estimators):
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        predict = clf.predict(X)
+        _y_pred = clf.predict(X)
         # initialize predict_results array
         if fold == 0:
-            predict_size = predict.shape[1] if len(predict.shape) > 1 else 1
+            predict_size = _y_pred.shape[1] if _y_pred.n_dim > 1 else 1
             y_pred = np.ones((n_epochs, predict_size, n_clf))
         if predict_size == 1:
-            y_pred[:, 0, fold] = predict
+            y_pred[:, 0, fold] = _y_pred
         else:
-            y_pred[:, :, fold] = predict
+            y_pred[:, :, fold] = _y_pred
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:

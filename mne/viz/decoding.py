@@ -4,6 +4,7 @@ from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Clement Moutard <clement.moutard@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: Simplified BSD
 
@@ -71,10 +72,10 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
         tt_times = gat.train_times['times_']
         tn_times = gat.test_times_['times_']
         tlim = [tn_times[0][0], tn_times[-1][-1], tt_times[0], tt_times[-1]]
+
     # Plot scores
     im = ax.imshow(gat.scores_, interpolation='nearest', origin='lower',
-                   extent=tlim, vmin=vmin, vmax=vmax,
-                   cmap=cmap)
+                   extent=tlim, vmin=vmin, vmax=vmax, cmap=cmap)
     if xlabel is True:
         ax.set_xlabel('Testing Time (s)')
     if ylabel is True:
@@ -146,12 +147,12 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
         # Get scores from identical training and testing times even if GAT
         # is not square.
         scores = np.zeros(len(gat.scores_))
-        for i, T in enumerate(gat.train_times['times_']):
-            for t in gat.test_times_['times_']:
+        for i, train_time in enumerate(gat.train_times['times_']):
+            for test_times in gat.test_times_['times_']:
                 # find closest testing time from train_time
-                j = np.abs(t - T).argmin()
+                j = np.abs(test_times - train_time).argmin()
                 # check that not more than 1 classifier away
-                if T - t[j] <= gat.train_times['step']:
+                if train_time - test_times[j] <= gat.train_times['step']:
                     scores[i] = gat.scores_[i][j]
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
