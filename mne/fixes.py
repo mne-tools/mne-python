@@ -147,19 +147,40 @@ else:
     copysign = np.copysign
 
 
-def _in1d(ar1, ar2, assume_unique=False):
+def _in1d(ar1, ar2, assume_unique=False, invert=False):
     """Replacement for in1d that is provided for numpy >= 1.4"""
+    # Ravel both arrays, behavior for the first array could be different
+    ar1 = np.asarray(ar1).ravel()
+    ar2 = np.asarray(ar2).ravel()
+
+    # This code is significantly faster when the condition is satisfied.
+    if len(ar2) < 10 * len(ar1) ** 0.145:
+        if invert:
+            mask = np.ones(len(ar1), dtype=np.bool)
+            for a in ar2:
+                mask &= (ar1 != a)
+        else:
+            mask = np.zeros(len(ar1), dtype=np.bool)
+            for a in ar2:
+                mask |= (ar1 == a)
+        return mask
+
+    # Otherwise use sorting
     if not assume_unique:
         ar1, rev_idx = unique(ar1, return_inverse=True)
         ar2 = np.unique(ar2)
+
     ar = np.concatenate((ar1, ar2))
     # We need this to be a stable sort, so always use 'mergesort'
     # here. The values from the first array should always come before
     # the values from the second array.
     order = ar.argsort(kind='mergesort')
     sar = ar[order]
-    equal_adj = (sar[1:] == sar[:-1])
-    flag = np.concatenate((equal_adj, [False]))
+    if invert:
+        bool_ar = (sar[1:] != sar[:-1])
+    else:
+        bool_ar = (sar[1:] == sar[:-1])
+    flag = np.concatenate((bool_ar, [invert]))
     indx = order.argsort(kind='mergesort')[:len(ar1)]
 
     if assume_unique:
@@ -167,7 +188,8 @@ def _in1d(ar1, ar2, assume_unique=False):
     else:
         return flag[indx][rev_idx]
 
-if not hasattr(np, 'in1d'):
+
+if not hasattr(np, 'in1d') or LooseVersion(np.__version__) < '1.8':
     in1d = _in1d
 else:
     in1d = np.in1d
@@ -280,6 +302,88 @@ else:
     # Before an 'order' argument was introduced, numpy wouldn't muck with
     # the ordering
     safe_copy = np.copy
+
+
+def _meshgrid(*xi, **kwargs):
+    """
+    Return coordinate matrices from coordinate vectors.
+    Make N-D coordinate arrays for vectorized evaluations of
+    N-D scalar/vector fields over N-D grids, given
+    one-dimensional coordinate arrays x1, x2,..., xn.
+    .. versionchanged:: 1.9
+       1-D and 0-D cases are allowed.
+    Parameters
+    ----------
+    x1, x2,..., xn : array_like
+        1-D arrays representing the coordinates of a grid.
+    indexing : {'xy', 'ij'}, optional
+        Cartesian ('xy', default) or matrix ('ij') indexing of output.
+        See Notes for more details.
+        .. versionadded:: 1.7.0
+    sparse : bool, optional
+        If True a sparse grid is returned in order to conserve memory.
+        Default is False.
+        .. versionadded:: 1.7.0
+    copy : bool, optional
+        If False, a view into the original arrays are returned in order to
+        conserve memory.  Default is True.  Please note that
+        ``sparse=False, copy=False`` will likely return non-contiguous
+        arrays.  Furthermore, more than one element of a broadcast array
+        may refer to a single memory location.  If you need to write to the
+        arrays, make copies first.
+        .. versionadded:: 1.7.0
+    Returns
+    -------
+    X1, X2,..., XN : ndarray
+        For vectors `x1`, `x2`,..., 'xn' with lengths ``Ni=len(xi)`` ,
+        return ``(N1, N2, N3,...Nn)`` shaped arrays if indexing='ij'
+        or ``(N2, N1, N3,...Nn)`` shaped arrays if indexing='xy'
+        with the elements of `xi` repeated to fill the matrix along
+        the first dimension for `x1`, the second for `x2` and so on.
+    """
+    ndim = len(xi)
+
+    copy_ = kwargs.pop('copy', True)
+    sparse = kwargs.pop('sparse', False)
+    indexing = kwargs.pop('indexing', 'xy')
+
+    if kwargs:
+        raise TypeError("meshgrid() got an unexpected keyword argument '%s'"
+                        % (list(kwargs)[0],))
+
+    if indexing not in ['xy', 'ij']:
+        raise ValueError(
+            "Valid values for `indexing` are 'xy' and 'ij'.")
+
+    s0 = (1,) * ndim
+    output = [np.asanyarray(x).reshape(s0[:i] + (-1,) + s0[i + 1::])
+              for i, x in enumerate(xi)]
+
+    shape = [x.size for x in output]
+
+    if indexing == 'xy' and ndim > 1:
+        # switch first and second axis
+        output[0].shape = (1, -1) + (1,) * (ndim - 2)
+        output[1].shape = (-1, 1) + (1,) * (ndim - 2)
+        shape[0], shape[1] = shape[1], shape[0]
+
+    if sparse:
+        if copy_:
+            return [x.copy() for x in output]
+        else:
+            return output
+    else:
+        # Return the full N-D matrix (not only the 1-D vector)
+        if copy_:
+            mult_fact = np.ones(shape, dtype=int)
+            return [x * mult_fact for x in output]
+        else:
+            return np.broadcast_arrays(*output)
+
+if LooseVersion(np.__version__) < LooseVersion('1.7'):
+    meshgrid = _meshgrid
+else:
+    meshgrid = np.meshgrid
 
 
 ###############################################################################

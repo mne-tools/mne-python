@@ -443,7 +443,7 @@ def _fake_click(fig, ax, point, xform='ax'):
         raise ValueError('unknown transform')
     try:
         fig.canvas.button_press_event(x, y, 1, False, None)
-    except:  # for old MPL
+    except Exception:  # for old MPL
         fig.canvas.button_press_event(x, y, 1, False)
 
 

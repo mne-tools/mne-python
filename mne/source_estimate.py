@@ -2052,7 +2052,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     if len(idx_use) != len(data_sum) and warn:
         warnings.warn('%s/%s vertices not included in smoothing, consider '
                       'increasing the number of steps'
-                      % (len(idx_use), len(data_sum)))
+                      % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
@@ -2245,7 +2245,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, verbose=None):
+                         smooth=None, subjects_dir=None, warn=True,
+                         verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -2264,6 +2265,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2289,7 +2292,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
             continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi])
+                                      vertices_to[hemi], maps[hemi], warn=warn)
     # be careful about zero-length arrays
     if isinstance(morpher[0], list):
         morpher = morpher[1]

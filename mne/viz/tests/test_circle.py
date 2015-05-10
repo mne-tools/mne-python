@@ -9,12 +9,14 @@ import numpy as np
 from numpy.testing import assert_raises
 
 from mne.viz import plot_connectivity_circle, circular_layout
+from mne.utils import slow_test
 
 # Set our plotters to test mode
 import matplotlib
 matplotlib.use('Agg')  # for testing don't use X server
 
 
+@slow_test
 def test_plot_connectivity_circle():
     """Test plotting connectivity circle
     """

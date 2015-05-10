@@ -1,7 +1,7 @@
 import sys
 from subprocess import Popen, PIPE
 
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_scipy_version
 
 
 run_script = """
@@ -11,7 +11,8 @@ import sys
 import mne
 
 # check scipy
-ok_scipy_submodules = set(['fftpack', 'lib', 'linalg',
+ok_scipy_submodules = set(['scipy', 'numpy',  # these appear in old scipy
+                           'fftpack', 'lib', 'linalg',
                            'misc', 'sparse', 'version'])
 scipy_submodules = set(x.split('.')[1] for x in sys.modules.keys()
                        if x.startswith('scipy.') and '__' not in x and
@@ -35,6 +36,7 @@ for x in sys.modules.keys():
 """
 
 
+@requires_scipy_version('0.11')  # really old ones weren't organized properly
 def test_module_nesting():
     """Test that module imports are necessary
     """

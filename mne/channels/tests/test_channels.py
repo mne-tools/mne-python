@@ -11,13 +11,12 @@ import numpy as np
 import warnings
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
-from scipy.io import savemat
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
 from mne.io.constants import FIFF
-from mne.fixes import partial
+from mne.fixes import partial, savemat
 from mne.utils import _TempDir
 from mne import pick_types
 
@@ -108,7 +107,7 @@ def test_read_ch_connectivity():
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
     mat_fname = op.join(tempdir, 'test_mat.mat')
-    savemat(mat_fname, mat)
+    savemat(mat_fname, mat, oned_as='row')
 
     ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
     x = ch_connectivity
