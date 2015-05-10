@@ -593,6 +593,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  event_color=event_color, offsets=offsets)
 
     # set up callbacks
+    opt_button = None
     if len(raw.info['projs']) > 0:
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
@@ -614,6 +615,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     # store these for use by callbacks in the options figure
     params['callback_proj'] = callback_proj
     params['callback_key'] = callback_key
+    # have to store this, or it could get garbage-collected
+    params['opt_button'] = opt_button
 
     # do initial plots
     callback_proj('none')
