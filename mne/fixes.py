@@ -167,7 +167,7 @@ def _in1d(ar1, ar2, assume_unique=False, invert=False):
 
     # Otherwise use sorting
     if not assume_unique:
-        ar1, rev_idx = np.unique(ar1, return_inverse=True)
+        ar1, rev_idx = unique(ar1, return_inverse=True)
         ar2 = np.unique(ar2)
 
     ar = np.concatenate((ar1, ar2))

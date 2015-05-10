@@ -81,9 +81,12 @@ def test_plot_evoked():
     with warnings.catch_warnings(record=True):
         fig = evoked.plot(proj=True, hline=[1])
         # Test a click
-        line = fig.get_axes()[0].lines[0]
-        _fake_click(fig, fig.get_axes()[0],
+        ax = fig.get_axes()[0]
+        line = ax.lines[0]
+        _fake_click(fig, ax,
                     [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+        _fake_click(fig, ax,
+                    [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
         # plot with bad channels excluded
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'])  # does the same thing
