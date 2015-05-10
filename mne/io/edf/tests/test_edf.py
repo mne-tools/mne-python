@@ -119,12 +119,16 @@ def test_read_segment():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
-    raw2_file = op.join(tempdir, 'test2-raw.fif')
-    raw2.save(raw2_file, overwrite=True)
-    data2, times2 = raw2[:139, :]
-    assert_allclose(data1, data2, rtol=1e-6)
-    assert_array_equal(times1, times2)
+    buffer_fname = op.join(tempdir, 'buffer')
+    for preload in (buffer_fname, True, False):  # false here means "delayed"
+        raw2 = read_raw_edf(edf_path, stim_channel=None, preload=preload)
+        if preload is False:
+            raw2.preload_data()
+        raw2_file = op.join(tempdir, 'test2-raw.fif')
+        raw2.save(raw2_file, overwrite=True)
+        data2, times2 = raw2[:139, :]
+        assert_allclose(data1, data2, rtol=1e-6)
+        assert_array_equal(times1, times2)
 
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)

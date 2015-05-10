@@ -223,14 +223,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
-                 orig_format='double', verbose=None):
-        # some functions (e.g., filtering) only work w/64-bit data
-        if data is not None:
+                 orig_format='double',
+                 verbose=None):
+        self.info = info
+        if (preload is not False and preload is not True and
+                not isinstance(preload, np.ndarray) and
+                not isinstance(preload, string_types)):
+            raise ValueError('bad preload: %s' % preload)
+        self._data = None
+        if preload is False:
+            self.preload = False
+        elif isinstance(preload, np.ndarray):
+            # some functions (e.g., filtering) only work w/64-bit data
             if data.dtype not in (np.float64, np.complex128):
                 raise RuntimeError('datatype must be float64 or complex128, '
                                    'not %s' % data.dtype)
-        self.info = info
-        self._data = data
+            self._data = preload
+            self.preload = True
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -240,18 +249,45 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
-        self.preload = True if data is not None else False
         self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
-        if data is not None:
+        if self._data is not None:
             self._last_samps = np.array([self._data.shape[1] - 1])
         else:
             self._last_samps = np.array(last_samps)
         self._projectors = list()
         self._projector = None
+        if not isinstance(preload, np.ndarray) and preload is not False:
+            # We have True or a string
+            self._preload_data(preload)
 
-    def _read_segment(start, stop, sel, projector, verbose):
+    def _read_segment(start, stop, sel, data_buffer, projector, verbose):
         raise NotImplementedError
+
+    @verbose
+    def preload_data(self, verbose=None):
+        """Preload raw data
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Notes
+        -----
+        This function will preload raw data if it was not already preloaded.
+        If data were already preloaded, it will do nothing.
+        """
+        if not self.preload:
+            self._preload_data(True)
+
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        data_buffer = preload if isinstance(preload, string_types) else None
+        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        assert len(self._data) == self.info['nchan']
+        self.preload = True
+        self.close()
 
     @property
     def first_samp(self):
@@ -1344,7 +1380,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raws : list, or Raw instance
             list of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-
         preload : bool, str, or None (default None)
             Preload data into memory for data manipulation and faster indexing.
             If True, the data will be preloaded into memory (fast, requires
@@ -1414,7 +1449,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def close(self):
         """Clean up the object.
 
-        Does nothing for now.
+        Does nothing for objects that close their file descriptors.
+        Things like RawFIF will override this method.
         """
         pass
 

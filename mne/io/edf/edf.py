@@ -60,9 +60,12 @@ class RawEDF(_BaseRaw):
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -89,18 +92,9 @@ class RawEDF(_BaseRaw):
         # Raw attributes
         last_samps = [self._edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
-            info, last_samps=last_samps, orig_format='int', verbose=verbose)
+            info, last_samps=last_samps, orig_format='int',
+            preload=preload, verbose=verbose)
 
-        if preload:
-            self.preload = preload
-            logger.info('Reading raw data from %s...' % input_fname)
-            self._data, _ = self._read_segment()
-            assert len(self._data) == self.info['nchan']
-            self._last_samps = np.array([self._data.shape[1] - 1])
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                        % (self.first_samp, self.last_samp,
-                           float(self.first_samp) / self.info['sfreq'],
-                           float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
 
     def __repr__(self):
@@ -110,32 +104,10 @@ class RawEDF(_BaseRaw):
              "n_channels x n_times : %s x %s" % (n_chan, data_range))
         return "<RawEDF  |  %s>" % ', '.join(s)
 
-    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
-        """Read a chunk of raw data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-        times : array, [samples]
-            returns the time values corresponding to the samples.
-        """
+    @verbose
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+                      projector=None, verbose=None):
+        """Read a chunk of raw data"""
         from scipy.interpolate import interp1d
         if sel is None:
             sel = list(range(self.info['nchan']))
@@ -187,6 +159,15 @@ class RawEDF(_BaseRaw):
         offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
         picks = [stim_channel, tal_channel]
         offsets[picks] = 0
+
+        # set up output array
+        data_shape = (len(sel), stop - start)
+        if isinstance(data_buffer, np.ndarray):
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            out_data = data_buffer
+        else:
+            out_data = np.zeros(data_shape, np.float64)
 
         with open(self.info['filename'], 'rb') as fid:
             # extract data
@@ -276,12 +257,16 @@ class RawEDF(_BaseRaw):
                 datas[stim_channel] = stim
         datastart = start - blockstart
         datastop = stop - blockstart
-        datas = datas[sel, datastart:datastop]
+        # XXX this could be *much* more optimized for memory by only
+        # creating the proper size "datas" above, and filling in
+        # data_buffer directly, but this will require refactoring
+        # the above reading code
+        out_data = datas[sel, datastart:datastop]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
 
-        return datas, times
+        return out_data, times
 
 
 def _parse_tal_channel(tal_channel_data):
@@ -324,46 +309,7 @@ def _parse_tal_channel(tal_channel_data):
 
 def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
                   eog, misc, preload):
-    """Extracts all the information from the EDF+,BDF file.
-
-    Parameters
-    ----------
-    fname : str
-        Raw EDF+,BDF file to be read.
-    stim_channel : str | int | None
-        The channel name or channel index (starting at 0).
-        -1 corresponds to the last channel.
-        If None, there will be no stim channel added.
-    annot : str | None
-        Path to annotation file.
-        If None, no derived stim channel will be added (for files requiring
-        annotation file to interpret stim channel).
-    annotmap : str | None
-        Path to annotation map file containing mapping from label to trigger.
-        Must be specified if annot is not None.
-    tal_channel : int | None
-        The channel index (starting at 0).
-        Index of the channel containing EDF+ annotations.
-        -1 corresponds to the last channel.
-        If None, the annotation channel is not used.
-        Note: this is overruled by the annotation file if specified.
-    eog : list of str | None
-        Names of channels that should be designated EOG channels. Names should
-        correspond to the electrodes in the edf file. Default is None.
-    misc : list of str | None
-        Names of channels that should be designated MISC channels. Names
-        should correspond to the electrodes in the edf file. Default is None.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
-
-    Returns
-    -------
-    info : instance of Info
-        The measurement info.
-    edf_info : dict
-        A dict containing all the EDF+,BDF  specific parameters.
-    """
+    """Extracts all the information from the EDF+,BDF file"""
 
     if eog is None:
         eog = []
@@ -632,9 +578,12 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
         -1 corresponds to the last channel.
         If None, the annotation channel is not used.
         Note: this is overruled by the annotation file if specified.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

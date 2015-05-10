@@ -114,7 +114,7 @@ class RawFIF(_BaseRaw):
         _check_raw_compatibility(raws)
 
         super(RawFIF, self).__init__(
-            copy.deepcopy(raws[0].info), None,
+            copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._rawdir for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
@@ -134,36 +134,6 @@ class RawFIF(_BaseRaw):
         # setup the SSP projector
         if proj:
             self.apply_proj()
-
-    def _preload_data(self, preload):
-        """This function actually preloads the data"""
-        if isinstance(preload, string_types):
-            # we will use a memmap: preload is a filename
-            data_buffer = preload
-        else:
-            data_buffer = None
-
-        self._data = self._read_segment(data_buffer=data_buffer)[0]
-        self.preload = True
-        # close files once data are preloaded
-        self.close()
-
-    @verbose
-    def preload_data(self, verbose=None):
-        """Preload raw data
-
-        Parameters
-        ----------
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Notes
-        -----
-        This function will preload raw data if it was not already preloaded.
-        If data were already preloaded, it will do nothing.
-        """
-        if not self.preload:
-            self._preload_data(True)
 
     @verbose
     def _read_raw_file(self, fname, allow_maxshield, preload, compensation,
@@ -377,7 +347,7 @@ class RawFIF(_BaseRaw):
         return raw, next_fname
 
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      verbose=None, projector=None):
+                      projector=None, verbose=None):
         """Read a chunk of raw data
 
         Parameters
@@ -394,10 +364,10 @@ class RawFIF(_BaseRaw):
             numpy array to fill with data read, must have the correct shape.
             If str, a np.memmap with the correct data type will be used
             to store the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
         projector : array
             SSP operator to apply to the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
 
         Returns
         -------

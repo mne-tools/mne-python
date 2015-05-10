@@ -102,6 +102,10 @@ def test_read_segment():
     raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=True)
     assert_array_almost_equal(raw1._data, raw3._data)
+    raw4 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
+                        preload=False)
+    raw4.preload_data()
+    assert_array_almost_equal(raw1._data, raw4._data)
 
 
 def test_ch_loc():
