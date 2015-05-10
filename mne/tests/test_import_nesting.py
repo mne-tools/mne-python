@@ -1,7 +1,7 @@
 import sys
 from subprocess import Popen, PIPE
 
-from mne.utils import run_tests_if_main
+from mne.utils import run_tests_if_main, requires_scipy_version
 
 
 run_script = """
@@ -36,6 +36,7 @@ for x in sys.modules.keys():
 """
 
 
+@requires_scipy_version('0.11')  # really old ones weren't organized properly
 def test_module_nesting():
     """Test that module imports are necessary
     """
