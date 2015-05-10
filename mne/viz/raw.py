@@ -10,6 +10,7 @@ import copy
 from functools import partial
 
 import numpy as np
+import warnings
 
 from ..externals.six import string_types
 from ..io.pick import pick_types
@@ -403,7 +404,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     """
     if block:
         warnings.warn('block is deprecated and will be removed in v0.10, '
-                      'manually call plt.show(block=True) instead')
+                      'manually call plt.show(block=True) instead',
+                      DeprecationWarning)
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from scipy.signal import butter
