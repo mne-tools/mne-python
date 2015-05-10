@@ -54,10 +54,11 @@ def _get_epochs():
     events = _get_events()
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
+    epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
 
@@ -79,7 +80,7 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
-        fig = evoked.plot(proj=True, hline=[1])
+        fig = evoked.plot(proj=True, hline=[1], exclude=[])
         # Test a click
         ax = fig.get_axes()[0]
         line = ax.lines[0]

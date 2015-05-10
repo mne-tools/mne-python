@@ -164,7 +164,10 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
             if plot_type == 'butterfly':
-                lines.append(ax.plot(times, D.T, picker=3.))
+                lines.append(ax.plot(times, D.T, picker=3., zorder=0))
+                for ii, line in zip(idx, lines[-1]):
+                    if ii in bad_ch_idx:
+                        line.set_zorder(1)
                 ax.set_ylabel('data (%s)' % ch_unit)
                 # for old matplotlib, we actually need this to have a bounding
                 # box (!), so we have to put some valid text here, change
