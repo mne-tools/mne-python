@@ -90,9 +90,6 @@ _deprecation_ignores = [
     'mne.time_frequency.tfr.AverageTFR.plot_topomap',  # format
     'mne.stats.cluster_level.summarize_clusters_stc',  # vertno
     'mne.io.write',  # always ignore these
-    'mne.io.base.RawArray.plot',  # block
-    'mne.io.base.RawFIF.plot',  # block
-    'mne.viz.raw.plot_raw',  # block
 ]
 
 
