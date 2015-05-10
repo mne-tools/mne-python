@@ -346,6 +346,7 @@ class RawFIF(_BaseRaw):
 
         return raw, next_fname
 
+    @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
         """Read a chunk of raw data

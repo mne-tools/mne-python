@@ -92,8 +92,8 @@ class RawEDF(_BaseRaw):
         # Raw attributes
         last_samps = [self._edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
-            info, last_samps=last_samps, orig_format='int',
-            preload=preload, verbose=verbose)
+            info, preload, last_samps=last_samps, orig_format='int',
+            verbose=verbose)
 
         logger.info('Ready.')
 
