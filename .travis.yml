@@ -63,6 +63,10 @@ install:
         pip install -q flake8 > /dev/null;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
+    # annoying fix for old numpy (http://stackoverflow.com/questions/8917977/installing-lapack-for-numpy)
+    - if [ "${NUMPY:(-3)}" == "1.6" ]; then
+        sudo apt-get remove libopenblas-base;
+      fi;
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
     - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
