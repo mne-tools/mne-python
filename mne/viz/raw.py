@@ -373,6 +373,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for setting bad channels on the fly by clicking on a line.
+        May not work on all systems / platforms.
     highpass : float | None
         Highpass to apply when displaying data.
     lowpass : float | None
@@ -623,7 +624,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         _toggle_options(None, params)
 
     if show:
-        plt.show(block=block)
+        try:
+            plt.show(block=block)
+        except TypeError:  # not all versions have this
+            plt.show()
 
     return fig
 

@@ -1,11 +1,12 @@
-# Authors: Alexandre Gramfort <gramfort@nmr.mgh.harvard.edu>
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
 from ...utils import verbose
 from ...fixes import partial
-from ..utils import has_dataset, _data_path, _doc
+from ..utils import (has_dataset, _data_path, _data_path_doc,
+                     _get_version, _version_doc)
 
 
 has_somato_data = partial(has_dataset, name='somato')
@@ -18,5 +19,11 @@ def data_path(path=None, force_update=False, update_path=True, download=True,
                       update_path=update_path, name='somato',
                       download=download)
 
-data_path.__doc__ = _doc.format(name='somato',
-                                conf='MNE_DATASETS_SOMATO_PATH')
+data_path.__doc__ = _data_path_doc.format(name='somato',
+                                          conf='MNE_DATASETS_SOMATO_PATH')
+
+
+def get_version():
+    return _get_version('somato')
+
+get_version.__doc__ = _version_doc.format(name='somato')

@@ -1054,6 +1054,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         block : bool
             Whether to halt program execution until the figure is closed.
             Useful for setting bad channels on the fly (click on line).
+            May not work on all systems / platforms.
         highpass : float | None
             Highpass to apply when displaying data.
         lowpass : float | None
