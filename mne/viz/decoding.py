@@ -94,19 +94,22 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     return fig if ax is None else ax.get_figure()
 
 
-def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
-                      ymax=None, ax=None, show=True, color='b', xlabel=True,
-                      ylabel=True, legend=True, chance=True):
+def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
+                   xmax=None, ymin=None, ymax=None, ax=None, show=True,
+                   color='b', xlabel=True, ylabel=True, legend=True,
+                   chance=True):
     """Plotting function of GeneralizationAcrossTime object
 
-    Predict each classifier. If multiple classifiers are passed, average
-    prediction across all classifier to result in a single prediction per
-    classifier.
+    Plot the scores of the classifier trained at \'train_time\'.
 
     Parameters
     ----------
     gat : instance of mne.decoding.GeneralizationAcrossTime
         The gat object.
+    train_time : str | float. Default to 'diagonal'
+        Plots a slice of gat.scores. If 'diagonal', plots scores of classifiers
+        trained and tested at the same time, else plots scores of the
+        classifier trained at train_time.
     title : str | None
         Figure title. Defaults to None.
     xmin : float | None, optional, defaults to None.
@@ -144,10 +147,11 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
     import matplotlib.pyplot as plt
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-    # detect whether gat is a full matrix or just its diagonal
+
+    # Detect whether gat is a full matrix or just its diagonal
     if np.all(np.unique([len(t) for t in gat.test_times_['times_']]) == 1):
         scores = gat.scores_
-    else:
+    elif train_time == 'diagonal':
         # Get scores from identical training and testing times even if GAT
         # is not square.
         scores = np.zeros(len(gat.scores_))
@@ -158,6 +162,13 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
                 # check that not more than 1 classifier away
                 if train_time - test_times[j] <= gat.train_times['step']:
                     scores[i] = gat.scores_[i][j]
+    elif type(train_time) in [float, np.float64, np.float32]:
+        idx = np.abs(gat.train_times['times_'] - train_time).argmin()
+        if not idx:
+            raise ValueError("No classifier trained at %s " % train_time)
+        scores = gat.scores_[idx]
+    else:
+        raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
     # Find chance level

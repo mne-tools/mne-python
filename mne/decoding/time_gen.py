@@ -6,7 +6,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
+from ..viz.decoding import plot_gat_matrix, plot_gat_slice
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
 
@@ -445,9 +445,7 @@ class GeneralizationAcrossTime(object):
              xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
-        Predict each classifier. If multiple classifiers are passed, average
-        prediction across all classifiers to result in a single prediction per
-        classifier.
+        Plot the score of each classifier at each tested time window.
 
         Parameters
         ----------
@@ -483,12 +481,11 @@ class GeneralizationAcrossTime(object):
 
     def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
                       ax=None, show=True, color='steelblue', xlabel=True,
-                      ylabel=True, legend=True):
+                      ylabel=True, legend=True, chance=True):
         """Plotting function of GeneralizationAcrossTime object
 
-        Predict each classifier. If multiple classifiers are passed, average
-        prediction across all classifiers to result in a single prediction per
-        classifier.
+        Plot each classifier score trained and tested at identical time
+        windows.
 
         Parameters
         ----------
@@ -515,16 +512,69 @@ class GeneralizationAcrossTime(object):
             If True, the ylabel is displayed. Defaults to True.
         legend : bool
             If True, a legend is displayed. Defaults to True.
+        chance : bool | float. Defaults to None
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax,
-                                 ymin=ymin, ymax=ymax, ax=ax, show=show,
-                                 color=color, xlabel=xlabel, ylabel=ylabel,
-                                 legend=legend)
+        return plot_gat_slice(self, train_time='diagonal', title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend)
+
+    def plot_slice(self, train_time, title=None, xmin=None, xmax=None, ymin=0.,
+                   ymax=1., ax=None, show=True, color='steelblue', xlabel=True,
+                   ylabel=True, legend=True, chance=True):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Plot the scores of the classifier trained at \'train_time\'.
+
+        Parameters
+        ----------
+        train_time : float
+            Plots plots scores of the classifier trained at train_time.
+        title : str | None
+            Figure title. Defaults to None.
+        xmin : float | None, optional, defaults to None.
+            Min time value.
+        xmax : float | None, optional, defaults to None.
+            Max time value.
+        ymin : float
+            Min score value. Defaults to 0.
+        ymax : float
+            Max score value. Defaults to 1.
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+            Defaults to None.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str
+            Score line color. Defaults to 'steelblue'.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+        chance : bool | float. Defaults to None
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        return plot_gat_slice(self, train_time=train_time, title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend, chance=chance)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
