@@ -74,6 +74,7 @@ def test_generalization_across_time():
         gat.fit(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
+    assert_equal(gat.ch_names, epochs.ch_names)
     gat.predict(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 15 epochs, no score>",
