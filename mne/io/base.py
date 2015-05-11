@@ -224,6 +224,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
                  orig_format='double', verbose=None):
+        # some functions (e.g., filtering) only work w/64-bit data
+        if data is not None:
+            if data.dtype not in (np.float64, np.complex128):
+                raise RuntimeError('datatype must be float64 or complex128, '
+                                   'not %s' % data.dtype)
         self.info = info
         self._data = data
         cals = np.empty(info['nchan'])
