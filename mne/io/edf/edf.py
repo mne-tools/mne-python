@@ -127,7 +127,6 @@ class RawEDF(_BaseRaw):
 
         n_samps = self._edf_info['n_samps']
         max_samp = self._edf_info['max_samp']
-        assert isinstance(max_samp, int)
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -172,18 +171,14 @@ class RawEDF(_BaseRaw):
             data = np.empty(data_shape, dtype=float)
 
         buffer_size = blockstop - blockstart
-        used = np.zeros(data_shape[1], bool)
-
+        this_data = np.empty((len(sel), max_samp))
         with open(self.info['filename'], 'rb') as fid:
             # extract data
-            fid.seek(data_offset)
-            pointer = blockstart * n_chan * data_size
-            fid.seek(data_offset + pointer)
-            this_data = np.empty((len(sel), max_samp))
-            blocks = int(ceil(float(buffer_size) / max_samp))
-            for i in range(blocks):
+            fid.seek(data_offset + blockstart * n_chan * data_size)
+            n_blk = int(ceil(float(buffer_size) / max_samp))
+            for bi in range(n_blk):
                 count = 0
-                start_pt = max_samp * i
+                start_pt = max_samp * bi
                 stop_pt = start_pt + max_samp
                 for j, samp in enumerate(n_samps):
                     # bdf data: 24bit data
@@ -227,16 +222,14 @@ class RawEDF(_BaseRaw):
                                            npad=0)
                     this_data[count, :] = ch_data
                     count += 1
-                s_off = start - blockstart if i == 0 else 0
-                e_off = stop_pt - stop + blockstart if i == blocks - 1 else 0
+                s_off = start - blockstart if bi == 0 else 0
+                e_off = stop_pt - stop + blockstart if bi == n_blk - 1 else 0
                 assert s_off >= 0
                 assert e_off >= 0
                 time_slice = slice(start_pt + (s_off - start + blockstart),
-                                   stop_pt - (e_off + start - blockstart), None)
+                                   stop_pt - (e_off + start - blockstart),
+                                   None)
                 data[:, time_slice] = this_data[:, s_off:buffer_size - e_off]
-                assert not used[time_slice].any()
-                used[time_slice] = True
-        assert used.all()
         data *= gains.T[sel]
         data += offsets[sel]
 
@@ -268,7 +261,8 @@ class RawEDF(_BaseRaw):
                 # Allows support for up to 16-bit trigger values (2 ** 16 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       65535)
-            data[stim_channel_idx, :] = stim[start - blockstart:stop - blockstart]
+            data[stim_channel_idx, :] = \
+                stim[start - blockstart:stop - blockstart]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
