@@ -40,10 +40,11 @@ class ProjMixin(object):
     Notes
     -----
     This mixin adds a proj attribute as a property to data containers.
-    It is True if all projs are active. The projs might not be applied yet
-    if data are not preloaded. In this case it's the _projector attribute
-    that does the job. If a private _data attribute is present
-    then the projs applied to it are the ones marked as active.
+    It is True if at least one proj is present and all of them are active.
+    The projs might not be applied yet if data are not preloaded. In
+    this case it's the _projector attribute that does the job.
+    If a private _data attribute is present then the projs applied
+    to it are the ones marked as active.
 
     A proj parameter passed in constructor of raw or epochs calls
     apply_proj and hence after the .proj attribute is True.
@@ -60,7 +61,8 @@ class ProjMixin(object):
     """
     @property
     def proj(self):
-        return all(p['active'] for p in self.info['projs'])
+        return (len(self.info['projs']) > 0 and
+                all(p['active'] for p in self.info['projs']))
 
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
