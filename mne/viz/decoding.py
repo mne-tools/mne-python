@@ -9,6 +9,7 @@ from __future__ import print_function
 # License: Simplified BSD
 
 import numpy as np
+import warnings
 
 
 def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
@@ -95,7 +96,7 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 
 def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
                       ymax=None, ax=None, show=True, color='b', xlabel=True,
-                      ylabel=True, legend=True):
+                      ylabel=True, legend=True, chance=True):
     """Plotting function of GeneralizationAcrossTime object
 
     Predict each classifier. If multiple classifiers are passed, average
@@ -128,6 +129,9 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
         If True, the ylabel is displayed. Defaults to True.
     legend : bool
         If True, a legend is displayed. Defaults to True.
+    chance : bool | float. Defaults to None
+        Plot chance level. If True, chance level is estimated from the type
+        of scorer.
 
     Returns
     -------
@@ -156,7 +160,18 @@ def plot_gat_diagonal(gat, title=None, xmin=None, xmax=None, ymin=None,
                     scores[i] = gat.scores_[i][j]
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
-    ax.axhline(0.5, color='k', linestyle='--', label="Chance level")
+    # Find chance level
+    if chance is True:
+        # XXX JRK This should probably be solved within sklearn?
+        if gat.scorer_.__name__ is 'accuracy_score':
+            chance = 1. / len(np.unique(gat.y_train_))
+        elif gat.scorer_.__name__ is 'roc_auc_score':
+            chance = 0.5
+        else:
+            chance = np.nan
+            warnings.warn('Cannot find chance level from %s, specify chance'
+                          ' level' % gat.scorer.__name__)
+        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
     if title is not None:
         ax.set_title(title)
     if ymin is None:
