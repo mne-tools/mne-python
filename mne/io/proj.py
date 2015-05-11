@@ -60,7 +60,8 @@ class ProjMixin(object):
     """
     @property
     def proj(self):
-        return all(p['active'] for p in self.info['projs'])
+        return (len(self.info['projs']) > 0 and
+                all(p['active'] for p in self.info['projs']))
 
     def add_proj(self, projs, remove_existing=False):
         """Add SSP projection vectors
