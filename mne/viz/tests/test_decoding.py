@@ -64,7 +64,7 @@ def test_gat_plot_diagonal():
 def test_gat_plot_slice():
     """Test GAT slice plot"""
     gat = _get_data()
-    gat.plot_slice(gat.train_time['times_'][0])
+    gat.plot_slice(gat.train_times['times_'][0])
     # test invalid time point
     assert_raises(ValueError, gat.plot_slice, -1.)
     # test float type

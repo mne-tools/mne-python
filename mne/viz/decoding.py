@@ -163,8 +163,9 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
                 if train_time - test_times[j] <= gat.train_times['step']:
                     scores[i] = gat.scores_[i][j]
     elif type(train_time) in [float, np.float64, np.float32]:
-        idx = np.abs(gat.train_times['times_'] - train_time).argmin()
-        if not idx:
+        train_times = gat.train_times['times_']
+        idx = np.abs(train_times - train_time).argmin()
+        if train_times[idx] - train_time > gat.train_times['step']:
             raise ValueError("No classifier trained at %s " % train_time)
         scores = gat.scores_[idx]
     else:
