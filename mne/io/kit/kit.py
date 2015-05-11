@@ -207,8 +207,6 @@ class RawKIT(_BaseRaw):
         """Read a chunk of raw data"""
         if sel is None:
             sel = np.arange(self.info['nchan'])
-        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)  # Again?
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:

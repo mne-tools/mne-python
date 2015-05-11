@@ -96,9 +96,14 @@ def test_read_segment():
                         preload=True)
     raw2_file = op.join(tempdir, 'test2-raw.fif')
     raw2.save(raw2_file, buffer_size_sec=.1, overwrite=True)
+    data1, times1 = raw1[0, 0:1]
+
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)
     assert_array_equal(raw1._data, raw2._data)
+    data2, times2 = raw2[0, 0:1]
+    assert_array_almost_equal(data1, data2)
+    assert_array_almost_equal(times1, times2)
     raw3 = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<',
                         preload=True)
     assert_array_almost_equal(raw1._data, raw3._data)
