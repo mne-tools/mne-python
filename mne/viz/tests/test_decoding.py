@@ -24,7 +24,7 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 @requires_sklearn
 def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
-              event_id_gen=dict(aud_l=2, vis_l=4)):
+              event_id_gen=dict(aud_l=2, vis_l=4), test_times=None):
     """Aux function for testing GAT viz"""
     gat = GeneralizationAcrossTime()
     raw = io.Raw(raw_fname, preload=False)
@@ -41,7 +41,7 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     # Test default running
     gat = GeneralizationAcrossTime()
     gat.fit(epochs)
-    gat.score(epochs)
+    gat.score(epochs, test_times=test_times)
     return gat
 
 
@@ -85,5 +85,13 @@ def test_gat_chance_level():
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
+
+def test_gat_plot_nonsquared():
+    """Test GAT diagonal plot"""
+    gat = _get_data(test_times=dict(start=0.))
+    gat.plot()
+    ax = gat.plot_diagonal()
+    scores = ax.get_children()[1].get_lines()[0].get_ydata()
+    assert_equals(len(scores), len(gat.estimators_))
 
 run_tests_if_main()
