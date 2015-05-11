@@ -173,7 +173,7 @@ class RawEDF(_BaseRaw):
         """
         Consider this example:
 
-        tmin, tmax = (3, 27)
+        tmin, tmax = (2, 27)
         read_size = 30
         buf_len = 10
         sfreq = 1.
@@ -183,7 +183,7 @@ class RawEDF(_BaseRaw):
                         +---------+---------+---------+
         File time:      0        10        20        30
                         +---------+---------+---------+
-        Requsted time:    2                       27
+        Requested time:   2                       27
 
                         |                             |
                     blockstart                    blockstop
@@ -210,7 +210,7 @@ class RawEDF(_BaseRaw):
 
         On the final read, we need to do::
 
-            >>> data[2*buf_len-2:3*buf_len-2] = this_data[0:buf_len-3]
+            >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]
 
         """
         with open(self.info['filename'], 'rb', buffering=0) as fid:
