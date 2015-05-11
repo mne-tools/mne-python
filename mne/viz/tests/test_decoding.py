@@ -85,7 +85,7 @@ def test_gat_chance_level():
     assert_equals(chance(ax), .25)
     ax = gat.plot_diagonal(chance=1.234)
     assert_equals(chance(ax), 1.234)
-    assert_raises(ValueError, gat.plot_diagonal, **dict(chance='foo'))
+    assert_raises(ValueError, gat.plot_diagonal, chance='foo')
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
