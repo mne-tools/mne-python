@@ -5,6 +5,7 @@
 #
 # License: BSD (3-clause)
 
+import copy
 import numpy as np
 from ..viz.decoding import plot_gat_matrix, plot_gat_slice
 from ..parallel import parallel_func, check_n_jobs
@@ -18,17 +19,16 @@ class _DecodingTime(dict):
         Array of time slices (in indices) used for each classifier.
         If not given, computed from 'start', 'stop', 'length', 'step'.
     'start' : float
-        Time at which to start decoding (in seconds). By default,
-        min(epochs.times).
+        Time at which to start decoding (in seconds).
+        Defaults to min(epochs.times).
     'stop' : float
-        Maximal time at which to stop decoding (in seconds). By default,
-        max(times).
+        Maximal time at which to stop decoding (in seconds).
+        Defaults to max(times).
     'step' : float
         Duration separating the start of subsequent classifiers (in
-        seconds). By default, equals one time sample.
+        seconds). Defaults to one time sample.
     'length' : float
-        Duration of each classifier (in seconds). By default, equals one
-        time sample.
+        Duration of each classifier (in seconds). Defaults to one time sample.
     If None, empty dict. Defaults to None."""
 
     def __repr__(self):
@@ -83,17 +83,17 @@ class GeneralizationAcrossTime(object):
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             ``start`` : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
             ``stop`` : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
             ``step`` : float
                 Duration separating the start of subsequent classifiers (in
-                seconds). By default, equals one time sample.
+                seconds). Defaults to one time sample.
             ``length`` : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
 
         If None, empty dict. Defaults to None.
     predict_mode : {'cross-validation', 'mean-prediction'}
@@ -214,7 +214,7 @@ class GeneralizationAcrossTime(object):
         from sklearn.cross_validation import check_cv, StratifiedKFold
         n_jobs = self.n_jobs
         # Extract data from MNE structure
-        self.ch_names = epochs.ch_names
+        self.ch_names = copy.deepcopy(epochs.ch_names)
         X, y = _check_epochs_input(epochs, y)
         cv = self.cv
         if isinstance(cv, (int, np.int)):
@@ -271,17 +271,17 @@ class GeneralizationAcrossTime(object):
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
             'stop' : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
             'step' : float
                 Duration separating the start of to subsequent classifiers (in
-                seconds). By default, equals one time sample.
+                seconds). Defaults to one time sample.
             'length' : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
 
             If None, empty dict. Defaults to None.
 
@@ -371,17 +371,17 @@ class GeneralizationAcrossTime(object):
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
             'stop' : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
             'step' : float
                 Duration separating the start of to subsequent classifiers (in
-                seconds). By default, equals one time sample.
+                seconds). Defaults to one time sample.
             'length' : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
 
             If None, empty dict. Defaults to None.
 
@@ -456,7 +456,7 @@ class GeneralizationAcrossTime(object):
         vmax : float
             Max color value for score. Defaults to 1.
         tlim : np.ndarray, (train_min, test_max) | None
-            The temporal boundaries. defaults to None.
+            The temporal boundaries. Defaults to None.
         ax : object | None
             Plot pointer. If None, generate new figure. Defaults to None.
         cmap : str | cmap object
@@ -491,10 +491,10 @@ class GeneralizationAcrossTime(object):
         ----------
         title : str | None
             Figure title. Defaults to None.
-        xmin : float | None, optional, defaults to None.
-            Min time value.
-        xmax : float | None, optional, defaults to None.
-            Max time value.
+        xmin : float | None, optional
+            Min time value. Defaults to None.
+        xmax : float | None, optional
+            Max time value. Defaults to None.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
@@ -525,7 +525,7 @@ class GeneralizationAcrossTime(object):
                               xmin=xmin, xmax=xmax,
                               ymin=ymin, ymax=ymax, ax=ax, show=show,
                               color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend)
+                              legend=legend, chance=chance)
 
     def plot_slice(self, train_time, title=None, xmin=None, xmax=None, ymin=0.,
                    ymax=1., ax=None, show=True, color='steelblue', xlabel=True,
@@ -537,13 +537,13 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         train_time : float
-            Plots plots scores of the classifier trained at train_time.
+            Plots scores of the classifier trained at train_time.
         title : str | None
             Figure title. Defaults to None.
-        xmin : float | None, optional, defaults to None.
-            Min time value.
-        xmax : float | None, optional, defaults to None.
-            Max time value.
+        xmin : float | None, optional
+            Min time value. Defaults to None.
+        xmax : float | None, optional
+            Max time value. Defaults to None.
         ymin : float
             Min score value. Defaults to 0.
         ymax : float
@@ -561,9 +561,9 @@ class GeneralizationAcrossTime(object):
             If True, the ylabel is displayed. Defaults to True.
         legend : bool
             If True, a legend is displayed. Defaults to True.
-        chance : bool | float. Defaults to None
+        chance : bool | float.
             Plot chance level. If True, chance level is estimated from the type
-            of scorer.
+            of scorer. Defaults to None.
 
         Returns
         -------
@@ -883,18 +883,19 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
         If an integer is passed, it is the number of folds (default 5).
         Specific cross-validation objects can be passed, see
         sklearn.cross_validation module for the list of possible objects.
-    scoring : {string, callable, None}, default: "roc_auc"
+    scoring : {string, callable, None}
         A string (see model evaluation documentation in scikit-learn) or
         a scorer callable object / function with signature
-        ``scorer(y_true, y_pred)``.
+        ``scorer(y_true, y_pred)``. Defaults to "roc_auc".
     shuffle : bool
         If True, shuffle the epochs before splitting them in folds.
+        Defaults to True.
     random_state : None | int
         The random state used to shuffle the epochs. Ignored if
-        shuffle is False.
+        shuffle is False. Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel. Each fold is fit
-        in parallel.
+        in parallel. Defaults to 1.
 
     Returns
     -------

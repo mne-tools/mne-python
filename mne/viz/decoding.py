@@ -35,8 +35,7 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
         Defaults to None.
     tlim : array-like, (4,) | None
         The temporal boundaries. If None, expands to
-        [tmin_train, tmax_train, tmin_test, tmax_test]
-        Defaults to None.
+        [tmin_train, tmax_train, tmin_test, tmax_test]. Defaults to None.
     ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
     cmap : str | cmap object
@@ -61,12 +60,6 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     import matplotlib.pyplot as plt
     if ax is None:
         fig, ax = plt.subplots(1, 1)
-
-    # Define color limits
-    if vmin is None:
-        vmin = np.min(gat.scores_)
-    if vmax is None:
-        vmax = np.max(gat.scores_)
 
     # Define time limits
     if tlim is None:
@@ -106,23 +99,23 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     ----------
     gat : instance of mne.decoding.GeneralizationAcrossTime
         The gat object.
-    train_time : str | float. Default to 'diagonal'
+    train_time : str | float.
         Plots a slice of gat.scores. If 'diagonal', plots scores of classifiers
         trained and tested at the same time, else plots scores of the
-        classifier trained at train_time.
+        classifier trained at train_time. Default to 'diagonal'.
     title : str | None
         Figure title. Defaults to None.
-    xmin : float | None, optional, defaults to None.
-        Min time value.
-    xmax : float | None, optional, defaults to None.
-        Max time value.
-    ymin : float | None, optional, defaults to None.
-        Min score value. If None, sets to min(scores).
-    ymax : float | None, optional, defaults to None.
-        Max score value. If None, sets to max(scores).
+    xmin : float | None, optional
+        Min time value. Defaults to None.
+    xmax : float | None, optional
+        Max time value. Defaults to None.
+    ymin : float | None, optional
+        Min score value. If None, sets to min(scores). Defaults to None.
+    ymax : float | None, optional
+        Max score value. If None, sets to max(scores). Defaults to None.
     ax : object | None
         Plot pointer. If None, generate new figure. Defaults to None.
-    show : bool, optional, defaults to True.
+    show : bool, optional
         If True, the figure will be shown. Defaults to True.
     color : str
         Score line color. Defaults to 'steelblue'.
@@ -132,9 +125,9 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
         If True, the ylabel is displayed. Defaults to True.
     legend : bool
         If True, a legend is displayed. Defaults to True.
-    chance : bool | float. Defaults to None
+    chance : bool | float.
         Plot chance level. If True, chance level is estimated from the type
-        of scorer.
+        of scorer. Defaults to None.
 
     Returns
     -------
@@ -155,13 +148,17 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
         # Get scores from identical training and testing times even if GAT
         # is not square.
         scores = np.zeros(len(gat.scores_))
-        for i, train_time in enumerate(gat.train_times['times_']):
+        for train_idx, train_time in enumerate(gat.train_times['times_']):
             for test_times in gat.test_times_['times_']:
                 # find closest testing time from train_time
-                j = np.abs(test_times - train_time).argmin()
+                lag = test_times - train_time
+                test_idx = np.abs(lag).argmin()
                 # check that not more than 1 classifier away
-                if train_time - test_times[j] <= gat.train_times['step']:
-                    scores[i] = gat.scores_[i][j]
+                if np.abs(lag[test_idx]) > gat.train_times['step']:
+                    score = np.nan
+                else:
+                    score = gat.scores_[train_idx][test_idx]
+                scores[train_idx] = score
     elif type(train_time) in [float, np.float64, np.float32]:
         train_times = gat.train_times['times_']
         idx = np.abs(train_times - train_time).argmin()
@@ -172,25 +169,18 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
         raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
             label="Classif. score")
+
     # Find chance level
     if chance is True:
-        # XXX JRK This should probably be solved within sklearn?
-        if gat.scorer_.__name__ is 'accuracy_score':
-            chance = 1. / len(np.unique(gat.y_train_))
-        elif gat.scorer_.__name__ is 'roc_auc_score':
-            chance = 0.5
-        else:
-            chance = np.nan
-            warnings.warn('Cannot find chance level from %s, specify chance'
-                          ' level' % gat.scorer.__name__)
-        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+        chance = _get_chance_level(gat.scorer_, gat.y_train_)
+    elif type(chance) not in [int, float, np.float64, np.float32]:
+        raise ValueError('\'chance\' must be int or float')
+    ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+
     if title is not None:
         ax.set_title(title)
-    if ymin is None:
-        ymin = np.min(scores)
-    if ymax is None:
-        ymax = np.max(scores)
-    ax.set_ylim(ymin, ymax)
+    if ymin is not None and ymax is not None:
+        ax.set_ylim(ymin, ymax)
     if xmin is not None and xmax is not None:
         ax.set_xlim(xmin, xmax)
     if xlabel is True:
@@ -203,3 +193,16 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     if show is True:
         plt.show()
     return fig if ax is None else ax.get_figure()
+
+
+def _get_chance_level(scorer, y_train):
+    # XXX JRK This should probably be solved within sklearn?
+    if scorer.func_name == 'accuracy_score':
+        chance = 1. / len(np.unique(y_train))
+    elif scorer.func_name == 'roc_auc_score':
+        chance = 0.5
+    else:
+        chance = np.nan
+        warnings.warn('Cannot find chance level from %s, specify chance'
+                      ' level' % scorer.func_name)
+    return chance

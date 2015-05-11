@@ -1,4 +1,5 @@
 # Authors: Denis Engemann <denis.engemann@gmail.com>
+#          Jean-Remi King <jeanremi.king@gmail.com>
 #
 # License: Simplified BSD
 
@@ -82,6 +83,9 @@ def test_gat_chance_level():
     gat = _get_data(event_id=dict(aud_l=1, vis_l=3, aud_r=2, vis_r=4))
     ax = gat.plot_diagonal()
     assert_equals(chance(ax), .25)
+    ax = gat.plot_diagonal(chance=1.234)
+    assert_equals(chance(ax), 1.234)
+    assert_raises(ValueError, gat.plot_diagonal, **dict(chance='foo'))
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
