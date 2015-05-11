@@ -215,7 +215,7 @@ class RawEDF(_BaseRaw):
             >>> data[2*buf_len-2:3*buf_len-2] = this_data[0:buf_len-3]
 
         """
-        with open(self.info['filename'], 'rb') as fid:
+        with open(self.info['filename'], 'rb', buffering=0) as fid:
             # extract data
             fid.seek(data_offset + blockstart * n_chan * data_size)
             n_blk = int(ceil(float(read_size) / buf_len))
@@ -251,6 +251,7 @@ class RawEDF(_BaseRaw):
                         if r_eidx < buf_len:
                             fid.seek((buf_len - r_eidx) * data_size, 1)
                     else:
+                        # read in all the data and triage appropriately
                         ch_data = _read_ch(fid, subtype, samp, data_size)
                         if j == tal_channel:
                             # don't resample tal_channel,
