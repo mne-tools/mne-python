@@ -769,7 +769,7 @@ def _predict(X, estimators):
         _y_pred = clf.predict(X)
         # initialize predict_results array
         if fold == 0:
-            predict_size = _y_pred.shape[1] if _y_pred.n_dim > 1 else 1
+            predict_size = _y_pred.shape[1] if _y_pred.ndim > 1 else 1
             y_pred = np.ones((n_epochs, predict_size, n_clf))
         if predict_size == 1:
             y_pred[:, 0, fold] = _y_pred
