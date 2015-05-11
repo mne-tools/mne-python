@@ -65,4 +65,17 @@ def test_gat_plot_diagonal():
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
+
+def test_gat_plot_slice():
+    """Test GAT slice plot"""
+    gat = _get_data()
+    gat.plot_slice(gat.train_time['times_'][0])
+    # test invalid time point
+    assert_raises(ValueError, gat.plot_slice, -1.)
+    # test float type
+    assert_raises(ValueError, gat.plot_slice, 1)
+    del gat.scores_
+    assert_raises(RuntimeError, gat.plot)
+
+
 run_tests_if_main()
