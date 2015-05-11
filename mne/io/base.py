@@ -266,6 +266,34 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self._preload_data(preload)
 
     def _read_segment(start, stop, sel, data_buffer, projector, verbose):
+        """Read a chunk of raw data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
+        data_buffer : array or str, optional
+            numpy array to fill with data read, must have the correct shape.
+            If str, a np.memmap with the correct data type will be used
+            to store the data.
+        projector : array
+            SSP operator to apply to the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
         raise NotImplementedError
 
     @verbose

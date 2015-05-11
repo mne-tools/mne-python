@@ -349,34 +349,7 @@ class RawFIF(_BaseRaw):
     @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
-        """Read a chunk of raw data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        data_buffer : array or str, optional
-            numpy array to fill with data read, must have the correct shape.
-            If str, a np.memmap with the correct data type will be used
-            to store the data.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-        times : array, [samples]
-            returns the time values corresponding to the samples.
-        """
+        """Read a chunk of raw data"""
         #  Initial checks
         start = int(start)
         stop = self.n_times if stop is None else min([int(stop), self.n_times])
