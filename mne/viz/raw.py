@@ -22,10 +22,11 @@ from ..defaults import _handle_default
 
 def _plot_update_raw_proj(params, bools):
     """Helper only needs to be called when proj is changed"""
-    inds = np.where(bools)[0]
-    params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
-                               for ii in inds]
-    params['proj_bools'] = bools
+    if bools is not None:
+        inds = np.where(bools)[0]
+        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
+                                   for ii in inds]
+        params['proj_bools'] = bools
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
     _update_raw_data(params)
@@ -142,9 +143,9 @@ def _pick_bad_channels(event, params):
         params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
         params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
         params['vertline_t'].set_text('%0.3f' % x[0])
-    event.canvas.draw()
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
+    _plot_update_raw_proj(params, None)
 
 
 def _mouse_click(event, params):
@@ -364,7 +365,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         'original' plots in the order of ch_names, array gives the
         indices to use in plotting.
     show_options : bool
-        If True, a dialog for options related to projecion is shown.
+        If True, a dialog for options related to projection is shown.
     title : str | None
         The title of the window. If None, and either the filename of the
         raw object or '<unknown>' will be displayed as title.
@@ -571,7 +572,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     # plot event_line first so it's in the back
     event_lines = [ax.plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
-    lines = [ax.plot([np.nan])[0] for _ in range(n_ch)]
+    lines = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+             for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
@@ -591,9 +593,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  event_color=event_color, offsets=offsets)
 
     # set up callbacks
-    opt_button = mpl.widgets.Button(ax_button, 'Opt')
-    callback_option = partial(_toggle_options, params=params)
-    opt_button.on_clicked(callback_option)
+    opt_button = None
+    if len(raw.info['projs']) > 0:
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
     callback_key = partial(_plot_raw_onkey, params=params)
     fig.canvas.mpl_connect('key_press_event', callback_key)
     callback_scroll = partial(_plot_raw_onscroll, params=params)

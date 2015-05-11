@@ -478,8 +478,8 @@ def make_projector(projs, ch_names, bads=[], include_active=True):
 
             # If there is something to pick, pickit
             if len(sel) > 0:
-                for v in range(p['data']['nrow']):
-                    vecs[sel, nvec + v] = p['data']['data'][v, vecsel].T
+                nrow = p['data']['nrow']
+                vecs[sel, nvec:nvec + nrow] = p['data']['data'][:, vecsel].T
 
             # Rescale for better detection of small singular values
             for v in range(p['data']['nrow']):
