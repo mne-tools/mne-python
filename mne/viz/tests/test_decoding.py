@@ -5,7 +5,7 @@
 import os.path as op
 import warnings
 
-from nose.tools import assert_raises
+from nose.tools import assert_raises, assert_equals
 
 from mne.decoding import GeneralizationAcrossTime
 from mne import io, Epochs, read_events, pick_types
@@ -21,15 +21,10 @@ event_name = op.join(data_dir, 'test-eve.fif')
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
-# Set our plotters to test mode
-
-tmin, tmax = -0.2, 0.5
-event_id = dict(aud_l=1, vis_l=3)
-event_id_gen = dict(aud_l=2, vis_l=4)
-
 
 @requires_sklearn
-def _get_data():
+def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
+              event_id_gen=dict(aud_l=2, vis_l=4)):
     """Aux function for testing GAT viz"""
     gat = GeneralizationAcrossTime()
     raw = io.Raw(raw_fname, preload=False)
@@ -74,6 +69,19 @@ def test_gat_plot_slice():
     assert_raises(ValueError, gat.plot_slice, -1.)
     # test float type
     assert_raises(ValueError, gat.plot_slice, 1)
+    del gat.scores_
+    assert_raises(RuntimeError, gat.plot)
+
+
+def test_gat_chance_level():
+    """Test GAT plot_slice chance level"""
+    chance = lambda ax: ax.get_children()[1].get_lines()[1].get_ydata()[0]
+    gat = _get_data()
+    ax = gat.plot_diagonal()
+    assert_equals(chance(ax), .5)
+    gat = _get_data(event_id=dict(aud_l=1, vis_l=3, aud_r=2, vis_r=4))
+    ax = gat.plot_diagonal()
+    assert_equals(chance(ax), .25)
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
