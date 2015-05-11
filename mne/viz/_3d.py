@@ -13,8 +13,6 @@ from __future__ import print_function
 
 from ..externals.six import string_types, advance_iterator
 
-from distutils.version import LooseVersion
-
 import os
 import inspect
 import warnings
@@ -387,9 +385,19 @@ def _limits_to_control_points(clim, stc_data, colormap):
     -------
     ctrl_pts : list (length 3)
         Array of floats corresponding to values to use as cmap control points.
+    colormap : str
+        The colormap.
     """
 
     # Based on type of limits specified, get cmap control points
+    if colormap == 'auto':
+        if clim == 'auto':
+            colormap = 'hot'
+        else:
+            if 'lims' in clim:
+                colormap = 'hot'
+            else:
+                colormap = 'mne_analyze'
     if clim == 'auto':
         # Set upper and lower bound based on percent, and get average between
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
@@ -397,9 +405,9 @@ def _limits_to_control_points(clim, stc_data, colormap):
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
-        if limit_key not in clim.keys():
-            raise KeyError('lims" OR "pos_lims" must be defined depending on'
-                           ' if colormap is "mne_analyze"')
+        if colormap != 'auto' and limit_key not in clim.keys():
+            raise KeyError('"pos_lims" must be used with "mne_analyze"')
+        clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
                                      list(np.abs(clim[limit_key])))
@@ -414,14 +422,15 @@ def _limits_to_control_points(clim, stc_data, colormap):
         raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
                          ' 3' % len(ctrl_pts))
     elif len(set(ctrl_pts)) != 3:
-        raise ValueError('Too few control points (need 3). Is there enough'
-                         ' data to create three unique control point values?')
+        raise ValueError('Too few unique control points (need 3, got %s). '
+                         'Is there enough data to create three unique control '
+                         'point values?' % (ctrl_pts,))
 
-    return ctrl_pts
+    return ctrl_pts, colormap
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
-                          colormap='hot', time_label='time=%0.2f ms',
+                          colormap='auto', time_label='time=%0.2f ms',
                           smoothing_steps=10, fmin=None, fmid=None, fmax=None,
                           transparent=None, alpha=1.0, time_viewer=False,
                           config_opts={}, subjects_dir=None, figure=None,
@@ -447,17 +456,19 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     surface : str
         The type of surface (inflated, white etc.).
     hemi : str, 'lh' | 'rh' | 'split' | 'both'
-        The hemisphere to display. Using 'both' or 'split' requires
-        PySurfer version 0.4 or above.
+        The hemisphere to display.
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
-        Name of colormap to use or a custom look up table. If array, must be
-        (n x 3) or (n x 4) array for with RGB or RGBA values between 0 and 255.
+        Name of colormap to use or a custom look up table. If array, must
+        be (n x 3) or (n x 4) array for with RGB or RGBA values between
+        0 and 255. If 'auto', either 'hot' or 'mne_analyze' will be chosen
+        based on whether 'lims' or 'pos_lims' are specified in `clim`.
     time_label : str
         How to print info about the time instant visualized.
     smoothing_steps : int
         The amount of smoothing
-    transparent : bool
+    transparent : bool | None
         If True, use a linear transparency between fmin and fmid.
+        None will choose automatically based on colormap type.
     alpha : float
         Alpha value to apply globally to the overlay.
     time_viewer : bool
@@ -498,13 +509,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     brain : Brain
         A instance of surfer.viz.Brain from PySurfer.
     """
-    import surfer
     from surfer import Brain, TimeViewer
-
-    if hemi in ['split', 'both'] and LooseVersion(surfer.__version__) < '0.4':
-        raise NotImplementedError('hemi type "%s" not supported with your '
-                                  'version of pysurfer. Please upgrade to '
-                                  'version 0.4 or higher.' % hemi)
 
     import mayavi
     from mayavi import mlab
@@ -537,14 +542,8 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    # Set default transparency if user didn't specify it
-    if transparent is None:
-        if colormap == 'mne_analyze':
-            transparent = False
-        else:
-            transparent = True
-
-    ctrl_pts = [fmin, fmid, fmax]
+    if all(f is None for f in [clim, fmin, fmid, fmax]):
+        raise ValueError('clim must be provided')
 
     # Check if using old fmin/fmid/fmax cmap behavior
     if clim is None:
@@ -553,22 +552,24 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                       ' removed in v0.10. Use "clim" instead.',
                       DeprecationWarning)
         # Fill in any missing flim values
-        for fi, f in enumerate(ctrl_pts):
-            if f is None:
-                ctrl_pts[fi] = [5., 10., 15.][fi]
-
-    # Otherwise, use new cmap behavior
+        ctrl_pts = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
+        clim = dict(kind='value', lims=ctrl_pts)
     else:
         if any(f is not None for f in [fmin, fmid, fmax]):
-            warnings.warn('"clim" overrides fmin, fmid, fmax')
-        ctrl_pts = _limits_to_control_points(clim, stc.data, colormap)
+            raise ValueError('"clim" overrides fmin, fmid, fmax')
+
+    # convert control points to locations
+    ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
     # Construct cmap manually if 'mne_analyze' and get cmap bounds
+    # and triage transparent argument
     if colormap == 'mne_analyze':
         colormap = mne_analyze_colormap(ctrl_pts)
         scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
+        transparent = False if transparent is None else transparent
     else:
         scale_pts = ctrl_pts
+        transparent = True if transparent is None else transparent
 
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
     subject = _check_subject(stc.subject, subject, False)
@@ -589,9 +590,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                   subjects_dir=subjects_dir)
     if 'views' in args:
         kwargs['views'] = views
-    else:
-        logger.info('PySurfer does not support "views" argument, please '
-                    'consider updating to a newer version (0.4 or later)')
     with warnings.catch_warnings(record=True):  # traits warnings
         brain = Brain(subject, hemi, surface, **kwargs)
     for hemi in hemis:

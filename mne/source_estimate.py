@@ -1351,7 +1351,7 @@ class SourceEstimate(_BaseSourceEstimate):
         return vertex, hemi, t
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='hot', time_label='time=%0.2f ms',
+             colormap='auto', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=None, fmid=None, fmax=None,
              transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
@@ -1375,12 +1375,12 @@ class SourceEstimate(_BaseSourceEstimate):
         surface : str
             The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
+            The hemisphere to display.
         colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
             Name of colormap to use or a custom look up table. If array, must
-            be (n x 3) or (n x 4) array for with RGB or RGBA values between 0
-            and 255.
+            be (n x 3) or (n x 4) array for with RGB or RGBA values between
+            0 and 255. If 'auto', either 'hot' or 'mne_analyze' will be chosen
+            based on whether 'lims' or 'pos_lims' are specified in `clim`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
