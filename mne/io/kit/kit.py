@@ -206,15 +206,16 @@ class RawKIT(_BaseRaw):
                       projector=None, verbose=None):
         """Read a chunk of raw data"""
         if sel is None:
-            sel = list(range(self.info['nchan']))
+            sel = np.arange(self.info['nchan'])
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
+            return (666, 666)  # Again?
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
         elif stop > self.last_samp + 1:
             stop = self.last_samp + 1
+        sel = np.array(sel)
 
         #  Initial checks
         start = int(start)
@@ -267,7 +268,7 @@ class RawKIT(_BaseRaw):
             data = np.vstack((data, stim_ch))
         data = data[sel]
 
-        # XXX This should be refactored to actually save memory!
+        # This maybe should be refactored to actually save memory...
         data_shape = data.shape
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:

@@ -110,15 +110,16 @@ class RawEDF(_BaseRaw):
         """Read a chunk of raw data"""
         from scipy.interpolate import interp1d
         if sel is None:
-            sel = list(range(self.info['nchan']))
+            sel = np.arange(self.info['nchan'])
         elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
+            return (666, 666)  # XXX what?
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
         elif stop > self.last_samp + 1:
             stop = self.last_samp + 1
+        sel = np.array(sel)
 
         #  Initial checks
         start = int(start)
@@ -126,6 +127,7 @@ class RawEDF(_BaseRaw):
 
         n_samps = self._edf_info['n_samps']
         max_samp = self._edf_info['max_samp']
+        assert isinstance(max_samp, int)
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -165,34 +167,41 @@ class RawEDF(_BaseRaw):
         if isinstance(data_buffer, np.ndarray):
             if data_buffer.shape != data_shape:
                 raise ValueError('data_buffer has incorrect shape')
-            out_data = data_buffer
+            data = data_buffer
         else:
-            out_data = np.zeros(data_shape, np.float64)
+            data = np.empty(data_shape, dtype=float)
+
+        buffer_size = blockstop - blockstart
+        used = np.zeros(data_shape[1], bool)
 
         with open(self.info['filename'], 'rb') as fid:
             # extract data
             fid.seek(data_offset)
-            buffer_size = blockstop - blockstart
             pointer = blockstart * n_chan * data_size
             fid.seek(data_offset + pointer)
-            datas = np.empty((n_chan, buffer_size), dtype=float)
+            this_data = np.empty((len(sel), max_samp))
             blocks = int(ceil(float(buffer_size) / max_samp))
             for i in range(blocks):
-                data = np.empty((n_chan, max_samp), dtype=np.int32)
+                count = 0
+                start_pt = max_samp * i
+                stop_pt = start_pt + max_samp
                 for j, samp in enumerate(n_samps):
                     # bdf data: 24bit data
                     if subtype in ('24BIT', 'bdf'):
                         ch_data = np.fromfile(fid, dtype=np.uint8,
                                               count=samp * data_size)
-                        ch_data = ch_data.reshape(-1, 3).astype(np.int32)
-                        ch_data = ((ch_data[:, 0]) +
-                                   (ch_data[:, 1] << 8) +
-                                   (ch_data[:, 2] << 16))
-                        # 24th bit determines the sign
-                        ch_data[ch_data >= (1 << 23)] -= (1 << 24)
+                        if j in sel:
+                            ch_data = ch_data.reshape(-1, 3).astype(np.int32)
+                            ch_data = ((ch_data[:, 0]) +
+                                       (ch_data[:, 1] << 8) +
+                                       (ch_data[:, 2] << 16))
+                            # 24th bit determines the sign
+                            ch_data[ch_data >= (1 << 23)] -= (1 << 24)
                     # edf data: 16bit data
                     else:
                         ch_data = np.fromfile(fid, dtype='<i2', count=samp)
+                    if j not in sel:
+                        continue
                     if j == tal_channel:
                         # don't resample tal_channel,
                         # pad with zeros instead.
@@ -208,65 +217,62 @@ class RawEDF(_BaseRaw):
                         else:
                             warnings.warn('Interpolating stim channel.'
                                           ' Events may jitter.')
-                            oldrange = np.linspace(0, 1, samp + 1,
-                                                   True)
-                            newrange = np.linspace(0, 1, max_samp,
-                                                   False)
+                            oldrange = np.linspace(0, 1, samp + 1, True)
+                            newrange = np.linspace(0, 1, max_samp, False)
                             ch_data = interp1d(
                                 oldrange, np.append(ch_data, 0),
                                 kind='zero')(newrange)
                     elif samp != max_samp:
                         ch_data = resample(x=ch_data, up=max_samp, down=samp,
                                            npad=0)
-                    data[j] = ch_data
-                start_pt = int(max_samp * i)
-                stop_pt = int(start_pt + max_samp)
-                datas[:, start_pt:stop_pt] = data
-        datas *= gains.T
-        datas += offsets
+                    this_data[count, :] = ch_data
+                    count += 1
+                s_off = start - blockstart if i == 0 else 0
+                e_off = stop_pt - stop + blockstart if i == blocks - 1 else 0
+                assert s_off >= 0
+                assert e_off >= 0
+                time_slice = slice(start_pt + (s_off - start + blockstart),
+                                   stop_pt - (e_off + start - blockstart), None)
+                data[:, time_slice] = this_data[:, s_off:buffer_size - e_off]
+                assert not used[time_slice].any()
+                used[time_slice] = True
+        assert used.all()
+        data *= gains.T[sel]
+        data += offsets[sel]
 
         if stim_channel is not None:
+            stim_channel_idx = np.where(sel == stim_channel)[0][0]
             if annot and annotmap:
-                datas[stim_channel] = 0
                 evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
-                datas[stim_channel, :evts.size] = evts[start:stop]
+                stim = evts[start:stop]
             elif tal_channel is not None:
-                evts = _parse_tal_channel(datas[tal_channel])
+                tal_channel_idx = np.where(sel == tal_channel)[0][0]
+                evts = _parse_tal_channel(data[tal_channel_idx])
                 self._edf_info['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
-                datas[stim_channel] = 0
+                stim = np.zeros(buffer_size)
                 for t_start, t_duration, annotation in evts:
                     evid = mapping[annotation]
                     n_start = int(t_start * sfreq)
                     n_stop = int(t_duration * sfreq) + n_start - 1
                     # make sure events without duration get one sample
                     n_stop = n_stop if n_stop > n_start else n_start + 1
-                    if any(datas[stim_channel][n_start:n_stop]):
+                    if any(stim[n_start:n_stop]):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
-                    datas[stim_channel][n_start:n_stop] = evid
+                    stim[n_start:n_stop] = evid
             else:
-                # Allows support for up to 16-bit trigger values
-                mask = 2 ** 16 - 1
-                stim = np.array(datas[stim_channel], int)
-                mask = mask * np.ones(stim.shape, int)
-                stim = np.bitwise_and(stim, mask)
-                datas[stim_channel] = stim
-        datastart = start - blockstart
-        datastop = stop - blockstart
-        # XXX this could be *much* more optimized for memory by only
-        # creating the proper size "datas" above, and filling in
-        # data_buffer directly, but this will require refactoring
-        # the above reading code
-        out_data = datas[sel, datastart:datastop]
+                # Allows support for up to 16-bit trigger values (2 ** 16 - 1)
+                stim = np.bitwise_and(data[stim_channel_idx].astype(int),
+                                      65535)
+            data[stim_channel_idx, :] = stim[start - blockstart:stop - blockstart]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
-
-        return out_data, times
+        return data, times
 
 
 def _parse_tal_channel(tal_channel_data):

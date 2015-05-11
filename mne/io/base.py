@@ -215,31 +215,39 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment(start, stop, sel, projector, verbose)
+        * _read_segment(start, stop, sel, data_buffer, projector, verbose)
           (only needed for types that support on-demand disk reads)
     """
     @verbose
-    def __init__(self, info, data=None,
+    def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
                  orig_format='double',
                  verbose=None):
-        self.info = info
-        if (preload is not False and preload is not True and
-                not isinstance(preload, np.ndarray) and
-                not isinstance(preload, string_types)):
-            raise ValueError('bad preload: %s' % preload)
-        self._data = None
-        if preload is False:
-            self.preload = False
-        elif isinstance(preload, np.ndarray):
+        # wait until the end to preload data, but triage here
+        if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
             if data.dtype not in (np.float64, np.complex128):
                 raise RuntimeError('datatype must be float64 or complex128, '
                                    'not %s' % data.dtype)
             self._data = preload
             self.preload = True
+            self._last_samps = np.array([self._data.shape[1] - 1])
+            load_from_disk = False
+        else:
+            if last_samps is None:
+                raise ValueError('last_samps must be given unless preload is '
+                                 'an ndarray')
+            if preload is False:
+                self.preload = False
+                load_from_disk = False
+            elif preload is not True and not isinstance(preload, string_types):
+                raise ValueError('bad preload: %s' % preload)
+            else:
+                load_from_disk = True
+            self._last_samps = np.array(last_samps)
+        self.info = info
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -251,14 +259,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._filenames = list(filenames)
         self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
-        if self._data is not None:
-            self._last_samps = np.array([self._data.shape[1] - 1])
-        else:
-            self._last_samps = np.array(last_samps)
         self._projectors = list()
         self._projector = None
-        if not isinstance(preload, np.ndarray) and preload is not False:
-            # We have True or a string
+        # If we have True or a string, actually do the preloading
+        if load_from_disk:
             self._preload_data(preload)
 
     def _read_segment(start, stop, sel, data_buffer, projector, verbose):
