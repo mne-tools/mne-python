@@ -228,9 +228,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
             # some functions (e.g., filtering) only work w/64-bit data
-            if data.dtype not in (np.float64, np.complex128):
+            if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError('datatype must be float64 or complex128, '
-                                   'not %s' % data.dtype)
+                                   'not %s' % preload.dtype)
             self._data = preload
             self.preload = True
             self._last_samps = np.array([self._data.shape[1] - 1])

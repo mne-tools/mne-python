@@ -126,7 +126,7 @@ class RawEDF(_BaseRaw):
         stop = int(stop)
 
         n_samps = self._edf_info['n_samps']
-        max_samp = self._edf_info['max_samp']
+        buf_len = self._edf_info['max_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
         data_size = self._edf_info['data_size']
@@ -138,8 +138,8 @@ class RawEDF(_BaseRaw):
         subtype = self._edf_info['subtype']
 
         # this is used to deal with indexing in the middle of a sampling period
-        blockstart = int(floor(float(start) / max_samp) * max_samp)
-        blockstop = int(ceil(float(stop) / max_samp) * max_samp)
+        blockstart = int(floor(float(start) / buf_len) * buf_len)
+        blockstop = int(ceil(float(stop) / buf_len) * buf_len)
         if blockstop > self.last_samp:
             blockstop = self.last_samp + 1
 
@@ -170,66 +170,115 @@ class RawEDF(_BaseRaw):
         else:
             data = np.empty(data_shape, dtype=float)
 
-        buffer_size = blockstop - blockstart
-        this_data = np.empty((len(sel), max_samp))
+        read_size = blockstop - blockstart
+        this_data = np.empty((len(sel), buf_len))
+        """
+        Consider this example:
+
+        tmin, tmax = (3, 27)
+        read_size = 30
+        buf_len = 10
+        sfreq = 1.
+
+                        +---------+---------+---------+
+        File structure: |  buf0   |   buf1  |   buf2  |
+                        +---------+---------+---------+
+        File time:      0        10        20        30
+                        +---------+---------+---------+
+        Requsted time:    2                       27
+
+                        |                             |
+                    blockstart                    blockstop
+                          |                        |
+                        start                    stop
+
+        We need 27 - 2 = 25 samples (per channel) to store our data, and
+        we need to read from 3 buffers (30 samples) to get all of our data.
+
+        On all reads but the first, the data we read starts at
+        the first sample of the buffer. On all reads but the last,
+        the data we read ends on the last sample of the buffer.
+
+        We call this_data the variable that stores the current buffer's data,
+        and data the variable that stores the total output.
+
+        On the first read, we need to do this::
+
+            >>> data[0:buf_len-2] = this_data[2:buf_len]
+
+        On the second read, we need to do::
+
+            >>> data[1*buf_len-2:2*buf_len-2] = this_data[0:buf_len]
+
+        On the final read, we need to do::
+
+            >>> data[2*buf_len-2:3*buf_len-2] = this_data[0:buf_len-3]
+
+        """
         with open(self.info['filename'], 'rb') as fid:
             # extract data
             fid.seek(data_offset + blockstart * n_chan * data_size)
-            n_blk = int(ceil(float(buffer_size) / max_samp))
+            n_blk = int(ceil(float(read_size) / buf_len))
+            start_offset = start - blockstart
+            end_offset = blockstop - stop
             for bi in range(n_blk):
+                # Triage start (sidx) and end (eidx) indices for
+                # data (d) and read (r)
+                if bi == 0:
+                    d_sidx = 0
+                    r_sidx = start_offset
+                else:
+                    d_sidx = bi * buf_len - start_offset
+                    r_sidx = 0
+                if bi == n_blk - 1:
+                    d_eidx = data_shape[1]
+                    r_eidx = buf_len - end_offset
+                else:
+                    d_eidx = (bi + 1) * buf_len - start_offset
+                    r_eidx = buf_len
+                n_buf_samp = r_eidx - r_sidx
                 count = 0
-                start_pt = max_samp * bi
-                stop_pt = start_pt + max_samp
                 for j, samp in enumerate(n_samps):
                     # bdf data: 24bit data
-                    if subtype in ('24BIT', 'bdf'):
-                        ch_data = np.fromfile(fid, dtype=np.uint8,
-                                              count=samp * data_size)
-                        if j in sel:
-                            ch_data = ch_data.reshape(-1, 3).astype(np.int32)
-                            ch_data = ((ch_data[:, 0]) +
-                                       (ch_data[:, 1] << 8) +
-                                       (ch_data[:, 2] << 16))
-                            # 24th bit determines the sign
-                            ch_data[ch_data >= (1 << 23)] -= (1 << 24)
-                    # edf data: 16bit data
-                    else:
-                        ch_data = np.fromfile(fid, dtype='<i2', count=samp)
                     if j not in sel:
+                        fid.seek(samp * data_size, 1)
                         continue
-                    if j == tal_channel:
-                        # don't resample tal_channel,
-                        # pad with zeros instead.
-                        n_missing = int(max_samp - samp)
-                        ch_data = np.hstack([ch_data,
-                                             [0] * n_missing])
-                    elif j == stim_channel and samp < max_samp:
-                        if annot and annotmap or \
-                                tal_channel is not None:
-                            # don't bother with resampling the stim ch
-                            # because it gets overwritten later on.
-                            ch_data = np.zeros(max_samp)
+                    if samp == buf_len:
+                        # use faster version with skips built in
+                        if r_sidx > 0:
+                            fid.seek(r_sidx * data_size, 1)
+                        ch_data = _read_ch(fid, subtype, n_buf_samp, data_size)
+                        if r_eidx < buf_len:
+                            fid.seek((buf_len - r_eidx) * data_size, 1)
+                    else:
+                        ch_data = _read_ch(fid, subtype, samp, data_size)
+                        if j == tal_channel:
+                            # don't resample tal_channel,
+                            # pad with zeros instead.
+                            n_missing = int(buf_len - samp)
+                            ch_data = np.hstack([ch_data, [0] * n_missing])
+                            ch_data = ch_data[r_sidx:r_eidx]
+                        elif j == stim_channel:
+                            if annot and annotmap or \
+                                    tal_channel is not None:
+                                # don't bother with resampling the stim ch
+                                # because it gets overwritten later on.
+                                ch_data = np.zeros(n_buf_samp)
+                            else:
+                                warnings.warn('Interpolating stim channel.'
+                                              ' Events may jitter.')
+                                oldrange = np.linspace(0, 1, samp + 1, True)
+                                newrange = np.linspace(0, 1, buf_len, False)
+                                newrange = newrange[r_sidx:r_eidx]
+                                ch_data = interp1d(
+                                    oldrange, np.append(ch_data, 0),
+                                    kind='zero')(newrange)
                         else:
-                            warnings.warn('Interpolating stim channel.'
-                                          ' Events may jitter.')
-                            oldrange = np.linspace(0, 1, samp + 1, True)
-                            newrange = np.linspace(0, 1, max_samp, False)
-                            ch_data = interp1d(
-                                oldrange, np.append(ch_data, 0),
-                                kind='zero')(newrange)
-                    elif samp != max_samp:
-                        ch_data = resample(x=ch_data, up=max_samp, down=samp,
-                                           npad=0)
-                    this_data[count, :] = ch_data
+                            ch_data = resample(ch_data, buf_len, samp,
+                                               npad=0)[r_sidx:r_eidx]
+                    this_data[count, :n_buf_samp] = ch_data
                     count += 1
-                s_off = start - blockstart if bi == 0 else 0
-                e_off = stop_pt - stop + blockstart if bi == n_blk - 1 else 0
-                assert s_off >= 0
-                assert e_off >= 0
-                time_slice = slice(start_pt + (s_off - start + blockstart),
-                                   stop_pt - (e_off + start - blockstart),
-                                   None)
-                data[:, time_slice] = this_data[:, s_off:buffer_size - e_off]
+                data[:, d_sidx:d_eidx] = this_data[:, :n_buf_samp]
         data *= gains.T[sel]
         data += offsets[sel]
 
@@ -246,7 +295,7 @@ class RawEDF(_BaseRaw):
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
 
-                stim = np.zeros(buffer_size)
+                stim = np.zeros(read_size)
                 for t_start, t_duration, annotation in evts:
                     evid = mapping[annotation]
                     n_start = int(t_start * sfreq)
@@ -267,6 +316,23 @@ class RawEDF(_BaseRaw):
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
         return data, times
+
+
+def _read_ch(fid, subtype, samp, data_size):
+    """Helper to read a number of samples for a single channel"""
+    if subtype in ('24BIT', 'bdf'):
+        ch_data = np.fromfile(fid, dtype=np.uint8,
+                              count=samp * data_size)
+        ch_data = ch_data.reshape(-1, 3).astype(np.int32)
+        ch_data = ((ch_data[:, 0]) +
+                   (ch_data[:, 1] << 8) +
+                   (ch_data[:, 2] << 16))
+        # 24th bit determines the sign
+        ch_data[ch_data >= (1 << 23)] -= (1 << 24)
+    # edf data: 16bit data
+    else:
+        ch_data = np.fromfile(fid, dtype='<i2', count=samp)
+    return ch_data
 
 
 def _parse_tal_channel(tal_channel_data):
