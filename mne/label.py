@@ -1622,6 +1622,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
         annot_fname = list()
         for hemi in hemis:
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             fname = op.join(subjects_dir, subject, 'label',
                             '%s.%s.annot' % (hemi, parc))
             annot_fname.append(fname)
@@ -1667,7 +1668,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     """
     logger.info('Reading labels from parcellation..')
 
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
@@ -1812,7 +1813,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     """
     logger.info('Writing labels to parcellation..')
 
-    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subjects_dir = get_subjects_dir(subjects_dir)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
