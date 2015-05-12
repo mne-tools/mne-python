@@ -1385,8 +1385,9 @@ class SourceEstimate(_BaseSourceEstimate):
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
