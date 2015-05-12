@@ -113,7 +113,7 @@ class GeneralizationAcrossTime(object):
 
     Attributes
     ----------
-    y_train_ : np.ndarray, shape (n_samples,)
+    y_train_ : list | np.ndarray, shape (n_samples,)
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
@@ -193,7 +193,7 @@ class GeneralizationAcrossTime(object):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : np.ndarray of int, shape (n_samples,) | None
+        y : list or np.ndarray of int, shape (n_samples,) or None
             To-be-fitted model values. If None, y = epochs.events[:, 2].
             Defaults to None.
 
@@ -425,6 +425,8 @@ class GeneralizationAcrossTime(object):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
                                  'for scoring.')
+        elif type(y) is list:
+            y = np.array(y)
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Preprocessing for parallelization:
@@ -661,7 +663,8 @@ def _check_epochs_input(epochs, y):
     epochs : instance of Epochs
             The epochs.
     y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
-        To-be-fitted model. If y is None, y == epochs.events
+        To-be-fitted model. If y is None, y == epochs.events.
+        Defaults to None.
 
     Returns
     -------
@@ -672,6 +675,8 @@ def _check_epochs_input(epochs, y):
     """
     if y is None:
         y = epochs.events[:, 2]
+    elif type(y) is list:
+        y = np.array(y)
 
     # Convert MNE data into trials x features x time matrix
     X = epochs.get_data()

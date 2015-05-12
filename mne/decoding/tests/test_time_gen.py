@@ -72,6 +72,8 @@ def test_generalization_across_time():
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
+        gat.fit(epochs, y=epochs.events[:, 2])
+        gat.fit(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
@@ -80,6 +82,8 @@ def test_generalization_across_time():
                  "predicted 15 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
+    gat.score(epochs, y=epochs.events[:, 2])
+    gat.score(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
                  "predicted 15 epochs,\n scored "
                  "(accuracy_score)>", "%s" % gat)
