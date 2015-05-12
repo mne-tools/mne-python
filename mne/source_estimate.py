@@ -1317,7 +1317,7 @@ class SourceEstimate(_BaseSourceEstimate):
         if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         values = values[vert_inds[hemi]]
 
@@ -2194,7 +2194,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                          'estimates')
 
     logger.info('Morphing data...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -2276,7 +2276,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         matrix that morphs data from subject_from to subject_to
     """
     logger.info('Computing morph matrix...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
@@ -2338,7 +2338,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and grade == 5:
         return [np.arange(10242), np.arange(10242)]
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
                                xh + '.sphere.reg') for xh in ['lh', 'rh']]

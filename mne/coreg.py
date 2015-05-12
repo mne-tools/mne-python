@@ -789,7 +789,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
-    subjects_dir = get_subjects_dir(subjects_dir, True)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
         raise TypeError("Need to provide either both subject_from and scale "
                         "parameters, or neither.")

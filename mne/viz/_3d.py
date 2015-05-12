@@ -841,7 +841,8 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     color_converter = ColorConverter()
 
     trans = _get_mri_head_t(trans)[0]
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
     fname = os.path.join(subjects_dir, subject, 'bem',
                          'inner_skull.surf')
     points, faces = read_surface(fname)

@@ -124,12 +124,16 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
+    from mayavi import mlab
+    mlab.close()
     stc.plot(clim='auto', subjects_dir=subjects_dir)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=10,
+    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
              subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):  # dep
         stc.plot(fmin=1, subjects_dir=subjects_dir)
+    figs = [mlab.figure(), mlab.figure()]
+    assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
     clim = dict(kind='value', lims=(5, 10, 15))
@@ -161,6 +165,7 @@ def test_limits_to_control_points():
     stc._data = np.zeros_like(stc.data)
     assert_raises(ValueError, plot_source_estimates, stc,
                   colormap=colormap, clim=clim)
+    mlab.close()
 
 
 @testing.requires_testing_data

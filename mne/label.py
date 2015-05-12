@@ -957,7 +957,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         raise ValueError("Can't split label into %i parts" % n_parts)
 
     # find the subject
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if label.subject is None and subject is None:
         raise ValueError("The subject needs to be specified.")
     elif subject is None:
@@ -1178,7 +1178,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             msg = ("stc_to_label with smooth=True requires src to be an "
                    "instance of SourceSpace")
             raise ValueError(msg)
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
         rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
@@ -1381,7 +1381,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         vertex and extent; the ``values``  attribute contains distance from the
         seed in millimeters
     """
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
@@ -1667,7 +1667,7 @@ def read_labels_from_annot(subject, parc='aparc', hemi='both',
     """
     logger.info('Reading labels from parcellation..')
 
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,
@@ -1812,7 +1812,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
     """
     logger.info('Writing labels to parcellation..')
 
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     # get the .annot filenames and hemispheres
     annot_fname, hemis = _get_annot_fname(annot_fname, subject, hemi, parc,

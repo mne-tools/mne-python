@@ -1068,7 +1068,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     if not len(hemis) == len(vertices):
         raise ValueError('hemi and vertices must match in length')
 
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
              for h in ['lh', 'rh']]
