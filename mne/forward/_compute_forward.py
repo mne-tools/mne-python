@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
@@ -184,7 +185,7 @@ _MAG_FACTOR = 1e-7  # μ_0 / (4π)
 
 # def _bem_inf_pot(rd, Q, rp)*pi:
 #     """The infinite medium potential in one direction"""
-#     # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
+#     # NOTE: the 4π that was in the denominator has been moved!
 #     diff = rp - rd
 #     diff2 = np.sum(diff * diff, axis=1)
 #     return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
@@ -192,7 +193,7 @@ _MAG_FACTOR = 1e-7  # μ_0 / (4π)
 
 def _bem_inf_pots(rr, surf_rr, Q=None):
     """The infinite medium potential in all 3 directions"""
-    # NOTE: the (4.0 * np.pi) that was in the denominator has been moved!
+    # NOTE: the (μ_0 / (4π) that was in the denominator has been moved!
     diff = surf_rr.T[np.newaxis, :, :] - rr[:, :, np.newaxis]  # n_rr, 3, n_bem
     diff_norm = np.sum(diff * diff, axis=1)
     diff_norm *= np.sqrt(diff_norm)
@@ -205,34 +206,50 @@ def _bem_inf_pots(rr, surf_rr, Q=None):
 
 # This function has been refactored to process all points simultaneously
 # def _bem_inf_field(rd, Q, rp, d):
-#     """Infinite-medium magnetic field"""
+#     """Infinite-medium magnetic field according to Eq. (7) in Mosher, 1999"""
+
+#     # Get vector from source to sensor integration point
 #     diff = rp - rd
-#     diff2 = np.sum(diff * diff, axis=1)
+#     diff2 = np.sum(diff * diff, axis=1)  # Get magnitude of diff
+
+#     # Compute cross product between diff and dipole to get magnetic field at
+#     # integration point
 #     x = fast_cross_3d(Q[np.newaxis, :], diff)
+
+#     # Take magnetic field dotted by integration point normal to get magnetic
+#     # field that threads the current loop. Divide by R^3 (R^2 * R)
 #     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
 
 
 def _bem_inf_fields(rr, rp, c):
     """Infinite-medium magnetic field in all 3 basis directions
     rr : n x 3 array
-        dipole locations
-    rp : n x 3 array?
-        coil 'rmag'
-    c : coil 'cosmag'
+        n 3-space dipole vectors (locations/magnitudes?)
+    rp : n x 3 array
+        n 3-space vectors
+        coil['rmag']; position vector of coil (integration points?)
+    c : n x 3 array
+        n 3-space vectors
+        coil['cosmag']; direction of the coils (integration points?)
     """
+    # rr, rp refactored according to Equation (19) in Mosher, 1999
     # Knowing that we're doing all directions, the above can be refactored:
+
+    # diff = (n_sources x 3 x n_coils pts)
     diff = rp.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
+    # Get magnitude of vector (distance) between sensor and source cubed
+    # diff_norm = (n_sources x n_coils pts)
     diff_norm = np.sum(diff * diff, axis=1)
     diff_norm *= np.sqrt(diff_norm)
     diff_norm[diff_norm == 0] = 1  # avoid nans
     # This is the result of cross-prod calcs with basis vectors,
     # as if we had taken (Q=np.eye(3)), then multiplied by the cosmags (c)
     # factor, and then summed across directions
-    # Equation (19) in Mosher, 1999
+    # x = diff x c (diff cross c); x.shape = (3 x n_sources x n_coils pts)
     x = np.array([diff[:, 1] * c[:, 2] - diff[:, 2] * c[:, 1],
                   diff[:, 2] * c[:, 0] - diff[:, 0] * c[:, 2],
                   diff[:, 0] * c[:, 1] - diff[:, 1] * c[:, 0]])
-    return np.rollaxis(x / diff_norm, 1)
+    return np.rollaxis(x / diff_norm, 1) # return (n_sources x 3 x n_coil pts)
 
 
 def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, srr,
@@ -271,8 +288,10 @@ def _do_prim_curr(rr, coils):
     """Calculate primary currents in a set of coils"""
     out = np.empty((len(rr) * 3, len(coils)))
     for ci, c in enumerate(coils):
+        # Multiply all integration points by weights, sum, and flatten
         out[:, ci] = np.sum(c['w'] * _bem_inf_fields(rr, c['rmag'],
                                                      c['cosmag']), 2).ravel()
+        # out.shape = (22494 x 306)
     return out
 
 
