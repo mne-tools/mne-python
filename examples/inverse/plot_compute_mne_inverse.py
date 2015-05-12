@@ -45,8 +45,7 @@ plt.xlabel('time (ms)')
 plt.ylabel('%s value' % method)
 plt.show()
 
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
+# Plot brain in 3D with PySurfer if available
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
                  transparent=True, clim='auto')
 brain.show_view('lateral')

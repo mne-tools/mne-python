@@ -116,11 +116,8 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method,
                     pick_normal=False)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
-# plot constrast
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir,
-                 transparent=True, clim='auto')
+# Plot contrast in 3D with PySurfer if available
+brain = stc.plot(hemi='both', subjects_dir=subjects_dir, clim='auto')
 brain.set_time(170.0)  # milliseconds
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')

@@ -95,10 +95,8 @@ plt.legend()
 plt.show()
 
 ###############################################################################
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc_mean.plot(surface='inflated', hemi='lh', subjects_dir=subjects_dir)
-brain.scale_data_colormap(fmin=0, fmid=350, fmax=700, transparent=True)
+# plot brain in 3D with PySurfer if available
+brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir, clim='auto')
 brain.show_view('lateral')
 
 # show both labels
