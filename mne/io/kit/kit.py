@@ -63,9 +63,12 @@ class RawKIT(_BaseRaw):
     stimthresh : float
         The threshold level for accepting voltage changes in KIT trigger
         channels as a trigger event. If None, stim must also be set to None.
-    preload : bool
-        If True, all data are loaded at initialization.
-        If False, data are not read until save.
+    preload : bool or str (default False)
+        Preload data into memory for data manipulation and faster indexing.
+        If True, the data will be preloaded into memory (fast, requires
+        large amount of memory). If preload is a string, preload is the
+        file name of a memory-mapped file which is used to store the data
+        on the hard drive (slower, requires less memory).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -90,9 +93,9 @@ class RawKIT(_BaseRaw):
         logger.info('Creating Info structure...')
 
         last_samps = [self._kit_info['n_samples'] - 1]
+        self._set_stimchannels(info, stim)
         super(RawKIT, self).__init__(
-            info, last_samps=last_samps, verbose=verbose)
-        self._set_stimchannels(stim)
+            info, preload, last_samps=last_samps, verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
@@ -103,19 +106,9 @@ class RawKIT(_BaseRaw):
             self.info['dig'] = dig_points
             self.info['dev_head_t'] = dev_head_t
         elif (mrk is not None or elp is not None or hsp is not None):
-            err = ("mrk, elp and hsp need to be provided as a group (all or "
-                   "none)")
-            raise ValueError(err)
+            raise ValueError('mrk, elp and hsp need to be provided as a group '
+                             '(all or none)')
 
-        if preload:
-            self.preload = preload
-            logger.info('Reading raw data from %s...' % input_fname)
-            self._data, _ = self._read_segment()
-            assert self._data.shape == (self.info['nchan'], self.last_samp + 1)
-
-            logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
-                        % (self.first_samp, self.last_samp,
-                           self.times[0], self.times[-1]))
         logger.info('Ready.')
 
     def __repr__(self):
@@ -151,7 +144,7 @@ class RawKIT(_BaseRaw):
 
         return stim_ch
 
-    def _set_stimchannels(self, stim='<'):
+    def _set_stimchannels(self, info, stim='<'):
         """Specify how the trigger channel is synthesized from analog channels.
 
         Has to be done before loading data. For a RawKIT instance that has been
@@ -160,6 +153,8 @@ class RawKIT(_BaseRaw):
 
         Parameters
         ----------
+        info : instance of MeasInfo
+            The measurement info.
         stim : list of int | '<' | '>'
             Can be submitted as list of trigger channels.
             If a list is not specified, the default triggers extracted from
@@ -171,7 +166,7 @@ class RawKIT(_BaseRaw):
         """
         if stim is not None:
             if isinstance(stim, str):
-                picks = pick_types(self.info, meg=False, ref_meg=False,
+                picks = pick_types(info, meg=False, ref_meg=False,
                                    misc=True, exclude=[])[:8]
                 if stim == '<':
                     stim = picks[::-1]
@@ -181,16 +176,16 @@ class RawKIT(_BaseRaw):
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
             elif np.max(stim) >= self._kit_info['nchan']:
-                msg = ("Tried to set stim channel %i, but sqd file only has %i"
-                       " channels" % (np.max(stim), self._kit_info['nchan']))
-                raise ValueError(msg)
+                raise ValueError('Tried to set stim channel %i, but sqd file '
+                                 'only has %i channels'
+                                 % (np.max(stim), self._kit_info['nchan']))
             # modify info
-            self.info['nchan'] = self._kit_info['nchan'] + 1
+            info['nchan'] = self._kit_info['nchan'] + 1
             ch_name = 'STI 014'
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
-            chan_info['logno'] = self.info['nchan']
-            chan_info['scanno'] = self.info['nchan']
+            chan_info['logno'] = info['nchan']
+            chan_info['scanno'] = info['nchan']
             chan_info['range'] = 1.0
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['unit_mul'] = 0
@@ -198,50 +193,27 @@ class RawKIT(_BaseRaw):
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['loc'] = np.zeros(12)
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
-            self.info['chs'].append(chan_info)
-            self.info['ch_names'].append(ch_name)
+            info['chs'].append(chan_info)
+            info['ch_names'].append(ch_name)
         if self.preload:
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
 
         self._kit_info['stim'] = stim
 
-    def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
-                      projector=None):
-        """Read a chunk of raw data
-
-        Parameters
-        ----------
-        start : int, (optional)
-            first sample to include (first is 0). If omitted, defaults to the
-            first sample in data.
-        stop : int, (optional)
-            First sample to not include.
-            If omitted, data is included to the end.
-        sel : array, optional
-            Indices of channels to select.
-        projector : array
-            SSP operator to apply to the data.
-        verbose : bool, str, int, or None
-            If not None, override default verbose level (see mne.verbose).
-
-        Returns
-        -------
-        data : array, [channels x samples]
-           the data matrix (channels x samples).
-        times : array, [samples]
-            returns the time values corresponding to the samples.
-        """
+    @verbose
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+                      projector=None, verbose=None):
+        """Read a chunk of raw data"""
         if sel is None:
-            sel = list(range(self.info['nchan']))
-        elif len(sel) == 1 and sel[0] == 0 and start == 0 and stop == 1:
-            return (666, 666)
+            sel = np.arange(self.info['nchan'])
         if projector is not None:
             raise NotImplementedError('Currently does not handle projections.')
         if stop is None:
             stop = self.last_samp + 1
         elif stop > self.last_samp + 1:
             stop = self.last_samp + 1
+        sel = np.array(sel)
 
         #  Initial checks
         start = int(start)
@@ -293,6 +265,14 @@ class RawKIT(_BaseRaw):
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data = np.vstack((data, stim_ch))
         data = data[sel]
+
+        # This maybe should be refactored to actually save memory...
+        data_shape = data.shape
+        if isinstance(data_buffer, np.ndarray):
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data_buffer[...] = data
+            data = data_buffer
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
@@ -413,9 +393,8 @@ class EpochsKIT(EpochsArray):
 
         for key, val in event_id.items():
             if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                raise ValueError(msg)
+                raise ValueError('No matching events found for %s '
+                                 '(event id %i)' % (key, val))
 
         data = self._read_data()
         assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
@@ -520,8 +499,8 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         msg = ("The selected head shape contained {n_in} points, which is "
                "more than recommended ({n_rec}), and was automatically "
                "downsampled to {n_new} points. The preferred way to "
-               "downsample is using FastScan.")
-        msg = msg.format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
+               "downsample is using FastScan."
+               ).format(n_in=n_pts, n_rec=KIT.DIG_POINTS, n_new=n_new)
         logger.warning(msg)
 
     if isinstance(elp, string_types):
