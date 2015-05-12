@@ -124,11 +124,12 @@ def test_limits_to_control_points():
     stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
 
     # Test for simple use cases
-    stc.plot(clim='auto')
-    stc.plot(clim=dict(pos_lims=(10, 50, 90)))
-    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=10)
+    stc.plot(clim='auto', subjects_dir=subjects_dir)
+    stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
+    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=10,
+             subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):  # dep
-        stc.plot(fmin=1)
+        stc.plot(fmin=1, subjects_dir=subjects_dir)
 
     # Test both types of incorrect limits key (lims/pos_lims)
     clim = dict(kind='value', lims=(5, 10, 15))
