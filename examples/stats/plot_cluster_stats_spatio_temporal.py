@@ -165,13 +165,11 @@ stc_all_cluster_vis = summarize_clusters_stc(clu, tstep=tstep,
 
 #    Let's actually plot the first "time point" in the SourceEstimate, which
 #    shows all the clusters, weighted by duration
-colormap = 'mne_analyze'
 subjects_dir = op.join(data_path, 'subjects')
 # blue blobs are for condition A < condition B, red for A > B
-brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both', colormap,
-                                 subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)',
-                                 clim='auto', transparent=False)
+brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'both', 'mne',
+                                 subjects_dir=subjects_dir, clim='auto',
+                                 time_label='Duration significant (ms)')
 brain.set_data_time_index(0)
 brain.show_view('lateral')
 brain.save_image('clusters.png')

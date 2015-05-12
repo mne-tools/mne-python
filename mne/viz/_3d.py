@@ -372,9 +372,9 @@ def _limits_to_control_points(clim, stc_data, colormap):
     """Private helper function to convert limits (values or percentiles)
     to control points.
 
-    Note: If using 'mne_analyze', generate cmap control points for a directly
+    Note: If using 'mne', generate cmap control points for a directly
     mirrored cmap for simplicity (i.e., no normalization is computed to account
-    for a 2-tailed mne_analyze cmap).
+    for a 2-tailed mne cmap).
 
     Parameters
     ----------
@@ -397,16 +397,16 @@ def _limits_to_control_points(clim, stc_data, colormap):
             if 'lims' in clim:
                 colormap = 'hot'
             else:
-                colormap = 'mne_analyze'
+                colormap = 'mne'
     if clim == 'auto':
         # Set upper and lower bound based on percent, and get average between
         ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
         ctrl_pts = np.insert(ctrl_pts, 1, np.average(ctrl_pts))
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
-        limit_key = ['lims', 'pos_lims'][colormap == 'mne_analyze']
+        limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
         if colormap != 'auto' and limit_key not in clim.keys():
-            raise KeyError('"pos_lims" must be used with "mne_analyze"')
+            raise KeyError('"pos_lims" must be used with "mne" colormap')
         clim['kind'] = clim.get('kind', 'percent')
         if clim['kind'] == 'percent':
             ctrl_pts = np.percentile(np.abs(stc_data),
@@ -460,7 +460,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
         Name of colormap to use or a custom look up table. If array, must
         be (n x 3) or (n x 4) array for with RGB or RGBA values between
-        0 and 255. If 'auto', either 'hot' or 'mne_analyze' will be chosen
+        0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
         based on whether 'lims' or 'pos_lims' are specified in `clim`.
     time_label : str
         How to print info about the time instant visualized.
@@ -495,10 +495,10 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             ``kind`` : str
                 Flag to specify type of limits. 'value' or 'percent'.
             ``lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is not 'mne_analyze'.
+                Note: Only use this if 'colormap' is not 'mne'.
                 Left, middle, and right bound for colormap.
             ``pos_lims`` : list | np.ndarray | tuple of float, 3 elements
-                Note: Only use this if 'colormap' is 'mne_analyze'.
+                Note: Only use this if 'colormap' is 'mne'.
                 Left, middle, and right bound for colormap. Positive values
                 will be mirrored directly across zero during colormap
                 construction to obtain negative control points.
@@ -561,9 +561,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
     # convert control points to locations
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
-    # Construct cmap manually if 'mne_analyze' and get cmap bounds
+    # Construct cmap manually if 'mne' and get cmap bounds
     # and triage transparent argument
-    if colormap == 'mne_analyze':
+    if colormap in ('mne', 'mne_analyze'):
         colormap = mne_analyze_colormap(ctrl_pts)
         scale_pts = [-1 * ctrl_pts[-1], 0, ctrl_pts[-1]]
         transparent = False if transparent is None else transparent

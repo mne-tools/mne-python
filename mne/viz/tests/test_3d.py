@@ -132,22 +132,19 @@ def test_limits_to_control_points():
              subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True):  # dep
         stc.plot(fmin=1, subjects_dir=subjects_dir)
+    stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
+    stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
     figs = [mlab.figure(), mlab.figure()]
     assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
-    clim = dict(kind='value', lims=(5, 10, 15))
-    colormap = 'mne_analyze'
-    assert_raises(KeyError, plot_source_estimates, stc,
-                  colormap=colormap, clim=clim)
-
-    clim = dict(kind='value', pos_lims=(5, 10, 15))
-    colormap = 'hot'
-    assert_raises(KeyError, plot_source_estimates, stc,
-                  colormap=colormap, clim=clim)
+    assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
+                  clim=dict(kind='value', lims=(5, 10, 15)))
+    assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)))
 
     # Test for correct clim values
-    colormap = 'mne_analyze'
+    colormap = 'mne'
     assert_raises(ValueError, stc.plot, colormap=colormap,
                   clim=dict(pos_lims=(5, 10, 15, 20)))
     assert_raises(ValueError, stc.plot, colormap=colormap,
