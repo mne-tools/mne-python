@@ -197,9 +197,9 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
 
 def _get_chance_level(scorer, y_train):
     # XXX JRK This should probably be solved within sklearn?
-    if scorer.func_name == 'accuracy_score':
+    if scorer.__name__ == 'accuracy_score':
         chance = 1. / len(np.unique(y_train))
-    elif scorer.func_name == 'roc_auc_score':
+    elif scorer.__name__ == 'roc_auc_score':
         chance = 0.5
     else:
         chance = np.nan
