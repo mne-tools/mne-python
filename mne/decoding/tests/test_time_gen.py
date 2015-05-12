@@ -70,10 +70,15 @@ def test_generalization_across_time():
     # Test default running
     gat = GeneralizationAcrossTime()
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
+    assert_raises(ValueError, gat.fit, epochs, picks='foo')
     with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+        # check classic fit + check manual picks
+        gat.fit(epochs, picks=[0])
+        # check optional y as array
         gat.fit(epochs, y=epochs.events[:, 2])
+        # check optional y as list
         gat.fit(epochs, y=epochs.events[:, 2].tolist())
+    assert_equal(len(gat.picks_), len(gat.ch_names), 1)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)

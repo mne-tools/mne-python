@@ -5,8 +5,8 @@
 #
 # License: BSD (3-clause)
 
-import copy
 import numpy as np
+from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_slice
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
@@ -127,7 +127,9 @@ class GeneralizationAcrossTime(object):
         The same structure as ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    ch_names : np.array, shape (n_channels)
+    picks_ : np.array, shape (n_channels)
+        Indices of the channels used for training.
+    ch_names : list, shape (n_channels)
         Names of the channels used for training.
 
     Notes
@@ -186,7 +188,7 @@ class GeneralizationAcrossTime(object):
 
         return "<GAT | %s>" % s
 
-    def fit(self, epochs, y=None):
+    def fit(self, epochs, y=None, picks=None):
         """ Train a classifier on each specified time slice.
 
         Parameters
@@ -195,6 +197,9 @@ class GeneralizationAcrossTime(object):
             The epochs.
         y : list or np.ndarray of int, shape (n_samples,) or None
             To-be-fitted model values. If None, y = epochs.events[:, 2].
+            Defaults to None.
+        picks : array-like of int | None
+            Channels to be included. If None only good data channels are used.
             Defaults to None.
 
         Returns
@@ -214,8 +219,10 @@ class GeneralizationAcrossTime(object):
         from sklearn.cross_validation import check_cv, StratifiedKFold
         n_jobs = self.n_jobs
         # Extract data from MNE structure
-        self.ch_names = copy.deepcopy(epochs.ch_names)
-        X, y = _check_epochs_input(epochs, y)
+        X, y, picks = _check_epochs_input(epochs, y, picks)
+        self.picks_ = picks
+        self.ch_names = [ch for idx, ch in enumerate(epochs.ch_names)
+                         if idx in picks]
         cv = self.cv
         if isinstance(cv, (int, np.int)):
             cv = StratifiedKFold(y, cv)
@@ -292,12 +299,12 @@ class GeneralizationAcrossTime(object):
             Class labels for samples in X.
         """
         n_jobs = self.n_jobs
-        X, y = _check_epochs_input(epochs, None)
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
             raise RuntimeError('Please fit models before trying to predict')
         cv = self.cv_  # Retrieve CV scheme from fit()
+        X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         # Define testing sliding window
         if test_times == 'diagonal':
@@ -653,7 +660,7 @@ def _score_loop(y_true, y_pred, slices, scorer):
     return scores
 
 
-def _check_epochs_input(epochs, y):
+def _check_epochs_input(epochs, y, picks=None):
     """Aux function of GeneralizationAcrossTime
 
     Format MNE data into scikit-learn X and y
@@ -665,6 +672,9 @@ def _check_epochs_input(epochs, y):
     y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
         To-be-fitted model. If y is None, y == epochs.events.
         Defaults to None.
+    picks : array-like of int | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None.
 
     Returns
     -------
@@ -672,6 +682,7 @@ def _check_epochs_input(epochs, y):
         To-be-fitted data.
     y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
+    picks : np.ndarray, shape (n_selected_chans)
     """
     if y is None:
         y = epochs.events[:, 2]
@@ -680,9 +691,22 @@ def _check_epochs_input(epochs, y):
 
     # Convert MNE data into trials x features x time matrix
     X = epochs.get_data()
+
+    # Pick channels
+    if picks is None:  # just use good data channels
+        picks = pick_types(epochs.info, meg=True, eeg=True, seeg=True,
+                           eog=False, ecg=False, misc=False, stim=False,
+                           ref_meg=False, exclude='bads')
+    if (type(picks) in [list, np.ndarray]) and \
+       (np.all([type(idx) in [int, np.int64, np.int32] for idx in picks])):
+            picks = np.array(picks)
+    else:
+        raise ValueError('picks must be a list or a numpy.ndarray of int')
+    X = X[:, picks.tolist(), :]
+
     # Check data sets
     assert X.shape[0] == y.shape[0]
-    return X, y
+    return X, y, picks
 
 
 def _fit_slices(clf, x_chunk, y, slices, cv):
