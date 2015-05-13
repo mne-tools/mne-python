@@ -90,7 +90,7 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
                    color='b', xlabel=True, ylabel=True, legend=True,
-                   chance=True):
+                   chance=True, label='Classif. score'):
     """Plotting function of GeneralizationAcrossTime object
 
     Plot the scores of the classifier trained at \'train_time\'.
@@ -128,6 +128,8 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     chance : bool | float.
         Plot chance level. If True, chance level is estimated from the type
         of scorer. Defaults to None.
+    label : str
+        Score label used in the legend. Defaults to 'Classif. score'.
 
     Returns
     -------
@@ -168,7 +170,7 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     else:
         raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
-            label="Classif. score")
+            label=label)
 
     # Find chance level
     if chance is True:
@@ -176,6 +178,7 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     elif type(chance) not in [int, float, np.float64, np.float32]:
         raise ValueError('\'chance\' must be int or float')
     ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+    ax.axvline(0, color='k', label='Onset')
 
     if title is not None:
         ax.set_title(title)

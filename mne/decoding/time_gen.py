@@ -492,7 +492,8 @@ class GeneralizationAcrossTime(object):
 
     def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
                       ax=None, show=True, color='steelblue', xlabel=True,
-                      ylabel=True, legend=True, chance=True):
+                      ylabel=True, legend=True, chance=True,
+                      label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
         Plot each classifier score trained and tested at identical time
@@ -526,6 +527,8 @@ class GeneralizationAcrossTime(object):
         chance : bool | float. Defaults to None
             Plot chance level. If True, chance level is estimated from the type
             of scorer.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
 
         Returns
         -------
@@ -540,7 +543,8 @@ class GeneralizationAcrossTime(object):
 
     def plot_slice(self, train_time, title=None, xmin=None, xmax=None, ymin=0.,
                    ymax=1., ax=None, show=True, color='steelblue', xlabel=True,
-                   ylabel=True, legend=True, chance=True):
+                   ylabel=True, legend=True, chance=True,
+                   label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
         Plot the scores of the classifier trained at \'train_time\'.
@@ -575,6 +579,8 @@ class GeneralizationAcrossTime(object):
         chance : bool | float.
             Plot chance level. If True, chance level is estimated from the type
             of scorer. Defaults to None.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
 
         Returns
         -------
