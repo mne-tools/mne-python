@@ -129,6 +129,32 @@ def test_ica_rank_reduction():
                     rank_before)
 
 
+def test_ica_reset():
+    """Test ICA resetting"""
+    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
+                       eog=False, exclude='bads')[:10]
+
+    run_time_attrs = (
+        '_pre_whitener',
+        'unmixing_matrix_',
+        'mixing_matrix_',
+        'n_components_',
+        'n_samples_',
+        'pca_components_',
+        'pca_explained_variance_',
+        'pca_mean_'
+    )
+    with warnings.catch_warnings(record=True):
+        ica = ICA(
+            n_components=3, max_pca_components=3, n_pca_components=3,
+            method='fastica', max_iter=1).fit(raw, picks=picks)
+
+    assert_true(all(hasattr(ica, attr) for attr in run_time_attrs))
+    ica._reset()
+    assert_true(not any(hasattr(ica, attr) for attr in run_time_attrs))
+
+
 @requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""

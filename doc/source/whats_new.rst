@@ -153,6 +153,8 @@ BUG
 
    - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
 
+   - Fix bug with ICA resetting by `Denis Engemann`_
+
 API
 ~~~
 
