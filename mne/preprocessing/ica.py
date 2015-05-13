@@ -330,6 +330,9 @@ class ICA(ContainsMixin):
         del self.mixing_matrix_
         del self.n_components_
         del self.n_samples_
+        del self.pca_components_
+        del self.pca_explained_variance_
+        del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
 
