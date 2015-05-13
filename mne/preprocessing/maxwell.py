@@ -3,19 +3,16 @@
 #
 # License: BSD (3-clause)
 
-#TODO: write in equation numbers from Samu's paper
-
+#TODO: write in equation numbers from Samu's paper(s)
+#XXX: Why do any relative imports? Why not mne.package
 import numpy as np
 from scipy.special import sph_harm, lpmv
 from scipy.misc import factorial
-from ..forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
-                                  _get_legen_lut_accurate)
+from mne.forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
+                                    _get_legen_lut_accurate)
 from ..fixes import partial
+from ..transforms import _sphere_to_cartesian as sph_to_cart
 from ..transforms import _cartesian_to_sphere as cart_to_sph
-
-
-def maxwell_filter(Raw):
-    pass
 
 
 def sph_harmonic(l, m, theta, phi):
@@ -79,14 +76,9 @@ def get_num_harmonics(L_in, L_out):
     return L_in ** 2 + 2 * L_in + L_out ** 2 + 2 * L_out
 
 
-def legendre(theta):
-    """
-    """
-
-
 def grad_in_comp(l, m, r, theta, phi):
     """
-    Compute gradient of LHS of V(r) spherical expansion having form
+    Compute gradient of in-component of V(r) spherical expansion having form
     Ylm(theta, phi) / (r ** (l+1))
     """
 
@@ -95,6 +87,7 @@ def grad_in_comp(l, m, r, theta, phi):
     lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
 
     # Compute gradients for r, theta, and phi
+    # TODO: speed up by computing sph_harmonic only once and passing twice
     r1 = -(l + 1) / r ** (l + 2) * sph_harmonic(l, m, theta, phi)
 
     theta1 = 1 / r ** (l + 2) * np.sqrt((2 * l + 1) * factorial(l - m) /
@@ -110,7 +103,7 @@ def grad_in_comp(l, m, r, theta, phi):
 
 def grad_out_comp(l, m, r, theta, phi):
     """
-    Compute gradient of RHS of V(r) spherical expansion having form
+    Compute gradient of out-component of V(r) spherical expansion having form
     Ylm(theta, phi) * (r ** l)
     """
 
@@ -137,6 +130,7 @@ def _to_real_and_cart(grad_vec_raw, m):
     spherical to cartesian coords
     """
 
+    # Get real component of gradient based on m
     if m > 0:
         grad_vec = np.sqrt(2) * np.real(grad_vec_raw)
     elif m < 0:
@@ -144,5 +138,46 @@ def _to_real_and_cart(grad_vec_raw, m):
     else:
         grad_vec = grad_vec_raw
 
-    # Convert to rectanglar coords
-    return cart_to_sph(grad_vec[:, 0], grad_vec[:, 1], grad_vec[:, 2])
+    # Convert from spherical to rectanglar coords
+    return sph_to_cart(grad_vec[:, 0], grad_vec[:, 1], grad_vec[:, 2])
+
+
+def sss_basis(h0_int, h0_ext, L_in, L_out, Ipm, Iam, Ipind, Snaug):
+    """
+    Compute SSS basis vectors
+    """
+    Np = Ipm.shape[0]
+    n_sensors = Ipind.shape[0]
+    n_vectors = (L_in + 1) ** 2 - 1 + (L_out + 1) ** 2 - 1
+
+    # Initialize internal and external SSS basis vectors
+    A = np.zeros((n_sensors, (L_in + 1) ** 2 - 1))
+    B = np.zeros((n_sensors, (L_out + 1) ** 2 - 1))
+
+    if n_vectors > n_sensors:
+        print('Too many SSS basis vectors requested. %s vectors requested',
+              ' exceeds %s sensors.' % (n_vectors, n_sensors))
+
+    for l in range(1, L_in):
+        for m in range(-l, l):
+            c_vec = Ipm - np.ones((Np, 1)) * h0_int
+            r1, theta1, phi1 = cart_to_sph(c_vec[:, 0], c_vec[:, 1], c_vec[:, 2])
+
+            # TODO, dot over only 1 dimension
+            a1_all = Iam * np.dot(-grad_in_comp(l, m, r1, theta1, phi1), Snaug)
+            a1 = np.sum(a1_all, 1)  # XXX Check that this sum is correct
+            A[:, l ** 2 + l + m] = a1  # TODO, inds might be off by 1
+
+    for l in range(1, L_out):
+        for m in range(-l, l):
+            c_vec = Ipm - np.ones((Np, 1)) * h0_ext  # XXX h0_int in Jussi's code (mistake?)
+            r1, theta1, phi1 = cart_to_sph(c_vec[:, 0], c_vec[:, 1], c_vec[:, 2])
+
+            # TODO, dot over only 1 dimension
+            b1_all = Iam * np.dot(-grad_out_comp(l, m, r1, theta1, phi1), Snaug)
+            b1 = np.sum(b1_all, 1)  # XXX Check that this sum is correct with Jussi's code
+            B[:, l ** 2 + l + m] = b1
+
+
+def maxwell_filter(Raw):
+    pass
