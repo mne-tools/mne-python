@@ -23,7 +23,6 @@ event_name = op.join(data_dir, 'test-eve.fif')
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
 
-@requires_sklearn
 def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
               event_id_gen=dict(aud_l=2, vis_l=4), test_times=None):
     """Aux function for testing GAT viz"""
@@ -46,6 +45,7 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     return gat
 
 
+@requires_sklearn
 def test_gat_plot_matrix():
     """Test GAT matrix plot"""
     gat = _get_data()
@@ -54,6 +54,7 @@ def test_gat_plot_matrix():
     assert_raises(RuntimeError, gat.plot)
 
 
+@requires_sklearn
 def test_gat_plot_diagonal():
     """Test GAT diagonal plot"""
     gat = _get_data()
@@ -62,6 +63,7 @@ def test_gat_plot_diagonal():
     assert_raises(RuntimeError, gat.plot)
 
 
+@requires_sklearn
 def test_gat_plot_slice():
     """Test GAT slice plot"""
     gat = _get_data()
@@ -74,9 +76,13 @@ def test_gat_plot_slice():
     assert_raises(RuntimeError, gat.plot)
 
 
+def chance(ax):
+    return ax.get_children()[1].get_lines()[0].get_ydata()[0]
+
+
+@requires_sklearn
 def test_gat_chance_level():
     """Test GAT plot_slice chance level"""
-    chance = lambda ax: ax.get_children()[1].get_lines()[0].get_ydata()[0]
     gat = _get_data()
     ax = gat.plot_diagonal(chance=False)
     ax = gat.plot_diagonal()
@@ -91,6 +97,7 @@ def test_gat_chance_level():
     assert_raises(RuntimeError, gat.plot)
 
 
+@requires_sklearn
 def test_gat_plot_nonsquared():
     """Test GAT diagonal plot"""
     gat = _get_data(test_times=dict(start=0.))
