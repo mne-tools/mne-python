@@ -143,6 +143,15 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
     if ax is None:
         fig, ax = plt.subplots(1, 1)
 
+    # Find and plot chance level
+    if chance is not False:
+        if chance is True:
+            chance = _get_chance_level(gat.scorer_, gat.y_train_)
+        elif type(chance) not in [int, float, np.float64, np.float32]:
+            raise ValueError('\'chance\' must be int or float')
+        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+    ax.axvline(0, color='k', label='')
+
     # Detect whether gat is a full matrix or just its diagonal
     if np.all(np.unique([len(t) for t in gat.test_times_['times_']]) == 1):
         scores = gat.scores_
@@ -171,15 +180,6 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
         raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
             label=label)
-
-    # Find chance level
-    if chance is not False:
-        if chance is True:
-            chance = _get_chance_level(gat.scorer_, gat.y_train_)
-        elif type(chance) not in [int, float, np.float64, np.float32]:
-            raise ValueError('\'chance\' must be int or float')
-        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
-        ax.axvline(0, color='k', label='Onset')
 
     if title is not None:
         ax.set_title(title)
