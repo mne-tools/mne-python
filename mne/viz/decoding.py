@@ -28,10 +28,10 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     title : str | None
         Figure title. Defaults to None.
     vmin : float | None
-        Min color value for score. If None, sets to min(gat.scores_).
+        Min color value for scores. If None, sets to min(gat.scores_).
         Defaults to None.
     vmax : float | None
-        Max color value for score. If None, sets to max(gat.scores_).
+        Max color value for scores. If None, sets to max(gat.scores_).
         Defaults to None.
     tlim : array-like, (4,) | None
         The temporal boundaries. If None, expands to

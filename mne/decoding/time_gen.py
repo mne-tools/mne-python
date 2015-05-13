@@ -449,7 +449,7 @@ class GeneralizationAcrossTime(object):
         self.scores_ = scores
         return scores
 
-    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
+    def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
              cmap='RdBu_r', show=True, colorbar=True,
              xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
@@ -460,10 +460,12 @@ class GeneralizationAcrossTime(object):
         ----------
         title : str | None
             Figure title. Defaults to None.
-        vmin : float
-            Min color value for score. Defaults to 0..
-        vmax : float
-            Max color value for score. Defaults to 1.
+        vmin : float | None
+            Min color value for scores. If None, sets to min(gat.scores_).
+            Defaults to None.
+        vmax : float | None
+            Max color value for scores. If None, sets to max(gat.scores_).
+            Defaults to None.
         tlim : np.ndarray, (train_min, test_max) | None
             The temporal boundaries. Defaults to None.
         ax : object | None
