@@ -221,8 +221,8 @@ class GeneralizationAcrossTime(object):
         # Extract data from MNE structure
         X, y, picks = _check_epochs_input(epochs, y, picks)
         self.picks_ = picks
-        self.ch_names = [ch for idx, ch in enumerate(epochs.ch_names)
-                         if idx in picks]
+        self.ch_names = [epochs.ch_names[p] for p in picks]
+
         cv = self.cv
         if isinstance(cv, (int, np.int)):
             cv = StratifiedKFold(y, cv)
@@ -490,9 +490,9 @@ class GeneralizationAcrossTime(object):
                                tlim=tlim, ax=ax, cmap=cmap, show=show,
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
-                      ax=None, show=True, color='steelblue', xlabel=True,
-                      ylabel=True, legend=True, chance=True,
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=None,
+                      ymax=None, ax=None, show=True, color='steelblue',
+                      xlabel=True, ylabel=True, legend=True, chance=True,
                       label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
@@ -507,10 +507,10 @@ class GeneralizationAcrossTime(object):
             Min time value. Defaults to None.
         xmax : float | None, optional
             Max time value. Defaults to None.
-        ymin : float
-            Min score value. Defaults to 0.
-        ymax : float
-            Max score value. Defaults to 1.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores). Defaults to None.
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores). Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
@@ -539,11 +539,11 @@ class GeneralizationAcrossTime(object):
                               xmin=xmin, xmax=xmax,
                               ymin=ymin, ymax=ymax, ax=ax, show=show,
                               color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance)
+                              legend=legend, chance=chance, label=label)
 
-    def plot_slice(self, train_time, title=None, xmin=None, xmax=None, ymin=0.,
-                   ymax=1., ax=None, show=True, color='steelblue', xlabel=True,
-                   ylabel=True, legend=True, chance=True,
+    def plot_slice(self, train_time, title=None, xmin=None, xmax=None,
+                   ymin=None, ymax=None, ax=None, show=True, color='steelblue',
+                   xlabel=True, ylabel=True, legend=True, chance=True,
                    label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
@@ -559,10 +559,10 @@ class GeneralizationAcrossTime(object):
             Min time value. Defaults to None.
         xmax : float | None, optional
             Max time value. Defaults to None.
-        ymin : float
-            Min score value. Defaults to 0.
-        ymax : float
-            Max score value. Defaults to 1.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores). Defaults to None.
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores). Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
@@ -591,7 +591,7 @@ class GeneralizationAcrossTime(object):
                               xmin=xmin, xmax=xmax,
                               ymin=ymin, ymax=ymax, ax=ax, show=show,
                               color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance)
+                              legend=legend, chance=chance, label=label)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
@@ -710,7 +710,7 @@ def _check_epochs_input(epochs, y, picks=None):
             picks = np.array(picks)
     else:
         raise ValueError('picks must be a list or a numpy.ndarray of int')
-    X = X[:, picks.tolist(), :]
+    X = X[:, picks, :]
 
     # Check data sets
     assert X.shape[0] == y.shape[0]

@@ -173,12 +173,13 @@ def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
             label=label)
 
     # Find chance level
-    if chance is True:
-        chance = _get_chance_level(gat.scorer_, gat.y_train_)
-    elif type(chance) not in [int, float, np.float64, np.float32]:
-        raise ValueError('\'chance\' must be int or float')
-    ax.axhline(chance, color='k', linestyle='--', label="Chance level")
-    ax.axvline(0, color='k', label='Onset')
+    if chance is not False:
+        if chance is True:
+            chance = _get_chance_level(gat.scorer_, gat.y_train_)
+        elif type(chance) not in [int, float, np.float64, np.float32]:
+            raise ValueError('\'chance\' must be int or float')
+        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+        ax.axvline(0, color='k', label='Onset')
 
     if title is not None:
         ax.set_title(title)

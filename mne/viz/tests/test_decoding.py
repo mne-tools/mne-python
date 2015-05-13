@@ -78,6 +78,7 @@ def test_gat_chance_level():
     """Test GAT plot_slice chance level"""
     chance = lambda ax: ax.get_children()[1].get_lines()[1].get_ydata()[0]
     gat = _get_data()
+    ax = gat.plot_diagonal(chance=False)
     ax = gat.plot_diagonal()
     assert_equals(chance(ax), .5)
     gat = _get_data(event_id=dict(aud_l=1, vis_l=3, aud_r=2, vis_r=4))
