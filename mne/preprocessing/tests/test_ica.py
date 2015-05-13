@@ -128,7 +128,7 @@ def test_ica_rank_reduction():
         assert_true(n_components < n_pca_components <= rank_after <=
                     rank_before)
 
-
+@requires_sklearn
 def test_ica_reset():
     """Test ICA resetting"""
     raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
