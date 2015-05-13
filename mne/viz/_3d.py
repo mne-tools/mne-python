@@ -547,10 +547,11 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
 
     # Check if using old fmin/fmid/fmax cmap behavior
     if clim is None:
-        # Throw deprecation warning
-        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                      ' removed in v0.10. Use "clim" instead.',
-                      DeprecationWarning)
+        # Throw deprecation warning and indicate future behavior
+        warnings.warn('Using fmin, fmid, fmax (both manually or by default) is'
+                      ' deprecated and will be removed in v0.10. Use "clim"'
+                      ' instead to manually set color limits. In v0.10, "clim"'
+                      ' will be set to "auto" by default.', DeprecationWarning)
         # Fill in any missing flim values
         ctrl_pts = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
         clim = dict(kind='value', lims=ctrl_pts)
