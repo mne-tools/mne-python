@@ -103,7 +103,7 @@ def test_gat_plot_nonsquared():
     gat = _get_data(test_times=dict(start=0.))
     gat.plot()
     ax = gat.plot_diagonal()
-    scores = ax.get_children()[1].get_lines()[0].get_ydata()
+    scores = ax.get_children()[1].get_lines()[2].get_ydata()
     assert_equals(len(scores), len(gat.estimators_))
 
 run_tests_if_main()
