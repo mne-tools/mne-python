@@ -48,7 +48,8 @@ except:
 def test_ica_full_data_recovery():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.preload_data()
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
@@ -105,7 +106,8 @@ def test_ica_full_data_recovery():
 def test_ica_rank_reduction():
     """Test recovery of full data when no source is rejected"""
     # Most basic recovery
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
     n_components = 5
@@ -132,7 +134,8 @@ def test_ica_rank_reduction():
 @requires_sklearn
 def test_ica_reset():
     """Test ICA resetting"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(0.5)
+    raw = io.Raw(raw_fname).crop(0.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')[:10]
 
@@ -159,7 +162,8 @@ def test_ica_reset():
 @requires_sklearn
 def test_ica_core():
     """Test ICA on raw and epochs"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     # XXX. The None cases helped revealing bugs but are time consuming.
@@ -261,7 +265,8 @@ def test_ica_additional():
     """Test additional ICA functionality"""
     tempdir = _TempDir()
     stop2 = 500
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     test_cov = read_cov(test_cov_name)
@@ -529,7 +534,8 @@ def test_run_ica():
 def test_ica_reject_buffer():
     """Test ICA data raw buffer rejection"""
     tempdir = _TempDir()
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
                        eog=False, exclude='bads')
     ica = ICA(n_components=3, max_pca_components=4, n_pca_components=4)
@@ -548,7 +554,8 @@ def test_ica_reject_buffer():
 @requires_sklearn
 def test_ica_twice():
     """Test running ICA twice"""
-    raw = io.Raw(raw_fname, preload=True).crop(0, stop, False).crop(1.5)
+    raw = io.Raw(raw_fname).crop(1.5, stop, False)
+    raw.preload_data()
     picks = pick_types(raw.info, meg='grad', exclude='bads')
     n_components = 0.9
     max_pca_components = None
