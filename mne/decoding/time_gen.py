@@ -113,6 +113,8 @@ class GeneralizationAcrossTime(object):
 
     Attributes
     ----------
+    scorer_ : object
+        scikit-learn Scorer instance. Default: accuracy_score
     y_train_ : list | np.ndarray, shape (n_samples,)
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
@@ -120,9 +122,10 @@ class GeneralizationAcrossTime(object):
     y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
     scores_ : list of lists of float
-        The scores (mean accuracy of self.predict(X) wrt. y.).
-        It's not an array as the testing times per training time
-        need not be regular.
+        The scores estimated by self.scorer_ at each training time and each
+        testing time (e.g. mean accuracy of self.predict(X)). Note that the
+        number of testing times per training time need not be regular;
+        else, np.shape(scores) = [n_train_time, n_test_time].
     test_times_ : dict
         The same structure as ``train_times``.
     cv_ : CrossValidation object
@@ -395,9 +398,10 @@ class GeneralizationAcrossTime(object):
         Returns
         -------
         scores : list of lists of float
-            The scores (mean accuracy of self.predict(X) wrt. y.).
-            It's not an array as the testing times per training time
-            need not be regular.
+            The scores estimated by self.scorer_ at each training time and each
+            testing time (e.g. mean accuracy of self.predict(X)). Note that the
+            number of testing times per training time need not be regular;
+            else, np.shape(scores) = [n_train_time, n_test_time].
         """
 
         from sklearn.metrics import accuracy_score
