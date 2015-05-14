@@ -428,7 +428,7 @@ class GeneralizationAcrossTime(object):
 
         # Check scorer
         if scorer is None:
-            # XXX Need API to identify propper scorer from the clf
+            # XXX Need API to identify proper scorer from the clf
             scorer = accuracy_score
         self.scorer_ = scorer
 
