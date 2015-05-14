@@ -729,7 +729,8 @@ def _check_epochs_input(epochs, y, picks=None):
         To-be-fitted data.
     y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
-    picks : np.ndarray, shape (n_selected_chans)
+    picks : np.ndarray, shape (n_selected_chans,)
+        The channels to be used.
     """
     if y is None:
         y = epochs.events[:, 2]
