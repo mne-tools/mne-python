@@ -37,20 +37,20 @@ clean:
 	-rm -rf *.nii.gz
 
 html_stable:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
+	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html_stable
 	@echo
-	@echo "Build finished. The HTML pages are in build/html."
+	@echo "Build finished. The HTML pages are in build/html_stable."
 
 html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html_dev
 	@echo
-	@echo "Build finished. The HTML pages are in build/html."
+	@echo "Build finished. The HTML pages are in build/html_dev"
 
 html_dev-noslow:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html_dev
 
 html_dev-noplot:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html_dev
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
