@@ -269,11 +269,12 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs
             The epochs. Can be similar to fitted epochs or not. See
             predict_mode parameter.
-        test_times : str | dict | None
-            A dict to configure the testing times.
-            If test_times = 'diagonal', test_times = train_times: decode at
-            each time point but does not generalize.
-
+        test_times : 'diagonal' | dict | None
+            Configures the testing times.
+            If set to 'diagonal', predictions are made at the time at which.
+                each classifier is trained.
+            If set to None, predictions are made at all time points.
+            If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
@@ -289,8 +290,7 @@ class GeneralizationAcrossTime(object):
             'length' : float
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
-
-            If None, empty dict. Defaults to None.
+            Defaults to None.
 
         Returns
         -------
@@ -369,11 +369,12 @@ class GeneralizationAcrossTime(object):
             Defaults to None.
         scorer : object
             scikit-learn Scorer instance. Default: accuracy_score
-        test_times : str | dict | None
-            if test_times = 'diagonal', test_times = train_times: decode at
-            each time point but does not generalize. If dict, the following
-            structure is expected:
-
+        test_times : 'diagonal' | dict | None
+            Configures the testing times.
+            If set to 'diagonal', predictions are made at the time at which.
+                each classifier is trained.
+            If set to None, predictions are made at all time points.
+            If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
@@ -389,8 +390,7 @@ class GeneralizationAcrossTime(object):
             'length' : float
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
-
-            If None, empty dict. Defaults to None.
+            Defaults to None.
 
         Returns
         -------
