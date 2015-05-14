@@ -464,7 +464,7 @@ class GeneralizationAcrossTime(object):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
                                  'for scoring.')
-        elif type(y) is list:
+        elif isinstance(y, list):
             y = np.array(y)
         self.y_true_ = y  # true regressor to be compared with y_pred
 
@@ -619,12 +619,11 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        if (type(train_time) not in [float, np.float32, np.float64] and
-            (type(train_time) not in [list, np.ndarray] or
-             np.any([type(time) not in [float, np.float32, np.float64]
-                    for time in train_time]))):
+        if (not isinstance(train_time, float) and
+            not (isinstance(train_time, (list, np.ndarray)) and
+                 np.all([isinstance(time, float) for time in train_time]))):
             raise ValueError('train_time must be float | list or array of '
-                             'floats.')
+                             'floats. Got %s.' % type(train_time))
 
         return plot_gat_times(self, train_time=train_time, title=title,
                               xmin=xmin, xmax=xmax,
@@ -734,7 +733,7 @@ def _check_epochs_input(epochs, y, picks=None):
     """
     if y is None:
         y = epochs.events[:, 2]
-    elif type(y) is list:
+    elif isinstance(y, list):
         y = np.array(y)
 
     # Convert MNE data into trials x features x time matrix
@@ -745,9 +744,8 @@ def _check_epochs_input(epochs, y, picks=None):
         picks = pick_types(epochs.info, meg=True, eeg=True, seeg=True,
                            eog=False, ecg=False, misc=False, stim=False,
                            ref_meg=False, exclude='bads')
-    if (type(picks) in [list, np.ndarray]) and \
-       (np.all([type(idx) in [int, np.int64, np.int32] for idx in picks])):
-            picks = np.array(picks)
+    if isinstance(picks, (list, np.ndarray)):
+        picks = np.array(picks, dtype=np.int)
     else:
         raise ValueError('picks must be a list or a numpy.ndarray of int')
     X = X[:, picks, :]

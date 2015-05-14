@@ -10,6 +10,7 @@ from nose.tools import assert_raises, assert_equals
 
 import numpy as np
 
+from mne.epochs import equalize_epoch_counts, concatenate_epochs
 from mne.decoding import GeneralizationAcrossTime
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -39,6 +40,9 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
+    epochs_list = [epochs[k] for k in event_id]
+    equalize_epoch_counts(epochs_list)
+    epochs = concatenate_epochs(epochs_list)
 
     # Test default running
     gat = GeneralizationAcrossTime()

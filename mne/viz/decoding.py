@@ -150,21 +150,20 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     if chance is not False:
         if chance is True:
             chance = _get_chance_level(gat.scorer_, gat.y_train_)
-        elif type(chance) not in [int, float, np.float64, np.float32]:
-            raise ValueError('\'chance\' must be int or float')
-        ax.axhline(chance, color='k', linestyle='--', label="Chance level")
+        ax.axhline(float(chance), color='k', linestyle='--',
+                   label="Chance level")
     ax.axvline(0, color='k', label='')
 
-    if type(train_time) in [str, float, np.float32, np.float64]:
+    if isinstance(train_time, (str, float)):
         train_time = [train_time]
         label = [label]
-    elif type(train_time) in [list, np.ndarray]:
+    elif isinstance(train_time, (list, np.ndarray)):
         label = train_time
     else:
-        raise ValueError("train_time must be \'diagonal\' | float | list or "
+        raise ValueError("train_time must be 'diagonal' | float | list or "
                          "array of float.")
 
-    if color is None or type(color) is str:
+    if color is None or isinstance(color, str):
         color = np.tile(color, len(train_time))
 
     for _train_time, _color, _label in zip(train_time, color, label):
@@ -189,7 +188,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
 
 
 def _plot_gat_time(gat, train_time, ax, color, label):
-    """Aux function og plot_gat_time
+    """Aux function of plot_gat_time
 
     Plots a unique score 1d array"""
     # Detect whether gat is a full matrix or just its diagonal
@@ -210,7 +209,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
                 else:
                     score = gat.scores_[train_idx][test_idx]
                 scores[train_idx] = score
-    elif type(train_time) in [float, np.float64, np.float32]:
+    elif isinstance(train_time, float):
         train_times = gat.train_times['times_']
         idx = np.abs(train_times - train_time).argmin()
         if train_times[idx] - train_time > gat.train_times['step']:
@@ -227,7 +226,8 @@ def _plot_gat_time(gat, train_time, ax, color, label):
 def _get_chance_level(scorer, y_train):
     # XXX JRK This should probably be solved within sklearn?
     if scorer.__name__ == 'accuracy_score':
-        chance = 1. / len(np.unique(y_train))
+        chance = np.sum([np.mean(y_train == c) ** 2
+                         for c in np.unique(y_train)])
     elif scorer.__name__ == 'roc_auc_score':
         chance = 0.5
     else:
