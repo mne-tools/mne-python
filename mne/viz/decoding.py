@@ -93,7 +93,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                    chance=True, label='Classif. score'):
     """Plotting function of GeneralizationAcrossTime object
 
-    Plot the scores of the classifier trained at \'train_time\'.
+    Plot the scores of the classifier trained at 'train_time'.
 
     Parameters
     ----------
@@ -216,7 +216,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
             raise ValueError("No classifier trained at %s " % train_time)
         scores = gat.scores_[idx]
     else:
-        raise ValueError("train_time must be \'diagonal\' or a float.")
+        raise ValueError("train_time must be 'diagonal' or a float.")
     kwargs = dict()
     if color is not None:
         kwargs['color'] = color
