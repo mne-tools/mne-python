@@ -507,7 +507,7 @@ class GeneralizationAcrossTime(object):
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
     def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=None,
-                      ymax=None, ax=None, show=True, color='steelblue',
+                      ymax=None, ax=None, show=True, color=None,
                       xlabel=True, ylabel=True, legend=True, chance=True,
                       label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
@@ -533,7 +533,7 @@ class GeneralizationAcrossTime(object):
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str
-            Score line color. Defaults to 'steelblue'.
+            Score line color.
         xlabel : bool
             If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
@@ -558,7 +558,7 @@ class GeneralizationAcrossTime(object):
                               legend=legend, chance=chance, label=label)
 
     def plot_times(self, train_time, title=None, xmin=None, xmax=None,
-                   ymin=None, ymax=None, ax=None, show=True, color='steelblue',
+                   ymin=None, ymax=None, ax=None, show=True, color=None,
                    xlabel=True, ylabel=True, legend=True, chance=True,
                    label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
@@ -585,7 +585,7 @@ class GeneralizationAcrossTime(object):
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str or list of str
-            Score line color(s). Defaults to 'steelblue'.
+            Score line color(s).
         xlabel : bool
             If True, the xlabel is displayed. Defaults to True.
         ylabel : bool

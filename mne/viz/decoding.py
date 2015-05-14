@@ -89,7 +89,7 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 
 def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
-                   color='b', xlabel=True, ylabel=True, legend=True,
+                   color=None, xlabel=True, ylabel=True, legend=True,
                    chance=True, label='Classif. score'):
     """Plotting function of GeneralizationAcrossTime object
 
@@ -164,7 +164,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
         raise ValueError("train_time must be \'diagonal\' | float | list or "
                          "array of float.")
 
-    if type(color) is str:
+    if color is None or type(color) is str:
         color = np.tile(color, len(train_time))
 
     for _train_time, _color, _label in zip(train_time, color, label):
@@ -218,8 +218,10 @@ def _plot_gat_time(gat, train_time, ax, color, label):
         scores = gat.scores_[idx]
     else:
         raise ValueError("train_time must be \'diagonal\' or a float.")
-    ax.plot(gat.train_times['times_'], scores, color=color,
-            label=label)
+    kwargs = dict()
+    if color is not None:
+        kwargs['color'] = color
+    ax.plot(gat.train_times['times_'], scores, label=label, **kwargs)
 
 
 def _get_chance_level(scorer, y_train):
