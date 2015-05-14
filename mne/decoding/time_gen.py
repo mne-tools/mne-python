@@ -267,8 +267,8 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See independent
-            parameter.
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
         test_times : str | dict | None
             A dict to configure the testing times.
             If test_times = 'diagonal', test_times = train_times: decode at
@@ -361,8 +361,8 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         epochs : instance of Epochs | None
-            The epochs. Can be similar to fitted epochs or not. See independent
-            parameter.
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
             If None, it relies on the ``y_pred_`` generated from predit()
         y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
