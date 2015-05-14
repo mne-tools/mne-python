@@ -11,7 +11,7 @@ Subsequently, artefact detection and rejection quality are assessed.
 Finally, the impact on the evoked ERF is visualized.
 
 Note that this example does quite a bit of processing, so even on a
-fast machine it can take over a minute to complete.
+fast machine it can take about a minute to complete.
 """
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
