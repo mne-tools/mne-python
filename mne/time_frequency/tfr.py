@@ -932,8 +932,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
+        unit : dict | str | None
+            The unit of the channel type used for colorbar label. If
+            scale is None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : float

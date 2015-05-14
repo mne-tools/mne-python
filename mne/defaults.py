@@ -45,5 +45,9 @@ def _handle_default(k, v=None):
     """
     this_mapping = deepcopy(DEFAULTS[k])
     if v is not None:
-        this_mapping.update(v)
+        if isinstance(v, dict):
+            this_mapping.update(v)
+        else:
+            for key in this_mapping.keys():
+                this_mapping[key] = v
     return this_mapping

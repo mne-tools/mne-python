@@ -507,7 +507,9 @@ def generate_example_rst(app):
     generated_dir = os.path.abspath(os.path.join(app.builder.srcdir,
                                                  'modules', 'generated'))
 
-    plot_gallery = bool(app.builder.config.plot_gallery)
+    plot_gallery = app.builder.config.plot_gallery
+    if isinstance(plot_gallery, (int, bool)):
+        plot_gallery = bool(plot_gallery)
     if not os.path.exists(example_dir):
         os.makedirs(example_dir)
     if not os.path.exists(root_dir):
@@ -907,7 +909,17 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                              'time_%s.txt' % base_image_name)
     thumb_file = os.path.join(thumb_dir, base_image_name + '.png')
     time_elapsed = 0
+    do_plot = False
     if plot_gallery and fname.startswith('plot'):
+        do_plot = True
+        if plot_gallery == 'fast':
+            # introspect on example to see if we should actually run it
+            with open(src_file, 'r') as fid:
+                for line in fid.readlines():
+                    if line.startswith('#') and 'doc:slow-example' in line:
+                        print('Skipping slow example: %s' % fname)
+                        do_plot = False
+    if do_plot:
         # generate the plot as png image if file name
         # starts with plot and if it is more recent than an
         # existing image.
@@ -1012,7 +1024,7 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                 os.chdir(cwd)
                 sys.stdout = orig_stdout
 
-            print(" - time elapsed : %.2g sec" % time_elapsed)
+            print(" - time elapsed : %.2f sec" % time_elapsed)
         else:
             figure_list = [f[len(image_dir):]
                            for f in glob.glob(image_path.replace("%03d",

@@ -69,4 +69,4 @@ plt.show()
 
 args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)
 grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
-              subjects_dir=subjects_dir, **args)
+              subjects_dir=subjects_dir, clim='auto')

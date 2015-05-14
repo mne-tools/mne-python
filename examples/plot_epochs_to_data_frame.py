@@ -135,7 +135,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
 
 index, scale_time, scalings = ['epoch', 'time'], 1e3, dict(grad=1e13)
 
-df = epochs.as_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
+df = epochs.to_data_frame(picks=None, scalings=scalings, scale_time=scale_time,
                           index=index)
 
 # Create MEG channel selector and drop EOG channel.
