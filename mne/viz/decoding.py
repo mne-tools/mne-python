@@ -157,8 +157,9 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
 
     if type(train_time) in [str, float, np.float32, np.float64]:
         train_time = [train_time]
+        label = [label]
     elif type(train_time) in [list, np.ndarray]:
-        pass
+        label = train_time
     else:
         raise ValueError("train_time must be \'diagonal\' | float | list or "
                          "array of float.")
@@ -166,8 +167,8 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     if type(color) is str:
         color = np.tile(color, len(train_time))
 
-    for _train_time, _color in zip(train_time, color):
-        _plot_gat_time(gat, _train_time, ax, _color)
+    for _train_time, _color, _label in zip(train_time, color, label):
+        _plot_gat_time(gat, _train_time, ax, _color, _label)
 
     if title is not None:
         ax.set_title(title)
@@ -187,7 +188,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     return fig if ax is None else ax.get_figure()
 
 
-def _plot_gat_time(gat, train_time, ax, color):
+def _plot_gat_time(gat, train_time, ax, color, label):
     """Aux function og plot_gat_time
 
     Plots a unique score 1d array"""
@@ -218,7 +219,7 @@ def _plot_gat_time(gat, train_time, ax, color):
     else:
         raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
-            label=train_time)
+            label=label)
 
 
 def _get_chance_level(scorer, y_train):
