@@ -71,11 +71,9 @@ def test_gat_plot_times():
     gat = _get_data()
     # test one line
     gat.plot_times(gat.train_times['times_'][0])
-    gat.plot_times('diagonal')
     # test multiple lines
     gat.plot_times(gat.train_times['times_'])
-    # test color
-    gat.plot_times('diagonal', color='b')
+    # test multiple colors
     n_times = len(gat.train_times['times_'])
     colors = np.tile(['r', 'g', 'b'], np.ceil(n_times / 3))[:n_times]
     gat.plot_times(gat.train_times['times_'], color=colors)
@@ -83,6 +81,7 @@ def test_gat_plot_times():
     assert_raises(ValueError, gat.plot_times, -1.)
     # test float type
     assert_raises(ValueError, gat.plot_times, 1)
+    assert_raises(ValueError, gat.plot_times, 'diagonal')
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 

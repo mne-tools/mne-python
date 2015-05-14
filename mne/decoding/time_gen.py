@@ -603,6 +603,13 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
+        if (type(train_time) not in [float, np.float32, np.float64] and
+            (type(train_time) not in [list, np.ndarray] or
+             np.any([type(time) not in [float, np.float32, np.float64]
+                    for time in train_time]))):
+            raise ValueError('train_time must be float | list or array of '
+                             'floats.')
+
         return plot_gat_times(self, train_time=train_time, title=title,
                               xmin=xmin, xmax=xmax,
                               ymin=ymin, ymax=ymax, ax=ax, show=show,
