@@ -87,10 +87,10 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     return fig if ax is None else ax.get_figure()
 
 
-def plot_gat_slice(gat, train_time='diagonal', title=None, xmin=None,
-                   xmax=None, ymin=None, ymax=None, ax=None, show=True,
-                   color='b', xlabel=True, ylabel=True, legend=True,
-                   chance=True, label='Classif. score'):
+def _plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
+                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
+                    color='b', xlabel=True, ylabel=True, legend=True,
+                    chance=True, label='Classif. score'):
     """Plotting function of GeneralizationAcrossTime object
 
     Plot the scores of the classifier trained at \'train_time\'.

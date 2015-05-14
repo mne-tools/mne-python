@@ -7,7 +7,7 @@
 
 import numpy as np
 from ..io.pick import pick_types
-from ..viz.decoding import plot_gat_matrix, plot_gat_slice
+from ..viz.decoding import plot_gat_matrix, _plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
 
@@ -539,19 +539,19 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_slice(self, train_time='diagonal', title=title,
-                              xmin=xmin, xmax=xmax,
-                              ymin=ymin, ymax=ymax, ax=ax, show=show,
-                              color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance, label=label)
+        return _plot_gat_times(self, train_time='diagonal', title=title,
+                               xmin=xmin, xmax=xmax,
+                               ymin=ymin, ymax=ymax, ax=ax, show=show,
+                               color=color, xlabel=xlabel, ylabel=ylabel,
+                               legend=legend, chance=chance, label=label)
 
-    def plot_slice(self, train_time, title=None, xmin=None, xmax=None,
+    def plot_times(self, train_time, title=None, xmin=None, xmax=None,
                    ymin=None, ymax=None, ax=None, show=True, color='steelblue',
                    xlabel=True, ylabel=True, legend=True, chance=True,
                    label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
-        Plot the scores of the classifier trained at \'train_time\'.
+        Plot the scores of the classifier trained at specific \'train_time\'.
 
         Parameters
         ----------
@@ -591,11 +591,11 @@ class GeneralizationAcrossTime(object):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_slice(self, train_time=train_time, title=title,
-                              xmin=xmin, xmax=xmax,
-                              ymin=ymin, ymax=ymax, ax=ax, show=show,
-                              color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance, label=label)
+        return _plot_gat_times(self, train_time=train_time, title=title,
+                               xmin=xmin, xmax=xmax,
+                               ymin=ymin, ymax=ymax, ax=ax, show=show,
+                               color=color, xlabel=xlabel, ylabel=ylabel,
+                               legend=legend, chance=chance, label=label)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):

@@ -64,14 +64,14 @@ def test_gat_plot_diagonal():
 
 
 @requires_sklearn
-def test_gat_plot_slice():
-    """Test GAT slice plot"""
+def test_gat_plot_times():
+    """Test GAT times plot"""
     gat = _get_data()
-    gat.plot_slice(gat.train_times['times_'][0])
+    gat.plot_times(gat.train_times['times_'][0])
     # test invalid time point
-    assert_raises(ValueError, gat.plot_slice, -1.)
+    assert_raises(ValueError, gat.plot_times, -1.)
     # test float type
-    assert_raises(ValueError, gat.plot_slice, 1)
+    assert_raises(ValueError, gat.plot_times, 1)
     del gat.scores_
     assert_raises(RuntimeError, gat.plot)
 
@@ -82,7 +82,7 @@ def chance(ax):
 
 @requires_sklearn
 def test_gat_chance_level():
-    """Test GAT plot_slice chance level"""
+    """Test GAT plot_times chance level"""
     gat = _get_data()
     ax = gat.plot_diagonal(chance=False)
     ax = gat.plot_diagonal()
