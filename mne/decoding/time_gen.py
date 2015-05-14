@@ -130,9 +130,9 @@ class GeneralizationAcrossTime(object):
         The same structure as ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    picks_ : np.array, shape (n_channels)
+    picks_ : np.array, shape (n_channels,)
         Indices of the channels used for training.
-    ch_names : list, shape (n_channels)
+    ch_names : list, shape (n_channels,)
         Names of the channels used for training.
 
     Notes
@@ -280,8 +280,8 @@ class GeneralizationAcrossTime(object):
             predict_mode parameter.
         test_times : 'diagonal' | dict | None
             Configures the testing times.
-            If set to 'diagonal', predictions are made at the time at which.
-                each classifier is trained.
+            If set to 'diagonal', predictions are made at the time at which
+            each classifier is trained.
             If set to None, predictions are made at all time points.
             If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
@@ -378,7 +378,7 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs | None
             The epochs. Can be similar to fitted epochs or not. See
             predict_mode parameter.
-            If None, it relies on the ``y_pred_`` generated from predit()
+            If None, it relies on the ``y_pred_`` generated from predict()
         y : list | np.ndarray, shape (n_epochs,) | None
             To-be-fitted model, If None, y = epochs.events[:,2].
             Defaults to None.
@@ -386,8 +386,8 @@ class GeneralizationAcrossTime(object):
             scikit-learn Scorer instance. Default: accuracy_score
         test_times : 'diagonal' | dict | None
             Configures the testing times.
-            If set to 'diagonal', predictions are made at the time at which.
-                each classifier is trained.
+            If set to 'diagonal', predictions are made at the time at which
+            each classifier is trained.
             If set to None, predictions are made at all time points.
             If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
@@ -423,7 +423,7 @@ class GeneralizationAcrossTime(object):
             self.predict(epochs, test_times=test_times)
         else:
             if not hasattr(self, 'y_pred_'):
-                raise RuntimeError('Please predit() epochs first or pass '
+                raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
 
         # Check scorer
