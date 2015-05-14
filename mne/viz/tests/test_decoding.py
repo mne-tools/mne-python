@@ -68,6 +68,8 @@ def test_gat_plot_times():
     """Test GAT times plot"""
     gat = _get_data()
     gat.plot_times(gat.train_times['times_'][0])
+    gat.plot_times(gat.train_times['times_'])
+    gat.plot_times('diagonal')
     # test invalid time point
     assert_raises(ValueError, gat.plot_times, -1.)
     # test float type
