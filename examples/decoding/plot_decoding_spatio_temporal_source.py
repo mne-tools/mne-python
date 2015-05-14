@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ==========================
 Decoding source space data

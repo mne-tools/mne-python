@@ -1,4 +1,3 @@
-# doc:slow-example
 """
 ==========================================================
 Decoding sensor space data with Generalization Across Time

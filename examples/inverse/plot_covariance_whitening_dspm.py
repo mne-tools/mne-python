@@ -14,6 +14,9 @@ before implementing the suggestions presented in [1]. Please do not copy the
 patterns presented here for your own analysis, this is example is purely
 illustrative.
 
+Note that this example does quite a bit of processing, so even on a very
+fast machine it can take a couple of minutes to complete.
+
 References
 ----------
 [1] Engemann D. and Gramfort A. (2015) Automated model selection in covariance
