@@ -11,7 +11,7 @@ Runs a full pipeline using MNE-Python:
 - source reconstruction using dSPM on the contrast : "faces - scrambled"
 
 Note that this example does quite a bit of processing, so even on a
-fast machine it can take over 10 minutes to complete.
+fast machine it can take about 10 minutes to complete.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
