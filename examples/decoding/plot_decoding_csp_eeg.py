@@ -110,8 +110,8 @@ evoked.times = np.arange(evoked.data.shape[0])
 
 layout = read_layout('EEG1005')
 evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
-                    scale_time=1, time_format='%i', scale=dict(eeg=1),
-                    unit=dict(eeg='Patterns (AU)'), size=1.5)
+                    scale_time=1, time_format='%i', scale=1,
+                    unit='Patterns (AU)', size=1.5)
 
 ###############################################################################
 # Look at performance over time

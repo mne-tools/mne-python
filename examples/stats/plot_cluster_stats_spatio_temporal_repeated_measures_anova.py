@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering

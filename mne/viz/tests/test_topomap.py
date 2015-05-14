@@ -60,12 +60,12 @@ def test_plot_topomap():
     with warnings.catch_warnings(record=True):
         evoked = read_evokeds(evoked_fname, 'Left Auditory',
                               baseline=(None, 0))
-        evoked.plot_topomap(0.1, 'mag', layout=layout)
+        evoked.plot_topomap(0.1, 'mag', layout=layout, scale=dict(mag=0.1))
         mask = np.zeros_like(evoked.data, dtype=bool)
         mask[[1, 5], :] = True
         evoked.plot_topomap(None, ch_type='mag', outlines=None)
         times = [0.1]
-        evoked.plot_topomap(times, ch_type='eeg', res=res)
+        evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
         evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
         evoked.plot_topomap(times, ch_type='planar1', res=res)
         evoked.plot_topomap(times, ch_type='planar2', res=res)

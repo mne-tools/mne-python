@@ -923,12 +923,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
-    scale : float | None
+    scale : dict | float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
     scale_time : float | None
         Scale the time labels. Defaults to 1e3 (ms).
-    unit : str | None
+    unit : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
     res : int

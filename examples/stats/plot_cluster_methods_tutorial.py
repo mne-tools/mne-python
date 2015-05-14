@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ======================================================
 Permutation t-test on toy data with spatial clustering

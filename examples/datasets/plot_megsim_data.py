@@ -30,7 +30,7 @@ raw_fnames = load_data(condition=condition, data_format='raw',
 # Load simulation evoked files for the visual condition
 evoked_fnames = load_data(condition=condition, data_format='evoked',
                           data_type='simulation', verbose=True)
-raise RuntimeError
+
 raw = Raw(raw_fnames[0])
 events = find_events(raw, stim_channel="STI 014", shortest_event=1)
 
