@@ -87,10 +87,10 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
     return fig if ax is None else ax.get_figure()
 
 
-def _plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
-                    xmax=None, ymin=None, ymax=None, ax=None, show=True,
-                    color='b', xlabel=True, ylabel=True, legend=True,
-                    chance=True, label='Classif. score'):
+def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
+                   xmax=None, ymin=None, ymax=None, ax=None, show=True,
+                   color='b', xlabel=True, ylabel=True, legend=True,
+                   chance=True, label='Classif. score'):
     """Plotting function of GeneralizationAcrossTime object
 
     Plot the scores of the classifier trained at \'train_time\'.
@@ -99,10 +99,13 @@ def _plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     ----------
     gat : instance of mne.decoding.GeneralizationAcrossTime
         The gat object.
-    train_time : str | float.
-        Plots a slice of gat.scores. If 'diagonal', plots scores of classifiers
-        trained and tested at the same time, else plots scores of the
-        classifier trained at train_time. Default to 'diagonal'.
+    train_time : 'diagonal' | float | list or array of float
+        Plot a 1d array of a portion of gat.scores_.
+        If set to 'diagonal', plots the gat.scores_ of classifiers
+        trained and tested at identical times
+        if set to float | list or array of float, plots scores of the
+        classifier(s) trained at (a) specific training time(s).
+        Default to 'diagonal'.
     title : str | None
         Figure title. Defaults to None.
     xmin : float | None, optional
@@ -152,6 +155,42 @@ def _plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
         ax.axhline(chance, color='k', linestyle='--', label="Chance level")
     ax.axvline(0, color='k', label='')
 
+    if type(train_time) in [str, float, np.float32, np.float64]:
+        train_time = [train_time]
+    elif type(train_time) in [list, np.ndarray]:
+        pass
+    else:
+        raise ValueError("train_time must be \'diagonal\' | float | list or "
+                         "array of float.")
+
+    if type(color) is str:
+        color = np.tile(str, len(train_time))
+
+    for _train_time, _color in zip(train_time, color):
+        _plot_gat_time(gat, _train_time, ax, _color)
+
+    if title is not None:
+        ax.set_title(title)
+    if ymin is not None and ymax is not None:
+        ax.set_ylim(ymin, ymax)
+    if xmin is not None and xmax is not None:
+        ax.set_xlim(xmin, xmax)
+    if xlabel is True:
+        ax.set_xlabel('Time (s)')
+    if ylabel is True:
+        ax.set_ylabel('Classif. score ({0})'.format(
+                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'))
+    if legend is True:
+        ax.legend(loc='best')
+    if show is True:
+        plt.show()
+    return fig if ax is None else ax.get_figure()
+
+
+def _plot_gat_time(gat, train_time, ax, color):
+    """Aux function og plot_gat_time
+
+    Plots a unique score 1d array"""
     # Detect whether gat is a full matrix or just its diagonal
     if np.all(np.unique([len(t) for t in gat.test_times_['times_']]) == 1):
         scores = gat.scores_
@@ -179,24 +218,7 @@ def _plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     else:
         raise ValueError("train_time must be \'diagonal\' or a float.")
     ax.plot(gat.train_times['times_'], scores, color=color,
-            label=label)
-
-    if title is not None:
-        ax.set_title(title)
-    if ymin is not None and ymax is not None:
-        ax.set_ylim(ymin, ymax)
-    if xmin is not None and xmax is not None:
-        ax.set_xlim(xmin, xmax)
-    if xlabel is True:
-        ax.set_xlabel('Time (s)')
-    if ylabel is True:
-        ax.set_ylabel('Classif. score ({0})'.format(
-                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'))
-    if legend is True:
-        ax.legend(loc='best')
-    if show is True:
-        plt.show()
-    return fig if ax is None else ax.get_figure()
+            label=train_time)
 
 
 def _get_chance_level(scorer, y_train):
