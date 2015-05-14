@@ -267,11 +267,11 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, list())
         return self
 
-    def predict(self, epochs, test_times=None, y=None, picks=None):
+    def predict(self, epochs, test_times=None):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
-        ``test_times`` attribute.
+        ``test_times_`` attribute.
 
         Parameters
         ----------
@@ -300,12 +300,6 @@ class GeneralizationAcrossTime(object):
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
             Defaults to None.
-        y : list or np.ndarray of int, shape (n_samples,) or None, optional
-            To-be-fitted model values if self.fit() has not been called first.
-            If None, y = epochs.events[:, 2]. Defaults to None.
-        picks : array-like of int | None, optional
-            Channels to be included if self.fit() has not been called first.
-            If None only good data channels are used. Defaults to None.
 
         Returns
         -------
@@ -323,7 +317,7 @@ class GeneralizationAcrossTime(object):
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
-            self.fit(epochs, y=y, picks=picks)
+            raise RuntimeError('Please fit models before trying to predict')
 
         cv = self.cv_  # Retrieve CV scheme from fit()
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
@@ -372,15 +366,13 @@ class GeneralizationAcrossTime(object):
         self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
-    def score(self, epochs=None, y=None, scorer=None, test_times=None,
-              picks=None):
+    def score(self, epochs=None, y=None, scorer=None, test_times=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
         each trial to its true value.
 
-        Calls ``self.fit`` and/or ``self.predict()`` if they have not been
-        already.
+        Calls ``predict()`` if it has not been already.
 
         Note. The function updates the ``scores_`` attribute.
 
@@ -388,12 +380,12 @@ class GeneralizationAcrossTime(object):
         ----------
         epochs : instance of Epochs | None, optional
             The epochs. Can be similar to fitted epochs or not.
-            If None, it needs to rely on the predictions ``self.y_pred_``
-            generated with self.predict().
+            If None, it needs to rely on the predictions ``y_pred_``
+            generated with ``predict()``.
         y : list | np.ndarray, shape (n_epochs,) | None, optional
-            True values to be compared with the predictions ``self.y_pred_``
-            generated with self.predict() via self.scorer_.
-            If None and ``predict_mode``=='cross-validation' y = self.y_train_.
+            True values to be compared with the predictions ``y_pred_``
+            generated with ``predict()`` via ``scorer_``.
+            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
             Defaults to None.
         scorer : object
             scikit-learn Scorer instance. Default: accuracy_score
@@ -419,15 +411,12 @@ class GeneralizationAcrossTime(object):
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
             Defaults to None.
-        picks : array-like of int | None, optional
-            Channels to be included if self.fit() has not been called first.
-            If None only good data channels are used. Defaults to None.
 
         Returns
         -------
         scores : list of lists of float
-            The scores estimated by self.scorer_ at each training time and each
-            testing time (e.g. mean accuracy of self.predict(X)). Note that the
+            The scores estimated by ``scorer_`` at each training time and each
+            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
             number of testing times per training time need not be regular;
             else, np.shape(scores) = [n_train_time, n_test_time].
         """
