@@ -161,7 +161,8 @@ def test_generalization_across_time():
     gat = GeneralizationAcrossTime(train_times={'start': 0.090,
                                                 'stop': 0.250})
     # predict without fit
-    assert_raises(RuntimeError, gat.predict, epochs)
+    gat.predict(epochs)
+    gat.score(epochs)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs)
     gat.score(epochs)

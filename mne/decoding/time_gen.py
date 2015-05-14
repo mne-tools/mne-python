@@ -198,10 +198,10 @@ class GeneralizationAcrossTime(object):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : list or np.ndarray of int, shape (n_samples,) or None
+        y : list or np.ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
             Defaults to None.
-        picks : array-like of int | None
+        picks : array-like of int | None, optional
             Channels to be included. If None only good data channels are used.
             Defaults to None.
 
@@ -267,7 +267,7 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, list())
         return self
 
-    def predict(self, epochs, test_times=None):
+    def predict(self, epochs, test_times=None, y=None, picks=None):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
@@ -278,7 +278,7 @@ class GeneralizationAcrossTime(object):
         epochs : instance of Epochs
             The epochs. Can be similar to fitted epochs or not. See
             predict_mode parameter.
-        test_times : 'diagonal' | dict | None
+        test_times : 'diagonal' | dict | None, optional
             Configures the testing times.
             If set to 'diagonal', predictions are made at the time at which
             each classifier is trained.
@@ -300,6 +300,12 @@ class GeneralizationAcrossTime(object):
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
             Defaults to None.
+        y : list or np.ndarray of int, shape (n_samples,) or None, optional
+            To-be-fitted model values if self.fit() has not been called first.
+            If None, y = epochs.events[:, 2]. Defaults to None.
+        picks : array-like of int | None, optional
+            Channels to be included if self.fit() has not been called first.
+            If None only good data channels are used. Defaults to None.
 
         Returns
         -------
@@ -317,7 +323,8 @@ class GeneralizationAcrossTime(object):
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
-            raise RuntimeError('Please fit models before trying to predict')
+            self.fit(epochs, y=y, picks=picks)
+
         cv = self.cv_  # Retrieve CV scheme from fit()
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
@@ -365,26 +372,32 @@ class GeneralizationAcrossTime(object):
         self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
         return self.y_pred_
 
-    def score(self, epochs=None, y=None, scorer=None, test_times=None):
+    def score(self, epochs=None, y=None, scorer=None, test_times=None,
+              picks=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
         each trial to its true value.
 
+        Calls ``self.fit`` and/or ``self.predict()`` if they have not been
+        already.
+
         Note. The function updates the ``scores_`` attribute.
 
         Parameters
         ----------
-        epochs : instance of Epochs | None
-            The epochs. Can be similar to fitted epochs or not. See
-            predict_mode parameter.
-            If None, it relies on the ``y_pred_`` generated from predict()
-        y : list | np.ndarray, shape (n_epochs,) | None
-            To-be-fitted model, If None, y = epochs.events[:,2].
+        epochs : instance of Epochs | None, optional
+            The epochs. Can be similar to fitted epochs or not.
+            If None, it needs to rely on the predictions ``self.y_pred_``
+            generated with self.predict().
+        y : list | np.ndarray, shape (n_epochs,) | None, optional
+            True values to be compared with the predictions ``self.y_pred_``
+            generated with self.predict() via self.scorer_.
+            If None and ``predict_mode``=='cross-validation' y = self.y_train_.
             Defaults to None.
         scorer : object
             scikit-learn Scorer instance. Default: accuracy_score
-        test_times : 'diagonal' | dict | None
+        test_times : 'diagonal' | dict | None, optional
             Configures the testing times.
             If set to 'diagonal', predictions are made at the time at which
             each classifier is trained.
@@ -406,6 +419,9 @@ class GeneralizationAcrossTime(object):
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
             Defaults to None.
+        picks : array-like of int | None, optional
+            Channels to be included if self.fit() has not been called first.
+            If None only good data channels are used. Defaults to None.
 
         Returns
         -------
