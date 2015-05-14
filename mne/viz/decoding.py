@@ -226,8 +226,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
 def _get_chance_level(scorer, y_train):
     # XXX JRK This should probably be solved within sklearn?
     if scorer.__name__ == 'accuracy_score':
-        chance = np.sum([np.mean(y_train == c) ** 2
-                         for c in np.unique(y_train)])
+        chance = np.max([np.mean(y_train == c) for c in np.unique(y_train)])
     elif scorer.__name__ == 'roc_auc_score':
         chance = 0.5
     else:
