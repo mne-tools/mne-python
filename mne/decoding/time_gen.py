@@ -220,6 +220,12 @@ class GeneralizationAcrossTime(object):
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
+
+        # clean in case gat.fit() is called at unexpected moments
+        for att in ['y_pred_', 'scores_', 'scorer_', 'test_times_', 'y_true_']:
+            if hasattr(self, att):
+                delattr(self, att)
+
         n_jobs = self.n_jobs
         # Extract data from MNE structure
         X, y, picks = _check_epochs_input(epochs, y, picks)
@@ -301,6 +307,12 @@ class GeneralizationAcrossTime(object):
                                n_prediction_dim)
             Class labels for samples in X.
         """
+
+        # clean in case gat.predict() is called at unexpected moments
+        for att in ['scores_', 'scorer_', 'y_true_']:
+            if hasattr(self, att):
+                delattr(self, att)
+
         n_jobs = self.n_jobs
 
         # Check that at least one classifier has been trained
@@ -406,12 +418,6 @@ class GeneralizationAcrossTime(object):
 
         from sklearn.metrics import accuracy_score
 
-        # Check scorer
-        if scorer is None:
-            # XXX Need API to identify propper scorer from the clf
-            scorer = accuracy_score
-        self.scorer_ = scorer
-
         # Run predictions if not already done
         if epochs is not None:
             self.predict(epochs, test_times=test_times)
@@ -419,6 +425,12 @@ class GeneralizationAcrossTime(object):
             if not hasattr(self, 'y_pred_'):
                 raise RuntimeError('Please predit() epochs first or pass '
                                    'epochs to score()')
+
+        # Check scorer
+        if scorer is None:
+            # XXX Need API to identify propper scorer from the clf
+            scorer = accuracy_score
+        self.scorer_ = scorer
 
         # If no regressor is passed, use default epochs events
         if y is None:

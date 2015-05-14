@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import warnings
+import copy
 import os.path as op
 
 from nose.tools import assert_equal, assert_true, assert_raises
@@ -115,7 +116,8 @@ def test_generalization_across_time():
     # the y-check
     gat.predict_mode = 'mean-prediction'
     epochs2.events[:, 2] += 10
-    assert_raises(ValueError, gat.score, epochs2)
+    gat_ = copy.deepcopy(gat)
+    assert_raises(ValueError, gat_.score, epochs2)
     gat.predict_mode = 'cross-validation'
 
     # Test basics
