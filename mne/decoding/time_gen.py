@@ -172,7 +172,7 @@ class GeneralizationAcrossTime(object):
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
-            s += (", predicted %d epochs" % len(self.y_pred_))
+            s += (", predicted %d epochs" % len(self.y_pred_[0][0]))
         else:
             s += ", no prediction"
         if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
