@@ -8,6 +8,8 @@ import warnings
 
 from nose.tools import assert_raises, assert_equals
 
+import numpy as np
+
 from mne.decoding import GeneralizationAcrossTime
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, run_tests_if_main
@@ -67,9 +69,16 @@ def test_gat_plot_diagonal():
 def test_gat_plot_times():
     """Test GAT times plot"""
     gat = _get_data()
+    # test one line
     gat.plot_times(gat.train_times['times_'][0])
-    gat.plot_times(gat.train_times['times_'])
     gat.plot_times('diagonal')
+    # test multiple lines
+    gat.plot_times(gat.train_times['times_'])
+    # test color
+    gat.plot_times('diagonal', color='b')
+    n_times = len(gat.train_times['times_'])
+    colors = np.tile(['r', 'g', 'b'], np.ceil(n_times / 3))[:n_times]
+    gat.plot_times(gat.train_times['times_'], color=colors)
     # test invalid time point
     assert_raises(ValueError, gat.plot_times, -1.)
     # test float type

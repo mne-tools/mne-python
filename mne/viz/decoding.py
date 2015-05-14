@@ -164,7 +164,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
                          "array of float.")
 
     if type(color) is str:
-        color = np.tile(str, len(train_time))
+        color = np.tile(color, len(train_time))
 
     for _train_time, _color in zip(train_time, color):
         _plot_gat_time(gat, _train_time, ax, _color)

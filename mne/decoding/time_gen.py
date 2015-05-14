@@ -593,8 +593,8 @@ class GeneralizationAcrossTime(object):
         """
         return plot_gat_times(self, train_time=train_time, title=title,
                               xmin=xmin, xmax=xmax,
-                              ymin=ymin, ymax=ymax, ax=ax, show=False,
-                              color=color[0], xlabel=xlabel, ylabel=ylabel,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
                               legend=legend, chance=chance, label=label)
 
 
