@@ -41,22 +41,23 @@ def sph_harmonic(l, m, theta, phi):
     assert np.abs(m) <= l, 'Absolute value of expansion coefficient must be <= l'
 
     # Get function for Legendre derivatives
-    lut, n_fact = _get_legen_table('meg', False, 100)
-    lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
+    #lut, n_fact = _get_legen_table('meg', False, 100)
+    #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
 
     #TODO: Should factorial function use floating or long precision?
 
     # Real valued spherical expansion as given by Wikso, (11)
-    # TODO fix look up of Legendre value
     base = np.sqrt(((2 * l + 1) / (4 * np.pi) *
                     factorial(l - m) / factorial(l + m)) *
-                   lut_deriv_fun(l, m, np.cos(theta)))
+                   lpmv(m, l, np.cos(theta)))
     if m < 0:
         return base * np.sin(m * phi)
     else:
         return base * np.cos(m * phi)
 
     #TODO: Check how fast taking the real part of scipy's sph harmonic function is
+    # Degree/order and theta/phi reversed
+    #return np.real(sph_harm(m, l, phi, theta))
 
 
 def get_num_harmonics(L_in, L_out):
