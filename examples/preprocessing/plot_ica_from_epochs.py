@@ -10,7 +10,7 @@ The sources matching the ECG are automatically found and displayed.
 Subsequently, artefact detection and rejection quality are assessed.
 Finally, the impact on the evoked ERF is visualized.
 
-Note that this example does quite a bit of processing, so even on a very
+Note that this example does quite a bit of processing, so even on a
 fast machine it can take over a minute to complete.
 """
 

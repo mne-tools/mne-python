@@ -14,7 +14,7 @@ before implementing the suggestions presented in [1]. Please do not copy the
 patterns presented here for your own analysis, this is example is purely
 illustrative.
 
-Note that this example does quite a bit of processing, so even on a very
+Note that this example does quite a bit of processing, so even on a
 fast machine it can take a couple of minutes to complete.
 
 References
