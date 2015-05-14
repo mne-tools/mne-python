@@ -113,8 +113,7 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
 # Compute inverse solution on contrast
-stc = apply_inverse(contrast, inverse_operator, lambda2, method,
-                    pick_normal=False)
+stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
 # Plot contrast in 3D with PySurfer if available

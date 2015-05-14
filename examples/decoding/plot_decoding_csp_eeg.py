@@ -37,7 +37,7 @@ from mne.io.edf import read_raw_edf
 from mne.datasets import eegbci
 from mne.event import find_events
 from mne.decoding import CSP
-from mne.layouts import read_layout
+from mne.channels import read_layout
 
 print(__doc__)
 
@@ -52,7 +52,7 @@ subject = 1
 runs = [6, 10, 14]  # motor imagery: hands vs feet
 
 raw_fnames = eegbci.load_data(subject, runs)
-raw_files = [read_raw_edf(f, tal_channel=-1, preload=True) for f in raw_fnames]
+raw_files = [read_raw_edf(f, preload=True) for f in raw_fnames]
 raw = concatenate_raws(raw_files)
 
 # strip channel names
@@ -110,8 +110,8 @@ evoked.times = np.arange(evoked.data.shape[0])
 
 layout = read_layout('EEG1005')
 evoked.plot_topomap(times=[0, 1, 2, 61, 62, 63], ch_type='eeg', layout=layout,
-                    scale_time=1, time_format='%i', scale=1,
-                    unit='Patterns (AU)', size=1.5)
+                    scale_time=1, time_format='%i', scale=dict(eeg=1),
+                    unit=dict(eeg='Patterns (AU)'), size=1.5)
 
 ###############################################################################
 # Look at performance over time

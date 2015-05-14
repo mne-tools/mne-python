@@ -47,7 +47,7 @@ src = inverse_operator['src']  # get the source space
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=True)
+                    pick_ori='normal')
 
 # Make an STC in the time interval of interest and take the mean
 stc_mean = stc.copy().crop(tmin, tmax).mean()
