@@ -220,7 +220,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
     kwargs = dict()
     if color is not None:
         kwargs['color'] = color
-    ax.plot(gat.train_times['times_'], scores, label=label, **kwargs)
+    ax.plot(gat.train_times['times_'], scores, label=str(label), **kwargs)
 
 
 def _get_chance_level(scorer, y_train):
