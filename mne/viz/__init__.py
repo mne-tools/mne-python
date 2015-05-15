@@ -20,4 +20,4 @@ from .epochs import (plot_image_epochs, plot_drop_log, plot_epochs,
 from .raw import plot_raw, plot_raw_psd, plot_raw_psds
 from .ica import plot_ica_scores, plot_ica_sources, plot_ica_overlay
 from .montage import plot_montage
-from .decoding import plot_gat_matrix, plot_gat_diagonal
+from .decoding import plot_gat_matrix, plot_gat_times
