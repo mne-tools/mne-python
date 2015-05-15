@@ -138,7 +138,7 @@ More mne-python specific guidelines
 * Update the whats_new.rst file at the end, otherwise merge conflicts are guaranteed to occur.
 * Avoid **kwargs and *args in function signatures, they are not user friendly (inspection).
 * Avoid single character variable names if you can. They are not readable and often they don't comply with the builtin debugger.
-* Add at least some brief comment to a private function to help us guess what it does. For complex private functions please wirte a full documentation.
+* Add at least some brief comment to a private function to help us guess what it does. For complex private functions please write a full documentation.
 
 Profiling in Python
 -------------------
