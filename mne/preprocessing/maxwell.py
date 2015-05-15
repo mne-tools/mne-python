@@ -176,4 +176,5 @@ def _to_real_and_cart(grad_vec_raw, m):
         grad_vec = grad_vec_raw
 
     # Convert to rectanglar coords
+    # TODO: confirm that this equation follows the correct convention
     return sph_to_cart(grad_vec[:, 0], grad_vec[:, 1], grad_vec[:, 2])
