@@ -42,15 +42,15 @@ html_stable:
 	@echo "Build finished. The HTML pages are in build/html_stable."
 
 html_dev:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html_dev
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) build/html
 	@echo
-	@echo "Build finished. The HTML pages are in build/html_dev"
+	@echo "Build finished. The HTML pages are in build/html"
 
 html_dev-noslow:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html_dev
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=fast -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
 
 html_dev-noplot:
-	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html_dev
+	BUILD_DEV_HTML=1 $(SPHINXBUILD) -D plot_gallery=0 -D make_flow_diagram=0 -b html $(ALLSPHINXOPTS) build/html
 	@echo
 	@echo "Build finished. The HTML pages are in build/html."
 
