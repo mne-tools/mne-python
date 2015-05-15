@@ -119,8 +119,12 @@ class GeneralizationAcrossTime(object):
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
-        Class labels for samples in X.
+    y_pred_ : list of lists of arrays of floats,
+              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+        The single-trial predictions estimated by self.predict() at each
+        training time and each testing time. Note that the number of testing
+        times per training time need not be regular, else
+        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
     scores_ : list of lists of float
         The scores estimated by self.scorer_ at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
@@ -303,9 +307,12 @@ class GeneralizationAcrossTime(object):
 
         Returns
         -------
-        y_pred_ : np.ndarray, shape (n_train_time, n_test_time, n_epochs,
-                               n_prediction_dim)
-            Class labels for samples in X.
+        y_pred : list of lists of arrays of floats,
+                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial predictions at each training time and each testing
+            time. Note that the number of testing times per training time need
+            not be regular;
+            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
         """
 
         # clean in case gat.predict() is called at unexpected moments
@@ -358,12 +365,10 @@ class GeneralizationAcrossTime(object):
         parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
 
         # Loop across estimators (i.e. training times)
-        packed = parallel(p_time_gen(X, self.estimators_[t_train], cv,
-                          slices, self.predict_mode)
-                          for t_train, slices in
-                          enumerate(test_times_['slices']))
-
-        self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
+        self.y_pred_ = parallel(p_time_gen(X, self.estimators_[t_train], cv,
+                                slices, self.predict_mode)
+                                for t_train, slices in
+                                enumerate(test_times_['slices']))
         return self.y_pred_
 
     def score(self, epochs=None, y=None, scorer=None, test_times=None):
@@ -458,7 +463,7 @@ class GeneralizationAcrossTime(object):
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Preprocessing for parallelization:
-        n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
+        n_jobs = min(len(self.y_pred_[0][0]), check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
