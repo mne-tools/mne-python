@@ -124,7 +124,7 @@ def test_generalization_across_time():
     # --- number of trials
     assert_true(gat.y_train_.shape[0] ==
                 gat.y_true_.shape[0] ==
-                gat.y_pred_.shape[2] == 14)
+                len(gat.y_pred_[0][0]) == 14)
     # ---  number of folds
     assert_true(np.shape(gat.estimators_)[1] == gat.cv)
     # ---  length training size
