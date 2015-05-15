@@ -128,17 +128,16 @@ More mne-python specific guidelines
 
     nosetests --with-timer --timer-top-n 30
 
-* Instance methods that update the state of the object should return self
-* Use single quotes whenever possible
-* Prefer generator or list comprehensions over ``filter``, ``map`` and other functional idioms
-* Use explicit functional constructors for builtin containers to improve readability. E.g. list(), dict().
+* Instance methods that update the state of the object should return self.
+* Use single quotes whenever possible.
+* Prefer generator or list comprehensions over ``filter``, ``map`` and other functional idioms.
+* Use explicit functional constructors for builtin containers to improve readability. E.g. ``list()``, ``dict()``.
 * Avoid nested functions if not necessary and use private functions instead.
 * When adding visualization methods, add public functions to the mne.viz package and use these in the corresponding method.
-* If not otherwise required, methods should deal with state while functions should return copies. Threre are a few justified excpetions though, e.g. equalize_channels, for memory reasons for example
+* If not otherwise required, methods should deal with state while functions should return copies. Threre are a few justified excpetions though, e.g. ``equalize_channels``, for memory reasons for example.
 * Update whats_new at the end, otherwise merge conflicts are garuanteed to occur.
-* Avoid **kwargs and *args in function signatures, they are not user friendly (inspection)
-* Avoid single character variable names if you can. They are not readable and often they don't comply with the builtin debugger
-* Add at least some brief comment to a private function to help us guess what it does, for complex ones please wirte a full documentation
+* Avoid **kwargs and *args in function signatures, they are not user friendly (inspection).
+* Avoid single character variable names if you can. They are not readable and often they don't comply with the builtin debugger.
 
 Profiling in Python
 -------------------
