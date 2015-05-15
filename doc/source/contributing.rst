@@ -116,7 +116,7 @@ General code guidelines
 More mne-python specific guidelines
 -----------------------------------
 
-* Please, ideally address one and only one issue per PR.
+* Please, ideally address one and only one issue per pull request (PR).
 * Avoid unnecessary cosmetic changes if they are not the goal of the PR, this will help keep the diff clean and facilitate reviewing.
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
@@ -134,8 +134,8 @@ More mne-python specific guidelines
 * Use explicit functional constructors for builtin containers to improve readability. E.g. ``list()``, ``dict()``.
 * Avoid nested functions if not necessary and use private functions instead.
 * When adding visualization methods, add public functions to the mne.viz package and use these in the corresponding method.
-* If not otherwise required, methods should deal with state while functions should return copies. Threre are a few justified excpetions though, e.g. ``equalize_channels``, for memory reasons for example.
-* Update whats_new at the end, otherwise merge conflicts are garuanteed to occur.
+* If not otherwise required, methods should deal with state while functions should return copies. There are a few justified exceptions though, e.g. ``equalize_channels``, for memory reasons for example.
+* Update the whats_new.rst file at the end, otherwise merge conflicts are garuanteed to occur.
 * Avoid **kwargs and *args in function signatures, they are not user friendly (inspection).
 * Avoid single character variable names if you can. They are not readable and often they don't comply with the builtin debugger.
 
