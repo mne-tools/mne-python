@@ -542,23 +542,22 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    if all(f is None for f in [clim, fmin, fmid, fmax]):
-        raise ValueError('clim must be provided')
-
     # Check if using old fmin/fmid/fmax cmap behavior
     if clim is None:
-        # Throw deprecation warning
-        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                      ' removed in v0.10. Use "clim" instead.',
+        # Throw deprecation warning and indicate future behavior
+        warnings.warn('Using fmin, fmid, fmax (either manually or by default)'
+                      ' is deprecated and will be removed in v0.10. Set'
+                      ' "clim" to define color limits. In v0.10, "clim" will'
+                      ' be set to "auto" by default.',
                       DeprecationWarning)
-        # Fill in any missing flim values
-        ctrl_pts = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
-        clim = dict(kind='value', lims=ctrl_pts)
+        # Fill in any missing flim values from deprecated defaults
+        dep_lims = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
+        clim = dict(kind='value', lims=dep_lims)
     else:
         if any(f is not None for f in [fmin, fmid, fmax]):
             raise ValueError('"clim" overrides fmin, fmid, fmax')
 
-    # convert control points to locations
+    # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
     # Construct cmap manually if 'mne' and get cmap bounds
