@@ -16,7 +16,6 @@ data and then saved to disk.
 import mne
 from mne import io
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 
 print(__doc__)
 
@@ -60,20 +59,5 @@ evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 
 ###############################################################################
 # View evoked response
-times = 1e3 * epochs.times  # time in miliseconds
-
-ch_max_name, latency = evoked.get_peak(mode='neg')
 
 evoked.plot()
-
-plt.xlim([times[0], times[-1]])
-plt.xlabel('time (ms)')
-plt.ylabel('Potential (uV)')
-plt.title('EEG evoked potential')
-
-plt.axvline(latency * 1e3, color='red',
-            label=ch_max_name, linewidth=2,
-            linestyle='--')
-plt.legend(loc='best')
-
-plt.show()
