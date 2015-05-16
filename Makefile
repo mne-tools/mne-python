@@ -108,3 +108,12 @@ manpages:
 			>| ../build/manpages/$$f.1; \
 	done
 
+build-doc-dev:
+	cd doc
+	make clean
+	DISPLAY=:1 xvfb-run -f /tmp/xauthority-mne-python-doc --auto-servernum -s "-screen 0 1280x1024x24 -noreset"  make html_dev
+
+build-doc-stable:
+	cd doc
+	make clean
+	DISPLAY=:1 xvfb-run -f /tmp/xauthority-mne-python-doc --auto-servernum -s "-screen 0 1280x1024x24 -noreset"  make html
