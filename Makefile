@@ -109,11 +109,9 @@ manpages:
 	done
 
 build-doc-dev:
-	cd doc
-	make clean
-	DISPLAY=:1 xvfb-run -f /tmp/xauthority-mne-python-doc --auto-servernum -s "-screen 0 1280x1024x24 -noreset"  make html_dev
+	cd doc; make clean
+	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html_dev
 
 build-doc-stable:
-	cd doc
-	make clean
-	DISPLAY=:1 xvfb-run -f /tmp/xauthority-mne-python-doc --auto-servernum -s "-screen 0 1280x1024x24 -noreset"  make html
+	cd doc; make clean
+	cd doc; DISPLAY=:1.0 xvfb-run -n 1 -s "-screen 0 1280x1024x24 -noreset -ac +extension GLX +render" make html
