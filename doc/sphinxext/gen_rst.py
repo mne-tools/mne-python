@@ -507,6 +507,7 @@ def generate_example_rst(app):
     generated_dir = os.path.abspath(os.path.join(app.builder.srcdir,
                                                  'modules', 'generated'))
 
+    raise_gallery = bool(app.builder.config.raise_gallery)
     plot_gallery = app.builder.config.plot_gallery
     if isinstance(plot_gallery, (int, bool)):
         plot_gallery = bool(plot_gallery)
@@ -563,11 +564,11 @@ Examples
         # better than nested.
         seen_backrefs = set()
         generate_dir_rst('.', fhindex, example_dir, root_dir, plot_gallery,
-                         seen_backrefs)
+                         raise_gallery, seen_backrefs)
         for directory in sorted(os.listdir(example_dir)):
             if os.path.isdir(os.path.join(example_dir, directory)):
                 generate_dir_rst(directory, fhindex, example_dir, root_dir,
-                                 plot_gallery, seen_backrefs)
+                                 plot_gallery, raise_gallery, seen_backrefs)
 
 
 def extract_line_count(filename, target_dir):
@@ -645,7 +646,7 @@ def _thumbnail_div(subdir, full_dir, fname, snippet):
 
 
 def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery,
-                     seen_backrefs):
+                     raise_gallery, seen_backrefs):
     """ Generate the rst file for an example directory.
     """
     if not directory == '.':
@@ -679,7 +680,7 @@ def generate_dir_rst(directory, fhindex, example_dir, root_dir, plot_gallery,
     for fname in sorted_listdir:
         if fname.endswith('py'):
             backrefs = generate_file_rst(fname, target_dir, src_dir, root_dir,
-                                         plot_gallery)
+                                         plot_gallery, raise_gallery)
             new_fname = os.path.join(src_dir, fname)
             _, snippet, _ = extract_docstring(new_fname, True)
             fhindex.write(_thumbnail_div(directory, directory, fname, snippet))
@@ -873,7 +874,8 @@ def identify_names(code):
     return example_code_obj
 
 
-def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
+def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery,
+                      raise_gallery):
     """ Generate the rst file for a given example.
 
     Returns the set of mne functions/classes imported in the example.
@@ -1020,6 +1022,8 @@ def generate_file_rst(fname, target_dir, src_dir, root_dir, plot_gallery):
                 print('%s is not compiling:' % fname)
                 traceback.print_exc()
                 print(80 * '_')
+                if raise_gallery:
+                    raise
             finally:
                 os.chdir(cwd)
                 sys.stdout = orig_stdout
@@ -1186,6 +1190,7 @@ def embed_code_links(app, exception):
 def setup(app):
     app.connect('builder-inited', generate_example_rst)
     app.add_config_value('plot_gallery', True, 'html')
+    app.add_config_value('raise_gallery', False, 'html')
 
     # embed links after build is finished
     app.connect('build-finished', embed_code_links)
