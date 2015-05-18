@@ -870,7 +870,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.data = rescale(self.data, self.times, baseline, mode, copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', baseline=None, mode='mean',
+                     ch_type=None, baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
@@ -891,9 +891,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         fmax : None | float
             The last frequency to display. If None the last frequency
             available is used.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         baseline : tuple or list of length 2
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)

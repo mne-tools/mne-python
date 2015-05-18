@@ -69,15 +69,27 @@ def _contains_ch_type(info, ch_type):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
                          '`str`'.format(actual_class=type(ch_type)))
 
-    valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp '
-                           'exci ias syst seeg misc').split()
+    valid_channel_types = ('grad mag planar1 planar2 eeg stim eog emg ecg '
+                           'ref_meg resp exci ias syst seeg misc').split()
 
     if ch_type not in valid_channel_types:
         msg = ('The ch_type passed ({passed}) is not valid. '
-               'it must be {valid}')
+               'it must be one of [{valid}]')
         raise ValueError(msg.format(passed=ch_type,
-                                    valid=' or '.join(valid_channel_types)))
+                                    valid=', '.join(valid_channel_types)))
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
+
+
+def _get_ch_type(info, ch_type):
+    """Helper to choose a singel channel type (usually for plotting)"""
+    if ch_type is None:
+        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
+            if _contains_ch_type(info, type_):
+                ch_type = type_
+                break
+        else:
+            raise RuntimeError('No plottable channel types found')
+    return ch_type
 
 
 @verbose

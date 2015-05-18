@@ -55,91 +55,100 @@ def test_plot_topomap():
     import matplotlib.pyplot as plt
     from matplotlib.patches import Circle
     # evoked
-    warnings.simplefilter('always', UserWarning)
+    warnings.simplefilter('always')
     res = 16
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0))
+    ev_bad = evoked.pick_types(meg=False, eeg=True, copy=True)
+    ev_bad.pick_channels(ev_bad.ch_names[:2])
+    ev_bad.plot_topomap()  # auto, should plot EEG
+    assert_raises(ValueError, ev_bad.plot_topomap, ch_type='mag')
+
+    evoked.plot_topomap(0.1, layout=layout, scale=dict(mag=0.1))
+    mask = np.zeros_like(evoked.data, dtype=bool)
+    mask[[1, 5], :] = True
+    evoked.plot_topomap(None, ch_type='mag', outlines=None)
+    times = [0.1]
+    evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
+    evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
+    evoked.plot_topomap(times, ch_type='planar1', res=res)
+    evoked.plot_topomap(times, ch_type='planar2', res=res)
+    evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
+                        show_names=True, mask_params={'marker': 'x'})
+    assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                  res=res, average=-1000)
+    assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
+                  res=res, average='hahahahah')
+
+    p = evoked.plot_topomap(times, ch_type='grad', res=res,
+                            show_names=lambda x: x.replace('MEG', ''),
+                            image_interp='bilinear')
+    subplot = [x for x in p.get_children() if
+               isinstance(x, matplotlib.axes.Subplot)][0]
+    assert_true(all('MEG' not in x.get_text()
+                    for x in subplot.get_children()
+                    if isinstance(x, matplotlib.text.Text)))
+
+    # Test title
+    def get_texts(p):
+        return [x.get_text() for x in p.get_children() if
+                isinstance(x, matplotlib.text.Text)]
+
+    p = evoked.plot_topomap(times, ch_type='eeg', res=res, average=0.01)
+    assert_equal(len(get_texts(p)), 0)
+    p = evoked.plot_topomap(times, ch_type='eeg', title='Custom', res=res)
+    texts = get_texts(p)
+    assert_equal(len(texts), 1)
+    assert_equal(texts[0], 'Custom')
+
+    # delaunay triangulation warning
+    with warnings.catch_warnings(record=True):  # can't show
+        warnings.simplefilter('always')
+        evoked.plot_topomap(times, ch_type='mag', layout=None, res=res)
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
+                  proj='interactive')  # projs have already been applied
+
+    # change to no-proj mode
+    evoked = read_evokeds(evoked_fname, 'Left Auditory',
+                          baseline=(None, 0), proj=False)
     with warnings.catch_warnings(record=True):
-        evoked = read_evokeds(evoked_fname, 'Left Auditory',
-                              baseline=(None, 0))
-        evoked.plot_topomap(0.1, 'mag', layout=layout, scale=dict(mag=0.1))
-        mask = np.zeros_like(evoked.data, dtype=bool)
-        mask[[1, 5], :] = True
-        evoked.plot_topomap(None, ch_type='mag', outlines=None)
-        times = [0.1]
-        evoked.plot_topomap(times, ch_type='eeg', res=res, scale=1)
-        evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res)
-        evoked.plot_topomap(times, ch_type='planar1', res=res)
-        evoked.plot_topomap(times, ch_type='planar2', res=res)
-        evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
-                            show_names=True, mask_params={'marker': 'x'})
-        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
-                      res=res, average=-1000)
-        assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
-                      res=res, average='hahahahah')
-
-        p = evoked.plot_topomap(times, ch_type='grad', res=res,
-                                show_names=lambda x: x.replace('MEG', ''),
-                                image_interp='bilinear')
-        subplot = [x for x in p.get_children() if
-                   isinstance(x, matplotlib.axes.Subplot)][0]
-        assert_true(all('MEG' not in x.get_text()
-                        for x in subplot.get_children()
-                        if isinstance(x, matplotlib.text.Text)))
-
-        # Test title
-        def get_texts(p):
-            return [x.get_text() for x in p.get_children() if
-                    isinstance(x, matplotlib.text.Text)]
-
-        p = evoked.plot_topomap(times, ch_type='eeg', res=res, average=0.01)
-        assert_equal(len(get_texts(p)), 0)
-        p = evoked.plot_topomap(times, ch_type='eeg', title='Custom', res=res)
-        texts = get_texts(p)
-        assert_equal(len(texts), 1)
-        assert_equal(texts[0], 'Custom')
-
-        # delaunay triangulation warning
-        with warnings.catch_warnings(record=True):
-            evoked.plot_topomap(times, ch_type='mag', layout=None, res=res)
-        assert_raises(RuntimeError, plot_evoked_topomap, evoked, 0.1, 'mag',
-                      proj='interactive')  # projs have already been applied
-
-        # change to no-proj mode
-        evoked = read_evokeds(evoked_fname, 'Left Auditory',
-                              baseline=(None, 0), proj=False)
+        warnings.simplefilter('always')
         evoked.plot_topomap(0.1, 'mag', proj='interactive', res=res)
-        assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                      np.repeat(.1, 50))
-        assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+                  np.repeat(.1, 50))
+    assert_raises(ValueError, plot_evoked_topomap, evoked, [-3e12, 15e6])
 
+    with warnings.catch_warnings(record=True):  # file conventions
+        warnings.simplefilter('always')
         projs = read_proj(ecg_fname)
-        projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
-        plot_projs_topomap(projs, res=res)
-        plt.close('all')
-        for ch in evoked.info['chs']:
-            if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
-                if ch['eeg_loc'] is not None:
-                    ch['eeg_loc'].fill(0)
-                ch['loc'].fill(0)
+    projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
+    plot_projs_topomap(projs, res=res)
+    plt.close('all')
+    for ch in evoked.info['chs']:
+        if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
+            if ch['eeg_loc'] is not None:
+                ch['eeg_loc'].fill(0)
+            ch['loc'].fill(0)
 
-        # Remove extra digitization point, so EEG digitization points
-        # correspond with the EEG electrodes
-        del evoked.info['dig'][85]
+    # Remove extra digitization point, so EEG digitization points
+    # correspond with the EEG electrodes
+    del evoked.info['dig'][85]
 
-        pos = make_eeg_layout(evoked.info).pos
-        pos, outlines = _check_outlines(pos, outlines='head')
-        # test 1: pass custom outlines without patch
+    pos = make_eeg_layout(evoked.info).pos
+    pos, outlines = _check_outlines(pos, outlines='head')
+    # test 1: pass custom outlines without patch
 
-        def patch():
-            return Circle((0.5, 0.4687), radius=.46,
-                          clip_on=True, transform=plt.gca().transAxes)
+    def patch():
+        return Circle((0.5, 0.4687), radius=.46,
+                      clip_on=True, transform=plt.gca().transAxes)
 
-        # test 2: pass custom outlines with patch callable
-        outlines['patch'] = patch
-        plot_evoked_topomap(evoked, times, ch_type='eeg', outlines='head')
-        # Remove digitization points. Now topomap should fail
-        evoked.info['dig'] = None
-        assert_raises(RuntimeError, plot_evoked_topomap, evoked,
-                      times, ch_type='eeg')
+    # test 2: pass custom outlines with patch callable
+    outlines['patch'] = patch
+    plot_evoked_topomap(evoked, times, ch_type='eeg', outlines='head')
+    # Remove digitization points. Now topomap should fail
+    evoked.info['dig'] = None
+    assert_raises(RuntimeError, plot_evoked_topomap, evoked,
+                  times, ch_type='eeg')
 
 
 def test_plot_tfr_topomap():

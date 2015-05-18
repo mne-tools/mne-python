@@ -226,8 +226,7 @@ def _check_outlines(pos, outlines, head_scale=0.85):
     pos = np.asarray(pos)
     if outlines in ('head', None):
         radius = 0.5
-        step = 2 * np.pi / 101
-        l = np.arange(0, 2 * np.pi + step, step)
+        l = np.linspace(0, 2 * np.pi, 101)
         head_x = np.cos(l) * radius
         head_y = np.sin(l) * radius
         nose_x = np.array([0.18, 0, -0.18]) * radius
@@ -237,11 +236,11 @@ def _check_outlines(pos, outlines, head_scale=0.85):
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
                           -.1313, -.1384, -.1199])
         x, y = pos[:, :2].T
-        x_range = np.abs(x.max() - x.min())
-        y_range = np.abs(y.max() - y.min())
+        x_range = max(x.max(), -x.min()) * 2.
+        y_range = y.max() - y.min()
 
         # shift and scale the electrode positions
-        pos[:, 0] = head_scale * ((pos[:, 0] - x.min()) / x_range - 0.5)
+        pos[:, 0] = head_scale * ((pos[:, 0]) / x_range)
         pos[:, 1] = head_scale * ((pos[:, 1] - y.min()) / y_range - 0.5)
 
         # Define the outline of the head, ears and nose
@@ -567,7 +566,7 @@ def _inside_contour(pos, contour):
     return check_mask
 
 
-def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
+def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
@@ -581,9 +580,10 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     picks : int | array-like | None
         The indices of the sources to be plotted.
         If None all are plotted in batches of 20.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
+        If None, then channels are chosen in the order given above.
     res : int
         The resolution of the topomap image (n pixels along each side).
     layout : None | Layout
@@ -633,7 +633,9 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
     """
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid import make_axes_locatable
+    from ..channels import _get_ch_type
 
+    ch_type = _get_ch_type(ica.info, ch_type)
     if picks is None:  # plot components by sets of 20
         n_components = ica.mixing_matrix_.shape[1]
         p = 20
@@ -706,7 +708,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
 
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', baseline=None, mode='mean', layout=None,
+                     ch_type=None, baseline=None, mode='mean', layout=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
@@ -729,9 +731,10 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fmax : None | float
         The last frequency to display. If None the last frequency
         available is used.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are
         collected in pairs and the RMS for each pair is plotted.
+        If None, then channels are chosen in the order given above.
     baseline : tuple or list of length 2
         The time interval to apply rescaling / baseline correction.
         If None do not apply it. If baseline is (a, b)
@@ -805,6 +808,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     fig : matplotlib.figure.Figure
         The figure containing the topography.
     """
+    from ..channels import _get_ch_type
+    ch_type = _get_ch_type(tfr.info, ch_type)
     if format is not None:
         cbar_fmt = format
         warnings.warn("The format parameter is deprecated and will be "
@@ -880,7 +885,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     return fig
 
 
-def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
+def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
                         vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
@@ -897,9 +902,10 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     times : float | array of floats | None.
         The time point(s) to plot. If None, 10 topographies will be shown
         will a regular time spacing between the first and last time instant.
-    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
         pairs and the RMS for each pair is plotted.
+        If None, then channels are chosen in the order given above.
     layout : None | Layout
         Layout instance specifying sensor positions (does not need to
         be specified for Neuromag data). If possible, the correct layout file
@@ -983,6 +989,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         and ends 5 ms after a given time point. Defaults to None, which means
         no averaging.
     """
+    from ..channels import _get_ch_type
+    ch_type = _get_ch_type(evoked.info, ch_type)
     if format is not None:
         cbar_fmt = format
         warnings.warn("The format parameter is deprecated and will be "
@@ -1187,11 +1195,10 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Apply projection.
     n_fft : int
         Number of points to use in Welch FFT calculations.
-    ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
+    ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
         The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, defaults to
-        'mag' if MEG data are present and to 'eeg' if only EEG data are
-        present.
+        pairs and the RMS for each pair is plotted.
+        If None, then channels are chosen in the order given above.
     n_overlap : int
         The number of points of overlap between blocks.
     layout : None | Layout
@@ -1236,8 +1243,8 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
     """
-    if ch_type is None:
-        ch_type = 'mag' if 'meg' in epochs else 'eeg'
+    from ..channels import _get_ch_type
+    ch_type = _get_ch_type(epochs.info, ch_type)
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)
@@ -1263,19 +1270,17 @@ def plot_psds_topomap(
         outlines='head', show=True):
     """Plot spatial maps of PSDs
 
+    Parameters
+    ----------
     psds : np.ndarray of float, shape (n_channels, n_freqs)
         Power spectral densities
     freqs : np.ndarray of float, shape (n_freqs)
         Frequencies used to compute psds.
     pos : numpy.ndarray of float, shape (n_sensors, 2)
         The positions of the sensors.
-    bands : list of tuple | None
-        The lower and upper frequency and the name for that band. If None,
-        (default) expands to:
-
-        bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
-                 (12, 30, 'Beta'), (30, 45, 'Gamma')]
-
+    agg_fun : callable
+        The function used to aggregate over frequencies.
+        Defaults to np.sum. if normalize is True, else np.mean.
     vmin : float | callable
         The value specfying the lower bound of the color range.
         If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -1285,23 +1290,20 @@ def plot_psds_topomap(
         If None, the maximum absolute value is used. If vmin is None,
         but vmax is not, defaults to np.min(data).
         If callable, the output equals vmax(data).
-    ch_type : {None, 'mag', 'grad', 'planar1', 'planar2', 'eeg'}
-        The channel type to plot. For 'grad', the gradiometers are collected in
-        pairs and the RMS for each pair is plotted. If None, defaults to
-        'mag' if MEG data are present and to 'eeg' if only EEG data are
-        present.
+    bands : list of tuple | None
+        The lower and upper frequency and the name for that band. If None,
+        (default) expands to:
+
+            bands = [(0, 4, 'Delta'), (4, 8, 'Theta'), (8, 12, 'Alpha'),
+                     (12, 30, 'Beta'), (30, 45, 'Gamma')]
+
     cmap : matplotlib colormap
         Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
         'Reds'.
-    agg_fun : callable
-        The function used to aggregate over frequencies.
-        Defaults to np.sum. if normalize is True, else np.mean.
     dB : bool
         If True, transform data to decibels (with ``10 * np.log10(data)``)
         following the application of `agg_fun`. Only valid if normalize is
         False.
-    n_jobs : int
-        Number of jobs to run in parallel.
     normalize : bool
         If True, each band will be devided by the total power. Defaults to
         False.
