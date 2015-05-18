@@ -37,7 +37,8 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psd
+from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -159,7 +160,7 @@ class ToDataFrameMixin(object):
             n_channel_types = 0
             ch_types_used = []
 
-            scalings = _mutable_defaults(('scalings', scalings))[0]
+            scalings = _handle_default('scalings', scalings)
             for t in scalings.keys():
                 if t in types:
                     n_channel_types += 1
@@ -214,17 +215,39 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment(start, stop, sel, projector, verbose)
+        * _read_segment(start, stop, sel, data_buffer, projector, verbose)
           (only needed for types that support on-demand disk reads)
     """
     @verbose
-    def __init__(self, info, data=None,
+    def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
-                 orig_format='double', verbose=None):
+                 orig_format='double',
+                 verbose=None):
+        # wait until the end to preload data, but triage here
+        if isinstance(preload, np.ndarray):
+            # some functions (e.g., filtering) only work w/64-bit data
+            if preload.dtype not in (np.float64, np.complex128):
+                raise RuntimeError('datatype must be float64 or complex128, '
+                                   'not %s' % preload.dtype)
+            self._data = preload
+            self.preload = True
+            self._last_samps = np.array([self._data.shape[1] - 1])
+            load_from_disk = False
+        else:
+            if last_samps is None:
+                raise ValueError('last_samps must be given unless preload is '
+                                 'an ndarray')
+            if preload is False:
+                self.preload = False
+                load_from_disk = False
+            elif preload is not True and not isinstance(preload, string_types):
+                raise ValueError('bad preload: %s' % preload)
+            else:
+                load_from_disk = True
+            self._last_samps = np.array(last_samps)
         self.info = info
-        self._data = data
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -234,18 +257,69 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
-        self.preload = True if data is not None else False
         self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
-        if data is not None:
-            self._last_samps = np.array([self._data.shape[1] - 1])
-        else:
-            self._last_samps = np.array(last_samps)
         self._projectors = list()
         self._projector = None
+        # If we have True or a string, actually do the preloading
+        if load_from_disk:
+            self._preload_data(preload)
 
-    def _read_segment(start, stop, sel, projector, verbose):
+    def _read_segment(start, stop, sel, data_buffer, projector, verbose):
+        """Read a chunk of raw data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
+        data_buffer : array or str, optional
+            numpy array to fill with data read, must have the correct shape.
+            If str, a np.memmap with the correct data type will be used
+            to store the data.
+        projector : array
+            SSP operator to apply to the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
         raise NotImplementedError
+
+    @verbose
+    def preload_data(self, verbose=None):
+        """Preload raw data
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Notes
+        -----
+        This function will preload raw data if it was not already preloaded.
+        If data were already preloaded, it will do nothing.
+        """
+        if not self.preload:
+            self._preload_data(True)
+
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        data_buffer = preload if isinstance(preload, string_types) else None
+        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        assert len(self._data) == self.info['nchan']
+        self.preload = True
+        self.close()
 
     @property
     def first_samp(self):
@@ -1053,6 +1127,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         block : bool
             Whether to halt program execution until the figure is closed.
             Useful for setting bad channels on the fly (click on line).
+            May not work on all systems / platforms.
         highpass : float | None
             Highpass to apply when displaying data.
         lowpass : float | None
@@ -1341,7 +1416,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raws : list, or Raw instance
             list of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-
         preload : bool, str, or None (default None)
             Preload data into memory for data manipulation and faster indexing.
             If True, the data will be preloaded into memory (fast, requires
@@ -1411,7 +1485,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def close(self):
         """Clean up the object.
 
-        Does nothing for now.
+        Does nothing for objects that close their file descriptors.
+        Things like RawFIF will override this method.
         """
         pass
 
@@ -1472,7 +1547,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1

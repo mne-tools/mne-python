@@ -15,6 +15,7 @@ from numpy.testing import assert_raises
 
 
 from mne import io, read_events, Epochs, pick_types, read_cov
+from mne.viz.utils import _fake_click
 from mne.utils import slow_test
 from mne.channels import read_layout
 
@@ -53,10 +54,11 @@ def _get_epochs():
     events = _get_events()
     picks = _get_picks(raw)
     # Use a subset of channels for plotting speed
-    picks = np.round(np.linspace(0, len(picks) + 1, n_chan)).astype(int)
+    picks = picks[np.round(np.linspace(0, len(picks) - 1, n_chan)).astype(int)]
     picks[0] = 2  # make sure we have a magnetometer
     epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0))
+    epochs.info['bads'] = [epochs.ch_names[-1]]
     return epochs
 
 
@@ -78,7 +80,14 @@ def test_plot_evoked():
     import matplotlib.pyplot as plt
     evoked = _get_epochs().average()
     with warnings.catch_warnings(record=True):
-        evoked.plot(proj=True, hline=[1])
+        fig = evoked.plot(proj=True, hline=[1], exclude=[])
+        # Test a click
+        ax = fig.get_axes()[0]
+        line = ax.lines[0]
+        _fake_click(fig, ax,
+                    [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+        _fake_click(fig, ax,
+                    [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
         # plot with bad channels excluded
         evoked.plot(exclude='bads')
         evoked.plot(exclude=evoked.info['bads'])  # does the same thing

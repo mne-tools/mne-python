@@ -223,9 +223,8 @@ subjects_dir = op.join(data_path, 'subjects')
 # stimulus modality and stimulus location
 
 brain = stc_all_cluster_vis.plot('fsaverage', 'inflated', 'lh',
-                                 subjects_dir=subjects_dir,
-                                 time_label='Duration significant (ms)',
-                                 transparent=True, clim='auto')
+                                 subjects_dir=subjects_dir, clim='auto',
+                                 time_label='Duration significant (ms)')
 
 brain.set_data_time_index(0)
 brain.show_view('lateral')

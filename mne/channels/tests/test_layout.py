@@ -369,8 +369,9 @@ def test_generate_2d_layout():
     comp_1, comp_2 = [(5, 0), (7, 0)]
     assert_true(lt.pos[:, :2].max() == 1)
     assert_true(lt.pos[:, :2].min() == 0)
-    assert_allclose(xy[comp_2] / float(xy[comp_1]),
-                    lt.pos[comp_2] / float(lt.pos[comp_1]))
+    with np.errstate(invalid='ignore'):  # divide by zero
+        assert_allclose(xy[comp_2] / float(xy[comp_1]),
+                        lt.pos[comp_2] / float(lt.pos[comp_1]))
     assert_allclose(lt.pos[0, [2, 3]], [w, h])
 
     # Correct number elements

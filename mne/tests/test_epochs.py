@@ -15,6 +15,7 @@ import numpy as np
 import copy as cp
 import warnings
 from scipy import fftpack
+import matplotlib
 
 from mne import (io, Epochs, read_events, pick_events, read_epochs,
                  equalize_channels, pick_types, pick_channels, read_evokeds,
@@ -33,6 +34,7 @@ from mne.io.constants import FIFF
 from mne.externals.six.moves import zip
 from mne.externals.six.moves import cPickle as pickle
 
+matplotlib.use('Agg')  # for testing don't use X server
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -1345,8 +1347,6 @@ def test_array_epochs():
     assert_array_equal(epochs.events, epochs2.events)
 
     # plotting
-    import matplotlib
-    matplotlib.use('Agg')  # for testing don't use X server
     epochs[0].plot()
 
     # indexing

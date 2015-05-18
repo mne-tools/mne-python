@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ===================================================
 Demonstrate impact of whitening on source estimates
@@ -12,6 +13,9 @@ This example makes use of the previous, non-optimized code path that was used
 before implementing the suggestions presented in [1]. Please do not copy the
 patterns presented here for your own analysis, this is example is purely
 illustrative.
+
+Note that this example does quite a bit of processing, so even on a
+fast machine it can take a couple of minutes to complete.
 
 References
 ----------
@@ -72,8 +76,8 @@ conditions = 'faces', 'scrambled'
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
 method = 'dSPM'
-transp = True
 clim = dict(kind='value', lims=[0, 2.5, 5])
+
 ###############################################################################
 # Estimate covariance and show resulting source estimates
 
@@ -122,8 +126,7 @@ for n_train, (ax_stc_worst, ax_dynamics, ax_stc_best) in zip(samples_epochs,
         stc_a, stc_b = (apply_inverse(e, inverse_operator, lambda2, "dSPM",
                                       pick_ori=None) for e in evokeds)
         stc = stc_a - stc_b
-        brain = stc.plot(subjects_dir=subjects_dir, hemi='both',
-                         colormap='hot', transparent=transp, clim=clim)
+        brain = stc.plot(subjects_dir=subjects_dir, hemi='both', clim=clim)
         brain.set_time(175)
 
         im = brain_to_mpl(brain)

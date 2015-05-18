@@ -16,7 +16,6 @@ data and then saved to disk.
 import mne
 from mne import io
 from mne.datasets import sample
-import matplotlib.pyplot as plt
 
 print(__doc__)
 
@@ -26,14 +25,17 @@ data_path = sample.data_path()
 # Set parameters
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
-event_id, tmin, tmax = 1, -0.2, 0.5
+tmin, tmax = -0.2, 0.5
+
+# Select events to extract epochs from.
+event_id = {'Auditory/Left': 1, 'Auditory/Right': 2}
 
 #   Setup for reading the raw data
 raw = io.Raw(raw_fname)
 events = mne.read_events(event_fname)
 
 #   Plot raw data
-fig = raw.plot(events=events, event_color={event_id: 'cyan', -1: 'lightgray'})
+fig = raw.plot(events=events, event_color={1: 'cyan', -1: 'lightgray'})
 
 #   Set up pick list: EEG + STI 014 - bad channels (modify to your needs)
 include = []  # or stim channels ['STI 014']
@@ -54,26 +56,21 @@ epochs.plot()
 epochs.drop_bad_epochs()
 epochs.plot_drop_log(subject='sample')
 
-evoked = epochs.average()  # average epochs and get an Evoked dataset.
+# Average epochs and get evoked data corresponding to the left stimulation
+evoked = epochs['Left'].average()
 
 evoked.save('sample_audvis_eeg-ave.fif')  # save evoked data to disk
 
 ###############################################################################
 # View evoked response
-times = 1e3 * epochs.times  # time in miliseconds
-
-ch_max_name, latency = evoked.get_peak(mode='neg')
 
 evoked.plot()
 
-plt.xlim([times[0], times[-1]])
-plt.xlabel('time (ms)')
-plt.ylabel('Potential (uV)')
-plt.title('EEG evoked potential')
+###############################################################################
+# Save evoked responses for different conditions to disk
 
-plt.axvline(latency * 1e3, color='red',
-            label=ch_max_name, linewidth=2,
-            linestyle='--')
-plt.legend(loc='best')
+# average epochs and get Evoked datasets
+evokeds = [epochs[cond].average() for cond in ['Left', 'Right']]
 
-plt.show()
+# save evoked data to disk
+mne.write_evokeds('sample_auditory_and_visual_eeg-ave.fif', evokeds)

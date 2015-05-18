@@ -82,7 +82,11 @@ def _scale_mpl_figure(fig, scale):
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
-        text.set_fontsize(fs + sfactor)
+        new_size = fs + sfactor
+        if new_size <= 0:
+            raise ValueError('could not rescale matplotlib fonts, consider '
+                             'increasing "scale"')
+        text.set_fontsize(new_size)
 
     fig.canvas.draw()
 
@@ -202,7 +206,7 @@ def _get_toc_property(fname):
     return div_klass, tooltip, text
 
 
-def _iterate_files(report, fnames, info, cov, baseline, sfreq):
+def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
     """Auxiliary function to parallel process in batch mode.
     """
     htmls, report_fnames, report_sectionlabels = [], [], []
@@ -267,7 +271,10 @@ def _iterate_files(report, fnames, info, cov, baseline, sfreq):
                 report_fname = None
                 report_sectionlabel = None
         except Exception as e:
-            logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+            if on_error == 'warn':
+                logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+            elif on_error == 'raise':
+                raise
             html = None
             report_fname = None
             report_sectionlabel = None
@@ -668,6 +675,12 @@ toc_list = Template(u"""
 """)
 
 
+def _check_scale(scale):
+    """Helper to ensure valid scale value is passed"""
+    if np.isscalar(scale) and scale <= 0:
+        raise ValueError('scale must be positive, not %s' % scale)
+
+
 class Report(object):
     """Object for rendering HTML
 
@@ -771,6 +784,7 @@ class Report(object):
                           ' will throw an error.')
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
+        _check_scale(scale)
         for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -800,7 +814,7 @@ class Report(object):
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale, comment=comment)
+                                             comment=comment)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -842,10 +856,10 @@ class Report(object):
             will be appended to the end of the section
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied.
-            If float, scale will determine the relative width in percent.
-            If function, should take a figure object as input parameter.
-            Defaults to None.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
         image_format : {'png', 'svg'}
             The image format to be used for the report. Defaults to 'png'.
         comments : None | str | list of str
@@ -883,6 +897,7 @@ class Report(object):
         from PIL import Image
         fnames, captions, comments = self._validate_input(fnames, captions,
                                                           section, comments)
+        _check_scale(scale)
 
         for fname, caption, comment in zip(fnames, captions, comments):
             caption = 'custom plot' if caption == '' else caption
@@ -1027,7 +1042,7 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
-                     sort_sections=True, verbose=None):
+                     sort_sections=True, on_error='warn', verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -1046,10 +1061,17 @@ class Report(object):
             (since it can be time consuming).
         sort_sections : bool
             If True, sort sections in the order: raw -> events -> epochs
-             -> evoked -> covariance -> trans -> mri -> forward -> inverse
+             -> evoked -> covariance -> trans -> mri -> forward -> inverse.
+        on_error : str
+            What to do if a file cannot be rendered. Can be 'ignore',
+            'warn' (default), or 'raise'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
+        valid_errors = ['ignore', 'warn', 'raise']
+        if on_error not in valid_errors:
+            raise ValueError('on_error must be one of %s, not %s'
+                             % (valid_errors, on_error))
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
@@ -1084,8 +1106,8 @@ class Report(object):
                     'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        r = parallel(p_fun(self, fname, info, cov, baseline, sfreq) for
-                     fname in np.array_split(fnames, use_jobs))
+        r = parallel(p_fun(self, fname, info, cov, baseline, sfreq, on_error)
+                     for fname in np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered

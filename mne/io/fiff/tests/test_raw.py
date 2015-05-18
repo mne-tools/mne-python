@@ -52,8 +52,10 @@ def test_hash_raw():
     """
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname, preload=True).crop(0, 0.5)
-    raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
+    raw = Raw(fif_fname).crop(0, 0.5, False)
+    raw.preload_data()
+    raw_2 = Raw(fif_fname).crop(0, 0.5, False)
+    raw_2.preload_data()
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
     assert_equal(pickle.dumps(raw), pickle.dumps(raw_2))
@@ -67,8 +69,7 @@ def test_subject_info():
     """Test reading subject information
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname)
-    raw.crop(0, 1, False)
+    raw = Raw(fif_fname).crop(0, 1, False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
@@ -155,8 +156,7 @@ def test_output_formats():
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
     # let's fake a raw file with different formats
-    raw = Raw(test_fif_fname, preload=False)
-    raw.crop(0, 1, copy=False)
+    raw = Raw(test_fif_fname).crop(0, 1, copy=False)
 
     temp_file = op.join(tempdir, 'raw.fif')
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
@@ -184,10 +184,9 @@ def test_multiple_files():
     """
     # split file
     tempdir = _TempDir()
-    raw = Raw(fif_fname)
+    raw = Raw(fif_fname).crop(0, 10, False)
     raw.preload_data()
     raw.preload_data()  # test no operation
-    raw = raw.crop(0, 10)
     split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp)
@@ -382,8 +381,8 @@ def test_io_raw():
             assert_equal(desc1, desc2)
 
     # Let's construct a simple test for IO first
-    raw = Raw(fif_fname, preload=True)
-    raw.crop(0, 3.5)
+    raw = Raw(fif_fname).crop(0, 3.5, False)
+    raw.preload_data()
     # put in some data that we know the values of
     data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
@@ -631,7 +630,8 @@ def test_preload_modify():
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
-    raw = Raw(fif_fname, preload=True).crop(0, 7, False)
+    raw = Raw(fif_fname).crop(0, 7, False)
+    raw.preload_data()
     sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
@@ -748,7 +748,8 @@ def test_resample():
     """Test resample (with I/O and multiple files)
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname, preload=True).crop(0, 3, False)
+    raw = Raw(fif_fname).crop(0, 3, False)
+    raw.preload_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample

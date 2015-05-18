@@ -106,7 +106,8 @@ def _quats_to_trans_rot_t(quats):
 def _quat_to_rot(q):
     """Helper to convert quaternions to rotations"""
     # z = a + bi + cj + dk
-    a = np.sqrt(1 - np.sum(q[..., 0:3] ** 2, axis=-1))
+    # use max() here to be safe in case roundoff errs put us over
+    a = np.sqrt(np.maximum(1. - np.sum(q[..., 0:3] ** 2, axis=-1), 0.))
     b, c, d = q[..., 0], q[..., 1], q[..., 2]
     aa, bb, cc, dd = a * a, b * b, c * c, d * d
     ab_2 = 2 * a * b

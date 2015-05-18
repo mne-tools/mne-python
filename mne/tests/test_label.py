@@ -382,9 +382,7 @@ def test_read_labels_from_annot():
     for label in labels_rh:
         assert_true(label.name.endswith('-rh'))
         assert_true(label.hemi == 'rh')
-        # XXX doesn't work on py26 for some reason
-        if sys.version_info[:2] > (2, 6):
-            assert_is_not(label.color, None)
+        assert_is_not(label.color, None)
 
     # combine the lh, rh, labels and sort them
     labels_lhrh = list()

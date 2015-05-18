@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import warnings
+import copy
 import os.path as op
 
 from nose.tools import assert_equal, assert_true, assert_raises
@@ -70,17 +71,27 @@ def test_generalization_across_time():
     # Test default running
     gat = GeneralizationAcrossTime()
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
+    assert_raises(ValueError, gat.fit, epochs, picks='foo')
     with warnings.catch_warnings(record=True):
-        gat.fit(epochs)
+        # check classic fit + check manual picks
+        gat.fit(epochs, picks=[0])
+        # check optional y as array
+        gat.fit(epochs, y=epochs.events[:, 2])
+        # check optional y as list
+        gat.fit(epochs, y=epochs.events[:, 2].tolist())
+    assert_equal(len(gat.picks_), len(gat.ch_names), 1)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
+    assert_equal(gat.ch_names, epochs.ch_names)
     gat.predict(epochs)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predicted 15 epochs, no score>",
+                 "predicted 14 epochs, no score>",
                  "%s" % gat)
     gat.score(epochs)
+    gat.score(epochs, y=epochs.events[:, 2])
+    gat.score(epochs, y=epochs.events[:, 2].tolist())
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), "
-                 "predicted 15 epochs,\n scored "
+                 "predicted 14 epochs,\n scored "
                  "(accuracy_score)>", "%s" % gat)
     with warnings.catch_warnings(record=True):
         gat.fit(epochs, y=epochs.events[:, 2])
@@ -105,14 +116,15 @@ def test_generalization_across_time():
     # the y-check
     gat.predict_mode = 'mean-prediction'
     epochs2.events[:, 2] += 10
-    assert_raises(ValueError, gat.score, epochs2)
+    gat_ = copy.deepcopy(gat)
+    assert_raises(ValueError, gat_.score, epochs2)
     gat.predict_mode = 'cross-validation'
 
     # Test basics
     # --- number of trials
     assert_true(gat.y_train_.shape[0] ==
                 gat.y_true_.shape[0] ==
-                gat.y_pred_.shape[2] == 14)
+                len(gat.y_pred_[0][0]) == 14)
     # ---  number of folds
     assert_true(np.shape(gat.estimators_)[1] == gat.cv)
     # ---  length training size

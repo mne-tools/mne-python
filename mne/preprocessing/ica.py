@@ -37,7 +37,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
-                     _reject_data_segments)
+                     _reject_data_segments, check_random_state)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -134,7 +134,7 @@ class ICA(ContainsMixin):
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
-        fix the seed to have reproducible results.
+        fix the seed to have reproducible results. Defaults to None.
     method : {'fastica', 'infomax', 'extended-infomax'}
         The ICA method to use. Defaults to 'fastica'.
     fit_params : dict | None.
@@ -214,7 +214,7 @@ class ICA(ContainsMixin):
         self.max_pca_components = max_pca_components
         self.n_pca_components = n_pca_components
         self.ch_names = None
-        self.random_state = random_state if random_state is not None else 42
+        self.random_state = random_state
 
         if fit_params is None:
             fit_params = {}
@@ -330,6 +330,9 @@ class ICA(ContainsMixin):
         del self.mixing_matrix_
         del self.n_components_
         del self.n_samples_
+        del self.pca_components_
+        del self.pca_explained_variance_
+        del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
 
@@ -445,9 +448,11 @@ class ICA(ContainsMixin):
         """Aux function """
         from sklearn.decomposition import RandomizedPCA
 
+        random_state = check_random_state(self.random_state)
+
         # XXX fix copy==True later. Bug in sklearn, see PR #2273
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True, random_state=self.random_state)
+                            copy=True, random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
@@ -496,13 +501,15 @@ class ICA(ContainsMixin):
         if self.method == 'fastica':
             from sklearn.decomposition import FastICA  # to avoid strong dep.
             ica = FastICA(whiten=False,
-                          random_state=self.random_state, **self.fit_params)
+                          random_state=random_state, **self.fit_params)
             ica.fit(data[:, sel])
             # get unmixing and add scaling
             self.unmixing_matrix_ = getattr(ica, 'components_',
                                             'unmixing_matrix_')
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
+            self.unmixing_matrix_ = infomax(data[:, sel],
+                                            random_state=random_state,
+                                            **self.fit_params)
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -1364,7 +1371,7 @@ class ICA(ContainsMixin):
                     show=True):
         """Plot scores related to detected components.
 
-        Use this function to asses how well your score describes outlier
+        Use this function to assess how well your score describes outlier
         sources and how well you were detecting them.
 
         Parameters

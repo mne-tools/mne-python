@@ -120,7 +120,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
             t =    -199.80 ...     499.49 ms (Left Auditory)
             0 CTF compensation matrices available
             nave = 55 - aspect type = 100
-    Projections have already been applied. Doing nothing.
+    Projections have already been applied. Setting proj attribute to True.
     Applying baseline correction ... (mode: mean)
     >>> fig = evoked.plot() # doctest: +SKIP
 

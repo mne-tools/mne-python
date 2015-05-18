@@ -489,6 +489,14 @@ Covariance
    read_cov
    write_cov
 
+.. currentmodule:: mne.cov
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   regularize
+
 
 MRI Processing
 ==============

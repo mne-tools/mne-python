@@ -896,6 +896,7 @@ def _read_data(info, start=None, stop=None):
     -------
     data : ndarray
         The measurement data, a channels x time slices array.
+        The data will be cast to np.float64 for compatibility.
     """
 
     total_slices = info['total_slices']
@@ -918,7 +919,7 @@ def _read_data(info, start=None, stop=None):
     for ch in info['chs']:
         data[:, ch['index']] *= ch['cal']
 
-    return data[:, info['order']].T
+    return data[:, info['order']].T.astype(np.float64)
 
 
 class RawBTi(_BaseRaw):

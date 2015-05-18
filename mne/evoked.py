@@ -18,9 +18,9 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     object_hash, deprecated, _time_mask)
-from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from .viz import plot_evoked_field
-from .viz import plot_evoked_image
+from .defaults import _handle_default
+from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
+                  plot_evoked_image)
 from .viz.evoked import _plot_evoked_white
 from .externals.six import string_types
 
@@ -479,13 +479,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        scale : float | None
+        scale : dict | float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
         scale_time : float | None
             Scale the time labels. Defaults to 1e3 (ms).
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
+        unit : dict | str | None
+            The unit of the channel type used for colorbar label. If
+            scale is None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -691,7 +692,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1

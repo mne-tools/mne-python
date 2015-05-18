@@ -24,7 +24,7 @@ condition = 'visual'  # or 'auditory' or 'somatosensory'
 
 # Load experimental RAW files for the visual condition
 epochs_fnames = load_data(condition=condition, data_format='single-trial',
-                          data_type='simulation')
+                          data_type='simulation', verbose=True)
 
 # Take only 10 trials from the same simulation setup.
 epochs_fnames = [f for f in epochs_fnames if 'sim6_trial_' in f][:10]

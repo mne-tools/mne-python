@@ -92,6 +92,7 @@ def test_plot_raw_filtered():
     raw.plot(highpass=1, lowpass=2)
 
 
+@requires_scipy_version('0.12')
 def test_plot_raw_psd():
     """Test plotting of raw psds
     """

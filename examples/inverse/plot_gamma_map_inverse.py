@@ -35,7 +35,7 @@ evoked.crop(tmin=-50e-3, tmax=300e-3)
 forward = mne.read_forward_solution(fwd_fname, surf_ori=True,
                                     force_fixed=False)
 
-# Read noise covariance matrix and regularize it
+# Read noise noise covariance matrix and regularize it
 cov = mne.read_cov(cov_fname)
 cov = mne.cov.regularize(cov, evoked.info)
 

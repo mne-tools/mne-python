@@ -1131,7 +1131,7 @@ def _merge_info(infos, verbose=None):
     return info
 
 
-def create_info(ch_names, sfreq, ch_types=None):
+def create_info(ch_names, sfreq, ch_types=None, montage=None):
     """Create a basic Info instance suitable for use with create_raw
 
     Parameters
@@ -1145,6 +1145,12 @@ def create_info(ch_names, sfreq, ch_types=None):
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
         If str, then all channels are assumed to be of the same type.
+    montage : None | str | Montage | DigMontage | list
+        A montage containing channel positions. If str or Montage is
+        specified, the channel info will be updated with the channel
+        positions. Default is None. If DigMontage is specified, the
+        digitizer information will be updated. A list of unique montages,
+        can be specifed and applied to the info.
 
     Notes
     -----
@@ -1190,6 +1196,21 @@ def create_info(ch_names, sfreq, ch_types=None):
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+    if montage is not None:
+        from ..channels.montage import (Montage, DigMontage, _set_montage,
+                                        read_montage)
+        if not isinstance(montage, list):
+            montage = [montage]
+        for montage_ in montage:
+            if isinstance(montage_, (Montage, DigMontage)):
+                _set_montage(info, montage_)
+            elif isinstance(montage_, string_types):
+                montage_ = read_montage(montage_)
+                _set_montage(info, montage_)
+            else:
+                raise TypeError('Montage must be an instance of Montage, '
+                                'DigMontage, a list of montages, or filepath, '
+                                'not %s.' % type(montage))
     return info
 
 

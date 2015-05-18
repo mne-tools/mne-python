@@ -701,16 +701,17 @@ def _check_method(method):
 
 def _check_ori(pick_ori, pick_normal):
     if pick_normal is not None:
-        warnings.warn('DEPRECATION: The pick_normal parameter has been '
-                      'changed to pick_ori. Please update your code.')
+        warnings.warn('The pick_normal parameter has been '
+                      'changed to pick_ori. Please update your code.',
+                      DeprecationWarning)
         pick_ori = pick_normal
     if pick_ori is True:
-        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
-                      'or "normal".')
+        warnings.warn('The pick_ori parameter should now be None '
+                      'or "normal".', DeprecationWarning)
         pick_ori = "normal"
     elif pick_ori is False:
-        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
-                      'or "normal".')
+        warnings.warn('The pick_ori parameter should now be None '
+                      'or "normal".', DeprecationWarning)
         pick_ori = None
 
     if pick_ori not in [None, "normal"]:
@@ -1549,7 +1550,8 @@ def estimate_snr(evoked, inv, verbose=None):
     val = chi2.isf(1e-3, n_ch - 1)
     for n_iter in range(1000):
         # get_mne_weights (ew=error_weights)
-        f = sing2 / (sing2 + lambda2_est[np.newaxis, remaining])
+        # (split newaxis creation here for old numpy)
+        f = sing2 / (sing2 + lambda2_est[np.newaxis][:, remaining])
         f[inv['sing'] == 0] = 0
         ew = data_white_ef[:, remaining] * (1.0 - f)
         # check condition

@@ -153,6 +153,8 @@ BUG
 
    - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
 
+   - Fix bug with ICA resetting by `Denis Engemann`_
+
 API
 ~~~
 
@@ -201,6 +203,8 @@ API
    - ``add_figs_to_section`` and ``add_images_to_section`` now have a ``textbox`` parameter to add comments to the image by `Teon Brooks`_
 
    - Deprecated ``iir_filter_raw`` for ``fit_iir_model_raw``.
+
+   - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
 
 .. _changes_0_8:
 

@@ -100,9 +100,7 @@ win_lengths = [0.3, 0.2, 0.15, 0.1]  # s
 # Setting the time step
 tstep = 0.05
 
-# Setting the noise covariance and whitened data covariance regularization
-# parameters
-noise_reg = 0.03
+# Setting the whitened data covariance regularization parameter
 data_reg = 0.001
 
 # Subtract evoked response prior to computation?
@@ -121,9 +119,7 @@ for (l_freq, h_freq) in freq_bins:
                              tmin=tmin_plot, tmax=tmax_plot, baseline=None,
                              picks=epochs.picks, proj=True)
 
-    noise_cov = compute_covariance(epochs_band)
-    noise_cov = mne.cov.regularize(noise_cov, epochs_band.info, mag=noise_reg,
-                                   grad=noise_reg, eeg=noise_reg, proj=True)
+    noise_cov = compute_covariance(epochs_band, method='shrunk')
     noise_covs.append(noise_cov)
     del raw_band  # to save memory
 
