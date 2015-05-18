@@ -494,7 +494,7 @@ def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):
         hsp = _read_dig_points(hsp)
     n_pts = len(hsp)
     if n_pts > KIT.DIG_POINTS:
-        hsp = _decimate_points(hsp, decim=5)
+        hsp = _decimate_points(hsp, res=5)
         n_new = len(hsp)
         msg = ("The selected head shape contained {n_in} points, which is "
                "more than recommended ({n_rec}), and was automatically "
