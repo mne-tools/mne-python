@@ -87,15 +87,14 @@ decim = 2
 frequencies = np.arange(7, 30, 3)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
 n_cycles = 1.5
+
 epochs_power_1 = single_trial_power(data_condition_1, sfreq=sfreq,
                                     frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False,
-                                    decim=decim)
+                                    n_cycles=n_cycles, decim=decim)
 
 epochs_power_2 = single_trial_power(data_condition_2, sfreq=sfreq,
                                     frequencies=frequencies,
-                                    n_cycles=n_cycles, use_fft=False,
-                                    decim=decim)
+                                    n_cycles=n_cycles, decim=decim)
 
 epochs_power_1 = epochs_power_1[:, 0, :, :]  # only 1 channel to get 3D matrix
 epochs_power_2 = epochs_power_2[:, 0, :, :]  # only 1 channel to get 3D matrix

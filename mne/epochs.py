@@ -37,12 +37,13 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import (_mutable_defaults, plot_epochs, _drop_log_stats,
-                  plot_epochs_psd, plot_epochs_psd_topomap)
-from .utils import check_fname, logger, verbose
-from .externals import six
+from .defaults import _handle_default
+from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
+                  plot_epochs_psd_topomap)
+from .utils import (check_fname, logger, verbose, _check_type_picks,
+                    _time_mask, deprecated)
+from .externals.six import iteritems
 from .externals.six.moves import zip
-from .utils import _check_type_picks, _time_mask, deprecated
 
 
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -380,8 +381,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
-            The averaged epochs
+        evoked : instance of Evoked
+            The averaged epochs.
         """
 
         return self._compute_mean_or_stderr(picks, 'ave')
@@ -397,8 +398,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Returns
         -------
-        evoked : Evoked instance
-            The standard error over epochs
+        evoked : instance of Evoked
+            The standard error over epochs.
         """
         return self._compute_mean_or_stderr(picks, 'stderr')
 
@@ -477,7 +478,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True, block=False):
-        """ Visualize single trials using Trellis plot.
+        """Visualize single trials using Trellis plot.
 
         Parameters
         ----------
@@ -488,13 +489,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Channels to be included. If None only good data channels are used.
             Defaults to None
         scalings : dict | None
-            Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-                  emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1,
-                  chpi=1e-4)`
+            Scale factors for the traces. If None, defaults to
+            ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+            emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
         title_str : None | str
             The string formatting to use for axes titles. If None, no titles
-            will be shown. Defaults expand to ``#001, #002, ...``
+            will be shown. Defaults expand to ``#001, #002, ...``.
         show : bool
             Whether to show the figure or not.
         block : bool
@@ -1495,7 +1495,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
 
@@ -1530,7 +1530,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
@@ -1974,7 +1974,7 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
                         for c in ch_names], dtype=bool)] = False
     for refl, f, t in zip([reject, flat], [np.greater, np.less], ['', 'flat']):
         if refl is not None:
-            for key, thresh in six.iteritems(refl):
+            for key, thresh in iteritems(refl):
                 idx = channel_type_idx[key]
                 name = key.upper()
                 if len(idx) > 0:
@@ -2153,7 +2153,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     if selection is None:
         selection = np.arange(len(epochs))
     if drop_log is None:
-        drop_log = [[] for _ in range(len(epochs))]  # noqa
+        drop_log = [[] for _ in range(len(epochs))]  # noqa, analysis:ignore
 
     epochs.selection = selection
     epochs.drop_log = drop_log
@@ -2317,6 +2317,10 @@ def concatenate_epochs(epochs_list):
     -------
     epochs : instance of Epochs
         The result of the concatenation (first Epochs instance passed in).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     out = epochs_list[0]
     data = [out.get_data()]

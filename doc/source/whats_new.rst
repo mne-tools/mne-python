@@ -17,7 +17,7 @@ Changelog
 
    - Add support for source estimate for mixed source spaces by `Alan Leggitt`_
 
-   - Add ``SourceSpaces.export_volume`` method by `Alan Leggitt`_
+   - Add ``SourceSpaces.save_as_volume`` method by `Alan Leggitt`_
 
    - Automatically compute proper box sizes when generating layouts on the fly by `Marijn van Vliet`_
 
@@ -41,19 +41,18 @@ Changelog
 
    - Add reading and writing support for digitizer data, and function for adding dig points to info by `Teon Brooks`_
 
-   - Add methods ``get_channel_positions``, ``set_channel_positions`` for setting channel positions,
-     and ``plot_projs_topomap`` to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
+   - Add  ``plot_projs_topomap`` method to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
-   - Add EEG bad channel interpolation method (based on spherical splines) to ``Raw``, ``Epochs`` and ``Evoked`` objects
-     by `Denis Engemann`_
+   - Add EEG (based on spherical splines) and MEG (based on field interpolation) bad channel interpolation method to ``Raw``, ``Epochs`` and ``Evoked`` objects
+     by `Denis Engemann`_ and `Mainak Jas`_
 
    - Add parameter to ``whiten_evoked``, ``compute_whitener`` and ``prepare_noise_cov`` to set the exact rank by `Martin Luessi`_ and `Denis Engemann`_
 
    - Add fiff I/O for processing history and MaxFilter info by `Denis Engemann`_ and `Eric Larson`_
 
-   - Add automated regularization with support for multiple sensor types to mne.cov.compute_covariance by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add automated regularization with support for multiple sensor types to ``compute_covariance`` by `Denis Engemann`_ and `Alex Gramfort`_
 
-   - Add ``mne.viz.plot_evoked_white`` function and ``Evoked.plot_white`` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
+   - Add ``Evoked.plot_white`` method to diagnose the quality of the estimated noise covariance and its impact on spatial whitening by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Add ``mne.evoked.grand_average`` function to compute grand average of Evoked data while interpolating bad EEG channels if necessary by `Mads Jensen`_ and `Alex Gramfort`_
 
@@ -77,9 +76,9 @@ Changelog
 
    - Add support for Savitsky-Golay filtering of Evoked and Epochs by `Eric Larson`_
 
-   - Add support for adding an empty reference channel to data by ``Teon Brooks``_
+   - Add support for adding an empty reference channel to data by `Teon Brooks`_
 
-   - Add reader function for Raw FIF files by ``Teon Brooks``_
+   - Add reader function ``mne.io.read_raw_fif`` for Raw FIF files by `Teon Brooks`_
 
    - Add example of creating MNE objects from arbitrary data and NEO files by `Jaakko Leppakangas`_
 
@@ -87,7 +86,7 @@ Changelog
 
    - ``evoked.pick_types``, ``epochs.pick_types``, and ``tfr.pick_types`` added by `Eric Larson`_
 
-   - ``rename_channels`` and ``set_channel_types`` added as methods to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_ 
+   - ``rename_channels`` and ``set_channel_types`` added as methods to ``Raw``, ``Epochs`` and ``Evoked`` objects by `Teon Brooks`_
 
    - Add RAP-MUSIC inverse method by `Yousra Bekhti`_ and `Alex Gramfort`_
 
@@ -96,6 +95,16 @@ Changelog
    - Add ``add_bem_to_section``, ``add_htmls_to_section`` methods to ``mne.Report`` by `Teon Brooks`_
 
    - Add support for KIT epochs files with ``read_epochs_kit`` by `Teon Brooks`_
+
+   - Add whitening plots for evokeds to ``mne.Report`` by `Mainak Jas`_
+
+   - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_ and `Christian Brodbeck`_
+
+   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks` and `Denis Engemann`_
+
+   - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
+
+   - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
 
 BUG
@@ -139,10 +148,12 @@ BUG
    - Fix EGI reading when no events are present by `Federico Raimondo`_
 
    - Add functionality to determine plot limits automatically or by data percentiles by `Mark Wronkiewicz`_
- 
+
    - Fix bug in mne.io.edf where the channel offsets were ommitted in the voltage calculations by `Teon Brooks`_
 
-   - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_ 
+   - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
+
+   - Fix bug with ICA resetting by `Denis Engemann`_
 
 API
 ~~~
@@ -158,7 +169,7 @@ API
 
    - Fix missing calibration factors for ``mne.io.egi.read_raw_egi`` by `Denis Engemann`_ and `Federico Raimondo`_
 
-   - Allow multiple filename patterns as a list (e.g., *raw.fif and *-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
+   - Allow multiple filename patterns as a list (e.g., \*raw.fif and \*-eve.fif) to be parsed by mne report in ``Report.parse_folder()`` by `Mainak Jas`_
 
    - ``read_hsp``, ``read_elp``, and ``write_hsp``, ``write_mrk`` were removed and made private by `Teon Brooks`_
 
@@ -176,12 +187,12 @@ API
 
    - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti_`
-     `Eric Larson_` and `Denis Engemann_`. As a consquence, `Raw.plot_raw_psds` has been deprecated.
+   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_
+    `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
-     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
-     use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
+    zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
+    use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
 
    - ``pick_types_evoked`` has been deprecated in favor of ``evoked.pick_types``.
 
@@ -192,6 +203,8 @@ API
    - ``add_figs_to_section`` and ``add_images_to_section`` now have a ``textbox`` parameter to add comments to the image by `Teon Brooks`_
 
    - Deprecated ``iir_filter_raw`` for ``fit_iir_model_raw``.
+
+   - Add ``montage`` parameter to the ``create_info`` function to create the info using montages by `Teon Brooks`_
 
 .. _changes_0_8:
 
@@ -267,7 +280,7 @@ Changelog
 
    - Add ``raw.add_events`` to allow adding events to a raw file by `Eric Larson`_
 
-   - Add ``plot_image`` method to Evoked object to display data as images by `JR King`_ and `Alex Gramfort`_ and `Denis Engemann`_
+   - Add ``plot_image`` method to Evoked object to display data as images by `Jean-Remi King`_ and `Alex Gramfort`_ and `Denis Engemann`_
 
    - Add BCI demo with CSP on motor imagery by `Martin Billinger`_
 
@@ -715,7 +728,7 @@ Changelog
    - ICA computation on Raw and Epochs with automatic component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Saving ICA sources to fif files and creating ICA topography layouts by
-     `Denis Engemann`_
+    `Denis Engemann`_
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 
@@ -903,8 +916,8 @@ Authors
 The committer list for this release is the following (preceded by number
 of commits):
 
-    * 80  Alexandre Gramfort
-    * 51  Martin Luessi
+   * 80  Alexandre Gramfort
+   * 51  Martin Luessi
 
 Version 0.2
 -----------
@@ -940,10 +953,10 @@ Authors
 The committer list for this release is the following (preceded by number
 of commits):
 
-    * 33  Alexandre Gramfort
-    * 12  Martin Luessi
-    *  2  Yaroslav Halchenko
-    *  1  Manfred Kitzbichler
+   * 33  Alexandre Gramfort
+   * 12  Martin Luessi
+   *  2  Yaroslav Halchenko
+   *  1  Manfred Kitzbichler
 
 .. _Alex Gramfort: http://alexandre.gramfort.net
 
@@ -991,7 +1004,7 @@ of commits):
 
 .. _Cathy Nangini: https://github.com/KatiRG
 
-.. _JR King: https://github.com/kingjr
+.. _Jean-Remi King: https://github.com/kingjr
 
 .. _Juergen Dammers: https://github.com/jdammers
 
@@ -1014,3 +1027,9 @@ of commits):
 .. _Chris Holdgraf: http://chrisholdgraf.com
 
 .. _Jaakko Leppakangas: https://github.com/jaeilepp
+
+.. _Yousra Bekhti: https://www.linkedin.com/pub/yousra-bekhti/56/886/421
+
+.. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
+
+.. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti

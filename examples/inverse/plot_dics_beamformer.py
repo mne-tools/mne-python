@@ -77,10 +77,9 @@ plt.ylabel('DICS value')
 plt.title('DICS time course of the 30 largest sources.')
 plt.show()
 
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
+# Plot brain in 3D with PySurfer if available
 brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                 clim='auto', transparent=True)
+                 clim='auto')
 brain.set_data_time_index(180)
 brain.show_view('lateral')
 

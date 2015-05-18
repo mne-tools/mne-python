@@ -26,20 +26,20 @@ class CSP(TransformerMixin):
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
         if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
-                Oracle Approximating Shrinkage ('oas')
+        Oracle Approximating Shrinkage ('oas').
     log : bool
         If true, apply log to standardize the features.
         If false, features are just z-scored.
 
     Attributes
     ----------
-    `filters_` : ndarray
+    filters_ : ndarray
         If fit, the CSP components used to decompose the data, else None.
-    `patterns_` : ndarray
+    patterns_ : ndarray
         If fit, the CSP patterns used to restore M/EEG signals, else None.
-    `mean_` : ndarray
+    mean_ : ndarray
         If fit, the mean squared power for each component.
-    `std_` : ndarray
+    std_ : ndarray
         If fit, the std squared power for each component.
 
     References

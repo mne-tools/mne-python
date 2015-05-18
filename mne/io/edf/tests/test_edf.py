@@ -47,9 +47,6 @@ def test_bdf_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
-    print(raw_py)  # to test repr
-    print(raw_py.info)  # to test Info repr
-
     # this .mat was generated using the EEG Lab Biosemi Reader
     raw_eeglab = io.loadmat(bdf_eeglab_path)
     raw_eeglab = raw_eeglab['data'] * 1e-6  # data are stored in microvolts
@@ -118,13 +115,20 @@ def test_read_segment():
     assert_allclose(data1, data11, rtol=1e-6)
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
+    data2, times2 = raw1[0, 0:1]
+    assert_array_equal(data2[0], data1[0, 0:1])
+    assert_array_equal(times2, times1[0:1])
 
-    raw2 = read_raw_edf(edf_path, stim_channel=None, preload=True)
-    raw2_file = op.join(tempdir, 'test2-raw.fif')
-    raw2.save(raw2_file, overwrite=True)
-    data2, times2 = raw2[:139, :]
-    assert_allclose(data1, data2, rtol=1e-6)
-    assert_array_equal(times1, times2)
+    buffer_fname = op.join(tempdir, 'buffer')
+    for preload in (buffer_fname, True, False):  # false here means "delayed"
+        raw2 = read_raw_edf(edf_path, stim_channel=None, preload=preload)
+        if preload is False:
+            raw2.preload_data()
+        raw2_file = op.join(tempdir, 'test2-raw.fif')
+        raw2.save(raw2_file, overwrite=True)
+        data2, times2 = raw2[:139, :]
+        assert_allclose(data1, data2, rtol=1e-6)
+        assert_array_equal(times1, times2)
 
     raw1 = Raw(raw1_file, preload=True)
     raw2 = Raw(raw2_file, preload=True)

@@ -222,6 +222,10 @@ def tfr_stockwell(inst, fmin=None, fmax=None, n_fft=None,
         The averaged power.
     itc : AverageTFR
         The intertrial coherence. Only returned if return_itc is True.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     # verbose dec is used b/c subfunctions are verbose
     data = _get_data(inst, return_itc)

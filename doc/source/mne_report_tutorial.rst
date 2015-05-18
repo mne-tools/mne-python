@@ -45,10 +45,20 @@ To properly render `trans` and `covariance` files, add the measurement informati
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
         --subject sample --subjects-dir MNE-sample-data/subjects --verbose
 
+To render whitened `evoked` files with baseline correction, add the noise covariance file::
+    
+    mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
+        --cov MNE-sample-data/MEG/sample/sample_audvis-cov.fif --bmax 0 --subject sample \
+        --subjects-dir MNE-sample-data/subjects --verbose
+
 To generate the report in parallel::
 
     mne report --path MNE-sample-data/ --info MNE-sample-data/MEG/sample/sample_audvis-ave.fif \ 
         --subject sample --subjects-dir MNE-sample-data/subjects --verbose --jobs 6
+
+For help on all the available options, do::
+
+    mne report --help
 
 The Python interface
 --------------------
@@ -110,7 +120,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
             t =    -199.80 ...     499.49 ms (Left Auditory)
             0 CTF compensation matrices available
             nave = 55 - aspect type = 100
-    Projections have already been applied. Doing nothing.
+    Projections have already been applied. Setting proj attribute to True.
     Applying baseline correction ... (mode: mean)
     >>> fig = evoked.plot() # doctest: +SKIP
 

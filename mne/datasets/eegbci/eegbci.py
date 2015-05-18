@@ -6,13 +6,15 @@ from os import path as op
 from ...externals.six import string_types
 from ...externals.six.moves import input
 from ...utils import (_fetch_file, get_config, set_config, _url_to_local_path,
-                      logger)
+                      logger, verbose)
 
 
 EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
 
 
-def data_path(url, path=None, force_update=False, update_path=None):
+@verbose
+def data_path(url, path=None, force_update=False, update_path=None,
+              verbose=None):
     """Get path to local copy of EEGMMI dataset URL
 
     This is a low-level function useful for getting a local copy of a
@@ -35,6 +37,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -65,12 +69,12 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Complex Physiologic Signals. Circulation 101(23):e215-e220
     """  # noqa
 
+    key = 'MNE_DATASETS_EEGBCI_PATH'
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
                                        '..', 'examples'))
 
-        key = 'MNE_DATASETS_EEGBCI_PATH'
         # backward compatibility
         if get_config(key) is None:
             key = 'MNE_DATA'
@@ -129,8 +133,9 @@ def data_path(url, path=None, force_update=False, update_path=None):
     return destinations
 
 
+@verbose
 def load_data(subject, runs, path=None, force_update=False, update_path=None,
-              base_url=EEGMI_URL):
+              base_url=EEGMI_URL, verbose=None):
     """Get paths to local copy of EEGBCI dataset files
 
     Parameters
@@ -161,6 +166,8 @@ def load_data(subject, runs, path=None, force_update=False, update_path=None,
     update_path : bool | None
         If True, set the MNE_DATASETS_EEGBCI_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------

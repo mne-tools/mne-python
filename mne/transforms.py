@@ -257,7 +257,24 @@ def _get_mri_head_t(mri):
 
 
 def combine_transforms(t_first, t_second, fro, to):
-    """Combine two transforms"""
+    """Combine two transforms
+
+    Parameters
+    ----------
+    t_first : dict
+        First transform.
+    t_second : dict
+        Second transform.
+    fro : int
+        From coordinate frame.
+    to : int
+        To coordinate frame.
+
+    Returns
+    -------
+    trans : dict
+        Combined transformation.
+    """
     if t_first['from'] != fro:
         raise RuntimeError('From mismatch: %s ("%s") != %s ("%s")'
                            % (t_first['from'],
@@ -328,10 +345,19 @@ def write_trans(fname, trans):
 
 def invert_transform(trans):
     """Invert a transformation between coordinate systems
+
+    Parameters
+    ----------
+    trans : dict
+        Transform to invert.
+
+    Returns
+    -------
+    inv_trans : dict
+        Inverse transform.
     """
-    itrans = {'to': trans['from'], 'from': trans['to'],
-              'trans': linalg.inv(trans['trans'])}
-    return itrans
+    return {'to': trans['from'], 'from': trans['to'],
+            'trans': linalg.inv(trans['trans'])}
 
 
 _frame_dict = dict(meg=FIFF.FIFFV_COORD_DEVICE,

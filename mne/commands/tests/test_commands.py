@@ -36,6 +36,7 @@ def check_usage(module, force_help=False):
         assert_true('Usage: ' in out.stdout.getvalue())
 
 
+@slow_test
 def test_browse_raw():
     """Test mne browse_raw"""
     check_usage(mne_browse_raw)

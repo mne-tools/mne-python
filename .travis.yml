@@ -19,7 +19,7 @@ env:
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.6" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
+    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
 # Setup anaconda
@@ -37,6 +37,8 @@ install:
     - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
     - source activate testenv &> /dev/null
     - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL > /dev/null
+    # We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
+    # are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
         curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
@@ -44,12 +46,12 @@ install:
         source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
-        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow;
+        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
           conda install --yes --quiet ipython > /dev/null;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels > /dev/null;
+          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS > /dev/null;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
             conda install --yes --quiet mayavi traits > /dev/null;
@@ -61,6 +63,22 @@ install:
         pip install -q flake8 > /dev/null;
       fi;
     - pip install -q coverage coveralls nose-timer > /dev/null
+    # check our versions for the major packages
+    - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
+    - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
+        echo "Incorrect numpy version $NP_VERSION";
+        exit 1;
+      fi;
+    - SP_VERSION=`python -c 'import scipy; print(scipy.__version__)'`
+    - if [ -n "$SCIPY" ] && [ "${SCIPY:(-4)}" != "${SP_VERSION::4}" ]; then
+        echo "Incorrect scipy version $SP_VERSION";
+        exit 1;
+      fi;
+    - MPL_VERSION=`python -c 'import matplotlib; print(matplotlib.__version__)'`
+    - if [ -n "$MPL" ] && [ "${MPL:(-3)}" != "${MPL_VERSION::3}" ]; then
+        echo "Incorrect matplotlib version $MPL_VERSION";
+        exit 1;
+      fi;
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
     - python setup.py build > /dev/null

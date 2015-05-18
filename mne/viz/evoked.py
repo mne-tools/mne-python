@@ -17,10 +17,46 @@ import numpy as np
 
 from ..io.pick import channel_type, pick_types, _picks_by_type
 from ..externals.six import string_types
-from .utils import _mutable_defaults, _check_delayed_ssp
-from .utils import _draw_proj_checkbox, tight_layout
+from ..defaults import _handle_default
+from .utils import _draw_proj_checkbox, tight_layout, _check_delayed_ssp
 from ..utils import logger
+from ..fixes import partial
 from ..io.pick import pick_info
+
+
+def _butterfly_onpick(event, params):
+    """Helper to add a channel name on click"""
+    params['need_draw'] = True
+    ax = event.artist.get_axes()
+    ax_idx = np.where([ax is a for a in params['axes']])[0][0]
+    lidx = np.where([l is event.artist for l in params['lines'][ax_idx]])[0][0]
+    ch_name = params['ch_names'][params['idxs'][ax_idx][lidx]]
+    text = params['texts'][ax_idx]
+    x = event.artist.get_xdata()[event.ind[0]]
+    y = event.artist.get_ydata()[event.ind[0]]
+    text.set_x(x)
+    text.set_y(y)
+    text.set_text(ch_name)
+    text.set_color(event.artist.get_color())
+    text.set_alpha(1.)
+    text.set_path_effects(params['path_effects'])
+    # do NOT redraw here, since for butterfly plots hundreds of lines could
+    # potentially be picked -- use on_button_press (happens once per click)
+    # to do the drawing
+
+
+def _butterfly_on_button_press(event, params):
+    """Helper to only draw once for picking"""
+    if params['need_draw']:
+        event.canvas.draw()
+    else:
+        idx = np.where([event.inaxes is ax for ax in params['axes']])[0]
+        if len(idx) == 1:
+            text = params['texts'][idx[0]]
+            text.set_alpha(0.)
+            text.set_path_effects([])
+            event.canvas.draw()
+    params['need_draw'] = False
 
 
 def _plot_evoked(evoked, picks, exclude, unit, show,
@@ -39,14 +75,14 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         interactive.
     """
     import matplotlib.pyplot as plt
+    from matplotlib import patheffects
     if axes is not None and proj == 'interactive':
         raise RuntimeError('Currently only single axis figures are supported'
                            ' for interactive SSP selection.')
 
-    scalings, titles, units = _mutable_defaults(('scalings', scalings),
-                                                ('titles', titles),
-                                                ('units', units))
-
+    scalings = _handle_default('scalings', scalings)
+    titles = _handle_default('titles', titles)
+    units = _handle_default('units', units)
     channel_types = set(key for d in [scalings, titles, units] for key in d)
     channel_types = sorted(channel_types)  # to guarantee consistent order
 
@@ -66,8 +102,9 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                              '"bads"')
 
         picks = list(set(picks).difference(exclude))
+    picks = np.array(picks)
 
-    types = [channel_type(evoked.info, idx) for idx in picks]
+    types = np.array([channel_type(evoked.info, idx) for idx in picks])
     n_channel_types = 0
     ch_types_used = []
     for t in channel_types:
@@ -99,13 +136,19 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
         evoked.apply_proj()
 
     times = 1e3 * evoked.times  # time in miliseconds
+    texts = []
+    idxs = []
+    lines = []
+    path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
+                                           alpha=0.75)]
     for ax, t in zip(axes, ch_types_used):
         ch_unit = units[t]
         this_scaling = scalings[t]
         if unit is False:
             this_scaling = 1.0
             ch_unit = 'NA'  # no unit
-        idx = [picks[i] for i in range(len(picks)) if types[i] == t]
+        idx = list(picks[types == t])
+        idxs.append(idx)
         if len(idx) > 0:
             # Parameters for butterfly interactive plots
             if plot_type == 'butterfly':
@@ -120,15 +163,29 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                     ax._get_lines.color_cycle = cycle(['k'])
             # Set amplitude scaling
             D = this_scaling * evoked.data[idx, :]
-            # plt.axes(ax)
             if plot_type == 'butterfly':
-                ax.plot(times, D.T)
+                lines.append(ax.plot(times, D.T, picker=3., zorder=0))
+                for ii, line in zip(idx, lines[-1]):
+                    if ii in bad_ch_idx:
+                        line.set_zorder(1)
+                ax.set_ylabel('data (%s)' % ch_unit)
+                # for old matplotlib, we actually need this to have a bounding
+                # box (!), so we have to put some valid text here, change
+                # alpha and  path effects later
+                texts.append(ax.text(0, 0, 'blank', zorder=2,
+                                     verticalalignment='baseline',
+                                     horizontalalignment='left',
+                                     fontweight='bold', alpha=0))
             elif plot_type == 'image':
                 im = ax.imshow(D, interpolation='nearest', origin='lower',
                                extent=[times[0], times[-1], 0, D.shape[0]],
                                aspect='auto', cmap=cmap)
                 cbar = plt.colorbar(im, ax=ax)
                 cbar.ax.set_title(ch_unit)
+                ax.set_ylabel('channels (%s)' % 'index')
+            else:
+                raise ValueError("plot_type has to be 'butterfly' or 'image'."
+                                 "Got %s." % plot_type)
             if xlim is not None:
                 if xlim == 'tight':
                     xlim = (times[0], times[-1])
@@ -141,17 +198,19 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
             ax.set_title(titles[t] + ' (%d channel%s)' % (
                          len(D), 's' if len(D) > 1 else ''))
             ax.set_xlabel('time (ms)')
-            if plot_type == 'butterfly':
-                ax.set_ylabel('data (%s)' % ch_unit)
-            elif plot_type == 'image':
-                ax.set_ylabel('channels (%s)' % 'index')
-            else:
-                raise ValueError("plot_type has to be 'butterfly' or 'image'."
-                                 "Got %s." % plot_type)
 
             if (plot_type == 'butterfly') and (hline is not None):
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
+    if plot_type == 'butterfly':
+        params = dict(axes=axes, texts=texts, lines=lines, idx=idx,
+                      ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
+                      path_effects=path_effects)
+        fig.canvas.mpl_connect('pick_event',
+                               partial(_butterfly_onpick, params=params))
+        fig.canvas.mpl_connect('button_press_event',
+                               partial(_butterfly_on_button_press,
+                                       params=params))
 
     if axes_init is None:
         plt.subplots_adjust(0.175, 0.08, 0.94, 0.94, 0.2, 0.63)
@@ -304,8 +363,8 @@ def plot_evoked_white(evoked, noise_cov, show=True):
 
     Plots the whitened evoked response and the whitened GFP as described in
     [1]. If one single covariance object is passed, the GFP panel (bottom)
-    will depict different sensor sensor types. If multiple covariance objects
-    are passed as a list, the left column will display the whitened evoked
+    will depict different sensor types. If multiple covariance objects are
+    passed as a list, the left column will display the whitened evoked
     responses for each channel based on the whitener from the noise covariance
     that has the highest log-likelihood. The left column will depict the
     whitened GFPs based on each estimator separately for each sensor type.
@@ -466,7 +525,7 @@ def _plot_evoked_white(evoked, noise_cov, scalings=None, rank=None, show=True):
         raise RuntimeError('Wrong axes inputs')
 
     times = evoked.times * 1e3
-    titles_ = _mutable_defaults(('titles', None))[0]
+    titles_ = _handle_default('titles')
     if has_sss:
         titles_['meg'] = 'MEG (combined)'
 
@@ -545,6 +604,10 @@ def plot_snr_estimate(evoked, inv, show=True):
     -------
     fig : instance of matplotlib.figure.Figure
         The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
     from ..minimum_norm import estimate_snr

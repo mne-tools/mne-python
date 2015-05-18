@@ -48,7 +48,7 @@ data_path = sample.data_path()
 subjects_dir = data_path + '/subjects'
 fwd_fname = data_path + '/MEG/sample/sample_audvis-meg-eeg-oct-6-fwd.fif'
 ave_fname = data_path + '/MEG/sample/sample_audvis-no-filter-ave.fif'
-cov_fname = data_path + '/MEG/sample/sample_audvis-cov.fif'
+cov_fname = data_path + '/MEG/sample/sample_audvis-shrunk-cov.fif'
 
 # Read noise covariance matrix
 cov = mne.read_cov(cov_fname)
@@ -64,8 +64,6 @@ evoked.crop(tmin=-0.1, tmax=0.4)
 # Handling forward solution
 forward = mne.read_forward_solution(fwd_fname, force_fixed=False,
                                     surf_ori=True)
-
-cov = mne.cov.regularize(cov, evoked.info)
 
 ###############################################################################
 # Run solver

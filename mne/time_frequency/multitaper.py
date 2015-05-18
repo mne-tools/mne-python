@@ -490,6 +490,10 @@ def multitaper_psd(x, sfreq=2 * np.pi, fmin=0, fmax=np.inf, bandwidth=None,
         The computed PSD.
     freqs : array
         The frequency points in Hz of the PSD.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     if normalization not in ('length', 'full'):
         raise ValueError('Normalization must be "length" or "full", not %s'

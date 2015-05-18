@@ -789,7 +789,7 @@ def _write_mri_config(fname, subject_from, subject_to, scale):
 
 
 def _scale_params(subject_to, subject_from, scale, subjects_dir):
-    subjects_dir = get_subjects_dir(subjects_dir, True)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if (subject_from is None) != (scale is None):
         raise TypeError("Need to provide either both subject_from and scale "
                         "parameters, or neither.")
@@ -865,7 +865,7 @@ def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
     pattern : str | None
         Pattern for finding the labels relative to the label directory in the
         MRI subject directory (e.g., "lh.BA3a.label" will scale
-        "fsaverage/label/lh.BA3a.label"; "aparc/*.label" will find all labels
+        "fsaverage/label/lh.BA3a.label"; "aparc/\*.label" will find all labels
         in the "fsaverage/label/aparc" directory). With None, scale all labels.
     overwrite : bool
         Overwrite any label file that already exists for subject_to (otherwise

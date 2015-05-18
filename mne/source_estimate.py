@@ -581,7 +581,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         Returns
         -------
         stc : instance of SourceEstimate
-            The modified stc (note: method operates inplace).
+            The modified stc (method operates inplace).
         """
         data = self.data
         tmax = self.tmin + self.tstep * data.shape[1]
@@ -672,7 +672,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         return self
 
     def sqrt(self):
-        """Return copy of SourceEstimate with sqrt(data)."""
+        """Take the square root
+
+        Returns
+        -------
+        stc : instance of SourceEstimate
+            A copy of the SourceEstimate with sqrt(data).
+        """
         return self ** (0.5)
 
     def copy(self):
@@ -734,7 +740,7 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         ----------
         func : callable
             The transform to be applied, including parameters (see, e.g.,
-            mne.fixes.partial). The first parameter of the function is the
+            `mne.fixes.partial`). The first parameter of the function is the
             input data. The first return value is the transformed data,
             remaining outputs are ignored. The first dimension of the
             transformed data has to be the same as the first dimension of the
@@ -754,12 +760,13 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         data_t : ndarray
             The transformed data.
 
-        .. note::
-            Applying transforms can be significantly faster if the
-            SourceEstimate object was created using "(kernel, sens_data)", for
-            the "data" parameter as the transform is applied in sensor space.
-            Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
-            this automatically (if possible).
+        Notes
+        -----
+        Applying transforms can be significantly faster if the
+        SourceEstimate object was created using "(kernel, sens_data)", for
+        the "data" parameter as the transform is applied in sensor space.
+        Inverse methods, e.g., "apply_inverse_epochs", or "lcmv_epochs" do
+        this automatically (if possible).
         """
 
         if idx is None:
@@ -1310,7 +1317,7 @@ class SourceEstimate(_BaseSourceEstimate):
         if hemi not in [0, 1]:
             raise ValueError('hemi must be 0 or 1')
 
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
         values = values[vert_inds[hemi]]
 
@@ -1344,7 +1351,7 @@ class SourceEstimate(_BaseSourceEstimate):
         return vertex, hemi, t
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
-             colormap='hot', time_label='time=%0.2f ms',
+             colormap='auto', time_label='time=%0.2f ms',
              smoothing_steps=10, fmin=None, fmid=None, fmax=None,
              transparent=None, alpha=1.0, time_viewer=False,
              config_opts={}, subjects_dir=None, figure=None,
@@ -1368,18 +1375,19 @@ class SourceEstimate(_BaseSourceEstimate):
         surface : str
             The type of surface (inflated, white etc.).
         hemi : str, 'lh' | 'rh' | 'split' | 'both'
-            The hemisphere to display. Using 'both' or 'split' requires
-            PySurfer version 0.4 or above.
+            The hemisphere to display.
         colormap : str | np.ndarray of float, shape(n_colors, 3 | 4)
             Name of colormap to use or a custom look up table. If array, must
-            be (n x 3) or (n x 4) array for with RGB or RGBA values between 0
-            and 255.
+            be (n x 3) or (n x 4) array for with RGB or RGBA values between
+            0 and 255. If 'auto', either 'hot' or 'mne' will be chosen
+            based on whether 'lims' or 'pos_lims' are specified in `clim`.
         time_label : str
             How to print info about the time instant visualized.
         smoothing_steps : int
             The amount of smoothing.
-        transparent : bool
+        transparent : bool | None
             If True, use a linear transparency between fmin and fmid.
+            None will choose automatically based on colormap type.
         alpha : float
             Alpha value to apply globally to the overlay.
         time_viewer : bool
@@ -1400,13 +1408,14 @@ class SourceEstimate(_BaseSourceEstimate):
         clim : str | dict
             Colorbar properties specification. If 'auto', set clim
             automatically based on data percentiles. If dict, should contain:
+
                 kind : str
                     Flag to specify type of limits. 'value' or 'percent'.
                 lims : list | np.ndarray | tuple of float, 3 elements
-                    Note: Only use this if 'colormap' is not 'mne_analyze'.
+                    Note: Only use this if 'colormap' is not 'mne'.
                     Left, middle, and right bound for colormap.
                 pos_lims : list | np.ndarray | tuple of float, 3 elements
-                    Note: Only use this if 'colormap' is 'mne_analyze'.
+                    Note: Only use this if 'colormap' is 'mne'.
                     Left, middle, and right bound for colormap. Positive values
                     will be mirrored directly across zero during colormap
                     construction to obtain negative control points.
@@ -1588,6 +1597,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -1657,6 +1670,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         save_stc_as_volume(fname, self, src, dest=dest,
                            mri_resolution=mri_resolution)
@@ -1681,6 +1698,10 @@ class VolSourceEstimate(_BaseSourceEstimate):
         -------
         img : instance Nifti1Image
             The image object.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return save_stc_as_volume(None, self, src, dest=dest,
                                   mri_resolution=mri_resolution)
@@ -1770,6 +1791,10 @@ class MixedSourceEstimate(_BaseSourceEstimate):
         The data in source space.
     shape : tuple
         The shape of the data. A tuple of int (n_dipoles, n_times).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     @verbose
     def __init__(self, data, vertices=None, tmin=None, tstep=None,
@@ -1918,6 +1943,7 @@ def mesh_dist(tris, vert):
         Mesh triangulation
     vert : array (n_vert x 3)
         Vertex locations
+
     Returns
     -------
     dist_matrix : scipy.sparse.csr_matrix
@@ -2027,7 +2053,7 @@ def _morph_buffer(data, idx_use, e, smooth, n_vertices, nearest, maps,
     if len(idx_use) != len(data_sum) and warn:
         warnings.warn('%s/%s vertices not included in smoothing, consider '
                       'increasing the number of steps'
-                      % (len(idx_use), len(data_sum)))
+                      % (len(data_sum) - len(idx_use), len(data_sum)))
 
     logger.info('    %d smooth iterations done.' % (k + 1))
     data_morphed = maps[nearest, :] * data
@@ -2169,7 +2195,7 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
                          'estimates')
 
     logger.info('Morphing data...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     nearest = grade_to_vertices(subject_to, grade, subjects_dir, n_jobs)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
@@ -2220,7 +2246,8 @@ def morph_data(subject_from, subject_to, stc_from, grade=5, smooth=None,
 
 @verbose
 def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
-                         smooth=None, subjects_dir=None, verbose=None):
+                         smooth=None, subjects_dir=None, warn=True,
+                         verbose=None):
     """Get a matrix that morphs data from one subject to another
 
     Parameters
@@ -2239,6 +2266,8 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         with non-zero values.
     subjects_dir : string
         Path to SUBJECTS_DIR is not set in the environment
+    warn : bool
+        If True, warn if not all vertices were used.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -2248,7 +2277,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
         matrix that morphs data from subject_from to subject_to
     """
     logger.info('Computing morph matrix...')
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     tris = _get_subject_sphere_tris(subject_from, subjects_dir)
     maps = read_morph_map(subject_from, subject_to, subjects_dir)
 
@@ -2264,7 +2293,7 @@ def compute_morph_matrix(subject_from, subject_to, vertices_from, vertices_to,
             continue
         m = sparse.eye(len(idx_use), len(idx_use), format='csr')
         morpher[hemi] = _morph_buffer(m, idx_use, e, smooth, n_vertices,
-                                      vertices_to[hemi], maps[hemi])
+                                      vertices_to[hemi], maps[hemi], warn=warn)
     # be careful about zero-length arrays
     if isinstance(morpher[0], list):
         morpher = morpher[1]
@@ -2310,7 +2339,7 @@ def grade_to_vertices(subject, grade, subjects_dir=None, n_jobs=1,
     # add special case for fsaverage for speed
     if subject == 'fsaverage' and grade == 5:
         return [np.arange(10242), np.arange(10242)]
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     spheres_to = [os.path.join(subjects_dir, subject, 'surf',
                                xh + '.sphere.reg') for xh in ['lh', 'rh']]

@@ -20,9 +20,10 @@ from ..baseline import rescale
 from ..io.constants import FIFF
 from ..io.pick import pick_types
 from ..utils import _clean_names, _time_mask, verbose
-from .utils import (tight_layout, _setup_vmin_vmax, DEFAULTS, _prepare_trellis,
+from .utils import (tight_layout, _setup_vmin_vmax, _prepare_trellis,
                     _check_delayed_ssp, _draw_proj_checkbox)
 from ..time_frequency import compute_epochs_psd
+from ..defaults import _handle_default
 
 
 def _prepare_topo_plot(inst, ch_type, layout):
@@ -154,6 +155,10 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     -------
     fig : instance of matplotlib figure
         Figure distributing one image per channel across sensor topography.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
 
@@ -345,9 +350,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         Indices set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
-        Default (None) equals:
-        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
-             markersize=4)
+        Default (None) equals::
+
+           dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                linewidth=0, markersize=4)
+
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -426,15 +433,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         # prepare masking
         image_mask, pos = _make_image_mask(outlines, pos, res)
 
-    if mask_params is None:
-        mask_params = DEFAULTS['mask_params'].copy()
-    elif isinstance(mask_params, dict):
-        params = dict((k, v) for k, v in DEFAULTS['mask_params'].items()
-                      if k not in mask_params)
-        mask_params.update(params)
-    else:
-        raise ValueError('`mask_params` must be of dict-type '
-                         'or None')
+    mask_params = _handle_default('mask_params', mask_params)
 
     # plot outline
     linewidth = mask_params['markeredgewidth']
@@ -686,7 +685,7 @@ def plot_ica_components(ica, picks=None, ch_type='mag', res=64,
         im = plot_topomap(data_.flatten(), pos, vmin=vmin_, vmax=vmax_,
                           res=res, axis=ax, cmap=cmap, outlines=outlines,
                           image_mask=image_mask, contours=contours,
-                          image_interp=image_interp)[0]
+                          image_interp=image_interp, show=False)[0]
         if colorbar:
             divider = make_axes_locatable(ax)
             cax = divider.append_axes("right", size="5%", pad=0.05)
@@ -865,7 +864,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
     im, _ = plot_topomap(data[:, 0], pos, vmin=vmin, vmax=vmax,
                          axis=ax, cmap=cmap, image_interp='bilinear',
-                         contours=False, names=names)
+                         contours=False, names=names, show=False)
 
     if colorbar:
         divider = make_axes_locatable(ax)
@@ -924,12 +923,12 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         used (via .add_artist). Defaults to True.
     colorbar : bool
         Plot a colorbar.
-    scale : float | None
+    scale : dict | float | None
         Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
         for grad and 1e15 for mag.
     scale_time : float | None
         Scale the time labels. Defaults to 1e3 (ms).
-    unit : str | None
+    unit : dict | str | None
         The unit of the channel type used for colorbar label. If
         scale is None the unit is automatically determined.
     res : int
@@ -959,9 +958,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
         Indicies set to `True` will be considered. Defaults to None.
     mask_params : dict | None
         Additional plotting parameters for plotting significant sensors.
-        Default (None) equals:
-        dict(marker='o', markerfacecolor='w', markeredgecolor='k', linewidth=0,
-             markersize=4)
+        Default (None) equals::
+
+            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                 linewidth=0, markersize=4)
+
     outlines : 'head' | dict | None
         The outlines to be drawn. If 'head', a head scheme will be drawn. If
         dict, each key refers to a tuple of x and y positions. The values in
@@ -990,10 +991,9 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
 
-    if mask_params is None:
-        mask_params = DEFAULTS['mask_params'].copy()
-        mask_params['markersize'] *= size / 2.
-        mask_params['markeredgewidth'] *= size / 2.
+    mask_params = _handle_default('mask_params', mask_params)
+    mask_params['markersize'] *= size / 2.
+    mask_params['markeredgewidth'] *= size / 2.
 
     if times is None:
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
@@ -1016,10 +1016,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
     else:
         key = ch_type
 
-    if scale is None:
-        scale = DEFAULTS['scalings'][key]
-    if unit is None:
-        unit = DEFAULTS['units'][key]
+    scale = _handle_default('scalings', scale)[key]
+    unit = _handle_default('units', unit)[key]
 
     if not show_names:
         names = None
@@ -1085,7 +1083,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type='mag', layout=None,
                               mask=mask_[:, i] if mask is not None else None,
                               mask_params=mask_params, axis=ax,
                               outlines=outlines, image_mask=image_mask,
-                              contours=contours, image_interp=image_interp)
+                              contours=contours, image_interp=image_interp,
+                              show=False)
         images.append(tp)
         if cn is not None:
             contours_.append(cn)
@@ -1142,7 +1141,8 @@ def _plot_topomap_multi_cbar(data, pos, ax, title=None, unit=None,
     if title is not None:
         ax.set_title(title, fontsize=10)
     im, _ = plot_topomap(data, pos, vmin=vmin, vmax=vmax, axis=ax,
-                         cmap=cmap, image_interp='bilinear', contours=False)
+                         cmap=cmap, image_interp='bilinear', contours=False,
+                         show=False)
 
     if colorbar is True:
         divider = make_axes_locatable(ax)

@@ -23,16 +23,16 @@ class RtEpochs(_BaseEpochs):
     Can receive epochs in real time from an RtClient.
 
     For example, to get some epochs from a running mne_rt_server on
-    'localhost', you could use:
+    'localhost', you could use::
 
-    client = mne.realtime.RtClient('localhost')
-    event_id, tmin, tmax = 1, -0.2, 0.5
+        client = mne.realtime.RtClient('localhost')
+        event_id, tmin, tmax = 1, -0.2, 0.5
 
-    epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax)
-    epochs.start()  # start the measurement and start receiving epochs
+        epochs = mne.realtime.RtEpochs(client, event_id, tmin, tmax)
+        epochs.start()  # start the measurement and start receiving epochs
 
-    evoked_1 = epochs.average()  # computed over all epochs
-    evoked_2 = epochs[-5:].average()  # computed over the last 5 epochs
+        evoked_1 = epochs.average()  # computed over all epochs
+        evoked_2 = epochs[-5:].average()  # computed over the last 5 epochs
 
     Parameters
     ----------
@@ -72,8 +72,7 @@ class RtEpochs(_BaseEpochs):
             reject = dict(grad=4000e-13, # T / m (gradiometers)
                           mag=4e-12, # T (magnetometers)
                           eeg=40e-6, # uV (EEG channels)
-                          eog=250e-6 # uV (EOG channels)
-                          )
+                          eog=250e-6 # uV (EOG channels))
 
     flat : dict | None
         Rejection parameters based on flatness of signal.
@@ -110,9 +109,11 @@ class RtEpochs(_BaseEpochs):
         The arguments to the real-time `find_events` method as a dictionary.
         If `find_events` is None, then default values are used.
         Valid keys are 'output' | 'consecutive' | 'min_duration' | 'mask'.
-        Example (also default values):
-        find_events = dict(output='onset', consecutive='increasing',
-                           min_duration=0, mask=0)
+        Example (also default values)::
+
+            find_events = dict(output='onset', consecutive='increasing',
+                               min_duration=0, mask=0)
+
         See mne.find_events for detailed explanation of these options.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).

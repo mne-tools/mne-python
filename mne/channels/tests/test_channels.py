@@ -11,13 +11,12 @@ import numpy as np
 import warnings
 from numpy.testing import assert_array_equal
 from nose.tools import assert_raises, assert_true, assert_equal
-from scipy.io import savemat
 
 from mne.channels import rename_channels, read_ch_connectivity
 from mne.channels.channels import _ch_neighbor_connectivity
 from mne.io import read_info, Raw
 from mne.io.constants import FIFF
-from mne.fixes import partial
+from mne.fixes import partial, savemat
 from mne.utils import _TempDir
 from mne import pick_types
 
@@ -108,7 +107,7 @@ def test_read_ch_connectivity():
                    dtype=[('label', 'O'), ('neighblabel', 'O')])
     mat = dict(neighbours=nbh)
     mat_fname = op.join(tempdir, 'test_mat.mat')
-    savemat(mat_fname, mat)
+    savemat(mat_fname, mat, oned_as='row')
 
     ch_connectivity, ch_names = read_ch_connectivity(mat_fname)
     x = ch_connectivity
@@ -142,13 +141,13 @@ def test_get_set_sensor_positions():
     raw1 = Raw(raw_fname)
     picks = pick_types(raw1.info, meg=False, eeg=True)
     pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
-    raw_pos = raw1.get_channel_positions(picks=picks)
+    raw_pos = raw1._get_channel_positions(picks=picks)
     assert_array_equal(raw_pos, pos)
 
     ch_name = raw1.info['ch_names'][13]
-    assert_raises(ValueError, raw1.set_channel_positions, [1, 2], ['name'])
+    assert_raises(ValueError, raw1._set_channel_positions, [1, 2], ['name'])
     raw2 = Raw(raw_fname)
     raw2.info['chs'][13]['loc'][:3] = np.array([1, 2, 3])
-    raw1.set_channel_positions([[1, 2, 3]], [ch_name])
+    raw1._set_channel_positions([[1, 2, 3]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],
                        raw2.info['chs'][13]['loc'])

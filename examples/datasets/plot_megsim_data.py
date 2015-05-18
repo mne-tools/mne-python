@@ -25,11 +25,11 @@ condition = 'visual'  # or 'auditory' or 'somatosensory'
 
 # Load experimental RAW files for the visual condition
 raw_fnames = load_data(condition=condition, data_format='raw',
-                       data_type='experimental')
+                       data_type='experimental', verbose=True)
 
 # Load simulation evoked files for the visual condition
 evoked_fnames = load_data(condition=condition, data_format='evoked',
-                          data_type='simulation')
+                          data_type='simulation', verbose=True)
 
 raw = Raw(raw_fnames[0])
 events = find_events(raw, stim_channel="STI 014", shortest_event=1)

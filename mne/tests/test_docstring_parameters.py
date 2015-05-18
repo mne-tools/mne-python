@@ -28,6 +28,8 @@ public_modules = [
     'mne.realtime',
     'mne.report',
     'mne.simulation',
+    'mne.source_estimate',
+    'mne.source_space',
     'mne.stats',
     'mne.time_frequency',
     'mne.viz',
@@ -61,6 +63,7 @@ _deprecation_ignores = [
     'mne.forward._make_forward.make_forward_solution',  # mri
     'mne.forward.forward.do_forward_solution',  # mri
     'mne.source_estimate.SourceEstimate.plot',  # fmin/fmid/fmax
+    'mne.source_estimate.plot',  # fmin/fmid/fmax
     'mne.source_space.read_source_spaces',  # add_geom
     'mne.surface.read_bem_surfaces',  # add_geom
     'as_data_frame',  # dep
@@ -72,21 +75,27 @@ _deprecation_ignores = [
     'mne.utils.iir_filter_raw',  # dep
     'mne.utils.time_generalization',  # dep
     'mne.utils.Report.add_section',  # dep
+    'mne.utils.add_section',  # dep
     'plot_psds',  # dep
     'RawArray.save',  # format
     'RawFIF.save',  # format
+    'mne.io.base.save',  # format
     'mne.minimum_norm.inverse.apply_inverse',  # pick_normal
     'mne.minimum_norm.time_frequency.compute_source_psd',  # pick_normal
     'mne.minimum_norm.time_frequency.source_induced_power',  # pick_normal
     'mne.viz.topomap.plot_evoked_topomap',  # format
+    'mne.evoked.plot_topomap',  # format
     'mne.viz.topomap.plot_tfr_topomap',  # format
     'mne.viz._3d.plot_trans',  # trans_fname
     'mne.viz._3d.plot_source_estimates',  # fmin/fmid/fmax
     'mne.time_frequency.tfr.single_trial_power',  # Fs
     'mne.time_frequency.tfr.morlet',  # Fs
     'mne.time_frequency.tfr.cwt_morlet',  # Fs
+    'mne.time_frequency.tfr.plot_topomap',  # format
     'mne.time_frequency.tfr.AverageTFR.plot_topomap',  # format
     'mne.stats.cluster_level.summarize_clusters_stc',  # vertno
+    'mne.io.write',  # always ignore these
+    'mne.fixes._in1d',  # fix function
 ]
 
 
@@ -156,7 +165,7 @@ def test_docstring_parameters():
                 continue
             incorrect += check_parameters_match(func)
     msg = '\n' + '\n'.join(sorted(list(set(incorrect))))
-    if len(incorrect) > 1:
+    if len(incorrect) > 0:
         raise AssertionError(msg)
 
 

@@ -47,6 +47,7 @@ def test_brainvision_data():
     assert_raises(TypeError, read_raw_brainvision, vhdr_path, montage,
                   preload=True, scale="0")
     raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
+    raw_py.preload_data()  # currently does nothing
 
     assert_equal(raw_py.info['highpass'], 0.)
     assert_equal(raw_py.info['lowpass'], 250.)

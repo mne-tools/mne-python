@@ -15,14 +15,13 @@ from functools import partial
 
 import numpy as np
 
-# XXX : don't import pyplot here or you will break the doc
-
 from ..io.pick import channel_type, pick_types
 from ..fixes import normalize_colors
 from ..utils import _clean_names
 
-from .utils import _mutable_defaults, _check_delayed_ssp, COLORS
-from .utils import _draw_proj_checkbox
+from ..defaults import _handle_default
+from .utils import (_check_delayed_ssp, COLORS, _draw_proj_checkbox,
+                    add_background_image)
 
 
 def iter_topography(info, layout=None, on_pick=None, fig=None,
@@ -234,8 +233,8 @@ def _check_vlim(vlim):
 
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
-              vline=[0.0], fig_facecolor='k', axis_facecolor='k',
-              font_color='w', show=True):
+              vline=[0.0], fig_facecolor='k', fig_background=None,
+              axis_facecolor='k', font_color='w', show=True):
     """Plot 2D topography of evoked responses.
 
     Clicking on the plot of an individual sensor opens a new figure showing
@@ -276,6 +275,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         The values at which to show a vertical line.
     fig_facecolor : str | obj
         The figure face color. Defaults to black.
+    fig_background : None | numpy ndarray
+        A background image for the figure. This must work with a call to
+        plt.imshow. Defaults to None.
     axis_facecolor : str | obj
         The face color to be used for each sensor plot. Defaults to black.
     font_color : str | obj
@@ -340,7 +342,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         picks = [pick_types(info, meg=False, exclude=[], **types_used_kwargs)]
     assert isinstance(picks, list) and len(types_used) == len(picks)
 
-    scalings = _mutable_defaults(('scalings', scalings))[0]
+    scalings = _handle_default('scalings', scalings)
     evoked = [e.copy() for e in evoked]
     for e in evoked:
         for pick, t in zip(picks, types_used):
@@ -359,7 +361,7 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
         ymax = np.array(ylim_)
         ylim_ = (-ymax, ymax)
     elif isinstance(ylim, dict):
-        ylim_ = _mutable_defaults(('ylim', ylim))[0]
+        ylim_ = _handle_default('ylim', ylim)
         ylim_ = [ylim_[kk] for kk in types_used]
         # extra unpack to avoid bug #1700
         if len(ylim_) == 1:
@@ -378,6 +380,9 @@ def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
                      fig_facecolor=fig_facecolor, font_color=font_color,
                      axis_facecolor=axis_facecolor,
                      title=title, x_label='Time (s)', vline=vline)
+
+    if fig_background is not None:
+        add_background_image(fig, fig_background)
 
     if proj == 'interactive':
         for e in evoked:
@@ -509,7 +514,7 @@ def plot_topo_image_epochs(epochs, layout=None, sigma=0.3, vmin=None,
         Figure distributing one image per channel across sensor topography.
     """
     import matplotlib.pyplot as plt
-    scalings = _mutable_defaults(('scalings', scalings))[0]
+    scalings = _handle_default('scalings', scalings)
     data = epochs.get_data()
     if vmin is None:
         vmin = data.min()

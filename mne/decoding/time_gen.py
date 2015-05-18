@@ -6,10 +6,10 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from ..viz.decoding import plot_gat_matrix, plot_gat_diagonal
+from ..io.pick import pick_types
+from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
 from ..utils import logger, verbose, deprecated
-from ..io.pick import channel_type, pick_types
 
 
 class _DecodingTime(dict):
@@ -19,17 +19,16 @@ class _DecodingTime(dict):
         Array of time slices (in indices) used for each classifier.
         If not given, computed from 'start', 'stop', 'length', 'step'.
     'start' : float
-        Time at which to start decoding (in seconds). By default,
-        min(epochs.times).
+        Time at which to start decoding (in seconds).
+        Defaults to min(epochs.times).
     'stop' : float
-        Maximal time at which to stop decoding (in seconds). By default,
-        max(times).
+        Maximal time at which to stop decoding (in seconds).
+        Defaults to max(times).
     'step' : float
         Duration separating the start of subsequent classifiers (in
-        seconds). By default, equals one time sample.
+        seconds). Defaults to one time sample.
     'length' : float
-        Duration of each classifier (in seconds). By default, equals one
-        time sample.
+        Duration of each classifier (in seconds). Defaults to one time sample.
     If None, empty dict. Defaults to None."""
 
     def __repr__(self):
@@ -78,67 +77,83 @@ class GeneralizationAcrossTime(object):
         If None the classifier will be a standard pipeline including
         StandardScaler and a linear SVM with default parameters.
     train_times : dict | None
-        A dictionary to configure the training times.
-        'slices' : np.ndarray, shape (n_clfs,)
-            Array of time slices (in indices) used for each classifier.
-            If not given, computed from 'start', 'stop', 'length', 'step'.
-        'start' : float
-            Time at which to start decoding (in seconds). By default,
-            min(epochs.times).
-        'stop' : float
-            Maximal time at which to stop decoding (in seconds). By default,
-            max(times).
-        'step' : float
-            Duration separating the start of subsequent classifiers (in
-            seconds). By default, equals one time sample.
-        'length' : float
-            Duration of each classifier (in seconds). By default, equals one
-            time sample.
+        A dictionary to configure the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``start`` : float
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
+            ``stop`` : float
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
+            ``step`` : float
+                Duration separating the start of subsequent classifiers (in
+                seconds). Defaults to one time sample.
+            ``length`` : float
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
+
         If None, empty dict. Defaults to None.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
-            'cross-validation' : estimates a single prediction per sample based
-                on the unique independent classifier fitted in the cross-
-                validation.
-            'mean-prediction' : estimates k predictions per sample, based on
+
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
                 each of the k-fold cross-validation classifiers, and average
                 these predictions into a single estimate per sample.
+
         Default: 'cross-validation'
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
     Attributes
     ----------
-    y_train_ : np.ndarray, shape (n_samples,)
+    scorer_ : object
+        scikit-learn Scorer instance. Default: accuracy_score
+    y_train_ : list | np.ndarray, shape (n_samples,)
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs,
-                           n_prediction_dims)
-        Class labels for samples in X.
+    y_pred_ : list of lists of arrays of floats,
+              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+        The single-trial predictions estimated by self.predict() at each
+        training time and each testing time. Note that the number of testing
+        times per training time need not be regular, else
+        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
     scores_ : list of lists of float
-        The scores (mean accuracy of self.predict(X) wrt. y.).
-        It's not an array as the testing times per training time
-        need not be regular.
+        The scores estimated by self.scorer_ at each training time and each
+        testing time (e.g. mean accuracy of self.predict(X)). Note that the
+        number of testing times per training time need not be regular;
+        else, np.shape(scores) = [n_train_time, n_test_time].
     test_times_ : dict
         The same structure as ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
+    picks_ : np.array, shape (n_channels,)
+        Indices of the channels used for training.
+    ch_names : list, shape (n_channels,)
+        Names of the channels used for training.
 
     Notes
     -----
     The function implements the method used in:
 
-    Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-    and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
-    unexpected sounds", PLOS ONE, 2013
-    """
+        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+        detection of unexpected sounds", PLOS ONE, 2013
+
+    .. versionadded:: 0.9.0
+    """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None,
                  predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
-        from sklearn.svm import SVC
+        from sklearn.linear_model import LogisticRegression
         from sklearn.pipeline import Pipeline
 
         # Store parameters in object
@@ -150,8 +165,8 @@ class GeneralizationAcrossTime(object):
         # Default classification pipeline
         if clf is None:
             scaler = StandardScaler()
-            svc = SVC(C=1, kernel='linear')
-            clf = Pipeline([('scaler', scaler), ('svc', svc)])
+            estimator = LogisticRegression()
+            clf = Pipeline([('scaler', scaler), ('estimator', estimator)])
         self.clf = clf
         self.predict_mode = predict_mode
         self.n_jobs = n_jobs
@@ -164,7 +179,7 @@ class GeneralizationAcrossTime(object):
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
-            s += (", predicted %d epochs" % len(self.y_pred_))
+            s += (", predicted %d epochs" % len(self.y_pred_[0][0]))
         else:
             s += ", no prediction"
         if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
@@ -187,11 +202,11 @@ class GeneralizationAcrossTime(object):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : np.ndarray of int, shape (n_samples,) | None
+        y : list or np.ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
             Defaults to None.
-        picks : np.ndarray of int, shape (n_channels,) | None
-            The channels to be used. If None, defaults to meg and eeg channels.
+        picks : array-like of int | None, optional
+            Channels to be included. If None only good data channels are used.
             Defaults to None.
 
         Returns
@@ -209,13 +224,18 @@ class GeneralizationAcrossTime(object):
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
+
+        # clean in case gat.fit() is called at unexpected moments
+        for att in ['y_pred_', 'scores_', 'scorer_', 'test_times_', 'y_true_']:
+            if hasattr(self, att):
+                delattr(self, att)
+
         n_jobs = self.n_jobs
-        # Default channel selection
-        if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True,
-                               exclude='bads')
         # Extract data from MNE structure
-        X, y = _check_epochs_input(epochs, y, picks)
+        X, y, picks = _check_epochs_input(epochs, y, picks)
+        self.picks_ = picks
+        self.ch_names = [epochs.ch_names[p] for p in picks]
+
         cv = self.cv
         if isinstance(cv, (int, np.int)):
             cv = StratifiedKFold(y, cv)
@@ -251,58 +271,63 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, list())
         return self
 
-    def predict(self, epochs, test_times=None, picks=None):
+    def predict(self, epochs, test_times=None):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
-        ``test_times`` attribute.
+        ``test_times_`` attribute.
 
         Parameters
         ----------
         epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See independent
-            parameter.
-        test_times : str | dict | None
-            A dict to configure the testing times.
-            If test_times = 'diagonal', test_times = train_times: decode at
-            each time point but does not generalize.
-
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+        test_times : 'diagonal' | dict | None, optional
+            Configures the testing times.
+            If set to 'diagonal', predictions are made at the time at which
+            each classifier is trained.
+            If set to None, predictions are made at all time points.
+            If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
             'stop' : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
             'step' : float
                 Duration separating the start of to subsequent classifiers (in
-                seconds). By default, equals one time sample.
+                seconds). Defaults to one time sample.
             'length' : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
-
-            If None, empty dict. Defaults to None.
-        picks : np.ndarray (n_selected_chans,) | None
-            Channels to be included.
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
+            Defaults to None.
 
         Returns
         -------
-        y_pred_ : np.ndarray, shape (n_train_time, n_test_time, n_epochs,
-                               n_prediction_dim)
-            Class labels for samples in X.
+        y_pred : list of lists of arrays of floats,
+                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial predictions at each training time and each testing
+            time. Note that the number of testing times per training time need
+            not be regular;
+            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
         """
-        if picks is None:
-            picks = pick_types(epochs.info, meg=True, eeg=True,
-                               exclude='bads')
+
+        # clean in case gat.predict() is called at unexpected moments
+        for att in ['scores_', 'scorer_', 'y_true_']:
+            if hasattr(self, att):
+                delattr(self, att)
+
         n_jobs = self.n_jobs
-        X, y = _check_epochs_input(epochs, None, picks)
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
             raise RuntimeError('Please fit models before trying to predict')
+
         cv = self.cv_  # Retrieve CV scheme from fit()
+        X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         # Define testing sliding window
         if test_times == 'diagonal':
@@ -340,12 +365,10 @@ class GeneralizationAcrossTime(object):
         parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
 
         # Loop across estimators (i.e. training times)
-        packed = parallel(p_time_gen(X, self.estimators_[t_train], cv,
-                          slices, self.predict_mode)
-                          for t_train, slices in
-                          enumerate(test_times_['slices']))
-
-        self.y_pred_ = np.transpose(tuple(zip(*packed)), (1, 0, 2, 3))
+        self.y_pred_ = parallel(p_time_gen(X, self.estimators_[t_train], cv,
+                                slices, self.predict_mode)
+                                for t_train, slices in
+                                enumerate(test_times_['slices']))
         return self.y_pred_
 
     def score(self, epochs=None, y=None, scorer=None, test_times=None):
@@ -354,65 +377,70 @@ class GeneralizationAcrossTime(object):
         Estimate scores across trials by comparing the prediction estimated for
         each trial to its true value.
 
+        Calls ``predict()`` if it has not been already.
+
         Note. The function updates the ``scores_`` attribute.
 
         Parameters
         ----------
-        epochs : instance of Epochs | None
-            The epochs. Can be similar to fitted epochs or not. See independent
-            parameter.
-            If None, it relies on the y_pred_ generated from predit()
-        y : list | np.ndarray, shape (n_epochs,) | None
-            To-be-fitted model, If None, y = epochs.events[:,2].
+        epochs : instance of Epochs | None, optional
+            The epochs. Can be similar to fitted epochs or not.
+            If None, it needs to rely on the predictions ``y_pred_``
+            generated with ``predict()``.
+        y : list | np.ndarray, shape (n_epochs,) | None, optional
+            True values to be compared with the predictions ``y_pred_``
+            generated with ``predict()`` via ``scorer_``.
+            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
             Defaults to None.
         scorer : object
             scikit-learn Scorer instance. Default: accuracy_score
-        test_times : str | dict | None
-            if test_times = 'diagonal', test_times = train_times: decode at
-            each time point but does not generalize. If dict, the following
-            structure is expected.
-
+        test_times : 'diagonal' | dict | None, optional
+            Configures the testing times.
+            If set to 'diagonal', predictions are made at the time at which
+            each classifier is trained.
+            If set to None, predictions are made at all time points.
+            If set to dict, the dict should contain:
             'slices' : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             'start' : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
             'stop' : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
             'step' : float
                 Duration separating the start of to subsequent classifiers (in
-                seconds). By default, equals one time sample.
+                seconds). Defaults to one time sample.
             'length' : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
-
-            If None, empty dict. Defaults to None.
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
+            Defaults to None.
 
         Returns
         -------
         scores : list of lists of float
-            The scores (mean accuracy of self.predict(X) wrt. y.).
-            It's not an array as the testing times per training time
-            need not be regular.
+            The scores estimated by ``scorer_`` at each training time and each
+            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
+            number of testing times per training time need not be regular;
+            else, np.shape(scores) = [n_train_time, n_test_time].
         """
 
         from sklearn.metrics import accuracy_score
-
-        # Check scorer
-        if scorer is None:
-            # XXX Need API to identify propper scorer from the clf
-            scorer = accuracy_score
-        self.scorer_ = scorer
 
         # Run predictions if not already done
         if epochs is not None:
             self.predict(epochs, test_times=test_times)
         else:
             if not hasattr(self, 'y_pred_'):
-                raise RuntimeError('Please predit() epochs first or pass '
+                raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
+
+        # Check scorer
+        if scorer is None:
+            # XXX Need API to identify proper scorer from the clf
+            scorer = accuracy_score
+        self.scorer_ = scorer
 
         # If no regressor is passed, use default epochs events
         if y is None:
@@ -430,10 +458,12 @@ class GeneralizationAcrossTime(object):
                 raise ValueError('Classes (y) passed differ from classes used '
                                  'for training. Please explicitly pass your y '
                                  'for scoring.')
+        elif isinstance(y, list):
+            y = np.array(y)
         self.y_true_ = y  # true regressor to be compared with y_pred
 
         # Preprocessing for parallelization:
-        n_jobs = min(self.y_pred_.shape[2], check_n_jobs(self.n_jobs))
+        n_jobs = min(len(self.y_pred_[0][0]), check_n_jobs(self.n_jobs))
         parallel, p_time_gen, n_jobs = parallel_func(_score_loop, n_jobs)
 
         # Score each training and testing time point
@@ -445,25 +475,25 @@ class GeneralizationAcrossTime(object):
         self.scores_ = scores
         return scores
 
-    def plot(self, title=None, vmin=0., vmax=1., tlim=None, ax=None,
+    def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
              cmap='RdBu_r', show=True, colorbar=True,
              xlabel=True, ylabel=True):
         """Plotting function of GeneralizationAcrossTime object
 
-        Predict each classifier. If multiple classifiers are passed, average
-        prediction across all classifiers to result in a single prediction per
-        classifier.
+        Plot the score of each classifier at each tested time window.
 
         Parameters
         ----------
         title : str | None
             Figure title. Defaults to None.
-        vmin : float
-            Min color value for score. Defaults to 0..
-        vmax : float
-            Max color value for score. Defaults to 1.
+        vmin : float | None
+            Min color value for scores. If None, sets to min(gat.scores_).
+            Defaults to None.
+        vmax : float | None
+            Max color value for scores. If None, sets to max(gat.scores_).
+            Defaults to None.
         tlim : np.ndarray, (train_min, test_max) | None
-            The temporal boundaries. defaults to None.
+            The temporal boundaries. Defaults to None.
         ax : object | None
             Plot pointer. If None, generate new figure. Defaults to None.
         cmap : str | cmap object
@@ -486,50 +516,114 @@ class GeneralizationAcrossTime(object):
                                tlim=tlim, ax=ax, cmap=cmap, show=show,
                                colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
 
-    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=0., ymax=1.,
-                      ax=None, show=True, color='steelblue', xlabel=True,
-                      ylabel=True, legend=True):
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=None,
+                      ymax=None, ax=None, show=True, color=None,
+                      xlabel=True, ylabel=True, legend=True, chance=True,
+                      label='Classif. score'):
         """Plotting function of GeneralizationAcrossTime object
 
-        Predict each classifier. If multiple classifiers are passed, average
-        prediction across all classifiers to result in a single prediction per
-        classifier.
+        Plot each classifier score trained and tested at identical time
+        windows.
 
         Parameters
         ----------
         title : str | None
             Figure title. Defaults to None.
-        xmin : float | None, optional, defaults to None.
-            Min time value.
-        xmax : float | None, optional, defaults to None.
-            Max time value.
-        ymin : float
-            Min score value. Defaults to 0.
-        ymax : float
-            Max score value. Defaults to 1.
+        xmin : float | None, optional
+            Min time value. Defaults to None.
+        xmax : float | None, optional
+            Max time value. Defaults to None.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores). Defaults to None.
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores). Defaults to None.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
             Defaults to None.
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str
-            Score line color. Defaults to 'steelblue'.
+            Score line color.
         xlabel : bool
             If True, the xlabel is displayed. Defaults to True.
         ylabel : bool
             If True, the ylabel is displayed. Defaults to True.
         legend : bool
             If True, a legend is displayed. Defaults to True.
+        chance : bool | float. Defaults to None
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
 
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_gat_diagonal(self, title=title, xmin=xmin, xmax=xmax,
-                                 ymin=ymin, ymax=ymax, ax=ax, show=show,
-                                 color=color, xlabel=xlabel, ylabel=ylabel,
-                                 legend=legend)
+        return plot_gat_times(self, train_time='diagonal', title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend, chance=chance, label=label)
+
+    def plot_times(self, train_time, title=None, xmin=None, xmax=None,
+                   ymin=None, ymax=None, ax=None, show=True, color=None,
+                   xlabel=True, ylabel=True, legend=True, chance=True,
+                   label='Classif. score'):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Plot the scores of the classifier trained at specific training time(s).
+
+        Parameters
+        ----------
+        train_time : float | list or array of float
+            Plots scores of the classifier trained at train_time.
+        title : str | None
+            Figure title. Defaults to None.
+        xmin : float | None, optional
+            Min time value. Defaults to None.
+        xmax : float | None, optional
+            Max time value. Defaults to None.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores). Defaults to None.
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores). Defaults to None.
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+            Defaults to None.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str or list of str
+            Score line color(s).
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+        chance : bool | float.
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer. Defaults to None.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        if (not isinstance(train_time, float) and
+            not (isinstance(train_time, (list, np.ndarray)) and
+                 np.all([isinstance(time, float) for time in train_time]))):
+            raise ValueError('train_time must be float | list or array of '
+                             'floats. Got %s.' % type(train_time))
+
+        return plot_gat_times(self, train_time=train_time, title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend, chance=chance, label=label)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
@@ -546,7 +640,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
-    predict_mode :{'cross-validation', 'mean-prediction'}
+    predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
             'cross-validation' : estimates a single prediction per sample based
@@ -606,7 +700,7 @@ def _score_loop(y_true, y_pred, slices, scorer):
     return scores
 
 
-def _check_epochs_input(epochs, y, picks):
+def _check_epochs_input(epochs, y, picks=None):
     """Aux function of GeneralizationAcrossTime
 
     Format MNE data into scikit-learn X and y
@@ -616,9 +710,11 @@ def _check_epochs_input(epochs, y, picks):
     epochs : instance of Epochs
             The epochs.
     y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
-        To-be-fitted model. If y is None, y == epochs.events
-    picks : np.ndarray (n_selected_chans,) | None
-        Channels to be included in scikit-learn model fitting.
+        To-be-fitted model. If y is None, y == epochs.events.
+        Defaults to None.
+    picks : array-like of int | None
+        Channels to be included. If None only good data channels are used.
+        Defaults to None.
 
     Returns
     -------
@@ -626,17 +722,31 @@ def _check_epochs_input(epochs, y, picks):
         To-be-fitted data.
     y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
-    picks : np.ndarray, shape (n_channels,)
+    picks : np.ndarray, shape (n_selected_chans,)
         The channels to be used.
     """
     if y is None:
         y = epochs.events[:, 2]
+    elif isinstance(y, list):
+        y = np.array(y)
 
     # Convert MNE data into trials x features x time matrix
-    X = epochs.get_data()[:, picks, :]
+    X = epochs.get_data()
+
+    # Pick channels
+    if picks is None:  # just use good data channels
+        picks = pick_types(epochs.info, meg=True, eeg=True, seeg=True,
+                           eog=False, ecg=False, misc=False, stim=False,
+                           ref_meg=False, exclude='bads')
+    if isinstance(picks, (list, np.ndarray)):
+        picks = np.array(picks, dtype=np.int)
+    else:
+        raise ValueError('picks must be a list or a numpy.ndarray of int')
+    X = X[:, picks, :]
+
     # Check data sets
     assert X.shape[0] == y.shape[0]
-    return X, y
+    return X, y, picks
 
 
 def _fit_slices(clf, x_chunk, y, slices, cv):
@@ -771,16 +881,19 @@ def _predict(X, estimators):
     # Initialize results:
     n_epochs = X.shape[0]
     n_clf = len(estimators)
-    n_class = estimators[0].predict(X[0, :]).shape[-1]  # initialize
-    y_pred = np.ones((n_epochs, n_class, n_clf))
 
     # Compute prediction for each sub-estimator (i.e. per fold)
     # if independent, estimators = all folds
     for fold, clf in enumerate(estimators):
-        if n_class == 1:
-            y_pred[:, 0, fold] = clf.predict(X)
+        _y_pred = clf.predict(X)
+        # initialize predict_results array
+        if fold == 0:
+            predict_size = _y_pred.shape[1] if _y_pred.ndim > 1 else 1
+            y_pred = np.ones((n_epochs, predict_size, n_clf))
+        if predict_size == 1:
+            y_pred[:, 0, fold] = _y_pred
         else:
-            y_pred[:, :, fold] = clf.predict(X)
+            y_pred[:, :, fold] = _y_pred
 
     # Collapse y_pred across folds if necessary (i.e. if independent)
     if fold > 0:
@@ -791,7 +904,7 @@ def _predict(X, estimators):
             y_pred = np.mean(y_pred, axis=2)
 
     # Format shape
-    y_pred = y_pred.reshape((n_epochs, n_class))
+    y_pred = y_pred.reshape((n_epochs, predict_size))
     return y_pred
 
 
@@ -839,18 +952,19 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
         If an integer is passed, it is the number of folds (default 5).
         Specific cross-validation objects can be passed, see
         sklearn.cross_validation module for the list of possible objects.
-    scoring : {string, callable, None}, default: "roc_auc"
+    scoring : {string, callable, None}
         A string (see model evaluation documentation in scikit-learn) or
         a scorer callable object / function with signature
-        ``scorer(y_true, y_pred)``.
+        ``scorer(y_true, y_pred)``. Defaults to "roc_auc".
     shuffle : bool
         If True, shuffle the epochs before splitting them in folds.
+        Defaults to True.
     random_state : None | int
         The random state used to shuffle the epochs. Ignored if
-        shuffle is False.
+        shuffle is False. Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel. Each fold is fit
-        in parallel.
+        in parallel. Defaults to 1.
 
     Returns
     -------
@@ -868,6 +982,7 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
     and Stanislas Dehaene, "Two distinct dynamic modes subtend the detection of
     unexpected sounds", PLOS ONE, 2013
     """
+    from ..io.pick import channel_type, pick_types
     from sklearn.base import clone
     from sklearn.utils import check_random_state
     from sklearn.svm import SVC
@@ -895,8 +1010,8 @@ def time_generalization(epochs_list, clf=None, cv=5, scoring="roc_auc",
     cv = check_cv(cv, X, y, classifier=True)
 
     ch_types = set(channel_type(info, idx) for idx in data_picks)
-    logger.info('Running time generalization on %s epochs using %s.' %
-                (len(X), ' and '.join(ch_types)))
+    logger.info('Running time generalization on %s epochs using %s.'
+                % (len(X), ' and '.join(ch_types)))
 
     if shuffle:
         rng = check_random_state(random_state)

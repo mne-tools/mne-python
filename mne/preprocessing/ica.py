@@ -37,7 +37,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
-                     _reject_data_segments)
+                     _reject_data_segments, check_random_state)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -121,8 +121,8 @@ class ICA(ContainsMixin):
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
         features due to dimensionality reduction. If greater than
-        `self.n_components_`, the next `n_pca_components` minus
-        `n_components_` PCA components will be added before restoring the
+        ``self.n_components_``, the next ``n_pca_components`` minus
+        ``n_components_`` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
         If float, the number of components selected matches the number of
@@ -134,7 +134,7 @@ class ICA(ContainsMixin):
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
-        fix the seed to have reproducible results.
+        fix the seed to have reproducible results. Defaults to None.
     method : {'fastica', 'infomax', 'extended-infomax'}
         The ICA method to use. Defaults to 'fastica'.
     fit_params : dict | None.
@@ -152,7 +152,7 @@ class ICA(ContainsMixin):
     ch_names : list-like
         Channel names resulting from initial picking.
         The number of components used for ICA decomposition.
-    `n_components_` : int
+    ``n_components_`` : int
         If fit, the actual number of components used for ICA decomposition.
     n_pca_components : int
         See above.
@@ -160,15 +160,15 @@ class ICA(ContainsMixin):
         The number of components used for PCA dimensionality reduction.
     verbose : bool, str, int, or None
         See above.
-    `pca_components_` : ndarray
+    ``pca_components_` : ndarray
         If fit, the PCA components
-    `pca_mean_` : ndarray
+    ``pca_mean_`` : ndarray
         If fit, the mean vector used to center the data before doing the PCA.
-    `pca_explained_variance_` : ndarray
+    ``pca_explained_variance_`` : ndarray
         If fit, the variance explained by each PCA component
-    `mixing_matrix_` : ndarray
+    ``mixing_matrix_`` : ndarray
         If fit, the mixing matrix to restore observed data, else None.
-    `unmixing_matrix_` : ndarray
+    ``unmixing_matrix_`` : ndarray
         If fit, the matrix to unmix observed data, else None.
     exclude : list
         List of sources indices to exclude, i.e. artifact components identified
@@ -214,7 +214,7 @@ class ICA(ContainsMixin):
         self.max_pca_components = max_pca_components
         self.n_pca_components = n_pca_components
         self.ch_names = None
-        self.random_state = random_state if random_state is not None else 42
+        self.random_state = random_state
 
         if fit_params is None:
             fit_params = {}
@@ -330,6 +330,9 @@ class ICA(ContainsMixin):
         del self.mixing_matrix_
         del self.n_components_
         del self.n_samples_
+        del self.pca_components_
+        del self.pca_explained_variance_
+        del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
 
@@ -445,9 +448,11 @@ class ICA(ContainsMixin):
         """Aux function """
         from sklearn.decomposition import RandomizedPCA
 
+        random_state = check_random_state(self.random_state)
+
         # XXX fix copy==True later. Bug in sklearn, see PR #2273
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True, random_state=self.random_state)
+                            copy=True, random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
@@ -496,13 +501,15 @@ class ICA(ContainsMixin):
         if self.method == 'fastica':
             from sklearn.decomposition import FastICA  # to avoid strong dep.
             ica = FastICA(whiten=False,
-                          random_state=self.random_state, **self.fit_params)
+                          random_state=random_state, **self.fit_params)
             ica.fit(data[:, sel])
             # get unmixing and add scaling
             self.unmixing_matrix_ = getattr(ica, 'components_',
                                             'unmixing_matrix_')
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
+            self.unmixing_matrix_ = infomax(data[:, sel],
+                                            random_state=random_state,
+                                            **self.fit_params)
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -875,8 +882,8 @@ class ICA(ContainsMixin):
         Returns
         -------
         ecg_idx : list of int
-            The indices of EOG related components.
-        scores : np.ndarray of float, shape (ica.n_components_)
+            The indices of ECG related components.
+        scores : np.ndarray of float, shape (``n_components_``)
             The correlation scores.
 
         References
@@ -973,9 +980,9 @@ class ICA(ContainsMixin):
 
         Returns
         -------
-        ecg_idx : list of int
+        eog_idx : list of int
             The indices of EOG related components, sorted by score.
-        scores : np.ndarray of float, shape (ica.n_components_) | list of array
+        scores : np.ndarray of float, shape (``n_components_``) | list of array
             The correlation scores.
         """
         if verbose is None:
@@ -1364,7 +1371,7 @@ class ICA(ContainsMixin):
                     show=True):
         """Plot scores related to detected components.
 
-        Use this function to asses how well your score describes outlier
+        Use this function to assess how well your score describes outlier
         sources and how well you were detecting them.
 
         Parameters
@@ -1396,7 +1403,7 @@ class ICA(ContainsMixin):
                      stop=None, title=None, show=True):
         """Overlay of raw and cleaned signals given the unmixing matrix.
 
-        This method helps visualizing signal quality and arficat rejection.
+        This method helps visualizing signal quality and artifact rejection.
 
         Parameters
         ----------
@@ -1946,19 +1953,20 @@ def run_ica(raw, n_components, max_pca_components=100,
     This function implements an automated artifact removal work flow.
 
     Hints and caveats:
-    - It is highly recommended to bandpass filter ECG and EOG
-    data and pass them instead of the channel names as ecg_ch and eog_ch
-    arguments.
-    - Please check your results. Detection by kurtosis and variance
-    can be powerful but misclassification of brain signals as
-    noise cannot be precluded. If you are not sure set those to None.
-    - Consider using shorter times for start_find and stop_find than
-    for start and stop. It can save you much time.
 
-    Example invocation (taking advantage of defaults):
+        - It is highly recommended to bandpass filter ECG and EOG
+          data and pass them instead of the channel names as ecg_ch and eog_ch
+          arguments.
+        - Please check your results. Detection by kurtosis and variance
+          can be powerful but misclassification of brain signals as
+          noise cannot be precluded. If you are not sure set those to None.
+        - Consider using shorter times for start_find and stop_find than
+          for start and stop. It can save you much time.
 
-    ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
-                  ecg_ch='MEG 1531', eog_ch='EOG 061')
+    Example invocation (taking advantage of defaults)::
+
+        ica = run_ica(raw, n_components=.9, start_find=10000, stop_find=12000,
+                      ecg_ch='MEG 1531', eog_ch='EOG 061')
 
     Parameters
     ----------
@@ -1977,8 +1985,8 @@ def run_ica(raw, n_components, max_pca_components=100,
         The number of PCA components used after ICA recomposition. The ensuing
         attribute allows to balance noise reduction against potential loss of
         features due to dimensionality reduction. If greater than
-        self.n_components_, the next 'n_pca_components' minus
-        'n_components_' PCA components will be added before restoring the
+        ``self.n_components_``, the next ``'n_pca_components'`` minus
+        ``'n_components_'`` PCA components will be added before restoring the
         sensor space data. The attribute gets updated each time the according
         parameter for in .pick_sources_raw or .pick_sources_epochs is changed.
     noise_cov : None | instance of mne.cov.Covariance
@@ -2008,11 +2016,11 @@ def run_ica(raw, n_components, max_pca_components=100,
         interpreted as time in seconds. If None, data will be used to the last
         sample.
     ecg_ch : str | ndarray | None
-        The `target` argument passed to ica.find_sources_raw. Either the
+        The ``target`` argument passed to ica.find_sources_raw. Either the
         name of the ECG channel or the ECG time series. If None, this step
         will be skipped.
     ecg_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either
+        The ``score_func`` argument passed to ica.find_sources_raw. Either
         the name of function supported by ICA or a custom function.
     ecg_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
@@ -2021,12 +2029,12 @@ def run_ica(raw, n_components, max_pca_components=100,
         E.g. range(2) would return the two sources with the highest score.
         If None, this step will be skipped.
     eog_ch : list | str | ndarray | None
-        The `target` argument or the list of target arguments subsequently
+        The ``target`` argument or the list of target arguments subsequently
         passed to ica.find_sources_raw. Either the name of the vertical EOG
         channel or the corresponding EOG time series. If None, this step
         will be skipped.
     eog_score_func : str | callable
-        The `score_func` argument passed to ica.find_sources_raw. Either
+        The ``score_func`` argument passed to ica.find_sources_raw. Either
         the name of function supported by ICA or a custom function.
     eog_criterion : float | int | list-like | slice
         The indices of the sorted skewness scores. If float, sources with
@@ -2057,8 +2065,10 @@ def run_ica(raw, n_components, max_pca_components=100,
         (name : str, target : str | array, score_func : callable,
         criterion : float | int | list-like | slice). This parameter is a
         generalization of the artifact specific parameters above and has
-        the same structure. Example:
-        add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+        the same structure. Example::
+
+            add_nodes=('ECG phase lock', ECG 01', my_phase_lock_function, 0.5)
+
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 

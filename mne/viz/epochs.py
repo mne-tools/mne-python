@@ -19,8 +19,8 @@ from ..utils import create_chunks, verbose
 from ..io.pick import pick_types, channel_type
 from ..fixes import Counter
 from ..time_frequency import compute_epochs_psd
-from .utils import _mutable_defaults, tight_layout, _prepare_trellis
-from .utils import figure_nobar
+from .utils import tight_layout, _prepare_trellis, figure_nobar
+from ..defaults import _handle_default
 
 
 def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
@@ -69,15 +69,15 @@ def plot_image_epochs(epochs, picks=None, sigma=0.3, vmin=None,
         One figure per channel displayed
     """
     from scipy import ndimage
-    units, scalings = _mutable_defaults(('units', units),
-                                        ('scalings', scalings))
+    units = _handle_default('units', units)
+    scalings = _handle_default('scalings', scalings)
 
     import matplotlib.pyplot as plt
     if picks is None:
         picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
                            exclude='bads')
 
-    if list(units.keys()) != list(scalings.keys()):
+    if set(units.keys()) != set(scalings.keys()):
         raise ValueError('Scalings and units must have the same keys.')
 
     picks = np.atleast_1d(picks)
@@ -349,7 +349,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
-    scalings = _mutable_defaults(('scalings_plot_raw', scalings))[0]
+    scalings = _handle_default('scalings_plot_raw', scalings)
     if np.isscalar(epoch_idx):
         epoch_idx = [epoch_idx]
     if epoch_idx is None:

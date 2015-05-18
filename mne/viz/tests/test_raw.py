@@ -9,6 +9,7 @@ from numpy.testing import assert_raises
 
 from mne import io, read_events, pick_types
 from mne.utils import requires_scipy_version, run_tests_if_main
+from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
 import matplotlib
@@ -19,20 +20,6 @@ warnings.simplefilter('always')  # enable b/c these tests throw warnings
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(base_dir, 'test_raw.fif')
 event_name = op.join(base_dir, 'test-eve.fif')
-
-
-def _fake_click(fig, ax, point, xform='ax'):
-    """Helper to fake a click at a relative point within axes"""
-    if xform == 'ax':
-        x, y = ax.transAxes.transform_point(point)
-    elif xform == 'data':
-        x, y = ax.transData.transform_point(point)
-    else:
-        raise ValueError('unknown transform')
-    try:
-        fig.canvas.button_press_event(x, y, 1, False, None)
-    except:  # for old MPL
-        fig.canvas.button_press_event(x, y, 1, False)
 
 
 def _get_raw():
@@ -105,6 +92,7 @@ def test_plot_raw_filtered():
     raw.plot(highpass=1, lowpass=2)
 
 
+@requires_scipy_version('0.12')
 def test_plot_raw_psd():
     """Test plotting of raw psds
     """

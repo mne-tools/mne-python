@@ -426,6 +426,10 @@ def plot_events(events, sfreq=None, first_samp=0, color=None, event_id=None,
     -------
     fig : matplotlib.figure.Figure
         The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
 
     if sfreq is None:
@@ -554,6 +558,10 @@ def plot_dipole_amplitudes(dipoles, colors=None, show=True):
     -------
     fig : matplotlib.figure.Figure
         The figure object containing the plot.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import matplotlib.pyplot as plt
     if colors is None:

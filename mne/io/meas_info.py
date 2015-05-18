@@ -31,7 +31,7 @@ from ..externals.six import b, BytesIO, string_types, text_type
 
 
 _kind_dict = dict(
-    eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_V),
+    eeg=(FIFF.FIFFV_EEG_CH, FIFF.FIFFV_COIL_EEG, FIFF.FIFF_UNIT_V),
     mag=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_MAG_T3, FIFF.FIFF_UNIT_T),
     grad=(FIFF.FIFFV_MEG_CH, FIFF.FIFFV_COIL_VV_PLANAR_T1, FIFF.FIFF_UNIT_T_M),
     misc=(FIFF.FIFFV_MISC_CH, FIFF.FIFFV_COIL_NONE, FIFF.FIFF_UNIT_NONE),
@@ -1131,19 +1131,26 @@ def _merge_info(infos, verbose=None):
     return info
 
 
-def create_info(ch_names, sfreq, ch_types=None):
+def create_info(ch_names, sfreq, ch_types=None, montage=None):
     """Create a basic Info instance suitable for use with create_raw
 
     Parameters
     ----------
-    ch_names : list of str
-        Channel names.
+    ch_names : list of str | int
+        Channel names. If an int, a list of channel names will be created
+        from range(ch_names)
     sfreq : float
         Sample rate of the data.
     ch_types : list of str | str
         Channel types. If None, data are assumed to be misc.
         Currently supported fields are "mag", "grad", "eeg", and "misc".
         If str, then all channels are assumed to be of the same type.
+    montage : None | str | Montage | DigMontage | list
+        A montage containing channel positions. If str or Montage is
+        specified, the channel info will be updated with the channel
+        positions. Default is None. If DigMontage is specified, the
+        digitizer information will be updated. A list of unique montages,
+        can be specifed and applied to the info.
 
     Notes
     -----
@@ -1155,8 +1162,10 @@ def create_info(ch_names, sfreq, ch_types=None):
     Note that the MEG device-to-head transform ``info['dev_head_t']`` will
     be initialized to the identity transform.
     """
+    if isinstance(ch_names, int):
+        ch_names = list(np.arange(ch_names).astype(str))
     if not isinstance(ch_names, (list, tuple)):
-        raise TypeError('ch_names must be a list or tuple')
+        raise TypeError('ch_names must be a list, tuple, or int')
     sfreq = float(sfreq)
     if sfreq <= 0:
         raise ValueError('sfreq must be positive')
@@ -1187,6 +1196,21 @@ def create_info(ch_names, sfreq, ch_types=None):
                          unit=kind[2], coord_frame=FIFF.FIFFV_COORD_UNKNOWN,
                          ch_name=name, scanno=ci + 1, logno=ci + 1)
         info['chs'].append(chan_info)
+    if montage is not None:
+        from ..channels.montage import (Montage, DigMontage, _set_montage,
+                                        read_montage)
+        if not isinstance(montage, list):
+            montage = [montage]
+        for montage_ in montage:
+            if isinstance(montage_, (Montage, DigMontage)):
+                _set_montage(info, montage_)
+            elif isinstance(montage_, string_types):
+                montage_ = read_montage(montage_)
+                _set_montage(info, montage_)
+            else:
+                raise TypeError('Montage must be an instance of Montage, '
+                                'DigMontage, a list of montages, or filepath, '
+                                'not %s.' % type(montage))
     return info
 
 

@@ -1,6 +1,4 @@
+Introductory examples
+---------------------
 
-General examples
--------------------
-
-General-purpose and introductory examples to MNE.
-
+Introductory examples to MNE.

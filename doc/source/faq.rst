@@ -24,8 +24,8 @@ described in [1]_. For this the 'auto' option can be used. With this
 option cross-validation will be used to learn the optimal regularization::
 
     >>> import mne
-    >>> epochs = mne.read_epochs(epochs_path)
-    >>> cov = mne.compute_covariance(epochs, tmax=0., method='auto')
+    >>> epochs = mne.read_epochs(epochs_path) # doctest: +SKIP
+    >>> cov = mne.compute_covariance(epochs, tmax=0., method='auto') # doctest: +SKIP
 
 This procedure evaluates the noise covariance quantitatively by how well it whitens the data using the
 negative log-likelihood of unseen data. The final result can also be visually inspected.
@@ -37,8 +37,8 @@ Based on the same reasoning, the expected value for the global field power (GFP)
 is 1 (calculation of the GFP should take into account the true degrees of
 freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 
-    >>> evoked = epochs.average()
-    >>> evoked.plot_white(cov)
+    >>> evoked = epochs.average() # doctest: +SKIP
+    >>> evoked.plot_white(cov) # doctest: +SKIP
 
 This plot displays both, the whitened evoked signals for each channels and
 the whitened GFP. The numbers in the GFP panel represent the estimated rank of
@@ -57,9 +57,9 @@ introductory materials can be found [here](https://speakerdeck.com/dengemann/eeg
 
 For expert use cases or debugging the alternative estimators can also be compared::
 
-    >>> covs = mne.compute_covariance(epochs, tmax=0., method='auto', return_estimators=True)
-    >>> evoked = epochs.average()
-    >>> evoked.plot_white(covs)
+    >>> covs = mne.compute_covariance(epochs, tmax=0., method='auto', return_estimators=True) # doctest: +SKIP
+    >>> evoked = epochs.average() # doctest: +SKIP
+    >>> evoked.plot_white(covs) # doctest: +SKIP
 
 This will plot the whitened evoked for the optimal estimator and display the GFPs
 for all estimators as separate lines in the related panel.

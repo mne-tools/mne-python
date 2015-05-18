@@ -1,3 +1,9 @@
+# Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Denis Engemann <denis.engemann@gmail.com>
+#          Eric Larson <larson.eric.d@gmail.com>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 
 from .peak_finder import peak_finder
@@ -141,8 +147,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
     raw : instance of Raw
         The raw data
     ch_name : str
-        The name of the channel to use for ECG peak detection.
-        The argument is mandatory if the dataset contains no ECG channels.
+        The name of the channel to use for EOG peak detection.
+        The argument is mandatory if the dataset contains no EOG channels.
     event_id : int
         The index to assign to found events
     picks : array-like of int | None (default)
@@ -185,8 +191,8 @@ def create_eog_epochs(raw, ch_name=None, event_id=998, picks=None,
 
     Returns
     -------
-    ecg_epochs : instance of Epochs
-        Data epoched around ECG r-peaks.
+    eog_epochs : instance of Epochs
+        Data epoched around EOG events.
     """
     events = find_eog_events(raw, ch_name=ch_name, event_id=event_id,
                              l_freq=l_freq, h_freq=h_freq)

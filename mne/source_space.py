@@ -28,7 +28,7 @@ from .source_estimate import mesh_dist
 from .utils import (get_subjects_dir, run_subprocess, has_freesurfer,
                     has_nibabel, check_fname, logger, verbose,
                     check_scipy_version)
-from .fixes import in1d, partial, gzip_open
+from .fixes import in1d, partial, gzip_open, meshgrid
 from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t,
@@ -1068,7 +1068,7 @@ def vertex_to_mni(vertices, hemis, subject, subjects_dir=None, mode=None,
     if not len(hemis) == len(vertices):
         raise ValueError('hemi and vertices must match in length')
 
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
 
     surfs = [op.join(subjects_dir, subject, 'surf', '%s.white' % h)
              for h in ['lh', 'rh']]
@@ -1645,9 +1645,9 @@ def _make_volume_source_space(surf, grid, exclude, mindist, mri=None,
     ncol = ns[1]
     nplane = nrow * ncol
     # x varies fastest, then y, then z (can use unravel to do this)
-    rr = np.meshgrid(np.arange(minn[2], maxn[2] + 1),
-                     np.arange(minn[1], maxn[1] + 1),
-                     np.arange(minn[0], maxn[0] + 1), indexing='ij')
+    rr = meshgrid(np.arange(minn[2], maxn[2] + 1),
+                  np.arange(minn[1], maxn[1] + 1),
+                  np.arange(minn[0], maxn[0] + 1), indexing='ij')
     x, y, z = rr[2].ravel(), rr[1].ravel(), rr[0].ravel()
     rr = np.array([x * grid, y * grid, z * grid]).T
     sp = dict(np=npts, nn=np.zeros((npts, 3)), rr=rr,
@@ -2263,6 +2263,10 @@ def get_volume_labels_from_aseg(mgz_fname):
     -------
     label_names : list of str
         The names of segmented volumes included in this mgz file.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     import nibabel as nib
 

@@ -144,6 +144,7 @@ Functions:
    read_cov
    read_dipole
    read_epochs
+   read_epochs_kit
    read_events
    read_evokeds
    read_forward_solution
@@ -267,6 +268,16 @@ Visualization
 
 .. currentmodule:: mne.viz
 
+Classes:
+
+.. autosummary::
+   :toctree: generated/
+   :template: class.rst
+
+   ClickableImage
+
+Functions:
+
 .. autosummary::
    :toctree: generated/
    :template: function.rst
@@ -278,6 +289,7 @@ Visualization
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
+   plot_events
    plot_evoked
    plot_evoked_image
    plot_evoked_topomap
@@ -288,10 +300,10 @@ Visualization
    plot_ica_scores
    plot_ica_overlay
    plot_image_epochs
+   plot_montage
    plot_projs_topomap
    plot_raw
    plot_raw_psd
-   plot_events
    plot_snr_estimate
    plot_source_estimates
    plot_sparse_source_estimates
@@ -300,6 +312,7 @@ Visualization
    plot_topo_image_epochs
    plot_topomap
    compare_fiff
+   add_background_image
 
 .. currentmodule:: mne.io
 
@@ -335,7 +348,6 @@ Manipulate channels and set sensors locations for processing and plotting:
    :template: function.rst
 
    read_montage
-   apply_montage
    read_layout
    find_layout
    make_eeg_layout
@@ -343,6 +355,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    read_ch_connectivity
    equalize_channels
    rename_channels
+   generate_2d_layout
 
 :py:mod:`mne.preprocessing`:
 
@@ -375,6 +388,7 @@ EEG referencing:
    :toctree: generated/
    :template: function.rst
 
+   add_reference_channels
    set_bipolar_reference
    set_eeg_reference
 
@@ -474,6 +488,14 @@ Covariance
    make_ad_hoc_cov
    read_cov
    write_cov
+
+.. currentmodule:: mne.cov
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   regularize
 
 
 MRI Processing
@@ -657,7 +679,7 @@ Source Space Data
    morph_data
    morph_data_precomputed
    read_labels_from_annot
-   read_dip
+   read_dipole
    read_label
    read_source_estimate
    save_stc_as_volume
@@ -706,6 +728,10 @@ Functions that operate on mne-python objects:
    write_tfrs
 
 Functions that operate on ``np.ndarray`` objects:
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
 
    cwt_morlet
    dpss_windows

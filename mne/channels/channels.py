@@ -139,7 +139,7 @@ class ContainsMixin(object):
 class SetChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def get_channel_positions(self, picks=None):
+    def _get_channel_positions(self, picks=None):
         """Gets channel locations from info
 
         Parameters
@@ -147,6 +147,10 @@ class SetChannelsMixin(object):
         picks : array-like of int | None
             Indices of channels to include. If None (default), all meg and eeg
             channels that are available are returned (bad channels excluded).
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
@@ -158,7 +162,7 @@ class SetChannelsMixin(object):
                              '{} channels'.format(n_zero))
         return pos
 
-    def set_channel_positions(self, pos, names):
+    def _set_channel_positions(self, pos, names):
         """Update channel locations in info
 
         Parameters
@@ -167,6 +171,10 @@ class SetChannelsMixin(object):
             The channel positions to be set.
         names : list of str
             The names of the channels to be set.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         if len(pos) != len(names):
             raise ValueError('Number of channel positions not equal to '
@@ -196,6 +204,10 @@ class SetChannelsMixin(object):
         mapping : dict
             a dictionary mapping a channel to a sensor type (str)
             {'EEG061': 'eog'}.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         human2fiff = {'ecg': FIFF.FIFFV_ECG_CH,
                       'eeg': FIFF.FIFFV_EEG_CH,
@@ -265,8 +277,28 @@ class SetChannelsMixin(object):
         mapping : dict
             a dictionary mapping the old channel to a new channel name
             e.g. {'EEG061' : 'EEG161'}.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         rename_channels(self.info, mapping)
+
+    def set_montage(self, montage):
+        """Set EEG sensor configuration
+
+        Parameters
+        ----------
+        montage : instance of Montage or DigMontage
+
+        Notes
+        -----
+        Operates in place.
+
+        .. versionadded:: 0.9.0
+        """
+        from .montage import _set_montage
+        _set_montage(self.info, montage)
 
 
 class PickDropChannelsMixin(object):
@@ -277,12 +309,11 @@ class PickDropChannelsMixin(object):
                    resp=False, chpi=False, exci=False, ias=False, syst=False,
                    seeg=False, include=[], exclude='bads', selection=None,
                    copy=False):
-
         """Pick some channels by type and names
 
         Parameters
         ----------
-        meg : bool or string
+        meg : bool | str
             If True include all MEG channels. If False include None
             If string it can be 'mag', 'grad', 'planar1' or 'planar2' to select
             only magnetometers, all gradiometers, or a specific type of
@@ -314,18 +345,22 @@ class PickDropChannelsMixin(object):
         syst : bool
             System status channel information (on Triux systems only).
         seeg : bool
-            Stereotactic EEG channels
+            Stereotactic EEG channels.
         include : list of string
             List of additional channels to include. If empty do not include
             any.
         exclude : list of string | str
             List of channels to exclude. If 'bads' (default), exclude channels
-            in info['bads'].
+            in ``info['bads']``.
         selection : list of string
             Restrict sensor channels (MEG, EEG) to this list of channel names.
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
         idx = pick_types(
@@ -346,6 +381,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
 
@@ -364,6 +403,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         inst = self.copy() if copy else self
 
@@ -413,13 +456,41 @@ class PickDropChannelsMixin(object):
 class InterpolationMixin(object):
     """Mixin class for Raw, Evoked, Epochs
     """
-    def interpolate_bads_eeg(self):
-        """Interpolate bad channels
+
+    def interpolate_bads(self, reset_bads=True, mode='accurate'):
+        """Interpolate bad MEG and EEG channels.
 
         Operates in place.
+
+        Parameters
+        ----------
+        reset_bads : bool
+            If True, remove the bads from info.
+        mode : str
+            Either `'accurate'` or `'fast'`, determines the quality of the
+            Legendre polynomial expansion used for interpolation of MEG
+            channels.
+
+        Returns
+        -------
+        self : mne.io.Raw, mne.Epochs or mne.Evoked
+            The interpolated data.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
-        from .interpolation import _interpolate_bads_eeg
+        from .interpolation import _interpolate_bads_eeg, _interpolate_bads_meg
+
+        if getattr(self, 'preload', None) is False:
+            raise ValueError('Data must be preloaded.')
+
         _interpolate_bads_eeg(self)
+        _interpolate_bads_meg(self, mode=mode)
+
+        if reset_bads is True:
+            self.info['bads'] = []
+
         return self
 
 

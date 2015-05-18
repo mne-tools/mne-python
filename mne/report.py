@@ -20,7 +20,7 @@ from datetime import datetime as dt
 
 import numpy as np
 
-from . import read_evokeds, read_events, pick_types, Covariance
+from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
 from .utils import _TempDir, logger, verbose, get_subjects_dir, deprecated
 from .viz import plot_events, plot_trans, plot_cov
@@ -82,7 +82,11 @@ def _scale_mpl_figure(fig, scale):
         sfactor = -((1. / scale) ** 2)
     for text in fig.findobj(mpl.text.Text):
         fs = text.get_fontsize()
-        text.set_fontsize(fs + sfactor)
+        new_size = fs + sfactor
+        if new_size <= 0:
+            raise ValueError('could not rescale matplotlib fonts, consider '
+                             'increasing "scale"')
+        text.set_fontsize(new_size)
 
     fig.canvas.draw()
 
@@ -136,6 +140,9 @@ def _is_bad_fname(fname):
     """Auxiliary function for identifying bad file naming patterns
        and highlighting them in red in the TOC.
     """
+    if fname.endswith('(whitened)'):
+        fname = fname[:-11]
+
     if not fname.endswith(tuple(VALID_EXTENSIONS + ['bem', 'custom'])):
         return 'red'
     else:
@@ -187,6 +194,10 @@ def _get_toc_property(fname):
         div_klass = 'mri'
         tooltip = 'MRI'
         text = 'MRI'
+    elif fname.endswith('(whitened)'):
+        div_klass = 'evoked'
+        tooltip = fname
+        text = op.basename(fname[:-11]) + '(whitened)'
     else:
         div_klass = fname.split('-#-')[1]
         tooltip = fname.split('-#-')[0]
@@ -195,10 +206,17 @@ def _get_toc_property(fname):
     return div_klass, tooltip, text
 
 
-def _iterate_files(report, fnames, info, sfreq):
+def _iterate_files(report, fnames, info, cov, baseline, sfreq, on_error):
     """Auxiliary function to parallel process in batch mode.
     """
     htmls, report_fnames, report_sectionlabels = [], [], []
+
+    def _update_html(html, report_fname, report_sectionlabel):
+        """Update the lists above."""
+        htmls.append(html)
+        report_fnames.append(report_fname)
+        report_sectionlabels.append(report_sectionlabel)
+
     for fname in fnames:
         logger.info("Rendering : %s"
                     % op.join('...' + report.data_path[-20:],
@@ -218,7 +236,13 @@ def _iterate_files(report, fnames, info, sfreq):
                 report_fname = fname
                 report_sectionlabel = 'inverse'
             elif fname.endswith(('-ave.fif', '-ave.fif.gz')):
-                html = report._render_evoked(fname)
+                if cov is not None:
+                    html = report._render_whitened_evoked(fname, cov, baseline)
+                    report_fname = fname + ' (whitened)'
+                    report_sectionlabel = 'evoked'
+                    _update_html(html, report_fname, report_sectionlabel)
+
+                html = report._render_evoked(fname, baseline)
                 report_fname = fname
                 report_sectionlabel = 'evoked'
             elif fname.endswith(('-eve.fif', '-eve.fif.gz')):
@@ -247,13 +271,14 @@ def _iterate_files(report, fnames, info, sfreq):
                 report_fname = None
                 report_sectionlabel = None
         except Exception as e:
-            logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+            if on_error == 'warn':
+                logger.warning('Failed to process file %s:\n"%s"' % (fname, e))
+            elif on_error == 'raise':
+                raise
             html = None
             report_fname = None
             report_sectionlabel = None
-        htmls.append(html)
-        report_fnames.append(report_fname)
-        report_sectionlabels.append(report_sectionlabel)
+        _update_html(html, report_fname, report_sectionlabel)
 
     return htmls, report_fnames, report_sectionlabels
 
@@ -650,6 +675,12 @@ toc_list = Template(u"""
 """)
 
 
+def _check_scale(scale):
+    """Helper to ensure valid scale value is passed"""
+    if np.isscalar(scale) and scale <= 0:
+        raise ValueError('scale must be positive, not %s' % scale)
+
+
 class Report(object):
     """Object for rendering HTML
 
@@ -664,14 +695,29 @@ class Report(object):
         Subject name.
     title : str
         Title of the report.
+    cov_fname : str
+        Name of the file containing the noise covariance.
+    baseline : None or tuple of length 2 (default (None, 0))
+        The time interval to apply baseline correction for evokeds.
+        If None do not apply it. If baseline is (a, b)
+        the interval is between "a (s)" and "b (s)".
+        If a is None the beginning of the data is used
+        and if b is None then b is set to the end of the interval.
+        If baseline is equal to (None, None) all the time
+        interval is used.
+        The baseline (a, b) includes both endpoints, i.e. all
+        timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
     """
 
-    def __init__(self, info_fname=None, subjects_dir=None, subject=None,
-                 title=None, verbose=None):
+    def __init__(self, info_fname=None, subjects_dir=None,
+                 subject=None, title=None, cov_fname=None, baseline=None,
+                 verbose=None):
 
         self.info_fname = info_fname
+        self.cov_fname = cov_fname
+        self.baseline = baseline
         self.subjects_dir = get_subjects_dir(subjects_dir, raise_error=False)
         self.subject = subject
         self.title = title
@@ -732,12 +778,13 @@ class Report(object):
             # on some version mayavi.core won't be exposed unless ...
             from mayavi import mlab  # noqa, mlab imported
             import mayavi
-        except ImportError:
+        except:  # on some systems importing Mayavi raises SystemExit (!)
             warnings.warn('Could not import mayavi. Trying to render '
                           '`mayavi.core.scene.Scene` figure instances'
                           ' will throw an error.')
         figs, captions, comments = self._validate_input(figs, captions,
                                                         section, comments)
+        _check_scale(scale)
         for fig, caption, comment in zip(figs, captions, comments):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
@@ -767,7 +814,7 @@ class Report(object):
                                              caption=caption,
                                              show=True,
                                              image_format=image_format,
-                                             width=scale, comment=comment)
+                                             comment=comment)
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
@@ -809,10 +856,10 @@ class Report(object):
             will be appended to the end of the section
         scale : float | None | callable
             Scale the images maintaining the aspect ratio.
-            If None, no scaling is applied.
-            If float, scale will determine the relative width in percent.
-            If function, should take a figure object as input parameter.
-            Defaults to None.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
         image_format : {'png', 'svg'}
             The image format to be used for the report. Defaults to 'png'.
         comments : None | str | list of str
@@ -850,6 +897,7 @@ class Report(object):
         from PIL import Image
         fnames, captions, comments = self._validate_input(fnames, captions,
                                                           section, comments)
+        _check_scale(scale)
 
         for fname, caption, comment in zip(fnames, captions, comments):
             caption = 'custom plot' if caption == '' else caption
@@ -886,6 +934,10 @@ class Report(object):
         section : str
             Name of the section. If section already exists, the images
             will be appended to the end of the section.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         htmls, captions, _ = self._validate_input(htmls, captions, section)
         for html, caption in zip(htmls, captions):
@@ -917,6 +969,10 @@ class Report(object):
         subjects_dir : str | None
             Path to the SUBJECTS_DIR. If None, the path is obtained by using
             the environment variable SUBJECTS_DIR.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         caption = 'custom plot' if caption == '' else caption
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
@@ -928,7 +984,6 @@ class Report(object):
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
         self._sectionlabels.append(sectionvar)
         self.html.extend(html)
-        return
 
     ###########################################################################
     # HTML rendering
@@ -987,7 +1042,7 @@ class Report(object):
 
     @verbose
     def parse_folder(self, data_path, pattern='*.fif', n_jobs=1, mri_decim=2,
-                     sort_sections=True, verbose=None):
+                     sort_sections=True, on_error='warn', verbose=None):
         """Renders all the files in the folder.
 
         Parameters
@@ -997,7 +1052,7 @@ class Report(object):
             created.
         pattern : str | list of str
             Filename pattern(s) to include in the report.
-            Example: [*raw.fif, *ave.fif] will include Raw as well as Evoked
+            Example: [\*raw.fif, \*ave.fif] will include Raw as well as Evoked
             files.
         n_jobs : int
           Number of jobs to run in parallel.
@@ -1006,10 +1061,17 @@ class Report(object):
             (since it can be time consuming).
         sort_sections : bool
             If True, sort sections in the order: raw -> events -> epochs
-             -> evoked -> covariance -> trans -> mri -> forward -> inverse
+             -> evoked -> covariance -> trans -> mri -> forward -> inverse.
+        on_error : str
+            What to do if a file cannot be rendered. Can be 'ignore',
+            'warn' (default), or 'raise'.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
         """
+        valid_errors = ['ignore', 'warn', 'raise']
+        if on_error not in valid_errors:
+            raise ValueError('on_error must be one of %s, not %s'
+                             % (valid_errors, on_error))
         self._sort = sort_sections
 
         n_jobs = check_n_jobs(n_jobs)
@@ -1034,13 +1096,18 @@ class Report(object):
                           '-cov.fif(.gz) and -trans.fif(.gz) files.')
             info, sfreq = None, None
 
+        cov = None
+        if self.cov_fname is not None:
+            cov = read_cov(self.cov_fname)
+        baseline = self.baseline
+
         # render plots in parallel; check that n_jobs <= # of files
         logger.info('Iterating over %s potential files (this may take some '
                     'time)' % len(fnames))
         use_jobs = min(n_jobs, max(1, len(fnames)))
         parallel, p_fun, _ = parallel_func(_iterate_files, use_jobs)
-        r = parallel(p_fun(self, fname, info, sfreq) for fname in
-                     np.array_split(fnames, use_jobs))
+        r = parallel(p_fun(self, fname, info, cov, baseline, sfreq, on_error)
+                     for fname in np.array_split(fnames, use_jobs))
         htmls, report_fnames, report_sectionlabels = zip(*r)
 
         # combine results from n_jobs discarding plots not rendered
@@ -1154,13 +1221,17 @@ class Report(object):
                     div_klass, tooltip, text = _get_toc_property(fname)
 
                     # loop through conditions for evoked
-                    if fname.endswith(('-ave.fif', '-ave.fif.gz')):
+                    if fname.endswith(('-ave.fif', '-ave.fif.gz',
+                                      '(whitened)')):
+                        text = os.path.basename(fname)
+                        if fname.endswith('(whitened)'):
+                            fname = fname[:-11]
                         # XXX: remove redundant read_evokeds
                         evokeds = read_evokeds(fname, verbose=False)
 
                         html_toc += toc_list.substitute(
                             div_klass=div_klass, id=None, tooltip=fname,
-                            color='#428bca', text=os.path.basename(fname))
+                            color='#428bca', text=text)
 
                         html_toc += u'<li class="evoked"><ul>'
                         for ev in evokeds:
@@ -1356,10 +1427,10 @@ class Report(object):
                                         repr=repr_inv)
         return html
 
-    def _render_evoked(self, evoked_fname, figsize=None):
+    def _render_evoked(self, evoked_fname, baseline=None, figsize=None):
         """Render evoked.
         """
-        evokeds = read_evokeds(evoked_fname, verbose=False)
+        evokeds = read_evokeds(evoked_fname, baseline=baseline, verbose=False)
 
         html = []
         for ev in evokeds:
@@ -1440,7 +1511,7 @@ class Report(object):
         """Render cov.
         """
         global_id = self._get_id()
-        cov = Covariance(cov_fname)
+        cov = read_cov(cov_fname)
         fig, _ = plot_cov(cov, info_fname, show=False)
         img = _fig_to_img(fig=fig)
         caption = 'Covariance : %s (n_samples: %s)' % (cov_fname, cov.nfree)
@@ -1453,6 +1524,35 @@ class Report(object):
                                          caption=caption,
                                          show=show)
         return html
+
+    def _render_whitened_evoked(self, evoked_fname, noise_cov, baseline):
+        """Show whitened evoked.
+        """
+        global_id = self._get_id()
+
+        evokeds = read_evokeds(evoked_fname, verbose=False)
+
+        html = []
+        for ev in evokeds:
+
+            ev = read_evokeds(evoked_fname, ev.comment, baseline=baseline,
+                              verbose=False)
+
+            global_id = self._get_id()
+
+            kwargs = dict(noise_cov=noise_cov, show=False)
+            img = _fig_to_img(ev.plot_white, **kwargs)
+
+            caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
+            div_klass = 'whitened-evoked'
+            img_klass = 'whitened-evoked'
+            show = True
+            html.append(image_template.substitute(img=img, id=global_id,
+                                                  div_klass=div_klass,
+                                                  img_klass=img_klass,
+                                                  caption=caption,
+                                                  show=show))
+        return '\n'.join(html)
 
     def _render_trans(self, trans, path, info, subject,
                       subjects_dir, image_format='png'):

@@ -179,6 +179,10 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     -------
     sphere : dict
         A spherical BEM.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]

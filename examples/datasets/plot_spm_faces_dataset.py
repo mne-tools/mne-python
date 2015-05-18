@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ==========================================
 From raw data to dSPM on SPM Faces dataset
@@ -9,6 +10,8 @@ Runs a full pipeline using MNE-Python:
 - forward model computation
 - source reconstruction using dSPM on the contrast : "faces - scrambled"
 
+Note that this example does quite a bit of processing, so even on a
+fast machine it can take about 10 minutes to complete.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -112,15 +115,11 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
 # Compute inverse solution on contrast
-stc = apply_inverse(contrast, inverse_operator, lambda2, method,
-                    pick_normal=False)
+stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
-# plot constrast
-# Plot brain in 3D with PySurfer if available. Note that the subject name
-# is already known by the SourceEstimate stc object.
-brain = stc.plot(surface='inflated', hemi='both', subjects_dir=subjects_dir,
-                 transparent=True, clim='auto')
+# Plot contrast in 3D with PySurfer if available
+brain = stc.plot(hemi='both', subjects_dir=subjects_dir, clim='auto')
 brain.set_time(170.0)  # milliseconds
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')

@@ -119,39 +119,49 @@ def test_limits_to_control_points():
     vertices = [s['vertno'] for s in sample_src]
     n_time = 5
     n_verts = sum(len(v) for v in vertices)
-    stc_data = np.zeros((n_verts * n_time))
-    stc_data[(np.random.rand(20) * n_verts * n_time).astype(int)] = 1
+    stc_data = np.random.rand((n_verts * n_time))
     stc_data.shape = (n_verts, n_time)
-    stc = SourceEstimate(stc_data, vertices, 1, 1)
+    stc = SourceEstimate(stc_data, vertices, 1, 1, 'sample')
+
+    # Test for simple use cases
+    from mayavi import mlab
+    mlab.close()
+    stc.plot(clim='auto', subjects_dir=subjects_dir)
+    stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
+    stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
+             subjects_dir=subjects_dir)
+    with warnings.catch_warnings(record=True):  # dep
+        stc.plot(fmin=1, subjects_dir=subjects_dir)
+    stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
+    stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
+    figs = [mlab.figure(), mlab.figure()]
+    assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs)
 
     # Test both types of incorrect limits key (lims/pos_lims)
-    clim = dict(kind='value', lims=(5, 10, 15))
-    colormap = 'mne_analyze'
-    assert_raises(KeyError, plot_source_estimates, stc, 'sample',
-                  colormap=colormap, clim=clim)
-
-    clim = dict(kind='value', pos_lims=(5, 10, 15))
-    colormap = 'hot'
-    assert_raises(KeyError, plot_source_estimates, stc, 'sample',
-                  colormap=colormap, clim=clim)
+    assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
+                  clim=dict(kind='value', lims=(5, 10, 15)))
+    assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)))
 
     # Test for correct clim values
-    clim['pos_lims'] = (5, 10, 15, 20)
-    colormap = 'mne_analyze'
-    assert_raises(ValueError, plot_source_estimates, stc, 'sample',
-                  colormap=colormap, clim=clim)
-    clim = 'foo'
-    assert_raises(ValueError, plot_source_estimates, stc, 'sample',
-                  colormap=colormap, clim=clim)
-    clim = (5, 10, 15)
-    assert_raises(ValueError, plot_source_estimates, stc, 'sample',
-                  colormap=colormap, clim=clim)
+    colormap = 'mne'
+    assert_raises(ValueError, stc.plot, colormap=colormap,
+                  clim=dict(pos_lims=(5, 10, 15, 20)))
+    assert_raises(ValueError, stc.plot, colormap=colormap,
+                  clim=dict(pos_lims=(5, 10, 15), kind='foo'))
+    assert_raises(ValueError, stc.plot, colormap=colormap,
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)), fmin=1)
+    assert_raises(ValueError, stc.plot, colormap=colormap, clim='foo')
+    assert_raises(ValueError, stc.plot, colormap=colormap, clim=(5, 10, 15))
+    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto')
+    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto')
 
     # Test that stc.data contains enough unique values to use percentages
     clim = 'auto'
     stc._data = np.zeros_like(stc.data)
-    assert_raises(ValueError, plot_source_estimates, stc, 'sample',
+    assert_raises(ValueError, plot_source_estimates, stc,
                   colormap=colormap, clim=clim)
+    mlab.close()
 
 
 @testing.requires_testing_data

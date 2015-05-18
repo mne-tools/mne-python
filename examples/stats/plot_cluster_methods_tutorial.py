@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ======================================================
 Permutation t-test on toy data with spatial clustering
@@ -45,6 +46,9 @@ this is also FWER corrected. Finally, combining the TFCE and "hat"
 methods tightens the area declared significant (again FWER corrected),
 and allows for evaluation of each point independently instead of as
 a single, broad cluster.
+
+Note that this example does quite a bit of processing, so even on a
+fast machine it can take a few minutes to complete.
 """
 # Authors: Eric Larson <larson.eric.d@gmail.com>
 # License: BSD (3-clause)

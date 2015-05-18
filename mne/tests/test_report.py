@@ -73,7 +73,7 @@ def test_render_report():
     report = Report(info_fname=raw_fname_new, subjects_dir=subjects_dir)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
-        report.parse_folder(data_path=tempdir)
+        report.parse_folder(data_path=tempdir, on_error='raise')
     assert_true(len(w) >= 1)
 
     # Check correct paths and filenames
@@ -134,6 +134,12 @@ def test_render_add_sections():
                                image_format='svg')
     assert_raises(ValueError, report.add_figs_to_section, figs=[fig, fig],
                   captions='H')
+    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+                  captions=['foo'], scale=0, image_format='svg')
+    assert_raises(ValueError, report.add_figs_to_section, figs=fig,
+                  captions=['foo'], scale=1e-10, image_format='svg')
+    # need to recreate because calls above change size
+    fig = plt.plot([1, 2], [1, 2])[0].figure
 
     # Check add_images_to_section
     img_fname = op.join(tempdir, 'testimage.png')

@@ -18,9 +18,9 @@ from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
 from .utils import (_check_pandas_installed, check_fname, logger, verbose,
                     object_hash, deprecated, _time_mask)
-from .viz import plot_evoked, plot_evoked_topomap, _mutable_defaults
-from .viz import plot_evoked_field
-from .viz import plot_evoked_image
+from .defaults import _handle_default
+from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
+                  plot_evoked_image)
 from .viz.evoked import _plot_evoked_white
 from .externals.six import string_types
 
@@ -472,20 +472,21 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             but vmax is not, defaults to np.min(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
-            Colormap. Defaults to 'RdBu_r'
+            Colormap. Defaults to 'RdBu_r'.
         sensors : bool | str
             Add markers for sensor locations to the plot. Accepts matplotlib
             plot format string (e.g., 'r+' for red plusses). If True, a circle
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        scale : float | None
+        scale : dict | float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
         scale_time : float | None
             Scale the time labels. Defaults to 1e3 (ms).
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
+        unit : dict | str | None
+            The unit of the channel type used for colorbar label. If
+            scale is None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -494,7 +495,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         cbar_fmt : str
             String format for colorbar values.
         time_format : str
-            String format for topomap values. Defaults to "%01d ms"
+            String format for topomap values. Defaults to ``"%01d ms"``.
         proj : bool | 'interactive'
             If true SSP projections are applied before display. If
             'interactive', a check box for reversible selection of SSP
@@ -516,8 +517,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         mask_params : dict | None
             Additional plotting parameters for plotting significant sensors.
             Default (None) equals:
-            dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                 linewidth=0, markersize=4)
+            ``dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+            linewidth=0, markersize=4)``.
         outlines : 'head' | dict | None
             The outlines to be drawn. If 'head', a head scheme will be drawn.
             If dict, each key refers to a tuple of x and y positions.
@@ -581,10 +582,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Plot whitened evoked response
 
         Plots the whitened evoked response and the whitened GFP as described in
-        [1]. If one single covariance object is passed, the GFP panel (bottom)
-        will depict different sensor sensor types. If multiple covariance
-        objects are passed as a list, the left column will display the whitened
-        evoked responses for each channel based on the whitener from the noise
+        [1]_. If one single covariance object is passed, the GFP panel (bottom)
+        will depict different sensor types. If multiple covariance objects are
+        passed as a list, the left column will display the whitened evoked
+        responses for each channel based on the whitener from the noise
         covariance that has the highest log-likelihood. The left column will
         depict the whitened GFPs based on each estimator separately for each
         sensor type. Instead of numbers of channels the GFP display shows the
@@ -606,9 +607,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         References
         ----------
-        [1] Engemann D. and Gramfort A. (2015) Automated model selection in
-            covariance estimation and spatial whitening of MEG and EEG signals,
-            vol. 108, 328-342, NeuroImage.
+        .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
+               covariance estimation and spatial whitening of MEG and EEG
+               signals, vol. 108, 328-342, NeuroImage.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
@@ -687,7 +692,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
@@ -734,6 +739,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -------
         evoked : instance of mne.Evoked
             The transformed evoked object containing only virtual channels.
+
+        Notes
+        -----
+        .. versionadded:: 0.9.0
         """
         from .forward import _as_meg_type_evoked
         return _as_meg_type_evoked(self, ch_type=ch_type, mode=mode)
@@ -983,14 +992,13 @@ def _get_evoked_node(fname):
     return evoked_node
 
 
-def grand_average(all_evoked, interpolate_bads='eeg'):
+def grand_average(all_evoked, interpolate_bads=True):
     """Make grand average of a list evoked data
 
     The function interpolates bad channels based on `interpolate_bads`
-    parameter. If `interpolate_bads` is equal to 'eeg' the grand average
-    file will only contain the MEG channels that are marked good
-    in all of the evoked datasets. The EEG channels markeds as
-    bad will be interpolated.
+    parameter. If `interpolate_bads` is True, the grand average
+    file will contain good channels and the bad channels interpolated
+    from the good MEG/EEG channels.
 
     The grand_average.nave attribute will be equal the number
     of evoked datasets used to calculate the grand average.
@@ -1001,30 +1009,28 @@ def grand_average(all_evoked, interpolate_bads='eeg'):
     ----------
     all_evoked : list of Evoked data
         The evoked datasets.
-    interpolate_bads : str | None
-        The type of bad channels that are interpolated.
-        Currently only EEG channels can be interpolated.
-        If None no channels are interpolated.
-        Defaults to 'eeg'.
+    interpolate_bads : bool
+        If True, bad MEG and EEG channels are interpolated.
 
     Returns
     -------
     grand_average : Evoked
         The grand average data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     # check if all elements in the given list are evoked data
     if not all(isinstance(e, Evoked) for e in all_evoked):
         raise ValueError("Not all the elements in list are evoked data")
 
-    if interpolate_bads != 'eeg':
-        raise ValueError('Only EEG channels can be interpolated currently.')
-
     # Copy channels to leave the original evoked datasets intact.
     all_evoked = [e.copy() for e in all_evoked]
 
     # Interpolates if necessary
-    if interpolate_bads == 'eeg':
-        all_evoked = [e.interpolate_bads_eeg() if len(e.info['bads']) > 0
+    if interpolate_bads:
+        all_evoked = [e.interpolate_bads() if len(e.info['bads']) > 0
                       else e for e in all_evoked]
 
     equalize_channels(all_evoked)  # apply equalize_channels
@@ -1076,6 +1082,10 @@ def combine_evoked(all_evoked, weights='nave'):
     -------
     evoked : Evoked
         The new evoked data.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
     evoked = all_evoked[0].copy()
     if isinstance(weights, string_types):

@@ -11,13 +11,11 @@ from __future__ import print_function
 # License: Simplified BSD
 
 import math
-from copy import deepcopy
 from functools import partial
 import difflib
 import webbrowser
 from warnings import warn
 import tempfile
-
 import numpy as np
 
 from ..io import show_fiff
@@ -26,49 +24,6 @@ from ..utils import verbose
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
           '#CD7F32', '#FF4040', '#ADFF2F', '#8E2323', '#FF1493']
-
-DEFAULTS = dict(color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
-                           emg='k', ref_meg='steelblue', misc='k', stim='k',
-                           resp='k', chpi='k', exci='k', ias='k', syst='k',
-                           seeg='k'),
-                units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU',
-                           seeg='uV'),
-                scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0,
-                              seeg=1e4),
-                scalings_plot_raw=dict(mag=1e-12, grad=4e-11, eeg=20e-6,
-                                       eog=150e-6, ecg=5e-4, emg=1e-3,
-                                       ref_meg=1e-12, misc=1e-3,
-                                       stim=1, resp=1, chpi=1e-4, exci=1,
-                                       ias=1, syst=1, seeg=1e-5),
-                ylim=dict(mag=(-600., 600.), grad=(-200., 200.),
-                          eeg=(-200., 200.), misc=(-5., 5.),
-                          seeg=(-200., 200.)),
-                titles=dict(eeg='EEG', grad='Gradiometers',
-                            mag='Magnetometers', misc='misc', seeg='sEEG'),
-                mask_params=dict(marker='o',
-                                 markerfacecolor='w',
-                                 markeredgecolor='k',
-                                 linewidth=0,
-                                 markeredgewidth=1,
-                                 markersize=4))
-
-
-def _mutable_defaults(*mappings):
-    """ To avoid dicts as default keyword arguments
-
-    Use this function instead to resolve default dict values.
-    Example usage:
-    scalings, units = _mutable_defaults(('scalings', scalings,
-                                         'units', units))
-    """
-    out = []
-    for k, v in mappings:
-        this_mapping = DEFAULTS[k]
-        if v is not None:
-            this_mapping = deepcopy(DEFAULTS[k])
-            this_mapping.update(v)
-        out += [this_mapping]
-    return out
 
 
 def _setup_vmin_vmax(data, vmin, vmax):
@@ -386,3 +341,151 @@ def figure_nobar(*args, **kwargs):
     finally:
         mpl.rcParams['toolbar'] = old_val
     return fig
+
+
+class ClickableImage(object):
+
+    """
+    Display an image so you can click on it and store x/y positions.
+
+    Takes as input an image array (can be any array that works with imshow,
+    but will work best with images.  Displays the image and lets you
+    click on it.  Stores the xy coordinates of each click, so now you can
+    superimpose something on top of it.
+
+    Upon clicking, the x/y coordinate of the cursor will be stored in
+    self.coords, which is a list of (x, y) tuples.
+
+    Parameters
+    ----------
+    imdata: ndarray
+        The image that you wish to click on for 2-d points.
+    **kwargs : dict
+        Keyword arguments. Passed to ax.imshow.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+
+    """
+
+    def __init__(self, imdata, **kwargs):
+        """Display the image for clicking."""
+        from matplotlib.pyplot import figure, show
+        self.coords = []
+        self.imdata = imdata
+        self.fig = figure()
+        self.ax = self.fig.add_subplot(111)
+        self.ymax = self.imdata.shape[0]
+        self.xmax = self.imdata.shape[1]
+        self.im = self.ax.imshow(imdata, aspect='auto',
+                                 extent=(0, self.xmax, 0, self.ymax),
+                                 picker=True, **kwargs)
+        self.ax.axis('off')
+        self.fig.canvas.mpl_connect('pick_event', self.onclick)
+        show()
+
+    def onclick(self, event):
+        """Mouse click handler.
+
+        Parameters
+        ----------
+        event: matplotlib event object
+            The matplotlib object that we use to get x/y position.
+        """
+        mouseevent = event.mouseevent
+        self.coords.append((mouseevent.xdata, mouseevent.ydata))
+
+    def plot_clicks(self, **kwargs):
+        """Plot the x/y positions stored in self.coords.
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Arguments are passed to imshow in displaying the bg image.
+        """
+        from matplotlib.pyplot import subplots, show
+        f, ax = subplots()
+        ax.imshow(self.imdata, extent=(0, self.xmax, 0, self.ymax), **kwargs)
+        xlim, ylim = [ax.get_xlim(), ax.get_ylim()]
+        xcoords, ycoords = zip(*self.coords)
+        ax.scatter(xcoords, ycoords, c='r')
+        ann_text = np.arange(len(self.coords)).astype(str)
+        for txt, coord in zip(ann_text, self.coords):
+            ax.annotate(txt, coord, fontsize=20, color='r')
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        show()
+
+    def to_layout(self, **kwargs):
+        """Turn coordinates into an MNE Layout object.
+
+        Normalizes by the image you used to generate clicks
+
+        Parameters
+        ----------
+        **kwargs : dict
+            Arguments are passed to generate_2d_layout
+        """
+        from mne.channels.layout import generate_2d_layout
+        coords = np.array(self.coords)
+        lt = generate_2d_layout(coords, bg_image=self.imdata, **kwargs)
+        return lt
+
+
+def _fake_click(fig, ax, point, xform='ax'):
+    """Helper to fake a click at a relative point within axes."""
+    if xform == 'ax':
+        x, y = ax.transAxes.transform_point(point)
+    elif xform == 'data':
+        x, y = ax.transData.transform_point(point)
+    else:
+        raise ValueError('unknown transform')
+    try:
+        fig.canvas.button_press_event(x, y, 1, False, None)
+    except Exception:  # for old MPL
+        fig.canvas.button_press_event(x, y, 1, False)
+
+
+def add_background_image(fig, im, set_ratios=None):
+    """Add a background image to a plot.
+
+    Adds the image specified in `im` to the
+    figure `fig`. This is generally meant to
+    be done with topo plots, though it could work
+    for any plot.
+
+    Note: This modifies the figure and/or axes
+    in place.
+
+    Parameters
+    ----------
+    fig: plt.figure
+        The figure you wish to add a bg image to.
+    im: ndarray
+        A numpy array that works with a call to
+        plt.imshow(im). This will be plotted
+        as the background of the figure.
+    set_ratios: None | str
+        Set the aspect ratio of any axes in fig
+        to the value in set_ratios. Defaults to None,
+        which does nothing to axes.
+
+    Returns
+    -------
+    ax_im: instance of the create matplotlib axis object
+        corresponding to the image you added.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+
+    """
+    if set_ratios is not None:
+        for ax in fig.axes:
+            ax.set_aspect(set_ratios)
+
+    ax_im = fig.add_axes([0, 0, 1, 1])
+    ax_im.imshow(im, aspect='auto')
+    ax_im.set_zorder(-1)
+    return ax_im

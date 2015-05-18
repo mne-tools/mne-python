@@ -116,6 +116,8 @@ General code guidelines
 More mne-python specific guidelines
 -----------------------------------
 
+* Please, ideally address one and only one issue per pull request (PR).
+* Avoid unnecessary cosmetic changes if they are not the goal of the PR, this will help keep the diff clean and facilitate reviewing.
 * Use underscores to separate words in non class names: n_samples rather than nsamples.
 * Use CamelCase for class names.
 * Use relative imports for references inside mne-python.
@@ -125,6 +127,18 @@ More mne-python specific guidelines
 * Efforts to improve test timing without decreasing coverage is well appreciated. To see the top-30 tests in order of decreasing timing, run the following command::
 
     nosetests --with-timer --timer-top-n 30
+
+* Instance methods that update the state of the object should return self.
+* Use single quotes whenever possible.
+* Prefer generator or list comprehensions over ``filter``, ``map`` and other functional idioms.
+* Use explicit functional constructors for builtin containers to improve readability. E.g. ``list()``, ``dict()``.
+* Avoid nested functions if not necessary and use private functions instead.
+* When adding visualization methods, add public functions to the mne.viz package and use these in the corresponding method.
+* If not otherwise required, methods should deal with state while functions should return copies. There are a few justified exceptions though, e.g. ``equalize_channels``, for memory reasons for example.
+* Update the whats_new.rst file at the end, otherwise merge conflicts are guaranteed to occur.
+* Avoid **kwargs and *args in function signatures, they are not user friendly (inspection).
+* Avoid single character variable names if you can. They are not readable and often they don't comply with the builtin debugger.
+* Add at least some brief comment to a private function to help us guess what it does. For complex private functions please write a full documentation.
 
 Profiling in Python
 -------------------
@@ -248,19 +262,19 @@ These steps can be broken out to be more explicit as:
    Just for your own satisfaction, show yourself that you now have a new
    'remote', with ``git remote -v show``, giving you something like::
 
-    upstream   git://github.com/mne-tools/mne-python.git (fetch)
-    upstream   git://github.com/mne-tools/mne-python.git (push)
-    origin     git@github.com:your-user-name/mne-python.git (fetch)
-    origin     git@github.com:your-user-name/mne-python.git (push)
+       upstream   git://github.com/mne-tools/mne-python.git (fetch)
+       upstream   git://github.com/mne-tools/mne-python.git (push)
+       origin     git@github.com:your-user-name/mne-python.git (fetch)
+       origin     git@github.com:your-user-name/mne-python.git (push)
 
    Your fork is now set up correctly.
 
-#. Install mne with editing permissions to the installed folder::
+#. Install mne with editing permissions to the installed folder:
 
    To be able to conveniently edit your files after installing mne-python,
    install using the following setting::
 
-    python setup.py develop --user
+       $ python setup.py develop --user
 
    To make changes in the code, edit the relevant files and restart the
    ipython kernel for changes to take effect.
@@ -271,7 +285,7 @@ These steps can be broken out to be more explicit as:
    html files in the ``doc/`` directory can be built without errors. To build
    the html files, first go the ``doc/`` directory and then type::
 
-    make html
+       $ make html
 
    Once it is compiled for the first time, subsequent compiles will only
    recompile what has changed. That's it! You are now ready to hack away.

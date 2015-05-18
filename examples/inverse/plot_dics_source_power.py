@@ -66,7 +66,7 @@ clim = dict(kind='value', lims=[1.6, 1.9, 2.2])
 for i, csd in enumerate(data_csds):
     message = 'DICS source power at %0.1f Hz' % csd.frequencies[0]
     brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                     time_label=message, figure=i, clim=clim, transparent=True)
+                     time_label=message, figure=i, clim=clim)
     brain.set_data_time_index(i)
     brain.show_view('lateral')
     # Uncomment line below to save images

@@ -143,10 +143,11 @@ class Label(object):
     """A FreeSurfer/MNE label with vertices restricted to one hemisphere
 
     Labels can be combined with the ``+`` operator:
-     - Duplicate vertices are removed.
-     - If duplicate vertices have conflicting position values, an error is
-       raised.
-     - Values of duplicate vertices are summed.
+
+         - Duplicate vertices are removed.
+         - If duplicate vertices have conflicting position values, an error
+           is raised.
+         - Values of duplicate vertices are summed.
 
     Parameters
     ----------
@@ -369,7 +370,7 @@ class Label(object):
                      self.color, self.verbose)
 
     def save(self, filename):
-        """Write to disk as FreeSurfer *.label file
+        """Write to disk as FreeSurfer \*.label file
 
         Parameters
         ----------
@@ -527,7 +528,7 @@ class Label(object):
             values will be morphed to the set of vertices specified in grade[0]
             and grade[1], assuming that these are vertices for the left and
             right hemispheres. Note that specifying the vertices (e.g.,
-            grade=[np.arange(10242), np.arange(10242)] for fsaverage on a
+            ``grade=[np.arange(10242), np.arange(10242)]`` for fsaverage on a
             standard grade 5 source space) can be substantially faster than
             computing vertex locations. If one array is used, it is assumed
             that all vertices belong to the hemisphere of the label. To create
@@ -549,8 +550,8 @@ class Label(object):
         Notes
         -----
         This function will set label.pos to be all zeros. If the positions
-        on the new surface are required, consider using mne.read_surface
-        with label.vertices.
+        on the new surface are required, consider using `mne.read_surface`
+        with `label.vertices`.
         """
         subject_from = _check_subject(self.subject, subject_from)
         if not isinstance(subject_to, string_types):
@@ -795,10 +796,11 @@ def read_label(filename, subject=None, color=None):
     -------
     label : Label
         Instance of Label object with attributes:
-            comment        comment from the first line of the label file
-            vertices       vertex indices (0 based, column 1)
-            pos            locations in meters (columns 2 - 4 divided by 1000)
-            values         values at the vertices (column 5)
+
+            - ``comment``: comment from the first line of the label file
+            - ``vertices``: vertex indices (0 based, column 1)
+            - ``pos``: locations in meters (columns 2 - 4 divided by 1000)
+            - ``values``: values at the vertices (column 5)
 
     See Also
     --------
@@ -955,7 +957,7 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         raise ValueError("Can't split label into %i parts" % n_parts)
 
     # find the subject
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     if label.subject is None and subject is None:
         raise ValueError("The subject needs to be specified.")
     elif subject is None:
@@ -1176,7 +1178,7 @@ def stc_to_label(stc, src=None, smooth=True, connected=False,
             msg = ("stc_to_label with smooth=True requires src to be an "
                    "instance of SourceSpace")
             raise ValueError(msg)
-        subjects_dir = get_subjects_dir(subjects_dir)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         surf_path_from = op.join(subjects_dir, src, 'surf')
         rr_lh, tris_lh = read_surface(op.join(surf_path_from, 'lh.white'))
         rr_rh, tris_rh = read_surface(op.join(surf_path_from, 'rh.white'))
@@ -1379,7 +1381,7 @@ def grow_labels(subject, seeds, extents, hemis, subjects_dir=None, n_jobs=1,
         vertex and extent; the ``values``  attribute contains distance from the
         seed in millimeters
     """
-    subjects_dir = get_subjects_dir(subjects_dir)
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     n_jobs = check_n_jobs(n_jobs)
 
     # make sure the inputs are arrays
@@ -1620,6 +1622,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
         annot_fname = list()
         for hemi in hemis:
+            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
             fname = op.join(subjects_dir, subject, 'label',
                             '%s.%s.annot' % (hemi, parc))
             annot_fname.append(fname)
@@ -1798,7 +1801,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
         Colormap to use to generate label colors for labels that do not
         have a color specified.
     hemi : 'both' | 'lh' | 'rh'
-        The hemisphere(s) for which to write *.annot files (only applies if
+        The hemisphere(s) for which to write \*.annot files (only applies if
         annot_fname is not specified; default is 'both').
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).

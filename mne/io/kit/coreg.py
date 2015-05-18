@@ -20,7 +20,7 @@ def read_mrk(fname):
     ----------
     fname : str
         Absolute path to Marker file.
-        File formats allowed: *.sqd, *.mrk, *.txt, *.pickled
+        File formats allowed: \*.sqd, \*.mrk, \*.txt, \*.pickled.
 
     Returns
     -------

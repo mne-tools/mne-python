@@ -244,6 +244,8 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
     3. In order to apply a reference other than an average reference, the data
        must be preloaded.
 
+    .. versionadded:: 0.9.0
+
     See also
     --------
     set_bipolar_reference : Convenience function for creating bipolar
@@ -306,10 +308,6 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
     inst : instance of Raw | Epochs | Evoked
         Data with the specified channels re-referenced.
 
-    See also
-    --------
-    set_eeg_reference : Convenience function for creating an EEG reference.
-
     Notes
     -----
     1. If the anodes contain any EEG channels, this function removes
@@ -319,6 +317,12 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
        reference.
 
     3. The data must be preloaded.
+
+    .. versionadded:: 0.9.0
+
+    See also
+    --------
+    set_eeg_reference : Convenience function for creating an EEG reference.
     """
     if not isinstance(anode, list):
         anode = [anode]

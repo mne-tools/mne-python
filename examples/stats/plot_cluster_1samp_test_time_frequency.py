@@ -77,7 +77,7 @@ decim = 5
 frequencies = np.arange(8, 40, 2)  # define frequencies of interest
 sfreq = raw.info['sfreq']  # sampling in Hz
 epochs_power = single_trial_power(data, sfreq=sfreq, frequencies=frequencies,
-                                  n_cycles=4, use_fft=False, n_jobs=1,
+                                  n_cycles=4, n_jobs=1,
                                   baseline=(-100, 0), times=times,
                                   baseline_mode='ratio', decim=decim)
 

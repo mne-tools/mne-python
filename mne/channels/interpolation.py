@@ -7,9 +7,10 @@ from numpy.polynomial.legendre import legval
 from scipy import linalg
 
 from ..utils import logger
-from ..io.pick import pick_types
+from ..io.pick import pick_types, pick_channels
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
+from ..forward import _map_meg_channels
 
 
 def _calc_g(cosang, stiffness=4, num_lterms=50):
@@ -104,8 +105,27 @@ def _make_interpolation_matrix(pos_from, pos_to, alpha=1e-5):
     return interpolation
 
 
+def _do_interp_dots(inst, interpolation, goods_idx, bads_idx):
+    """Dot product of channel mapping matrix to channel data
+    """
+    from ..io.base import _BaseRaw
+    from ..epochs import _BaseEpochs
+    from ..evoked import Evoked
+
+    if isinstance(inst, _BaseRaw):
+        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
+    elif isinstance(inst, _BaseEpochs):
+        inst._data[:, bads_idx, :] = np.einsum('ij,xjy->xiy', interpolation,
+                                               inst._data[:, goods_idx, :])
+    elif isinstance(inst, Evoked):
+        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
+    else:
+        raise ValueError('Inputs of type {0} are not supported'
+                         .format(type(inst)))
+
+
 def _interpolate_bads_eeg(inst):
-    """Interpolate bad channels
+    """Interpolate bad EEG channels
 
     Operates in place.
 
@@ -114,31 +134,19 @@ def _interpolate_bads_eeg(inst):
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
     """
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
-
-    if 'eeg' not in inst:
-        raise ValueError('This interpolation function requires EEG channels.')
-    if len(inst.info['bads']) == 0:
-        raise ValueError('No bad channels to interpolate.')
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded.')
-
     bads_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
     goods_idx = np.zeros(len(inst.ch_names), dtype=np.bool)
 
     picks = pick_types(inst.info, meg=False, eeg=True, exclude=[])
     bads_idx[picks] = [inst.ch_names[ch] in inst.info['bads'] for ch in picks]
+
+    if len(picks) == 0 or len(bads_idx) == 0:
+        return
+
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    if len(bads_idx) != len(inst.info['bads']):
-        logger.warning('Channel interpolation is currently only implemented '
-                       'for EEG. The MEG channels marked as bad will remain '
-                       'untouched.')
-
-    pos = inst.get_channel_positions(picks)
+    pos = inst._get_channel_positions(picks)
 
     # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]
@@ -161,22 +169,38 @@ def _interpolate_bads_eeg(inst):
     interpolation = _make_interpolation_matrix(pos_good, pos_bad)
 
     logger.info('Interpolating {0} sensors'.format(len(pos_bad)))
-    if getattr(inst, 'preload', None) is False:
-        raise ValueError('Data must be preloaded')
+    _do_interp_dots(inst, interpolation, goods_idx, bads_idx)
 
-    if isinstance(inst, _BaseRaw):
-        inst._data[bads_idx] = interpolation.dot(inst._data[goods_idx])
-    elif isinstance(inst, _BaseEpochs):
-        tmp = np.dot(interpolation[:, np.newaxis, :],
-                     inst._data[:, goods_idx, :])
-        if np.sum(bads_idx) == 1:
-            tmp = tmp[0]
-        else:
-            tmp = tmp[:, 0, ...]
-        inst._data[:, bads_idx, :] = np.transpose(tmp, (1, 0, 2))
-    elif isinstance(inst, Evoked):
-        inst.data[bads_idx] = interpolation.dot(inst.data[goods_idx])
+
+def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
+    """Interpolate bad channels from data in good channels.
+
+    Parameters
+    ----------
+    inst : mne.io.Raw, mne.Epochs or mne.Evoked
+        The data to interpolate. Must be preloaded.
+    mode : str
+        Either `'accurate'` or `'fast'`, determines the quality of the
+        Legendre polynomial expansion used for interpolation. `'fast'` should
+        be sufficient for most applications.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+    """
+    picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
+    ch_names = [inst.info['ch_names'][p] for p in picks_meg]
+    picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+
+    # select the bad meg channel to be interpolated
+    if len(inst.info['bads']) == 0:
+        picks_bad = []
     else:
-        raise ValueError('Inputs of type {0} are not supported'
-                         .format(type(inst)))
-    return inst
+        picks_bad = pick_channels(ch_names, inst.info['bads'],
+                                  exclude=[])
+
+    # return without doing anything if there are no meg channels
+    if len(picks_meg) == 0 or len(picks_bad) == 0:
+        return
+
+    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode=mode)
+
+    _do_interp_dots(inst, mapping, picks_good, picks_bad)

@@ -30,6 +30,7 @@ from .io.pick import (pick_types, pick_channels, pick_types_evoked,
 from .io.base import concatenate_raws
 from .io.chpi import get_chpi_positions
 from .io.meas_info import create_info
+from .io.kit import read_epochs_kit
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
                   whiten_evoked, make_ad_hoc_cov)

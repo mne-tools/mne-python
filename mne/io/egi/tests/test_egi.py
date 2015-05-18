@@ -26,7 +26,8 @@ def test_io_egi():
     tempdir = _TempDir()
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
-        read_raw_egi(egi_fname, include=None)
+        raw = read_raw_egi(egi_fname, include=None)
+        raw.preload_data()  # currently does nothing
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)
         msg = 'Did not find any event code with more than one event.'

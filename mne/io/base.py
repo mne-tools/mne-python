@@ -22,7 +22,7 @@ from .meas_info import write_meas_info
 from .proj import setup_proj, activate_proj, _proj_equal, ProjMixin
 from ..channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                  SetChannelsMixin, InterpolationMixin)
-from ..channels.layout import read_montage, apply_montage, Montage
+from ..channels.montage import read_montage, _set_montage, Montage
 from .compensator import set_current_comp
 from .write import (start_file, end_file, start_block, end_block,
                     write_dau_pack16, write_float, write_double,
@@ -37,7 +37,8 @@ from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
                      logger, verbose, _time_mask, deprecated)
-from ..viz import plot_raw, plot_raw_psd, _mutable_defaults
+from ..viz import plot_raw, plot_raw_psd
+from ..defaults import _handle_default
 from ..externals.six import string_types
 from ..event import concatenate_events
 
@@ -76,7 +77,7 @@ class ToDataFrameMixin(object):
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         copy : bool
             If true, data will be copied. Else data may be modified in place.
         start : int | None
@@ -159,7 +160,7 @@ class ToDataFrameMixin(object):
             n_channel_types = 0
             ch_types_used = []
 
-            scalings = _mutable_defaults(('scalings', scalings))[0]
+            scalings = _handle_default('scalings', scalings)
             for t in scalings.keys():
                 if t in types:
                     n_channel_types += 1
@@ -214,17 +215,39 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment(start, stop, sel, projector, verbose)
+        * _read_segment(start, stop, sel, data_buffer, projector, verbose)
           (only needed for types that support on-demand disk reads)
     """
     @verbose
-    def __init__(self, info, data=None,
+    def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
-                 orig_format='double', verbose=None):
+                 orig_format='double',
+                 verbose=None):
+        # wait until the end to preload data, but triage here
+        if isinstance(preload, np.ndarray):
+            # some functions (e.g., filtering) only work w/64-bit data
+            if preload.dtype not in (np.float64, np.complex128):
+                raise RuntimeError('datatype must be float64 or complex128, '
+                                   'not %s' % preload.dtype)
+            self._data = preload
+            self.preload = True
+            self._last_samps = np.array([self._data.shape[1] - 1])
+            load_from_disk = False
+        else:
+            if last_samps is None:
+                raise ValueError('last_samps must be given unless preload is '
+                                 'an ndarray')
+            if preload is False:
+                self.preload = False
+                load_from_disk = False
+            elif preload is not True and not isinstance(preload, string_types):
+                raise ValueError('bad preload: %s' % preload)
+            else:
+                load_from_disk = True
+            self._last_samps = np.array(last_samps)
         self.info = info
-        self._data = data
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
@@ -234,18 +257,69 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
-        self.preload = True if data is not None else False
         self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
-        if data is not None:
-            self._last_samps = np.array([self._data.shape[1] - 1])
-        else:
-            self._last_samps = np.array(last_samps)
         self._projectors = list()
         self._projector = None
+        # If we have True or a string, actually do the preloading
+        if load_from_disk:
+            self._preload_data(preload)
 
-    def _read_segment(start, stop, sel, projector, verbose):
+    def _read_segment(start, stop, sel, data_buffer, projector, verbose):
+        """Read a chunk of raw data
+
+        Parameters
+        ----------
+        start : int, (optional)
+            first sample to include (first is 0). If omitted, defaults to the
+            first sample in data.
+        stop : int, (optional)
+            First sample to not include.
+            If omitted, data is included to the end.
+        sel : array, optional
+            Indices of channels to select.
+        data_buffer : array or str, optional
+            numpy array to fill with data read, must have the correct shape.
+            If str, a np.memmap with the correct data type will be used
+            to store the data.
+        projector : array
+            SSP operator to apply to the data.
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Returns
+        -------
+        data : array, [channels x samples]
+           the data matrix (channels x samples).
+        times : array, [samples]
+            returns the time values corresponding to the samples.
+        """
         raise NotImplementedError
+
+    @verbose
+    def preload_data(self, verbose=None):
+        """Preload raw data
+
+        Parameters
+        ----------
+        verbose : bool, str, int, or None
+            If not None, override default verbose level (see mne.verbose).
+
+        Notes
+        -----
+        This function will preload raw data if it was not already preloaded.
+        If data were already preloaded, it will do nothing.
+        """
+        if not self.preload:
+            self._preload_data(True)
+
+    def _preload_data(self, preload):
+        """This function actually preloads the data"""
+        data_buffer = preload if isinstance(preload, string_types) else None
+        self._data = self._read_segment(data_buffer=data_buffer)[0]
+        assert len(self._data) == self.info['nchan']
+        self.preload = True
+        self.close()
 
     @property
     def first_samp(self):
@@ -494,16 +568,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         l_freq and h_freq are the frequencies below which and above which,
         respectively, to filter out of the data. Thus the uses are:
+
             l_freq < h_freq: band-pass filter
             l_freq > h_freq: band-stop filter
             l_freq is not None, h_freq is None: high-pass filter
             l_freq is None, h_freq is not None: low-pass filter
 
-        Note: If n_jobs > 1, more memory is required as "len(picks) * n_times"
-              additional time points need to be temporarily stored in memory.
+        If n_jobs > 1, more memory is required as "len(picks) * n_times"
+        additional time points need to be temporarily stored in memory.
 
-        Note: self.info['lowpass'] and self.info['highpass'] are only updated
-              with picks=None.
+        self.info['lowpass'] and self.info['highpass'] are only updated
+        with picks=None.
 
         Parameters
         ----------
@@ -883,8 +958,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fmt : str
             Format to use to save raw data. Valid options are 'double',
             'single', 'int', and 'short' for 64- or 32-bit float, or 32- or
-            16-bit integers, respectively. It is STRONGLY recommended to use
-            'single', as this is backward-compatible, and is standard for
+            16-bit integers, respectively. It is **strongly** recommended to
+            use 'single', as this is backward-compatible, and is standard for
             maintaining precision. Note that using 'short' or 'int' may result
             in loss of precision, complex data cannot be saved as 'short',
             and neither complex data types nor real data stored as 'double'
@@ -905,9 +980,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         Notes
         -----
-        If Raw is a concatenation of several raw files, *be warned* that only
-        the measurement information from the first raw file is stored. This
-        likely means that certain operations with external tools may not
+        If Raw is a concatenation of several raw files, **be warned** that
+        only the measurement information from the first raw file is stored.
+        This likely means that certain operations with external tools may not
         work properly on a saved concatenated file (e.g., probably some
         or all forms of SSS). It is recommended not to concatenate and
         then save raw files for this reason.
@@ -1019,18 +1094,23 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         bgcolor : color object
             Color of the background.
         color : dict | color object | None
-            Color for the data traces. If None, defaults to:
-            `dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r', emg='k',
-                 ref_meg='steelblue', misc='k', stim='k', resp='k', chpi='k')`
+            Color for the data traces. If None, defaults to::
+
+                dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+                     emg='k', ref_meg='steelblue', misc='k', stim='k',
+                     resp='k', chpi='k')
+
         bad_color : color object
             Color to make bad channels.
         event_color : color object
             Color to use for events.
         scalings : dict | None
-            Scale factors for the traces. If None, defaults to:
-            `dict(mag=1e-12, grad=4e-11, eeg=20e-6,
-                  eog=150e-6, ecg=5e-4, emg=1e-3,
-                  ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+            Scale factors for the traces. If None, defaults to::
+
+                dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                     emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1,
+                     resp=1, chpi=1e-4)
+
         remove_dc : bool
             If True remove DC component when plotting data.
         order : 'type' | 'original' | array
@@ -1047,6 +1127,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         block : bool
             Whether to halt program execution until the figure is closed.
             Useful for setting bad channels on the fly (click on line).
+            May not work on all systems / platforms.
         highpass : float | None
             Highpass to apply when displaying data.
         lowpass : float | None
@@ -1331,7 +1412,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raws : list, or Raw instance
             list of Raw instances to concatenate to the current instance
             (in order), or a single raw instance to concatenate.
-
         preload : bool, str, or None (default None)
             Preload data into memory for data manipulation and faster indexing.
             If True, the data will be preloaded into memory (fast, requires
@@ -1401,7 +1481,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def close(self):
         """Clean up the object.
 
-        Does nothing for now.
+        Does nothing for objects that close their file descriptors.
+        Things like RawFIF will override this method.
         """
         pass
 
@@ -1436,7 +1517,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Scaling to be applied to time units.
         scalings : dict | None
             Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
+            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
         use_time_index : bool
             If False, times will be included as in the data table, else it will
             be used as index object.
@@ -1462,7 +1543,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channel_types = 0
         ch_types_used = []
 
-        scalings = _mutable_defaults(('scalings', scalings))[0]
+        scalings = _handle_default('scalings', scalings)
         for t in scalings.keys():
             if t in types:
                 n_channel_types += 1
@@ -1954,7 +2035,7 @@ def _check_update_montage(info, montage):
         if montage is not None:
             if isinstance(montage, str):
                 montage = read_montage(montage)
-            apply_montage(info, montage)
+            _set_montage(info, montage)
 
             missing_positions = []
             exclude = (FIFF.FIFFV_EOG_CH, FIFF.FIFFV_MISC_CH,

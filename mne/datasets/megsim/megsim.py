@@ -7,14 +7,16 @@ import zipfile
 from sys import stdout
 
 from ...utils import (_fetch_file, get_config, set_config, _url_to_local_path,
-                      logger)
+                      logger, verbose)
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
 from ...externals.six import string_types
 from ...externals.six.moves import input
 
 
-def data_path(url, path=None, force_update=False, update_path=None):
+@verbose
+def data_path(url, path=None, force_update=False, update_path=None,
+              verbose=None):
     """Get path to local copy of MEGSIM dataset URL
 
     This is a low-level function useful for getting a local copy of a
@@ -37,6 +39,8 @@ def data_path(url, path=None, force_update=False, update_path=None):
     update_path : bool | None
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
@@ -64,11 +68,11 @@ def data_path(url, path=None, force_update=False, update_path=None):
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
     """  # noqa
 
+    key = 'MNE_DATASETS_MEGSIM_PATH'
     if path is None:
         # use an intelligent guess if it's not defined
         def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
                                        '..', 'examples'))
-        key = 'MNE_DATASETS_MEGSIM_PATH'
         if get_config(key) is None:
             key = 'MNE_DATA'
         path = get_config(key, def_path)
@@ -142,8 +146,9 @@ def data_path(url, path=None, force_update=False, update_path=None):
     return destinations
 
 
+@verbose
 def load_data(condition='visual', data_format='raw', data_type='experimental',
-              path=None, force_update=False, update_path=None):
+              path=None, force_update=False, update_path=None, verbose=None):
     """Get path to local copy of MEGSIM dataset type
 
     Parameters
@@ -167,6 +172,8 @@ def load_data(condition='visual', data_format='raw', data_type='experimental',
     update_path : bool | None
         If True, set the MNE_DATASETS_MEGSIM_PATH in mne-python
         config to the given path. If None, the user is prompted.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
 
     Returns
     -------
