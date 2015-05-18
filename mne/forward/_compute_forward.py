@@ -223,13 +223,13 @@ def _bem_inf_pots(rr, surf_rr, Q=None):
 
 def _bem_inf_fields(rr, rp, c):
     """Infinite-medium magnetic field in all 3 basis directions
-    rr : n x 3 array
-        n 3-space dipole vectors (locations/magnitudes?)
-    rp : n x 3 array
-        n 3-space vectors
+    rr : N x 3 array
+        N 3-space dipole vectors (locations/magnitudes?)
+    rp : N x 3 array
+        N 3-space vectors
         coil['rmag']; position vector of coil (integration points?)
-    c : n x 3 array
-        n 3-space vectors
+    c : N x 3 array
+        N 3-space vectors
         coil['cosmag']; direction of the coils (integration points?)
     """
     # rr, rp refactored according to Equation (19) in Mosher, 1999
@@ -249,7 +249,7 @@ def _bem_inf_fields(rr, rp, c):
     x = np.array([diff[:, 1] * c[:, 2] - diff[:, 2] * c[:, 1],
                   diff[:, 2] * c[:, 0] - diff[:, 0] * c[:, 2],
                   diff[:, 0] * c[:, 1] - diff[:, 1] * c[:, 0]])
-    return np.rollaxis(x / diff_norm, 1) # return (n_sources x 3 x n_coil pts)
+    return np.rollaxis(x / diff_norm, 1)  # return (n_sources x 3 x n_coil pts)
 
 
 def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, srr,
