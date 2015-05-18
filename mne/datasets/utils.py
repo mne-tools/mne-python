@@ -120,7 +120,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         archive_name = "MNE-sample-data-processed.tar.gz"
         folder_name = "MNE-sample-data"
         url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
-        hash_ = '1bb9f993bfba2057e0039c306a717109'
+        hash_ = 'f73186795af820428e5e8e779ce5bfcf'
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
         folder_name = "MNE-spm-face"
