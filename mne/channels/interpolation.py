@@ -146,7 +146,7 @@ def _interpolate_bads_eeg(inst):
     goods_idx[picks] = True
     goods_idx[bads_idx] = False
 
-    pos = inst._get_channel_positions(picks)
+    pos = inst._get_channel_positions(picks)[:, :3]
 
     # Make sure only EEG are used
     bads_idx_pos = bads_idx[picks]
@@ -189,6 +189,7 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     picks_meg = pick_types(inst.info, meg=True, eeg=False, exclude=[])
     ch_names = [inst.info['ch_names'][p] for p in picks_meg]
     picks_good = pick_types(inst.info, meg=True, eeg=False, exclude='bads')
+    info_good = pick_info(inst.info, picks_good)
 
     # select the bad meg channel to be interpolated
     if len(inst.info['bads']) == 0:
@@ -196,11 +197,12 @@ def _interpolate_bads_meg(inst, mode='accurate', verbose=None):
     else:
         picks_bad = pick_channels(ch_names, inst.info['bads'],
                                   exclude=[])
+        info_bad = pick_info(inst.info, picks_bad)
 
     # return without doing anything if there are no meg channels
     if len(picks_meg) == 0 or len(picks_bad) == 0:
         return
 
-    mapping = _map_meg_channels(inst, picks_good, picks_bad, mode=mode)
+    mapping = _map_meg_channels(info_good, info_bad, mode=mode)
 
     _do_interp_dots(inst, mapping, picks_good, picks_bad)

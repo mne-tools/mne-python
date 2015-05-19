@@ -140,7 +140,7 @@ def test_get_set_sensor_positions():
     """
     raw1 = Raw(raw_fname)
     picks = pick_types(raw1.info, meg=False, eeg=True)
-    pos = np.array([ch['loc'][:3] for ch in raw1.info['chs']])[picks]
+    pos = np.array([ch['loc'] for ch in raw1.info['chs']])[picks]
     raw_pos = raw1._get_channel_positions(picks=picks)
     assert_array_equal(raw_pos, pos)
 
@@ -148,6 +148,6 @@ def test_get_set_sensor_positions():
     assert_raises(ValueError, raw1._set_channel_positions, [1, 2], ['name'])
     raw2 = Raw(raw_fname)
     raw2.info['chs'][13]['loc'][:3] = np.array([1, 2, 3])
-    raw1._set_channel_positions([[1, 2, 3]], [ch_name])
+    raw1._set_channel_positions([[1, 2, 3] + 9 * [0]], [ch_name])
     assert_array_equal(raw1.info['chs'][13]['loc'],
                        raw2.info['chs'][13]['loc'])
