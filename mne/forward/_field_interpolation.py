@@ -12,6 +12,7 @@ from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate,
                          _do_cross_dots)
+from interpolation import _do_interp_dots
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
@@ -442,21 +443,10 @@ def _transform_instance(inst_from, info_to):
     inst_from._set_channel_positions(chs_pos_from, names)
 
     mapping = _map_meg_channels(info_from, info_to, picks_from, mode='accurate')
-    # compute evoked data by multiplying by the 'gain matrix' from
+    # compute rotated data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    from mne.io.base import _BaseRaw
-    from mne.epochs import _BaseEpochs
-    from mne.evoked import Evoked
-
-    if isinstance(inst_from, _BaseRaw): 
-        inst_from._data[picks_from] = np.dot(mapping,
-                                             inst_from._data[picks_from])
-    elif isinstance(inst_from, Epochs):
-        inst_from._data[:, picks_from] = np.dot(mapping,
-                                                inst_from._data[:, picks_from])
-    elif isinstance(inst_from, Evoked): 
-        inst_from.data[pick_from] = np.dot(mapping, inst_from.data[picks_from])
-
+    _do_interp_dots(inst_from, mapping, picks_from, picks_from)
+    # use the info of the inst that that you are transforming to
     inst_from.info = info_to
     
     return inst_from
@@ -472,16 +462,26 @@ def transform_instances(insts, copy=False, n_jobs=1):
         the head position of the first evoked.
     copy : bool
         If True, it returns copies of transformed instances.
-        If False, transformation is done in-place.
-        Default is False.
+        If False, transformation is done in-place. Default is False.
+        Note that the first instance will always remain untouched.
     n_jobs : int
         The number of jobs to run in parallel.
 
     Returns
     -------
-    evokeds : list of Evoked
-        list of evokeds after remapping.
+    evokeds : list of instances
+        list of instances after remapping.
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
     """
+    if isinstance(insts, (list, tuple)):
+        if len(insts) < 2:
+            raise ValueError('Only %d instance provided.' % len(insts))
+    else:
+        raise TypeError('insts must be a list or tuple instead of %d.'
+                        % type(insts))
     inst_to = insts[0]
     info_to = inst_to.info
     # pick_to = pick_types(inst_to.info, meg=True, eeg=False, exclude=[])
