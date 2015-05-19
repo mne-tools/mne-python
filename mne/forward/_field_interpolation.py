@@ -104,16 +104,16 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(inst, info_from, info_to, mode='fast'):
+def _map_meg_channels(inst, info_from, info_to, mode='accurate'):
     """Find mapping from one set of channels to another.
 
     Parameters
     ----------
     inst : mne.io.Raw, mne.Epochs or mne.Evoked
         The data to interpolate. Must be preloaded.
-    pick_from : array-like of int
+    info_from : array-like of int
         The channels from which to interpolate.
-    pick_to : array-like of int
+    info_to : array-like of int
         The channels to which to interpolate.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
@@ -125,9 +125,6 @@ def _map_meg_channels(inst, info_from, info_to, mode='fast'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
-    # info_from = pick_info(inst.info, pick_from, copy=True)
-    # info_to = pick_info(inst.info, pick_to, copy=True)
-
     # no need to apply trans because both from and to coils are in device
     # coordinates
     coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -163,7 +160,7 @@ def _map_meg_channels(inst, info_from, info_to, mode='fast'):
     return fmd['data']
 
 
-def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
+def _as_meg_type_evoked(evoked, ch_type='grad', mode='accurate'):
     """Compute virtual evoked using interpolated fields in mag/grad channels.
 
     Parameters
@@ -190,8 +187,8 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
     # pick the original and destination channels
     pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
-    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
-                         ref_meg=False)
+    info_from = evoked.info
+    info_to = pick_info(evoked.info, pick_to, copy=True)
 
     if len(pick_to) == 0:
         raise ValueError('No channels matching the destination channel type'
@@ -200,7 +197,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='fast'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    mapping = _map_meg_channels(evoked, pick_from, pick_to, mode='fast')
+    mapping = _map_meg_channels(evoked, info_from, info_to, mode=mode)
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
@@ -416,37 +413,51 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
     return surf_maps
 
 
-def _transform_evoked(ev_from, info_to):
-    """ Map the ev_from to the head position in info_to"""
+def _transform_instance(inst_from, info_to):
+    """ Map the inst_from to the head position in info_to"""
 
-    ev_from.pick_types(meg=True, eeg=False, exclude='bads')
-    pick_from = pick_types(ev_from.info, meg=True, eeg=False, exclude='bads')
-    info_from = pick_info(ev_from.info, pick_from, copy=True)
+    # inst_from.pick_types(meg=True, eeg=False, exclude='bads')
+    pick_from = pick_types(inst_from.info, meg=True, eeg=False, exclude='bads')
+    # info_from = pick_info(inst_from.info, pick_from, copy=True)
 
     # The transformation to be done to go to the new head position
     from ..transforms import invert_transform, apply_trans
     trans = np.dot(info_to['dev_head_t']['trans'],
                    invert_transform(info_from['dev_head_t'])['trans'])
-    chs_pos_from = ev_from._get_channel_positions(pick_from)
+    chs_pos_from = inst_from._get_channel_positions(pick_from)
 
     # set the new channel positions
     names = np.array(info_from['ch_names'])[pick_from]
-    ev_from._set_channel_positions(apply_trans(trans, chs_pos_from), names)
+    inst_from._set_channel_positions(apply_trans(trans, chs_pos_from), names)
 
-    mapping = _map_meg_channels(ev_from, info_from, info_to, mode='fast')
+    mapping = _map_meg_channels(inst_from, info_from, info_to, mode='accurate')
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
-    ev_from.data = np.dot(mapping, ev_from.data)
-    return ev_from
+    from mne.io.base import _BaseRaw
+    from mne.epochs import _BaseEpochs
+    from mne.evoked import Evoked
+
+    if isinstance(inst_from, _BaseRaw): 
+        inst_from._data[picks_from] = np.dot(mapping,
+                                             inst_from._data[picks_from])
+    elif isinstance(inst_from, Epochs):
+        inst_from._data[:, picks_from] = np.dot(mapping,
+                                                inst_from._data[:, picks_from])
+    elif isinstance(inst_from, Evoked): 
+        inst_from.data[pick_from] = np.dot(mapping, inst_from.data[picks_from])
+
+    inst_from.info = info_to
+    
+    return inst_from
 
 
-def transform_evokeds(evokeds, n_jobs=1):
+def transform_instances(insts, n_jobs=1):
     """ Map list of evokeds to the same head position
 
     Parameters
     ----------
-    evokeds : list of Evoked
+    insts : list of instances
         list of evokeds to be mapped to same head position i.e.
         the head position of the first evoked.
     n_jobs : int
@@ -457,19 +468,16 @@ def transform_evokeds(evokeds, n_jobs=1):
     evokeds : list of Evoked
         list of evokeds after remapping.
     """
-
-    ev_to = evokeds[0]
-    pick_to = pick_types(ev_to.info, meg=True, eeg=False, exclude='bads')
-    info_to = pick_info(ev_to.info, pick_to, copy=True)
+    inst_to = insts[0]
+    info_to = inst_to.info
+    # pick_to = pick_types(inst_to.info, meg=True, eeg=False, exclude=[])
+    # info_to = pick_info(inst_to.info, pick_to, copy=True)
 
     from ..parallel import parallel_func
     parallel, my_trans, n_jobs = parallel_func(_transform_evoked,
                                                n_jobs=n_jobs)
 
-    ev_trans = parallel(my_trans(evokeds[i_ev], info_to)
-                        for i_ev in np.arange(1, len(evokeds)))
+    insts_trans = parallel(my_trans(inst, info_to) for inst in insts[1:]))
+    insts_trans.insert(0, inst_to)
 
-    # evokeds = [_transform_evoked(evokeds[i_ev], info_to)
-    #            for i_ev in np.arange(1, len(evokeds))]
-
-    return ev_trans
+    return insts_trans
