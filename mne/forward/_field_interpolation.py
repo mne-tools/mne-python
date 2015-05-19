@@ -104,17 +104,18 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(inst, info_from, info_to, mode='accurate'):
+def _map_meg_channels(info_from, info_to, picks=None, mode='accurate'):
     """Find mapping from one set of channels to another.
 
     Parameters
     ----------
-    inst : mne.io.Raw, mne.Epochs or mne.Evoked
-        The data to interpolate. Must be preloaded.
-    info_from : array-like of int
-        The channels from which to interpolate.
-    info_to : array-like of int
-        The channels to which to interpolate.
+    info_from : instance of Info
+        The info of the channels from which to interpolate.
+    info_to : instance of Info
+        The info of the channels to which to interpolate.
+    picks : array-like of int
+        The indices of the channels to include.
+        Defaults to None.
     mode : str
         Either `'accurate'` or `'fast'`, determines the quality of the
         Legendre polynomial expansion used. `'fast'` should be sufficient
@@ -125,6 +126,9 @@ def _map_meg_channels(inst, info_from, info_to, mode='accurate'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
+    if picks is not None:
+        info_from = pick_info(info_from, picks)
+        info_to = pick_info(info_to, picks)
     # no need to apply trans because both from and to coils are in device
     # coordinates
     coils_from = _create_coils(info_from['chs'], FIFF.FWD_COIL_ACCURACY_NORMAL,
@@ -197,7 +201,7 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='accurate'):
                          ' locations of the destination channels will be used'
                          ' for interpolation.')
 
-    mapping = _map_meg_channels(evoked, info_from, info_to, mode=mode)
+    mapping = _map_meg_channels(info_from, info_to, mode=mode)
 
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
@@ -415,23 +419,21 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
 def _transform_instance(inst_from, info_to):
     """ Map the inst_from to the head position in info_to"""
-
-    # inst_from.pick_types(meg=True, eeg=False, exclude='bads')
-    pick_from = pick_types(inst_from.info, meg=True, eeg=False, exclude='bads')
-    # info_from = pick_info(inst_from.info, pick_from, copy=True)
+    info_from = inst_from.info
+    picks_from = pick_types(info_from, meg=True, eeg=False, ref_meg=False,
+                           exclude='bads')
 
     # The transformation to be done to go to the new head position
     from ..transforms import invert_transform, apply_trans
     trans = np.dot(info_to['dev_head_t']['trans'],
                    invert_transform(info_from['dev_head_t'])['trans'])
-    chs_pos_from = inst_from._get_channel_positions(pick_from)
+    chs_pos_from = inst_from._get_channel_positions(picks_from)
 
     # set the new channel positions
-    names = np.array(info_from['ch_names'])[pick_from]
+    names = np.array(info_from['ch_names'])[picks_from]
     inst_from._set_channel_positions(apply_trans(trans, chs_pos_from), names)
 
-    mapping = _map_meg_channels(inst_from, info_from, info_to, mode='accurate')
-
+    mapping = _map_meg_channels(info_from, info_to, picks_from, mode='accurate')
     # compute evoked data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     from mne.io.base import _BaseRaw
@@ -452,7 +454,7 @@ def _transform_instance(inst_from, info_to):
     return inst_from
 
 
-def transform_instances(insts, n_jobs=1):
+def transform_instances(insts, copy=False, n_jobs=1):
     """ Map list of evokeds to the same head position
 
     Parameters
@@ -460,6 +462,10 @@ def transform_instances(insts, n_jobs=1):
     insts : list of instances
         list of evokeds to be mapped to same head position i.e.
         the head position of the first evoked.
+    copy : bool
+        If True, it returns copies of transformed instances.
+        If False, transformation is done in-place.
+        Default is False.
     n_jobs : int
         The number of jobs to run in parallel.
 
@@ -474,10 +480,15 @@ def transform_instances(insts, n_jobs=1):
     # info_to = pick_info(inst_to.info, pick_to, copy=True)
 
     from ..parallel import parallel_func
-    parallel, my_trans, n_jobs = parallel_func(_transform_evoked,
+    parallel, my_trans, n_jobs = parallel_func(_transform_instance,
                                                n_jobs=n_jobs)
 
-    insts_trans = parallel(my_trans(inst, info_to) for inst in insts[1:]))
+    if copy:
+        insts_trans = parallel(my_trans(inst, info_to.copy())
+                               for inst in insts[1:])
+    else:
+        insts_trans = parallel(my_trans(inst, info_to)
+                               for inst in insts[1:])
     insts_trans.insert(0, inst_to)
 
     return insts_trans
