@@ -81,7 +81,7 @@ def test_generalization_across_time():
         gat.fit(epochs, y=epochs.events[:, 2])
         # check optional y as list
         gat.fit(epochs, y=epochs.events[:, 2].tolist())
-    assert_equal(len(gat.picks), len(gat.ch_names), 1)
+    assert_equal(len(gat.picks_), len(gat.ch_names), 1)
     assert_equal("<GAT | fitted, start : -0.200 (s), stop : 0.499 (s), no "
                  "prediction, no score>", '%s' % gat)
     assert_equal(gat.ch_names, epochs.ch_names)
@@ -104,16 +104,16 @@ def test_generalization_across_time():
     gat.predict_mode = old_mode
 
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true("accuracy_score" in '%s' % gat.scorer)
+    assert_true("accuracy_score" in '%s' % gat.scorer_)
     epochs2 = epochs.copy()
 
     # check _DecodingTime class
     assert_equal("<DecodingTime | start: -0.200 (s), stop: 0.499 (s), step: "
                  "0.047 (s), length: 0.047 (s), n_time_windows: 15>",
-                 "%s" % gat.train_times)
+                 "%s" % gat.train_times_)
     assert_equal("<DecodingTime | start: -0.200 (s), stop: 0.499 (s), step: "
                  "0.047 (s), length: 0.047 (s), n_time_windows: 15 x 15>",
-                 "%s" % gat.test_times)
+                 "%s" % gat.test_times_)
 
     # the y-check
     gat.predict_mode = 'mean-prediction'
@@ -130,12 +130,12 @@ def test_generalization_across_time():
     # ---  number of folds
     assert_true(np.shape(gat.estimators_)[1] == gat.cv)
     # ---  length training size
-    assert_true(len(gat.train_times['slices']) == 15 ==
+    assert_true(len(gat.train_times_['slices']) == 15 ==
                 np.shape(gat.estimators_)[0])
     # ---  length testing sizes
-    assert_true(len(gat.test_times['slices']) == 15 ==
+    assert_true(len(gat.test_times_['slices']) == 15 ==
                 np.shape(gat.scores_)[0])
-    assert_true(len(gat.test_times['slices'][0]) == 15 ==
+    assert_true(len(gat.test_times_['slices'][0]) == 15 ==
                 np.shape(gat.scores_)[1])
 
     # Test longer time window
@@ -149,7 +149,7 @@ def test_generalization_across_time():
     assert_true(isinstance(scores, list))  # type check
     assert_equal(len(scores[0]), len(scores))  # shape check
 
-    assert_equal(len(gat.test_times['slices'][0][0]), 2)
+    assert_equal(len(gat.test_times_['slices'][0][0]), 2)
     # Decim training steps
     gat = GeneralizationAcrossTime(train_times={'step': .100})
     with warnings.catch_warnings(record=True):
@@ -168,8 +168,8 @@ def test_generalization_across_time():
         gat.fit(epochs)
     gat.score(epochs)
     assert_equal(len(gat.scores_), 4)
-    assert_equal(gat.train_times['times_'][0], epochs.times[6])
-    assert_equal(gat.train_times['times_'][-1], epochs.times[9])
+    assert_equal(gat.train_times_['times'][0], epochs.times[6])
+    assert_equal(gat.train_times_['times'][-1], epochs.times[9])
 
     # Test score without passing epochs & Test diagonal decoding
     gat = GeneralizationAcrossTime(test_times='diagonal')

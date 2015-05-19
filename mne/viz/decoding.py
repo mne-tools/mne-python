@@ -63,8 +63,8 @@ def plot_gat_matrix(gat, title=None, vmin=None, vmax=None, tlim=None,
 
     # Define time limits
     if tlim is None:
-        tt_times = gat.train_times['times_']
-        tn_times = gat.test_times['times_']
+        tt_times = gat.train_times_['times']
+        tn_times = gat.test_times_['times']
         tlim = [tn_times[0][0], tn_times[-1][-1], tt_times[0], tt_times[-1]]
 
     # Plot scores
@@ -149,7 +149,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     # Find and plot chance level
     if chance is not False:
         if chance is True:
-            chance = _get_chance_level(gat.scorer, gat.y_train_)
+            chance = _get_chance_level(gat.scorer_, gat.y_train_)
         ax.axhline(float(chance), color='k', linestyle='--',
                    label="Chance level")
     ax.axvline(0, color='k', label='')
@@ -179,7 +179,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
         ax.set_xlabel('Time (s)')
     if ylabel is True:
         ax.set_ylabel('Classif. score ({0})'.format(
-                      'AUC' if 'roc' in repr(gat.scorer) else r'%'))
+                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'))
     if legend is True:
         ax.legend(loc='best')
     if show is True:
@@ -192,14 +192,14 @@ def _plot_gat_time(gat, train_time, ax, color, label):
 
     Plots a unique score 1d array"""
     # Detect whether gat is a full matrix or just its diagonal
-    if np.all(np.unique([len(t) for t in gat.test_times['times_']]) == 1):
+    if np.all(np.unique([len(t) for t in gat.test_times_['times']]) == 1):
         scores = gat.scores_
     elif train_time == 'diagonal':
         # Get scores from identical training and testing times even if GAT
         # is not square.
         scores = np.zeros(len(gat.scores_))
-        for train_idx, train_time in enumerate(gat.train_times['times_']):
-            for test_times in gat.test_times['times_']:
+        for train_idx, train_time in enumerate(gat.train_times_['times']):
+            for test_times in gat.test_times_['times']:
                 # find closest testing time from train_time
                 lag = test_times - train_time
                 test_idx = np.abs(lag).argmin()
@@ -210,7 +210,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
                     score = gat.scores_[train_idx][test_idx]
                 scores[train_idx] = score
     elif isinstance(train_time, float):
-        train_times = gat.train_times['times_']
+        train_times = gat.train_times_['times']
         idx = np.abs(train_times - train_time).argmin()
         if train_times[idx] - train_time > gat.train_times['step']:
             raise ValueError("No classifier trained at %s " % train_time)
@@ -220,7 +220,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
     kwargs = dict()
     if color is not None:
         kwargs['color'] = color
-    ax.plot(gat.train_times['times_'], scores, label=str(label), **kwargs)
+    ax.plot(gat.train_times_['times'], scores, label=str(label), **kwargs)
 
 
 def _get_chance_level(scorer, y_train):
