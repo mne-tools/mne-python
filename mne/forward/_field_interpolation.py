@@ -104,7 +104,7 @@ def _compute_mapping_matrix(fmd, info):
     return mapping_mat
 
 
-def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
+def _map_meg_channels(inst, info_from, info_to, mode='fast'):
     """Find mapping from one set of channels to another.
 
     Parameters
@@ -125,8 +125,8 @@ def _map_meg_channels(inst, pick_from, pick_to, mode='fast'):
     mapping : array
         A mapping matrix of shape len(pick_to) x len(pick_from).
     """
-    info_from = pick_info(inst.info, pick_from, copy=True)
-    info_to = pick_info(inst.info, pick_to, copy=True)
+    # info_from = pick_info(inst.info, pick_from, copy=True)
+    # info_to = pick_info(inst.info, pick_to, copy=True)
 
     # no need to apply trans because both from and to coils are in device
     # coordinates
@@ -414,3 +414,62 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         surf_maps.append(this_map)
 
     return surf_maps
+
+
+def _transform_evoked(ev_from, info_to):
+    """ Map the ev_from to the head position in info_to"""
+
+    ev_from.pick_types(meg=True, eeg=False, exclude='bads')
+    pick_from = pick_types(ev_from.info, meg=True, eeg=False, exclude='bads')
+    info_from = pick_info(ev_from.info, pick_from, copy=True)
+
+    # The transformation to be done to go to the new head position
+    from ..transforms import invert_transform, apply_trans
+    trans = np.dot(info_to['dev_head_t']['trans'],
+                   invert_transform(info_from['dev_head_t'])['trans'])
+    chs_pos_from = ev_from._get_channel_positions(pick_from)
+
+    # set the new channel positions
+    names = np.array(info_from['ch_names'])[pick_from]
+    ev_from._set_channel_positions(apply_trans(trans, chs_pos_from), names)
+
+    mapping = _map_meg_channels(ev_from, info_from, info_to, mode='fast')
+
+    # compute evoked data by multiplying by the 'gain matrix' from
+    # original sensors to virtual sensors
+    ev_from.data = np.dot(mapping, ev_from.data)
+    return ev_from
+
+
+def transform_evokeds(evokeds, n_jobs=1):
+    """ Map list of evokeds to the same head position
+
+    Parameters
+    ----------
+    evokeds : list of Evoked
+        list of evokeds to be mapped to same head position i.e.
+        the head position of the first evoked.
+    n_jobs : int
+        The number of jobs to run in parallel.
+
+    Returns
+    -------
+    evokeds : list of Evoked
+        list of evokeds after remapping.
+    """
+
+    ev_to = evokeds[0]
+    pick_to = pick_types(ev_to.info, meg=True, eeg=False, exclude='bads')
+    info_to = pick_info(ev_to.info, pick_to, copy=True)
+
+    from ..parallel import parallel_func
+    parallel, my_trans, n_jobs = parallel_func(_transform_evoked,
+                                               n_jobs=n_jobs)
+
+    ev_trans = parallel(my_trans(evokeds[i_ev], info_to)
+                        for i_ev in np.arange(1, len(evokeds)))
+
+    # evokeds = [_transform_evoked(evokeds[i_ev], info_to)
+    #            for i_ev in np.arange(1, len(evokeds))]
+
+    return ev_trans
