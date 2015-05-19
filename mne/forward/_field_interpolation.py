@@ -428,15 +428,8 @@ def _transform_instance(inst_from, info_to):
     from ..transforms import invert_transform, apply_trans
     trans = np.dot(info_to['dev_head_t']['trans'],
                    invert_transform(info_from['dev_head_t'])['trans'])
-    chs_pos_from = inst_from._get_channel_positions(picks_from)
-    pos = chs_pos_from[:, :3]
-    vec_x = chs_pos_from[:, 3:6]
-    vec_y = chs_pos_from[:, 6:9]
-    vec_z = chs_pos_from[:, 9:]
-    chs_pos_from = list()
-    for pts in [pos, vec_x, vec_y, vec_z]:
-        chs_pos_from.append(apply_trans(trans, pts))
-    chs_pos_from = np.hstack(chs_pos_from)
+    ch_pos_from = inst_from._get_channel_positions(picks_from).reshape(-1, 3)
+    ch_pos_from = apply_trans(trans, ch_pos_from)).reshape(-1, 12)
 
     # set the new channel positions
     names = np.array(info_from['ch_names'])[picks_from]
