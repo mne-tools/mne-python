@@ -539,8 +539,8 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
     to compute the connectivity between the signal with index 0 and signals
     "2, 3, 4" (a total of 3 connections) one can use the following::
 
-        indices = (np.array([0, 0, 0],    # row indices
-                   np.array([2, 3, 4])))  # col indices
+        indices = (np.array([0, 0, 0]),    # row indices
+                   np.array([2, 3, 4]))    # col indices
 
         con_flat = spectral_connectivity(data, method='coh',
                                          indices=indices, ...)
