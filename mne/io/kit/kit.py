@@ -114,7 +114,8 @@ class RawKIT(_BaseRaw):
     def __repr__(self):
         s = ('%r' % op.basename(self._kit_info['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                                 self._kit_info['n_samples']))
+                                                 self.last_samp + 1 -
+                                                 self.first_samp))
         return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
@@ -549,6 +550,8 @@ def get_kit_info(rawfile):
 
     Returns
     -------
+    info : instance of Info
+        An Info for the instance.
     sqd : dict
         A dict containing all the sqd parameter settings.
     """
@@ -676,7 +679,7 @@ def get_kit_info(rawfile):
         info['sfreq'] = float(sqd['sfreq'])
         info['bads'] = []
         info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = None
+        info['filename'] = rawfile
         info['ctf_head_t'] = None
         info['dev_ctf_t'] = []
         info['nchan'] = sqd['nchan']
