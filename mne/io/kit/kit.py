@@ -114,7 +114,8 @@ class RawKIT(_BaseRaw):
     def __repr__(self):
         s = ('%r' % op.basename(self._kit_info['fname']),
              "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                                 self._kit_info['n_samples']))
+                                                 self.last_samp + 1 -
+                                                 self.first_samp))
         return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
