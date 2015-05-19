@@ -290,7 +290,7 @@ class GeneralizationAcrossTime(object):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
-        ``test_times`` attribute.
+        ``test_times`` attributes.
 
         Parameters
         ----------
