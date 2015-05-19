@@ -220,7 +220,7 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     return fig
 
 
-def _check_outlines(pos, outlines, head_scale=0.85):
+def _check_outlines(pos, outlines, head_scale=0.85,rescaling='auto'):
     """Check or create outlines for topoplot
     """
     pos = np.asarray(pos)
@@ -237,13 +237,32 @@ def _check_outlines(pos, outlines, head_scale=0.85):
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
                           -.1313, -.1384, -.1199])
         x, y = pos[:, :2].T
-        x_range = np.abs(x.max() - x.min())
-        y_range = np.abs(y.max() - y.min())
+        
+        if rescaling is 'auto':
+            x_range = np.abs(x.max() - x.min())
+            y_range = np.abs(y.max() - y.min())
+            x_center = x.min() + (0.5 * x_range)
+            y_center = y.min() + (0.5 * y_range)
+            
+        elif isinstance(rescaling, dict):
+            if 'center' not in rescaling:
+                raise ValueError('You must specify the coordinates of the central'
+                                 'Electrode')
+            if 'scale' not in rescaling:
+                raise ValueError('You must specify the scale for electrodes positions')
+            
+            x_center = rescaling['center'][0]
+            y_center = rescaling['center'][1]
+            x_range  = rescaling['scale'][0]
+            y_range  = rescaling['scale'][1]
+            
+        else:
+            raise ValueError('Invalid value for `rescaling')
 
         # shift and scale the electrode positions
-        pos[:, 0] = head_scale * ((pos[:, 0] - x.min()) / x_range - 0.5)
-        pos[:, 1] = head_scale * ((pos[:, 1] - y.min()) / y_range - 0.5)
-
+        pos[:, 0] = head_scale * ((pos[:, 0] - x_center) / x_range )
+        pos[:, 1] = head_scale * ((pos[:, 1] - y_center) / y_range )
+        
         # Define the outline of the head, ears and nose
         if outlines is not None:
             outlines = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
@@ -309,7 +328,7 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
-                 contours=6, image_interp='bilinear', show=True):
+                 contours=6, image_interp='bilinear', show=True, rescaling='auto'):
     """Plot a topographic map as image
 
     Parameters
@@ -374,6 +393,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         accepted.
     show : bool
         Show figure if True.
+    rescaling : 'auto' | dict
+        rescale the electrodes positions to match the head drawing. If auto
+        rescaling parameters are estimatred from the electrodes positions, 
+        if dict(center=(x, y), scale=(x_scale, y_scale)), center will be
+        used as origin (center of the head).
 
     Returns
     -------
@@ -395,7 +419,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    pos, outlines = _check_outlines(pos, outlines)
+    pos, outlines = _check_outlines(pos, outlines,rescaling=rescaling)
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
 
