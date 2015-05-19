@@ -1,7 +1,15 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Jussi Nurminen
-#
+
+# This code was adapted and relicensed (with BSD form) with permission from
+# Jussi Nurminen
+
 # License: BSD (3-clause)
+
+# Note, there are an absurd number of different notations for spherical
+# harmonics (partly because there is also no accepted standard for spherical
+# coordinates). Here, we purposefully stay away from shorthand notation in
+# both and use explicit terms to avoid confusion.
 
 #TODO: write in equation numbers from Samu's paper
 
@@ -16,24 +24,25 @@ from ..transforms import _sphere_to_cartesian as sph_to_cart
 from scipy.misc import factorial as fact
 
 
-def maxwell_filter(Raw, origin, L_in, L_out):
+def maxwell_filter(raw, origin, in_order=8, out_order=3):
     """
-    Filter data using SSS basis functions.
+    Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
     ----------
-    Raw : mne.Raw instance
-        Data to be filtered.
-    origin : array of shape [3,]
-        Origin of head.
-    L_in : int
+    raw : instance of mne.io.Raw
+        Data to be filtered
+    origin : tuple, shape (3,)
+        Origin of head
+    in_order : int
         Order of in-component spherical expansion
-    L_out : int
+    out_order : int
         Order of out-component spherical expansion
 
     Returns
     -------
-    sss_Raw : Filtered data
+    raw_sss : instance of mne.io.Raw
+        The raw data with Maxwell filtering applied
     """
 
     #TODO: Figure out all parameters required
@@ -44,7 +53,7 @@ def maxwell_filter(Raw, origin, L_in, L_out):
     #TODO: Reconstruct and return Raw file object
 
 
-def sph_harmonic(l, m, az, pol):
+def _sph_harmonic(degree, order, az, pol):
     """
     Compute the spherical harmonic function at point in spherical coordinates.
     When using, pay close attention to inputs. Spherical harmonic notation for
@@ -53,10 +62,10 @@ def sph_harmonic(l, m, az, pol):
 
     Parameters
     ----------
-    l : int
-        Degree of spherical harmonic
-    m : int
-        Order of spherical harmonic
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'
     az : float
         Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
         with x-axis.
@@ -67,9 +76,10 @@ def sph_harmonic(l, m, az, pol):
     Returns
     -------
     y : complex float
-        The spherical harmonic value at the specified polar and azimuth angles
+        The spherical harmonic value at the specified azimuth and polar angles
     """
-    assert np.abs(m) <= l, 'Absolute value of expansion coefficient must be <= l'
+    assert np.abs(order) <= degree, ('Absolute value of expansion coefficient'
+                                     ' must be <= degree')
 
     # Get function for Legendre derivatives
     #lut, n_fact = _get_legen_table('meg', False, 100)
@@ -77,35 +87,36 @@ def sph_harmonic(l, m, az, pol):
 
     #TODO: Decide on notation for spherical coords
     #TODO: Should factorial function use floating or long precision?
+    #TODO: Check that [-m to m] convention is correct for all equations
 
-    #Ensure that polar and azimuth angles are
+    #Ensure that polar and azimuth angles are arrays
     polar = np.array(pol)
     azimuth = np.array(az)
 
     # Real valued spherical expansion as given by Wikso, (11)
-    base = np.sqrt(((2 * l + 1) / (4 * np.pi) *
-                    factorial(l - m) / factorial(l + m)) *
-                   lpmv(m, l, np.cos(polar)))
-    if m < 0:
-        return base * np.sin(m * azimuth)
+    base = np.sqrt(((2 * degree + 1) / (4 * np.pi) *
+                    factorial(degree - order) / factorial(degree + order)) *
+                   lpmv(order, degree, np.cos(polar)))
+    if order < 0:
+        return base * np.sin(order * azimuth)
     else:
-        return base * np.cos(m * azimuth)
+        return base * np.cos(order * azimuth)
 
     #TODO: Check speed of taking real part of scipy's sph harmonic function
     # Note reversal in notation order between scipy and original SSS papers
     # Degree/order and theta/phi reversed
-    #return np.real(sph_harm(m, l, azimuth, polar))
+    #return np.real(sph_harm(order, degree, az, pol))
 
 
-def get_num_harmonics(L_in, L_out):
+def get_num_harmonics(in_order, out_order):
     """
     Compute total number of spherical harmonics.
 
     Parameters
     ---------
-    L_in : int
+    in_order : int
         Internal expansion order
-    L_out : int
+    out_order : int
         External expansion order
 
     Returns
@@ -114,20 +125,22 @@ def get_num_harmonics(L_in, L_out):
         Total number of spherical harmonics
     """
 
-    return L_in ** 2 + 2 * L_in + L_out ** 2 + 2 * L_out
+    #TODO: Eventually, reuse code in field_interpolation
+
+    return in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
 
 
-def _alegendre_deriv(l, m, x):
+def _alegendre_deriv(degree, order, val):
     """
-    Compute the derivative of the associated Legendre polynomial at x.
+    Compute the derivative of the associated Legendre polynomial at a value.
 
     Parameters
     ----------
-    l : int
-        Degree of spherical harmonic
-    m : int
-        Order of spherical harmonic
-    x : float
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'
+    val : float
         Value to evaluate the derivative at
 
     Returns
@@ -139,113 +152,122 @@ def _alegendre_deriv(l, m, x):
     #TODO: Eventually, probably want to switch to look up table but optimize
     # later
     C = 1
-    if m < 0:
-        m = abs(m)
-        C = (-1) ** m * fact(l - m) / fact(1 + m)
-    return C * (m * x * lpmv(m, l, x) + (l + m) * (l - m + 1) *
-                np.sqrt(1 - x ** 2) * lpmv(m, l - 1, x)) / (1 - x ** 2)
+    if order < 0:
+        order = abs(order)
+        C = (-1) ** order * fact(degree - order) / fact(1 + order)
+    return C * (order * val * lpmv(order, degree, val) + (degree + order) *
+                (degree - order + 1) * np.sqrt(1 - val ** 2) *
+                lpmv(order, degree - 1, val)) / (1 - val ** 2)
 
 
-def grad_in_comp(l, m, r, az, pol, lut_func):
+def _grad_in_components(degree, order, rad, az, pol, lut_func):
     """
     Compute gradient of in-component of V(r) spherical expansion having form
-    Ylm(theta, phi) / (r ** (l+1))
+    Ylm(pol, az) / (rad ** (degree + 1))
 
     Parameters
     ----------
-    l : int
-        Degree of spherical harmonic
-    m : int
-        Order of spherical harmonic
-    r : numpy array of shape [n_samples,]
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'
+    rad : ndarray, shape (n_samples,)
         Array of radii
-    az: numpy array of shape [n_samples,]
+    az : ndarray, shape (n_samples,)
         Array of azimuthal (longitudinal) spherical coordinates [0, 2*pi]. 0 is
         aligned with x-axis.
-    pol: numpy array of shape [n_samples,]
+    pol : ndarray, shape (n_samples,)
         Array of polar (or colatitudinal) spherical coordinates [0, pi]. 0 is
         aligned with z-axis.
 
     Returns
     -------
-    dPlm
-        Derivative of Associated Legendre function at points specified
+    grad_vec
+        Gradient at the spherical harmonic and vector specified in rectangular
+        coordinates
     """
-    #TODO: add check/warning if theta or phi outside appropriate ranges
+    #TODO: add check/warning if az or pol outside appropriate ranges
 
     # Get function for Legendre derivatives
     #lut, n_fact = _get_legen_table('meg', False, 100)
     #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
 
-    # Compute gradients for r, theta, and phi
-    r1 = -(l + 1) / r ** (l + 2) * sph_harmonic(l, m, az, pol)
+    # Compute gradients for all spherical coordinates
+    r1 = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order, az,
+                                                             pol)
 
-    theta1 = 1 / r ** (l + 2) * np.sqrt((2 * l + 1) * factorial(l - m) /
-                                        (4 * np.pi * factorial(l + m))) * \
-        -np.sin(pol) * _alegendre_deriv(l, m, np.cos(pol)) * np.exp(1j * m *
-                                                                    az)
+    theta1 = 1 / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
+                                               factorial(degree - order) /
+                                               (4 * np.pi *
+                                                factorial(degree + order))) * \
+        -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
+        np.exp(1j * order * az)
 
-    phi1 = 1 / (r ** (l + 2) * np.sin(pol)) * 1j * m * \
-        sph_harmonic(l, m, az, pol)
+    phi1 = 1 / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
+        _sph_harmonic(degree, order, az, pol)
 
     # Get real component of vectors, convert to cartesian coords, and return
-    return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), m)
+    return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), order)
 
 
-def grad_out_comp(l, m, r, az, pol):
+def _grad_out_components(degree, order, rad, az, pol):
     """
     Compute gradient of RHS of V(r) spherical expansion having form
-    Ylm(theta, phi) * (r ** l)
+    Ylm(azimuth, polar) * (radius ** degree)
 
     Parameters
     ----------
-    l : int
-        Degree of spherical harmonic
-    m : int
-        Order of spherical harmonic
-    r : numpy array of shape [n_samples,]
+    degree : int
+        Degree of spherical harmonic. (Usually) corresponds to 'l'
+    order : int
+        Order of spherical harmonic. (Usually) corresponds to 'm'
+    rad : ndarray, shape (n_samples,)
         Array of radii
-    az: numpy array of shape [n_samples,]
+    az : ndarray, shape (n_samples,)
         Array of azimuthal (longitudinal) spherical coordinates [0, 2*pi]. 0 is
         aligned with x-axis.
-    pol: numpy array of shape [n_samples,]
+    pol : ndarray, shape (n_samples,)
         Array of polar (or colatitudinal) spherical coordinates [0, pi]. 0 is
         aligned with z-axis.
 
     Returns
     -------
-    dPlm
-        Derivative of Associated Legendre function at points specified
+    grad_vec
+        Gradient at the spherical harmonic and vector specified in rectangular
+        coordinates
     """
-    #TODO: add check/warning if theta or phi outside appropriate ranges
+    #TODO: add check/warning if az or pol outside appropriate ranges
 
     # Get function for Legendre derivatives
     #lut, n_fact = _get_legen_table('meg', False, 100)
     #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
 
-    # Compute gradients for r, theta, and phi
-    r1 = l * r ** (l - 1) * sph_harmonic(l, m, az, pol)
+    # Compute gradients for all spherical coordinates
+    r1 = degree * rad ** (degree - 1) * _sph_harmonic(degree, order, az, pol)
 
-    theta1 = r ** (l - 1) * np.sqrt((2 * l + 1) * factorial(l - m) /
-                                    (4 * np.pi * factorial(1 + m))) * \
-        -np.sin(pol) * _alegendre_deriv(l, m, np.cos(pol)) * np.exp(1j * m
-                                                                    * az)
+    theta1 = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
+                                           factorial(degree - order) /
+                                           (4 * np.pi *
+                                            factorial(degree + order))) * \
+        -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
+        np.exp(1j * order * az)
 
-    phi1 = r ** (l - 1) / np.sin(pol) * 1j * m * sph_harmonic(l, m, az, pol)
+    phi1 = rad ** (degree - 1) / np.sin(pol) * 1j * order * \
+        _sph_harmonic(degree, order, az, pol)
 
     # Get real component of vectors, convert to cartesian coords, and return
-    return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), m)
+    return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), order)
 
 
-def _to_real_and_cart(grad_vec_raw, m):
+def _to_real_and_cart(grad_vec_raw, order):
     """
     Helper function to take real component of gradient vector and convert from
     spherical to cartesian coords
     """
 
-    if m > 0:
+    if order > 0:
         grad_vec = np.sqrt(2) * np.real(grad_vec_raw)
-    elif m < 0:
+    elif order < 0:
         grad_vec = np.sqrt(2) * np.imag(grad_vec_raw)
     else:
         grad_vec = grad_vec_raw
