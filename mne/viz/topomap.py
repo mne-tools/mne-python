@@ -220,10 +220,23 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     return fig
 
 
-def _check_outlines(pos, outlines, head_scale=0.85):
+def _check_outlines(pos, outlines, head_pos=None):
     """Check or create outlines for topoplot
     """
-    pos = np.asarray(pos)
+    pos = np.array(pos, float)[:, :2]  # ensure we have a copy
+    head_pos = {} if head_pos is None else head_pos
+    if not isinstance(head_pos, dict):
+        raise TypeError('sensor_pos must be dict or None')
+    head_pos = copy.deepcopy(head_pos)
+    for key in head_pos.keys():
+        if key not in ('center', 'scale'):
+            raise KeyError('head_pos must only contain "center" and '
+                           '"scale"')
+        head_pos[key] = np.array(head_pos[key], float)
+        if head_pos[key].shape != (2,):
+            raise ValueError('head_pos["%s"] must have shape (2,), not '
+                             '%s' % (key, head_pos[key].shape))
+
     if outlines in ('head', None):
         radius = 0.5
         l = np.linspace(0, 2 * np.pi, 101)
@@ -235,21 +248,21 @@ def _check_outlines(pos, outlines, head_scale=0.85):
                          .532, .510, .489])
         ear_y = np.array([.0555, .0775, .0783, .0746, .0555, -.0055, -.0932,
                           -.1313, -.1384, -.1199])
-        x, y = pos[:, :2].T
-        x_range = max(x.max(), -x.min()) * 2.
-        y_range = max(y.max(), -y.min()) * 2.
 
         # shift and scale the electrode positions
-        pos[:, 0] = head_scale * (pos[:, 0] / x_range)
-        pos[:, 1] = head_scale * (pos[:, 1] / y_range)
+        if 'center' not in head_pos:
+            head_pos['center'] = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
+        if 'scale' not in head_pos:
+            head_pos['scale'] = 0.85 * (pos.max(axis=0) - pos.min(axis=0))
+        pos -= head_pos['center']
+        pos *= head_pos['scale']
 
         # Define the outline of the head, ears and nose
+        outlines = dict()
         if outlines is not None:
-            outlines = dict(head=(head_x, head_y), nose=(nose_x, nose_y),
+            outlines.update(head=(head_x, head_y), nose=(nose_x, nose_y),
                             ear_left=(ear_x, ear_y),
                             ear_right=(-ear_x, ear_y))
-        else:
-            outlines = dict()
 
         outlines['mask_pos'] = head_x, head_y
         outlines['autoshrink'] = True
@@ -308,7 +321,8 @@ def _plot_sensors(pos_x, pos_y, sensors, ax):
 def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                  res=64, axis=None, names=None, show_names=False, mask=None,
                  mask_params=None, outlines='head', image_mask=None,
-                 contours=6, image_interp='bilinear', show=True):
+                 contours=6, image_interp='bilinear', show=True,
+                 head_pos=None):
     """Plot a topographic map as image
 
     Parameters
@@ -373,6 +387,11 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
         accepted.
     show : bool
         Show figure if True.
+    head_pos : dict | None
+        If None (default), the sensors are positioned such that they span
+        the head circle. If dict, can have entries 'center' (tuple) and
+        'scale' (tuple) for what the center and scale of the head should be
+        relative to the electrode locations.
 
     Returns
     -------
@@ -394,7 +413,7 @@ def plot_topomap(data, pos, vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
 
     vmin, vmax = _setup_vmin_vmax(data, vmin, vmax)
 
-    pos, outlines = _check_outlines(pos, outlines)
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
     pos_x = pos[:, 0]
     pos_y = pos[:, 1]
 
@@ -570,7 +589,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
                         layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                         sensors=True, colorbar=False, title=None,
                         show=True, outlines='head', contours=6,
-                        image_interp='bilinear'):
+                        image_interp='bilinear', head_pos=None):
     """Project unmixing matrix on interpolated sensor topogrpahy.
 
     Parameters
@@ -625,6 +644,11 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
+    head_pos : dict | None
+        If None (default), the sensors are positioned such that they span
+        the head circle. If dict, can have entries 'center' (tuple) and
+        'scale' (tuple) for what the center and scale of the head should be
+        relative to the electrode locations.
 
     Returns
     -------
@@ -664,7 +688,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
     data_picks, pos, merge_grads, names, _ = _prepare_topo_plot(ica, ch_type,
                                                                 layout)
-    pos, outlines = _check_outlines(pos, outlines)
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines not in (None, 'head'):
         image_mask, pos = _make_image_mask(outlines, pos, res)
     else:
@@ -713,7 +737,8 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, format=None, outlines='head'):
+                     axes=None, show=True, outlines='head', head_pos=None,
+                     format=None):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -803,6 +828,11 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         points outside the outline. Moreover, a matplotlib patch object can
         be passed for advanced masking options, either directly or as a
         function that returns patches (required for multi-axis plots).
+    head_pos : dict | None
+        If None (default), the sensors are positioned such that they span
+        the head circle. If dict, can have entries 'center' (tuple) and
+        'scale' (tuple) for what the center and scale of the head should be
+        relative to the electrode locations.
 
     Returns
     -------
@@ -893,7 +923,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear', average=None, format=None):
+                        image_interp='bilinear', average=None, head_pos=None,
+                        format=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -989,6 +1020,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         For example, 0.01 would translate into window that starts 5 ms before
         and ends 5 ms after a given time point. Defaults to None, which means
         no averaging.
+    head_pos : dict | None
+        If None (default), the sensors are positioned such that they span
+        the head circle. If dict, can have entries 'center' (tuple) and
+        'scale' (tuple) for what the center and scale of the head should be
+        relative to the electrode locations.
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
@@ -1078,7 +1114,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         _picks = picks[::2 if ch_type not in ['mag', 'eeg'] else 1]
         mask_ = mask[np.ix_(_picks, time_idx)]
 
-    pos, outlines = _check_outlines(pos, outlines)
+    pos, outlines = _check_outlines(pos, outlines, head_pos)
     if outlines is not None:
         image_mask, pos = _make_image_mask(outlines, pos, res)
     else:

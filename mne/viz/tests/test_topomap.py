@@ -63,8 +63,12 @@ def test_plot_topomap():
     ev_bad.pick_channels(ev_bad.ch_names[:2])
     ev_bad.plot_topomap()  # auto, should plot EEG
     assert_raises(ValueError, ev_bad.plot_topomap, ch_type='mag')
+    assert_raises(TypeError, ev_bad.plot_topomap, head_pos='foo')
+    assert_raises(KeyError, ev_bad.plot_topomap, head_pos=dict(foo='bar'))
+    assert_raises(ValueError, ev_bad.plot_topomap, head_pos=dict(center=0))
 
     evoked.plot_topomap(0.1, layout=layout, scale=dict(mag=0.1))
+    plt.close('all')
     mask = np.zeros_like(evoked.data, dtype=bool)
     mask[[1, 5], :] = True
     evoked.plot_topomap(None, ch_type='mag', outlines=None)
@@ -75,6 +79,7 @@ def test_plot_topomap():
     evoked.plot_topomap(times, ch_type='planar2', res=res)
     evoked.plot_topomap(times, ch_type='grad', mask=mask, res=res,
                         show_names=True, mask_params={'marker': 'x'})
+    plt.close('all')
     assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
                   res=res, average=-1000)
     assert_raises(ValueError, evoked.plot_topomap, times, ch_type='eeg',
@@ -100,6 +105,7 @@ def test_plot_topomap():
     texts = get_texts(p)
     assert_equal(len(texts), 1)
     assert_equal(texts[0], 'Custom')
+    plt.close('all')
 
     # delaunay triangulation warning
     with warnings.catch_warnings(record=True):  # can't show
@@ -135,7 +141,7 @@ def test_plot_topomap():
     del evoked.info['dig'][85]
 
     pos = make_eeg_layout(evoked.info).pos
-    pos, outlines = _check_outlines(pos, outlines='head')
+    pos, outlines = _check_outlines(pos, 'head')
     # test 1: pass custom outlines without patch
 
     def patch():
@@ -149,11 +155,13 @@ def test_plot_topomap():
     evoked.info['dig'] = None
     assert_raises(RuntimeError, plot_evoked_topomap, evoked,
                   times, ch_type='eeg')
+    plt.close('all')
 
 
 def test_plot_tfr_topomap():
     """Test plotting of TFR data
     """
+    import matplotlib.pyplot as plt
     raw = _get_raw()
     times = np.linspace(-0.1, 0.1, 200)
     n_freqs = 3
@@ -163,6 +171,7 @@ def test_plot_tfr_topomap():
     tfr = AverageTFR(raw.info, data, times, np.arange(n_freqs), nave)
     tfr.plot_topomap(ch_type='mag', tmin=0.05, tmax=0.150, fmin=0, fmax=10,
                      res=16)
+    plt.close('all')
 
 
 def test_prepare_topo_plot():

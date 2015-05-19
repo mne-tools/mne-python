@@ -87,8 +87,8 @@ def test_plot_connectivity_circle():
                              node_angles=node_angles, title='test',
                              )
 
-    plt.close('all')
     assert_raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[-1])
     assert_raises(ValueError, circular_layout, label_names, node_order,
                   group_boundaries=[20, 0])
+    plt.close('all')

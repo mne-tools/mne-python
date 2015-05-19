@@ -78,7 +78,9 @@ def test_plot_epochs():
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
     # test clicking: should increase coverage on
     # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
     fig = plt.gcf()
@@ -128,11 +130,13 @@ def test_plot_drop_log():
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_psd()
     assert_raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
+    plt.close('all')
 
 
 run_tests_if_main()

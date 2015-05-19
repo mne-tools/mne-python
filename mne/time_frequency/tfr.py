@@ -874,7 +874,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, format=None, outlines='head'):
+                     axes=None, show=True, outlines='head', head_pos=None,
+                     format=None):
         """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
@@ -963,6 +964,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             points outside the outline. Moreover, a matplotlib patch object can
             be passed for advanced masking options, either directly or as a
             function that returns patches (required for multi-axis plots).
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
 
         Returns
         -------
@@ -977,7 +983,8 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                format=format, outlines=outlines)
+                                format=format, outlines=outlines,
+                                head_pos=head_pos)
 
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file
