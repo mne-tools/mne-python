@@ -67,6 +67,9 @@ class GeneralizationAcrossTime(object):
 
     Parameters
     ----------
+    picks : array-like of int | None, optional
+        Channels to be included. If None only good data channels are used.
+        Defaults to None.
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
@@ -144,8 +147,6 @@ class GeneralizationAcrossTime(object):
         else, np.shape(scores) = [n_train_time, n_test_time].
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    picks_ : np.array, shape (n_channels,)
-        Indices of the channels used for training.
     ch_names : list, shape (n_channels,)
         Names of the channels used for training.
 
@@ -159,8 +160,9 @@ class GeneralizationAcrossTime(object):
 
     .. versionadded:: 0.9.0
     """  # noqa
-    def __init__(self, cv=5, clf=None, train_times=None, test_times=None,
-                 predict_mode='cross-validation', scorer=None, n_jobs=1):
+    def __init__(self, picks=None, cv=5, clf=None, train_times=None,
+                 test_times=None, predict_mode='cross-validation', scorer=None,
+                 n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -182,6 +184,7 @@ class GeneralizationAcrossTime(object):
         self.clf = clf
         self.predict_mode = predict_mode
         self.scorer = scorer
+        self.picks = picks
         self.n_jobs = n_jobs
 
     def __repr__(self):
@@ -208,8 +211,11 @@ class GeneralizationAcrossTime(object):
 
         return "<GAT | %s>" % s
 
-    def fit(self, epochs, y=None, picks=None):
+    def fit(self, epochs, y=None):
         """ Train a classifier on each specified time slice.
+
+        Note. This function sets and updates the ``picks`` and the
+        ``ch_names`` attributes.
 
         Parameters
         ----------
@@ -217,9 +223,6 @@ class GeneralizationAcrossTime(object):
             The epochs.
         y : list or np.ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
-            Defaults to None.
-        picks : array-like of int | None, optional
-            Channels to be included. If None only good data channels are used.
             Defaults to None.
 
         Returns
@@ -245,9 +248,8 @@ class GeneralizationAcrossTime(object):
 
         n_jobs = self.n_jobs
         # Extract data from MNE structure
-        X, y, picks = _check_epochs_input(epochs, y, picks)
-        self.picks_ = picks
-        self.ch_names = [epochs.ch_names[p] for p in picks]
+        X, y, self.picks = _check_epochs_input(epochs, y, self.picks)
+        self.ch_names = [epochs.ch_names[p] for p in self.picks]
 
         cv = self.cv
         if isinstance(cv, (int, np.int)):
@@ -318,7 +320,7 @@ class GeneralizationAcrossTime(object):
             raise RuntimeError('Please fit models before trying to predict')
 
         cv = self.cv_  # Retrieve CV scheme from fit()
-        X, y, _ = _check_epochs_input(epochs, None, self.picks_)
+        X, y, _ = _check_epochs_input(epochs, None, self.picks)
 
         # Define testing sliding window
         if self.test_times == 'diagonal':
