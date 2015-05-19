@@ -12,7 +12,6 @@ from ._make_forward import _create_coils
 from ._lead_dots import (_do_self_dots, _do_surface_dots, _get_legen_table,
                          _get_legen_lut_fast, _get_legen_lut_accurate,
                          _do_cross_dots)
-from interpolation import _do_interp_dots
 from ..parallel import check_n_jobs
 from ..utils import logger, verbose
 from ..fixes import partial
@@ -429,15 +428,16 @@ def _transform_instance(inst_from, info_to):
     trans = np.dot(info_to['dev_head_t']['trans'],
                    invert_transform(info_from['dev_head_t'])['trans'])
     ch_pos_from = inst_from._get_channel_positions(picks_from).reshape(-1, 3)
-    ch_pos_from = apply_trans(trans, ch_pos_from)).reshape(-1, 12)
+    ch_pos_from = apply_trans(trans, ch_pos_from).reshape(-1, 12)
 
     # set the new channel positions
     names = np.array(info_from['ch_names'])[picks_from]
-    inst_from._set_channel_positions(chs_pos_from, names)
+    inst_from._set_channel_positions(ch_pos_from, names)
 
     mapping = _map_meg_channels(info_from, info_to, picks_from, mode='accurate')
     # compute rotated data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
+    from ..channels.interpolation import _do_interp_dots
     _do_interp_dots(inst_from, mapping, picks_from, picks_from)
     # use the info of the inst that that you are transforming to
     inst_from.info = info_to
@@ -462,7 +462,7 @@ def transform_instances(insts, copy=False, n_jobs=1):
 
     Returns
     -------
-    evokeds : list of instances
+    insts : list of instances
         list of instances after remapping.
 
     Notes
@@ -477,19 +477,13 @@ def transform_instances(insts, copy=False, n_jobs=1):
                         % type(insts))
     inst_to = insts[0]
     info_to = inst_to.info
-    # pick_to = pick_types(inst_to.info, meg=True, eeg=False, exclude=[])
-    # info_to = pick_info(inst_to.info, pick_to, copy=True)
 
     from ..parallel import parallel_func
     parallel, my_trans, n_jobs = parallel_func(_transform_instance,
                                                n_jobs=n_jobs)
 
     if copy:
-        insts_trans = parallel(my_trans(inst, info_to.copy())
-                               for inst in insts[1:])
+        insts[1:] = parallel(my_trans(inst.copy(), info_to) for inst in insts[1:])
+        return insts_trans
     else:
-        insts_trans = parallel(my_trans(inst, info_to)
-                               for inst in insts[1:])
-    insts_trans.insert(0, inst_to)
-
-    return insts_trans
+        insts[1:] = parallel(my_trans(inst, info_to) for inst in insts[1:])

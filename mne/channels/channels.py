@@ -211,7 +211,6 @@ class SetChannelsMixin(object):
                              'the number of names given.')
         pos = np.asarray(pos, dtype=np.float)          
         if pos.shape[-1] != 12 or pos.ndim != 2:
-        else:
             msg = ('Channel positions must have the shape (n_points, 3) '
                    'not %s.' % (pos.shape,))
             raise ValueError(msg)
