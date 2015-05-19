@@ -549,6 +549,8 @@ def get_kit_info(rawfile):
 
     Returns
     -------
+    info : instance of Info
+        An Info for the instance.
     sqd : dict
         A dict containing all the sqd parameter settings.
     """
