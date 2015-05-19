@@ -173,7 +173,10 @@ class SetChannelsMixin(object):
         if picks is None:
             picks = pick_types(self.info, meg=True, eeg=True)
         chs = self.info['chs']
-        pos = np.array([chs[k]['loc'][:3] for k in picks])
+        if 'meg' in self:
+            pos = np.array([chs[k]['loc'] for k in picks])
+        else:
+            pos = np.array([chs[k]['loc'][:3] for k in picks])
         n_zero = np.sum(np.sum(np.abs(pos), axis=1) == 0)
         if n_zero > 1:  # XXX some systems have origin (0, 0, 0)
             raise ValueError('Could not extract channel positions for '
@@ -185,7 +188,7 @@ class SetChannelsMixin(object):
 
         Parameters
         ----------
-        pos : array-like | np.ndarray, shape (n_points, 3)
+        pos : array-like | np.ndarray, shape (n_points, {3,12}) for {eeg, meg}
             The channel positions to be set.
         names : list of str
             The names of the channels to be set.
@@ -198,14 +201,22 @@ class SetChannelsMixin(object):
             raise ValueError('Number of channel positions not equal to '
                              'the number of names given.')
         pos = np.asarray(pos, dtype=np.float)
-        if pos.shape[-1] != 3 or pos.ndim != 2:
-            msg = ('Channel positions must have the shape (n_points, 3) '
-                   'not %s.' % (pos.shape,))
+        if 'meg' in self:            
+            if pos.shape[-1] != 12 or pos.ndim != 2:
+                msg = ('Channel positions must have the shape (n_points, 12) '
+                       'not %s.' % (pos.shape,))            
+        else:
+            if pos.shape[-1] != 3 or pos.ndim != 2:
+                msg = ('Channel positions must have the shape (n_points, 3) '
+                       'not %s.' % (pos.shape,))
             raise ValueError(msg)
-        for name, p in zip(names, pos):
+        for name, pt in zip(names, pos):
             if name in self.ch_names:
                 idx = self.ch_names.index(name)
-                self.info['chs'][idx]['loc'][:3] = p
+                if 'meg' in self:
+                    self.info['chs'][idx]['loc'] = pt
+                else:
+                    self.info['chs'][idx]['loc'][:3] = pt
             else:
                 msg = ('%s was not found in the info. Cannot be updated.'
                        % name)

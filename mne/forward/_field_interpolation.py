@@ -428,10 +428,18 @@ def _transform_instance(inst_from, info_to):
     trans = np.dot(info_to['dev_head_t']['trans'],
                    invert_transform(info_from['dev_head_t'])['trans'])
     chs_pos_from = inst_from._get_channel_positions(picks_from)
+    pos = chs_pos_from[:, :3]
+    vec_x = chs_pos_from[:, 3:6]
+    vec_y = chs_pos_from[:, 6:9]
+    vec_z = chs_pos_from[:, 9:]
+    chs_pos_from = list()
+    for pts in [pos, vec_x, vec_y, vec_z]:
+        chs_pos_from.append(apply_trans(trans, pts))
+    chs_pos_from = np.hstack(chs_pos_from)
 
     # set the new channel positions
     names = np.array(info_from['ch_names'])[picks_from]
-    inst_from._set_channel_positions(apply_trans(trans, chs_pos_from), names)
+    inst_from._set_channel_positions(chs_pos_from, names)
 
     mapping = _map_meg_channels(info_from, info_to, picks_from, mode='accurate')
     # compute evoked data by multiplying by the 'gain matrix' from
