@@ -96,6 +96,18 @@ class GeneralizationAcrossTime(object):
                 Defaults to one time sample.
 
         If None, empty dict. Defaults to None.
+    test_times : 'diagonal' | dict | None, optional
+        Configures the testing times.
+        If set to 'diagonal', predictions are made at the time at which
+        each classifier is trained.
+        If set to None, predictions are made at all time points.
+        If set to dict, the dict should contain ``slices`` or be contructed in
+        a similar way to train_times
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+
+        If None, empty dict. Defaults to None.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -130,8 +142,8 @@ class GeneralizationAcrossTime(object):
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
         else, np.shape(scores) = [n_train_time, n_test_time].
-    test_times_ : dict
-        The same structure as ``train_times``.
+    test_times : dict
+        A similar structure to ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
     picks_ : np.array, shape (n_channels,)
@@ -149,7 +161,7 @@ class GeneralizationAcrossTime(object):
 
     .. versionadded:: 0.9.0
     """  # noqa
-    def __init__(self, cv=5, clf=None, train_times=None,
+    def __init__(self, cv=5, clf=None, train_times=None, test_times=None,
                  predict_mode='cross-validation', n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
@@ -161,6 +173,8 @@ class GeneralizationAcrossTime(object):
         # Define training sliding window
         self.train_times = (_DecodingTime() if train_times is None
                             else _DecodingTime(train_times))
+        # Define testing sliding window. If None, will be set in predict()
+        self.test_times = test_times
 
         # Default classification pipeline
         if clf is None:
@@ -226,7 +240,7 @@ class GeneralizationAcrossTime(object):
         from sklearn.cross_validation import check_cv, StratifiedKFold
 
         # clean in case gat.fit() is called at unexpected moments
-        for att in ['y_pred_', 'scores_', 'scorer_', 'test_times_', 'y_true_']:
+        for att in ['y_pred_', 'scores_', 'scorer_', 'y_true_']:
             if hasattr(self, att):
                 delattr(self, att)
 
@@ -271,39 +285,17 @@ class GeneralizationAcrossTime(object):
         self.estimators_ = sum(out, list())
         return self
 
-    def predict(self, epochs, test_times=None):
+    def predict(self, epochs):
         """ Test each classifier on each specified testing time slice.
 
         Note. This function sets and updates the ``y_pred_`` and the
-        ``test_times_`` attribute.
+        ``test_times`` attribute.
 
         Parameters
         ----------
         epochs : instance of Epochs
             The epochs. Can be similar to fitted epochs or not. See
             predict_mode parameter.
-        test_times : 'diagonal' | dict | None, optional
-            Configures the testing times.
-            If set to 'diagonal', predictions are made at the time at which
-            each classifier is trained.
-            If set to None, predictions are made at all time points.
-            If set to dict, the dict should contain:
-            'slices' : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-            'start' : float
-                Time at which to start decoding (in seconds).
-                Defaults to min(epochs.times).
-            'stop' : float
-                Maximal time at which to stop decoding (in seconds).
-                Defaults to max(times).
-            'step' : float
-                Duration separating the start of to subsequent classifiers (in
-                seconds). Defaults to one time sample.
-            'length' : float
-                Duration of each classifier (in seconds).
-                Defaults to one time sample.
-            Defaults to None.
 
         Returns
         -------
@@ -330,13 +322,13 @@ class GeneralizationAcrossTime(object):
         X, y, _ = _check_epochs_input(epochs, None, self.picks_)
 
         # Define testing sliding window
-        if test_times == 'diagonal':
+        if self.test_times == 'diagonal':
             test_times_ = _DecodingTime()
             test_times_['slices'] = [[s] for s in self.train_times['slices']]
-        elif test_times is None:
+        elif self.test_times is None:
             test_times_ = _DecodingTime()
-        elif isinstance(test_times, dict):
-            test_times_ = test_times
+        elif isinstance(self.test_times, dict):
+            test_times_ = self.test_times
         else:
             raise ValueError('`test_times` must be a dict, "diagonal" or None')
 
@@ -359,7 +351,7 @@ class GeneralizationAcrossTime(object):
                                  for t_test in t_train]
                                  for t_train in test_times_['slices']]
         # Store all testing times parameters
-        self.test_times_ = test_times_
+        self.test_times = test_times_
 
         # Prepare parallel predictions
         parallel, p_time_gen, _ = parallel_func(_predict_time_loop, n_jobs)
@@ -371,7 +363,7 @@ class GeneralizationAcrossTime(object):
                                 enumerate(test_times_['slices']))
         return self.y_pred_
 
-    def score(self, epochs=None, y=None, scorer=None, test_times=None):
+    def score(self, epochs=None, y=None, scorer=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
@@ -393,29 +385,7 @@ class GeneralizationAcrossTime(object):
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
             Defaults to None.
         scorer : object
-            scikit-learn Scorer instance. Default: accuracy_score
-        test_times : 'diagonal' | dict | None, optional
-            Configures the testing times.
-            If set to 'diagonal', predictions are made at the time at which
-            each classifier is trained.
-            If set to None, predictions are made at all time points.
-            If set to dict, the dict should contain:
-            'slices' : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-            'start' : float
-                Time at which to start decoding (in seconds).
-                Defaults to min(epochs.times).
-            'stop' : float
-                Maximal time at which to stop decoding (in seconds).
-                Defaults to max(times).
-            'step' : float
-                Duration separating the start of to subsequent classifiers (in
-                seconds). Defaults to one time sample.
-            'length' : float
-                Duration of each classifier (in seconds).
-                Defaults to one time sample.
-            Defaults to None.
+            scikit-learn Scorer instance. Default: accuracy_score.
 
         Returns
         -------
@@ -430,7 +400,7 @@ class GeneralizationAcrossTime(object):
 
         # Run predictions if not already done
         if epochs is not None:
-            self.predict(epochs, test_times=test_times)
+            self.predict(epochs)
         else:
             if not hasattr(self, 'y_pred_'):
                 raise RuntimeError('Please predict() epochs first or pass '
@@ -470,7 +440,7 @@ class GeneralizationAcrossTime(object):
         scores = parallel(p_time_gen(self.y_true_, self.y_pred_[t_train],
                                      slices, scorer)
                           for t_train, slices
-                          in enumerate(self.test_times_['slices']))
+                          in enumerate(self.test_times['slices']))
 
         self.scores_ = scores
         return scores

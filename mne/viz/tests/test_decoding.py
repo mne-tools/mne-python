@@ -45,9 +45,9 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     epochs = concatenate_epochs(epochs_list)
 
     # Test default running
-    gat = GeneralizationAcrossTime()
+    gat = GeneralizationAcrossTime(test_times=test_times)
     gat.fit(epochs)
-    gat.score(epochs, test_times=test_times)
+    gat.score(epochs)
     return gat
 
 
