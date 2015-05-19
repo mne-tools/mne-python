@@ -237,11 +237,11 @@ def _check_outlines(pos, outlines, head_scale=0.85):
                           -.1313, -.1384, -.1199])
         x, y = pos[:, :2].T
         x_range = max(x.max(), -x.min()) * 2.
-        y_range = y.max() - y.min()
+        y_range = max(y.max(), -y.min()) * 2.
 
         # shift and scale the electrode positions
-        pos[:, 0] = head_scale * ((pos[:, 0]) / x_range)
-        pos[:, 1] = head_scale * ((pos[:, 1] - y.min()) / y_range - 0.5)
+        pos[:, 0] = head_scale * (pos[:, 0] / x_range)
+        pos[:, 1] = head_scale * (pos[:, 1] / y_range)
 
         # Define the outline of the head, ears and nose
         if outlines is not None:
@@ -635,8 +635,8 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
     from mpl_toolkits.axes_grid import make_axes_locatable
     from ..channels import _get_ch_type
 
-    ch_type = _get_ch_type(ica.info, ch_type)
     if picks is None:  # plot components by sets of 20
+        ch_type = _get_ch_type(ica, ch_type)
         n_components = ica.mixing_matrix_.shape[1]
         p = 20
         figs = []
@@ -653,6 +653,7 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
         return figs
     elif np.isscalar(picks):
         picks = [picks]
+    ch_type = 'mag' if ch_type is None else ch_type
 
     data = np.dot(ica.mixing_matrix_[:, picks].T,
                   ica.pca_components_[:ica.n_components_])
@@ -809,7 +810,7 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
         The figure containing the topography.
     """
     from ..channels import _get_ch_type
-    ch_type = _get_ch_type(tfr.info, ch_type)
+    ch_type = _get_ch_type(tfr, ch_type)
     if format is not None:
         cbar_fmt = format
         warnings.warn("The format parameter is deprecated and will be "
@@ -990,7 +991,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         no averaging.
     """
     from ..channels import _get_ch_type
-    ch_type = _get_ch_type(evoked.info, ch_type)
+    ch_type = _get_ch_type(evoked, ch_type)
     if format is not None:
         cbar_fmt = format
         warnings.warn("The format parameter is deprecated and will be "
@@ -1244,7 +1245,7 @@ def plot_epochs_psd_topomap(epochs, bands=None, vmin=None, vmax=None,
         Figure distributing one image per channel across sensor topography.
     """
     from ..channels import _get_ch_type
-    ch_type = _get_ch_type(epochs.info, ch_type)
+    ch_type = _get_ch_type(epochs, ch_type)
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         epochs, ch_type, layout)

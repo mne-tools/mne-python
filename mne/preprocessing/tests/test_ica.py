@@ -192,6 +192,7 @@ def test_ica_core():
         ica = ICA(noise_cov=n_cov, n_components=n_comp,
                   max_pca_components=max_n, n_pca_components=max_n,
                   random_state=0, method=method, max_iter=1)
+        assert_raises(ValueError, ica.__contains__, 'mag')
 
         print(ica)  # to test repr
 
@@ -203,6 +204,7 @@ def test_ica_core():
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks=pcks, start=start, stop=stop)
             repr(ica)  # to test repr
+        'mag' in ica  # should now work
 
         # test re-fit
         unmixing1 = ica.unmixing_matrix_
