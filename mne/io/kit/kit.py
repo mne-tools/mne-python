@@ -678,7 +678,7 @@ def get_kit_info(rawfile):
         info['sfreq'] = float(sqd['sfreq'])
         info['bads'] = []
         info['acq_pars'], info['acq_stim'] = None, None
-        info['filename'] = None
+        info['filename'] = rawfile
         info['ctf_head_t'] = None
         info['dev_ctf_t'] = []
         info['nchan'] = sqd['nchan']
