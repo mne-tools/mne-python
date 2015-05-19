@@ -9,7 +9,7 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_array_almost_equal
 
 from nose.tools import assert_true, assert_equal
 
@@ -84,7 +84,7 @@ def test_plot_topomap():
         assert_true(all('MEG' not in x.get_text()
                         for x in subplot.get_children()
                         if isinstance(x, matplotlib.text.Text)))
-
+        
         # Test title
         def get_texts(p):
             return [x.get_text() for x in p.get_children() if
@@ -156,5 +156,38 @@ def test_plot_tfr_topomap():
                      res=16)
 
 
+def test_check_outline_rescaling():
+    # test 1, pos has been rescaled to automatically
+    # with Cz at 0. ,  0.04722225 (default behaviour)
+    pos = read_layout('biosemi').pos[:,:2]
+    pos, outlines = _check_outlines(pos, outlines='head')
+    assert_array_almost_equal(pos[47,:],[0.0,0.04722225])
+    
+    # test 2, giving a center and scale to manually center
+    # at zeros
+    pos = read_layout('biosemi').pos[:,:2]
+    
+    x,y = pos.T
+    x_range = np.abs(x.max() - x.min())
+    y_range = np.abs(y.max() - y.min())
+    
+    rescaling = dict(center = (x[47],y[47]),scale=(x_range,y_range))
+    
+    pos, outlines = _check_outlines(pos, outlines='head',rescaling = rescaling)
+    assert_array_almost_equal(pos[47,:],[0.0,0.0])
+    
+    #test 3, giving random crap should raise an error
+    assert_raises(ValueError, _check_outlines, pos,
+                  outlines='head', rescaling = 42)
+    
+    #test 4, passing only center should raise an error
+    rescaling = dict(center = (x[47],y[47]))
+    assert_raises(ValueError, _check_outlines, pos,
+                  outlines='head', rescaling = rescaling)
+
+    #test 5, passing only scaling should raise an error
+    rescaling = dict(scale=(x_range,y_range))
+    assert_raises(ValueError, _check_outlines, pos,
+                  outlines='head', rescaling = rescaling)
 def test_prepare_topo_plot():
     """Test obtaining 2D coordinates from 3D sensor locations"""
