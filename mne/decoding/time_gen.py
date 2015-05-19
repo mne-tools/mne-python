@@ -156,7 +156,9 @@ class GeneralizationAcrossTime(object):
 
         Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
         and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-        detection of unexpected sounds", PLOS ONE, 2013
+        detection of unexpected sounds", PLoS ONE, 2014
+        DOI: 10.1371/journal.pone.0085791
+
 
     .. versionadded:: 0.9.0
     """  # noqa
