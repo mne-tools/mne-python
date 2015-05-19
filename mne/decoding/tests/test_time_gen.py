@@ -102,7 +102,7 @@ def test_generalization_across_time():
     gat.predict_mode = old_mode
 
     gat.score(epochs, y=epochs.events[:, 2])
-    assert_true("accuracy_score" in '%s' % gat.scorer_)
+    assert_true("accuracy_score" in '%s' % gat.scorer)
     epochs2 = epochs.copy()
 
     # check _DecodingTime class
@@ -238,6 +238,7 @@ def test_generalization_across_time():
             for n_class in n_classes:
                 y_ = y % n_class
                 with warnings.catch_warnings(record=True):
-                    gat = GeneralizationAcrossTime(cv=2, clf=clf)
+                    gat = GeneralizationAcrossTime(cv=2, clf=clf,
+                                                   scorer=scorer)
                     gat.fit(epochs, y=y_)
-                    gat.score(epochs, y=y_, scorer=scorer)
+                    gat.score(epochs, y=y_)

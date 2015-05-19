@@ -120,13 +120,13 @@ class GeneralizationAcrossTime(object):
                 these predictions into a single estimate per sample.
 
         Default: 'cross-validation'
+    scorer : object
+        scikit-learn Scorer instance. Default: accuracy_score.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
     Attributes
     ----------
-    scorer_ : object
-        scikit-learn Scorer instance. Default: accuracy_score
     y_train_ : list | np.ndarray, shape (n_samples,)
         The categories used for training.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
@@ -138,12 +138,10 @@ class GeneralizationAcrossTime(object):
         times per training time need not be regular, else
         np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
     scores_ : list of lists of float
-        The scores estimated by self.scorer_ at each training time and each
+        The scores estimated by self.scorer at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
         else, np.shape(scores) = [n_train_time, n_test_time].
-    test_times : dict
-        A similar structure to ``train_times``.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
     picks_ : np.array, shape (n_channels,)
@@ -162,7 +160,7 @@ class GeneralizationAcrossTime(object):
     .. versionadded:: 0.9.0
     """  # noqa
     def __init__(self, cv=5, clf=None, train_times=None, test_times=None,
-                 predict_mode='cross-validation', n_jobs=1):
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
 
         from sklearn.preprocessing import StandardScaler
         from sklearn.linear_model import LogisticRegression
@@ -183,6 +181,7 @@ class GeneralizationAcrossTime(object):
             clf = Pipeline([('scaler', scaler), ('estimator', estimator)])
         self.clf = clf
         self.predict_mode = predict_mode
+        self.scorer = scorer
         self.n_jobs = n_jobs
 
     def __repr__(self):
@@ -202,8 +201,8 @@ class GeneralizationAcrossTime(object):
             s += ', '
         if hasattr(self, 'scores_'):
             s += "scored"
-            if callable(self.scorer_):
-                s += " (%s)" % (self.scorer_.__name__)
+            if callable(self.scorer):
+                s += " (%s)" % (self.scorer.__name__)
         else:
             s += "no score"
 
@@ -363,7 +362,7 @@ class GeneralizationAcrossTime(object):
                                 enumerate(test_times_['slices']))
         return self.y_pred_
 
-    def score(self, epochs=None, y=None, scorer=None):
+    def score(self, epochs=None, y=None):
         """Score Epochs
 
         Estimate scores across trials by comparing the prediction estimated for
@@ -371,7 +370,7 @@ class GeneralizationAcrossTime(object):
 
         Calls ``predict()`` if it has not been already.
 
-        Note. The function updates the ``scores_`` attribute.
+        Note. The function updates the ``scorer`` and ``scores_`` attributes.
 
         Parameters
         ----------
@@ -384,8 +383,6 @@ class GeneralizationAcrossTime(object):
             generated with ``predict()`` via ``scorer_``.
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
             Defaults to None.
-        scorer : object
-            scikit-learn Scorer instance. Default: accuracy_score.
 
         Returns
         -------
@@ -407,10 +404,9 @@ class GeneralizationAcrossTime(object):
                                    'epochs to score()')
 
         # Check scorer
-        if scorer is None:
+        if self.scorer is None:
             # XXX Need API to identify proper scorer from the clf
-            scorer = accuracy_score
-        self.scorer_ = scorer
+            self.scorer = accuracy_score
 
         # If no regressor is passed, use default epochs events
         if y is None:
@@ -438,7 +434,7 @@ class GeneralizationAcrossTime(object):
 
         # Score each training and testing time point
         scores = parallel(p_time_gen(self.y_true_, self.y_pred_[t_train],
-                                     slices, scorer)
+                                     slices, self.scorer)
                           for t_train, slices
                           in enumerate(self.test_times['slices']))
 

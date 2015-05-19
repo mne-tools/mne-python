@@ -149,7 +149,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
     # Find and plot chance level
     if chance is not False:
         if chance is True:
-            chance = _get_chance_level(gat.scorer_, gat.y_train_)
+            chance = _get_chance_level(gat.scorer, gat.y_train_)
         ax.axhline(float(chance), color='k', linestyle='--',
                    label="Chance level")
     ax.axvline(0, color='k', label='')
@@ -179,7 +179,7 @@ def plot_gat_times(gat, train_time='diagonal', title=None, xmin=None,
         ax.set_xlabel('Time (s)')
     if ylabel is True:
         ax.set_ylabel('Classif. score ({0})'.format(
-                      'AUC' if 'roc' in repr(gat.scorer_) else r'%'))
+                      'AUC' if 'roc' in repr(gat.scorer) else r'%'))
     if legend is True:
         ax.legend(loc='best')
     if show is True:
