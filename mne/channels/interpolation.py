@@ -7,7 +7,7 @@ from numpy.polynomial.legendre import legval
 from scipy import linalg
 
 from ..utils import logger
-from ..io.pick import pick_types, pick_channels
+from ..io.pick import pick_types, pick_channels, pick_info
 from ..surface import _normalize_vectors
 from ..bem import _fit_sphere
 from ..forward import _map_meg_channels
