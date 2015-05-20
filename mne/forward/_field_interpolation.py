@@ -426,9 +426,11 @@ def _transform_instance(inst_from, info_to):
                            exclude='bads')
 
     # The transformation to be done to go to the new head position
+    # first transform dev_head_t_to to pos to bring it to head space
+    # second transform inv(dev_head_t_from) to bring it to rotated device space
     from ..transforms import invert_transform, apply_trans
-    trans = np.dot(info_to['dev_head_t']['trans'],
-                   invert_transform(info_from['dev_head_t'])['trans'])
+    trans = np.dot(invert_transform(info_from['dev_head_t'])['trans'],
+                   info_to['dev_head_t']['trans'])
     ch_pos_from = inst_from._get_channel_positions(picks_from).reshape(-1, 3)
     ch_pos_from = apply_trans(trans, ch_pos_from).reshape(-1, 12)
 
