@@ -233,7 +233,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    'not %s' % preload.dtype)
             self._data = preload
             self.preload = True
-            self._last_samps = np.array([self._data.shape[1] - 1])
+            last_samps = [self._data.shape[1] - 1]
             load_from_disk = False
         else:
             if last_samps is None:
@@ -246,7 +246,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 raise ValueError('bad preload: %s' % preload)
             else:
                 load_from_disk = True
-            self._last_samps = np.array(last_samps)
+        self._last_samps = np.array(last_samps)
+        self._first_samps = np.array(first_samps)
         self.info = info
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
@@ -257,13 +258,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
-        self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
         self._projectors = list()
         self._projector = None
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
+        self._update_times()
 
     def _read_segment(start, stop, sel, data_buffer, projector, verbose):
         """Read a chunk of raw data
@@ -320,6 +321,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self.close()
+
+    def _update_times(self):
+        """Helper to update times"""
+        self._times = np.arange(self.n_times) / float(self.info['sfreq'])
+        # make it immutable
+        self._times.flags.writeable = False
 
     @property
     def first_samp(self):
@@ -868,6 +875,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # adjust affected variables
         self._data = np.concatenate(new_data, axis=1)
         self.info['sfreq'] = sfreq
+        self._update_times()
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -922,6 +930,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if raw.preload:
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
+        raw._update_times()
         return raw
 
     @verbose
@@ -1355,7 +1364,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @property
     def times(self):
         """Time points"""
-        return np.arange(self.n_times) / float(self.info['sfreq'])
+        return self._times
 
     @property
     def n_times(self):
@@ -1477,6 +1486,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self._last_samps = np.r_[self._last_samps, r._last_samps]
             self._rawdirs += r._rawdirs
             self._filenames += r._filenames
+        self._update_times()
 
     def close(self):
         """Clean up the object.

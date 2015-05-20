@@ -1226,6 +1226,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
     raw.info['projs'] = []
     raw._projector = None
+    raw._update_times()
     return raw
 
 
