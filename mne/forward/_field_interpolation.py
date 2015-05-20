@@ -437,10 +437,11 @@ def _transform_instance(inst_from, info_to):
     # first transform dev_head_t_to to pos to bring it to head space
     # second transform inv(dev_head_t_from) to bring it to rotated device space
     from ..transforms import invert_transform, apply_trans
-    trans = np.dot(invert_transform(info_from['dev_head_t'])['trans'],
-                   info_to['dev_head_t']['trans'])
+    inv_dev_head_t_from = invert_transform(info_from['dev_head_t'])['trans']
+    dev_head_t_to = info_to['dev_head_t']['trans']
     ch_pos_from = inst_from._get_channel_positions(picks_from).reshape(-1, 3)
-    ch_pos_from = apply_trans(trans, ch_pos_from).reshape(-1, 12)
+    ch_pos_from = apply_trans(dev_head_t_to, ch_pos_from)
+    ch_pos_from = apply_trans(inv_dev_head_t_from, ch_pos_from).reshape(-1, 12)
 
     # set the new channel positions
     names = np.array(info_from['ch_names'])[picks_from]
@@ -496,6 +497,6 @@ def transform_instances(insts, copy=False, n_jobs=1):
 
     if copy:
         insts[1:] = parallel(my_trans(inst.copy(), info_to) for inst in insts[1:])
-        return insts_trans
+        return insts
     else:
         insts[1:] = parallel(my_trans(inst, info_to) for inst in insts[1:])
