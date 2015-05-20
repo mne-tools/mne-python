@@ -666,6 +666,7 @@ class ICA(ContainsMixin):
 
         out._projector = None
         self._export_info(out.info, raw, add_channels)
+        out._update_times()
 
         return out
 
