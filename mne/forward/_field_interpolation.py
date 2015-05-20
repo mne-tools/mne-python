@@ -1,3 +1,11 @@
+# Authors: Eric Larson <larsoner@uw.edu>
+#          Mainak Jas <mainak.jas@telecom-paristech.fr>
+#          Yousra Bekhti <yousra.bekhti@gmail.com>
+#          Teon Brooks <teon.brooks@gmail.com>
+#          Matti Hamalainen <msh@nmr.mgh.harvard.edu>
+#
+# License: BSD (3-clause)
+
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
