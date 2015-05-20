@@ -192,6 +192,8 @@ def _as_meg_type_evoked(evoked, ch_type='grad', mode='accurate'):
     pick_from = pick_types(evoked.info, meg=True, eeg=False,
                            ref_meg=False)
     info_from = evoked.info
+    pick_to = pick_types(evoked.info, meg=ch_type, eeg=False,
+                         ref_meg=False)
     info_to = pick_info(evoked.info, pick_to, copy=True)
 
     if len(pick_to) == 0:
