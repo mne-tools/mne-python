@@ -429,9 +429,9 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
 
 def _transform_instance(inst_from, info_to):
     """ Map the inst_from to the head position in info_to"""
+    picks = pick_types(info_to, meg=True, eeg=False, ref_meg=False,
+                       exclude='bads')
     info_from = inst_from.info
-    picks_from = pick_types(info_from, meg=True, eeg=False, ref_meg=False,
-                           exclude='bads')
 
     # The transformation to be done to go to the new head position
     # first transform dev_head_t_to to pos to bring it to head space
@@ -444,14 +444,14 @@ def _transform_instance(inst_from, info_to):
     ch_pos_from = apply_trans(inv_dev_head_t_from, ch_pos_from).reshape(-1, 12)
 
     # set the new channel positions
-    names = np.array(info_from['ch_names'])[picks_from]
+    names = np.array(info_from['ch_names'])[picks]
     inst_from._set_channel_positions(ch_pos_from, names)
 
-    mapping = _map_meg_channels(info_from, info_to, picks_from, mode='accurate')
+    mapping = _map_meg_channels(info_from, info_to, picks, mode='accurate')
     # compute rotated data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     from ..channels.interpolation import _do_interp_dots
-    _do_interp_dots(inst_from, mapping, picks_from, picks_from)
+    _do_interp_dots(inst_from, mapping, picks, picks)
     # use the info of the inst that that you are transforming to
     inst_from.info = info_to
     
