@@ -6,6 +6,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+import copy
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
@@ -296,14 +297,9 @@ class GeneralizationAcrossTime(object):
         # Cross validation scheme
         # XXX Cross validation should later be transformed into a make_cv, and
         # defined in __init__
-        self.train_times_ = self.train_times
+        self.train_times_ = copy.deepcopy(self.train_times)
         if 'slices' not in self.train_times_:
-            self.train_times_['slices'] = _sliding_window(
-                epochs.times, self.train_times)
-
-        # Keep last training times in milliseconds
-        t_inds_ = [t[-1] for t in self.train_times_['slices']]
-        self.train_times_['times'] = epochs.times[t_inds_]
+            self.train_times_ = _sliding_window(epochs.times, self.train_times)
 
         # Parallel across training time
         parallel, p_time_gen, n_jobs = parallel_func(_fit_slices, n_jobs)
@@ -361,25 +357,25 @@ class GeneralizationAcrossTime(object):
             test_times = _DecodingTime()
             test_times['slices'] = [[s] for s in self.train_times_['slices']]
         elif isinstance(self.test_times, dict):
-            test_times = self.test_times
+            test_times = copy.deepcopy(self.test_times)
         else:
-            raise ValueError('`test_times` must be a dict, "diagonal" or None')
+            raise ValueError('`test_times` must be a dict or "diagonal"')
 
         if 'slices' not in test_times:
-            # Initialize array
-            slices_list = list()
             # Force same number of time sample in testing than in training
             # (otherwise it won 't be the same number of features')
-            test_times['length'] = self.train_times_['length']
+            window_param = dict(length=self.train_times_['length'])
             # Make a sliding window for each training time.
+            slices_list = list()
+            times_list = list()
             for t in range(0, len(self.train_times_['slices'])):
-                slices_list += [_sliding_window(epochs.times, test_times)]
+                test_times_ = _sliding_window(epochs.times, window_param)
+                times_list += [test_times_['times']]
+                slices_list += [test_times_['slices']]
+            test_times = test_times_
             test_times['slices'] = slices_list
+            test_times['times'] = times_list
 
-        # Testing times in milliseconds (only keep last time if multiple time
-        # slices)
-        test_times['times'] = [[epochs.times[t_test[-1]] for t_test in t_train]
-                               for t_train in test_times['slices']]
         # Store all testing times parameters
         self.test_times_ = test_times
 
@@ -823,6 +819,8 @@ def _sliding_window(times, window_params):
         sample (in indices of times) to be fitted on.
     """
 
+    window_params = _DecodingTime(window_params)
+
     # Sampling frequency as int
     freq = (times[-1] - times[0]) / len(times)
 
@@ -856,8 +854,13 @@ def _sliding_window(times, window_params):
         while (time_pick[-1][0] + step) <= (stop - length + 1):
             start = time_pick[-1][0] + step
             time_pick.append(range(start, start + length))
+        window_params['slices'] = time_pick
 
-    return time_pick
+    # Keep last training times in milliseconds
+    t_inds_ = [t[-1] for t in window_params['slices']]
+    window_params['times'] = times[t_inds_]
+
+    return window_params
 
 
 def _predict(X, estimators):

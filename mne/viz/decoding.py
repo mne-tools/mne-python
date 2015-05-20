@@ -204,7 +204,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
                 lag = test_times - train_time
                 test_idx = np.abs(lag).argmin()
                 # check that not more than 1 classifier away
-                if np.abs(lag[test_idx]) > gat.train_times['step']:
+                if np.abs(lag[test_idx]) > gat.train_times_['step']:
                     score = np.nan
                 else:
                     score = gat.scores_[train_idx][test_idx]
@@ -212,7 +212,7 @@ def _plot_gat_time(gat, train_time, ax, color, label):
     elif isinstance(train_time, float):
         train_times = gat.train_times_['times']
         idx = np.abs(train_times - train_time).argmin()
-        if train_times[idx] - train_time > gat.train_times['step']:
+        if train_times[idx] - train_time > gat.train_times_['step']:
             raise ValueError("No classifier trained at %s " % train_time)
         scores = gat.scores_[idx]
     else:
