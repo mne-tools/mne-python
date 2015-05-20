@@ -253,7 +253,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         if 'center' not in head_pos:
             head_pos['center'] = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
         if 'scale' not in head_pos:
-            head_pos['scale'] = 0.85 * (pos.max(axis=0) - pos.min(axis=0))
+            head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
         pos -= head_pos['center']
         pos *= head_pos['scale']
 
