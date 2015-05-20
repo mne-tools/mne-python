@@ -169,7 +169,7 @@ class GeneralizationAcrossTime(object):
     scorer_ : object
         scikit-learn Scorer instance.
     scores_ : list of lists of float
-        The scores estimated by self.scorer at each training time and each
+        The scores estimated by self.scorer_ at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
         else, np.shape(scores) = [n_train_time, n_test_time].
