@@ -201,12 +201,10 @@ class RawKIT(_BaseRaw):
     def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
         """Read a chunk of raw data"""
+        # cals are all unity, so can be ignored
         stop += 1
         sel = np.arange(self.info['nchan'])[idx]
-        # XXX Eventually this function could be refactored to save a lot of
-        # unnecessary IO and memory consumption
 
-        # XXX TODO: Need to deal with projs / cals / mult
         with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
@@ -245,7 +243,11 @@ class RawKIT(_BaseRaw):
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
-        data[:, offset:offset + (stop - start)] = data_[sel]
+        data_view = data[:, offset:offset + (stop - start)]
+        if mult is not None:
+            data_view[:] = np.dot(mult, data_[sel])
+        else:
+            data_view[:] = data_[sel]
 
 
 class EpochsKIT(EpochsArray):

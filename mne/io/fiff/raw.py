@@ -413,29 +413,18 @@ class RawFIF(_BaseRaw):
                                            rlims=(first_pick, last_pick)).data
                             one.shape = (picksamp, self.info['nchan'])
                             one = one.T.astype(data.dtype)
-                            # use proj + cal factors in mult
+                            data_view = data[:, offset:(offset + picksamp)]
                             if mult is not None:
-                                one[idx] = np.dot(mult[fi], one)
-                            else:  # apply just the calibration factors
-                                # this logic is designed to limit memory copies
+                                data_view[:] = np.dot(mult[fi], one)
+                            else:  # cals is not None
                                 if isinstance(idx, slice):
-                                    # This is a view operation, so it's fast
-                                    one[idx] *= cals
+                                    data_view[:] = one[idx]
                                 else:
-                                    # Extra operations are actually faster here
-                                    # than creating a new array
-                                    # (fancy indexing)
-                                    one *= cals
-
-                            if isinstance(idx, slice):
-                                # faster to slice in data than doing
-                                # one = one[idx] sooner
-                                data[:, offset:(offset + picksamp)] = one[idx]
-                            else:
-                                # faster than doing one = one[idx]
-                                data_view = data[:, offset:(offset + picksamp)]
-                                for ii, ix in enumerate(idx):
-                                    data_view[ii] = one[ix]
+                                    # faster to iterate than doing
+                                    # one = one[idx]
+                                    for ii, ix in enumerate(idx):
+                                        data_view[ii] = one[ix]
+                                data_view *= cals
                         offset += picksamp
 
                 #   Done?

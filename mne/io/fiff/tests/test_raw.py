@@ -600,6 +600,17 @@ def test_proj():
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test_raw.fif')
+    raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002, copy=False)
+    raw.pick_types(meg=False, eeg=True)
+    raw.info['projs'] = [raw.info['projs'][-1]]
+    raw._data.fill(0)
+    raw._data[-1] = 1.
+    raw.save(out_fname)
+    raw = read_raw_fif(out_fname, proj=True, preload=False)
+    assert_allclose(raw[:, :][0][:1], raw[0, :][0])
+
 
 @testing.requires_testing_data
 def test_preload_modify():

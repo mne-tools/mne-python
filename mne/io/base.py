@@ -343,22 +343,25 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                     np.greater_equal(stop - 1,
                                                      cumul_lens[:-1]))
 
-        # set up cals
+        # set up cals, compensation, and projector
+        cals = self._cals.ravel()[np.newaxis, :]
         if self.comp is None and projector is None:
             mult = None
         else:
             mult = list()
             for ri in range(len(self._first_samps)):
-                mult.append(np.diag(self._cals.ravel()))
                 if self.comp is not None:
-                    mult[ri] = np.dot(self.comp, mult[ri])
-                if projector is not None:
-                    mult[ri] = np.dot(projector, mult[ri])
-                mult[ri] = mult[ri][idx]
-        if isinstance(idx, slice):
-            cals = self._cals.ravel()[idx][:, np.newaxis]
-        else:
-            cals = self._cals.ravel()[:, np.newaxis]
+                    if projector is not None:
+                        mul = self.comp * cals
+                        mul = np.dot(projector[idx], mul)
+                    else:
+                        mul = self.comp[idx] * cals
+                elif projector is not None:
+                    mul = projector[idx] * cals
+                else:
+                    mul = np.diag(self._cals.ravel())[idx]
+                mult.append(mul)
+        cals = cals.T[idx]
 
         # read from necessary files
         offset = 0

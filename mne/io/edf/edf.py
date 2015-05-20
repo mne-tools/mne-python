@@ -97,6 +97,11 @@ class RawEDF(_BaseRaw):
                            cals, mult):
         """Read a chunk of raw data"""
         from scipy.interpolate import interp1d
+        if mult is not None:
+            # XXX "cals" here does not function the same way as in RawFIF,
+            # and for efficiency we want to be able to combine mult and cals
+            # so proj support will have to wait until this is resolved
+            raise NotImplementedError('mult is not supported yet')
         stop += 1
         sel = np.arange(self.info['nchan'])[idx]
 
