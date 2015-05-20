@@ -325,6 +325,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def _update_times(self):
         """Helper to update times"""
         self._times = np.arange(self.n_times) / float(self.info['sfreq'])
+        # make it immutable
+        self._times.flags.writeable = False
 
     @property
     def first_samp(self):
