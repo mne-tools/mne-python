@@ -215,8 +215,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment(start, stop, sel, data_buffer, projector, verbose)
+        * _read_segment_file(start, stop, sel, data_buffer, projector, verbose)
           (only needed for types that support on-demand disk reads)
+
+    The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
+    such on-demand reads. For `RawFIF` this means a list of variables formerly
+    known as ``_rawdirs``.
     """
     @verbose
     def __init__(self, info, preload=False,
@@ -343,7 +347,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                     np.greater_equal(stop - 1,
                                                      cumul_lens[:-1]))
 
-        # set up cals, compensation, and projector
+        # set up cals and mult (cals, compensation, and projector)
         cals = self._cals.ravel()[np.newaxis, :]
         if self.comp is None and projector is None:
             mult = None
@@ -387,6 +391,32 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
+        """Read a segment of data from a file
+
+        Only needs to be implemented for readers that support
+        ``preload=False``.
+
+        Parameters
+        ----------
+        data : ndarray, shape (len(idx), n_samp)
+            The data array. Should be modified inplace.
+        idx : ndarray | slice
+            The requested channel indices.
+        offset : int
+            Offset. Data should be stored in something like::
+
+                data[:, offset:offset + (start - stop + 1)] = r[idx]
+        fi : int
+            The file index that must be read from.
+        start : int
+            The start sample in the given file.
+        stop : int
+            The stop sample in the given file (inclusive).
+        cals : ndarray, shape (len(idx), 1)
+            Channel calibrations (already sub-indexed).
+        mult : ndarray, shape (len(idx), len(info['chs']) | None
+            The compensation + projection + cals matrix, if applicable.
+        """
         raise NotImplementedError
 
     @verbose

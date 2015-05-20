@@ -217,17 +217,17 @@ class RawKIT(_BaseRaw):
             pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
             data_ = np.fromfile(fid, dtype='h', count=count)
-            data_ = data_.reshape((buffer_size, nchan))
+
         # amplifier applies only to the sensor channels
+        data_.shape = (buffer_size, nchan)
         n_sens = self._raw_extras[fi]['n_sens']
-        sensor_gain = np.copy(self._raw_extras[fi]['sensor_gain'])
+        sensor_gain = self._raw_extras[fi]['sensor_gain'].copy()
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
                                 self._raw_extras[fi]['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
                                 self._raw_extras[fi]['DYNAMIC_RANGE']) *
-                               sensor_gain, ndmin=2)
-        data_ = conv_factor * data_
-        data_ = data_.T
+                               sensor_gain)
+        data_ = conv_factor[:, np.newaxis] * data_.T
 
         # Create a synthetic channel
         if self._raw_extras[fi]['stim'] is not None:
@@ -243,11 +243,8 @@ class RawKIT(_BaseRaw):
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
             data_ = np.vstack((data_, stim_ch))
-        data_view = data[:, offset:offset + (stop - start)]
-        if mult is not None:
-            data_view[:] = np.dot(mult, data_[sel])
-        else:
-            data_view[:] = data_[sel]
+        data[:, offset:offset + (stop - start)] = \
+            np.dot(mult, data_) if mult is not None else data_[sel]
 
 
 class EpochsKIT(EpochsArray):
