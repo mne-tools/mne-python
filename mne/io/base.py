@@ -221,7 +221,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @verbose
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
-                 filenames=(), rawdirs=(),
+                 filenames=(), raw_extras=(),
                  comp=None, orig_comp_grade=None,
                  orig_format='double', dtype=np.float64,
                  verbose=None):
@@ -256,7 +256,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
         self.verbose = verbose
         self._cals = cals
-        self._rawdirs = list(rawdirs)
+        self._raw_extras = list(raw_extras)
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
@@ -344,14 +344,17 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                                      cumul_lens[:-1]))
 
         # set up cals
-        mult = list()
-        for ri in range(len(self._first_samps)):
-            mult.append(np.diag(self._cals.ravel()))
-            if self.comp is not None:
-                mult[ri] = np.dot(self.comp, mult[ri])
-            if projector is not None:
-                mult[ri] = np.dot(projector, mult[ri])
-            mult[ri] = mult[ri][idx]
+        if self.comp is None and projector is None:
+            mult = None
+        else:
+            mult = list()
+            for ri in range(len(self._first_samps)):
+                mult.append(np.diag(self._cals.ravel()))
+                if self.comp is not None:
+                    mult[ri] = np.dot(self.comp, mult[ri])
+                if projector is not None:
+                    mult[ri] = np.dot(projector, mult[ri])
+                mult[ri] = mult[ri][idx]
         if isinstance(idx, slice):
             cals = self._cals.ravel()[idx][:, np.newaxis]
         else:
@@ -360,26 +363,26 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # read from necessary files
         offset = 0
         for fi in np.nonzero(files_used)[0]:
-            start_loc = self._first_samps[fi]
+            start_file = self._first_samps[fi]
             # first iteration (only) could start in the middle somewhere
             if offset == 0:
-                start_loc += start - cumul_lens[fi]
-            stop_loc = np.min([stop - 1 - cumul_lens[fi] +
-                               self._first_samps[fi], self._last_samps[fi]])
-            if start_loc < self._first_samps[fi] or \
-                    stop_loc > self._last_samps[fi] or \
-                    stop_loc < start_loc or start_loc > stop_loc:
+                start_file += start - cumul_lens[fi]
+            stop_file = np.min([stop - 1 - cumul_lens[fi] +
+                                self._first_samps[fi], self._last_samps[fi]])
+            if start_file < self._first_samps[fi] or \
+                    stop_file > self._last_samps[fi] or \
+                    stop_file < start_file or start_file > stop_file:
                 raise ValueError('Bad array indexing, could be a bug')
 
-            self._read_segment_file(data, idx, offset, fi, start_loc, stop_loc,
-                                    cals, mult)
-            offset += stop_loc - start_loc + 1
+            self._read_segment_file(data, idx, offset, fi,
+                                    start_file, stop_file, cals, mult)
+            offset += stop_file - start_file + 1
 
         logger.info('[done]')
         times = np.arange(start, stop) / self.info['sfreq']
         return data, times
 
-    def _read_segment_file(self, data, idx, offset, fi, start_loc, stop_loc,
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
         raise NotImplementedError
 
@@ -433,7 +436,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             filename = self._data.filename
             del self._data
             # Now file can be removed
-            os.remove(filename)
+            try:
+                os.remove(filename)
+            except OSError:
+                pass  # ignore file that no longer exists
 
     def __enter__(self):
         """ Entering with block """
@@ -1011,8 +1017,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raw._first_samps[0] += smin - cumul_lens[keepers[0]]
         raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
         raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        raw._rawdirs = [r for ri, r in enumerate(raw._rawdirs)
-                        if ri in keepers]
+        raw._raw_extras = [r for ri, r in enumerate(raw._raw_extras)
+                           if ri in keepers]
         if raw.preload:
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
@@ -1563,7 +1569,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         for r in raws:
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._rawdirs += r._rawdirs
+            self._raw_extras += r._raw_extras
             self._filenames += r._filenames
         self._update_times()
 

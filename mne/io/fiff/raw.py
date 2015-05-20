@@ -115,7 +115,7 @@ class RawFIF(_BaseRaw):
         super(RawFIF, self).__init__(
             copy.deepcopy(raws[0].info), False,
             [r.first_samp for r in raws], [r.last_samp for r in raws],
-            [r.filename for r in raws], [r._rawdir for r in raws],
+            [r.filename for r in raws], [r._raw_extras for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
             raws[0].orig_format, None, verbose=verbose)
 
@@ -201,7 +201,7 @@ class RawFIF(_BaseRaw):
             raw.first_samp = first_samp
 
             #   Go through the remaining tags in the directory
-            rawdir = list()
+            raw_extras = list()
             nskip = 0
             orig_format = None
             for k in range(first, nent):
@@ -252,16 +252,16 @@ class RawFIF(_BaseRaw):
 
                     #  Do we have a skip pending?
                     if nskip > 0:
-                        rawdir.append(dict(ent=None, first=first_samp,
-                                           last=first_samp + nskip * nsamp - 1,
-                                           nsamp=nskip * nsamp))
+                        raw_extras.append(dict(
+                            ent=None, first=first_samp, nsamp=nskip * nsamp,
+                            last=first_samp + nskip * nsamp - 1))
                         first_samp += nskip * nsamp
                         nskip = 0
 
                     #  Add a data buffer
-                    rawdir.append(dict(ent=ent, first=first_samp,
-                                       last=first_samp + nsamp - 1,
-                                       nsamp=nsamp))
+                    raw_extras.append(dict(ent=ent, first=first_samp,
+                                           last=first_samp + nsamp - 1,
+                                           nsamp=nsamp))
                     first_samp += nsamp
 
             # Try to get the next filename tag for split files
@@ -311,7 +311,7 @@ class RawFIF(_BaseRaw):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
 
         raw._cals = cals
-        raw._rawdir = rawdir
+        raw._raw_extras = raw_extras
         raw.comp = None
         raw._orig_comp_grade = None
 
@@ -334,7 +334,8 @@ class RawFIF(_BaseRaw):
                     float(raw.last_samp) / info['sfreq']))
 
         # store the original buffer size
-        info['buffer_size_sec'] = (np.median([r['nsamp'] for r in rawdir]) /
+        info['buffer_size_sec'] = (np.median([r['nsamp']
+                                              for r in raw_extras]) /
                                    info['sfreq'])
 
         raw.info = info
@@ -350,8 +351,8 @@ class RawFIF(_BaseRaw):
         if self._dtype_ is not None:
             return self._dtype_
         dtype = None
-        for rawdir, filename in zip(self._rawdirs, self._filenames):
-            for this in rawdir:
+        for raw_extra, filename in zip(self._raw_extras, self._filenames):
+            for this in raw_extra:
                 if this['ent'] is not None:
                     with _fiff_get_fid(filename) as fid:
                         fid.seek(this['ent'].pos, 0)
@@ -371,25 +372,25 @@ class RawFIF(_BaseRaw):
         self._dtype_ = dtype
         return dtype
 
-    def _read_segment_file(self, data, idx, offset, fi, start_loc, stop_loc,
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
                            cals, mult):
         """Read a segment of data from a file"""
         with _fiff_get_fid(self._filenames[fi]) as fid:
-            for this in self._rawdirs[fi]:
+            for this in self._raw_extras[fi]:
                 #  Do we need this buffer
-                if this['last'] >= start_loc:
+                if this['last'] >= start:
                     #  The picking logic is a bit complicated
-                    if stop_loc > this['last'] and start_loc < this['first']:
+                    if stop > this['last'] and start < this['first']:
                         #    We need the whole buffer
                         first_pick = 0
                         last_pick = this['nsamp']
                         logger.debug('W')
 
-                    elif start_loc >= this['first']:
-                        first_pick = start_loc - this['first']
-                        if stop_loc <= this['last']:
+                    elif start >= this['first']:
+                        first_pick = start - this['first']
+                        if stop <= this['last']:
                             #   Something from the middle
-                            last_pick = this['nsamp'] + stop_loc - this['last']
+                            last_pick = this['nsamp'] + stop - this['last']
                             logger.debug('M')
                         else:
                             #   From the middle to the end
@@ -398,7 +399,7 @@ class RawFIF(_BaseRaw):
                     else:
                         #    From the beginning to the middle
                         first_pick = 0
-                        last_pick = stop_loc - this['first'] + 1
+                        last_pick = stop - this['first'] + 1
                         logger.debug('B')
 
                     #   Now we are ready to pick
@@ -438,7 +439,7 @@ class RawFIF(_BaseRaw):
                         offset += picksamp
 
                 #   Done?
-                if this['last'] >= stop_loc:
+                if this['last'] >= stop:
                     break
 
 

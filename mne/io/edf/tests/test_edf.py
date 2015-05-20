@@ -21,6 +21,7 @@ from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw, read_raw_edf, RawArray
+from mne.io.tests.test_raw import _test_concat
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -43,11 +44,7 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 def test_concat():
     """Test EDF concatenation
     """
-    for preload in (True, False):
-        raw1 = read_raw_edf(bdf_path, preload=preload)
-        raw2 = read_raw_edf(bdf_path, preload=preload)
-        raw1.append(raw2)
-        # raw1.preload_data()
+    _test_concat(read_raw_edf, bdf_path)
 
 
 def test_bdf_data():

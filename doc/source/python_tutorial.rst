@@ -110,7 +110,7 @@ Read data from file:
     Opening raw data ...
     Ready.
     >>> print(raw)
-    <Raw  |  n_channels x n_times : 376 x 41700>
+    <RawFIF  |  n_channels x n_times : 376 x 41700>
     >>> print(raw.info) # doctest:+ELLIPSIS
     <Info | 20 non-empty ...
 

@@ -17,6 +17,7 @@ from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
+from mne.io.tests.test_raw import _test_concat
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -32,13 +33,9 @@ hsp_path = op.join(data_dir, 'test_hsp.txt')
 
 
 def test_concat():
-    """Test kit concatenation
+    """Test EDF concatenation
     """
-    for preload in (True, False):
-        raw1 = read_raw_kit(sqd_path, preload=preload)
-        raw2 = read_raw_kit(sqd_path, preload=preload)
-        raw1.append(raw2)
-        # raw1.preload_data()
+    _test_concat(read_raw_kit, sqd_path)
 
 
 def test_data():
@@ -133,7 +130,7 @@ def test_ch_loc():
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
     raw_bin = Raw(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._kit_info['sensor_locs'][:, :5]
+    ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
