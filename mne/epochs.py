@@ -1243,7 +1243,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                       for k, v in sorted(self.event_id.items())]
             s += ',\n %s' % ', '.join(counts)
 
-        return '<Epochs  |  %s>' % s
+        return '<%s  |  %s>' % (self.__class__.__name__, s)
 
     def _key_match(self, key):
         """Helper function for event dict use"""

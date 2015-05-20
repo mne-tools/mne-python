@@ -223,7 +223,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                  first_samps=(0,), last_samps=None,
                  filenames=(), rawdirs=(),
                  comp=None, orig_comp_grade=None,
-                 orig_format='double',
+                 orig_format='double', dtype=np.float64,
                  verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
@@ -231,6 +231,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError('datatype must be float64 or complex128, '
                                    'not %s' % preload.dtype)
+            if preload.dtype != dtype:
+                raise ValueError('preload and dtype must match')
             self._data = preload
             self.preload = True
             last_samps = [self._data.shape[1] - 1]
@@ -261,12 +263,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.orig_format = orig_format
         self._projectors = list()
         self._projector = None
+        self._dtype_ = dtype
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
         self._update_times()
 
-    def _read_segment(start, stop, sel, data_buffer, projector, verbose):
+    @property
+    def _dtype(self):
+        """dtype for loading data (property so subclasses can override)"""
+        # most classes only store real data, they won't need anything special
+        return self._dtype_
+
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+                      projector=None, verbose=None):
         """Read a chunk of raw data
 
         Parameters
@@ -295,6 +305,82 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
+        #  Initial checks
+        start = int(start)
+        stop = self.n_times if stop is None else min([int(stop), self.n_times])
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (start, stop - 1, start / float(self.info['sfreq']),
+                     (stop - 1) / float(self.info['sfreq'])))
+
+        #  Initialize the data and calibration vector
+        n_sel_channels = self.info['nchan'] if sel is None else len(sel)
+        # convert sel to a slice if possible for efficiency
+        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+            sel = slice(sel[0], sel[-1] + 1)
+        idx = slice(None, None, None) if sel is None else sel
+        data_shape = (n_sel_channels, stop - start)
+        dtype = self._dtype
+        if isinstance(data_buffer, np.ndarray):
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        elif isinstance(data_buffer, string_types):
+            # use a memmap
+            data = np.memmap(data_buffer, mode='w+',
+                             dtype=dtype, shape=data_shape)
+        else:
+            data = np.zeros(data_shape, dtype=dtype)
+
+        # deal with having multiple files accessed by the raw object
+        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
+                                                   dtype='int')))
+        cumul_lens = np.cumsum(cumul_lens)
+        files_used = np.logical_and(np.less(start, cumul_lens[1:]),
+                                    np.greater_equal(stop - 1,
+                                                     cumul_lens[:-1]))
+
+        # set up cals
+        mult = list()
+        for ri in range(len(self._first_samps)):
+            mult.append(np.diag(self._cals.ravel()))
+            if self.comp is not None:
+                mult[ri] = np.dot(self.comp, mult[ri])
+            if projector is not None:
+                mult[ri] = np.dot(projector, mult[ri])
+            mult[ri] = mult[ri][idx]
+        if isinstance(idx, slice):
+            cals = self._cals.ravel()[idx][:, np.newaxis]
+        else:
+            cals = self._cals.ravel()[:, np.newaxis]
+
+        # read from necessary files
+        offset = 0
+        for fi in np.nonzero(files_used)[0]:
+            start_loc = self._first_samps[fi]
+            # first iteration (only) could start in the middle somewhere
+            if offset == 0:
+                start_loc += start - cumul_lens[fi]
+            stop_loc = np.min([stop - 1 - cumul_lens[fi] +
+                               self._first_samps[fi], self._last_samps[fi]])
+            if start_loc < self._first_samps[fi] or \
+                    stop_loc > self._last_samps[fi] or \
+                    stop_loc < start_loc or start_loc > stop_loc:
+                raise ValueError('Bad array indexing, could be a bug')
+
+            self._read_segment_file(data, idx, offset, fi, start_loc, stop_loc,
+                                    cals, mult)
+            offset += stop_loc - start_loc + 1
+
+        logger.info('[done]')
+        times = np.arange(start, stop) / self.info['sfreq']
+        return data, times
+
+    def _read_segment_file(self, data, idx, offset, fi, start_loc, stop_loc,
+                           cals, mult):
         raise NotImplementedError
 
     @verbose
@@ -1495,9 +1581,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return deepcopy(self)
 
     def __repr__(self):
+        s = ', '.join(('%r' % op.basename(self._filenames[0]),
+                       "n_channels x n_times : %s x %s"
+                       % (len(self.ch_names), self.n_times)))
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                 self.n_times)
-        return "<Raw  |  %s>" % s
+        return "<%s  |  %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None):
         """Add events to stim channel

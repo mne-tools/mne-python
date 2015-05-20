@@ -17,13 +17,12 @@ from ..constants import FIFF
 from ..open import fiff_open, _fiff_get_fid
 from ..meas_info import read_meas_info
 from ..tree import dir_tree_find
-from ..tag import read_tag
+from ..tag import read_tag, read_tag_info
 from ..proj import make_eeg_average_ref_proj, _needs_eeg_average_ref_proj
 from ..compensator import get_current_comp, set_current_comp, make_compensator
 from ..base import _BaseRaw, _RawShell, _check_raw_compatibility
 
 from ...utils import check_fname, logger, verbose
-from ...externals.six import string_types
 
 
 class RawFIF(_BaseRaw):
@@ -118,8 +117,7 @@ class RawFIF(_BaseRaw):
             [r.first_samp for r in raws], [r.last_samp for r in raws],
             [r.filename for r in raws], [r._rawdir for r in raws],
             copy.deepcopy(raws[0].comp), raws[0]._orig_comp_grade,
-            raws[0].orig_format,
-            verbose=verbose)
+            raws[0].orig_format, None, verbose=verbose)
 
         # combine information from each raw file to construct self
         if add_eeg_ref and _needs_eeg_average_ref_proj(self.info):
@@ -346,81 +344,38 @@ class RawFIF(_BaseRaw):
 
         return raw, next_fname
 
-    @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
-        """Read a chunk of raw data"""
-        #  Initial checks
-        start = int(start)
-        stop = self.n_times if stop is None else min([int(stop), self.n_times])
+    @property
+    def _dtype(self):
+        """Get the dtype to use to store data from disk"""
+        if self._dtype_ is not None:
+            return self._dtype_
+        dtype = None
+        for rawdir, filename in zip(self._rawdirs, self._filenames):
+            for this in rawdir:
+                if this['ent'] is not None:
+                    with _fiff_get_fid(filename) as fid:
+                        fid.seek(this['ent'].pos, 0)
+                        tag = read_tag_info(fid)
+                        if tag is not None:
+                            if tag.type in (FIFF.FIFFT_COMPLEX_FLOAT,
+                                            FIFF.FIFFT_COMPLEX_DOUBLE):
+                                dtype = np.complex128
+                            else:
+                                dtype = np.float64
+                    if dtype is not None:
+                        break
+            if dtype is not None:
+                break
+        if dtype is None:
+            raise RuntimeError('bug in reading')
+        self._dtype_ = dtype
+        return dtype
 
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
-
-        #  Initialize the data and calibration vector
-        nchan = self.info['nchan']
-
-        n_sel_channels = nchan if sel is None else len(sel)
-        # convert sel to a slice if possible for efficiency
-        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
-            sel = slice(sel[0], sel[-1] + 1)
-        idx = slice(None, None, None) if sel is None else sel
-        data_shape = (n_sel_channels, stop - start)
-        if isinstance(data_buffer, np.ndarray):
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data = data_buffer
-        else:
-            data = None  # we will allocate it later, once we know the type
-
-        mult = list()
-        for ri in range(len(self._first_samps)):
-            mult.append(np.diag(self._cals.ravel()))
-            if self.comp is not None:
-                mult[ri] = np.dot(self.comp, mult[ri])
-            if projector is not None:
-                mult[ri] = np.dot(projector, mult[ri])
-            mult[ri] = mult[ri][idx]
-
-        # deal with having multiple files accessed by the raw object
-        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
-                                                   dtype='int')))
-        cumul_lens = np.cumsum(cumul_lens)
-        files_used = np.logical_and(np.less(start, cumul_lens[1:]),
-                                    np.greater_equal(stop - 1,
-                                                     cumul_lens[:-1]))
-
-        first_file_used = False
-        s_off = 0
-        dest = 0
-        if isinstance(idx, slice):
-            cals = self._cals.ravel()[idx][:, np.newaxis]
-        else:
-            cals = self._cals.ravel()[:, np.newaxis]
-
-        for fi in np.nonzero(files_used)[0]:
-            start_loc = self._first_samps[fi]
-            # first iteration (only) could start in the middle somewhere
-            if not first_file_used:
-                first_file_used = True
-                start_loc += start - cumul_lens[fi]
-            stop_loc = np.min([stop - 1 - cumul_lens[fi] +
-                               self._first_samps[fi], self._last_samps[fi]])
-            if start_loc < self._first_samps[fi]:
-                raise ValueError('Bad array indexing, could be a bug')
-            if stop_loc > self._last_samps[fi]:
-                raise ValueError('Bad array indexing, could be a bug')
-            if stop_loc < start_loc:
-                raise ValueError('Bad array indexing, could be a bug')
-            len_loc = stop_loc - start_loc + 1
-            fid = _fiff_get_fid(self._filenames[fi])
-
+    def _read_segment_file(self, data, idx, offset, fi, start_loc, stop_loc,
+                           cals, mult):
+        """Read a segment of data from a file"""
+        with _fiff_get_fid(self._filenames[fi]) as fid:
             for this in self._rawdirs[fi]:
-
                 #  Do we need this buffer
                 if this['last'] >= start_loc:
                     #  The picking logic is a bit complicated
@@ -452,14 +407,11 @@ class RawFIF(_BaseRaw):
                         # only read data if it exists
                         if this['ent'] is not None:
                             one = read_tag(fid, this['ent'].pos,
-                                           shape=(this['nsamp'], nchan),
+                                           shape=(this['nsamp'],
+                                                  self.info['nchan']),
                                            rlims=(first_pick, last_pick)).data
-                            if np.isrealobj(one):
-                                dtype = np.float
-                            else:
-                                dtype = np.complex128
-                            one.shape = (picksamp, nchan)
-                            one = one.T.astype(dtype)
+                            one.shape = (picksamp, self.info['nchan'])
+                            one = one.T.astype(data.dtype)
                             # use proj + cal factors in mult
                             if mult is not None:
                                 one[idx] = np.dot(mult[fi], one)
@@ -474,50 +426,20 @@ class RawFIF(_BaseRaw):
                                     # (fancy indexing)
                                     one *= cals
 
-                            # if not already done, allocate array with
-                            # right type
-                            data = _allocate_data(data, data_buffer,
-                                                  data_shape, dtype)
                             if isinstance(idx, slice):
                                 # faster to slice in data than doing
                                 # one = one[idx] sooner
-                                data[:, dest:(dest + picksamp)] = one[idx]
+                                data[:, offset:(offset + picksamp)] = one[idx]
                             else:
                                 # faster than doing one = one[idx]
-                                data_view = data[:, dest:(dest + picksamp)]
+                                data_view = data[:, offset:(offset + picksamp)]
                                 for ii, ix in enumerate(idx):
                                     data_view[ii] = one[ix]
-                        dest += picksamp
+                        offset += picksamp
 
                 #   Done?
                 if this['last'] >= stop_loc:
-                    # if not already done, allocate array with float dtype
-                    data = _allocate_data(data, data_buffer, data_shape,
-                                          np.float)
                     break
-
-            fid.close()  # clean it up
-            s_off += len_loc
-            # double-check our math
-            if not s_off == dest:
-                raise ValueError('Incorrect file reading')
-
-        logger.info('[done]')
-        times = np.arange(start, stop) / self.info['sfreq']
-
-        return data, times
-
-
-def _allocate_data(data, data_buffer, data_shape, dtype):
-    if data is None:
-        # if not already done, allocate array with right type
-        if isinstance(data_buffer, string_types):
-            # use a memmap
-            data = np.memmap(data_buffer, mode='w+',
-                             dtype=dtype, shape=data_shape)
-        else:
-            data = np.zeros(data_shape, dtype=dtype)
-    return data
 
 
 def read_raw_fif(fnames, allow_maxshield=False, preload=False,

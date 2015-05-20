@@ -13,7 +13,7 @@ from nose.tools import assert_equal, assert_raises
 import scipy.io
 
 from mne import pick_types, concatenate_raws, Epochs, read_events
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
@@ -29,6 +29,16 @@ mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
+
+
+def test_concat():
+    """Test kit concatenation
+    """
+    for preload in (True, False):
+        raw1 = read_raw_kit(sqd_path, preload=preload)
+        raw2 = read_raw_kit(sqd_path, preload=preload)
+        raw1.append(raw2)
+        # raw1.preload_data()
 
 
 def test_data():
@@ -154,3 +164,6 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
+
+
+run_tests_if_main()

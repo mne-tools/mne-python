@@ -86,7 +86,6 @@ class RawKIT(_BaseRaw):
         info, self._kit_info = get_kit_info(input_fname)
         self._kit_info['slope'] = slope
         self._kit_info['stimthresh'] = stimthresh
-        self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] != 1:
             err = 'SQD file contains epochs, not raw data. Wrong reader.'
             raise TypeError(err)
@@ -95,7 +94,8 @@ class RawKIT(_BaseRaw):
         last_samps = [self._kit_info['n_samples'] - 1]
         self._set_stimchannels(info, stim)
         super(RawKIT, self).__init__(
-            info, preload, last_samps=last_samps, verbose=verbose)
+            info, preload, last_samps=last_samps, filenames=[input_fname],
+            verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
@@ -110,13 +110,6 @@ class RawKIT(_BaseRaw):
                              '(all or none)')
 
         logger.info('Ready.')
-
-    def __repr__(self):
-        s = ('%r' % op.basename(self._kit_info['fname']),
-             "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                                 self.last_samp + 1 -
-                                                 self.first_samp))
-        return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data
@@ -227,7 +220,7 @@ class RawKIT(_BaseRaw):
                     (start, stop - 1, start / float(self.info['sfreq']),
                      (stop - 1) / float(self.info['sfreq'])))
 
-        with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
+        with open(self._filenames[0], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
             fid.seek(data_offset)
@@ -379,7 +372,6 @@ class EpochsKIT(EpochsArray):
         if len(events) != self._kit_info['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
-        self._kit_info['fname'] = input_fname
         if self._kit_info['acq_type'] == 3:
             self._kit_info['data_offset'] = KIT.RAW_OFFSET
             self._kit_info['data_length'] = KIT.INT
@@ -397,6 +389,7 @@ class EpochsKIT(EpochsArray):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
+        self._filename = input_fname
         data = self._read_data()
         assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
                               self._kit_info['frame_length'])
@@ -425,7 +418,7 @@ class EpochsKIT(EpochsArray):
         n_epochs = self._kit_info['n_epochs']
         n_samples = self._kit_info['n_samples']
 
-        with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
+        with open(self._filename, 'rb', buffering=0) as fid:
             # extract data
             data_offset = self._kit_info['data_offset']
             dtype = self._kit_info['dtype']
@@ -452,13 +445,6 @@ class EpochsKIT(EpochsArray):
         data = data.transpose((1, 0, 2))
 
         return data
-
-    def __repr__(self):
-        s = ('%r ' % op.basename(self._kit_info['fname']),
-             "n_epochs x n_channels x n_times : %s x %s x %s"
-             % (self._kit_info['n_epochs'], self.info['nchan'],
-                self._kit_info['frame_length']))
-        return "<EpochsKIT  |  %s>" % ', '.join(s)
 
 
 def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):

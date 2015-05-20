@@ -86,17 +86,11 @@ class RawEDF(_BaseRaw):
         # Raw attributes
         last_samps = [self._edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
-            info, preload, last_samps=last_samps, orig_format='int',
+            info, preload, filenames=[input_fname],
+            last_samps=last_samps, orig_format='int',
             verbose=verbose)
 
         logger.info('Ready.')
-
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEDF  |  %s>" % ', '.join(s)
 
     @verbose
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
