@@ -255,6 +255,7 @@ def _check_outlines(pos, outlines, head_pos=None):
         if 'scale' not in head_pos:
             # The default is to make the points occupy a slightly smaller
             # proportion (0.85) of the total width and height
+            # this number was empirically determined (seems to work well)
             head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
         pos -= head_pos['center']
         pos *= head_pos['scale']
