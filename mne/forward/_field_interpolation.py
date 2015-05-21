@@ -439,7 +439,7 @@ def _transform_instance(inst_from, info_to):
     from ..transforms import invert_transform, apply_trans
     inv_dev_head_t_from = invert_transform(info_from['dev_head_t'])['trans']
     dev_head_t_to = info_to['dev_head_t']['trans']
-    ch_pos_from = inst_from._get_channel_positions(picks_from).reshape(-1, 3)
+    ch_pos_from = inst_from._get_channel_positions(picks).reshape(-1, 3)
     ch_pos_from = apply_trans(dev_head_t_to, ch_pos_from)
     ch_pos_from = apply_trans(inv_dev_head_t_from, ch_pos_from).reshape(-1, 12)
 

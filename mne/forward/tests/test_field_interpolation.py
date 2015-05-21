@@ -238,8 +238,8 @@ def test_transform_instances():
     rot = rotation(x=0, y=np.pi/12, z=0)
     pos = apply_trans(rot, pos).reshape(-1, 12)
     evoked_rot._set_channel_positions(pos, names)
-    trans = info_rot['dev_head_t']['trans']
-    trans[:3, :3] = apply_trans(rot, trans[:3, :3])
+    # trans = info_rot['dev_head_t']['trans']
+    # trans[:3, :3] = apply_trans(rot, trans[:3, :3])
     mapping = _map_meg_channels(info_rot, info, picks)
 
     evoked_rot.data[picks] = np.dot(mapping, evoked_rot.data[picks])
