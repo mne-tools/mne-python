@@ -1051,7 +1051,7 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
     tmin, tmax = evoked.times[[0, -1]]
-    _time_comp = _time_mask(times, tmin,  tmax)
+    _time_comp = _time_mask(times=times, tmin=tmin,  tmax=tmax)
     if not np.all(_time_comp):
         t = times[_time_comp == False][0]
         raise ValueError('Times should be between %0.3f and %0.3f. (Got '
