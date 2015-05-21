@@ -1047,14 +1047,19 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         times = np.linspace(evoked.times[0], evoked.times[-1], 10)
     elif np.isscalar(times):
         times = [times]
+    times = np.array(times)
+    if times.ndim != 1:
+        raise ValueError('times must be 1D, got %d dimensions' % times.ndim)
     if len(times) > 20:
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
     tmin, tmax = evoked.times[[0, -1]]
-    for t in times:
-        if not tmin <= t <= tmax:
-            raise ValueError('Times should be between %0.3f and %0.3f. (Got '
-                             '%0.3f).' % (tmin, tmax, t))
+    _time_comp = _time_mask(times=times, tmin=tmin,  tmax=tmax)
+    if not np.all(_time_comp):
+        raise ValueError('Times should be between {0:0.3f} and {1:0.3f}. (Got '
+                         '{2}).'.format(tmin, tmax,
+                                        ['%03.f' % t
+                                         for t in times[_time_comp]]))
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
