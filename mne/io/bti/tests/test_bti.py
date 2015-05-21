@@ -8,7 +8,8 @@ import os.path as op
 from functools import reduce
 
 import numpy as np
-from numpy.testing import assert_array_almost_equal, assert_array_equal
+from numpy.testing import (assert_array_almost_equal, assert_array_equal,
+                           assert_allclose)
 from nose.tools import assert_true, assert_raises, assert_equal
 
 from mne.io import Raw as Raw
@@ -50,8 +51,8 @@ def test_read_pdf():
         assert_true(data.shape == shape)
 
 
-def test_crop():
-    """ Test crop raw """
+def test_crop_append():
+    """ Test crop and append raw """
     raw = read_raw_bti(pdf_fnames[0], config_fnames[0], hs_fnames[0])
     raw.preload_data()  # currently does nothing
     y, t = raw[:]
@@ -61,6 +62,11 @@ def test_crop():
     y_, _ = raw_[:]
     assert_true(y_.shape[1] == mask.sum())
     assert_true(y_.shape[0] == y.shape[0])
+
+    raw2 = raw.copy()
+    assert_raises(RuntimeError, raw.append, raw2, preload=False)
+    raw.append(raw2)
+    assert_allclose(np.tile(raw2[:, :][0], (1, 2)), raw[:, :][0])
 
 
 def test_raw():

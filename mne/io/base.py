@@ -1546,6 +1546,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             of the raw files passed in.
         """
         from .fiff.raw import RawFIF
+        from .kit.kit import RawKIT
+        from .edf.edf import RawEDF
+
         if not isinstance(raws, list):
             raws = [raws]
 
@@ -1562,9 +1565,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             else:
                 preload = False
 
-        if not preload and not isinstance(self, RawFIF):
-            raise RuntimeError('All files must be preloaded to concatenate '
-                               'non-FIF files')
+        if not preload and not isinstance(self, (RawFIF, RawKIT, RawEDF)):
+            raise RuntimeError('preload must be True to concatenate '
+                               'files unless they are FIF, KIT, or EDF')
         if preload is False:
             if self.preload:
                 self._data = None
