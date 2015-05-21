@@ -4,10 +4,9 @@
 Tutorial: MEG and EEG data processing with MNE and Python
 =========================================================
 
-Python offers transparent scripting on top of MNE.
-It was designed to be an alternative to the MNE matlab toolbox
-but now it can do much more (customize events, compute
-contrasts, statistics, time-frequency analysis etc.)
+MNE-Python reimplements most of MNE's functionality and offers transparent scripting.
+On top of that it extends MNE's functionality considerably (customize events, compute
+contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses, etc.)
 It uses the same files as standard MNE unix commands:
 no need to convert your files to a new system or database.
 
@@ -26,17 +25,14 @@ What you can do with MNE Python
     - **Visualization of sensor and source space data**
     - **Time-frequency** analysis with Morlet wavelets (induced power, intertrial coherence, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
+    - **Mixed Source Models** combining cortical and subcortical structures
+    - **Dipole Fitting**
+    - **Decoding** multivariate pattern analyis of M/EEG topographies
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
 
-What you're not supposed to do with MNE Python
-----------------------------------------------
-
-	- **Boundary Element Modeling** use MNE and Freesurfer.
-
-
-.. note:: Package based on the FIF file format from Neuromag but can work with CTF and 4D after conversion to FIF.
+.. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D,, KIT and various EEG formats to FIF.
 
 
 Installation of the required materials
@@ -64,7 +60,7 @@ From raw data to evoked data
 
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
 
-  $ ipython -pylab -qt
+  $ ipython --pylab -qt
 
 First, load the mne package:
 
@@ -289,7 +285,7 @@ Define parameters:
     >>> n_cycles = 2  # number of cycles in Morlet wavelet
     >>> freqs = np.arange(7, 30, 3)  # frequencies of interest
 
-Compute induced power and phase-locking values:
+Compute induced power and phase-locking values and plot gradiometers:
 
     >>> from mne.time_frequency import tfr_morlet
     >>> power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=True, decim=3, n_jobs=1) # doctest: +ELLIPSIS
@@ -386,7 +382,8 @@ What else can you do?
     - morph stc from one brain to another for group studies
     - compute mass univariate statistics base on custom contrasts
     - visualize source estimates
-    - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
+    - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas
+    - and many more thhings ...
 
 
 Want to know more ?
