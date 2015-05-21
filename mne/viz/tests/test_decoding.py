@@ -45,9 +45,9 @@ def _get_data(tmin=-0.2, tmax=0.5, event_id=dict(aud_l=1, vis_l=3),
     epochs = concatenate_epochs(epochs_list)
 
     # Test default running
-    gat = GeneralizationAcrossTime()
+    gat = GeneralizationAcrossTime(test_times=test_times)
     gat.fit(epochs)
-    gat.score(epochs, test_times=test_times)
+    gat.score(epochs)
     return gat
 
 
@@ -74,13 +74,13 @@ def test_gat_plot_times():
     """Test GAT times plot"""
     gat = _get_data()
     # test one line
-    gat.plot_times(gat.train_times['times_'][0])
+    gat.plot_times(gat.train_times_['times'][0])
     # test multiple lines
-    gat.plot_times(gat.train_times['times_'])
+    gat.plot_times(gat.train_times_['times'])
     # test multiple colors
-    n_times = len(gat.train_times['times_'])
-    colors = np.tile(['r', 'g', 'b'], int(np.ceil(n_times / 3)))[:n_times]
-    gat.plot_times(gat.train_times['times_'], color=colors)
+    n_times = len(gat.train_times_['times'])
+    colors = np.tile(['r', 'g', 'b'], np.ceil(n_times / 3))[:n_times]
+    gat.plot_times(gat.train_times_['times'], color=colors)
     # test invalid time point
     assert_raises(ValueError, gat.plot_times, -1.)
     # test float type
