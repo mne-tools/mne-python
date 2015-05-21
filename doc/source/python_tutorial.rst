@@ -4,8 +4,8 @@
 Tutorial: MEG and EEG data processing with MNE and Python
 =========================================================
 
-MNE-Python reimplements most of MNE's functionality and offers transparent scripting.
-On top of that it extends MNE's functionality considerably (customize events, compute
+MNE-Python reimplements most of MNE-C's (the original MNE command line utils) functionality and offers transparent scripting.
+On top of that it extends MNE-C's functionality considerably (customize events, compute
 contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses, etc.)
 It uses the same files as standard MNE unix commands:
 no need to convert your files to a new system or database.
@@ -31,6 +31,12 @@ What you can do with MNE Python
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
+
+What you're not supposed to do with MNE Python
+----------------------------------------------
+
+    - **Boundary Element Modeling** use MNE and Freesurfer.
+
 
 .. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D,, KIT and various EEG formats to FIF.
 
