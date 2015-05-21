@@ -245,7 +245,7 @@ class SetChannelsMixin(object):
                       'eog': FIFF.FIFF_UNIT_V,
                       'exci': FIFF.FIFF_UNIT_NONE,
                       'ias': FIFF.FIFF_UNIT_NONE,
-                      'misc': FIFF.FIFF_UNIT_NONE,
+                      'misc': FIFF.FIFF_UNIT_V,
                       'resp': FIFF.FIFF_UNIT_NONE,
                       'seeg': FIFF.FIFF_UNIT_V,
                       'stim': FIFF.FIFF_UNIT_NONE,
