@@ -33,7 +33,6 @@ What you can do with MNE Python
 What you're not supposed to do with MNE Python
 ----------------------------------------------
 
-	- **Dipole fitting** use MNE or other designated software instead.
 	- **Boundary Element Modeling** use MNE and Freesurfer.
 
 
