@@ -204,7 +204,7 @@ def test_ica_core():
         with warnings.catch_warnings(record=True):
             ica.fit(raw, picks=pcks, start=start, stop=stop)
             repr(ica)  # to test repr
-        'mag' in ica  # should now work
+        assert_true('mag' in ica)  # should now work without error
 
         # test re-fit
         unmixing1 = ica.unmixing_matrix_

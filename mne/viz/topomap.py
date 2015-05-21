@@ -224,7 +224,7 @@ def _check_outlines(pos, outlines, head_pos=None):
     """Check or create outlines for topoplot
     """
     pos = np.array(pos, float)[:, :2]  # ensure we have a copy
-    head_pos = {} if head_pos is None else head_pos
+    head_pos = dict() if head_pos is None else head_pos
     if not isinstance(head_pos, dict):
         raise TypeError('sensor_pos must be dict or None')
     head_pos = copy.deepcopy(head_pos)
@@ -253,6 +253,8 @@ def _check_outlines(pos, outlines, head_pos=None):
         if 'center' not in head_pos:
             head_pos['center'] = 0.5 * (pos.max(axis=0) + pos.min(axis=0))
         if 'scale' not in head_pos:
+            # The default is to make the points occupy a slightly smaller
+            # proportion (0.85) of the total width and height
             head_pos['scale'] = 0.85 / (pos.max(axis=0) - pos.min(axis=0))
         pos -= head_pos['center']
         pos *= head_pos['scale']
