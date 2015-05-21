@@ -1430,6 +1430,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             None, preload=True or False is inferred using the preload status
             of the raw files passed in.
         """
+        from .fiff.raw import RawFIF
         if not isinstance(raws, list):
             raws = [raws]
 
@@ -1446,6 +1447,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             else:
                 preload = False
 
+        if not preload and not isinstance(self, RawFIF):
+            raise RuntimeError('All files must be preloaded to concatenate '
+                               'non-FIF files')
         if preload is False:
             if self.preload:
                 self._data = None
@@ -1977,6 +1981,8 @@ def _check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
     for ri in range(1, len(raw)):
+        if not isinstance(raw[ri], type(raw[0])):
+            raise ValueError('raw[%d] type must match' % ri)
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
         if not raw[ri].info['bads'] == raw[0].info['bads']:
