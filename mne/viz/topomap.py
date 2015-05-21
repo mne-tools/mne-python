@@ -1053,9 +1053,8 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     tmin, tmax = evoked.times[[0, -1]]
     _time_comp = _time_mask(times=times, tmin=tmin,  tmax=tmax)
     if not np.all(_time_comp):
-        t = times[_time_comp == False][0]
-        raise ValueError('Times should be between %0.3f and %0.3f. (Got '
-                         '%0.3f).' % (tmin, tmax, t))
+        raise ValueError('Times should be between {0:0.3f} and {1:0.3f}. (Got '
+                         '{2}).'.format(tmin, tmax, list(times[_time_comp])))
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
