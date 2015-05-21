@@ -202,6 +202,9 @@ class RawKIT(_BaseRaw):
                            cals, mult):
         """Read a chunk of raw data"""
         # cals are all unity, so can be ignored
+
+        # RawFIF and RawEDF think of "stop" differently, easiest to increment
+        # here and refactor later
         stop += 1
         sel = np.arange(self.info['nchan'])[idx]
 

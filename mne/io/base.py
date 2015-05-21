@@ -215,7 +215,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment_file(start, stop, sel, data_buffer, projector, verbose)
+        * _read_segment_file(self, data, idx, offset, fi, start, stop,
+                             cals, mult)
           (only needed for types that support on-demand disk reads)
 
     The `_BaseRaw._raw_extras` list can contain whatever data is necessary for

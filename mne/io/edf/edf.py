@@ -102,6 +102,8 @@ class RawEDF(_BaseRaw):
             # and for efficiency we want to be able to combine mult and cals
             # so proj support will have to wait until this is resolved
             raise NotImplementedError('mult is not supported yet')
+        # RawFIF and RawEDF think of "stop" differently, easiest to increment
+        # here and refactor later
         stop += 1
         sel = np.arange(self.info['nchan'])[idx]
 
