@@ -19,7 +19,7 @@ import numpy as np
 from mne import pick_types, concatenate_raws
 from mne.externals.six import iterbytes
 from mne.utils import _TempDir
-from mne.io import Raw, read_raw_edf
+from mne.io import Raw, read_raw_edf, RawArray
 import mne.io.edf.edf as edfmodule
 from mne.event import find_events
 
@@ -149,11 +149,20 @@ def test_append():
     """Test appending raw edf objects using Raw.append
     """
     # Author: Alan Leggitt <alan.leggitt@ucsf.edu>
-    raw = read_raw_edf(bdf_path, preload=False)
+    raw = read_raw_edf(bdf_path, preload=True)
     raw0 = raw.copy()
     raw1 = raw.copy()
     raw0.append(raw1)
     assert_true(2 * len(raw) == len(raw0))
+    # XXX This is currently failing b/c of non-preload!
+    # assert_allclose(np.tile(raw[:, :][0], (1, 2)), raw0[:, :][0])
+
+    raw = read_raw_edf(bdf_path, preload=False)
+    raw0 = raw.copy()
+    raw1 = raw.copy()
+    assert_raises(RuntimeError, raw0.append, raw1)
+    raw2 = RawArray(raw[:, :][0], raw.info)
+    assert_raises(ValueError, raw.append, raw2)
 
 
 def test_parse_annotation():
