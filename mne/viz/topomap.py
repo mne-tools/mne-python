@@ -1051,10 +1051,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         raise RuntimeError('Too many plots requested. Please pass fewer '
                            'than 20 time instants.')
     tmin, tmax = evoked.times[[0, -1]]
-    for t in times:
-        if not tmin <= t <= tmax:
-            raise ValueError('Times should be between %0.3f and %0.3f. (Got '
-                             '%0.3f).' % (tmin, tmax, t))
+    _time_comp = _time_mask(times, tmin,  tmax)
+    if not np.all(_time_comp):
+        t = times[_time_comp == False][0]
+        raise ValueError('Times should be between %0.3f and %0.3f. (Got '
+                         '%0.3f).' % (tmin, tmax, t))
 
     picks, pos, merge_grads, names, ch_type = _prepare_topo_plot(
         evoked, ch_type, layout)
