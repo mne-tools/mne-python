@@ -100,7 +100,7 @@ Changelog
 
    - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_ and `Christian Brodbeck`_
 
-   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks` and `Denis Engemann`_
+   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks`_ and `Denis Engemann`_
 
    - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
 
@@ -116,8 +116,7 @@ BUG
 
    - Fix channel names in topomaps by `Alex Gramfort`_
 
-   - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and
-    ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
+   - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -162,8 +161,7 @@ API
 
    - find_events and read_events functions have a new parameter ``mask`` to set some bits to a don't care state by `Teon Brooks`_
 
-   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-    `mne.layouts` by `Denis Engemann`_
+   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates ``mne.layouts`` by `Denis Engemann`_
 
    - ``read_raw_brainvision``, ``read_raw_edf``, ``read_raw_egi`` all use a standard montage import by `Teon Brooks`_
 
@@ -187,8 +185,7 @@ API
 
    - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_
-    `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
+   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_ `Eric Larson`_ and `Denis Engemann`_. As a consquence, ``Raw.plot_raw_psds`` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
