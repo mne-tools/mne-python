@@ -38,7 +38,7 @@ What you're not supposed to do with MNE Python
     - **Boundary Element Modeling** use MNE and Freesurfer.
 
 
-.. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D,, KIT and various EEG formats to FIF.
+.. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D, KIT and various EEG formats to FIF.
 
 
 Installation of the required materials
@@ -388,8 +388,8 @@ What else can you do?
     - morph stc from one brain to another for group studies
     - compute mass univariate statistics base on custom contrasts
     - visualize source estimates
-    - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas
-    - and many more thhings ...
+    - export raw, epochs, and evoked data to other python data analysis libraries e.g. pandas
+    - and many more things ...
 
 
 Want to know more ?
