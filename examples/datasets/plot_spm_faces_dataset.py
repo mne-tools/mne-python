@@ -18,6 +18,7 @@ fast machine it can take about 10 minutes to complete.
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import matplotlib.pyplot as plt
 
 import mne
@@ -97,8 +98,12 @@ evoked[0].plot_field(maps, time=0.170)
 # Compute forward model
 
 # Make source space
-src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
-                             overwrite=True)
+src_fname = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
+if not op.isfile(src_fname):
+    src = mne.setup_source_space('spm', src_fname, spacing='oct6',
+                                 subjects_dir=subjects_dir, overwrite=True)
+else:
+    src = mne.read_source_spaces(src_fname)
 
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)

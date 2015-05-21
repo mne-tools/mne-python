@@ -1261,10 +1261,10 @@ class ICA(ContainsMixin):
 
         return self
 
-    def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
+    def plot_components(self, picks=None, ch_type=None, res=64, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear'):
+                        contours=6, image_interp='bilinear', head_pos=None):
         """Project unmixing matrix on interpolated sensor topography.
 
         Parameters
@@ -1272,9 +1272,10 @@ class ICA(ContainsMixin):
         picks : int | array-like | None
             The indices of the sources to be plotted.
             If None all are plotted in batches of 20.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         res : int
             The resolution of the topomap image (n pixels along each side).
         layout : None | Layout
@@ -1313,6 +1314,11 @@ class ICA(ContainsMixin):
         image_interp : str
             The image interpolation to be used. All matplotlib options are
             accepted.
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
 
         Returns
         -------
@@ -1326,7 +1332,8 @@ class ICA(ContainsMixin):
                                    sensors=sensors, colorbar=colorbar,
                                    title=title, show=show,
                                    outlines=outlines, contours=contours,
-                                   image_interp=image_interp)
+                                   image_interp=image_interp,
+                                   head_pos=head_pos)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True):

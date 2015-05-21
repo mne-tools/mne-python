@@ -125,7 +125,6 @@ def test_limits_to_control_points():
 
     # Test for simple use cases
     from mayavi import mlab
-    mlab.close()
     stc.plot(clim='auto', subjects_dir=subjects_dir)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,

@@ -438,13 +438,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  units=units, scalings=scalings,
                                  titles=titles, axes=axes, cmap=cmap)
 
-    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
+    def plot_topomap(self, times=None, ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, format=None):
+                     image_interp='bilinear', average=None, head_pos=None,
+                     format=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -453,9 +454,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The time point(s) to plot. If None, 10 topographies will be shown
             will a regular time spacing between the first and last time
             instant.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
@@ -539,6 +541,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -552,7 +559,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, format=format)
+                                   average=average, head_pos=head_pos,
+                                   format=format)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
