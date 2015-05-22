@@ -779,11 +779,11 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
         warnings.warn(msg)
 
     logger.info("Running subprocess: %s" % str(command))
-    try:
-        p = subprocess.Popen(command, *args, **kwargs)
-    except Exception:
-        logger.error('Command not found: %s' % (command[0],))
-        raise
+    #try:
+    p = subprocess.Popen(command, *args, **kwargs)
+    #except Exception:
+    #    logger.error('Command not found: %s' % (command[0],))
+    #    raise
     stdout_, stderr = p.communicate()
     stdout_ = '' if stdout_ is None else stdout_.decode('utf-8')
     stderr = '' if stderr is None else stderr.decode('utf-8')

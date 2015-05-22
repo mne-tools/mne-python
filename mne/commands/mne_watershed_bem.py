@@ -6,6 +6,7 @@
 """
 
 from __future__ import print_function
+import sys
 
 from mne.bem import make_watershed_bem
 
@@ -20,14 +21,15 @@ def run():
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=None)
     parser.add_option("-o", "--overwrite", dest="overwrite",
-                      help="Write over existing files")
+                      help="Write over existing files", action="store_true")
     parser.add_option("-v", "--volume", dest="volume",
                       help="Defaults to T1", default='T1')
     parser.add_option("-a", "--atlas", dest="atlas",
                       help="Specify the --atlas option for mri_watershed",
-                      default=False)
+                      default=False, action="store_true")
     parser.add_option("-g", "--gcaatlas", dest="gcaatlas",
-                      help="Use the subcortical atlas", default=False)
+                      help="Use the subcortical atlas", default=False,
+                      action="store_true")
     parser.add_option("-p", "--preflood", dest="preflood",
                       help="Change the preflood height", default=None)
     parser.add_option("--verbose", dest="verbose",
@@ -35,6 +37,10 @@ def run():
                       default=None)
 
     options, args = parser.parse_args()
+
+    if options.subject is None:
+        parser.print_help()
+        sys.exit(1)
 
     subject = options.subject
     subjects_dir = options.subjects_dir
