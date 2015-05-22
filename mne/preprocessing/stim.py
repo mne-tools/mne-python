@@ -6,10 +6,8 @@ import numpy as np
 from ..evoked import Evoked
 from ..epochs import Epochs
 from ..io import Raw
-from ..utils import deprecated
 from ..event import find_events
 
-from .. import pick_types
 from ..io.pick import pick_channels
 
 
@@ -42,68 +40,6 @@ def _fix_artifact(data, window, picks, first_samp, last_samp, mode):
     if mode == 'window':
         data[picks, first_samp:last_samp] = \
             data[picks, first_samp:last_samp] * window[np.newaxis, :]
-
-
-@deprecated('`eliminate_stim_artifact` will be deprecated '
-            'in v0.10 : Use fix_stim_artifact')
-def eliminate_stim_artifact(raw, events, event_id, tmin=-0.005,
-                            tmax=0.01, mode='linear'):
-    """Eliminate stimulations artifacts from raw data
-
-    The raw object will be modified in place (no copy)
-
-    Parameters
-    ----------
-    raw : Raw object
-        raw data object.
-    events : array, shape (n_events, 3)
-        The list of events.
-    event_id : int
-        The id of the events generating the stimulation artifacts.
-    tmin : float
-        Start time of the interpolation window in seconds.
-    tmax : float
-        End time of the interpolation window in seconds.
-    mode : 'linear' | 'window'
-        way to fill the artifacted time interval.
-        'linear' does linear interpolation
-        'window' applies a (1 - hanning) window.
-
-    Returns
-    -------
-    raw: Raw object
-        raw data object.
-    """
-    from scipy.interpolate import interp1d
-    if not raw.preload:
-        raise RuntimeError('Modifying data of Raw is only supported '
-                           'when preloading is used. Use preload=True '
-                           '(or string) in the constructor.')
-    events_sel = (events[:, 2] == event_id)
-    event_start = events[events_sel, 0]
-    s_start = int(np.ceil(raw.info['sfreq'] * tmin))
-    s_end = int(np.ceil(raw.info['sfreq'] * tmax))
-
-    picks = pick_types(raw.info, meg=True, eeg=True, eog=True, ecg=True,
-                       emg=True, ref_meg=True, misc=True, chpi=True,
-                       exclude='bads', stim=False, resp=False)
-
-    if mode == 'window':
-        window = _get_window(s_start, s_end)
-
-    for k in range(len(event_start)):
-        first_samp = int(event_start[k]) - raw.first_samp + s_start
-        last_samp = int(event_start[k]) - raw.first_samp + s_end
-        data, _ = raw[picks, first_samp:last_samp]
-        if mode == 'linear':
-            x = np.array([first_samp, last_samp])
-            f = interp1d(x, data[:, (0, -1)])
-            xnew = np.arange(first_samp, last_samp)
-            interp_data = f(xnew)
-            raw[picks, first_samp:last_samp] = interp_data
-        elif mode == 'window':
-            raw[picks, first_samp:last_samp] = data * window[np.newaxis, :]
-    return raw
 
 
 def fix_stim_artifact(inst, events=None, event_id=None, tmin=0.,

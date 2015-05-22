@@ -93,7 +93,7 @@ def _quats_to_trans_rot_t(quats):
     t : ndarray, shape (N,)
         The time points.
 
-    See also
+    See Also
     --------
     calculate_chpi_positions, get_chpi_positions
     """

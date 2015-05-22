@@ -264,7 +264,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
                          decim=1, use_fft=False, pick_ori=None,
                          baseline=None, baseline_mode='logratio', pca=True,
                          n_jobs=1, zero_mean=False, prepared=False,
-                         verbose=None, pick_normal=None):
+                         verbose=None):
     """Compute induced power and phase lock
 
     Computation can optionaly be restricted in a label.
@@ -275,10 +275,10 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         The epochs.
     inverse_operator : instance of InverseOperator
         The inverse operator.
-    label : Label
-        Restricts the source estimates to a given label.
     frequencies : array
         Array of frequencies of interest.
+    label : Label
+        Restricts the source estimates to a given label.
     lambda2 : float
         The regularization parameter of the minimum norm.
     method : "MNE" | "dSPM" | "sLORETA"
@@ -322,7 +322,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
         If not None, override default verbose level (see mne.verbose).
     """
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     power, plv, vertno = _source_induced_power(epochs,
                                                inverse_operator, frequencies,
@@ -346,8 +346,7 @@ def source_induced_power(epochs, inverse_operator, frequencies, label=None,
 def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
                        tmin=None, tmax=None, fmin=0., fmax=200.,
                        n_fft=2048, overlap=0.5, pick_ori=None, label=None,
-                       nave=1, pca=True, verbose=None, pick_normal=None,
-                       prepared=False):
+                       nave=1, pca=True, prepared=False, verbose=None):
     """Compute source power spectrum density (PSD)
 
     Parameters
@@ -398,7 +397,7 @@ def compute_source_psd(raw, inverse_operator, lambda2=1. / 9., method="dSPM",
         The PSD (in dB) of each of the sources.
     """
     from scipy.signal import hanning
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     logger.info('Considering frequencies %g ... %g Hz' % (fmin, fmax))
 
@@ -624,7 +623,7 @@ def compute_source_psd_epochs(epochs, inverse_operator, lambda2=1. / 9.,
                               pca=True, inv_split=None, bandwidth=4.,
                               adaptive=False, low_bias=True,
                               return_generator=False, n_jobs=1,
-                              prepared=False, verbose=None, pick_normal=None):
+                              prepared=False, verbose=None):
     """Compute source power spectrum density (PSD) from Epochs using
        multi-taper method
 

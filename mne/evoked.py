@@ -16,9 +16,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, deprecated, _time_mask)
-from .defaults import _handle_default
+from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image)
 from .viz.evoked import _plot_evoked_white
@@ -444,8 +442,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, head_pos=None,
-                     format=None):
+                     image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -559,8 +556,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, head_pos=head_pos,
-                                   format=format)
+                                   average=average, head_pos=head_pos)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
@@ -625,106 +621,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
-
-    @deprecated('to_nitime will be removed in v0.10')
-    def to_nitime(self, picks=None):
-        """Export Evoked object to NiTime
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Indices of channels to apply. If None, all channels will be
-            exported.
-
-        Returns
-        -------
-        evoked_ts : instance of nitime.TimeSeries
-            The TimeSeries instance
-        """
-        try:
-            from nitime import TimeSeries  # to avoid strong dependency
-        except ImportError:
-            raise Exception('the nitime package is missing')
-
-        evoked_ts = TimeSeries(self.data if picks is None
-                               else self.data[picks],
-                               sampling_rate=self.info['sfreq'])
-        return evoked_ts
-
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
-                      use_time_index=True, copy=True):
-        """Get the Evoked object as a Pandas DataFrame
-
-        Export data in tabular structure: each row corresponds to a time point,
-        and each column to a channel.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            If None all channels are kept, otherwise the channels indices in
-            picks are kept.
-        scale_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
-        use_time_index : bool
-            If False, times will be included as in the data table, else it will
-            be used as index object.
-        copy : bool
-            If true, evoked will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of pandas.core.DataFrame
-            Evoked data exported into tabular data structure.
-        """
-
-        pd = _check_pandas_installed()
-
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not in1d(picks, np.arange(len(self.ch_names))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this Evoked instance.')
-
-        data, times = self.data, self.times
-
-        if copy is True:
-            data = data.copy()
-
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _handle_default('scalings', scalings)
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[idx] *= scaling
-
-        assert times.shape[0] == data.shape[1]
-        col_names = [self.ch_names[k] for k in picks]
-
-        df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times * scale_time)
-
-        if use_time_index is True:
-            if 'time' in df:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index('time', inplace=True)
-
-        return df
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad channels.
@@ -1049,26 +945,6 @@ def grand_average(all_evoked, interpolate_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
-
-
-@deprecated('merge_evoked is deprecated and will be removed in 0.10. Please '
-            'use combine_evoked instead')
-def merge_evoked(all_evoked):
-    """Merge/concat evoked data
-
-    Data should have the same channels and the same time instants.
-
-    Parameters
-    ----------
-    all_evoked : list of Evoked
-        The evoked datasets.
-
-    Returns
-    -------
-    evoked : Evoked
-        The merged evoked data.
-    """
-    return combine_evoked(all_evoked)
 
 
 def combine_evoked(all_evoked, weights='nave'):

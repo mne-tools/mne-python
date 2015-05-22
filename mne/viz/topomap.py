@@ -11,7 +11,6 @@ from __future__ import print_function
 
 import math
 import copy
-import warnings
 
 import numpy as np
 from scipy import linalg
@@ -737,11 +736,10 @@ def plot_ica_components(ica, picks=None, ch_type=None, res=64,
 
 def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
                      ch_type=None, baseline=None, mode='mean', layout=None,
-                     vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
+                     vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                      colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None,
-                     format=None):
+                     axes=None, show=True, outlines='head', head_pos=None):
     """Plot topographic maps of specific time-frequency intervals of TFR data
 
     Parameters
@@ -844,11 +842,6 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(tfr, ch_type)
-    if format is not None:
-        cbar_fmt = format
-        warnings.warn("The format parameter is deprecated and will be "
-                      "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
-                      "instead.", DeprecationWarning)
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable
 
@@ -920,14 +913,13 @@ def plot_tfr_topomap(tfr, tmin=None, tmax=None, fmin=None, fmax=None,
 
 
 def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
-                        vmax=None, vmin=None, cmap='RdBu_r', sensors=True,
+                        vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=True, scale=None, scale_time=1e3, unit=None,
                         res=64, size=1, cbar_fmt='%3.1f',
                         time_format='%01d ms', proj=False, show=True,
                         show_names=False, title=None, mask=None,
                         mask_params=None, outlines='head', contours=6,
-                        image_interp='bilinear', average=None, head_pos=None,
-                        format=None):
+                        image_interp='bilinear', average=None, head_pos=None):
     """Plot topographic maps of specific time points of evoked data
 
     Parameters
@@ -1031,11 +1023,6 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
-    if format is not None:
-        cbar_fmt = format
-        warnings.warn("The format parameter is deprecated and will be "
-                      "replaced by cbar_fmt in version 0.10. Use cbar_fmt "
-                      "instead.", DeprecationWarning)
     import matplotlib.pyplot as plt
     from mpl_toolkits.axes_grid1 import make_axes_locatable  # noqa
 

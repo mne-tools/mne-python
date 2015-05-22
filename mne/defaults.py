@@ -11,6 +11,7 @@ DEFAULTS = dict(
                emg='k', ref_meg='steelblue', misc='k', stim='k',
                resp='k', chpi='k', exci='k', ias='k', syst='k',
                seeg='k'),
+    config_opts=dict(),
     units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU',
                seeg='uV'),
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6,

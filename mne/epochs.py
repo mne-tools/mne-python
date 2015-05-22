@@ -27,21 +27,18 @@ from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
+from .io.base import _BaseRaw, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
-from .utils import (check_random_state, _check_pandas_index_arguments,
-                    _check_pandas_installed, object_hash)
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .defaults import _handle_default
 from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
                   plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask, deprecated)
+                    _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems
 from .externals.six.moves import zip
 
@@ -807,7 +804,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         list tag (e.g. ['audio', 'left'] selects 'audio/left' and
         'audio/center/left', but not 'audio/right').
 
-    See also
+    See Also
     --------
     mne.epochs.combine_event_ids
     mne.Epochs.equalize_event_counts
@@ -933,7 +930,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                      show=True, return_fig=True):
+                      show=True):
         """Show the channel stats based on a drop_log from Epochs
 
         Parameters
@@ -953,9 +950,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             The drop reasons to ignore.
         show : bool
             Show figure if True.
-        return_fig : bool
-            Return only figure handle if True. This argument will default
-            to True in v0.9 and then be removed in v0.10.
 
         Returns
         -------
@@ -971,7 +965,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
                              color=color, width=width, ignore=ignore,
-                             show=show, return_fig=return_fig)
+                             show=show)
 
     def _check_delayed(self, proj=None):
         """ Aux method
@@ -1470,156 +1464,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
-
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, picks=None, index=None, scale_time=1e3,
-                      scalings=None, copy=True):
-        """Get the epochs as Pandas DataFrame
-
-        Export epochs data in tabular structure with MEG channels as columns
-        and three additional info columns 'epoch', 'condition', and 'time'.
-        The format matches a long table format commonly used to represent
-        repeated measures in within-subject designs.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'epoch', 'time' and 'condition'. If None, all three info
-            columns will be included in the table as categorial data.
-        scale_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of pandas.core.DataFrame
-            Epochs exported into tabular data structure.
-        """
-
-        pd = _check_pandas_installed()
-
-        default_index = ['condition', 'epoch', 'time']
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not in1d(picks, np.arange(len(self.events))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this epochs instance.')
-
-        data = self.get_data()[:, picks, :]
-        shape = data.shape
-        data = np.hstack(data).T
-        if copy:
-            data = data.copy()
-
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _handle_default('scalings', scalings)
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[:, idx] *= scaling
-
-        id_swapped = dict((v, k) for k, v in self.event_id.items())
-        names = [id_swapped[k] for k in self.events[:, 2]]
-
-        mindex = list()
-        mindex.append(('condition', np.repeat(names, shape[2])))
-        mindex.append(('time', np.tile(self.times, shape[0]) *
-                      scale_time))  # if 'epoch' in index:
-        mindex.append(('epoch', np.repeat(np.arange(shape[0]),
-                      shape[2])))
-
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-        col_names = [self.ch_names[k] for k in picks]
-
-        df = pd.DataFrame(data, columns=col_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
-        if index is not None:
-            with warnings.catch_warnings(record=True):
-                if 'time' in index:
-                    df['time'] = df['time'].astype(np.int64)
-                df.set_index(index, inplace=True)
-
-        return df
-
-    @deprecated('to_nitime will be removed in v0.10')
-    def to_nitime(self, picks=None, epochs_idx=None, collapse=False,
-                  copy=True, first_samp=0):
-        """ Export epochs as nitime TimeSeries
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Indices for exporting subsets of the epochs channels. If None
-            all good channels will be used.
-        epochs_idx : slice | array-like | None
-            Epochs index for single or selective epochs exports. If None, all
-            epochs will be used.
-        collapse : boolean
-            If True export epochs and time slices will be collapsed to 2D
-            array. This may be required by some nitime functions.
-        copy : boolean
-            If True exports copy of epochs data.
-        first_samp : int
-            Number of samples to offset the times by. Use raw.first_samp to
-            have the time returned relative to the session onset, or zero
-            (default) for time relative to the recording onset.
-
-        Returns
-        -------
-        epochs_ts : instance of nitime.TimeSeries
-            The Epochs as nitime TimeSeries object.
-        """
-        try:
-            from nitime import TimeSeries  # to avoid strong dependency
-        except ImportError:
-            raise Exception('the nitime package is missing')
-
-        if picks is None:
-            picks = pick_types(self.info, include=self.ch_names,
-                               exclude='bads')
-        if epochs_idx is None:
-            epochs_idx = slice(len(self.events))
-
-        data = self.get_data()[epochs_idx, picks]
-
-        if copy is True:
-            data = data.copy()
-
-        if collapse is True:
-            data = np.hstack(data).copy()
-
-        offset = _time_as_index(abs(self.tmin), self.info['sfreq'],
-                                first_samp, True)
-        t0 = _index_as_time(self.events[0, 0] - offset, self.info['sfreq'],
-                            first_samp, True)[0]
-        epochs_ts = TimeSeries(data, sampling_rate=self.info['sfreq'], t0=t0)
-        epochs_ts.ch_names = np.array(self.ch_names)[picks].tolist()
-
-        return epochs_ts
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition

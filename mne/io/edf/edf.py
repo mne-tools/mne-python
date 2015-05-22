@@ -54,12 +54,6 @@ class RawEDF(_BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-    tal_channel : int | None
-        The channel index (starting at 0).
-        Index of the channel containing EDF+ annotations.
-        -1 corresponds to the last channel.
-        If None, the annotation channel is not used.
-        Note: this is overruled by the annotation file if specified.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -75,12 +69,12 @@ class RawEDF(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
+                 stim_channel=-1, annot=None, annotmap=None,
                  preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
         info, self._edf_info = _get_edf_info(input_fname, stim_channel,
-                                             annot, annotmap, tal_channel,
+                                             annot, annotmap,
                                              eog, misc, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
@@ -372,8 +366,7 @@ def _parse_tal_channel(tal_channel_data):
     return events
 
 
-def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
-                  eog, misc, preload):
+def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     """Extracts all the information from the EDF+,BDF file"""
 
     if eog is None:
@@ -494,11 +487,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['chs'] = []
     info['ch_names'] = ch_names
     tal_ch_name = 'EDF Annotations'
-    # TODO: keyword argument for TAL is deprecated
-    if tal_channel == -1:
-        tal_channel = info['nchan'] - 1
-    elif tal_ch_name in ch_names:
+    if tal_ch_name in ch_names:
         tal_channel = ch_names.index(tal_ch_name)
+    else:
+        tal_channel = None
     edf_info['tal_channel'] = tal_channel
     if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
@@ -607,7 +599,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
+                 stim_channel=-1, annot=None, annotmap=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
@@ -637,12 +629,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-    tal_channel : int | None
-        The channel index (starting at 0).
-        Index of the channel containing EDF+ annotations.
-        -1 corresponds to the last channel.
-        If None, the annotation channel is not used.
-        Note: this is overruled by the annotation file if specified.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -661,10 +647,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    if tal_channel is not None:
-        warnings.warn("`tal_channel` arg is deprecated and will be removed in "
-                      "0.10. This channel will be automatically detected.",
-                      category=DeprecationWarning)
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  tal_channel=tal_channel, preload=preload, verbose=verbose)
+                  preload=preload, verbose=verbose)

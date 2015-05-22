@@ -41,7 +41,7 @@ def _get_data(inst, return_itc):
     return data
 
 
-def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
+def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     """Compute Wavelets for the given frequency range
 
     Parameters
@@ -70,12 +70,6 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
-
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
@@ -247,8 +241,7 @@ def _cwt_convolve(X, Ws, mode='same'):
         yield tfr
 
 
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
-               Fs=None):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     """Compute time freq decomposition with Morlet wavelets
 
     This function operates directly on numpy arrays. Consider using
@@ -274,12 +267,6 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
-
     mode = 'same'
     # mode = "valid"
     n_signals, n_times = X.shape
@@ -364,8 +351,7 @@ def _time_frequency(X, Ws, use_fft, decim):
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       decim=1, n_jobs=1, zero_mean=False, Fs=None,
-                       verbose=None):
+                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -410,12 +396,6 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
-
     mode = 'same'
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
@@ -452,7 +432,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                       decim=1, n_jobs=1, zero_mean=False, Fs=None):
+                       decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -874,8 +854,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, outlines='head', head_pos=None,
-                     format=None):
+                     axes=None, show=True, outlines='head', head_pos=None):
         """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
@@ -983,8 +962,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                format=format, outlines=outlines,
-                                head_pos=head_pos)
+                                outlines=outlines, head_pos=head_pos)
 
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file

@@ -29,7 +29,7 @@ from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func
 from .fixes import partial
-from .utils import logger, verbose, deprecated, _time_mask
+from .utils import logger, verbose, _time_mask
 
 
 class Dipole(object):
@@ -193,36 +193,6 @@ class Dipole(object):
 
 # #############################################################################
 # IO
-
-@deprecated("'read_dip' will be removed in version 0.10, please use "
-            "'read_dipole' instead")
-def read_dip(fname, verbose=None):
-    """Read .dip file from Neuromag/xfit or MNE
-
-    Parameters
-    ----------
-    fname : str
-        The name of the .dip file.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    time : array, shape (n_dipoles,)
-        The time instants at which each dipole was fitted.
-    pos : array, shape (n_dipoles, 3)
-        The dipoles positions in meters
-    amplitude : array, shape (n_dipoles,)
-        The amplitude of the dipoles in nAm
-    ori : array, shape (n_dipoles, 3)
-        The dipolar moments. Amplitude of the moment is in nAm.
-    gof : array, shape (n_dipoles,)
-        The goodness of fit
-    """
-    dipole = read_dipole(fname)
-    return (dipole.times * 1000., dipole.pos, dipole.amplitude,
-            1e9 * dipole.ori * dipole.amplitude[:, np.newaxis], dipole.gof)
-
 
 @verbose
 def read_dipole(fname, verbose=None):

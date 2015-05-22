@@ -22,7 +22,7 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir, deprecated
+from .utils import _TempDir, logger, verbose, get_subjects_dir
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -819,26 +819,6 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
-    @deprecated("'add_section' will be removed in v0.10. Use"
-                " 'add_figs_to_section' and 'add_images_to_section' instead.")
-    def add_section(self, figs, captions, section='custom'):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : list of figures.
-            Each figure in the list can be an instance of
-            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
-        captions : list of str
-            A list of captions to the figures.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section
-        """
-        return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section)
-
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format='png', comments=None):
         """Append custom user-defined figures.
@@ -1494,7 +1474,7 @@ class Report(object):
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
-        kwargs = dict(subject=self.subject, show=False, return_fig=True)
+        kwargs = dict(subject=self.subject, show=False)
         img = _fig_to_img(epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'

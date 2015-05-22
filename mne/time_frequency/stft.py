@@ -35,7 +35,7 @@ def stft(x, wsize, tstep=None, verbose=None):
     X = stft(x, wsize)
     X = stft(x, wsize, tstep)
 
-    See also
+    See Also
     --------
     istft
     stftfreq
@@ -125,7 +125,7 @@ def istft(X, tstep=None, Tx=None):
     x = istft(X)
     x = istft(X, tstep)
 
-    See also
+    See Also
     --------
     stft
     """
@@ -201,7 +201,7 @@ def stftfreq(wsize, sfreq=None):
         The positive frequencies returned by stft
 
 
-    See also
+    See Also
     --------
     stft
     istft

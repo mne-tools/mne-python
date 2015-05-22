@@ -15,9 +15,8 @@ import numpy as np
 from scipy import linalg, sparse
 
 from .fixes import digitize, in1d
-from .utils import (get_subjects_dir, _check_subject, logger, verbose,
-                    deprecated)
-from .source_estimate import (_read_stc, mesh_edges, mesh_dist, morph_data,
+from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .source_estimate import (mesh_edges, mesh_dist, morph_data,
                               SourceEstimate, spatial_src_connectivity)
 from .source_space import add_source_space_distances
 from .surface import read_surface, fast_cross_3d
@@ -1041,44 +1040,6 @@ def split_label(label, parts=2, subject=None, subjects_dir=None,
         labels.append(lbl)
 
     return labels
-
-
-@deprecated("'label_time_courses' will be removed in version 0.10, please use "
-            "'in_label' method of SourceEstimate instead")
-def label_time_courses(labelfile, stcfile):
-    """Extract the time courses corresponding to a label file from an stc file
-
-    Parameters
-    ----------
-    labelfile : string
-        Path to the label file.
-    stcfile : string
-        Path to the stc file. The name of the stc file (must be on the
-        same subject and hemisphere as the stc file).
-
-    Returns
-    -------
-    values : 2d array
-        The time courses.
-    times : 1d array
-        The time points.
-    vertices : array
-        The indices of the vertices corresponding to the time points.
-    """
-    stc = _read_stc(stcfile)
-    lab = read_label(labelfile)
-
-    vertices = np.intersect1d(stc['vertices'], lab.vertices)
-    idx = [k for k in range(len(stc['vertices']))
-           if stc['vertices'][k] in vertices]
-
-    if len(vertices) == 0:
-        raise ValueError('No vertices match the label in the stc file')
-
-    values = stc['data'][idx]
-    times = stc['tmin'] + stc['tstep'] * np.arange(stc['data'].shape[1])
-
-    return values, times, vertices
 
 
 def label_sign_flip(label, src):

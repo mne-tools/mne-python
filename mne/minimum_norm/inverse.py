@@ -699,24 +699,10 @@ def _check_method(method):
     return method
 
 
-def _check_ori(pick_ori, pick_normal):
-    if pick_normal is not None:
-        warnings.warn('The pick_normal parameter has been '
-                      'changed to pick_ori. Please update your code.',
-                      DeprecationWarning)
-        pick_ori = pick_normal
-    if pick_ori is True:
-        warnings.warn('The pick_ori parameter should now be None '
-                      'or "normal".', DeprecationWarning)
-        pick_ori = "normal"
-    elif pick_ori is False:
-        warnings.warn('The pick_ori parameter should now be None '
-                      'or "normal".', DeprecationWarning)
-        pick_ori = None
-
-    if pick_ori not in [None, "normal"]:
-        raise ValueError('The pick_ori parameter should now be None or '
-                         '"normal".')
+def _check_ori(pick_ori):
+    if pick_ori is not None and pick_ori != 'normal':
+        raise RuntimeError('pick_ori must be None or "normal", not %s'
+                           % pick_ori)
     return pick_ori
 
 
@@ -737,7 +723,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
-                  method="dSPM", pick_ori=None, pick_normal=None,
+                  method="dSPM", pick_ori=None,
                   prepared=False, label=None, verbose=None):
     """Apply inverse operator to evoked data
 
@@ -771,7 +757,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     """
     _check_reference(evoked)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
     #
     #   Set up the inverse according to the parameters
     #
@@ -817,9 +803,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_ori=None,
-                      buffer_size=None, pick_normal=None, prepared=False,
-                      verbose=None):
+                      time_func=None, pick_ori=None, buffer_size=None,
+                      prepared=False, verbose=None):
     """Apply inverse operator to Raw data
 
     Parameters
@@ -869,7 +854,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     """
     _check_reference(raw)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     _check_ch_names(inverse_operator, raw.info)
 
@@ -935,10 +920,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              pick_normal=None, prepared=False, verbose=None):
+                              prepared=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     _check_ch_names(inverse_operator, epochs.info)
 
@@ -997,7 +982,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, pick_normal=None,
+                         return_generator=False,
                          prepared=False, verbose=None):
     """Apply inverse operator to Epochs
 
@@ -1039,7 +1024,6 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
-                                     pick_normal=pick_normal,
                                      prepared=prepared)
 
     if not return_generator:

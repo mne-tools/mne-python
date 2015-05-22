@@ -8,7 +8,6 @@
 import os
 from os import path as op
 import numpy as np
-import warnings
 
 from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs
@@ -303,7 +302,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
 @verbose
 def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
                           eeg=True, mindist=0.0, ignore_ref=False,
-                          overwrite=False, n_jobs=1, verbose=None, mri=None):
+                          overwrite=False, n_jobs=1, verbose=None):
     """Calculate a forward solution for a subject
 
     Parameters
@@ -362,12 +361,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # 1. --grad option (gradients of the field, not used much)
     # 2. --fixed option (can be computed post-hoc)
     # 3. --mricoord option (probably not necessary)
-
-    if mri is not None:
-        trans = mri
-        warnings.warn('The "mri" parameter has been deprecated and will be'
-                      'removed in 0.10, please use "trans" instead.',
-                      DeprecationWarning)
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)

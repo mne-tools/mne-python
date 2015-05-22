@@ -23,7 +23,7 @@ from mne import (io, Epochs, read_events, pick_events, read_epochs,
 from mne.epochs import (
     bootstrap, equalize_epoch_counts, combine_event_ids, add_channels_epochs,
     EpochsArray, concatenate_epochs, _BaseEpochs)
-from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
+from mne.utils import (_TempDir, requires_pandas, slow_test,
                        clean_warning_registry, run_tests_if_main,
                        requires_scipy_version)
 
@@ -773,37 +773,6 @@ def test_subtract_evoked():
     zero_evoked = epochs.average()
     data = zero_evoked.data
     assert_array_almost_equal(data, np.zeros_like(data), decimal=20)
-
-
-@requires_nitime
-def test_epochs_to_nitime():
-    """Test test_to_nitime
-    """
-    raw, events, picks = _get_data()
-    epochs = Epochs(raw, events[:5], event_id, tmin, tmax, picks=picks,
-                    baseline=(None, 0), preload=True,
-                    reject=reject, flat=flat)
-    picks2 = [0, 3]
-
-    with warnings.catch_warnings(record=True):
-        epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                     collapse=True, copy=True)
-    assert_true(epochs_ts.ch_names == epochs.ch_names)
-
-    with warnings.catch_warnings(record=True):
-        epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
-                                     collapse=True, copy=True)
-    assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks2])
-
-    with warnings.catch_warnings(record=True):
-        epochs_ts = epochs.to_nitime(picks=None, epochs_idx=[0],
-                                     collapse=False, copy=False)
-    assert_true(epochs_ts.ch_names == epochs.ch_names)
-
-    with warnings.catch_warnings(record=True):
-        epochs_ts = epochs.to_nitime(picks=picks2, epochs_idx=None,
-                                     collapse=False, copy=False)
-    assert_true(epochs_ts.ch_names == [epochs.ch_names[k] for k in picks2])
 
 
 def test_epoch_eq():

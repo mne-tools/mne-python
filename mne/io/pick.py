@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, deprecated
+from ..utils import logger, verbose
 from ..externals.six import string_types
 
 
@@ -353,70 +353,6 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     res.data = res.data[sel, :]
 
     return res
-
-
-@deprecated('"pick_types_evoked" has been deprecated and will be removed '
-            'in v0.10, used evoked.pick_types instead')
-def pick_types_evoked(evoked, meg=True, eeg=False, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg=False, misc=False,
-                      resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=False, include=[], exclude='bads'):
-    """Pick by channel type and names from evoked data
-
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        Evoked object to operate on.
-    meg : bool or string
-        If True include all MEG channels. If False include None
-        If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers.
-    eeg : bool
-        If True include EEG channels
-    eog : bool
-        If True include EOG channels
-    ecg : bool
-        If True include ECG channels
-    emg : bool
-        If True include EMG channels
-    stim : bool
-        If True include stimulus channels
-    ref_meg : bool
-        If True include CTF / 4D reference channels
-    misc : bool
-        If True include miscellaneous analog channels
-    resp : bool
-        If True include response-trigger channel. For some MEG systems this
-        is separate from the stim channel.
-    chpi : bool
-        If True include continuous HPI coil channels.
-    exci : bool
-        Flux excitation channel used to be a stimulus channel.
-    ias : bool
-        Internal Active Shielding data (maybe on Triux only).
-    syst : bool
-        System status channel information (on Triux systems only).
-    seeg : bool
-        Stereotactic EEG channels
-    include : list of string
-        List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
-
-    Returns
-    -------
-    res : instance of Evoked
-        Evoked data restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
-    """
-    sel = pick_types(info=evoked.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
-                     ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
-                     resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
-                     seeg=seeg, include=include, exclude=exclude)
-
-    include_ch_names = [evoked.ch_names[k] for k in sel]
-    return pick_channels_evoked(evoked, include_ch_names)
 
 
 @verbose
