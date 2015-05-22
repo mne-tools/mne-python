@@ -234,17 +234,25 @@ def test_transform_instances():
     info_rot = evoked_rot.info
     picks = pick_types(info_rot, meg=True)
     names = np.array(info_rot['ch_names'])[picks]
-    pos = evoked_rot._get_channel_positions(picks).reshape(-1, 3)
-    rot = rotation(x=0, y=np.pi/12, z=0)
-    pos = apply_trans(rot, pos).reshape(-1, 12)
-    evoked_rot._set_channel_positions(pos, names)
-    # trans = info_rot['dev_head_t']['trans']
-    # trans[:3, :3] = apply_trans(rot, trans[:3, :3])
-    mapping = _map_meg_channels(info_rot, info, picks)
 
-    evoked_rot.data[picks] = np.dot(mapping, evoked_rot.data[picks])
+    rot = rotation(x=0, y=np.pi/12, z=0)
+
+    trans = info_rot['dev_head_t']['trans']
+    trans[:3, :3] = apply_trans(rot, trans[:3, :3])
+
+    mapping = _map_meg_channels(info_rot, info, picks)
+    evoked_rot.data[picks] = mapping.dot(evoked_rot.data[picks])
 
     evs = transform_instances([evoked, evoked_rot], copy=True)
     np.testing.assert_array_equal(evs[0].data[picks], evs[1].data[picks])
 
+    # rotate back
+    rot = rotation(x=0, y=-np.pi/12, z=0)
+    trans = info_rot['dev_head_t']['trans']
+    trans[:3, :3] = apply_trans(rot, trans[:3, :3])
+
+    mapping = _map_meg_channels(info_rot, info, picks)
+    evoked_rot.data[picks] = mapping.dot(evoked_rot.data[picks])
+    
+    np.testing.assert_array_almost_equal()
     # mapping2 = _map_meg_channels(ev[1].info, info_rot)

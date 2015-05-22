@@ -433,27 +433,14 @@ def _transform_instance(inst_from, info_to):
                        exclude='bads')
     info_from = inst_from.info
 
-    # The transformation to be done to go to the new head position
-    # first transform dev_head_t_to to pos to bring it to head space
-    # second transform inv(dev_head_t_from) to bring it to rotated device space
-    from ..transforms import invert_transform, apply_trans
-    inv_dev_head_t_from = invert_transform(info_from['dev_head_t'])['trans']
-    dev_head_t_to = info_to['dev_head_t']['trans']
-    ch_pos_from = inst_from._get_channel_positions(picks).reshape(-1, 3)
-    ch_pos_from = apply_trans(dev_head_t_to, ch_pos_from)
-    ch_pos_from = apply_trans(inv_dev_head_t_from, ch_pos_from).reshape(-1, 12)
-
-    # set the new channel positions
-    names = np.array(info_from['ch_names'])[picks]
-    inst_from._set_channel_positions(ch_pos_from, names)
-
+    # the dev_head_t is applied to the channel positions
+    # the result is a rotation in inst_from's channels wrt to inst_to
+    # compute the mapping matrix from new pos 'from' to 'to' in head space 
     mapping = _map_meg_channels(info_from, info_to, picks, mode='accurate')
     # compute rotated data by multiplying by the 'gain matrix' from
     # original sensors to virtual sensors
     from ..channels.interpolation import _do_interp_dots
     _do_interp_dots(inst_from, mapping, picks, picks)
-    # use the info of the inst that that you are transforming to
-    inst_from.info = info_to
     
     return inst_from
 
