@@ -35,10 +35,11 @@ def test_gdf_data():
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 
-    # this .mat was generated using the EEG Lab Biosemi Reader
+    # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf_biosig_path)
     print(raw_biosig.shape)
     raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
     data_biosig = raw_biosig[picks]
-    # bdf saved as a single, resolution to seven decimal points in matlab
+    
+    # Assert data are almost equal
     assert_array_almost_equal(data_py, data_biosig, 8)
