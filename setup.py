@@ -95,7 +95,6 @@ if __name__ == "__main__":
                     'mne.decoding', 'mne.decoding.tests',
                     'mne.commands', 'mne.externals',
                     'mne.externals.tempita',
-                    'mne.layouts',
                     'mne.channels',
                     'mne.channels.tests'],
           package_data={'mne': [op.join('data', '*.sel'),
