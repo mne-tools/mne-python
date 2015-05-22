@@ -1,7 +1,12 @@
 """Conversion tool from GDF
 
+    currently support only gdf file version < 1.9
+
 """
 
+# Authors: alexandre barachant
+#
+# License: BSD (3-clause)
 
 import os
 import calendar
@@ -428,12 +433,12 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
 
 def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
                  stim_channel=-1,preload=False, verbose=None):
-    """Reader function for EDF+, BDF conversion to FIF
+    """Reader function for GDF conversion to FIF
 
     Parameters
     ----------
     input_fname : str
-        Path to the EDF+,BDF file.
+        Path to the GDF file.
     montage : str | None | instance of Montage
         Path or instance of montage containing electrode positions.
         If None, sensor locations are (0,0,0).
