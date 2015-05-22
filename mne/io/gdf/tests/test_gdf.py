@@ -36,7 +36,6 @@ def test_gdf_data():
 
     # this .npy was generated using the official biosig python package
     raw_biosig = np.load(gdf_biosig_path)
-    print(raw_biosig.shape)
     raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
     data_biosig = raw_biosig[picks]
     
