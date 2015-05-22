@@ -12,9 +12,8 @@
 .. |Coveralls| image:: https://coveralls.io/repos/mne-tools/mne-python/badge.png?branch=master
 .. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
 
-.. |Zenodo| image:: https://zenodo.org/badge/doi/10.5281/zenodo.11556.png
-.. _Zenodo: http://dx.doi.org/10.5281/zenodo.11556
-
+.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
+.. _Zenodo: http://dx.doi.org/10.5281/zenodo.17856
 
 `mne-python <http://martinos.org/mne/mne-python.html>`_
 =======================================================
