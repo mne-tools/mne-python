@@ -1,8 +1,7 @@
 """Data Equivalence Tests"""
 from __future__ import print_function
 
-# Authors: Teon Brooks <teon.brooks@gmail.com>
-#          Martin Billinger <martin.billinger@tugraz.at>
+# Authors: alexandre barachant
 #
 # License: BSD (3-clause)
 
