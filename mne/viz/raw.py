@@ -14,7 +14,7 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types
 from ..io.proj import setup_proj
-from ..utils import set_config, get_config, verbose, deprecated
+from ..utils import set_config, get_config, verbose
 from ..time_frequency import compute_raw_psd
 from .utils import figure_nobar, _toggle_options, _toggle_proj, tight_layout
 from ..defaults import _handle_default
@@ -778,10 +778,3 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     if show is True:
         plt.show()
     return fig
-
-
-@deprecated("'plot_raw_psds' is deprecated and will be removed in v0.10, "
-            "please use 'plot_raw_psd' instead")
-def plot_raw_psds(*args, **kwargs):
-    plot_raw_psd(*args, **kwargs)
-plot_raw_psds.__doc__ = plot_raw_psd.__doc__

@@ -149,13 +149,6 @@ def test_render_add_sections():
     assert_raises(ValueError, report.add_images_to_section,
                   fnames=[img_fname, img_fname], captions='H')
 
-    # Check deprecation of add_section
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        report.add_section(figs=fig,
-                           captions=['evoked response'])
-        assert_true(w[0].category == DeprecationWarning)
-
     evoked = read_evokeds(evoked_fname, condition='Left Auditory',
                           baseline=(-0.2, 0.0))
     fig = plot_trans(evoked.info, trans_fname, subject='sample',

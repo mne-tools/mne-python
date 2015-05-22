@@ -7,7 +7,7 @@ import numpy as np
 from scipy.linalg import toeplitz
 
 from ..io.pick import pick_types
-from ..utils import deprecated, verbose
+from ..utils import verbose
 
 
 # XXX : Back ported from statsmodels
@@ -120,41 +120,6 @@ def ar_raw(raw, order, picks, tmin=None, tmax=None):
         this_coefs, _ = yule_walker(d, order=order)
         coefs[k, :] = this_coefs
     return coefs
-
-
-@deprecated('iir_filter_raw is deprecated and will be removed in v0.10, use '
-            'fit_iir_model_raw instead')
-def iir_filter_raw(raw, order, picks, tmin=None, tmax=None):
-    """Fits an AR model to raw data and creates the corresponding IIR filter
-
-    The computed filter is the average filter for all the picked channels.
-    The returned filter coefficents are the denominator of the filter
-    (the numerator is 1). The frequency response is given by
-
-        jw   1
-     H(e) = --------------------------------
-                        -jw             -jnw
-            a[0] + a[1]e    + ... + a[n]e
-
-    Parameters
-    ----------
-    raw : Raw object
-        an instance of Raw
-    order : int
-        order of the FIR filter
-    picks : array-like of int
-        indices of selected channels
-    tmin : float
-        The beginning of time interval in seconds.
-    tmax : float
-        The end of time interval in seconds.
-
-    Returns
-    -------
-    a : array
-        filter coefficients
-    """
-    return fit_iir_model_raw(raw, order, picks, tmin, tmax)[1]
 
 
 @verbose

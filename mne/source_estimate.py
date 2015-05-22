@@ -20,9 +20,7 @@ from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
-from .utils import (get_subjects_dir, _check_subject,
-                    _check_pandas_index_arguments, _check_pandas_installed,
-                    logger, verbose, _time_mask, deprecated)
+from .utils import get_subjects_dir, _check_subject, logger, verbose
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip
@@ -468,13 +466,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
         self._update_times()
         self.subject = _check_subject(None, subject, False)
 
-    @property
-    def vertno(self):
-        warnings.warn("The .vertno attribute is deprecated and will be "
-                      "removed in version 0.10. Use .vertices instead",
-                      category=DeprecationWarning)
-        return self.vertices
-
     def _remove_kernel_sens_data_(self):
         """Remove kernel and sensor space data and compute self._data
         """
@@ -907,73 +898,6 @@ class _BaseSourceEstimate(ToDataFrameMixin, object):
 
         return stcs
 
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, index=None, scale_time=1e3, copy=True):
-        """Represent source estimates as Pandas DataFrame
-
-        Export source estimates in tabular structure with vertices as columns
-        and two additional info columns 'subject' and 'time'.
-        This function is useful to visualize and analyse source time courses
-        with external statistical software such as statsmodels or R.
-
-        Parameters
-        ----------
-        index : tuple of str | None
-            Column to be used as index for the data. Valid string options
-            are 'subject' and 'time'. If None, both info
-            columns will be included in the table as categorial data.
-            If stc.subject is None, only time will be included.
-        scale_time : float
-            Scaling to be applied to time units.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of DataFrame
-            Source estimates exported into tabular data structure.
-        """
-        pd = _check_pandas_installed()
-
-        default_index = ['subject', 'time']
-        if index is not None:
-            _check_pandas_index_arguments(index, default_index)
-        else:
-            index = default_index
-        if self.subject is None:
-            index.remove('subject')
-
-        data = self.data.T
-        shape = data.shape
-        mindex = list()
-        mindex.append(('time', self.times * scale_time))
-        mindex.append(('subject', np.repeat(self.subject, shape[0])))
-
-        if copy:
-            data = data.copy()
-        assert all(len(mdx) == len(mindex[0]) for mdx in mindex)
-
-        if isinstance(self.vertices, list):
-            # surface source estimates
-            v_names = [i for e in [['%s %i' % ('LH' if ii < 1 else 'RH', vert)
-                       for vert in vertno]
-                       for ii, vertno in enumerate(self.vertices)] for i in e]
-        else:
-            # volume source estimates
-            v_names = ['VOL %d' % vert for vert in self.vertices]
-
-        df = pd.DataFrame(data, columns=v_names)
-        [df.insert(i, k, v) for i, (k, v) in enumerate(mindex)]
-
-        if index is not None:
-            if 'time' in index:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index(index, inplace=True)
-
-        return df
-
 
 class SourceEstimate(_BaseSourceEstimate):
     """Container for surface source estimates
@@ -1352,10 +1276,9 @@ class SourceEstimate(_BaseSourceEstimate):
 
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='time=%0.2f ms',
-             smoothing_steps=10, fmin=None, fmid=None, fmax=None,
-             transparent=None, alpha=1.0, time_viewer=False,
-             config_opts={}, subjects_dir=None, figure=None,
-             views='lat', colorbar=True, clim=None):
+             smoothing_steps=10, transparent=None, alpha=1.0,
+             time_viewer=False, config_opts={}, subjects_dir=None, figure=None,
+             views='lat', colorbar=True, clim='auto'):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -1430,7 +1353,6 @@ class SourceEstimate(_BaseSourceEstimate):
                                       hemi=hemi, colormap=colormap,
                                       time_label=time_label,
                                       smoothing_steps=smoothing_steps,
-                                      fmin=fmin, fmid=fmid, fmax=fmax,
                                       transparent=transparent, alpha=alpha,
                                       time_viewer=time_viewer,
                                       config_opts=config_opts,

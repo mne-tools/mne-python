@@ -36,7 +36,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, deprecated)
+                     logger, verbose, _time_mask)
 from ..viz import plot_raw, plot_raw_psd
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -936,7 +936,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', format=None, verbose=None):
+             overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
 
         Parameters
@@ -999,11 +999,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
-        if format is not None:
-            fmt = format
-            warnings.warn("The format parameter is deprecated and will "
-                          "be replaced by fmt in version 0.10."
-                          "Use fmt instead.", DeprecationWarning)
 
         if isinstance(split_size, string_types):
             exp = dict(MB=20, GB=30).get(split_size[-2:], None)
@@ -1231,12 +1226,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
-
-    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
-                "instead")
-    def plot_psds(self, *args, **kwargs):
-        self.plot_psd(*args, **kwargs)
-    plot_psds.__doc__ = plot_psd.__doc__
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
@@ -1504,129 +1493,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """ Return copy of Raw instance
         """
         return deepcopy(self)
-
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
-                      scalings=None, use_time_index=True, copy=True):
-        """Get the epochs as Pandas DataFrame
-
-        Export raw data in tabular structure with MEG channels.
-
-        Caveat! To save memory, depending on selected data size consider
-        setting copy to False.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
-        start : int | None
-            Data-extraction start index. If None, data will be exported from
-            the first sample.
-        stop : int | None
-            Data-extraction stop index. If None, data will be exported to the
-            last index.
-        scale_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
-        use_time_index : bool
-            If False, times will be included as in the data table, else it will
-            be used as index object.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of pandas.core.DataFrame
-            Raw data exported into tabular data structure.
-        """
-
-        pd = _check_pandas_installed()
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-
-        data, times = self[picks, start:stop]
-
-        if copy:
-            data = data.copy()
-
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _handle_default('scalings', scalings)
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[idx] *= scaling
-
-        assert times.shape[0] == data.shape[1]
-        col_names = [self.ch_names[k] for k in picks]
-
-        df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times * scale_time)
-
-        if use_time_index is True:
-            if 'time' in df:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index('time', inplace=True)
-
-        return df
-
-    @deprecated('to_nitime will be removed in v0.10')
-    def to_nitime(self, picks=None, start=None, stop=None,
-                  use_first_samp=False, copy=True):
-        """ Raw data as nitime TimeSeries
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Indices of channels to apply. If None, all channels will be
-            exported.
-        start : int | None
-            Data-extraction start index. If None, data will be exported from
-            the first sample.
-        stop : int | None
-            Data-extraction stop index. If None, data will be exported to the
-            last index.
-        use_first_samp: bool
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
-        copy : bool
-            Whether to copy the raw data or not.
-
-        Returns
-        -------
-        raw_ts : instance of nitime.TimeSeries
-        """
-        try:
-            from nitime import TimeSeries  # to avoid strong dependency
-        except ImportError:
-            raise Exception('the nitime package is missing')
-
-        data, _ = self[picks, start:stop]
-        if copy:
-            data = data.copy()
-        if picks is None:
-            picks = np.arange(len(self.info['ch_names']))
-
-        start_time = self.index_as_time(start if start else 0, use_first_samp)
-        raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
-                            t0=start_time)
-
-        raw_ts.ch_names = [self.ch_names[k] for k in picks]
-
-        return raw_ts
 
     def __repr__(self):
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),

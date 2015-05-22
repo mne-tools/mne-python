@@ -266,8 +266,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head',
-               trans_fname=None):
+               ch_type=None, source=('bem', 'head'), coord_frame='head'):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
@@ -292,17 +291,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
+    coord_frame : str
+        Coordinate frame to use.
 
     Returns
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    if trans_fname is not None:
-        trans = trans_fname
-        warnings.warn('The parameter "fname_trans" is deprecated and will '
-                      'be removed in 0.10, use "trans" instead',
-                      DeprecationWarning)
     if coord_frame not in ['head', 'meg']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
@@ -431,10 +427,10 @@ def _limits_to_control_points(clim, stc_data, colormap):
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='time=%0.2f ms',
-                          smoothing_steps=10, fmin=None, fmid=None, fmax=None,
-                          transparent=None, alpha=1.0, time_viewer=False,
-                          config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True, clim=None):
+                          smoothing_steps=10, transparent=None, alpha=1.0,
+                          time_viewer=False, config_opts={}, subjects_dir=None,
+                          figure=None, views='lat', colorbar=True,
+                          clim='auto'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -541,21 +537,6 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
             raise RuntimeError('`figure` must be a list with the same '
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
-
-    # Check if using old fmin/fmid/fmax cmap behavior
-    if clim is None:
-        # Throw deprecation warning and indicate future behavior
-        warnings.warn('Using fmin, fmid, fmax (either manually or by default)'
-                      ' is deprecated and will be removed in v0.10. Set'
-                      ' "clim" to define color limits. In v0.10, "clim" will'
-                      ' be set to "auto" by default.',
-                      DeprecationWarning)
-        # Fill in any missing flim values from deprecated defaults
-        dep_lims = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
-        clim = dict(kind='value', lims=dep_lims)
-    else:
-        if any(f is not None for f in [fmin, fmid, fmax]):
-            raise ValueError('"clim" overrides fmin, fmid, fmax')
 
     # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)

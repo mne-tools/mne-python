@@ -285,11 +285,6 @@ class SetChannelsMixin(object):
     def rename_channels(self, mapping):
         """Rename channels.
 
-        Note : The ability to change sensor types has been deprecated in favor
-        of `set_channel_types`. Please use this function if you would changing
-        or defining sensor type.
-
-
         Parameters
         ----------
         mapping : dict
@@ -515,11 +510,6 @@ class InterpolationMixin(object):
 def rename_channels(info, mapping):
     """Rename channels.
 
-    Note : The ability to change sensor types has been deprecated in favor of
-    `set_channel_types` method for Raw, Epochs, Evoked . Please use this
-    method if you would changing or defining sensor type.
-
-
     Parameters
     ----------
     info : dict
@@ -528,12 +518,6 @@ def rename_channels(info, mapping):
         a dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}.
     """
-    human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
-                  'emg': FIFF.FIFFV_EMG_CH,
-                  'ecg': FIFF.FIFFV_ECG_CH,
-                  'seeg': FIFF.FIFFV_SEEG_CH,
-                  'misc': FIFF.FIFFV_MISC_CH}
-
     bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
     new_names, new_kinds, new_bads = list(), list(), list()
@@ -545,19 +529,9 @@ def rename_channels(info, mapping):
                              % ch_name)
 
         c_ind = ch_names.index(ch_name)
-        if not isinstance(new_name, (string_types, tuple)):
+        if not isinstance(new_name, string_types):
             raise ValueError('Your mapping is not configured properly. '
                              'Please see the help: mne.rename_channels?')
-
-        elif isinstance(new_name, tuple):  # name and type change
-            warnings.warn("Changing sensor type is now deprecated. Please use "
-                          "'set_channel_types' instead.", DeprecationWarning)
-            new_name, new_type = new_name  # unpack
-            if new_type not in human2fiff:
-                raise ValueError('This function cannot change to this '
-                                 'channel type: %s.' % new_type)
-            new_kinds.append((c_ind, human2fiff[new_type]))
-
         new_names.append((c_ind, new_name))
         if ch_name in bads:  # check bads
             new_bads.append((bads.index(ch_name), new_name))

@@ -165,7 +165,7 @@ def _drop_log_stats(drop_log, ignore=['IGNORED']):
 
 def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
                   color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                  show=True, return_fig=True):
+                  show=True):
     """Show the channel stats based on a drop_log from Epochs
 
     Parameters
@@ -187,8 +187,6 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
         The drop reasons to ignore.
     show : bool
         Show figure if True.
-    return_fig : bool
-        This argument is deprecated and will be removed in v0.10.
 
     Returns
     -------
@@ -215,11 +213,6 @@ def plot_drop_log(drop_log, threshold=0, n_max_plot=20, subject='Unknown',
     plt.ylabel('% of epochs rejected')
     plt.xlim((-width / 2.0, (n_plot - 1) + width * 3 / 2))
     plt.grid(True, axis='y')
-
-    if not return_fig:
-        msg = ("'return_fig=False' will be deprecated in v0.10. "
-               "Use 'Epochs.drop_log_stats' to get percentages instead.")
-        warnings.warn(msg, DeprecationWarning)
 
     if show:
         plt.show()

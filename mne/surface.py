@@ -32,8 +32,7 @@ from .utils import logger, verbose, get_subjects_dir
 # BEM
 
 @verbose
-def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None,
-                      add_geom=None):
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     """Read the BEM surfaces from a FIF file
 
     Parameters
@@ -55,10 +54,6 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None,
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
     """
-    if add_geom is not None:
-        patch_stats = add_geom
-        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
-                      "Use `patch_stats instead.", DeprecationWarning)
     # Default coordinate frame
     coord_frame = FIFF.FIFFV_COORD_MRI
     # Open the file, create directory
