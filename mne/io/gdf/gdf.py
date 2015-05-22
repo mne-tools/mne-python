@@ -39,16 +39,6 @@ __GDFTYP_NAME.append(None)
 __GDFTYP_NAME.append(np.float32)
 __GDFTYP_NAME.append(np.float64)
 
-def __gcd(a, b):
-	while (b != 0):
-		t = b
-		b = a % b
-		a = t
-	return a
-
-def __lcm(a, b):
-	return (abs(a*b)/__gcd(a,b))
-    
 def __gdf_time2py_time(t):
     print t
     """ Convert gdf time to python datetime"""
