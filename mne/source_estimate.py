@@ -1279,8 +1279,8 @@ class SourceEstimate(_BaseSourceEstimate):
     def plot(self, subject=None, surface='inflated', hemi='lh',
              colormap='auto', time_label='time=%0.2f ms',
              smoothing_steps=10, transparent=None, alpha=1.0,
-             time_viewer=False, config_opts={}, subjects_dir=None, figure=None,
-             views='lat', colorbar=True, clim='auto'):
+             time_viewer=False, config_opts=None, subjects_dir=None,
+             figure=None, views='lat', colorbar=True, clim='auto'):
         """Plot SourceEstimates with PySurfer
 
         Note: PySurfer currently needs the SUBJECTS_DIR environment variable,

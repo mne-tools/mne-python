@@ -29,6 +29,7 @@ from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_mri_head_t)
 from ..utils import get_subjects_dir, logger, _check_subject
+from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
 
@@ -428,9 +429,9 @@ def _limits_to_control_points(clim, stc_data, colormap):
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='time=%0.2f ms',
                           smoothing_steps=10, transparent=None, alpha=1.0,
-                          time_viewer=False, config_opts={}, subjects_dir=None,
-                          figure=None, views='lat', colorbar=True,
-                          clim='auto'):
+                          time_viewer=False, config_opts=None,
+                          subjects_dir=None, figure=None, views='lat',
+                          colorbar=True, clim='auto'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -506,6 +507,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         A instance of surfer.viz.Brain from PySurfer.
     """
     from surfer import Brain, TimeViewer
+    config_opts = _handle_default('config_opts', config_opts)
 
     import mayavi
     from mayavi import mlab
