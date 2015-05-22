@@ -78,6 +78,7 @@ if __name__ == "__main__":
                     'mne.io.brainvision', 'mne.io.brainvision.tests',
                     'mne.io.bti', 'mne.io.bti.tests',
                     'mne.io.edf', 'mne.io.edf.tests',
+                    'mne.io.gdf', 'mne.io.gdf.tests',
                     'mne.io.egi', 'mne.io.egi.tests',
                     'mne.io.fiff', 'mne.io.fiff.tests',
                     'mne.io.kit', 'mne.io.kit.tests',
