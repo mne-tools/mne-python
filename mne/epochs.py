@@ -804,7 +804,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         list tag (e.g. ['audio', 'left'] selects 'audio/left' and
         'audio/center/left', but not 'audio/right').
 
-    See also
+    See Also
     --------
     mne.epochs.combine_event_ids
     mne.Epochs.equalize_event_counts

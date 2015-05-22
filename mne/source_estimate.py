@@ -1153,9 +1153,6 @@ class SourceEstimate(_BaseSourceEstimate):
 
             - 'max': Max value within each label.
 
-        See also mne.extract_label_time_course to extract time courses for a
-        list of SourceEstimate more efficiently.
-
         Parameters
         ----------
         labels : Label | list of Label
@@ -1174,6 +1171,10 @@ class SourceEstimate(_BaseSourceEstimate):
         -------
         label_tc : array, shape=(len(labels), n_times)
             Extracted time course for each label.
+
+        See Also
+        --------
+        extract_label_time_course : extract time courses for multiple STCs
         """
         label_tc = extract_label_time_course(self, labels, src, mode=mode,
                                              return_generator=False,
