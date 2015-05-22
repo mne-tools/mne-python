@@ -9,9 +9,7 @@ import os.path as op
 import inspect
 import warnings
 
-from nose.tools import assert_equal, assert_true
-from numpy.testing import assert_array_almost_equal, assert_array_equal
-from numpy.testing import assert_raises, assert_allclose
+from numpy.testing import assert_array_almost_equal
 import numpy as np
 
 from mne.io.gdf import read_raw_gdf
@@ -23,7 +21,6 @@ FILE = inspect.getfile(inspect.currentframe())
 data_dir = op.join(op.dirname(op.abspath(FILE)), 'data')
 gdf_path = op.join(data_dir, 'test.gdf')
 gdf_biosig_path = op.join(data_dir, 'test_gdf_biosig.npy')
-
 
 
 def test_gdf_data():
@@ -38,6 +35,6 @@ def test_gdf_data():
     raw_biosig = np.load(gdf_biosig_path)
     raw_biosig = raw_biosig * 1e-6  # data are stored in microvolts
     data_biosig = raw_biosig[picks]
-    
+
     # Assert data are almost equal
     assert_array_almost_equal(data_py, data_biosig, 8)

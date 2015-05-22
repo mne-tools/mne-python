@@ -44,17 +44,19 @@ __GDFTYP_NAME.append(None)
 __GDFTYP_NAME.append(np.float32)
 __GDFTYP_NAME.append(np.float64)
 
+
 def __gdf_time2py_time(t):
-    print t
     """ Convert gdf time to python datetime"""
     if t == '                ':
-		date = datetime.datetime(2000,1,1)
+        date = datetime.datetime(2000, 1, 1)
     else:
         if t[14:16] == '  ':
-		    t = t[:14] + '00' + t[16:]
-        
-        date =  (datetime.datetime(int(t[0:4]),int(t[4:6]),int(t[6:8]),int(t[8:10]),int(t[10:12]),int(t[12:14]),int(t[14:16])*pow(10,4)))
-    
+            t = t[:14] + '00' + t[16:]
+
+        date = (datetime.datetime(int(t[0:4]), int(t[4:6]), int(t[6:8]),
+                                  int(t[8:10]), int(t[10:12]),
+                                  int(t[12:14]), int(t[14:16]) * pow(10, 4)))
+
     return date
 
 
@@ -103,7 +105,7 @@ class RawGDF(_BaseRaw):
                                              eog, misc, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
-        
+
         # Raw attributes
         last_samps = [self._gdf_info['nsamples'] - 1]
         super(RawGDF, self).__init__(
@@ -123,7 +125,6 @@ class RawGDF(_BaseRaw):
     def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
                       projector=None, verbose=None):
         """Read a chunk of raw data"""
-        from scipy.interpolate import interp1d
         if sel is None:
             sel = np.arange(self.info['nchan'])
         if projector is not None:
@@ -138,7 +139,6 @@ class RawGDF(_BaseRaw):
         start = int(start)
         stop = int(stop)
 
-        n_samps = self._gdf_info['n_samps']
         buf_len = self._gdf_info['max_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
@@ -162,16 +162,16 @@ class RawGDF(_BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        cal = (physical_range)/(cal)
+        cal = (physical_range) / (cal)
         gains = np.atleast_2d(self._gdf_info['units'] * (cal))
         # physical dimension in uV
-        physical_min = self._gdf_info['physical_min'] 
+        physical_min = self._gdf_info['physical_min']
         digital_min = self._gdf_info['digital_min']
-        offsets = np.atleast_2d(physical_min-cal*digital_min).T
-                
+        offsets = np.atleast_2d(physical_min - cal * digital_min).T
+
         picks = [stim_channel]
         offsets[picks] = 0
-        
+
         # set up output array
         data_shape = (len(sel), stop - start)
         if isinstance(data_buffer, np.ndarray):
@@ -182,23 +182,20 @@ class RawGDF(_BaseRaw):
             data = np.empty(data_shape, dtype=float)
 
         read_size = blockstop - blockstart
-        this_data = np.empty((len(sel), buf_len))
 
-        # does not support multiple data type 
-        if len(np.unique(self._gdf_info['gdf_type_np']))>1:
+        # does not support multiple data type
+        if len(np.unique(self._gdf_info['gdf_type_np'])) > 1:
             raise("Multiple data type not supported")
 
         with open(self.info['filename'], 'rb', buffering=0) as fid:
             # extract data
             fid.seek(data_offset + blockstart * data_size)
-            #n_blk = int(ceil(float(read_size) / buf_len))
-            #start_offset = start - blockstart
-            #end_offset = blockstop - stop
+
             gdftype = self._gdf_info['gdf_type_np']
-            data = np.fromfile(fid,dtype=gdftype[0],count=read_size*n_chan)
-            data = data.reshape((read_size,n_chan)).T
+            data = np.fromfile(fid, dtype=gdftype[0], count=read_size * n_chan)
+            data = data.reshape((read_size, n_chan)).T
             data = np.float64(data)
-                
+
         data *= gains.T[sel]
         data += offsets[sel]
 
@@ -207,16 +204,16 @@ class RawGDF(_BaseRaw):
 
             # Allows support for up to 16-bit trigger values (2 ** 16 - 1)
             stim = np.bitwise_and(np.round(data[stim_channel_idx]).astype(int),
-                                      65535)
+                                  65535)
             data[stim_channel_idx, :] = \
                 stim[start - blockstart:stop - blockstart]
 
         logger.info('[done]')
         times = np.arange(start, stop, dtype=float) / self.info['sfreq']
         return data, times
-            
 
-def _get_gdf_info(fname, stim_channel,eog, misc, preload):
+
+def _get_gdf_info(fname, stim_channel, eog, misc, preload):
     """Extracts all the information from the GDF file"""
 
     if eog is None:
@@ -232,46 +229,47 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
     with open(fname, 'rb') as fid:
         assert(fid.tell() == 0)
         version = fid.read(8)
-        
+
         gdf_info['type'] = version[:3]
         gdf_info['number'] = float(version[4:])
-        
-        if gdf_info['number'] > 1.9 :
+
+        if gdf_info['number'] > 1.9:
             raise('GDF version > 1.9 not implemented')
 
         fid.read(80)  # subject id
         fid.read(80)  # recording id
-        
-        #date 
-        tm = fid.read(16)
-        
-        date = __gdf_time2py_time(tm)
-        
-        info['meas_date'] = calendar.timegm(date.utctimetuple())
-        
-        gdf_info['data_offset'] = header_nbytes = np.fromstring(fid.read(8), np.int64)[0]
-        gdf_info['Equipment']  = np.fromstring(fid.read(8), np.uint8)[0]
-        gdf_info['Hospital']   = np.fromstring(fid.read(8), np.uint8)[0]
-        gdf_info['Technician'] = np.fromstring(fid.read(8), np.uint8)[0]
-        fid.seek(20,1)    #20bytes reserved
 
-        gdf_info['n_records'] = n_records = np.fromstring(fid.read(8), np.int64)[0]
+        # date
+        tm = fid.read(16)
+
+        date = __gdf_time2py_time(tm)
+
+        info['meas_date'] = calendar.timegm(date.utctimetuple())
+
+        header_nbytes = np.fromstring(fid.read(8), np.int64)[0]
+        gdf_info['data_offset'] = header_nbytes
+        gdf_info['Equipment'] = np.fromstring(fid.read(8), np.uint8)[0]
+        gdf_info['Hospital'] = np.fromstring(fid.read(8), np.uint8)[0]
+        gdf_info['Technician'] = np.fromstring(fid.read(8), np.uint8)[0]
+        fid.seek(20, 1)    # 20bytes reserved
+
+        n_records = np.fromstring(fid.read(8), np.int64)[0]
+        gdf_info['n_records'] = n_records
         # record length in seconds
         record_length = np.fromstring(fid.read(8), np.uint32)
         if record_length[0] == 0:
             record_length[0] = 1.
             warnings.warn('Header information is incorrect for record length. '
                           'Default record length set to 1.')
-        
+
         gdf_info['record_length'] = record_length
-            
-        info['nchan'] =gdf_info['nchan'] = nchan = np.fromstring(fid.read(4), np.uint32)[0]
+
+        nchan = np.fromstring(fid.read(4), np.uint32)[0]
+        info['nchan'] = gdf_info['nchan'] = nchan
         channels = list(range(info['nchan']))
-        
-        
-        
+
         ch_names = [fid.read(16).strip().decode() for ch in channels]
-        transducer = [fid.read(80).strip().decode() for ch in channels]  # transducer
+        [fid.read(80).strip().decode() for ch in channels]  # transducer
         gdf_info['units'] = units = [fid.read(8).strip() for ch in channels]
 
         for i, unit in enumerate(units):
@@ -279,7 +277,7 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
                 units[i] = 1e-6
             else:
                 units[i] = 1
-        
+
         physical_min = np.array([np.fromstring(fid.read(8), np.float64)[0]
                                  for ch in channels])
         gdf_info['physical_min'] = physical_min
@@ -323,21 +321,24 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
             warnings.warn('%s' % ('Channels contain different lowpass filters.'
                                   ' Lowest filter setting will be stored.'))
         # number of samples per record
-        gdf_info['n_samps'] = n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])
-                            
-        gdf_info['gdf_type'] = gdftype = np.array([np.fromstring(fid.read(4), np.int32)[0]
-                                for ch in channels])        
+        n_samps = np.array([np.fromstring(fid.read(4), np.int32)[0]
+                            for ch in channels])
+        gdf_info['n_samps'] = n_samps
+
+        gdftype = np.array([np.fromstring(fid.read(4), np.int32)[0]
+                            for ch in channels])
+        gdf_info['gdf_type'] = gdftype
         gdf_info['gdf_type_np'] = [__GDFTYP_NAME[t] for t in gdftype]
         fid.read(32 * info['nchan']).decode()  # reserved
         assert fid.tell() == header_nbytes
-        
-        #total number of byter for data
-        gdf_info['bpb'] = np.sum([__GDFTYP_BYTE[t]*n_samps[i] for i,t in enumerate(gdf_info['gdf_type'])])
-    
-        #EVENT TABLE
-        etp = header_nbytes + n_records*gdf_info['bpb']
-        #skip data to go to event table
+
+        # total number of byter for data
+        gdf_info['bpb'] = np.sum([__GDFTYP_BYTE[t] * n_samps[i]
+                                 for i, t in enumerate(gdf_info['gdf_type'])])
+
+        # EVENT TABLE
+        etp = header_nbytes + n_records * gdf_info['bpb']
+        # skip data to go to event table
         fid.seek(etp)
         etmode = fid.read(1)
         if etmode != '':
@@ -345,27 +346,25 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
             sr = np.fromstring(fid.read(3), np.uint8)
             EventSampleRate = sr[0]
             events = []
-            for i in range(1,len(sr)):
-                EventSampleRate = EventSampleRate + sr[i]*256**i
+            for i in range(1, len(sr)):
+                EventSampleRate = EventSampleRate + sr[i] * 256 ** i
             N = np.fromstring(fid.read(4), np.uint32).tolist()[0]
-            POS = np.fromstring(fid.read(N*4), np.uint32)
-            TYP = np.fromstring(fid.read(N*2), np.uint16)
+            POS = np.fromstring(fid.read(N * 4), np.uint32)
+            TYP = np.fromstring(fid.read(N * 2), np.uint16)
 
             if etmode == 3:
-                CHN = np.fromstring(fid.read(N*2), np.uint16)
-                DUR = np.fromstring(fid.read(N*4), np.uint32)
-                events.append([N,POS,TYP,CHN,DUR])   
+                CHN = np.fromstring(fid.read(N * 2), np.uint16)
+                DUR = np.fromstring(fid.read(N * 4), np.uint32)
+                events.append([N, POS, TYP, CHN, DUR])
             else:
-                DUR = np.zeros(N,dtype=np.uint32)
-                events.append([N,POS,TYP])
-            
-            gdf_info['events'] = events
-            info['events'] = np.c_[POS,DUR,TYP]
+                DUR = np.zeros(N, dtype=np.uint32)
+                events.append([N, POS, TYP])
 
-    cals = digital_max-digital_min 
-    
+            gdf_info['events'] = events
+            info['events'] = np.c_[POS, DUR, TYP]
+
+    cals = digital_max - digital_min
     physical_ranges = physical_max - physical_min
-    #cals = digital_max - digital_min
 
     # Some keys to be consistent with FIF measurement info
     info['description'] = None
@@ -375,7 +374,7 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
     logger.info('Setting channel info structure...')
     info['chs'] = []
     info['ch_names'] = ch_names
-   
+
     if stim_channel == -1:
         stim_channel = info['nchan'] - 1
     for idx, ch_info in enumerate(zip(ch_names, physical_ranges, cals)):
@@ -431,8 +430,9 @@ def _get_gdf_info(fname, stim_channel,eog, misc, preload):
 
     return info, gdf_info
 
+
 def read_raw_gdf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1,preload=False, verbose=None):
+                 stim_channel=-1, preload=False, verbose=None):
     """Reader function for GDF conversion to FIF
 
     Parameters
