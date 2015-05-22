@@ -44,8 +44,8 @@ def test_watershed_bem():
         shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
                         op.join(mridata_path_new, 'T1.mgz'))
 
-    with ArgvSetter(('-s', 'sample', '-o', '-d', tempdir),
-                     disable_stdout=False, disable_stderr=False):
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
+                    disable_stdout=False, disable_stderr=False):
         mne_watershed_bem.run()
 
     os.environ['SUBJECTS_DIR'] = orig_subject_dir
