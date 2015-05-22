@@ -22,9 +22,8 @@ from mne.io.constants import FIFF
 from mne.io import Raw, concatenate_raws, read_raw_fif
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels)
-from mne.utils import (_TempDir, requires_nitime, requires_pandas,
-                       requires_mne, run_subprocess, run_tests_if_main,
-                       slow_test)
+from mne.utils import (_TempDir, requires_pandas, slow_test,
+                       requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
@@ -833,39 +832,6 @@ def test_raw_copy():
     assert_array_equal(data, copied_data)
     assert_equal(sorted(raw.__dict__.keys()),
                  sorted(copied.__dict__.keys()))
-
-
-@testing.requires_testing_data
-@requires_nitime
-def test_raw_to_nitime():
-    """ Test nitime export """
-    raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_equal(raw_ts.data.shape[0], len(picks))
 
 
 @requires_pandas

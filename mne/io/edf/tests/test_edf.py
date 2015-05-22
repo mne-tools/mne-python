@@ -193,9 +193,7 @@ def test_edf_annotations():
     """
 
     # test an actual file
-    with warnings.catch_warnings(record=True):  # tal_channel dep
-        warnings.simplefilter('always')
-        raw = read_raw_edf(edf_path, tal_channel=-1, preload=True)
+    raw = read_raw_edf(edf_path, preload=True)
     edf_events = find_events(raw, output='step', shortest_event=0,
                              stim_channel='STI 014')
 
@@ -225,9 +223,7 @@ def test_write_annotations():
     """Test writing raw files when annotations were parsed.
     """
     tempdir = _TempDir()
-    with warnings.catch_warnings(record=True):  # tal_channel dep
-        warnings.simplefilter('always')
-        raw1 = read_raw_edf(edf_path, tal_channel=-1, preload=True)
+    raw1 = read_raw_edf(edf_path, preload=True)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
     raw1.save(raw1_file, overwrite=True, buffer_size_sec=1)
     raw11 = Raw(raw1_file, preload=True)
@@ -238,7 +234,4 @@ def test_write_annotations():
     assert_array_almost_equal(times1, times11)
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
-    with warnings.catch_warnings(record=True):  # tal_channel dep
-        warnings.simplefilter('always')
-        assert_raises(RuntimeError, read_raw_edf,
-                      edf_path, tal_channel=-1, preload=False)
+    assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)

@@ -16,9 +16,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, _time_mask)
-from .defaults import _handle_default
+from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image)
 from .viz.evoked import _plot_evoked_white

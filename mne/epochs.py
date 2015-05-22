@@ -27,21 +27,18 @@ from .io.constants import FIFF
 from .io.pick import (pick_types, channel_indices_by_type, channel_type,
                       pick_channels)
 from .io.proj import setup_proj, ProjMixin, _proj_equal
-from .io.base import _BaseRaw, _time_as_index, _index_as_time, ToDataFrameMixin
+from .io.base import _BaseRaw, ToDataFrameMixin
 from .evoked import EvokedArray, aspect_rev
 from .baseline import rescale
-from .utils import (check_random_state, _check_pandas_index_arguments,
-                    _check_pandas_installed, object_hash)
 from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin)
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .defaults import _handle_default
 from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
                   plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
-                    _time_mask)
+                    _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems
 from .externals.six.moves import zip
 
@@ -933,7 +930,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
 
     def plot_drop_log(self, threshold=0, n_max_plot=20, subject='Unknown',
                       color=(0.9, 0.9, 0.9), width=0.8, ignore=['IGNORED'],
-                      show=True, return_fig=True):
+                      show=True):
         """Show the channel stats based on a drop_log from Epochs
 
         Parameters
@@ -953,9 +950,6 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
             The drop reasons to ignore.
         show : bool
             Show figure if True.
-        return_fig : bool
-            Return only figure handle if True. This argument will default
-            to True in v0.9 and then be removed in v0.10.
 
         Returns
         -------
@@ -971,7 +965,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
                              color=color, width=width, ignore=ignore,
-                             show=show, return_fig=return_fig)
+                             show=show)
 
     def _check_delayed(self, proj=None):
         """ Aux method

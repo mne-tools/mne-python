@@ -125,12 +125,10 @@ def test_limits_to_control_points():
 
     # Test for simple use cases
     from mayavi import mlab
-    stc.plot(clim='auto', subjects_dir=subjects_dir)
+    stc.plot(subjects_dir=subjects_dir)
     stc.plot(clim=dict(pos_lims=(10, 50, 90)), subjects_dir=subjects_dir)
     stc.plot(clim=dict(kind='value', lims=(10, 50, 90)), figure=99,
              subjects_dir=subjects_dir)
-    with warnings.catch_warnings(record=True):  # dep
-        stc.plot(fmin=1, subjects_dir=subjects_dir)
     stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
     stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
     figs = [mlab.figure(), mlab.figure()]
@@ -148,8 +146,6 @@ def test_limits_to_control_points():
                   clim=dict(pos_lims=(5, 10, 15, 20)))
     assert_raises(ValueError, stc.plot, colormap=colormap,
                   clim=dict(pos_lims=(5, 10, 15), kind='foo'))
-    assert_raises(ValueError, stc.plot, colormap=colormap,
-                  clim=dict(kind='value', pos_lims=(5, 10, 15)), fmin=1)
     assert_raises(ValueError, stc.plot, colormap=colormap, clim='foo')
     assert_raises(ValueError, stc.plot, colormap=colormap, clim=(5, 10, 15))
     assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto')

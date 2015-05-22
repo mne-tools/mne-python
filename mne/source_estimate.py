@@ -20,7 +20,8 @@ from .evoked import _get_peak
 from .parallel import parallel_func
 from .surface import (read_surface, _get_ico_surface, read_morph_map,
                       _compute_nearest)
-from .utils import get_subjects_dir, _check_subject, logger, verbose
+from .utils import (get_subjects_dir, _check_subject, logger, verbose,
+                    _time_mask)
 from .viz import plot_source_estimates
 from .fixes import in1d, sparse_block_diag
 from .externals.six.moves import zip

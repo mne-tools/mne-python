@@ -4,7 +4,7 @@ env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
     #            scikit-learn, patsy, nibabel pillow;
-    #            in the case of Python 2, also nitime, mayavi, traits, pysurfer
+    #            in the case of Python 2, also mayavi, traits, pysurfer
     # DEPS=minimal: don't build optional dependencies; tests that require those
     #               dependencies are supposed to be skipped
     #

@@ -1,8 +1,6 @@
 from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 import numpy as np
-from numpy import zeros, array
-import warnings
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
                  read_forward_solution, rename_channels)
@@ -10,6 +8,7 @@ from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
+from mne.io.constants import FIFF
 from mne.datasets import testing
 from mne.forward.tests import test_forward
 
@@ -36,8 +35,8 @@ def test_pick_seeg():
     assert_array_equal(pick_types(info, meg=False, seeg=True), [4, 5, 6])
     for i, t in enumerate(types):
         assert_equal(channel_type(info, i), types[i])
-    raw = RawArray(zeros((len(names), 10)), info)
-    events = array([[1, 0, 0], [2, 0, 0]]).astype('d')
+    raw = RawArray(np.zeros((len(names), 10)), info)
+    events = np.array([[1, 0, 0], [2, 0, 0]]).astype('d')
     epochs = Epochs(raw, events, {'event': 0}, -1e-5, 1e-5)
     evoked = epochs.average(pick_types(epochs.info, meg=True, seeg=True))
     e_seeg = evoked.pick_types(meg=False, seeg=True, copy=True)
@@ -70,8 +69,11 @@ def test_pick_forward_seeg():
                   seeg=True)
     # change last chan from EEG to sEEG
     seeg_name = 'OTp1'
-    with warnings.catch_warnings(record=True):
-        rename_channels(fwd['info'], {'EEG 060': (seeg_name, 'seeg')})
+    rename_channels(fwd['info'], {'EEG 060': seeg_name})
+    for ch in fwd['info']['chs']:
+        if ch['ch_name'] == seeg_name:
+            ch['kind'] = FIFF.FIFFV_SEEG_CH
+            ch['coil_type'] = FIFF.FIFFV_COIL_EEG
     fwd['sol']['row_names'][-1] = fwd['info']['chs'][-1]['ch_name']
     counts['eeg'] -= 1
     counts['seeg'] += 1

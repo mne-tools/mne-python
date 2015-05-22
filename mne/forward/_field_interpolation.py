@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
-import warnings
 
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info

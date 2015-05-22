@@ -9,7 +9,6 @@ from __future__ import print_function
 #
 # License: Simplified BSD
 
-import warnings
 from collections import deque
 from functools import partial
 

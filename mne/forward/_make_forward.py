@@ -8,7 +8,6 @@
 import os
 from os import path as op
 import numpy as np
-import warnings
 
 from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs

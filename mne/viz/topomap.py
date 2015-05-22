@@ -11,7 +11,6 @@ from __future__ import print_function
 
 import math
 import copy
-import warnings
 
 import numpy as np
 from scipy import linalg

@@ -4,8 +4,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-from .externals.six import string_types
 import os
 from os import path as op
 import sys
@@ -26,6 +24,7 @@ from .io.write import (write_int, write_float, write_float_matrix,
 from .channels.channels import _get_meg_system
 from .transforms import transform_surface_to
 from .utils import logger, verbose, get_subjects_dir
+from .externals.six import string_types
 
 
 ##############################################################################

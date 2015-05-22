@@ -4,7 +4,7 @@ from nose.tools import assert_true, assert_equal
 from numpy.testing import assert_allclose
 import warnings
 
-from mne import (read_dip, read_dipole, Dipole, read_forward_solution,
+from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
                  transform_surface_to, make_sphere_model, pick_types)
@@ -41,18 +41,7 @@ def test_io_dipoles():
     """
     tempdir = _TempDir()
     out_fname = op.join(tempdir, 'temp.dip')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        times, pos, amplitude, ori, gof = read_dip(fname_dip)
-    assert_true(len(w) >= 1)
-
-    assert_true(pos.shape[1] == 3)
-    assert_true(ori.shape[1] == 3)
-    assert_true(len(times) == len(pos))
-    assert_true(len(times) == gof.size)
-    assert_true(len(times) == amplitude.size)
-
-    dipole = Dipole(times, pos, amplitude, ori, gof, 'ALL')
+    dipole = read_dipole(out_fname)
     print(dipole)  # test repr
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)

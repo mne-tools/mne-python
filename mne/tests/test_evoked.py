@@ -17,10 +17,10 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne import (equalize_channels, pick_types, read_evokeds, write_evokeds,
                  grand_average, combine_evoked)
-from mne.evoked import _get_peak, EvokedArray, merge_evoked
+from mne.evoked import _get_peak, EvokedArray
 from mne.epochs import EpochsArray
 
-from mne.utils import (_TempDir, requires_pandas, requires_nitime, slow_test,
+from mne.utils import (_TempDir, requires_pandas, slow_test,
                        requires_scipy_version)
 
 from mne.io.meas_info import create_info
@@ -213,21 +213,6 @@ def test_evoked_detrend():
                             rtol=1e-8, atol=1e-16))
 
 
-@requires_nitime
-def test_evoked_to_nitime():
-    """ Test to_nitime """
-    ave = read_evokeds(fname, 0)
-    with warnings.catch_warnings(record=True):
-        evoked_ts = ave.to_nitime()
-    assert_equal(evoked_ts.data, ave.data)
-
-    picks2 = [1, 2]
-    ave = read_evokeds(fname, 0)
-    with warnings.catch_warnings(record=True):
-        evoked_ts = ave.to_nitime(picks=picks2)
-    assert_equal(evoked_ts.data, ave.data[picks2])
-
-
 @requires_pandas
 def test_to_data_frame():
     """Test evoked Pandas exporter"""
@@ -385,11 +370,6 @@ def test_evoked_arithmetic():
     assert_equal(ev.nave, ev1.nave + ev2.nave)
     assert_equal(ev.comment, ev1.comment + ' - ' + ev2.comment)
     assert_allclose(ev.data, np.ones_like(ev1.data))
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        ev = merge_evoked([ev1, ev2])
-    assert_true(len(w) >= 1)
-    assert_allclose(ev.data, 1. / 3. * np.ones_like(ev.data))
 
     # default comment behavior if evoked.comment is None
     old_comment1 = ev1.comment

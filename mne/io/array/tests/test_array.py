@@ -102,7 +102,7 @@ def test_array_raw():
     events[:, 2] = 1
     assert_true(len(events) > 2)
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
-    epochs.plot_drop_log(return_fig=True)
+    epochs.plot_drop_log()
     epochs.plot()
     evoked = epochs.average()
     evoked.plot()

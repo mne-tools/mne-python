@@ -1474,7 +1474,7 @@ class Report(object):
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
-        kwargs = dict(subject=self.subject, show=False, return_fig=True)
+        kwargs = dict(subject=self.subject, show=False)
         img = _fig_to_img(epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'

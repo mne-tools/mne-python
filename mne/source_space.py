@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-from .externals.six import string_types
 import numpy as np
 import os
 import os.path as op
@@ -33,6 +31,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t,
                          _coord_frame_name)
+from .externals.six import string_types
 
 
 def _get_lut():

@@ -7,10 +7,10 @@
 
 import numpy as np
 import copy
+
 from ..io.pick import pick_types
 from ..viz.decoding import plot_gat_matrix, plot_gat_times
 from ..parallel import parallel_func, check_n_jobs
-from ..utils import logger, verbose
 
 
 class _DecodingTime(dict):
