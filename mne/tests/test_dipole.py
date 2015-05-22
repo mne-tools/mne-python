@@ -40,9 +40,9 @@ def test_io_dipoles():
     """Test IO for .dip files
     """
     tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'temp.dip')
-    dipole = read_dipole(out_fname)
+    dipole = read_dipole(fname_dip)
     print(dipole)  # test repr
+    out_fname = op.join(tempdir, 'temp.dip')
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
