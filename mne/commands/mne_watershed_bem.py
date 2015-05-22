@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# Authors: Lorenzo De Santis
+
 """
 
     Create BEM surfaces using the watershed algorithm included with
