@@ -441,6 +441,8 @@ def _transform_instance(inst_from, info_to):
     # original sensors to virtual sensors
     from ..channels.interpolation import _do_interp_dots
     _do_interp_dots(inst_from, mapping, picks, picks)
+
+    inst_from.info = info_to
     
     return inst_from
 

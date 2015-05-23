@@ -238,21 +238,15 @@ def test_transform_instances():
     rot = rotation(x=0, y=np.pi/12, z=0)
 
     trans = info_rot['dev_head_t']['trans']
-    trans[:3, :3] = apply_trans(rot, trans[:3, :3])
-
-    mapping = _map_meg_channels(info_rot, info, picks)
-    evoked_rot.data[picks] = mapping.dot(evoked_rot.data[picks])
-
-    evs = transform_instances([evoked, evoked_rot], copy=True)
-    np.testing.assert_array_equal(evs[0].data[picks], evs[1].data[picks])
+    trans[:] = rot.dot(trans)
+    transform_instances([evoked, evoked_rot], copy=False)
 
     # rotate back
+    info_rot = evoked_rot.info
     rot = rotation(x=0, y=-np.pi/12, z=0)
     trans = info_rot['dev_head_t']['trans']
-    trans[:3, :3] = apply_trans(rot, trans[:3, :3])
+    trans[:] = rot.dot(trans)
 
-    mapping = _map_meg_channels(info_rot, info, picks)
-    evoked_rot.data[picks] = mapping.dot(evoked_rot.data[picks])
-    
-    np.testing.assert_array_almost_equal()
-    # mapping2 = _map_meg_channels(ev[1].info, info_rot)
+    evs = transform_instances([evoked, evoked_rot], copy=True)
+
+    np.testing.assert_array_equal(evs[0].data[picks], evs[1].data[picks])
