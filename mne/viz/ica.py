@@ -338,7 +338,7 @@ def plot_ica_overlay(ica, inst, exclude=None, picks=None, start=None,
     from ..preprocessing.ica import _check_start_stop
 
     if not isinstance(inst, (_BaseRaw, Evoked)):
-        raise ValueError('Data input must be of Raw or Epochs type')
+        raise ValueError('Data input must be of Raw or Evoked type')
     if title is None:
         title = 'Signals before (red) and after (black) cleaning'
     if picks is None:
