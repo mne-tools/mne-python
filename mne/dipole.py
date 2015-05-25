@@ -190,6 +190,20 @@ class Dipole(object):
         from .viz import plot_dipole_amplitudes
         return plot_dipole_amplitudes([self], [color], show)
 
+    def __getitem__(self, idx_slice):
+
+        selected_times = self.times[idx_slice]
+        selected_pos = self.pos[idx_slice, :]
+        selected_amplitude = self.amplitude[idx_slice]
+        selected_ori = self.ori[idx_slice, :]
+        selected_gof = self.gof[idx_slice]
+        selected_name = self.name
+
+        new_dipole = Dipole(selected_times, selected_pos,
+                            selected_amplitude, selected_ori,
+                            selected_gof, selected_name)
+        return new_dipole
+
 
 # #############################################################################
 # IO
