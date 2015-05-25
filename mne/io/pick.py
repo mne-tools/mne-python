@@ -296,6 +296,12 @@ def pick_info(info, sel=[], copy=True):
     if len(sel) == 0:
         raise ValueError('No channels match the selection.')
 
+    # Check if bads_channels are included, otherwise
+    # remove info['bads']
+    idx_bad_channels = pick_channels(info['ch_names'], info['bads'])
+    if not np.in1d(idx_bad_channels, sel).all():
+        info['bads'] = []
+
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
     info['nchan'] = len(sel)
