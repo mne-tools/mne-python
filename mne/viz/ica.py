@@ -212,12 +212,13 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
 
     # plot unclassified sources
     if picks is None:
-        picks = range(evoked.data.shape[0])
+        picks = np.arange(evoked.data.shape[0])
     plt.plot(times, evoked.data[picks].T, 'k')
     for ii in exclude:
         if ii in picks:
             # use indexing to expose event related sources
-            plt.plot(times, evoked.data[ii].T, color='r', label='ICA %02d' % ii)
+            plt.plot(times, evoked.data[ii].T, color='r',
+                     label='ICA %02d' % ii)
     plt.title(title)
     plt.xlim(times[[0, -1]])
     plt.xlabel('Time (ms)')
