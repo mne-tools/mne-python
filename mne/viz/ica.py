@@ -55,7 +55,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         The ICA solution.
     inst : instance of mne.io.Raw, mne.Epochs, mne.Evoked
         The object to plot the sources from.
-    picks : ndarray | None.
+    picks : int | array_like of int | None.
         The components to be displayed. If None, plot will show the
         sources in the order as fitted.
     exclude : array_like of int
@@ -105,6 +105,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         if start is not None or stop is not None:
             inst = inst.crop(start, stop, copy=True)
         fig = _plot_ica_sources_evoked(evoked=sources,
+                                       picks=picks,
                                        exclude=exclude,
                                        title=title, show=show)
     else:
@@ -184,15 +185,19 @@ def _plot_ica_grid(sources, start, stop,
     return fig
 
 
-def _plot_ica_sources_evoked(evoked, exclude, title, show):
+def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     """Plot average over epochs in ICA space
 
     Parameters
     ----------
-    ica : instance of mne.prerocessing.ICA
-        The ICA object.
-    epochs : instance of mne.Epochs
-        The Epochs to be regarded.
+    evoked : instance of mne.Evoked
+        The Evoked to be used.
+    picks : int | array_like of int | None.
+        The components to be displayed. If None, plot will show the
+        sources in the order as fitted.
+    exclude : array_like of int
+        The components marked for exclusion. If None (default), ICA.exclude
+        will be used.
     title : str
         The figure title.
     show : bool
@@ -206,11 +211,11 @@ def _plot_ica_sources_evoked(evoked, exclude, title, show):
     times = evoked.times * 1e3
 
     # plot unclassified sources
-    plt.plot(times, evoked.data.T, 'k')
+    plt.plot(times, evoked.data[picks].T, 'k')
     for ii in exclude:
-        # use indexing to expose event related sources
-        plt.plot(times, evoked.data[ii].T, color='r', label='ICA %02d' % ii)
-
+        if ii in picks:
+            # use indexing to expose event related sources
+            plt.plot(times, evoked.data[ii].T, color='r', label='ICA %02d' % ii)
     plt.title(title)
     plt.xlim(times[[0, -1]])
     plt.xlabel('Time (ms)')
