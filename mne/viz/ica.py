@@ -211,6 +211,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     times = evoked.times * 1e3
 
     # plot unclassified sources
+    if picks is None:
+        picks = range(evoked.data.shape[0])
     plt.plot(times, evoked.data[picks].T, 'k')
     for ii in exclude:
         if ii in picks:
