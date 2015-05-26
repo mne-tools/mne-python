@@ -1524,8 +1524,8 @@ class Report(object):
             img = _fig_to_img(ev.plot_white, **kwargs)
 
             caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
-            div_klass = 'whitened-evoked'
-            img_klass = 'whitened-evoked'
+            div_klass = 'evoked'
+            img_klass = 'evoked'
             show = True
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,
