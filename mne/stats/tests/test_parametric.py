@@ -1,6 +1,6 @@
 from itertools import product
-from ..parametric import (f_twoway_rm, f_threshold_twoway_rm,
-                          defaults_twoway_rm)
+from ..parametric import (f_mway_rm, f_threshold_twoway_rm,
+                          _map_effects)
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_array_almost_equal
 
@@ -42,41 +42,57 @@ test_data = np.array(
  [-0.19236096, 0.30154734, -0.03471177, -1.16867804, 1.14282281, 0.75193303]])
 
 
+def test_parametric_utils():
+    """ Test ANOVA private functions """
+    selection, names = _map_effects(2, 'A')
+    assert_true(names, ['A'])
+    selection, names = _map_effects(2, ['A', 'A:B'])
+    assert_true(names, ['A', 'A:B'])
+    selection, names = _map_effects(3, 'A*B')
+    assert_true(names, ['A', 'B', 'A:B'])
+    selection, names = _map_effects(3, 'A*C')
+    assert_true(names, ['A', 'B', 'A:B', 'C', 'A:C', 'B:C', 'A:B:C'])
+
+    assert_raises(ValueError, _map_effects, 2, 'C')
+    assert_raises(ValueError, _map_effects, 27, 'all')
+
+
 def test_f_twoway_rm():
     """ Test 2-way anova """
-    iter_params = product([4, 10], [2, 15], [4, 6, 8], ['A', 'B', 'A:B'],
+    iter_params = product([4, 10], [2, 15], [4, 6, 8],
+                          ['A', 'B', 'A:B'],
                           [False, True])
+    _effects = {
+        4: [2, 2],
+        6: [2, 3],
+        8: [2, 4]
+    }
     for params in iter_params:
-        n_subj, n_obs, n_levels, picks, correction = params
+        n_subj, n_obs, n_levels, effects, correction = params
         data = np.random.random([n_subj, n_levels, n_obs])
-        effects = {
-            4: [2, 2],
-            6: [2, 3],
-            8: [2, 4]
-        }
-        fvals, pvals = f_twoway_rm(data, effects[n_levels], picks,
-                                   correction=correction)
+        fvals, pvals = f_mway_rm(data, _effects[n_levels], effects,
+                                 correction=correction)
         assert_true((fvals >= 0).all())
         if pvals.any():
             assert_true(((0 <= pvals) & (1 >= pvals)).all())
-        n_effects = len(defaults_twoway_rm['parse'][picks])
+        n_effects = len(_map_effects(n_subj, effects)[0])
         assert_true(fvals.size == n_obs * n_effects)
         if n_effects == 1:  # test for principle of least surprise ...
             assert_true(fvals.ndim == 1)
 
-        fvals_ = f_threshold_twoway_rm(n_subj, effects[n_levels], picks)
+        fvals_ = f_threshold_twoway_rm(n_subj, _effects[n_levels], effects)
         assert_true((fvals_ >= 0).all())
         assert_true(fvals_.size == n_effects)
 
     data = np.random.random([n_subj, n_levels, 1])
-    assert_raises(ValueError, f_twoway_rm, data, effects[n_levels],
+    assert_raises(ValueError, f_mway_rm, data, _effects[n_levels],
                   effects='C', correction=correction)
     data = np.random.random([n_subj, n_levels, n_obs, 3])
     # check for dimension handling
-    f_twoway_rm(data, effects[n_levels], picks, correction=correction)
+    f_mway_rm(data, _effects[n_levels], effects, correction=correction)
 
     # now check against external software results
-    fvals, pvals = f_twoway_rm(test_data, [2, 3])
+    fvals, pvals = f_mway_rm(test_data, [2, 3])
 
     assert_array_almost_equal(fvals, test_external['spss_fvals'], 3)
     assert_array_almost_equal(pvals, test_external['spss_pvals_uncorrected'],
@@ -84,5 +100,5 @@ def test_f_twoway_rm():
     assert_array_almost_equal(fvals, test_external['r_fvals'], 4)
     assert_array_almost_equal(pvals, test_external['r_pvals_uncorrected'], 3)
 
-    _, pvals = f_twoway_rm(test_data, [2, 3], correction=True)
+    _, pvals = f_mway_rm(test_data, [2, 3], correction=True)
     assert_array_almost_equal(pvals, test_external['spss_pvals_corrected'], 3)
