@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 """
 
     Create BEM surfaces using the watershed algorithm included with
