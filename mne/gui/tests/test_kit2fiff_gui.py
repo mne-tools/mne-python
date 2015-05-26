@@ -89,6 +89,11 @@ def test_kit2fiff_model():
     events = mne.find_events(raw, stim_channel='STI 014')
     assert_array_equal(events, events_bin)
 
+    # test reset
+    model.clear_all()
+    assert_equal(model.use_mrk, [0, 1, 2, 3, 4])
+    assert_equal(model.sqd_file, "")
+
     os.environ['_MNE_GUI_TESTING_MODE'] = 'true'
     try:
         with warnings.catch_warnings(record=True):  # traits warnings
