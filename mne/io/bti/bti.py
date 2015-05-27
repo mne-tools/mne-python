@@ -1143,7 +1143,8 @@ class RawBTi(_BaseRaw):
         data = _read_data(bti_info)
         assert len(data) == len(info['ch_names'])
         self._projector_hashes = [None]
-        super(RawBTi, self).__init__(info, data, verbose=verbose)
+        super(RawBTi, self).__init__(
+            info, data, filenames=[pdf_fname], verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs' % (
                     self.first_samp, self.last_samp,
                     float(self.first_samp) / info['sfreq'],

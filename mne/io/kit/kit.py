@@ -83,19 +83,20 @@ class RawKIT(_BaseRaw):
         input_fname = op.abspath(input_fname)
         self.preload = False
         logger.info('Creating Raw.info structure...')
-        info, self._kit_info = get_kit_info(input_fname)
-        self._kit_info['slope'] = slope
-        self._kit_info['stimthresh'] = stimthresh
-        self._kit_info['fname'] = input_fname
-        if self._kit_info['acq_type'] != 1:
+        info, kit_info = get_kit_info(input_fname)
+        kit_info['slope'] = slope
+        kit_info['stimthresh'] = stimthresh
+        if kit_info['acq_type'] != 1:
             err = 'SQD file contains epochs, not raw data. Wrong reader.'
             raise TypeError(err)
         logger.info('Creating Info structure...')
 
-        last_samps = [self._kit_info['n_samples'] - 1]
+        last_samps = [kit_info['n_samples'] - 1]
+        self._raw_extras = [kit_info]
         self._set_stimchannels(info, stim)
         super(RawKIT, self).__init__(
-            info, preload, last_samps=last_samps, verbose=verbose)
+            info, preload, last_samps=last_samps, filenames=[input_fname],
+            raw_extras=self._raw_extras, verbose=verbose)
 
         if isinstance(mrk, list):
             mrk = [read_mrk(marker) if isinstance(marker, string_types)
@@ -110,13 +111,6 @@ class RawKIT(_BaseRaw):
                              '(all or none)')
 
         logger.info('Ready.')
-
-    def __repr__(self):
-        s = ('%r' % op.basename(self._kit_info['fname']),
-             "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
-                                                 self.last_samp + 1 -
-                                                 self.first_samp))
-        return "<RawKIT  |  %s>" % ', '.join(s)
 
     def read_stim_ch(self, buffer_size=1e5):
         """Read events from data
@@ -140,7 +134,7 @@ class RawKIT(_BaseRaw):
         stim_ch = np.empty((1, stop), dtype=np.int)
         for b_start in range(start, stop, buffer_size):
             b_stop = b_start + buffer_size
-            x, _ = self._read_segment(start=b_start, stop=b_stop, sel=pick)
+            x = self[pick, b_start:b_stop][0]
             stim_ch[:, b_start:b_start + x.shape[1]] = x
 
         return stim_ch
@@ -176,12 +170,13 @@ class RawKIT(_BaseRaw):
                 else:
                     raise ValueError("stim needs to be list of int, '>' or "
                                      "'<', not %r" % str(stim))
-            elif np.max(stim) >= self._kit_info['nchan']:
+            elif np.max(stim) >= self._raw_extras[0]['nchan']:
                 raise ValueError('Tried to set stim channel %i, but sqd file '
                                  'only has %i channels'
-                                 % (np.max(stim), self._kit_info['nchan']))
+                                 % (np.max(stim),
+                                    self._raw_extras[0]['nchan']))
             # modify info
-            info['nchan'] = self._kit_info['nchan'] + 1
+            info['nchan'] = self._raw_extras[0]['nchan'] + 1
             ch_name = 'STI 014'
             chan_info = {}
             chan_info['cal'] = KIT.CALIB_FACTOR
@@ -200,85 +195,59 @@ class RawKIT(_BaseRaw):
             err = "Can't change stim channel after preloading data"
             raise NotImplementedError(err)
 
-        self._kit_info['stim'] = stim
+        self._raw_extras[0]['stim'] = stim
 
     @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
+                           cals, mult):
         """Read a chunk of raw data"""
-        if sel is None:
-            sel = np.arange(self.info['nchan'])
-        if projector is not None:
-            raise NotImplementedError('Currently does not handle projections.')
-        if stop is None:
-            stop = self.last_samp + 1
-        elif stop > self.last_samp + 1:
-            stop = self.last_samp + 1
-        sel = np.array(sel)
+        # cals are all unity, so can be ignored
 
-        #  Initial checks
-        start = int(start)
-        stop = int(stop)
+        # RawFIF and RawEDF think of "stop" differently, easiest to increment
+        # here and refactor later
+        stop += 1
+        sel = np.arange(self.info['nchan'])[idx]
 
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(self.info['sfreq']),
-                     (stop - 1) / float(self.info['sfreq'])))
-
-        with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
+        with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             data_offset = KIT.RAW_OFFSET
             fid.seek(data_offset)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._kit_info['nchan']
+            nchan = self._raw_extras[fi]['nchan']
             buffer_size = stop - start
             count = buffer_size * nchan
             pointer = start * nchan * KIT.SHORT
             fid.seek(data_offset + pointer)
-            data = np.fromfile(fid, dtype='h', count=count)
-            data = data.reshape((buffer_size, nchan))
+            data_ = np.fromfile(fid, dtype='h', count=count)
+
         # amplifier applies only to the sensor channels
-        n_sens = self._kit_info['n_sens']
-        sensor_gain = np.copy(self._kit_info['sensor_gain'])
+        data_.shape = (buffer_size, nchan)
+        n_sens = self._raw_extras[fi]['n_sens']
+        sensor_gain = self._raw_extras[fi]['sensor_gain'].copy()
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
-                                self._kit_info['amp_gain'])
+                                self._raw_extras[fi]['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._kit_info['DYNAMIC_RANGE']) *
-                               sensor_gain, ndmin=2)
-        data = conv_factor * data
-        data = data.T
+                                self._raw_extras[fi]['DYNAMIC_RANGE']) *
+                               sensor_gain)
+        data_ = conv_factor[:, np.newaxis] * data_.T
 
         # Create a synthetic channel
-        if self._kit_info['stim'] is not None:
-            trig_chs = data[self._kit_info['stim'], :]
-            if self._kit_info['slope'] == '+':
-                trig_chs = trig_chs > self._kit_info['stimthresh']
-            elif self._kit_info['slope'] == '-':
-                trig_chs = trig_chs < self._kit_info['stimthresh']
+        if self._raw_extras[fi]['stim'] is not None:
+            trig_chs = data_[self._raw_extras[fi]['stim'], :]
+            if self._raw_extras[fi]['slope'] == '+':
+                trig_chs = trig_chs > self._raw_extras[0]['stimthresh']
+            elif self._raw_extras[fi]['slope'] == '-':
+                trig_chs = trig_chs < self._raw_extras[0]['stimthresh']
             else:
                 raise ValueError("slope needs to be '+' or '-'")
-            trig_vals = np.array(2 ** np.arange(len(self._kit_info['stim'])),
-                                 ndmin=2).T
+            trig_vals = np.array(
+                2 ** np.arange(len(self._raw_extras[0]['stim'])), ndmin=2).T
             trig_chs = trig_chs * trig_vals
             stim_ch = np.array(trig_chs.sum(axis=0), ndmin=2)
-            data = np.vstack((data, stim_ch))
-        data = data[sel]
-
-        # This maybe should be refactored to actually save memory...
-        data_shape = data.shape
-        if isinstance(data_buffer, np.ndarray):
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data_buffer[...] = data
-            data = data_buffer
-
-        logger.info('[done]')
-        times = np.arange(start, stop, dtype=float) / self.info['sfreq']
-
-        return data, times
+            data_ = np.vstack((data_, stim_ch))
+        data[:, offset:offset + (stop - start)] = \
+            np.dot(mult, data_) if mult is not None else data_[sel]
 
 
 class EpochsKIT(EpochsArray):
@@ -375,15 +344,15 @@ class EpochsKIT(EpochsArray):
 
         logger.info('Extracting KIT Parameters from %s...' % input_fname)
         input_fname = op.abspath(input_fname)
-        self.info, self._kit_info = get_kit_info(input_fname)
-        if len(events) != self._kit_info['n_epochs']:
+        self.info, kit_info = get_kit_info(input_fname)
+        self._raw_extras = [kit_info]
+        if len(events) != self._raw_extras[0]['n_epochs']:
             raise ValueError('Event list does not match number of epochs.')
 
-        self._kit_info['fname'] = input_fname
-        if self._kit_info['acq_type'] == 3:
-            self._kit_info['data_offset'] = KIT.RAW_OFFSET
-            self._kit_info['data_length'] = KIT.INT
-            self._kit_info['dtype'] = 'h'
+        if self._raw_extras[0]['acq_type'] == 3:
+            self._raw_extras[0]['data_offset'] = KIT.RAW_OFFSET
+            self._raw_extras[0]['data_length'] = KIT.INT
+            self._raw_extras[0]['dtype'] = 'h'
         else:
             err = ('SQD file contains raw data, not epochs or average. '
                    'Wrong reader.')
@@ -397,9 +366,11 @@ class EpochsKIT(EpochsArray):
                 raise ValueError('No matching events found for %s '
                                  '(event id %i)' % (key, val))
 
+        self._filename = input_fname
         data = self._read_data()
-        assert data.shape == (self._kit_info['n_epochs'], self.info['nchan'],
-                              self._kit_info['frame_length'])
+        assert data.shape == (self._raw_extras[0]['n_epochs'],
+                              self.info['nchan'],
+                              self._raw_extras[0]['frame_length'])
 
         super(EpochsKIT, self).__init__(data=data, info=self.info,
                                         events=events, event_id=event_id,
@@ -421,29 +392,29 @@ class EpochsKIT(EpochsArray):
             returns the time values corresponding to the samples.
         """
         #  Initial checks
-        epoch_length = self._kit_info['frame_length']
-        n_epochs = self._kit_info['n_epochs']
-        n_samples = self._kit_info['n_samples']
+        epoch_length = self._raw_extras[0]['frame_length']
+        n_epochs = self._raw_extras[0]['n_epochs']
+        n_samples = self._raw_extras[0]['n_samples']
 
-        with open(self._kit_info['fname'], 'rb', buffering=0) as fid:
+        with open(self._filename, 'rb', buffering=0) as fid:
             # extract data
-            data_offset = self._kit_info['data_offset']
-            dtype = self._kit_info['dtype']
+            data_offset = self._raw_extras[0]['data_offset']
+            dtype = self._raw_extras[0]['dtype']
             fid.seek(data_offset)
             # data offset info
             data_offset = unpack('i', fid.read(KIT.INT))[0]
-            nchan = self._kit_info['nchan']
+            nchan = self._raw_extras[0]['nchan']
             count = n_samples * nchan
             fid.seek(data_offset)
             data = np.fromfile(fid, dtype=dtype, count=count)
             data = data.reshape((n_samples, nchan))
         # amplifier applies only to the sensor channels
-        n_sens = self._kit_info['n_sens']
-        sensor_gain = np.copy(self._kit_info['sensor_gain'])
+        n_sens = self._raw_extras[0]['n_sens']
+        sensor_gain = np.copy(self._raw_extras[0]['sensor_gain'])
         sensor_gain[:n_sens] = (sensor_gain[:n_sens] /
-                                self._kit_info['amp_gain'])
+                                self._raw_extras[0]['amp_gain'])
         conv_factor = np.array((KIT.VOLTAGE_RANGE /
-                                self._kit_info['DYNAMIC_RANGE']) *
+                                self._raw_extras[0]['DYNAMIC_RANGE']) *
                                sensor_gain, ndmin=2)
         data = conv_factor * data
         # reshape
@@ -452,13 +423,6 @@ class EpochsKIT(EpochsArray):
         data = data.transpose((1, 0, 2))
 
         return data
-
-    def __repr__(self):
-        s = ('%r ' % op.basename(self._kit_info['fname']),
-             "n_epochs x n_channels x n_times : %s x %s x %s"
-             % (self._kit_info['n_epochs'], self.info['nchan'],
-                self._kit_info['frame_length']))
-        return "<EpochsKIT  |  %s>" % ', '.join(s)
 
 
 def _set_dig_kit(mrk, elp, hsp, auto_decimate=True):

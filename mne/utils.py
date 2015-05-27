@@ -1608,7 +1608,7 @@ def _check_type_picks(picks):
 
 
 @nottest
-def run_tests_if_main(measure_mem=True):
+def run_tests_if_main(measure_mem=False):
     """Run tests in a given file if it is run as a script"""
     local_vars = inspect.currentframe().f_back.f_locals
     if not local_vars.get('__name__', '') == '__main__':
