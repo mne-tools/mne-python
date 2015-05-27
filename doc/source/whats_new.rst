@@ -1,10 +1,16 @@
 What's new
 ==========
 
-.. _changes_0_9:
 
 Current
 -----------
+
+Changelog
+~~~~~~~~~
+    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs by `Denis Engemann`_
+
+
+.. _changes_0_9:
 
 Changelog
 ~~~~~~~~~
