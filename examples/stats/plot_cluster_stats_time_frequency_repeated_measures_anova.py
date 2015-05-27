@@ -31,7 +31,9 @@ import mne
 from mne import io
 from mne.time_frequency import single_trial_power
 from mne.stats import f_threshold_mway_rm, f_mway_rm, fdr_correction
-from mne.datasets import sample      rint(__doc__)
+from mne.datasets import sample
+
+print(__doc__)
 
 ###############################################################################
 # Set parameters
