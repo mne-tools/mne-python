@@ -27,8 +27,8 @@ import matplotlib.pyplot as plt
 import mne
 from mne import (io, spatial_tris_connectivity, compute_morph_matrix,
                  grade_to_tris)
-from mne.stats import (spatio_temporal_cluster_test, f_threshold_twoway_rm,
-                       f_twoway_rm, summarize_clusters_stc)
+from mne.stats import (spatio_temporal_cluster_test, f_threshold_mway_rm,
+                       f_mway_rm, summarize_clusters_stc)
 
 from mne.minimum_norm import apply_inverse, read_inverse_operator
 from mne.datasets import sample
@@ -168,8 +168,8 @@ def stat_fun(*args):
     # subjects X conditions X observations (optional).
     # The following expression catches the list input
     # and swaps the first and the second dimension, and finally calls ANOVA.
-    return f_twoway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
-                       effects=effects, return_pvals=return_pvals)[0]
+    return f_mway_rm(np.swapaxes(args, 1, 0), factor_levels=factor_levels,
+                     effects=effects, return_pvals=return_pvals)[0]
     # get f-values only.
     # Note. for further details on this ANOVA function consider the
     # corresponding time frequency example.
@@ -189,7 +189,7 @@ connectivity = spatial_tris_connectivity(lh_source_space)
 #    Now let's actually do the clustering. Please relax, on a small
 #    notebook and one single thread only this will take a couple of minutes ...
 pthresh = 0.0005
-f_thresh = f_threshold_twoway_rm(n_subjects, factor_levels, effects, pthresh)
+f_thresh = f_threshold_mway_rm(n_subjects, factor_levels, effects, pthresh)
 
 #    To speed things up a bit we will ...
 n_permutations = 128  # ... run fewer permutations (reduces sensitivity)
