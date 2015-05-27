@@ -342,13 +342,15 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd):
     return Q, gof, B_residual
 
 
-def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
+def _fit_dipoles(min_dist_to_inner_skull, data, times, rrs, guess_fwd_svd,
+                 fwd_data, whitener,
                  proj_op, n_jobs):
     """Fit a single dipole to the given whitened, projected data"""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(_fit_dipole, n_jobs)
     # parallel over time points
-    res = parallel(p_fun(B, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
+    res = parallel(p_fun(min_dist_to_inner_skull, B, t, rrs, guess_fwd_svd,
+                         fwd_data, whitener, proj_op,
                          fmin_cobyla)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
@@ -359,10 +361,10 @@ def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
     return pos, amp, ori, gof, residual
 
 
-def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
+def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
+                guess_fwd_svd, fwd_data, whitener, proj_op,
                 fmin_cobyla):
     """Fit a single bit of data"""
-    logger.info('---- Fitting : %7.1f ms' % (1000 * t,))
     B = np.dot(whitener, B_orig)
 
     # make constraint function to keep the solver within the inner skull
@@ -375,7 +377,19 @@ def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
                                         return_dists=True)[1][0]
                 return -dist
             else:
-                return 1.
+
+                # Once we know the dipole is below the inner skull,
+                # let's check if its distance to the inner skull is at least
+                # min_dist_to_inner_skull. If it is not, it is penalized
+                # proportional to its distance.
+
+                dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
+                                        return_dists=True)[1][0]
+
+                if dist < min_dist_to_inner_skull:
+                    return -(min_dist_to_inner_skull - dist)
+                else:
+                    return 1.
     else:  # sphere
         R, r0 = fwd_data['inner_skull']
         R_adj = R - 1e-5  # to be sure we don't hit the innermost surf
@@ -407,11 +421,18 @@ def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
     amp = np.sqrt(np.sum(Q * Q))
     norm = 1 if amp == 0 else amp
     ori = Q / norm
+
+    dist = _compute_nearest(surf['rr'], rd_final[np.newaxis, :],
+                            return_dists=True)[1][0]
+    logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
+                (1000 * t, dist * 1000))
     return rd_final, amp, ori, gof, residual
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
+def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
+               n_jobs=1, verbose=None,
+               ):
     """Fit a dipole
 
     Parameters
@@ -425,6 +446,8 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
+    min_dist : int, float
+        Minimum distance (in milimeters) from the dipole to the inner skull.
     n_jobs : int
         Number of jobs to run in parallel (used in field computation
         and fitting).
@@ -449,6 +472,9 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     info = evoked.info
     times = evoked.times.copy()
     comment = evoked.comment
+
+    # Convert the min_dist to meters
+    min_dist_to_inner_skull = float(min_dist) / 1000
 
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
@@ -553,7 +579,8 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     data = data[picks]
     ch_names = [info['ch_names'][p] for p in picks]
     proj_op = make_projector(info['projs'], ch_names, info['bads'])[0]
-    out = _fit_dipoles(data, times, src['rr'], guess_fwd_svd, fwd_data,
+    out = _fit_dipoles(min_dist_to_inner_skull, data, times, src['rr'],
+                       guess_fwd_svd, fwd_data,
                        whitener, proj_op, n_jobs)
     dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
     residual = out[4]
