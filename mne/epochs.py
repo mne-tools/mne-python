@@ -536,7 +536,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_epochs_concat(self, picks=picks,
+        return plot_epochs_concat(self, picks=picks, 
                                   scalings=scalings, title_str=title_str,
                                   show=show, block=block)
 

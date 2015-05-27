@@ -529,12 +529,10 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
                                        facecolor='w', edgecolor='w')
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
-    
-    
+
     n_ch = len(epochs.ch_names)
     ax_vscroll.set_ylim(n_ch, 0)
     ax_vscroll.set_title('Ch.')
-    
     
     # store these so they can be fixed on resize
     lines = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
