@@ -5,11 +5,12 @@
 # License: Simplified BSD
 
 import numpy as np
-from ..fixes import matrix_rank
 from functools import reduce
 from string import ascii_uppercase
+
 from ..externals.six import string_types
 from ..utils import deprecated
+from ..fixes import matrix_rank
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
