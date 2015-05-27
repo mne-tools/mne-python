@@ -130,7 +130,7 @@ print(data.shape)
 
 fvals, pvals = f_mway_rm(data, factor_levels, effects=effects)
 
-fect_labels = ['modality', 'location', 'modality by location']
+effect_labels = ['modality', 'location', 'modality by location']
 
 # let's visualize our effects by computing f-images
 for effect, sig, effect_label in zip(fvals, pvals, effect_labels):
