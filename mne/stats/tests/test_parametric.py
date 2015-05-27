@@ -1,6 +1,6 @@
 from itertools import product
-from ..parametric import (f_mway_rm, f_threshold_twoway_rm,
-                          _map_effects)
+from mne.stats.parametric import (f_mway_rm, f_threshold_mway_rm,
+                                  _map_effects)
 from nose.tools import assert_raises, assert_true
 from numpy.testing import assert_array_almost_equal
 
@@ -18,7 +18,7 @@ test_external = {
     'r_pvals_uncorrected': np.array([0.12557, 0.78776, 0.1864]),
     # and https://gist.github.com/dengemann/5539403
     'r_fvals_3way': np.array([
-        0.74783999999999995,   # A  #noqua
+        0.74783999999999995,   # A
         0.20895,               # B
         0.21378,               # A:B
         0.99404000000000003,   # C
@@ -79,7 +79,7 @@ def test_f_twoway_rm():
         if n_effects == 1:  # test for principle of least surprise ...
             assert_true(fvals.ndim == 1)
 
-        fvals_ = f_threshold_twoway_rm(n_subj, _effects[n_levels], effects)
+        fvals_ = f_threshold_mway_rm(n_subj, _effects[n_levels], effects)
         assert_true((fvals_ >= 0).all())
         assert_true(fvals_.size == n_effects)
 
@@ -107,6 +107,5 @@ def test_f_twoway_rm():
     fvals, _ = f_mway_rm(test_data, [2, 2, 2])
     assert_array_almost_equal(fvals, test_external['r_fvals_3way'], 5)
 
-    test_data = generate_data(n_subjects=20, n_conditions=8)
     fvals, _ = f_mway_rm(test_data, [8], 'A')
     assert_array_almost_equal(fvals, test_external['r_fvals_1way'], 5)

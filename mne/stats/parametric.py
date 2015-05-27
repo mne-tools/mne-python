@@ -8,8 +8,8 @@ import numpy as np
 from ..fixes import matrix_rank
 from functools import reduce
 from string import ascii_uppercase
-from mne.externals.six import string_types
-from mne.utils import deprecated
+from ..externals.six import string_types
+from ..utils import deprecated
 
 # The following function is a rewriting of scipy.stats.f_oneway
 # Contrary to the scipy.stats.f_oneway implementation it does not
@@ -185,8 +185,17 @@ def _iter_contrasts(n_subjects, factor_levels, effect_picks):
         yield c_, df1, df2
 
 
+@deprecated('"f_threshold_twoway_rm" is deprecated and will be removed in'
+            'MNE-0.11. Please use f_threshold_mway_rm instead')
 def f_threshold_twoway_rm(n_subjects, factor_levels, effects='A*B',
                           pvalue=0.05):
+    return f_threshold_mway_rm(
+        n_subjects=n_subjects, factor_levels=factor_levels,
+        effects=effects, pvalue=pvalue)
+
+
+def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
+                        pvalue=0.05):
     """ Compute f-value thesholds for a two-way ANOVA
 
     Parameters
@@ -289,8 +298,8 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
         data = data[:, :, np.newaxis]
     elif data.ndim > 3:  # let's allow for some magic here.
-        data = data.reshape(data.shape[0], data.shape[1],
-                            np.prod(data.shape[2:]))
+        data = data.reshape(
+            data.shape[0], data.shape[1], np.prod(data.shape[2:]))
 
     effect_picks, _ = _map_effects(len(factor_levels), effects)
     n_obs = data.shape[2]

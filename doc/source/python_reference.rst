@@ -787,6 +787,7 @@ Statistics
    spatio_temporal_cluster_1samp_test
    ttest_1samp_no_p
    linear_regression
+   f_mway_rm
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 
