@@ -221,6 +221,15 @@ def f_threshold_mway_rm(n_subjects, factor_levels, effects='A*B',
     f_threshold : list | float
         list of f-values for each effect if the number of effects
         requested > 2, else float.
+
+    See Also
+    --------
+    f_oneway
+    f_mway_rm
+
+    Notes
+    -----
+    .. versionadded:: 0.10
     """
     from scipy.stats import f
     effect_picks, _ = _map_effects(len(factor_levels), effects)
@@ -294,6 +303,15 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
         estimated.
     p_vals : ndarray
         If not requested via return_pvals, defaults to an empty array.
+
+    See Also
+    --------
+    f_oneway
+    f_threshold_mway_rm
+
+    Notes
+    -----
+    .. versionadded:: 0.10
     """
     from scipy.stats import f
     if data.ndim == 2:  # general purpose support, e.g. behavioural data
