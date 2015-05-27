@@ -1,5 +1,5 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
-#          Jussi Nurminen
+#          Jussi Nurminen (jnu@iki.fi)
 
 # This code was adapted and relicensed (with BSD form) with permission from
 # Jussi Nurminen
