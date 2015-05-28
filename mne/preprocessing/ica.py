@@ -531,11 +531,12 @@ class ICA(ContainsMixin):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
 
-        picks = [raw.ch_names.index(k) for k in self.ch_names]
+        picks = pick_types(raw.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+            raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
+                               'provide Raw compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
@@ -548,9 +549,8 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA')
 
-        picks = pick_types(epochs.info, include=self.ch_names, exclude=[],
-                           ref_meg=False)
-
+        picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
@@ -575,13 +575,13 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please first fit ICA')
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude=[],
-                           ref_meg=False)
+        picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
 
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
+            raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
+                               ' fitted but %i channels supplied. \nPlease '
+                               'provide Evoked compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 

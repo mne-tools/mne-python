@@ -73,6 +73,7 @@ def test_plot_ica_sources():
     """
     import matplotlib.pyplot as plt
     raw = io.Raw(raw_fname, preload=True)
+    raw.crop(0, 1, copy=False)
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -80,8 +81,12 @@ def test_plot_ica_sources():
                            ecg=False, eog=False, exclude='bads')
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
-    ica.plot_sources(raw)
+    raw.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)
+    epochs.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=epochs)
+    epochs.info['bads'] = []
     with warnings.catch_warnings(record=True):  # no labeled objects mpl
         ica.plot_sources(epochs.average())
     assert_raises(ValueError, ica.plot_sources, 'meeow')
