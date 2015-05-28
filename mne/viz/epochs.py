@@ -517,17 +517,11 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
-    # ax_button = plt.subplot2grid((10, 10), (9, 9))
     # populate vertical and horizontal scrollbars
     for ci in range(len(epochs.ch_names)):
-        # this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
-        #              else color)
-        # if isinstance(this_color, dict):
-        #    this_color = this_color[types[inds[ci]]]
-        this_color = 'k'
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                   facecolor=this_color,
-                                                   edgecolor=this_color))
+                                                   facecolor='k',
+                                                   edgecolor='k'))
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w',
                                        facecolor='w')
@@ -561,29 +555,17 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['picks'] = picks
 
     n_channels = len(epochs)
-    """
-    data = epochs.get_data()
-    rows = 3
-    cols = 3
-    i = 0
-    for row in range(rows):
-        for col in range(cols):
-            plt.subplot(row+1, col+1, i)
-            plt.plot(epochs.times, data[0][i])
-            i += 1
-    """
+
     # make shells for plotting traces
     offsets = np.arange(n_channels) * 15 + 1
     params['offsets'] = offsets
-    ylim = [n_channels * 2 + 1, 0]
-    ax.set_yticks(offsets)
-    ax.set_ylim(ylim)
-
+    
     # concatenation
     data = np.concatenate(epochs.get_data(), axis=1)
     params['data'] = data
 
     params['times'] = np.arange(0, len(epochs) * len(epochs.times), 1)
+    ylim = [n_channels * 2 + 1, 0]
     length = len(epochs.times)
     for i in range(n_epochs):
         if i % 2 != 1:  # every second area painted blue
@@ -592,7 +574,18 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                          facecolor='b')
     epoch_times = np.arange(0, len(params['times']), length)
     params['epoch_times'] = epoch_times
-    ax_hscroll.set_xlim(0, epoch_times[-1] + len(epochs.times))
+    
+    ax.set_yticks(offsets)
+    ax.set_ylim(ylim)
+    ticks = epoch_times + 0.5 * length
+    ax.set_xticks(ticks)
+    labels = list()
+    for i in range(len(ticks)):
+        labels.append(i+1)
+    ax.set_xticklabels(labels)
+    params['labels'] = labels
+    xlim = epoch_times[-1] + len(epochs.times)
+    ax_hscroll.set_xlim(0, xlim)
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
@@ -731,6 +724,10 @@ def _plot_traces(params):
             offset = offsets[ii]
             end = params['t_start'] + params['duration']
             this_data = data[ch_ind][params['t_start']:end]
+            start_idx = params['t_start'] / len(params['epochs'].times)
+            end_idx = (params['t_start'] + params['duration']) / len(params['epochs'].times)
+            labels = params['labels'][start_idx:end_idx]
+            params['ax'].set_xticklabels(labels)
 
             # subtraction here gets corect orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data * scalings[types[ch_ind]])
@@ -782,11 +779,11 @@ def _plot_onscroll(event, params):
 
 def _plot_window(value, params):
     """
-    Deal with changed epoch window.
+    Deal with horizontal epoch window.
     """
-    max_times = params['times'][-1] - params['duration']
+    max_times = len(params['times']) - params['duration']
     if value > max_times:
-        value = params['times'][-1] - params['duration']
+        value = len(params['times']) - params['duration']
     if value < 0:
         value = 0
     if params['t_start'] != value:
