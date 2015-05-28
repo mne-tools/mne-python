@@ -79,7 +79,7 @@ class GeneralizationAcrossTime(object):
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
-        StandardScaler and a linear SVM with default parameters.
+        StandardScaler and LogisticRegression with default parameters.
     train_times : dict | None
         A dictionary to configure the training times:
 
