@@ -231,7 +231,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
                          zorder=1, color='r', label=label))
         else:
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
-                                  color='k', zorder=0))
+                                 color='k', zorder=0))
 
     ax.set_title(title)
     ax.set_xlim(times[[0, -1]])
@@ -245,9 +245,9 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     # box (!), so we have to put some valid text here, change
     # alpha and  path effects later
     texts.append(ax.text(0, 0, 'blank', zorder=2,
-                          verticalalignment='baseline',
-                          horizontalalignment='left',
-                          fontweight='bold', alpha=0))
+                         verticalalignment='baseline',
+                         horizontalalignment='left',
+                         fontweight='bold', alpha=0))
     # this is done to give the structure of a list of lists of a group of lines
     # in each subplot
     lines = [lines]
