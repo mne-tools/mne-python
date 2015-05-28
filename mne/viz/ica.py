@@ -211,22 +211,47 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     times = evoked.times * 1e3
 
     # plot unclassified sources
+    lines = list()
+    texts = list()
+    labels = list()
     if picks is None:
         picks = np.arange(evoked.data.shape[0])
-    plt.plot(times, evoked.data[picks].T, 'k')
-    for ii in exclude:
-        if ii in picks:
-            # use indexing to expose event related sources
-            plt.plot(times, evoked.data[ii].T, color='r',
-                     label='ICA %03d' % (ii + 1))
+    for ii in picks:
+        if ii in exclude:
+            label = 'ICA %03d' % (ii + 1)
+            labels.append(label)
+            lines.extend(plt.plot(times, evoked.data[ii].T, picker=3.,
+                         zorder=1, color='r', label=label))
+        else:
+            lines.extend(plt.plot(times, evoked.data[ii].T, picker=3.,
+                                  color='k', zorder=0))
     plt.title(title)
     plt.xlim(times[[0, -1]])
     plt.xlabel('Time (ms)')
     plt.ylabel('(NA)')
-    plt.legend(loc='best')
+    plt.legend(labels=labels, loc='best')
     tight_layout(fig=fig)
 
+    # for old matplotlib, we actually need this to have a bounding
+    # box (!), so we have to put some valid text here, change
+    # alpha and  path effects later
+    texts.append(plt.text(0, 0, 'blank', zorder=2,
+                          verticalalignment='baseline',
+                          horizontalalignment='left',
+                          fontweight='bold', alpha=0))
+
     if show:
+        from matplotlib import patheffects
+        path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
+                                               alpha=0.75)]
+        params = dict(axes=fig, texts=texts, lines=lines,
+                      ch_names=evoked.ch_names, need_draw=False,
+                      path_effects=path_effects)
+        fig.canvas.mpl_connect('pick_event',
+                               partial(_butterfly_onpick, params=params))
+        fig.canvas.mpl_connect('button_press_event',
+                               partial(_butterfly_on_button_press,
+                                       params=params))
         plt.show()
 
     return fig
