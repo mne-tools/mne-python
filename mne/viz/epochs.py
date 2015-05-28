@@ -443,7 +443,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
-                       title_str='#%003i', show=True, block=False):
+                       n_channels=10, title_str='#%003i', show=True,
+                       block=False):
     """ Visualize single trials.
 
     Parameters
@@ -460,6 +461,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
              ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     n_epochs : int
         The number of epochs per view.
+    n_channels : int
+        The number of channels per view.
     title_str : None | str
         The string formatting to use for axes titles. If None, no titles
         will be shown. Defaults expand to ``#001, #002, ...``
@@ -481,7 +484,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     scalings = _handle_default('scalings', scalings)
     color = _handle_default('color', None)
     duration = len(epochs.times) * n_epochs
-
+    epoch_data = epochs.get_data()
     if picks is None:
         if any('ICA' in k for k in epochs.ch_names):
             picks = pick_types(epochs.info, misc=True, ref_meg=False,
@@ -494,13 +497,13 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                            ' check your picks')
 
     times = epochs.times * 1e3
-    n_channels = 15
     types = [channel_type(epochs.info, idx) for idx in
              picks]
 
     # preallocation needed for min / max scaling
-    data = np.zeros((len(epochs.events), len(epochs), len(times)))
-    for ii, epoch in enumerate(epochs.get_data()):
+    total_channels = len(picks)
+    data = np.zeros((len(epochs.events), total_channels, len(times)))
+    for ii, epoch in enumerate(epoch_data):
         for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
             data[ii, jj] = this_channel / scalings[this_type]
 
@@ -523,13 +526,11 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                                                    facecolor='k',
                                                    edgecolor='k'))
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       edgecolor='w',
-                                       facecolor='w')
+                                       edgecolor='w', facecolor='w')
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
 
-    n_ch = len(epochs.ch_names)
-    ax_vscroll.set_ylim(n_ch, 0)
+    ax_vscroll.set_ylim(len(epochs.ch_names), 0)
     ax_vscroll.set_title('Ch.')
 
     # store these so they can be fixed on resize
@@ -544,7 +545,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
-    # params['ax_button'] = ax_button
     params['ch_start'] = 0
     params['t_start'] = 0
     params['duration'] = duration
@@ -554,18 +554,19 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['ch_names'] = epochs.ch_names
     params['picks'] = picks
 
-    n_channels = len(epochs)
+    # concatenation
+    epoch_data = np.concatenate(epoch_data, axis=1)
+
+    params['data'] = epoch_data
+
+    params['times'] = np.arange(0, total_channels * len(epochs.times), 1)
+    ylim = [total_channels * 2 + 1, 0]
 
     # make shells for plotting traces
-    offsets = np.arange(n_channels) * 15 + 1
+    offset = ylim[0] / n_channels
+    offsets = np.arange(n_channels) * offset + 5
     params['offsets'] = offsets
 
-    # concatenation
-    data = np.concatenate(epochs.get_data(), axis=1)
-    params['data'] = data
-
-    params['times'] = np.arange(0, len(epochs) * len(epochs.times), 1)
-    ylim = [n_channels * 2 + 1, 0]
     length = len(epochs.times)
     for i in range(n_epochs):
         if i % 2 != 1:  # every second area painted blue
@@ -607,7 +608,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     callback_click = partial(_mouse_click, params=params)
     fig.canvas.mpl_connect('button_press_event', callback_click)
 
-    # times = np.tile(epochs.times, len(epochs))
     _plot_traces(params)
     if show:
         plt.show(block=block)
@@ -805,13 +805,13 @@ def _mouse_click(event, params):
     """
     if event.inaxes is None or event.button != 1:
         return
-    # vertical scrollbar changed
+    # vertical scroll bar changed
     if event.inaxes == params['ax_vscroll']:
         ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
         if params['ch_start'] != ch_start:
             params['ch_start'] = ch_start
             _plot_traces(params)
-    # horizontal scrollbar changed
+    # horizontal scroll bar changed
     elif event.inaxes == params['ax_hscroll']:
         # find the closest epoch time
         times = params['epoch_times']
