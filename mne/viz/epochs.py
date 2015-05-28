@@ -563,6 +563,9 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     # concatenation
     data = np.concatenate(epochs.get_data(), axis=1)
     params['data'] = data
+    d = data[59][:len(epochs.times)]
+    #plt.plot(epochs.times, d)
+    #plt.show()
 
     params['times'] = np.arange(0, len(epochs) * len(epochs.times), 1)
     ylim = [n_channels * 2 + 1, 0]
@@ -579,13 +582,21 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * length
     ax.set_xticks(ticks)
-    labels = list()
-    for i in range(len(ticks)):
-        labels.append(i+1)
+    labels = [x+1 for x in range(len(ticks))]  # epoch numbers
     ax.set_xticklabels(labels)
     params['labels'] = labels
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
+    
+    # fit horizontal scroll bar ticks
+    hscroll_ticks = ax_hscroll.get_xticks()
+    hticks = list()
+    for tick in hscroll_ticks:
+        hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
+    hlabels = [x / length + 1 for x in hticks]
+    ax_hscroll.set_xticks(hticks)
+    ax_hscroll.set_xticklabels(hlabels)
+    
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
@@ -725,8 +736,8 @@ def _plot_traces(params):
             end = params['t_start'] + params['duration']
             this_data = data[ch_ind][params['t_start']:end]
             start_idx = params['t_start'] / len(params['epochs'].times)
-            end_idx = (params['t_start'] + params['duration']) / len(params['epochs'].times)
-            labels = params['labels'][start_idx:end_idx]
+            # end_idx = (params['t_start'] + params['duration']) / len(params['epochs'].times)
+            labels = params['labels'][start_idx:]
             params['ax'].set_xticklabels(labels)
 
             # subtraction here gets corect orientation for flipped ylim
