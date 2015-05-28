@@ -119,17 +119,17 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
     if name == 'sample':
         archive_name = "MNE-sample-data-processed.tar.gz"
         folder_name = "MNE-sample-data"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
+        url = "https://s3.amazonaws.com/mne-python/datasets/" + archive_name
         hash_ = 'f73186795af820428e5e8e779ce5bfcf'
     elif name == 'spm':
         archive_name = 'MNE-spm-face.tar.bz2'
         folder_name = "MNE-spm-face"
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        url = 'https://s3.amazonaws.com/mne-python/datasets/' + archive_name
         hash_ = '3e9e83c642136e5b720e2ecc5dcc3244'
     elif name == 'somato':
         archive_name = 'MNE-somato-data.tar.gz'
         folder_name = "MNE-somato-data"
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
+        url = 'https://s3.amazonaws.com/mne-python/datasets/' + archive_name
         hash_ = 'f3e3a8441477bb5bacae1d0c6e0964fb'
     elif name == 'testing':
         archive_name = 'mne-testing-data-master.tar.gz'

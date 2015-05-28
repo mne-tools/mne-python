@@ -1253,8 +1253,7 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
-                verbose_bool=True):
+def _chunk_read(response, local_file, initial_size=0, verbose_bool=True):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -1265,10 +1264,13 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
         Response to the download request in order to get file size.
     local_file: file
         Hard disk file where data should be written.
-    chunk_size: integer, optional
-        Size of downloaded chunks. Default: 8192
     initial_size: int, optional
         If resuming, indicate the initial size of the file.
+
+    Notes
+    -----
+    The chunk size will be automatically adapted based on the connection
+    speed.
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1281,8 +1283,15 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
     progress = ProgressBar(total_size, initial_value=initial_size,
                            max_chars=40, spinner=True, mesg='downloading',
                            verbose_bool=verbose_bool)
+    chunk_size = 8192  # 2 ** 13
     while True:
+        t0 = time.time()
         chunk = response.read(chunk_size)
+        dt = time.time() - t0
+        if dt < 0.001:
+            chunk_size *= 2
+        elif dt > 0.5 and chunk_size > 8192:
+            chunk_size = chunk_size // 2
         if not chunk:
             if verbose_bool:
                 sys.stdout.write('\n')
