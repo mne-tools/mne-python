@@ -218,17 +218,15 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     idxs = [0]
     times = evoked.times * 1e3
 
-    # plot unclassified sources
+    # plot unclassified sources and label excluded ones
     lines = list()
     texts = list()
-    labels = list()
     if picks is None:
         picks = np.arange(evoked.data.shape[0])
     idxs = [picks]
     for ii in picks:
         if ii in exclude:
             label = 'ICA %03d' % (ii + 1)
-            labels.append(label)
             lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                          zorder=1, color='r', label=label))
         else:
@@ -239,7 +237,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     ax.set_xlim(times[[0, -1]])
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('(NA)')
-    if labels:
+    if exclude:
         plt.legend(loc='best')
     tight_layout(fig=fig)
 
@@ -250,6 +248,8 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
                           verticalalignment='baseline',
                           horizontalalignment='left',
                           fontweight='bold', alpha=0))
+    # this is done to give the structure of a list of lists of a group of lines
+    # in each subplot
     lines = [lines]
     ch_names = evoked.ch_names
     if show:
