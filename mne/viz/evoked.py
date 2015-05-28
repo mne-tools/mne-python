@@ -203,7 +203,7 @@ def _plot_evoked(evoked, picks, exclude, unit, show,
                 for h in hline:
                     ax.axhline(h, color='r', linestyle='--', linewidth=2)
     if plot_type == 'butterfly':
-        params = dict(axes=axes, texts=texts, lines=lines, idx=idx,
+        params = dict(axes=axes, texts=texts, lines=lines,
                       ch_names=evoked.ch_names, idxs=idxs, need_draw=False,
                       path_effects=path_effects)
         fig.canvas.mpl_connect('pick_event',

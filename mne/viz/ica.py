@@ -4,6 +4,7 @@ from __future__ import print_function
 
 # Authors: Denis Engemann <denis.engemann@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#          Teon Brooks <teon.brooks@gmail.com>
 #
 # License: Simplified BSD
 
@@ -12,6 +13,7 @@ from functools import partial
 import numpy as np
 
 from .utils import tight_layout, _prepare_trellis
+from .evoked import _butterfly_on_button_press, _butterfly_onpick
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -207,7 +209,13 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     if title is None:
         title = 'Reconstructed latent sources, time-locked'
 
-    fig = plt.figure()
+    fig, axes = plt.subplots(1)
+    ax = axes
+    if isinstance(axes, plt.Axes):
+        axes = [axes]
+    elif isinstance(axes, np.ndarray):
+        axes = list(axes)
+    idxs = [0]
     times = evoked.times * 1e3
 
     # plot unclassified sources
@@ -216,36 +224,40 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     labels = list()
     if picks is None:
         picks = np.arange(evoked.data.shape[0])
+    idxs = [picks]
     for ii in picks:
         if ii in exclude:
             label = 'ICA %03d' % (ii + 1)
             labels.append(label)
-            lines.extend(plt.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                          zorder=1, color='r', label=label))
         else:
-            lines.extend(plt.plot(times, evoked.data[ii].T, picker=3.,
+            lines.extend(ax.plot(times, evoked.data[ii].T, picker=3.,
                                   color='k', zorder=0))
-    plt.title(title)
-    plt.xlim(times[[0, -1]])
-    plt.xlabel('Time (ms)')
-    plt.ylabel('(NA)')
-    plt.legend(labels=labels, loc='best')
+
+    ax.set_title(title)
+    ax.set_xlim(times[[0, -1]])
+    ax.set_xlabel('Time (ms)')
+    ax.set_ylabel('(NA)')
+    if labels:
+        plt.legend(loc='best')
     tight_layout(fig=fig)
 
     # for old matplotlib, we actually need this to have a bounding
     # box (!), so we have to put some valid text here, change
     # alpha and  path effects later
-    texts.append(plt.text(0, 0, 'blank', zorder=2,
+    texts.append(ax.text(0, 0, 'blank', zorder=2,
                           verticalalignment='baseline',
                           horizontalalignment='left',
                           fontweight='bold', alpha=0))
-
+    lines = [lines]
+    ch_names = evoked.ch_names
     if show:
         from matplotlib import patheffects
         path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
                                                alpha=0.75)]
-        params = dict(axes=fig, texts=texts, lines=lines,
-                      ch_names=evoked.ch_names, need_draw=False,
+        params = dict(axes=axes, texts=texts, lines=lines, idxs=idxs,
+                      ch_names=ch_names, need_draw=False,
                       path_effects=path_effects)
         fig.canvas.mpl_connect('pick_event',
                                partial(_butterfly_onpick, params=params))
