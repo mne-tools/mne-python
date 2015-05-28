@@ -442,7 +442,7 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_epochs_concat(epochs, picks=None, scalings=None,
+def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                        title_str='#%003i', show=True, block=False):
     """ Visualize single trials.
 
@@ -458,6 +458,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
         Scale factors for the traces. If None, defaults to:
         `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
              ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+    n_epochs : int
+        The number of epochs per view.
     title_str : None | str
         The string formatting to use for axes titles. If None, no titles
         will be shown. Defaults expand to ``#001, #002, ...``
@@ -478,7 +480,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
     params = dict()
     scalings = _handle_default('scalings', scalings)
     color = _handle_default('color', None)
-    duration = len(epochs.times) * 4  # 4 epochs / view
+    duration = len(epochs.times) * n_epochs
 
     if picks is None:
         if any('ICA' in k for k in epochs.ch_names):
@@ -512,7 +514,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
     ax.set_title(title_str, fontsize=12)
     ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
     ax_hscroll.get_yaxis().set_visible(False)
-    ax_hscroll.set_xlabel('Time (s)')
+    ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
     # ax_button = plt.subplot2grid((10, 10), (9, 9))
@@ -550,6 +552,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
     params['ax_vscroll'] = ax_vscroll
     # params['ax_button'] = ax_button
     params['ch_start'] = 0
+    params['t_start'] = 0
     params['duration'] = duration
     params['scalings'] = scalings
     params['types'] = types
@@ -582,12 +585,15 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
 
     params['times'] = np.arange(0, len(epochs) * len(epochs.times), 1)
     length = len(epochs.times)
-    ax.fill_betweenx(ylim, length, 2 * length, alpha=0.2, facecolor='b')
-    ax.fill_betweenx(ylim, 3 * length, 4 * length, alpha=0.2, facecolor='b')
+    for i in range(n_epochs):
+        if i % 2 != 1:  # every second area painted blue
+            continue
+        ax.fill_betweenx(ylim, i * length, i * length + length, alpha=0.2,
+                         facecolor='b')
     epoch_times = np.arange(0, len(params['times']), length)
     params['epoch_times'] = epoch_times
-    ax_hscroll.set_xlim(0, len(epoch_times))
-    hsel_patch = mpl.patches.Rectangle((0, 0), duration / length, 1,
+    ax_hscroll.set_xlim(0, epoch_times[-1] + len(epochs.times))
+    hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
@@ -597,10 +603,11 @@ def plot_epochs_concat(epochs, picks=None, scalings=None,
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
+    callback_click = partial(_mouse_click, params=params)
+    fig.canvas.mpl_connect('button_press_event', callback_click)
 
     # times = np.tile(epochs.times, len(epochs))
     _plot_traces(params)
-    # params['ax'].plot(times, data[0])
     if show:
         plt.show(block=block)
         return fig
@@ -715,8 +722,6 @@ def _plot_traces(params):
     tick_list = []
     for ii in range(n_channels):
         ch_ind = ii + params['ch_start']
-        # let's be generous here and allow users to pass
-        # n_channels per view >= the number of traces available
         if ii >= len(lines):
             break
         elif ch_ind < len(params['picks']):
@@ -724,13 +729,12 @@ def _plot_traces(params):
             ch_name = epochs.ch_names[ch_ind]
             tick_list += [ch_name]
             offset = offsets[ii]
-
-            this_data = data[ch_ind]
+            end = params['t_start'] + params['duration']
+            this_data = data[ch_ind][params['t_start']:end]
 
             # subtraction here gets corect orientation for flipped ylim
-            # TODO: types menee yli!
             lines[ii].set_ydata(offset - this_data * scalings[types[ch_ind]])
-            lines[ii].set_xdata(params['times'])
+            lines[ii].set_xdata(params['times'][:params['duration']])
             vars(lines[ii])['ch_name'] = ch_name
             color = params['color'][types[ch_ind]]
             vars(lines[ii])['def_color'] = params['color'][types[ch_ind]]
@@ -743,30 +747,21 @@ def _plot_traces(params):
     if params['epoch_times'] is not None:
         # find events in the time window
         epoch_times = params['epoch_times']
-        mask = np.logical_and(epoch_times >= params['times'][0],
-                              epoch_times <= params['times'][-1])
-        epoch_times = epoch_times[mask]
-        used = np.zeros(len(epoch_times), bool)
         event_line = params['event_line']
-        used[mask] = True
-        t = epoch_times[mask]
-        if len(t) > 0:
-            xs = list()
-            ys = list()
-            for tt in t:
-                xs += [tt, tt, np.nan]
-                ylim = params['ax'].get_ylim()
-                ys += [ylim[0], ylim[1], np.nan]
-            event_line.set_xdata(xs)
-            event_line.set_ydata(ys)
-        else:
-            event_line.set_xdata([])
-            event_line.set_ydata([])
+        xs = list()
+        ys = list()
+        for tt in epoch_times:
+            xs += [tt, tt, np.nan]
+            ylim = params['ax'].get_ylim()
+            ys += [ylim[0], ylim[1], np.nan]
+        event_line.set_xdata(xs)
+        event_line.set_ydata(ys)
+
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
-    # params['vsel_patch'].set_y(params['ch_start'])
+    params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
 
 
@@ -783,6 +778,41 @@ def _plot_onscroll(event, params):
         params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
     if orig_start != params['ch_start']:
         _channels_changed(params)
+
+
+def _plot_window(value, params):
+    """
+    Deal with changed epoch window.
+    """
+    max_times = params['times'][-1] - params['duration']
+    if value > max_times:
+        value = params['times'][-1] - params['duration']
+    if value < 0:
+        value = 0
+    if params['t_start'] != value:
+        params['t_start'] = value
+        params['hsel_patch'].set_x(value)
+        _plot_traces(params)
+
+
+def _mouse_click(event, params):
+    """
+    Mouse click events.
+    """
+    if event.inaxes is None or event.button != 1:
+        return
+    # vertical scrollbar changed
+    if event.inaxes == params['ax_vscroll']:
+        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+        if params['ch_start'] != ch_start:
+            params['ch_start'] = ch_start
+            _plot_traces(params)
+    # horizontal scrollbar changed
+    elif event.inaxes == params['ax_hscroll']:
+        # find the closest epoch time
+        times = params['epoch_times']
+        xdata = times.flat[np.abs(times - event.xdata).argmin()]
+        _plot_window(xdata, params)
 
 
 def _channels_changed(params):

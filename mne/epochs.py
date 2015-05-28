@@ -508,8 +508,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            scalings=scalings, title_str=title_str,
                            show=show, block=block)
 
-    def plot_concat(self, picks=None, scalings=None, title_str='#%003i',
-                    show=True, block=False):
+    def plot_concat(self, picks=None, scalings=None, n_epochs=8,
+                    title_str='#%003i', show=True, block=False):
         """Visualize single trials as concatenated data.
 
         Parameters
@@ -521,6 +521,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Scale factors for the traces. If None, defaults to
             ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
             emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
+        n_epochs : int
+            The number of epochs per view.
         title_str : None | str
             The string formatting to use for axes titles. If None, no titles
             will be shown. Defaults expand to ``#001, #002, ...``.
@@ -536,8 +538,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_epochs_concat(self, picks=picks,
-                                  scalings=scalings, title_str=title_str,
+        return plot_epochs_concat(self, picks=picks, scalings=scalings,
+                                  n_epochs=n_epochs, title_str=title_str,
                                   show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
