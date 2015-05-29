@@ -104,13 +104,15 @@ def _concatenate_coils(coils):
 
 def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
     """Set up for computing the solution at a set of coils"""
-    # Compute the weighting factors to obtain the magnetic field
-    # in the linear potential approximation
+    # Make sure coils are in MRI coordinate frame
     coils, coord_frame = _check_coil_frame(coils, coord_frame, bem)
 
     # leaving this in in case we want to easily add in the future
     # if method != 'simple':  # in ['ferguson', 'urankar']:
     #     raise NotImplementedError
+
+    # Compute the weighting factors to obtain the magnetic field in the linear
+    # potential approximation
 
     # Process each of the surfaces
     rmags, cosmags, ws, counts = _concatenate_coils(coils)
@@ -127,10 +129,21 @@ def _bem_specify_coils(bem, coils, coord_frame, mults, n_jobs):
 
 
 def _bem_specify_els(bem, els, mults):
-    """Set up for computing the solution at a set of electrodes"""
+    """Set up for computing the solution at a set of electrodes
+
+    Parameters
+    ----------
+    bem : dict
+    els : list of dict
+
+    Returns
+    -------
+    sol : ndarray, shape()
+    """
     sol = np.zeros((len(els), bem['solution'].shape[1]))
     # Go through all coils
     scalp = bem['surfs'][0]
+    # Get supplementary geometry information for tris and rr
     scalp['geom'] = _get_tri_supp_geom(scalp['tris'], scalp['rr'])
     inds = np.arange(len(scalp['tris']))
 
@@ -140,6 +153,7 @@ def _bem_specify_els(bem, els, mults):
         # Go through all 'integration points'
         el_r = apply_trans(bem['head_mri_t']['trans'], el['rmag'])
         for elw, r in zip(el['w'], el_r):
+            # Get index of closes tri on scalp BEM to electrode position
             best = _find_nearest_tri_pt(inds, r, scalp['geom'], True)[2]
             # Calculate a linear interpolation between the vertex values
             tri = scalp['tris'][best]
@@ -183,25 +197,40 @@ def _make_ctf_comp_coils(info, coils):
 
 _MAG_FACTOR = 1e-7  # μ_0 / (4π)
 
-# def _bem_inf_pot(rd, Q, rp)*pi:
+# def _bem_inf_pot(rd, Q, rp):
 #     """The infinite medium potential in one direction"""
-#     # NOTE: the 4π that was in the denominator has been moved!
-#     diff = rp - rd
-#     diff2 = np.sum(diff * diff, axis=1)
+#     NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
+#     diff = rp - rd  # (Potential point) - (Dipole position)
+#     diff2 = np.sum(diff * diff, axis=1)  # Squared magnitude of diff
+#     # (Dipole moment) dot (diff) / (magnitude ^ 3)
 #     return np.sum(Q * diff, axis=1) / (diff2 * np.sqrt(diff2))
 
 
-def _bem_inf_pots(rr, surf_rr, Q=None):
-    """The infinite medium potential in all 3 directions"""
-    # NOTE: the (μ_0 / (4π) that was in the denominator has been moved!
-    diff = surf_rr.T[np.newaxis, :, :] - rr[:, :, np.newaxis]  # n_rr, 3, n_bem
+def _bem_inf_pots(mri_rr, bem_rr, mri_Q=None):
+    """The infinite medium potential in all 3 directions
+
+    Parameters
+    ----------
+    mri_rr :
+        Dipole positions in MRI coordinates
+    bem_rr:
+        Points of potentials in BEM space
+    mri_Q :
+        3x3 head -> MRI transform. I.e., head_mri_t.dot(np.eye(3))
+
+    Returns
+    -------
+    """
+    # NOTE: the (μ_0 / (4π) factor has been moved to _prep_field_communication
+    diff = bem_rr.T[np.newaxis, :, :] - mri_rr[:, :, np.newaxis]
     diff_norm = np.sum(diff * diff, axis=1)
     diff_norm *= np.sqrt(diff_norm)
     diff_norm[diff_norm == 0] = 1  # avoid nans
-    if Q is None:  # save time when Q=np.eye(3) (e.g., MEG sensors)
+    if mri_Q is None:  # save time when mri_Q=np.eye(3) (e.g., MEG sensors)
         return diff / diff_norm[:, np.newaxis, :]
     else:  # get components in each direction (e.g., EEG sensors)
-        return np.einsum('ijk,mj->imk', diff, Q) / diff_norm[:, np.newaxis, :]
+        return np.einsum('ijk,mj->imk', diff, mri_Q) / diff_norm[:,
+                                                                 np.newaxis, :]
 
 
 # This function has been refactored to process all points simultaneously
@@ -221,46 +250,74 @@ def _bem_inf_pots(rr, surf_rr, Q=None):
 #     return np.sum(x * d, axis=1) / (diff2 * np.sqrt(diff2))
 
 
-def _bem_inf_fields(rr, rp, c):
+def _bem_inf_fields(rr, rmag, cosmag):
     """Infinite-medium magnetic field in all 3 basis directions
+
+    Parameters
+    ----------
     rr : N x 3 array
-        N 3-space dipole vectors (locations/magnitudes?)
-    rp : N x 3 array
+        N 3-space dipole vector locations
+    rmag : N x 3 array
         N 3-space vectors
-        coil['rmag']; position vector of coil (integration points?)
-    c : N x 3 array
+        coil['rmag']; position vector of coil (coil integration points?)
+    cosmag : N x 3 array
         N 3-space vectors
-        coil['cosmag']; direction of the coils (integration points?)
+        coil['cosmag']; direction of the coil (coil integration points?)
+
+    Returns
+    -------
     """
-    # rr, rp refactored according to Equation (19) in Mosher, 1999
+    # rr, rmag refactored according to Equation (19) in Mosher, 1999
     # Knowing that we're doing all directions, the above can be refactored:
 
     # diff = (n_sources x 3 x n_coils pts)
-    diff = rp.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
+    diff = rmag.T[np.newaxis, :, :] - rr[:, :, np.newaxis]
     # Get magnitude of vector (distance) between sensor and source cubed
     # diff_norm = (n_sources x n_coils pts)
     diff_norm = np.sum(diff * diff, axis=1)
     diff_norm *= np.sqrt(diff_norm)
     diff_norm[diff_norm == 0] = 1  # avoid nans
+
     # This is the result of cross-prod calcs with basis vectors,
-    # as if we had taken (Q=np.eye(3)), then multiplied by the cosmags (c)
+    # as if we had taken (Q=np.eye(3)), then multiplied by cosmags
     # factor, and then summed across directions
-    # x = diff x c (diff cross c); x.shape = (3 x n_sources x n_coils pts)
-    x = np.array([diff[:, 1] * c[:, 2] - diff[:, 2] * c[:, 1],
-                  diff[:, 2] * c[:, 0] - diff[:, 0] * c[:, 2],
-                  diff[:, 0] * c[:, 1] - diff[:, 1] * c[:, 0]])
+    # x = diff x cosmag (diff cross c); x.shape = (3 x n_sources x n_coils pts)
+    x = np.array([diff[:, 1] * cosmag[:, 2] - diff[:, 2] * cosmag[:, 1],
+                  diff[:, 2] * cosmag[:, 0] - diff[:, 0] * cosmag[:, 2],
+                  diff[:, 0] * cosmag[:, 1] - diff[:, 1] * cosmag[:, 0]])
     return np.rollaxis(x / diff_norm, 1)  # return (n_sources x 3 x n_coil pts)
 
 
-def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, srr,
+def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, bem_rr,
                       n_jobs, coil_type):
     """Calculate the magnetic field or electric potential
 
     The code is very similar between EEG and MEG potentials, so we'll
-    combine them.
+    combine them. This does the work of "fwd_comp_field"
+    (which wraps to "fwd_bem_field") and "fwd_bem_pot_els" in MNE-C.
 
-    This does the work of "fwd_comp_field" (which wraps to "fwd_bem_field") and
-    "fwd_bem_pot_els" in MNE-C.
+    Parameters
+    ----------
+    rr : ndarray, shape (n_dipoles, 3)
+        Source positions in head coordinates
+    mri_rr : ndarray, shape (n_dipoles, 3)
+        Source positions in MRI coordinates
+    mri_Q :
+        3x3 head -> MRI transform. I.e., head_mri_t.dot(np.eye(3))
+    coils : list
+        List of coils where each element contains coil specific information
+    solution : ndarray, shape (n_coils, n_bem_rr)
+        Comes from _bem_specify_coils
+    bem_rr : ndarray, shape (n_bem_rr, 3)
+        BEM source locations concatenated from all layers in MRI space.
+    n_jobs : int
+        Number of jobs to run in parallel
+    coil_type : str
+        'meg' or 'eeg'
+
+    Returns
+    -------
+    B
     """
     # Both MEG and EEG have the inifinite-medium potentials
     # This could be just vectorized, but eats too much memory, so instead we
@@ -268,7 +325,7 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, srr,
     parallel, p_fun, _ = parallel_func(_do_inf_pots, n_jobs)
     nas = np.array_split
     B = np.sum(parallel(p_fun(mri_rr, sr.copy(), mri_Q, sol.copy())
-                        for sr, sol in zip(nas(srr, n_jobs),
+                        for sr, sol in zip(nas(bem_rr, n_jobs),
                                            nas(solution.T, n_jobs))), axis=0)
     # The copy()s above should make it so the whole objects don't need to be
     # pickled...
@@ -285,28 +342,59 @@ def _bem_pot_or_field(rr, mri_rr, mri_Q, coils, solution, srr,
 
 
 def _do_prim_curr(rr, coils):
-    """Calculate primary currents in a set of coils"""
-    out = np.empty((len(rr) * 3, len(coils)))
+    """Calculate primary currents in a set of MEG coils
+
+    Parameters
+    ----------
+    rr : ndarray, shape (n_dipoles, 3)
+        Source positions in head coordinates
+    coils : list
+        List of coils where each element contains coil specific information
+
+    Returns
+    -------
+    pc : ndarray, shape (n_sources, n_meg_sensors)
+        Primary current for set of coils due to all sources
+    """
+    pc = np.empty((len(rr) * 3, len(coils)))
     for ci, c in enumerate(coils):
-        # Multiply all integration points by weights, sum, and flatten
-        out[:, ci] = np.sum(c['w'] * _bem_inf_fields(rr, c['rmag'],
-                                                     c['cosmag']), 2).ravel()
-        # out.shape = (22494 x 306)
-    return out
+        # For all integration points, multiply by weights, sum across pts
+        # and then flatten
+        pc[:, ci] = np.sum(c['w'] * _bem_inf_fields(rr, c['rmag'],
+                                                    c['cosmag']), 2).ravel()
+    return pc
 
 
-def _do_inf_pots(rr, srr, mri_Q, sol):
-    """Calculate infinite potentials using chunks"""
+def _do_inf_pots(mri_rr, bem_rr, mri_Q, sol):
+    """Calculate infinite potentials using chunks
+
+    Parameters
+    ----------
+    mri_rr : ndarray, shape (n_dipoles, 3)
+        Dipole source positions in MRI coordinates
+    bem_rr : ndarray, shape (n_bem_rr, 3)
+        BEM source locations concatenated from all layers.
+    mri_Q :
+        3x3 head -> MRI transform. I.e., head_mri_t.dot(np.eye(3))
+    sol : ndarray, shape (n_coils_subset, n_bem_rr_subset)
+        Comes from _bem_specify_coils
+
+    Returns
+    -------
+    B
+    """
+
+    # Doing work of 'fwd_bem_pot_calc' in MNE-C
     # The following code is equivalent to this, but saves memory
-    # v0s = _bem_inf_pots(rr, srr, mri_Q)  # n_rr x 3 x n_surf_rr
+    # v0s = _bem_inf_pots(rr, bem_rr, Q)  # n_rr x 3 x n_bem_rr
     # v0s.shape = (len(rr) * 3, v0s.shape[2])
     # B = np.dot(v0s, sol)
 
-    # We chunk the source rr's in order to save memory
-    bounds = np.r_[np.arange(0, len(rr), 1000), len(rr)]
-    B = np.empty((len(rr) * 3, sol.shape[1]))
+    # We chunk the source mri_rr's in order to save memory
+    bounds = np.r_[np.arange(0, len(mri_rr), 1000), len(mri_rr)]
+    B = np.empty((len(mri_rr) * 3, sol.shape[1]))
     for bi in range(len(bounds) - 1):
-        v0s = _bem_inf_pots(rr[bounds[bi]:bounds[bi + 1]], srr, mri_Q)
+        v0s = _bem_inf_pots(mri_rr[bounds[bi]:bounds[bi + 1]], bem_rr, mri_Q)
         v0s.shape = (v0s.shape[0] * 3, v0s.shape[2])
         B[3 * bounds[bi]:3 * bounds[bi + 1]] = np.dot(v0s, sol)
     return B
@@ -315,7 +403,7 @@ def _do_inf_pots(rr, srr, mri_Q, sol):
 # #############################################################################
 # SPHERE COMPUTATION
 
-def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, srr,
+def _sphere_pot_or_field(rr, mri_rr, mri_Q, coils, sphere, bem_rr,
                          n_jobs, coil_type):
     """Do potential or field for spherical model"""
     fun = _eeg_spherepot_coil if coil_type == 'eeg' else _sphere_field
@@ -485,20 +573,38 @@ def _magnetic_dipole_field_vec(rrs, coils):
 
 @verbose
 def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
-    """Precompute some things that are used for both MEG and EEG"""
-    cf = FIFF.FIFFV_COORD_HEAD
-    srr = mults = mri_Q = head_mri_t = None
+    """Precompute/store some things that are used for both MEG and EEG
+    (including multiplication factors, coordinate transforms, compensations,
+    and forward solutions) and store them in fwd_data.
+
+    Parameters
+    ----------
+    rr : ndarray, shape(n_sources, 3)
+        Source space dipole positions
+    bem : dict
+        bem['solution'] = ndarray, shape = (n_BEM_verts x n_BEM_verts).
+    fwd_data : dict
+    n_jobs : int
+        Number of jobs to run in parallel
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose)
+    """
+
+    bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
         if bem['bem_method'] != 'linear collocation':
             raise RuntimeError('only linear collocation supported')
+        # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
                           [len(s['rr']) for s in bem['surfs']])[np.newaxis, :]
-        srr = np.concatenate([s['rr'] for s in bem['surfs']])
+        # Get positions of BEM points for every surface
+        bem_rr = np.concatenate([s['rr'] for s in bem['surfs']])
 
         # The dipole location and orientation must be transformed
         head_mri_t = bem['head_mri_t']
         mri_Q = apply_trans(bem['head_mri_t']['trans'], np.eye(3), False)
 
+    # Compute solution and compensation for dif coil types (e.g., 'meg', 'eeg')
     if len(set(fwd_data['coil_types'])) != len(fwd_data['coil_types']):
         raise RuntimeError('Non-unique coil types found')
     compensators, solutions, csolutions = [], [], []
@@ -507,24 +613,26 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
                                               fwd_data['ccoils_list'],
                                               fwd_data['infos']):
         compensator = solution = csolution = None
-        if len(coils) > 0:  # something to actually do
+        if len(coils) > 0:  # Only proceed if coils exist
             if coil_type == 'meg':
                 # Compose a compensation data set if necessary
                 compensator = _make_ctf_comp_coils(info, coils)
 
             if not bem['is_sphere']:
-                # multiply solution by "mults" here for simplicity
                 if coil_type == 'meg':
-                    # Field computation matrices for BEM
+                    # MEG field computation matrices for BEM
                     start = 'Composing the field computation matrix'
                     logger.info('\n' + start + '...')
-                    solution = _bem_specify_coils(bem, coils, cf,
-                                                  mults, n_jobs)
+                    cf = FIFF.FIFFV_COORD_HEAD
+                    # multiply solution by "mults" here for simplicity
+                    solution = _bem_specify_coils(bem, coils, cf, mults,
+                                                  n_jobs)
                     if compensator is not None:
                         logger.info(start + ' (compensation coils)...')
                         csolution = _bem_specify_coils(bem, ccoils, cf,
                                                        mults, n_jobs)
                 else:
+                    # Compute solution for EEG sensor
                     solution = _bem_specify_els(bem, coils, mults)
             else:
                 solution = bem
@@ -534,43 +642,71 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
         compensators.append(compensator)
         solutions.append(solution)
         csolutions.append(csolution)
+
+    # Get appropriate forward physics function depending on sphere or BEM model
     fun = _sphere_pot_or_field if bem['is_sphere'] else _bem_pot_or_field
-    fwd_data.update(dict(srr=srr, mri_Q=mri_Q, head_mri_t=head_mri_t,
+
+    # Update fwd_data with
+    #    bem_rr (BEM vertex positions)
+    #    mri_Q (3x3 Head->MRI coord transformation applied to identity matrix)
+    #    head_mri_t (head->MRI coord transform dict)
+    #    fun (_bem_pot_or_field if not 'sphere')
+    #    solutions (len 2 list; [n_MEG_sens x n BEM vertex positions,
+    #                            n_EEG_sens x n BEM vertex positions])
+    fwd_data.update(dict(bem_rr=bem_rr, mri_Q=mri_Q, head_mri_t=head_mri_t,
                          compensators=compensators, solutions=solutions,
                          csolutions=csolutions, fun=fun))
 
 
 @verbose
 def _compute_forwards_meeg(rr, fd, n_jobs, verbose=None):
-    # Now, actually compute MEG and EEG solutions
+    """Compute MEG and EEG forward solutions for all coil types
+    Parameters
+    ----------
+    rr : ndarray, shape(n_sources, 3)
+        Source space dipole positions
+    fd : dict
+        Dict containing forward data after update in _prep_field_computation
+    n_jobs : int
+        Number of jobs to run in parallel
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose)
+
+    Returns
+    -------
+    Bs : list
+        Each element contains ndarray, shape(3*n_sources, n_sensors) where
+        n_sensors depends on which channel types are requested (MEG and/or EEG)
+    """
+
     n_jobs = max(min(n_jobs, len(rr)), 1)
     Bs = list()
-    # The dipole location and orientation must be transformed
+    # The dipole location and orientation must be transformed to mri coords
     mri_rr = None
     if fd['head_mri_t'] is not None:
         mri_rr = apply_trans(fd['head_mri_t']['trans'], rr)
-    mri_Q, srr, fun = fd['mri_Q'], fd['srr'], fd['fun']
+    mri_Q, bem_rr, fun = fd['mri_Q'], fd['bem_rr'], fd['fun']
     for ci in range(len(fd['coils_list'])):
         coils, ccoils = fd['coils_list'][ci], fd['ccoils_list'][ci]
-        coil_type, compensator = fd['coil_types'][ci], fd['compensators'][ci]
-        solution, csolution = fd['solutions'][ci], fd['csolutions'][ci]
-        info = fd['infos'][ci]
         if len(coils) == 0:  # nothing to do
             Bs.append(np.zeros((3 * len(rr), 0)))
             continue
 
-        # Do the actual calculation
+        coil_type, compensator = fd['coil_types'][ci], fd['compensators'][ci]
+        solution, csolution = fd['solutions'][ci], fd['csolutions'][ci]
+        info = fd['infos'][ci]
+
+        # Do the actual forward calculation for a list of coils
         logger.info('Computing %s at %d source location%s '
                     '(free orientations)...'
                     % (coil_type.upper(), len(rr),
                        '' if len(rr) == 1 else 's'))
-        B = fun(rr, mri_rr, mri_Q, coils, solution, srr,
-                n_jobs, coil_type)
+        B = fun(rr, mri_rr, mri_Q, coils, solution, bem_rr, n_jobs, coil_type)
 
         # Compensate if needed (only done for MEG systems w/compensation)
         if compensator is not None:
             # Compute the field in the compensation coils
-            work = fun(rr, mri_rr, mri_Q, ccoils, csolution, srr,
+            work = fun(rr, mri_rr, mri_Q, ccoils, csolution, bem_rr,
                        n_jobs, coil_type)
             # Combine solutions so we can do the compensation
             both = np.zeros((work.shape[0], B.shape[1] + work.shape[1]))
@@ -590,11 +726,32 @@ def _compute_forwards(rr, bem, coils_list, ccoils_list,
 
     This effectively combines compute_forward_meg and compute_forward_eeg
     from MNE-C.
+
+    Parameters
+    ----------
+    rr : ndarray, shape(n_sources, 3)
+        Source space dipole positions
+    bem : dict
+        bem['solution'] = ndarray, shape = (n_BEM_verts x n_BEM_verts).
+    surfs : list, len(3)
+        3 surfaces containing tri geometry info
+    info : list, len(2)
+        infos[0] is MEG info, infos[1] is EEG info
+
+    Returns
+    -------
+    Bs : list
+        Each element contains ndarray, shape(3*n_sources, n_sensors) where
+        n_sensors depends on which channel types are requested (MEG and/or EEG)
     """
+
     # These are split into two steps to save (potentially) a lot of time
     # when e.g. dipole fitting
     fwd_data = dict(coils_list=coils_list, ccoils_list=ccoils_list,
                     infos=infos, coil_types=coil_types)
+    import pdb; pdb.set_trace()
     _prep_field_computation(rr, bem, fwd_data, n_jobs)
+    pdb.set_trace()
     Bs = _compute_forwards_meeg(rr, fwd_data, n_jobs)
+    pdb.set_trace()
     return Bs
