@@ -63,21 +63,14 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         Figure to apply changes to.
     """
     import matplotlib.pyplot as plt
-    if fig is None:
-        fig = plt.gcf()
+    fig = plt.gcf() if fig is None else fig
 
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
         fig.canvas.draw()
-        fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except:
-        msg = ('Matplotlib function \'tight_layout\'%s.'
-               ' Skipping subpplot adjusment.')
-        if not hasattr(plt, 'tight_layout'):
-            case = ' is not available'
-        else:
-            case = (' is not supported by your backend: `%s`'
-                    % plt.get_backend())
-        warn(msg % case)
+        fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+    except Exception:
+        warn('Matplotlib function \'tight_layout\' is not supported.'
+             ' Skipping subpplot adjusment.')
 
 
 def _check_delayed_ssp(container):
