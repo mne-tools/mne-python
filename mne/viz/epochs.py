@@ -480,6 +480,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
+    from matplotlib.collections import LineCollection
     params = dict()
     scalings = _handle_default('scalings_plot_raw', scalings)
     scalings['eog'] = 1e6
@@ -539,13 +540,21 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_vscroll.set_title('Ch.')
 
     # store these so they can be fixed on resize
-    lines = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
-             for _ in range(n_channels)]
+    length = len(epochs.times)
+    lines = list()
+    line = [(0, 0) for x in range(length)]
+    for channel in range(n_channels):
+        lc = LineCollection(np.array([line, ] * len(epochs)), linewidths=0.5,
+                            linestyles='solid')
+        ax.add_collection(lc)
+        lines.append(lc)
+
     event_line = ax.plot([np.nan], color='blue')[0]
     params['event_line'] = event_line
     params['epochs'] = epochs
     params['lines'] = lines
     params['n_channels'] = n_channels
+    params['n_epochs'] = n_epochs
     params['fig'] = fig
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
@@ -559,26 +568,24 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['ch_names'] = epochs.ch_names
     params['picks'] = picks
     params['ch_names'] = [epochs.info['ch_names'][x] for x in picks]
+    params['bads'] = list()
 
     # concatenation
     epoch_data = np.concatenate(data, axis=1)
 
     params['data'] = epoch_data
-
     params['times'] = np.arange(0, len(data) * len(epochs.times), 1)
-    ylim = [total_channels * 2 + 1, 0]
 
+    ylim = [total_channels * 2 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + 5
     params['offsets'] = offsets
 
-    length = len(epochs.times)
     for i in range(n_epochs):
-        if i % 2 != 1:  # every second area painted blue
-            continue
-        ax.fill_betweenx(ylim, i * length, i * length + length, alpha=0.2,
-                         facecolor='b')
+        if i % 2 == 1:  # every second area painted blue
+            ax.fill_betweenx(ylim, i * length, i * length + length, alpha=0.2,
+                             facecolor='b')
     epoch_times = np.arange(0, len(params['times']), length)
     params['epoch_times'] = epoch_times
 
@@ -613,8 +620,11 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
     callback_click = partial(_mouse_click, params=params)
     fig.canvas.mpl_connect('button_press_event', callback_click)
+    callback_key = partial(_plot_onkey, params=params)
+    fig.canvas.mpl_connect('key_press_event', callback_key)
 
     _plot_traces(params)
+    plt.tight_layout()
     if show:
         plt.show(block=block)
         return fig
@@ -723,8 +733,12 @@ def _plot_traces(params):
     lines = params['lines']
     data = params['data']
     offsets = params['offsets']
-    # do the plotting
+
     tick_list = []
+    start_idx = int(params['t_start'] / len(params['epochs'].times))
+    labels = params['labels'][start_idx:]
+    params['ax'].set_xticklabels(labels)
+    # do the plotting
     for ii in range(n_channels):
         ch_ind = ii + params['ch_start']
         if ii >= len(lines):
@@ -736,15 +750,14 @@ def _plot_traces(params):
             offset = offsets[ii]
             end = params['t_start'] + params['duration']
             this_data = data[ch_ind][params['t_start']:end]
-            start_idx = params['t_start'] / len(params['epochs'].times)
-            labels = params['labels'][start_idx:]
-            params['ax'].set_xticklabels(labels)
 
-            # subtraction here gets corect orientation for flipped ylim
+            # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
-            lines[ii].set_ydata(ydata)
             xdata = params['times'][:params['duration']]
-            lines[ii].set_xdata(xdata)
+            segments = np.split(np.array(zip(xdata, ydata)),
+                                params['n_epochs'])
+
+            lines[ii].set_segments(segments)
             vars(lines[ii])['ch_name'] = ch_name
             color = params['color'][types[ch_ind]]
             vars(lines[ii])['def_color'] = params['color'][types[ch_ind]]
@@ -823,6 +836,39 @@ def _mouse_click(event, params):
         times = params['epoch_times']
         xdata = times.flat[np.abs(times - event.xdata).argmin()]
         _plot_window(xdata, params)
+    # main axes
+    elif event.inaxes == params['ax']:
+        _pick_bad_epochs(event, params)
+
+
+def _plot_onkey(event, params):
+    """
+    Key presses.
+    """
+    if event.key == 'down':
+        orig_start = params['ch_start']
+        if orig_start + params['n_channels'] >= len(params['types']):
+            return
+        else:
+            params['ch_start'] = orig_start + params['n_channels']
+            _plot_traces(params)
+    elif event.key == 'up':
+        orig_start = params['ch_start']
+        if orig_start - params['n_channels'] <= 0:
+            params['ch_start'] = 0
+        else:
+            params['ch_start'] -= params['n_channels']
+        _plot_traces(params)
+    elif event.key == 'left':
+        sample = params['t_start'] - params['duration']
+        sample = np.max([0, sample])
+        _plot_window(sample, params)
+    elif event.key == 'right':
+        sample = params['t_start'] + params['duration']
+        sample = np.min([sample, params['times'][-1] - params['duration']])
+        times = params['epoch_times']
+        xdata = times.flat[np.abs(times - sample).argmin()]
+        _plot_window(xdata, params)
 
 
 def _channels_changed(params):
@@ -834,3 +880,16 @@ def _channels_changed(params):
         params['ch_start'] = len(params['ch_names'])
         params['ch_start'] -= rem if rem != 0 else params['n_channels']
     _plot_traces(params)
+
+
+def _pick_bad_epochs(event, params):
+    """Helper for selecting / dropping bad epochs"""
+    x = event.x
+    epoch_times = params['epoch_times']
+    ind = np.searchsorted(params['epoch_times'], x)
+    for l in event.inaxes.lines:
+        if ind == len(epoch_times) - 1:
+            pass  # segment = l.data[epoch_times[ind]:]
+        else:
+            pass  # segment = l.data[epoch_times[ind]:epoch_times[ind + 1]]
+        params['bads'].append(ind)
