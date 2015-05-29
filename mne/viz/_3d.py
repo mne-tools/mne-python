@@ -13,7 +13,7 @@ from __future__ import print_function
 
 from ..externals.six import string_types, advance_iterator
 
-import os
+import os.path as op
 import inspect
 import warnings
 from itertools import cycle
@@ -565,14 +565,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         scale_pts = ctrl_pts
         transparent = True if transparent is None else transparent
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-    subject = _check_subject(stc.subject, subject, False)
-    if subject is None:
-        if 'SUBJECT' in os.environ:
-            subject = os.environ['SUBJECT']
-        else:
-            raise ValueError('SUBJECT environment variable not set')
-
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
@@ -837,8 +832,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    fname = os.path.join(subjects_dir, subject, 'bem',
-                         'inner_skull.surf')
+    fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
     points, faces = read_surface(fname)
     points = apply_trans(trans['trans'], points * 1e-3)
 
