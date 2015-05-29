@@ -1,5 +1,5 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
-#          Jussi Nurminen (jnu@iki.fi)
+#          Jussi Nurminen <jnu@iki.fi>
 
 # This code was adapted and relicensed (with BSD form) with permission from
 # Jussi Nurminen
@@ -127,8 +127,8 @@ def get_num_harmonics(in_order, out_order):
 
     #TODO: Eventually, reuse code in field_interpolation
 
-    return in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
-
+    M = in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
+    return M
 
 def _alegendre_deriv(degree, order, val):
     """
@@ -160,7 +160,7 @@ def _alegendre_deriv(degree, order, val):
                 lpmv(order, degree - 1, val)) / (1 - val ** 2)
 
 
-def _grad_in_components(degree, order, rad, az, pol, lut_func):
+def _grad_in_components(degree, order, rad, az, pol, lut_fun):
     """
     Compute gradient of in-component of V(r) spherical expansion having form
     Ylm(pol, az) / (rad ** (degree + 1))
@@ -210,7 +210,7 @@ def _grad_in_components(degree, order, rad, az, pol, lut_func):
     return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), order)
 
 
-def _grad_out_components(degree, order, rad, az, pol):
+def _grad_out_components(degree, order, rad, az, pol, lut_fun):
     """
     Compute gradient of RHS of V(r) spherical expansion having form
     Ylm(azimuth, polar) * (radius ** degree)
