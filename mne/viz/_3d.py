@@ -389,16 +389,15 @@ def _limits_to_control_points(clim, stc_data, colormap):
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
-            colormap = 'hot'
+            colormap = 'mne' if (stc_data < 0).any() else 'hot'
         else:
             if 'lims' in clim:
                 colormap = 'hot'
-            else:
+            else:  # 'pos_lims' in clim
                 colormap = 'mne'
     if clim == 'auto':
         # Set upper and lower bound based on percent, and get average between
-        ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
-        ctrl_pts = np.insert(ctrl_pts, 1, np.average(ctrl_pts))
+        ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
@@ -409,7 +408,10 @@ def _limits_to_control_points(clim, stc_data, colormap):
             ctrl_pts = np.percentile(np.abs(stc_data),
                                      list(np.abs(clim[limit_key])))
         elif clim['kind'] == 'value':
-            ctrl_pts = list(clim[limit_key])
+            ctrl_pts = np.array(clim[limit_key])
+            if (np.diff(ctrl_pts) < 0).any():
+                raise ValueError('value colormap limits must be strictly '
+                                 'nondecreasing')
         else:
             raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
@@ -418,10 +420,20 @@ def _limits_to_control_points(clim, stc_data, colormap):
     if len(ctrl_pts) != 3:
         raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
                          ' 3' % len(ctrl_pts))
-    elif len(set(ctrl_pts)) != 3:
-        raise ValueError('Too few unique control points (need 3, got %s). '
-                         'Is there enough data to create three unique control '
-                         'point values?' % (ctrl_pts,))
+    ctrl_pts = np.array(ctrl_pts, float)
+    if len(set(ctrl_pts)) != 3:
+        if len(set(ctrl_pts)) == 1:  # three points match
+            if ctrl_pts[0] == 0:  # all are zero
+                warnings.warn('All data were zero')
+                ctrl_pts = np.arange(3, dtype=float)
+            else:
+                ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
+        else:  # two points match
+            # if points one and two are identical, add a tiny bit to the
+            # control point two; if points two and three are identical,
+            # subtract a tiny bit from point two.
+            bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
+            ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
     return ctrl_pts, colormap
 

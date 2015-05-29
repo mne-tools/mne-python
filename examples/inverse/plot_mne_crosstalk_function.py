@@ -57,16 +57,13 @@ stc_ctf_dspm = cross_talk_function(
     signed=False, mode=mode, n_svd_comp=n_svd_comp)
 
 time_label = "MNE %d"
-clim = dict(kind='percent', lims=[95, 99.75, 100])
-brain_mne = stc_ctf_mne.plot(surface='inflated', hemi='rh',
-                             subjects_dir=subjects_dir,
-                             time_label=time_label, clim=clim,
+brain_mne = stc_ctf_mne.plot(hemi='rh', subjects_dir=subjects_dir,
+                             time_label=time_label,
                              figure=mlab.figure(size=(500, 500)))
 
 time_label = "dSPM %d"
-brain_dspm = stc_ctf_dspm.plot(surface='inflated', hemi='rh',
-                               subjects_dir=subjects_dir,
-                               time_label=time_label, clim=clim,
+brain_dspm = stc_ctf_dspm.plot(hemi='rh', subjects_dir=subjects_dir,
+                               time_label=time_label,
                                figure=mlab.figure(size=(500, 500)))
 
 # Cross-talk functions for MNE and dSPM (and sLORETA) have the same shapes

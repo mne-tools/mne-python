@@ -78,8 +78,7 @@ plt.title('DICS time course of the 30 largest sources.')
 plt.show()
 
 # Plot brain in 3D with PySurfer if available
-brain = stc.plot(surface='inflated', hemi='rh', subjects_dir=subjects_dir,
-                 clim='auto')
+brain = stc.plot(hemi='rh', subjects_dir=subjects_dir)
 brain.set_data_time_index(180)
 brain.show_view('lateral')
 

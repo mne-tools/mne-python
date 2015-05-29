@@ -96,7 +96,7 @@ plt.show()
 
 ###############################################################################
 # plot brain in 3D with PySurfer if available
-brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir, clim='auto')
+brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 
 # show both labels
