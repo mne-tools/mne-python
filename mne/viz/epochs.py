@@ -481,7 +481,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     params = dict()
-    scalings = _handle_default('scalings', scalings)
+    scalings = _handle_default('scalings_plot_raw', scalings)
+    scalings['eog'] = 1e6
     color = _handle_default('color', None)
     duration = len(epochs.times) * n_epochs
     epoch_data = epochs.get_data()
@@ -502,10 +503,14 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
 
     # preallocation needed for min / max scaling
     total_channels = len(picks)
-    data = np.zeros((len(epochs.events), total_channels, len(times)))
+    data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
+
     for ii, epoch in enumerate(epoch_data):
-        for jj, (this_type, this_channel) in enumerate(zip(types, epoch)):
-            data[ii, jj] = this_channel / scalings[this_type]
+        j = 0
+        for jj, this_channel in enumerate(epoch):
+            if jj in picks:
+                data[ii, j] = this_channel / scalings[types[0]]
+                j += 1
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -530,7 +535,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_vscroll.add_patch(vsel_patch)
     params['vsel_patch'] = vsel_patch
 
-    ax_vscroll.set_ylim(len(epochs.ch_names), 0)
+    ax_vscroll.set_ylim(len(types), 0)
     ax_vscroll.set_title('Ch.')
 
     # store these so they can be fixed on resize
@@ -553,13 +558,14 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['color'] = color
     params['ch_names'] = epochs.ch_names
     params['picks'] = picks
+    params['ch_names'] = [epochs.info['ch_names'][x] for x in picks]
 
     # concatenation
-    epoch_data = np.concatenate(epoch_data, axis=1)
+    epoch_data = np.concatenate(data, axis=1)
 
     params['data'] = epoch_data
 
-    params['times'] = np.arange(0, total_channels * len(epochs.times), 1)
+    params['times'] = np.arange(0, len(data) * len(epochs.times), 1)
     ylim = [total_channels * 2 + 1, 0]
 
     # make shells for plotting traces
@@ -712,10 +718,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
-    epochs = params['epochs']
     n_channels = params['n_channels']
     types = params['types']
-    scalings = params['scalings']
     lines = params['lines']
     data = params['data']
     offsets = params['offsets']
@@ -727,7 +731,7 @@ def _plot_traces(params):
             break
         elif ch_ind < len(params['picks']):
             # scale to fit
-            ch_name = epochs.ch_names[ch_ind]
+            ch_name = params['ch_names'][ch_ind]
             tick_list += [ch_name]
             offset = offsets[ii]
             end = params['t_start'] + params['duration']
@@ -737,8 +741,10 @@ def _plot_traces(params):
             params['ax'].set_xticklabels(labels)
 
             # subtraction here gets corect orientation for flipped ylim
-            lines[ii].set_ydata(offset - this_data * scalings[types[ch_ind]])
-            lines[ii].set_xdata(params['times'][:params['duration']])
+            ydata = offset - this_data
+            lines[ii].set_ydata(ydata)
+            xdata = params['times'][:params['duration']]
+            lines[ii].set_xdata(xdata)
             vars(lines[ii])['ch_name'] = ch_name
             color = params['color'][types[ch_ind]]
             vars(lines[ii])['def_color'] = params['color'][types[ch_ind]]

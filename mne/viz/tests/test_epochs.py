@@ -100,6 +100,15 @@ def test_plot_epochs():
     plt.close('all')
 
 
+def test_plot_concat():
+    """ Test concatenated epoch plotting
+    """
+    import matplotlib.pyplot as plt
+    epochs = _get_epochs()
+    epochs.plot_concat(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
+
+
 def test_plot_image_epochs():
     """Test plotting of epochs image
     """
