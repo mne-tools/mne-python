@@ -443,9 +443,11 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
-                       bad_color=(0.8, 0.8, 0.8), n_channels=10,
+                       n_channels=10, bad_color=(0.8, 0.8, 0.8),
                        title_str='#%003i', show=True, block=False):
     """ Visualize single trials.
+
+    Bad epochs can be marked with a left click on top of the epoch.
 
     Parameters
     ----------
@@ -460,14 +462,17 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
              ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     n_epochs : int
-        The number of epochs per view.
+        The number of epochs per view. Defaults to 8.
     n_channels : int
-        The number of channels per view.
+        The number of channels per view. Defaults to 10.
+    bad_color : Tuple
+        A matplotlib-compatible color to use for bad channels. Defaults to
+        (0.8, 0.8, 0.8) (light gray).
     title_str : None | str
         The string formatting to use for axes titles. If None, no titles
         will be shown. Defaults expand to ``#001, #002, ...``
     show : bool
-        Show figure if True.
+        Show figure if True. Defaults to True
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on a
@@ -482,7 +487,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
     from matplotlib.colors import colorConverter
-    params = dict()
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
     duration = len(epochs.times) * n_epochs
@@ -517,7 +521,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     size = get_config('MNE_BROWSE_RAW_SIZE')
     if size is not None:
         size = size.split(',')
-        size = tuple([float(s) for s in size])
+        size = tuple(float(s) for s in size)
     fig = figure_nobar(figsize=size)
     ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title_str, fontsize=12)
@@ -535,7 +539,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w', facecolor='w')
     ax_vscroll.add_patch(vsel_patch)
-    params['vsel_patch'] = vsel_patch
 
     ax_vscroll.set_ylim(len(types), 0)
     ax_vscroll.set_title('Ch.')
@@ -553,52 +556,26 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     for channel in range(n_channels):
         if len(colors) - 1 < channel:
             break
-        lc = LineCollection(np.array([line, ] * len(epochs.events)),
+        lc = LineCollection(np.array([line] * len(epochs.events)),
                             linewidths=0.5, colors=colors[channel])
         ax.add_collection(lc)
         lines.append(lc)
 
-    event_line = ax.plot([np.nan])[0]
-    params['event_line'] = event_line
-    params['epochs'] = epochs
-    params['lines'] = lines
-    params['n_channels'] = n_channels
-    params['n_epochs'] = n_epochs
-    params['fig'] = fig
-    params['ax'] = ax
-    params['ax_hscroll'] = ax_hscroll
-    params['ax_vscroll'] = ax_vscroll
-    params['ch_start'] = 0
-    params['t_start'] = 0
-    params['duration'] = duration
-    params['scalings'] = scalings
-    params['types'] = types
-    params['colors'] = colors
-    params['def_colors'] = typecolors  # don't change at runtime
-    params['ch_names'] = epochs.ch_names
-    params['picks'] = picks
-    params['ch_names'] = [epochs.info['ch_names'][x] for x in picks]
-    params['bad_color'] = bad_color
-    params['bads'] = np.array(list())
-
     # concatenation
     epoch_data = np.concatenate(data, axis=1)
-
-    params['data'] = epoch_data
-    params['times'] = np.arange(0, len(data) * len(epochs.times), 1)
 
     ylim = [total_channels * 2 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + 5
-    params['offsets'] = offsets
 
-    for i in range(n_epochs):
-        if i % 2 == 1:  # every second area painted blue
-            ax.fill_betweenx(ylim, i * length, i * length + length, alpha=0.2,
+    for epoch_idx in range(n_epochs):
+        if epoch_idx % 2 == 1:  # every second area painted blue
+            ax.fill_betweenx(ylim, epoch_idx * length,
+                             epoch_idx * length + length, alpha=0.2,
                              facecolor='y')
-    epoch_times = np.arange(0, len(params['times']), length)
-    params['epoch_times'] = epoch_times
+    times = np.arange(0, len(data) * len(epochs.times), 1)
+    epoch_times = np.arange(0, len(times), length)
 
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
@@ -606,7 +583,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax.set_xticks(ticks)
     labels = [x + 1 for x in range(len(ticks))]  # epoch numbers
     ax.set_xticklabels(labels)
-    params['labels'] = labels
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
 
@@ -624,7 +600,34 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
-    params['hsel_patch'] = hsel_patch
+
+    params = {'vsel_patch': vsel_patch,
+              'epochs': epochs,
+              'lines': lines,
+              'n_channels': n_channels,
+              'n_epochs': n_epochs,
+              'fig': fig,
+              'ax': ax,
+              'ax_hscroll': ax_hscroll,
+              'ax_vscroll': ax_vscroll,
+              'ch_start': 0,
+              't_start': 0,
+              'duration': duration,
+              'scalings': scalings,
+              'types': types,
+              'colors': colors,
+              'def_colors': typecolors,  # don't change at runtime
+              'ch_names': epochs.ch_names,
+              'picks': picks,
+              'bad_color': bad_color,
+              'bads': np.array(list()),
+              'ch_names': [epochs.info['ch_names'][x] for x in picks],
+              'hsel_patch': hsel_patch,
+              'data': epoch_data,
+              'times': times,
+              'epoch_times': epoch_times,
+              'offsets': offsets,
+              'labels': labels}
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
@@ -635,7 +638,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     fig.canvas.mpl_connect('key_press_event', callback_key)
 
     _plot_traces(params)
-    plt.tight_layout()
+    tight_layout(fig=fig)
     if show:
         plt.show(block=block)
         return fig
@@ -744,7 +747,7 @@ def _plot_traces(params):
     data = params['data']
     offsets = params['offsets']
 
-    tick_list = []
+    tick_list = list()
     start_idx = int(params['t_start'] / len(params['epochs'].times))
     labels = params['labels'][start_idx:]
     params['ax'].set_xticklabels(labels)
@@ -784,7 +787,7 @@ def _plot_traces(params):
 
 
 def _plot_onscroll(event, params):
-    """Scroll events."""
+    """Function to handle scroll events."""
     orig_start = params['ch_start']
     if event.step < 0:
         params['ch_start'] = min(params['ch_start'] + params['n_channels'],
@@ -810,7 +813,7 @@ def _plot_window(value, params):
 
 
 def _mouse_click(event, params):
-    """Mouse click events."""
+    """Function to handle mouse click events."""
     if event.inaxes is None or event.button != 1:
         return
     # vertical scroll bar changed
@@ -831,21 +834,13 @@ def _mouse_click(event, params):
 
 
 def _plot_onkey(event, params):
-    """Key presses."""
+    """Function to handle key presses."""
     if event.key == 'down':
-        orig_start = params['ch_start']
-        if orig_start + params['n_channels'] >= len(params['types']):
-            return
-        else:
-            params['ch_start'] = orig_start + params['n_channels']
-            _plot_traces(params)
+        params['ch_start'] += params['n_channels']
+        _channels_changed(params)
     elif event.key == 'up':
-        orig_start = params['ch_start']
-        if orig_start - params['n_channels'] <= 0:
-            params['ch_start'] = 0
-        else:
-            params['ch_start'] -= params['n_channels']
-        _plot_traces(params)
+        params['ch_start'] -= params['n_channels']
+        _channels_changed(params)
     elif event.key == 'left':
         sample = params['t_start'] - params['duration']
         sample = np.max([0, sample])
@@ -859,6 +854,7 @@ def _plot_onkey(event, params):
 
 
 def _channels_changed(params):
+    """Deal with vertical shift of the viewport."""
     if params['ch_start'] >= len(params['ch_names']):
         params['ch_start'] = 0
     elif params['ch_start'] < 0:

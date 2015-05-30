@@ -509,8 +509,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                            show=show, block=block)
 
     def plot_concat(self, picks=None, scalings=None, n_epochs=8,
-                    n_channels=10, title_str='#%003i', show=True, block=False):
+                    n_channels=10, bad_color=(0.8, 0.8, 0.8),
+                    title_str='#%003i', show=True, block=False):
         """Visualize single trials as concatenated data.
+
+        Bad epochs can be marked with a left click on top of the epoch.
 
         Parameters
         ----------
@@ -522,18 +525,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
             emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
         n_epochs : int
-            The number of epochs per view.
+            The number of epochs per view. Defaults to 8.
         n_channels : int
-            The number of channels per view.
+            The number of channels per view. Defaults to 10.
+        bad_color : Tuple
+            A matplotlib-compatible color to use for bad channels. Defaults to
+            (0.8, 0.8, 0.8) (light gray).
         title_str : None | str
             The string formatting to use for axes titles. If None, no titles
             will be shown. Defaults expand to ``#001, #002, ...``.
         show : bool
-            Whether to show the figure or not.
+            Whether to show the figure or not. Defaults to True.
         block : bool
             Whether to halt program execution until the figure is closed.
             Useful for rejecting bad trials on the fly by clicking on a
-            sub plot.
+            sub plot. Defaults to False.
 
         Returns
         -------

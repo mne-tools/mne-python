@@ -101,8 +101,7 @@ def test_plot_epochs():
 
 
 def test_plot_concat():
-    """ Test concatenated epoch plotting
-    """
+    """Test concatenated epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_concat(picks=[0, 2, 3], scalings=None, title_str='%s')
