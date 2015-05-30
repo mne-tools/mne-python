@@ -507,11 +507,11 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
 
     for ii, epoch in enumerate(epoch_data):
-        j = 0
+        pick = 0
         for jj, this_channel in enumerate(epoch):
             if jj in picks:
-                data[ii, j] = this_channel / scalings[types[j]]
-                j += 1
+                data[ii, pick] = this_channel / scalings[types[pick]]
+                pick += 1
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -774,21 +774,7 @@ def _plot_traces(params):
             lines[ii].set_color(params['colors'][ch_ind][start_idx:])
         else:
             lines[ii].set_segments(list())
-    # deal with event lines
-    """
-    if params['epoch_times'] is not None:
-        # find events in the time window
-        epoch_times = params['epoch_times']
-        event_line = params['event_line']
-        xs = list()
-        ys = list()
-        for tt in epoch_times:
-            xs += [tt, tt, np.nan]
-            ylim = params['ax'].get_ylim()
-            ys += [ylim[0], ylim[1], np.nan]
-        event_line.set_xdata(xs)
-        event_line.set_ydata(ys)
-    """
+
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
