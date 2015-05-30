@@ -621,7 +621,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
               'ch_names': epochs.ch_names,
               'picks': picks,
               'bad_color': bad_color,
-              'bads': np.array(list()),
+              'bads': np.array(list(), dtype=int),
               'ch_names': [epochs.info['ch_names'][x] for x in picks],
               'hsel_patch': hsel_patch,
               'data': epoch_data,
@@ -637,6 +637,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     fig.canvas.mpl_connect('button_press_event', callback_click)
     callback_key = partial(_plot_onkey, params=params)
     fig.canvas.mpl_connect('key_press_event', callback_key)
+    callback_close = partial(_close_event, params=params)
+    fig.canvas.mpl_connect('close_event', callback_close)
 
     _plot_traces(params)
     tight_layout(fig=fig)
@@ -770,7 +772,7 @@ def _plot_traces(params):
             xdata = params['times'][:params['duration']]
             num_epochs = np.min([params['n_epochs'],
                                 len(params['epochs'].events)])
-            segments = np.split(np.array(zip(xdata, ydata)), num_epochs)
+            segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
             lines[ii].set_segments(segments)
             vars(lines[ii])['ch_name'] = ch_name
@@ -787,19 +789,6 @@ def _plot_traces(params):
     params['fig'].canvas.draw()
 
 
-def _plot_onscroll(event, params):
-    """Function to handle scroll events."""
-    orig_start = params['ch_start']
-    if event.step < 0:
-        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
-                                 len(params['ch_names']) -
-                                 params['n_channels'])
-    else:  # event.key == 'up':
-        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
-    if orig_start != params['ch_start']:
-        _channels_changed(params)
-
-
 def _plot_window(value, params):
     """Deal with horizontal epoch window."""
     max_times = len(params['times']) - params['duration']
@@ -811,6 +800,52 @@ def _plot_window(value, params):
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
         _plot_traces(params)
+
+
+def _channels_changed(params):
+    """Deal with vertical shift of the viewport."""
+    if params['ch_start'] >= len(params['ch_names']):
+        params['ch_start'] = 0
+    elif params['ch_start'] < 0:
+        # wrap to end
+        rem = len(params['ch_names']) % params['n_channels']
+        params['ch_start'] = len(params['ch_names'])
+        params['ch_start'] -= rem if rem != 0 else params['n_channels']
+    _plot_traces(params)
+
+
+def _pick_bad_epochs(event, params):
+    """Helper for selecting / dropping bad epochs"""
+    start_idx = int(params['t_start'] / 106)
+    xdata = event.xdata
+    xlim = event.inaxes.get_xlim()
+    idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
+    total_epochs = len(params['epochs'].events)
+    if idx > total_epochs - 1:
+        return
+    if idx in params['bads']:
+        params['bads'] = params['bads'][(params['bads'] != idx)]
+        for ii in range(len(params['ch_names'])):
+            params['colors'][ii][idx] = params['def_colors'][ii]
+        _plot_traces(params)
+        return
+    params['bads'] = np.append(params['bads'], idx)
+    for ii in range(len(params['ch_names'])):
+        params['colors'][ii][idx] = params['bad_color']
+    _plot_traces(params)
+
+
+def _plot_onscroll(event, params):
+    """Function to handle scroll events."""
+    orig_start = params['ch_start']
+    if event.step < 0:
+        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
+                                 len(params['ch_names']) -
+                                 params['n_channels'])
+    else:  # event.key == 'up':
+        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
+    if orig_start != params['ch_start']:
+        _channels_changed(params)
 
 
 def _mouse_click(event, params):
@@ -860,31 +895,6 @@ def _plot_onkey(event, params):
         _plot_traces(params)
 
 
-def _channels_changed(params):
-    """Deal with vertical shift of the viewport."""
-    if params['ch_start'] >= len(params['ch_names']):
-        params['ch_start'] = 0
-    elif params['ch_start'] < 0:
-        # wrap to end
-        rem = len(params['ch_names']) % params['n_channels']
-        params['ch_start'] = len(params['ch_names'])
-        params['ch_start'] -= rem if rem != 0 else params['n_channels']
-    _plot_traces(params)
-
-
-def _pick_bad_epochs(event, params):
-    """Helper for selecting / dropping bad epochs"""
-    start_idx = int(params['t_start'] / 106)
-    xdata = event.xdata
-    xlim = event.inaxes.get_xlim()
-    idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
-    if idx in params['bads']:
-        params['bads'] = params['bads'][(params['bads'] != idx)]
-        for ii in range(len(params['ch_names'])):
-            params['colors'][ii][idx] = params['def_colors'][ii]
-        _plot_traces(params)
-        return
-    params['bads'] = np.append(params['bads'], idx)
-    for ii in range(len(params['ch_names'])):
-        params['colors'][ii][idx] = params['bad_color']
-    _plot_traces(params)
+def _close_event(event, params):
+    """Function to drop selected bad epochs. Called on closing of the plot."""
+    params['epochs'].drop_epochs(params['bads'])
