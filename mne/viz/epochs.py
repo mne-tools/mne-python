@@ -443,8 +443,8 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
-                       n_channels=10, title_str='#%003i', show=True,
-                       block=False):
+                       bad_color=(0.8, 0.8, 0.8), n_channels=10,
+                       title_str='#%003i', show=True, block=False):
     """ Visualize single trials.
 
     Parameters
@@ -481,9 +481,9 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib.collections import LineCollection
+    from matplotlib.colors import colorConverter
     params = dict()
     scalings = _handle_default('scalings_plot_raw', scalings)
-    scalings['eog'] = 1e6
     color = _handle_default('color', None)
     duration = len(epochs.times) * n_epochs
     epoch_data = epochs.get_data()
@@ -510,7 +510,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         j = 0
         for jj, this_channel in enumerate(epoch):
             if jj in picks:
-                data[ii, j] = this_channel / scalings[types[0]]
+                data[ii, j] = this_channel / scalings[types[j]]
                 j += 1
 
     # set up plotting
@@ -526,6 +526,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
+
     # populate vertical and horizontal scrollbars
     for ci in range(len(epochs.ch_names)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
@@ -539,17 +540,25 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_vscroll.set_ylim(len(types), 0)
     ax_vscroll.set_title('Ch.')
 
-    # store these so they can be fixed on resize
     length = len(epochs.times)
+    typecolors = [colorConverter.to_rgba(color[c]) for c in types]
+    colors = list()
+    for ii in range(len(typecolors)):
+        colors.append(list())
+        for jj in range(len(epochs.events)):
+            colors[ii].append(typecolors[ii])
     lines = list()
     line = [(0, 0) for x in range(length)]
+
     for channel in range(n_channels):
-        lc = LineCollection(np.array([line, ] * len(epochs)), linewidths=0.5,
-                            linestyles='solid')
+        if len(colors) - 1 < channel:
+            break
+        lc = LineCollection(np.array([line, ] * len(epochs.events)),
+                            linewidths=0.5, colors=colors[channel])
         ax.add_collection(lc)
         lines.append(lc)
 
-    event_line = ax.plot([np.nan], color='blue')[0]
+    event_line = ax.plot([np.nan])[0]
     params['event_line'] = event_line
     params['epochs'] = epochs
     params['lines'] = lines
@@ -564,11 +573,13 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     params['duration'] = duration
     params['scalings'] = scalings
     params['types'] = types
-    params['color'] = color
+    params['colors'] = colors
+    params['def_colors'] = typecolors  # don't change at runtime
     params['ch_names'] = epochs.ch_names
     params['picks'] = picks
     params['ch_names'] = [epochs.info['ch_names'][x] for x in picks]
-    params['bads'] = list()
+    params['bad_color'] = bad_color
+    params['bads'] = np.array(list())
 
     # concatenation
     epoch_data = np.concatenate(data, axis=1)
@@ -585,7 +596,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     for i in range(n_epochs):
         if i % 2 == 1:  # every second area painted blue
             ax.fill_betweenx(ylim, i * length, i * length + length, alpha=0.2,
-                             facecolor='b')
+                             facecolor='y')
     epoch_times = np.arange(0, len(params['times']), length)
     params['epoch_times'] = epoch_times
 
@@ -729,7 +740,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
     n_channels = params['n_channels']
-    types = params['types']
     lines = params['lines']
     data = params['data']
     offsets = params['offsets']
@@ -754,19 +764,18 @@ def _plot_traces(params):
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
             xdata = params['times'][:params['duration']]
-            segments = np.split(np.array(zip(xdata, ydata)),
-                                params['n_epochs'])
+            num_epochs = np.min([params['n_epochs'],
+                                len(params['epochs'].events)])
+            segments = np.split(np.array(zip(xdata, ydata)), num_epochs)
 
             lines[ii].set_segments(segments)
             vars(lines[ii])['ch_name'] = ch_name
-            color = params['color'][types[ch_ind]]
-            vars(lines[ii])['def_color'] = params['color'][types[ch_ind]]
-            lines[ii].set_color(color)
+            start_idx = int(params['t_start'] / 106)
+            lines[ii].set_color(params['colors'][ch_ind][start_idx:])
         else:
-            # "remove" lines
-            lines[ii].set_xdata([])
-            lines[ii].set_ydata([])
+            lines[ii].set_segments(list())
     # deal with event lines
+    """
     if params['epoch_times'] is not None:
         # find events in the time window
         epoch_times = params['epoch_times']
@@ -779,7 +788,7 @@ def _plot_traces(params):
             ys += [ylim[0], ylim[1], np.nan]
         event_line.set_xdata(xs)
         event_line.set_ydata(ys)
-
+    """
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
                           params['times'][0] + params['duration'], False)
@@ -789,9 +798,7 @@ def _plot_traces(params):
 
 
 def _plot_onscroll(event, params):
-    """
-    Scroll events.
-    """
+    """Scroll events."""
     orig_start = params['ch_start']
     if event.step < 0:
         params['ch_start'] = min(params['ch_start'] + params['n_channels'],
@@ -804,9 +811,7 @@ def _plot_onscroll(event, params):
 
 
 def _plot_window(value, params):
-    """
-    Deal with horizontal epoch window.
-    """
+    """Deal with horizontal epoch window."""
     max_times = len(params['times']) - params['duration']
     if value > max_times:
         value = len(params['times']) - params['duration']
@@ -819,9 +824,7 @@ def _plot_window(value, params):
 
 
 def _mouse_click(event, params):
-    """
-    Mouse click events.
-    """
+    """Mouse click events."""
     if event.inaxes is None or event.button != 1:
         return
     # vertical scroll bar changed
@@ -842,9 +845,7 @@ def _mouse_click(event, params):
 
 
 def _plot_onkey(event, params):
-    """
-    Key presses.
-    """
+    """Key presses."""
     if event.key == 'down':
         orig_start = params['ch_start']
         if orig_start + params['n_channels'] >= len(params['types']):
@@ -884,12 +885,17 @@ def _channels_changed(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
-    x = event.x
-    epoch_times = params['epoch_times']
-    ind = np.searchsorted(params['epoch_times'], x)
-    for l in event.inaxes.lines:
-        if ind == len(epoch_times) - 1:
-            pass  # segment = l.data[epoch_times[ind]:]
-        else:
-            pass  # segment = l.data[epoch_times[ind]:epoch_times[ind + 1]]
-        params['bads'].append(ind)
+    start_idx = int(params['t_start'] / 106)
+    xdata = event.xdata
+    xlim = event.inaxes.get_xlim()
+    idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
+    if idx in params['bads']:
+        params['bads'] = params['bads'][(params['bads'] != idx)]
+        for ii in range(len(params['ch_names'])):
+            params['colors'][ii][idx] = params['def_colors'][ii]
+        _plot_traces(params)
+        return
+    params['bads'] = np.append(params['bads'], idx)
+    for ii in range(len(params['ch_names'])):
+        params['colors'][ii][idx] = params['bad_color']
+    _plot_traces(params)
