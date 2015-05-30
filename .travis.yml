@@ -16,53 +16,55 @@ env:
     #
     # Run one test (3.4) with a non-default stim channel to make sure our
     # tests are explicit about channels.
+    #
+    # Must force libpng version to avoid silly libpng.so.15 error (MPL 1.1 needs it)
     - PYTHON=2.7 DEPS=full TEST_LOCATION=src
     - PYTHON=2.7 DEPS=nodata TEST_LOCATION=src MNE_DONTWRITE_HOME=true  # also runs flake8
     - PYTHON=3.4 DEPS=full TEST_LOCATION=install MNE_STIM_CHANNEL=STI101
-    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" SKLEARN="=0.11" PANDAS="=0.8"
+    - PYTHON=2.6 DEPS=full TEST_LOCATION=src NUMPY="=1.7" SCIPY="=0.11" MPL="=1.1" LIBPNG="=1.5" SKLEARN="=0.11" PANDAS="=0.8"
     - PYTHON=2.7 DEPS=minimal TEST_LOCATION=src
 
 # Setup anaconda
 before_install:
   - wget -q http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
   - chmod +x miniconda.sh
-  - ./miniconda.sh -b &> /dev/null;
+  - ./miniconda.sh -b
   - export PATH=/home/travis/miniconda/bin:$PATH
-  - conda update --yes --quiet conda &> /dev/null;
+  - conda update --yes --quiet conda
   # We need to create a (fake) display on Travis (allows Mayavi tests to run)
   - export DISPLAY=:99.0
   - /sbin/start-stop-daemon --start --quiet --pidfile /tmp/custom_xvfb_99.pid --make-pidfile --background --exec /usr/bin/Xvfb -- :99 -screen 0 1400x900x24 -ac +extension GLX +render -noreset
 
 install:
-    - conda create -n testenv --yes pip python=$PYTHON &> /dev/null
-    - source activate testenv &> /dev/null
-    - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL > /dev/null
+    - conda create -n testenv --yes pip python=$PYTHON
+    - source activate testenv
+    - conda install --yes --quiet numpy$NUMPY scipy$SCIPY nose matplotlib$MPL libpng$LIBPNG
     # We have to replicate e.g. numpy$NUMPY to ensure the recommended (higher) versions
     # are not automatically installed below with multiple "conda install" calls!
     - if [ "${DEPS}" == "full" ]; then
         curl http://lester.ilabs.uw.edu/files/minimal_cmds.tar.gz | tar xz;
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
-        source ${MNE_ROOT}/bin/mne_setup_sh > /dev/null;
+        source ${MNE_ROOT}/bin/mne_setup_sh;
         sudo apt-get update -qq;
         sudo apt-get install -qq -y libxp6;
-        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY;
+        conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY libpng$LIBPNG matplotlib$MPL;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
-          conda install --yes --quiet ipython > /dev/null;
+          conda install --yes --quiet ipython libpng$LIBPNG matplotlib$MPL;
         else
-          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS > /dev/null;
+          conda install --yes --quiet ipython==1.1.0 statsmodels numpy$NUMPY scipy$SCIPY pandas$PANDAS libpng$LIBPNG matplotlib$MPL;
           pip install -q nitime;
           if [ "${PYTHON}" == "2.7" ]; then
-            conda install --yes --quiet mayavi traits > /dev/null;
+            conda install --yes --quiet mayavi traits libpng$LIBPNG matplotlib$MPL;
             pip install -q pysurfer faulthandler;
           fi;
         fi;
       fi;
     - if [ "${DEPS}" == "nodata" ]; then
-        pip install -q flake8 > /dev/null;
+        pip install -q flake8;
       fi;
-    - pip install -q coverage coveralls nose-timer > /dev/null
+    - pip install -q coverage coveralls nose-timer
     # check our versions for the major packages
     - NP_VERSION=`python -c 'import numpy; print(numpy.__version__)'`
     - if [ -n "$NUMPY" ] && [ "${NUMPY:(-3)}" != "${NP_VERSION::3}" ]; then
@@ -81,10 +83,10 @@ install:
       fi;
     # Suppress the parallel outputs for logging cleanliness
     - export MNE_LOGGING_LEVEL=warning
-    - python setup.py build > /dev/null
-    - python setup.py install > /dev/null
+    - python setup.py build
+    - python setup.py install
     - myscripts='browse_raw bti2fiff surf2bem'
-    - for script in $myscripts; do mne $script --help >/dev/null; done;
+    - for script in $myscripts; do mne $script --help; done;
     - SRC_DIR=$(pwd)
     - cd ~
     # Trigger download of testing data. Note that
