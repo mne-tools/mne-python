@@ -435,9 +435,39 @@ def test_write_labels_to_annot():
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
-    # write left and right hemi labels:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+    # create temporary subjects-dir skeleton
+    surf_dir = op.join(subjects_dir, 'sample', 'surf')
+    temp_surf_dir = op.join(tempdir, 'sample', 'surf')
+    os.makedirs(temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'lh.white'), temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'rh.white'), temp_surf_dir)
+    os.makedirs(op.join(tempdir, 'sample', 'label'))
 
+    # test automatic filenames
+    dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
+    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test1')))
+    assert_true(op.exists(dst % ('rh', 'test1')))
+    # lh only
+    for label in labels:
+        if label.hemi == 'lh':
+            break
+    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test2')))
+    assert_true(op.exists(dst % ('rh', 'test2')))
+    # rh only
+    for label in labels:
+        if label.hemi == 'rh':
+            break
+    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test3')))
+    assert_true(op.exists(dst % ('rh', 'test3')))
+    # label alone
+    assert_raises(TypeError, write_labels_to_annot, labels[0], 'sample',
+                  'test4', subjects_dir=tempdir)
+
+    # write left and right hemi labels with filenames:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
     for fname in fnames:
         write_labels_to_annot(labels, annot_fname=fname)
 

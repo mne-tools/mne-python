@@ -1800,6 +1800,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         if n_hemi_labels == 0:
             ctab = np.empty((0, 4), dtype=np.int32)
+            ctab_rgb = ctab[:, :3]
         else:
             hemi_labels.sort(key=lambda label: label.name)
 
