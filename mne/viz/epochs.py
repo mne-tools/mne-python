@@ -448,6 +448,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     """ Visualize single trials.
 
     Bad epochs can be marked with a left click on top of the epoch.
+    The scaling can be adjusted with 'page up' and 'page down'.
 
     Parameters
     ----------
@@ -851,6 +852,12 @@ def _plot_onkey(event, params):
         times = params['epoch_times']
         xdata = times.flat[np.abs(times - sample).argmin()]
         _plot_window(xdata, params)
+    elif event.key == 'pagedown':
+        params['data'] /= 1.1
+        _plot_traces(params)
+    elif event.key == 'pageup':
+        params['data'] *= 1.1
+        _plot_traces(params)
 
 
 def _channels_changed(params):

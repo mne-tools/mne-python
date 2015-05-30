@@ -514,6 +514,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Visualize single trials as concatenated data.
 
         Bad epochs can be marked with a left click on top of the epoch.
+        The scaling can be adjusted with 'page up' and 'page down'.
 
         Parameters
         ----------
