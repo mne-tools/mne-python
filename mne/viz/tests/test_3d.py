@@ -162,8 +162,8 @@ def test_limits_to_control_points():
                   subjects_dir=subjects_dir)
 
     # Test handling of degenerate data
-    plot_source_estimates(stc, clim=dict(kind='value', lims=[0, 0, 1]),
-                                         subjects_dir=subjects_dir)  # ok
+    stc.plot(clim=dict(kind='value', lims=[0, 0, 1]),
+             subjects_dir=subjects_dir)  # ok
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
         # thresholded maps
