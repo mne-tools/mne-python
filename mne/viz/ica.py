@@ -211,10 +211,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
 
     fig, axes = plt.subplots(1)
     ax = axes
-    if isinstance(axes, plt.Axes):
-        axes = [axes]
-    elif isinstance(axes, np.ndarray):
-        axes = list(axes)
+    axes = [axes]
     idxs = [0]
     times = evoked.times * 1e3
 
@@ -252,18 +249,19 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     # in each subplot
     lines = [lines]
     ch_names = evoked.ch_names
+
+    from matplotlib import patheffects
+    path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
+                                           alpha=0.75)]
+    params = dict(axes=axes, texts=texts, lines=lines, idxs=idxs,
+                  ch_names=ch_names, need_draw=False,
+                  path_effects=path_effects)
+    fig.canvas.mpl_connect('pick_event',
+                           partial(_butterfly_onpick, params=params))
+    fig.canvas.mpl_connect('button_press_event',
+                           partial(_butterfly_on_button_press,
+                                   params=params))
     if show:
-        from matplotlib import patheffects
-        path_effects = [patheffects.withStroke(linewidth=2, foreground="w",
-                                               alpha=0.75)]
-        params = dict(axes=axes, texts=texts, lines=lines, idxs=idxs,
-                      ch_names=ch_names, need_draw=False,
-                      path_effects=path_effects)
-        fig.canvas.mpl_connect('pick_event',
-                               partial(_butterfly_onpick, params=params))
-        fig.canvas.mpl_connect('button_press_event',
-                               partial(_butterfly_on_button_press,
-                                       params=params))
         plt.show()
 
     return fig
