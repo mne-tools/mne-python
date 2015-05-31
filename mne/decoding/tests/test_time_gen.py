@@ -156,6 +156,8 @@ def test_generalization_across_time():
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
+    assert_true(np.all([tim for ttime in gat.test_times_['times']
+                        for tim in ttime] == gat.train_times_['times']))
 
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
