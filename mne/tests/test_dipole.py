@@ -142,7 +142,6 @@ def test_len_index_dipoles():
     d1 = dipole[:1]
     _check_dipole(d0, 1)
     _check_dipole(d1, 1)
-    _check_dipole(d1, 1)
     _compare_dipoles(d0, d1)
     mask = dipole.gof > 15
     idx = np.where(mask)[0]
