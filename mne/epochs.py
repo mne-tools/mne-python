@@ -539,8 +539,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Whether to show the figure or not. Defaults to True.
         block : bool
             Whether to halt program execution until the figure is closed.
-            Useful for rejecting bad trials on the fly by clicking on a
-            sub plot. Defaults to False.
+            Useful for rejecting bad trials on the fly by clicking on an epoch.
+            Defaults to False.
 
         Returns
         -------

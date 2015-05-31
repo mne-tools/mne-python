@@ -476,9 +476,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         Show figure if True. Defaults to True
     block : bool
         Whether to halt program execution until the figure is closed.
-        Useful for rejecting bad trials on the fly by clicking on a
-        sub plot.
-
+        Useful for rejecting bad trials on the fly by clicking on an epoch.
+        Defaults to False.
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
@@ -503,6 +502,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
 
+    n_channels = np.min([n_channels, len(picks)])
     times = epochs.times * 1e3
     types = [channel_type(epochs.info, idx) for idx in
              picks]
@@ -524,12 +524,13 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         size = size.split(',')
         size = tuple(float(s) for s in size)
     fig = figure_nobar(figsize=size)
-    ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
+    ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
     ax.set_title(title_str, fontsize=12)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
+    ax.axis([0, duration, 0, 200])
+    ax_hscroll = plt.subplot2grid((10, 15), (9, 0), colspan=14)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
-    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
+    ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
 
     # populate vertical and horizontal scrollbars
@@ -568,7 +569,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ylim = [total_channels * 2 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
-    offsets = np.arange(n_channels) * offset + 5
+    offsets = np.arange(n_channels) * offset + (offset / 2)
 
     for epoch_idx in range(n_epochs):
         if epoch_idx % 2 == 1:  # every second area painted blue
@@ -644,7 +645,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     tight_layout(fig=fig)
     if show:
         plt.show(block=block)
-        return fig
+    return fig
 
 
 @verbose
@@ -897,4 +898,6 @@ def _plot_onkey(event, params):
 
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
+    import matplotlib as plt
     params['epochs'].drop_epochs(params['bads'])
+    plt.close(params['fig'])
