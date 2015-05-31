@@ -510,10 +510,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot_concat(self, picks=None, scalings=None, n_epochs=8,
                     n_channels=10, bad_color=(0.8, 0.8, 0.8),
-                    title_str='#%003i', show=True, block=False):
+                    title=None, show=True, block=False):
         """Visualize single trials as concatenated data.
 
         Bad epochs can be marked with a left click on top of the epoch.
+        Calling this function drops all the selected bad epochs as well as bad
+        epochs marked beforehand with rejection parameters.
         The scaling can be adjusted with 'page up' and 'page down'.
 
         Parameters
@@ -532,9 +534,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         bad_color : Tuple
             A matplotlib-compatible color to use for bad channels. Defaults to
             (0.8, 0.8, 0.8) (light gray).
-        title_str : None | str
-            The string formatting to use for axes titles. If None, no titles
-            will be shown. Defaults expand to ``#001, #002, ...``.
+        title : str | None
+            The title of the window. If None, epochs name or <unknown> will be
+            displayed. Defaults to None.
         show : bool
             Whether to show the figure or not. Defaults to True.
         block : bool
@@ -549,7 +551,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return plot_epochs_concat(self, picks=picks, scalings=scalings,
                                   n_epochs=n_epochs, n_channels=n_channels,
-                                  title_str=title_str, show=show, block=block)
+                                  title=title, show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',

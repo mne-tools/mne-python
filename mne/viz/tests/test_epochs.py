@@ -104,9 +104,9 @@ def test_plot_concat():
     """Test concatenated epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot_concat(picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs.plot_concat(picks=[0, 2, 3], scalings=None, title='Epochs')
     plt.close('all')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs[0].plot(picks=[0, 2, 3], scalings=None)
     plt.close('all')
     fig = plt.gcf()
     fig.canvas.button_press_event(10, 10, 'left')

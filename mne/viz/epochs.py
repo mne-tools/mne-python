@@ -444,10 +444,12 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
 
 def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
                        n_channels=10, bad_color=(0.8, 0.8, 0.8),
-                       title_str='#%003i', show=True, block=False):
+                       title=None, show=True, block=False):
     """ Visualize single trials.
 
     Bad epochs can be marked with a left click on top of the epoch.
+    Calling this function drops all the selected bad epochs as well as bad
+    epochs marked beforehand with rejection parameters.
     The scaling can be adjusted with 'page up' and 'page down'.
 
     Parameters
@@ -469,9 +471,9 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     bad_color : Tuple
         A matplotlib-compatible color to use for bad channels. Defaults to
         (0.8, 0.8, 0.8) (light gray).
-    title_str : None | str
-        The string formatting to use for axes titles. If None, no titles
-        will be shown. Defaults expand to ``#001, #002, ...``
+    title : str | None
+        The title of the window. If None, epochs name or <unknown> will be
+        displayed. Defaults to None.
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -524,9 +526,13 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
+    if title is None:
+        title = epochs.name
+        if len(title) == 0:  # empty list or absent key
+            title = '<unknown>'
     fig = figure_nobar(figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
-    ax.set_title(title_str, fontsize=12)
+    ax.set_title(title, fontsize=12)
     ax.axis([0, duration, 0, 200])
     ax_hscroll = plt.subplot2grid((10, 15), (9, 0), colspan=14)
     ax_hscroll.get_yaxis().set_visible(False)
