@@ -1581,12 +1581,9 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
         else:
             hemis = [hemi]
 
-        annot_fname = list()
-        for hemi in hemis:
-            subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-            fname = op.join(subjects_dir, subject, 'label',
-                            '%s.%s.annot' % (hemi, parc))
-            annot_fname.append(fname)
+        subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+        dst = op.join(subjects_dir, subject, 'label', '%%s.%s.annot' % parc)
+        annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis
 
@@ -1800,6 +1797,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         if n_hemi_labels == 0:
             ctab = np.empty((0, 4), dtype=np.int32)
+            ctab_rgb = ctab[:, :3]
         else:
             hemi_labels.sort(key=lambda label: label.name)
 
