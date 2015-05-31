@@ -106,6 +106,16 @@ def test_plot_concat():
     epochs = _get_epochs()
     epochs.plot_concat(picks=[0, 2, 3], scalings=None, title_str='%s')
     plt.close('all')
+    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
+    fig = plt.gcf()
+    fig.canvas.button_press_event(10, 10, 'left')
+    fig.canvas.button_press_event(10, 10, 'right')
+    fig.canvas.button_press_event(10, 10, 'up')
+    fig.canvas.button_press_event(10, 10, 'down')
+    fig.canvas.button_press_event(10, 10, 'pageup')
+    fig.canvas.button_press_event(10, 10, 'pagedown')
+    plt.close('all')
 
 
 def test_plot_image_epochs():

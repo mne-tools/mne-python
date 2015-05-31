@@ -538,6 +538,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
                                                    facecolor='k',
                                                    edgecolor='k'))
+
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w', facecolor='w')
     ax_vscroll.add_patch(vsel_patch)
@@ -597,6 +598,10 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
+    for epoch_idx in range(len(epoch_times)):
+        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * length, 0),
+                                                   length, 1, facecolor='w',
+                                                   edgecolor='w'))
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
@@ -644,7 +649,10 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     _plot_traces(params)
     tight_layout(fig=fig)
     if show:
-        plt.show(block=block)
+        try:
+            plt.show(block=block)
+        except TypeError:  # not all versions have this
+            plt.show()
     return fig
 
 
@@ -777,7 +785,7 @@ def _plot_traces(params):
 
             lines[ii].set_segments(segments)
             vars(lines[ii])['ch_name'] = ch_name
-            start_idx = int(params['t_start'] / 106)
+            start_idx = int(params['t_start'] / len(params['epochs'].times))
             lines[ii].set_color(params['colors'][ch_ind][start_idx:])
         else:
             lines[ii].set_segments(list())
@@ -817,7 +825,7 @@ def _channels_changed(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
-    start_idx = int(params['t_start'] / 106)
+    start_idx = int(params['t_start'] / len(params['epochs'].times))
     xdata = event.xdata
     xlim = event.inaxes.get_xlim()
     idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
@@ -828,9 +836,11 @@ def _pick_bad_epochs(event, params):
         params['bads'] = params['bads'][(params['bads'] != idx)]
         for ii in range(len(params['ch_names'])):
             params['colors'][ii][idx] = params['def_colors'][ii]
+        params['ax_hscroll'].patches[idx].set_color('w')
         _plot_traces(params)
         return
     params['bads'] = np.append(params['bads'], idx)
+    params['ax_hscroll'].patches[idx].set_color(params['bad_color'])
     for ii in range(len(params['ch_names'])):
         params['colors'][ii][idx] = params['bad_color']
     _plot_traces(params)
