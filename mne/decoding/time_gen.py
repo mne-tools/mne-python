@@ -356,6 +356,7 @@ class GeneralizationAcrossTime(object):
         if self.test_times == 'diagonal':
             test_times = _DecodingTime()
             test_times['slices'] = [[s] for s in self.train_times_['slices']]
+            test_times['times'] = [[s] for s in self.train_times_['times']]
         elif isinstance(self.test_times, dict):
             test_times = copy.deepcopy(self.test_times)
         else:

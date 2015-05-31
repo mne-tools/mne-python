@@ -9,6 +9,7 @@ import os.path as op
 
 from nose.tools import assert_equal, assert_true, assert_raises
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, slow_test
@@ -156,6 +157,8 @@ def test_generalization_across_time():
     scores = gat.score()
     assert_true(scores is gat.scores_)
     assert_equal(np.shape(gat.scores_), (15, 1))
+    assert_array_equal([tim for ttime in gat.test_times_['times']
+                        for tim in ttime], gat.train_times_['times'])
 
     # Test generalization across conditions
     gat = GeneralizationAcrossTime(predict_mode='mean-prediction')
