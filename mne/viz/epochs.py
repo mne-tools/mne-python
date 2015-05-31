@@ -478,6 +478,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on an epoch.
         Defaults to False.
+
     Returns
     -------
     fig : Instance of matplotlib.figure.Figure
@@ -489,6 +490,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     from matplotlib.colors import colorConverter
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
+    n_epochs = np.min([n_epochs, len(epochs.events)])
     duration = len(epochs.times) * n_epochs
     epoch_data = epochs.get_data()
     if picks is None:
@@ -536,8 +538,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     # populate vertical and horizontal scrollbars
     for ci in range(len(epochs.ch_names)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
-                                                   facecolor='k',
-                                                   edgecolor='k'))
+                                                   facecolor=color[types[ci]],
+                                                   edgecolor=color[types[ci]]))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w', facecolor='w')
