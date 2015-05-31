@@ -35,6 +35,14 @@ def _compare_dipoles(orig, new):
     assert_equal(orig.name, new.name)
 
 
+def _check_dipole(dip, n_dipoles):
+    assert_equal(len(dip), n_dipoles)
+    assert_equal(dip.pos.shape, (n_dipoles, 3))
+    assert_equal(dip.ori.shape, (n_dipoles, 3))
+    assert_equal(dip.gof.shape, (n_dipoles,))
+    assert_equal(dip.amplitude.shape, (n_dipoles,))
+
+
 @testing.requires_testing_data
 def test_io_dipoles():
     """Test IO for .dip files
@@ -123,5 +131,24 @@ def test_dipole_fitting():
     assert_true(gc_dists[0] >= gc_dists[1], 'gc-dists (ori): %s' % gc_dists)
     assert_true(amp_errs[0] >= amp_errs[1], 'amplitude errors: %s' % amp_errs)
     # assert_true(gofs[0] <= gofs[1], 'gof: %s' % gofs)
+
+
+@testing.requires_testing_data
+def test_len_index_dipoles():
+    """Test len and indexing of Dipole objects
+    """
+    dipole = read_dipole(fname_dip)
+    d0 = dipole[0]
+    d1 = dipole[:1]
+    _check_dipole(d0, 1)
+    _check_dipole(d1, 1)
+    _check_dipole(d1, 1)
+    _compare_dipoles(d0, d1)
+    mask = dipole.gof > 15
+    idx = np.where(mask)[0]
+    d_mask = dipole[mask]
+    _check_dipole(d_mask, 4)
+    _compare_dipoles(d_mask, dipole[idx])
+
 
 run_tests_if_main(False)
