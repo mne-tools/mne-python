@@ -1583,7 +1583,7 @@ def _get_annot_fname(annot_fname, subject, hemi, parc, subjects_dir):
 
         subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
         dst = op.join(subjects_dir, subject, 'label', '%%s.%s.annot' % parc)
-        annot_fname = [dst % hemi for hemi in hemis]
+        annot_fname = [dst % hemi_ for hemi_ in hemis]
 
     return annot_fname, hemis
 
