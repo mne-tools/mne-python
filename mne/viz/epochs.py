@@ -510,7 +510,6 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
              picks]
 
     # preallocation needed for min / max scaling
-    total_channels = len(picks)
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
 
     for ii, epoch in enumerate(epoch_data):
@@ -536,7 +535,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     ax_vscroll.set_axis_off()
 
     # populate vertical and horizontal scrollbars
-    for ci in range(len(epochs.ch_names)):
+    for ci in range(len(picks)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
                                                    facecolor=color[types[ci]],
                                                    edgecolor=color[types[ci]]))
@@ -569,7 +568,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     # concatenation
     epoch_data = np.concatenate(data, axis=1)
 
-    ylim = [total_channels * 2.0 + 1, 0]
+    ylim = [n_channels * 2.0 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2)
