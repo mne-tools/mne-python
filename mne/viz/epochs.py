@@ -496,8 +496,8 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
             picks = pick_types(epochs.info, misc=True, ref_meg=False,
                                exclude=[])
         else:
-            picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                               exclude=[])
+            picks = pick_types(epochs.info, meg=True, eeg=True, eog=True,
+                               ref_meg=False, exclude=[])
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
@@ -567,7 +567,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
     # concatenation
     epoch_data = np.concatenate(data, axis=1)
 
-    ylim = [total_channels * 2 + 1, 0]
+    ylim = [total_channels * 2.0 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2)
