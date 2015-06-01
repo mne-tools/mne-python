@@ -200,7 +200,7 @@ class Dipole(object):
         selected_amplitude = self.amplitude[idx_slice].copy()
         selected_ori = self.ori[idx_slice, :].copy()
         selected_gof = self.gof[idx_slice].copy()
-        selected_name = str(self.name)
+        selected_name = self.name
 
         new_dipole = Dipole(selected_times, selected_pos,
                             selected_amplitude, selected_ori,
