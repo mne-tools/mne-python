@@ -6,6 +6,7 @@ from __future__ import print_function
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
 
