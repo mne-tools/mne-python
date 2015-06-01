@@ -442,10 +442,8 @@ def test_compute_covariance_auto_reg():
     method_params = dict(factor_analysis=dict(iter_n_components=[30]),
                          pca=dict(iter_n_components=[30]))
 
-    methods = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis',
-               'ledoit_wolf']  # XXX 'pca' fails here!
     with warnings.catch_warnings(record=True) as w:
-        covs = compute_covariance(epochs, method=methods,
+        covs = compute_covariance(epochs, method='auto',
                                   method_params=method_params,
                                   projs=True,
                                   return_estimators=True)
@@ -455,16 +453,20 @@ def test_compute_covariance_auto_reg():
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
+    methods = ['empirical',
+               'factor_analysis',
+               'ledoit_wolf',
+               # 'pca',  XXX FAILS
+               ]
     with warnings.catch_warnings(record=True) as w:
-        cov3 = compute_covariance(epochs, method=['empirical',
-                                                  'factor_analysis'],
+        cov3 = compute_covariance(epochs, method=methods,
                                   method_params=method_params, projs=False,
                                   return_estimators=True)
         warnings.simplefilter('always')
         assert_equal(len(w), 1)
 
     assert_equal(set([c['method'] for c in cov3]),
-                 set(['empirical', 'factor_analysis']))
+                 set(methods))
 
     # projs not allowed with FA or PCA
     assert_raises(ValueError, compute_covariance, epochs, method='pca',
