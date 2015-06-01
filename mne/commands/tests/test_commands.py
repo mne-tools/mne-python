@@ -10,11 +10,12 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_compute_proj_ecg, mne_compute_proj_eog,
                           mne_coreg, mne_flash_bem_model, mne_kit2fiff,
                           mne_make_scalp_surfaces, mne_maxfilter,
-                          mne_report, mne_surf2bem)
+                          mne_report, mne_surf2bem, mne_watershed_bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
-                       requires_mayavi, requires_tvtk, ArgvSetter, slow_test)
+                       requires_mayavi, requires_tvtk, requires_freesurfer,
+                       ArgvSetter, slow_test)
 from mne.io import Raw
-from mne.datasets import testing
+from mne.datasets import testing, sample
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -175,6 +176,35 @@ def test_report():
 def test_surf2bem():
     """Test mne surf2bem"""
     check_usage(mne_surf2bem)
+
+
+@slow_test
+@requires_freesurfer
+def test_watershed_bem():
+    """Test mne watershed bem"""
+    check_usage(mne_watershed_bem)
+    orig_subject_dir = os.getenv('SUBJECTS_DIR', None)
+    orig_subject = os.getenv('SUBJECT', None)
+    # Copy necessary files to tempdir
+    tempdir = _TempDir()
+    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
+    mridata_path = op.join(subjects_dir, 'sample', 'mri')
+    mridata_path_new = op.join(tempdir, 'sample', 'mri')
+    os.mkdir(op.join(tempdir, 'sample'))
+    os.mkdir(mridata_path_new)
+    if op.exists(op.join(mridata_path, 'T1')):
+        shutil.copytree(op.join(mridata_path, 'T1'), op.join(mridata_path_new,
+                        'T1'))
+    if op.exists(op.join(mridata_path, 'T1.mgz')):
+        shutil.copyfile(op.join(mridata_path, 'T1.mgz'),
+                        op.join(mridata_path_new, 'T1.mgz'))
+
+    with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
+                    disable_stdout=False, disable_stderr=False):
+        mne_watershed_bem.run()
+
+    os.environ['SUBJECTS_DIR'] = orig_subject_dir
+    os.environ['SUBJECT'] = orig_subject
 
 
 run_tests_if_main()
