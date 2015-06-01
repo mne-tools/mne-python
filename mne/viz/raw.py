@@ -218,13 +218,11 @@ def _plot_raw_onkey(event, params):
 
 
 def _channels_changed(params):
-    if params['ch_start'] >= len(params['info']['ch_names']):
+    len_channels = len(params['info']['ch_names'])
+    if params['ch_start'] + params['n_channels'] >= len_channels:
+        params['ch_start'] = len_channels - params['n_channels']
+    if params['ch_start'] < 0:
         params['ch_start'] = 0
-    elif params['ch_start'] < 0:
-        # wrap to end
-        rem = len(params['info']['ch_names']) % params['n_channels']
-        params['ch_start'] = len(params['info']['ch_names'])
-        params['ch_start'] -= rem if rem != 0 else params['n_channels']
     params['plot_fun']()
 
 
