@@ -506,6 +506,7 @@ def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
 
+    picks = np.sort(picks)  # to make scaling work properly
     n_channels = np.min([n_channels, len(picks)])
     times = epochs.times * 1e3
     types = [channel_type(epochs.info, idx) for idx in
