@@ -25,12 +25,12 @@ _data_path_doc = """Get path to local copy of {name} dataset
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
         {conf} is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the sample dataset
+        "mne-python/examples" directory is used. If the {name} dataset
         is not found under the given path (e.g., as
         "mne-python/examples/MNE-{name}-data"), the data
         will be automatically downloaded to the specified folder.
     force_update : bool
-        Force update of the sample dataset even if a local copy exists.
+        Force update of the {name} dataset even if a local copy exists.
     update_path : bool | None
         If True, set the {conf} in mne-python
         config to the given path. If None, the user is prompted.
@@ -73,7 +73,7 @@ def _dataset_version(path, name):
     return version
 
 
-def _get_path(path, key):
+def _get_path(path, key, name):
     """Helper to get a dataset path"""
     if path is None:
             # use an intelligent guess if it's not defined
@@ -89,8 +89,8 @@ def _get_path(path, key):
                     os.mkdir(path)
                 except OSError:
                     try:
-                        logger.info("Checking for megsim data in "
-                                    "'~/mne_data'...")
+                        logger.info('Checking for %s data in '
+                                    '"~/mne_data"...' % name)
                         path = op.join(op.expanduser("~"), "mne_data")
                         if not op.exists(path):
                             logger.info("Trying to create "
@@ -107,15 +107,15 @@ def _get_path(path, key):
     return path
 
 
-def _do_path_update(path, update_path, key):
+def _do_path_update(path, update_path, key, name):
     """Helper to update path"""
     path = op.abspath(path)
     if update_path is None:
         if get_config(key, '') != path:
             update_path = True
             msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'sample dataset path in the mne-python config [y]/n? '
-                   % path)
+                   '%s dataset path in the mne-python config [y]/n? '
+                   % (path, name))
             answer = input(msg)
             if answer.lower() == 'n':
                 update_path = False
@@ -138,7 +138,7 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
            'fake': 'MNE_DATASETS_FAKE_PATH',
            }[name]
 
-    path = _get_path(path, key)
+    path = _get_path(path, key, name)
     archive_names = dict(
         sample='MNE-sample-data-processed.tar.gz',
         spm='MNE-spm-face.tar.bz2',
@@ -245,16 +245,17 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         if rm_archive:
             os.remove(archive_name)
 
-    path = _do_path_update(path, update_path, key)
+    path = _do_path_update(path, update_path, key, name)
     path = op.join(path, folder_name)
 
-    # compare the version of the Sample dataset and mne
+    # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
     try:
         from distutils.version import LooseVersion as LV
     except:
-        warn('Could not determine sample dataset version; dataset could\n'
-             'be out of date. Please install the "distutils" package.')
+        warn('Could not determine %s dataset version; dataset could\n'
+             'be out of date. Please install the "distutils" package.'
+             % name)
     else:  # 0.7 < 0.7.git shoud be False, therefore strip
         if check_version and LV(data_version) < LV(mne_version.strip('.git')):
             warn('The {name} dataset (version {current}) is older than '
@@ -273,7 +274,7 @@ def _get_version(name):
 
 
 def has_dataset(name):
-    """Helper for sample dataset presence"""
+    """Helper for dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face',
                 'somato': 'MNE-somato-data',

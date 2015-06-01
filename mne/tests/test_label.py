@@ -695,7 +695,7 @@ def test_morph():
                   subjects_dir, 2)
     assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
                   subjects_dir, 2)
-    label.smooth()  # make sure this runs
+    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data

@@ -10,7 +10,6 @@ from ...utils import _fetch_file, _url_to_local_path, verbose
 from ..utils import _get_path, _do_path_update
 from .urls import (url_match, valid_data_types, valid_data_formats,
                    valid_conditions)
-from ...externals.six import string_types
 
 
 @verbose
@@ -66,9 +65,9 @@ def data_path(url, path=None, force_update=False, update_path=None,
         (2012) MEG-SIM: A Web Portal for Testing MEG Analysis Methods using
         Realistic Simulated and Empirical Data. Neuroinform 10:141-158
     """  # noqa
-
     key = 'MNE_DATASETS_MEGSIM_PATH'
-    path = _get_path(path, key)
+    name = 'MEGSIM'
+    path = _get_path(path, key, name)
     destination = _url_to_local_path(url, op.join(path, 'MEGSIM'))
     destinations = [destination]
 
@@ -97,7 +96,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         z.close()
         destinations = [op.join(decomp_dir, f) for f in files]
 
-    path = _do_path_update(path, update_path, key)
+    path = _do_path_update(path, update_path, key, name)
     return destinations
 
 

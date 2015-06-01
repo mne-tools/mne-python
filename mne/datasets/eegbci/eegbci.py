@@ -3,10 +3,9 @@
 
 import os
 from os import path as op
-from ...externals.six import string_types
-from ...externals.six.moves import input
-from ...utils import (_fetch_file, get_config, set_config, _url_to_local_path,
-                      logger, verbose)
+
+from ..utils import _get_path, _do_path_update
+from ...utils import _fetch_file, _url_to_local_path, verbose
 
 
 EEGMI_URL = 'http://www.physionet.org/physiobank/database/eegmmidb/'
@@ -70,39 +69,8 @@ def data_path(url, path=None, force_update=False, update_path=None,
     """  # noqa
 
     key = 'MNE_DATASETS_EEGBCI_PATH'
-    if path is None:
-        # use an intelligent guess if it's not defined
-        def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
-                                       '..', 'examples'))
-
-        # backward compatibility
-        if get_config(key) is None:
-            key = 'MNE_DATA'
-
-        path = get_config(key, def_path)
-
-        # use the same for all datasets
-        if not op.exists(path) or not os.access(path, os.W_OK):
-            try:
-                os.mkdir(path)
-            except OSError:
-                try:
-                    logger.info("Checking for EEGBCI data in '~/mne_data'...")
-                    path = op.join(op.expanduser("~"), "mne_data")
-                    if not op.exists(path):
-                        logger.info("Trying to create "
-                                    "'~/mne_data' in home directory")
-                        os.mkdir(path)
-                except OSError:
-                    raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an "
-                                  "argument  to data_path() where user has "
-                                  "write permissions, for ex:data_path"
-                                  "('/home/xyz/me2/')" % (path))
-
-    if not isinstance(path, string_types):
-        raise ValueError('path must be a string or None')
-
+    name = 'EEGBCI'
+    path = _get_path(path, key, name)
     destination = _url_to_local_path(url, op.join(path, 'MNE-eegbci-data'))
     destinations = [destination]
 
@@ -115,21 +83,7 @@ def data_path(url, path=None, force_update=False, update_path=None,
         _fetch_file(url, destination, print_destination=False)
 
     # Offer to update the path
-    path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
-            update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'EEGBCI dataset path in the mne-python config ([y]/n)? '
-                   % path)
-            answer = input(msg)
-            if answer.lower() == 'n':
-                update_path = False
-        else:
-            update_path = False
-    if update_path is True:
-        set_config(key, path)
-
+    _do_path_update(path, update_path, key, name)
     return destinations
 
 
