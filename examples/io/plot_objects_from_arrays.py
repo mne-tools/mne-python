@@ -76,7 +76,7 @@ epochs = mne.EpochsArray(epochs_data, info=info, events=events,
 
 picks = mne.pick_types(info, meg=True, eeg=False, misc=False)
 
-epochs.plot(picks=picks, show=True, block=True)
+epochs.plot_trellis(picks=picks, show=True, block=True)
 
 
 ###############################################################################

@@ -35,7 +35,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import (plot_epochs, plot_epochs_concat, _drop_log_stats,
+from .viz import (plot_epochs, plot_epochs_trellis, _drop_log_stats,
                   plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash)
@@ -473,8 +473,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def plot(self, epoch_idx=None, picks=None, scalings=None,
-             title_str='#%003i', show=True, block=False):
+    def plot_trellis(self, epoch_idx=None, picks=None, scalings=None,
+                     title_str='#%003i', show=True, block=False):
         """Visualize single trials using Trellis plot.
 
         Parameters
@@ -504,14 +504,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_epochs(self, epoch_idx=epoch_idx, picks=picks,
-                           scalings=scalings, title_str=title_str,
-                           show=show, block=block)
+        return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
+                                   scalings=scalings, title_str=title_str,
+                                   show=show, block=block)
 
-    def plot_concat(self, picks=None, scalings=None, n_epochs=8,
-                    n_channels=10, bad_color=(0.8, 0.8, 0.8),
-                    title=None, show=True, block=False):
-        """Visualize single trials as concatenated data.
+    def plot(self, picks=None, scalings=None, n_epochs=8, n_channels=10,
+             bad_color=(0.8, 0.8, 0.8), title=None, show=True, block=False):
+        """Visualize single trials.
 
         Bad epochs can be marked with a left click on top of the epoch.
         Calling this function drops all the selected bad epochs as well as bad
@@ -549,9 +548,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_epochs_concat(self, picks=picks, scalings=scalings,
-                                  n_epochs=n_epochs, n_channels=n_channels,
-                                  title=title, show=show, block=block)
+        return plot_epochs(self, picks=picks, scalings=scalings,
+                           n_epochs=n_epochs, n_channels=n_channels,
+                           title=title, show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',

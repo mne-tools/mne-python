@@ -306,8 +306,8 @@ def _epochs_axes_onclick(event, params):
     ax.get_figure().canvas.draw()
 
 
-def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
-                title_str='#%003i', show=True, block=False):
+def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
+                        title_str='#%003i', show=True, block=False):
     """ Visualize single trials using Trellis plot.
 
     Parameters
@@ -443,9 +443,9 @@ def plot_epochs(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_epochs_concat(epochs, picks=None, scalings=None, n_epochs=8,
-                       n_channels=10, bad_color=(0.8, 0.8, 0.8),
-                       title=None, show=True, block=False):
+def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
+                n_channels=10, bad_color=(0.8, 0.8, 0.8),
+                title=None, show=True, block=False):
     """ Visualize single trials.
 
     Bad epochs can be marked with a left click on top of the epoch.

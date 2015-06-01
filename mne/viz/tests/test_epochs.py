@@ -73,14 +73,13 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-def test_plot_epochs():
-    """ Test plotting epochs
-    """
+def test_plot_trellis():
+    """ Test plotting epochs using Trellis plot"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs.plot_trellis([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     plt.close('all')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs[0].plot_trellis(picks=[0, 2, 3], scalings=None, title_str='%s')
     plt.close('all')
     # test clicking: should increase coverage on
     # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
@@ -88,8 +87,9 @@ def test_plot_epochs():
     fig.canvas.button_press_event(10, 10, 'left')
     # now let's add a bad channel
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
-    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
-    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    epochs.plot_trellis([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    fig = epochs[0].plot_trellis(picks=[0, 2, 3], scalings=None,
+                                 title_str='%s')
     # fake a click
     event = namedtuple('Event', 'inaxes')
     func = _get_presser(fig)
@@ -101,11 +101,11 @@ def test_plot_epochs():
     plt.close('all')
 
 
-def test_plot_concat():
-    """Test concatenated epoch plotting"""
+def test_plot_epochs():
+    """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot_concat(picks=[0, 2, 3], scalings=None, title='Epochs')
+    epochs.plot(picks=[0, 2, 3], scalings=None, title='Epochs')
     plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None)
     plt.close('all')
@@ -118,7 +118,7 @@ def test_plot_concat():
     fig.canvas.button_press_event(10, 10, 'pagedown')
     plt.close('all')
     with warnings.catch_warnings(record=True):
-        fig = epochs.plot_concat()
+        fig = epochs.plot()
         # test mouse clicks
         x = fig.get_axes()[0].get_xlim()[1] / 2
         y = fig.get_axes()[0].get_ylim()[0] / 2

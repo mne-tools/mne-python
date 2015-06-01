@@ -49,4 +49,4 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6),
                     preload=True)
 
-epochs.plot_concat(n_channels=20, n_epochs=10, block=True)
+epochs.plot(n_channels=20, n_epochs=10, block=True)
