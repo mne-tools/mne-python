@@ -832,13 +832,10 @@ def _plot_window(value, params):
 
 def _channels_changed(params):
     """Deal with vertical shift of the viewport."""
-    if params['ch_start'] >= len(params['ch_names']):
-        params['ch_start'] = 0
+    if params['ch_start'] + params['n_channels'] > len(params['ch_names']):
+        params['ch_start'] = len(params['ch_names']) - params['n_channels']
     elif params['ch_start'] < 0:
-        # wrap to end
-        rem = len(params['ch_names']) % params['n_channels']
-        params['ch_start'] = len(params['ch_names'])
-        params['ch_start'] -= rem if rem != 0 else params['n_channels']
+        params['ch_start'] = 0
     _plot_traces(params)
 
 
