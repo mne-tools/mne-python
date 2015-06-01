@@ -761,26 +761,38 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
+    import matplotlib as mpl
+    ax = params['ax']
+    ylim = ax.get_ylim()
     n_channels = params['n_channels']
     lines = params['lines']
     data = params['data']
     offsets = params['offsets']
 
+    length = len(params['epochs'].times)
     tick_list = list()
-    start_idx = int(params['t_start'] / len(params['epochs'].times))
+    start_idx = int(params['t_start'] / length)
+    end = params['t_start'] + params['duration']
+    end_idx = int(end / length)
+    bad_idxs = params['bads'] - start_idx
+    while len(ax.patches) > 0:
+        ax.patches.remove(ax.patches[0])
+    for bad_idx in bad_idxs:
+        if bad_idx < params['n_epochs'] and bad_idx >= 0:
+            ax.add_patch(mpl.patches.Rectangle((bad_idx * length, 0), length,
+                                               ylim[0], facecolor='none',
+                                               edgecolor='r', linewidth=2))
     labels = params['labels'][start_idx:]
-    params['ax'].set_xticklabels(labels)
+    ax.set_xticklabels(labels)
     # do the plotting
     for ii in range(n_channels):
         ch_ind = ii + params['ch_start']
         if ii >= len(lines):
             break
         elif ch_ind < len(params['picks']):
-            # scale to fit
             ch_name = params['ch_names'][ch_ind]
             tick_list += [ch_name]
             offset = offsets[ii]
-            end = params['t_start'] + params['duration']
             this_data = data[ch_ind][params['t_start']:end]
 
             # subtraction here gets correct orientation for flipped ylim
@@ -792,8 +804,8 @@ def _plot_traces(params):
 
             lines[ii].set_segments(segments)
             vars(lines[ii])['ch_name'] = ch_name
-            start_idx = int(params['t_start'] / len(params['epochs'].times))
-            lines[ii].set_color(params['colors'][ch_ind][start_idx:])
+            this_color = params['colors'][ch_ind][start_idx:end_idx]
+            lines[ii].set_color(this_color)
         else:
             lines[ii].set_segments(list())
 
@@ -832,7 +844,8 @@ def _channels_changed(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
-    start_idx = int(params['t_start'] / len(params['epochs'].times))
+    length = len(params['epochs'].times)
+    start_idx = int(params['t_start'] / length)
     xdata = event.xdata
     xlim = event.inaxes.get_xlim()
     idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
