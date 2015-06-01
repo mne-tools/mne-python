@@ -779,9 +779,10 @@ def _plot_traces(params):
         ax.patches.remove(ax.patches[0])
     for bad_idx in bad_idxs:
         if bad_idx < params['n_epochs'] and bad_idx >= 0:
-            ax.add_patch(mpl.patches.Rectangle((bad_idx * length, 0), length,
-                                               ylim[0], facecolor='none',
-                                               edgecolor='r', linewidth=2))
+            ax.add_patch(mpl.patches.Rectangle((bad_idx * length + 1, 0),
+                                               length - 1, ylim[0],
+                                               facecolor='none', edgecolor='r',
+                                               linewidth=2))
     labels = params['labels'][start_idx:]
     ax.set_xticklabels(labels)
     # do the plotting
@@ -845,21 +846,23 @@ def _pick_bad_epochs(event, params):
     start_idx = int(params['t_start'] / length)
     xdata = event.xdata
     xlim = event.inaxes.get_xlim()
-    idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
+    epoch_idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
     total_epochs = len(params['epochs'].events)
-    if idx > total_epochs - 1:
+    if epoch_idx > total_epochs - 1:
         return
-    if idx in params['bads']:
-        params['bads'] = params['bads'][(params['bads'] != idx)]
-        for ii in range(len(params['ch_names'])):
-            params['colors'][ii][idx] = params['def_colors'][ii]
-        params['ax_hscroll'].patches[idx].set_color('w')
+    # remove bad epoch
+    if epoch_idx in params['bads']:
+        params['bads'] = params['bads'][(params['bads'] != epoch_idx)]
+        for ch_idx in range(len(params['ch_names'])):
+            params['colors'][ch_idx][epoch_idx] = params['def_colors'][ch_idx]
+        params['ax_hscroll'].patches[epoch_idx].set_color('w')
         _plot_traces(params)
         return
-    params['bads'] = np.append(params['bads'], idx)
-    params['ax_hscroll'].patches[idx].set_color(params['bad_color'])
-    for ii in range(len(params['ch_names'])):
-        params['colors'][ii][idx] = params['bad_color']
+    # add bad epoch
+    params['bads'] = np.append(params['bads'], epoch_idx)
+    params['ax_hscroll'].patches[epoch_idx].set_color(params['bad_color'])
+    for ch_idx in range(len(params['ch_names'])):
+        params['colors'][ch_idx][epoch_idx] = params['bad_color']
     _plot_traces(params)
 
 
