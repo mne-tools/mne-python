@@ -19,6 +19,7 @@ from mne.utils import run_tests_if_main, requires_scipy_version
 from mne.channels import read_layout
 
 from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
+from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
 import matplotlib
@@ -116,6 +117,18 @@ def test_plot_concat():
     fig.canvas.button_press_event(10, 10, 'pageup')
     fig.canvas.button_press_event(10, 10, 'pagedown')
     plt.close('all')
+    with warnings.catch_warnings(record=True):
+        fig = epochs.plot_concat()
+        # test mouse clicks
+        x = fig.get_axes()[0].get_xlim()[1] / 2
+        y = fig.get_axes()[0].get_ylim()[0] / 2
+        data_ax = fig.get_axes()[0]
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change epochs
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        plt.close('all')
 
 
 def test_plot_image_epochs():
