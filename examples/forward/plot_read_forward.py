@@ -60,9 +60,8 @@ plt.ylabel('count')
 plt.legend()
 
 # Cautious smoothing to see actual dipoles
-args = dict(clim=dict(kind='percent', lims=[0, 50, 100]), smoothing_steps=3)
-grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
-              subjects_dir=subjects_dir, **args)
+grad_map.plot(time_label='Gradiometer sensitivity', subjects_dir=subjects_dir,
+              clim=dict(lims=[0, 50, 100]))
 
 # Note. The source space uses min-dist and therefore discards most
 # superficial dipoles. This is why parts of the gyri are not covered.

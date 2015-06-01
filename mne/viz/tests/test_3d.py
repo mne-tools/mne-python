@@ -11,14 +11,13 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_raises
+from numpy.testing import assert_raises, assert_equal
 
-from mne import SourceEstimate
 from mne import (make_field_map, pick_channels_evoked, read_evokeds,
-                 read_trans, read_dipole)
+                 read_trans, read_dipole, SourceEstimate)
 from mne.viz import (plot_sparse_source_estimates, plot_source_estimates,
                      plot_trans)
-from mne.utils import requires_mayavi, requires_pysurfer
+from mne.utils import requires_mayavi, requires_pysurfer, run_tests_if_main
 from mne.datasets import testing
 from mne.source_space import read_source_spaces
 
@@ -132,30 +131,51 @@ def test_limits_to_control_points():
     stc.plot(colormap='hot', clim='auto', subjects_dir=subjects_dir)
     stc.plot(colormap='mne', clim='auto', subjects_dir=subjects_dir)
     figs = [mlab.figure(), mlab.figure()]
-    assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs)
+    assert_raises(RuntimeError, stc.plot, clim='auto', figure=figs,
+                  subjects_dir=subjects_dir)
 
     # Test both types of incorrect limits key (lims/pos_lims)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='mne',
-                  clim=dict(kind='value', lims=(5, 10, 15)))
+                  clim=dict(kind='value', lims=(5, 10, 15)),
+                  subjects_dir=subjects_dir)
     assert_raises(KeyError, plot_source_estimates, stc, colormap='hot',
-                  clim=dict(kind='value', pos_lims=(5, 10, 15)))
+                  clim=dict(kind='value', pos_lims=(5, 10, 15)),
+                  subjects_dir=subjects_dir)
 
     # Test for correct clim values
-    colormap = 'mne'
-    assert_raises(ValueError, stc.plot, colormap=colormap,
-                  clim=dict(pos_lims=(5, 10, 15, 20)))
-    assert_raises(ValueError, stc.plot, colormap=colormap,
-                  clim=dict(pos_lims=(5, 10, 15), kind='foo'))
-    assert_raises(ValueError, stc.plot, colormap=colormap, clim='foo')
-    assert_raises(ValueError, stc.plot, colormap=colormap, clim=(5, 10, 15))
-    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto')
-    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto')
+    assert_raises(ValueError, stc.plot,
+                  clim=dict(kind='value', pos_lims=[0, 1, 0]),
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc.plot, colormap='mne',
+                  clim=dict(pos_lims=(5, 10, 15, 20)),
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc.plot,
+                  clim=dict(pos_lims=(5, 10, 15), kind='foo'),
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc.plot, colormap='mne', clim='foo',
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc.plot, clim=(5, 10, 15),
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, plot_source_estimates, 'foo', clim='auto',
+                  subjects_dir=subjects_dir)
+    assert_raises(ValueError, stc.plot, hemi='foo', clim='auto',
+                  subjects_dir=subjects_dir)
 
-    # Test that stc.data contains enough unique values to use percentages
-    clim = 'auto'
-    stc._data = np.zeros_like(stc.data)
-    assert_raises(ValueError, plot_source_estimates, stc,
-                  colormap=colormap, clim=clim)
+    # Test handling of degenerate data
+    stc.plot(clim=dict(kind='value', lims=[0, 0, 1]),
+             subjects_dir=subjects_dir)  # ok
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        # thresholded maps
+        stc._data.fill(1.)
+        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        assert_equal(len(w), 0)
+        stc._data[0].fill(0.)
+        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        assert_equal(len(w), 0)
+        stc._data.fill(0.)
+        plot_source_estimates(stc, subjects_dir=subjects_dir)
+        assert_equal(len(w), 1)
     mlab.close()
 
 
@@ -169,3 +189,6 @@ def test_plot_dipole_locations():
     dipoles.plot_locations(trans, 'sample', subjects_dir, fig_name='foo')
     assert_raises(ValueError, dipoles.plot_locations, trans, 'sample',
                   subjects_dir, mode='foo')
+
+
+run_tests_if_main()

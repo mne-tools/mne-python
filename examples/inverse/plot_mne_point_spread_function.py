@@ -64,17 +64,14 @@ stc_psf_meg, _ = point_spread_function(
 # stc_psf_eegmeg.save('psf_eegmeg')
 # stc_psf_meg.save('psf_meg')
 
-clim = dict(kind='percent', lims=[93, 99, 100])
 time_label = "EEGMEG %d"
-brain_eegmeg = stc_psf_eegmeg.plot(surface='inflated', hemi='rh',
-                                   subjects_dir=subjects_dir,
-                                   time_label=time_label, clim=clim,
+brain_eegmeg = stc_psf_eegmeg.plot(hemi='rh', subjects_dir=subjects_dir,
+                                   time_label=time_label,
                                    figure=mlab.figure(size=(500, 500)))
 
 time_label = "MEG %d"
-brain_meg = stc_psf_meg.plot(surface='inflated', hemi='rh',
-                             subjects_dir=subjects_dir,
-                             time_label=time_label, clim=clim,
+brain_meg = stc_psf_meg.plot(hemi='rh', subjects_dir=subjects_dir,
+                             time_label=time_label,
                              figure=mlab.figure(size=(500, 500)))
 
 # The PSF is centred around the right auditory cortex label,

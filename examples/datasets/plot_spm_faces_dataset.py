@@ -124,7 +124,7 @@ stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
 # Plot contrast in 3D with PySurfer if available
-brain = stc.plot(hemi='both', subjects_dir=subjects_dir, clim='auto')
+brain = stc.plot(hemi='both', subjects_dir=subjects_dir)
 brain.set_time(170.0)  # milliseconds
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')
