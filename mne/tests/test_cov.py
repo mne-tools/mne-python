@@ -23,7 +23,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test, requires_module
+from mne.utils import _TempDir, slow_test, requires_module, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
 from mne.fixes import partial
@@ -57,6 +57,7 @@ def test_ad_hoc_cov():
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
+    assert_true('Covariance' in repr(cov))
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
 
@@ -73,6 +74,7 @@ def test_io_cov():
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
+    assert_true('Covariance' in repr(cov))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
@@ -440,8 +442,10 @@ def test_compute_covariance_auto_reg():
     method_params = dict(factor_analysis=dict(iter_n_components=[30]),
                          pca=dict(iter_n_components=[30]))
 
+    methods = ['shrunk', 'diagonal_fixed', 'empirical', 'factor_analysis',
+               'ledoit_wolf']  # XXX 'pca' fails here!
     with warnings.catch_warnings(record=True) as w:
-        covs = compute_covariance(epochs, method='auto',
+        covs = compute_covariance(epochs, method=methods,
                                   method_params=method_params,
                                   projs=True,
                                   return_estimators=True)
@@ -472,3 +476,5 @@ def test_compute_covariance_auto_reg():
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
+
+run_tests_if_main()

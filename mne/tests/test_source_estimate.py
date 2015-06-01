@@ -16,7 +16,8 @@ from mne import (stats, SourceEstimate, VolSourceEstimate, Label,
 from mne import read_source_estimate, morph_data, extract_label_time_course
 from mne.source_estimate import (spatio_temporal_tris_connectivity,
                                  spatio_temporal_src_connectivity,
-                                 compute_morph_matrix, grade_to_vertices)
+                                 compute_morph_matrix, grade_to_vertices,
+                                 grade_to_tris)
 
 from mne.minimum_norm import read_inverse_operator
 from mne.label import read_labels_from_annot, label_sign_flip
@@ -128,6 +129,8 @@ def test_expand():
     stc_new.data.fill(0)
     for label in labels_lh[:2]:
         stc_new += stc.in_label(label).expand(stc_limited.vertices)
+    assert_raises(TypeError, stc_new.expand, stc_limited.vertices[0])
+    assert_raises(ValueError, stc_new.expand, [stc_limited.vertices[0]])
     # make sure we can't add unless vertno agree
     assert_raises(ValueError, stc.__add__, stc.in_label(labels_lh[0]))
 
@@ -211,6 +214,11 @@ def test_stc_arithmetic():
         a -= 1
         a *= -1
         a /= 2
+        b = 2 / a
+        b = 2 + a
+        b = 2 - a
+        b = +a
+        assert_array_equal(b.data, a.data)
         with warnings.catch_warnings(record=True):
             warnings.simplefilter('always')
             a **= 3
@@ -249,12 +257,26 @@ def test_stc_methods():
     assert_equal(np.round(t, 2), 0.12)
 
     stc = read_source_estimate(fname_stc)
-    label = read_labels_from_annot('sample', 'aparc', 'lh',
-                                   subjects_dir=subjects_dir)[0]
-    assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
-    stc_label = stc.in_label(label)
-    n_vertices_used = len(label.get_vertices_used(stc_label.vertices[0]))
-    assert_equal(len(stc_label.data), n_vertices_used)
+    stc.subject = 'sample'
+    label_lh = read_labels_from_annot('sample', 'aparc', 'lh',
+                                      subjects_dir=subjects_dir)[0]
+    label_rh = read_labels_from_annot('sample', 'aparc', 'rh',
+                                      subjects_dir=subjects_dir)[0]
+    label_both = label_lh + label_rh
+    for label in (label_lh, label_rh, label_both):
+        assert_true(isinstance(stc.shape, tuple) and len(stc.shape) == 2)
+        stc_label = stc.in_label(label)
+        if label.hemi != 'both':
+            if label.hemi == 'lh':
+                verts = stc_label.vertices[0]
+            else:  # label.hemi == 'rh':
+                verts = stc_label.vertices[1]
+            n_vertices_used = len(label.get_vertices_used(verts))
+            assert_equal(len(stc_label.data), n_vertices_used)
+    stc_lh = stc.in_label(label_lh)
+    assert_raises(ValueError, stc_lh.in_label, label_rh)
+    label_lh.subject = 'foo'
+    assert_raises(RuntimeError, stc.in_label, label_lh)
 
     stc_new = deepcopy(stc)
     o_sfreq = 1.0 / stc.tstep
@@ -374,6 +396,8 @@ def test_morph_data():
     # make sure we can specify grade
     stc_from.crop(0.09, 0.1)  # for faster computation
     stc_to.crop(0.09, 0.1)  # for faster computation
+    assert_raises(ValueError, stc_from.morph, subject_to, grade=3, smooth=-1,
+                  subjects_dir=subjects_dir)
     stc_to1 = stc_from.morph(subject_to, grade=3, smooth=12, buffer_size=1000,
                              subjects_dir=subjects_dir)
     stc_to1.save(op.join(tempdir, '%s_audvis-meg' % subject_to))
@@ -404,6 +428,15 @@ def test_morph_data():
                                      smooth=12, subjects_dir=subjects_dir)
     stc_to3 = stc_from.morph_precomputed(subject_to, vertices_to, morph_mat)
     assert_array_almost_equal(stc_to1.data, stc_to3.data)
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, vertices_to, 'foo')
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0]], morph_mat)
+    assert_raises(ValueError, stc_from.morph_precomputed,
+                  subject_to, [vertices_to[0][:-1], vertices_to[1]], morph_mat)
+    assert_raises(ValueError, stc_from.morph_precomputed, subject_to,
+                  vertices_to, morph_mat, subject_from='foo')
+
     # steps warning
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always')
@@ -588,6 +621,8 @@ def test_spatio_temporal_src_connectivity():
     a = connectivity.shape[0] / 2
     b = sum([s['nuse'] for s in inverse_operator['src']])
     assert_true(a == b)
+
+    assert_equal(grade_to_tris(5).shape, [40960, 3])
 
 
 @requires_pandas
