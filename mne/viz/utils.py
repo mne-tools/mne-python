@@ -72,7 +72,10 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         warn('Matplotlib function \'tight_layout\' is not supported.'
              ' Skipping subplot adjusment.')
     else:
-        fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+        try:
+            fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+        except Exception:
+            pass
 
 
 def _check_delayed_ssp(container):
