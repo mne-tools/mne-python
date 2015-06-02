@@ -921,6 +921,4 @@ def _plot_onkey(event, params):
 
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
-    import matplotlib as plt
     params['epochs'].drop_epochs(params['bads'])
-    plt.close(params['fig'])
