@@ -473,9 +473,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Channel names"""
         return self.info['ch_names']
 
-    def plot_trellis(self, epoch_idx=None, picks=None, scalings=None,
-                     title_str='#%003i', show=True, block=False):
-        """Visualize single trials using Trellis plot.
+    def plot(self, epoch_idx=None, picks=None, scalings=None,
+             title_str='#%003i', show=True, block=False, n_epochs=20,
+             n_channels=10, bad_color=(1.0, 0.0, 0.0), fig_title=None,
+             kind='trellis'):
+        """Visualize single trials.
+
+        Bad epochs can be marked with a left click on top of the epoch.
+        Calling this function drops all the selected bad epochs as well as bad
+        epochs marked beforehand with rejection parameters.
+        The scaling can be adjusted with 'page up' and 'page down'.
 
         Parameters
         ----------
@@ -498,59 +505,35 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Whether to halt program execution until the figure is closed.
             Useful for rejecting bad trials on the fly by clicking on a
             sub plot.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure.
-        """
-        return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
-                                   scalings=scalings, title_str=title_str,
-                                   show=show, block=block)
-
-    def plot(self, picks=None, scalings=None, n_epochs=8, n_channels=10,
-             bad_color=(1.0, 0.0, 0.0), title=None, show=True, block=False):
-        """Visualize single trials.
-
-        Bad epochs can be marked with a left click on top of the epoch.
-        Calling this function drops all the selected bad epochs as well as bad
-        epochs marked beforehand with rejection parameters.
-        The scaling can be adjusted with 'page up' and 'page down'.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Channels to be included. If None only good data channels are used.
-            Defaults to None
-        scalings : dict | None
-            Scale factors for the traces. If None, defaults to
-            ``dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
-            emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)``.
         n_epochs : int
-            The number of epochs per view. Defaults to 8.
+            The number of epochs to show on a continuous plot. Defaults to 20.
         n_channels : int
-            The number of channels per view. Defaults to 10.
+            The number of channels per view on a continuous plot.
+            Defaults to 10.
         bad_color : Tuple
             A matplotlib-compatible color to use for bad channels. Defaults to
             (1.0, 0.0, 0.0) (red).
-        title : str | None
+        fig_title : str | None
             The title of the window. If None, epochs name or <unknown> will be
             displayed. Defaults to None.
-        show : bool
-            Whether to show the figure or not. Defaults to True.
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Useful for rejecting bad trials on the fly by clicking on an epoch.
-            Defaults to False.
+        kind : str
+            What kind of plot to draw. Possible values 'trellis', 'continuous'.
+            Defaults to 'trellis'.
 
         Returns
         -------
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        return plot_epochs(self, picks=picks, scalings=scalings,
-                           n_epochs=n_epochs, n_channels=n_channels,
-                           title=title, show=show, block=block)
+        if kind == 'trellis':
+            return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
+                                       scalings=scalings, title_str=title_str,
+                                       show=show, block=block)
+        elif kind == 'continuous':
+            return plot_epochs(self, picks=picks, scalings=scalings,
+                               n_epochs=n_epochs, n_channels=n_channels,
+                               bad_color=bad_color, fig_title=fig_title,
+                               show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',

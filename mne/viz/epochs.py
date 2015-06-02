@@ -443,9 +443,9 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
     return fig
 
 
-def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
+def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                 n_channels=10, bad_color=(1.0, 0.0, 0.0),
-                title=None, show=True, block=False):
+                fig_title=None, show=True, block=False):
     """ Visualize single trials.
 
     Bad epochs can be marked with a left click on top of the epoch.
@@ -466,13 +466,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
         `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
              ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
     n_epochs : int
-        The number of epochs per view. Defaults to 8.
+        The number of epochs per view. Defaults to 20.
     n_channels : int
         The number of channels per view. Defaults to 10.
     bad_color : Tuple
         A matplotlib-compatible color to use for bad channels. Defaults to
         (1.0, 0.0, 0.0) (red).
-    title : str | None
+    fig_title : str | None
         The title of the window. If None, epochs name or <unknown> will be
         displayed. Defaults to None.
     show : bool
@@ -528,13 +528,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
-    if title is None:
-        title = epochs.name
-        if len(title) == 0:  # empty list or absent key
-            title = '<unknown>'
+    if fig_title is None:
+        fig_title = epochs.name
+        if len(fig_title) == 0:  # empty list or absent key
+            fig_title = '<unknown>'
     fig = figure_nobar(figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
-    ax.set_title(title, fontsize=12)
+    ax.set_title(fig_title, fontsize=12)
     ax.axis([0, duration, 0, 200])
     ax_hscroll = plt.subplot2grid((10, 15), (9, 0), colspan=14)
     ax_hscroll.get_yaxis().set_visible(False)
