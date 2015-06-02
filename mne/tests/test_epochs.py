@@ -144,6 +144,7 @@ def test_epoch_combine_ids():
                     tmin, tmax, picks=picks, preload=False)
     events_new = merge_events(events, [1, 2], 12)
     epochs_new = combine_event_ids(epochs, ['a', 'b'], {'ab': 12})
+    assert_equal(epochs_new['ab'].name, 'ab')
     assert_array_equal(events_new, epochs_new.events)
     # should probably add test + functionality for non-replacement XXX
 
@@ -926,6 +927,10 @@ def test_access_by_name():
                                   epochs6.events[:, 2] == 2)))
     assert_array_equal(epochs.events, epochs6.events)
     assert_array_almost_equal(epochs.get_data(), epochs6.get_data(), 20)
+
+    # Make sure we preserve names
+    assert_equal(epochs['a'].name, 'a')
+    assert_equal(epochs[['a', 'b']]['a'].name, 'a')
 
 
 @requires_pandas
