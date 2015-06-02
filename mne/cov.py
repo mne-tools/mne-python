@@ -149,7 +149,10 @@ class Covariance(dict):
         return cov
 
     def __repr__(self):
-        s = "size : %s x %s" % self.data.shape
+        if self.data.ndim == 2:
+            s = 'size : %s x %s' % self.data.shape
+        else:  # ndim == 1
+            s = 'diagonal : %s' % self.data.size
         s += ", n_samples : %s" % self.nfree
         s += ", data : %s" % self.data
         return "<Covariance  |  %s>" % s

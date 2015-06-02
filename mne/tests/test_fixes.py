@@ -5,7 +5,7 @@
 
 import numpy as np
 
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 from numpy.testing import assert_array_equal
 from distutils.version import LooseVersion
 from scipy import signal, sparse
@@ -13,7 +13,8 @@ from scipy import signal, sparse
 from mne.utils import run_tests_if_main
 from mne.fixes import (_in1d, _tril_indices, _copysign, _unravel_index,
                        _Counter, _unique, _bincount, _digitize,
-                       _sparse_block_diag, _matrix_rank)
+                       _sparse_block_diag, _matrix_rank, _meshgrid,
+                       _isclose)
 from mne.fixes import _firwin2 as mne_firwin2
 from mne.fixes import _filtfilt as mne_filtfilt
 
@@ -162,5 +163,32 @@ def test_rank():
     assert_equal(_matrix_rank(np.ones((10, 10))), 1)
     assert_raises(TypeError, _matrix_rank, np.ones((10, 10, 10)))
 
+
+def test_meshgrid():
+    """Test meshgrid replacement
+    """
+    a = np.arange(10)
+    b = np.linspace(0, 1, 5)
+    a_grid, b_grid = _meshgrid(a, b, indexing='ij')
+    for grid in (a_grid, b_grid):
+        assert_equal(grid.shape, (a.size, b.size))
+    a_grid, b_grid = _meshgrid(a, b, indexing='xy', copy=True)
+    for grid in (a_grid, b_grid):
+        assert_equal(grid.shape, (b.size, a.size))
+    assert_raises(TypeError, _meshgrid, a, b, foo='a')
+    assert_raises(ValueError, _meshgrid, a, b, indexing='foo')
+
+
+def test_isclose():
+    """Test isclose replacement
+    """
+    a = np.random.RandomState(0).randn(10)
+    b = a.copy()
+    assert_true(_isclose(a, b).all())
+    a[0] = np.inf
+    b[0] = np.inf
+    a[-1] = np.nan
+    b[-1] = np.nan
+    assert_true(_isclose(a, b, equal_nan=True).all())
 
 run_tests_if_main()

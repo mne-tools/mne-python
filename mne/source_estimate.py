@@ -2367,9 +2367,9 @@ def spatio_temporal_src_connectivity(src, n_times, dist=None, verbose=None):
     """
     if dist is None:
         if src[0]['use_tris'] is None:
-            raise Exception("The source space does not appear to be an ico "
-                            "surface. Connectivity cannot be extracted from "
-                            "non-ico source spaces.")
+            raise RuntimeError("The source space does not appear to be an ico "
+                               "surface. Connectivity cannot be extracted from"
+                               " non-ico source spaces.")
         used_verts = [np.unique(s['use_tris']) for s in src]
         lh_tris = np.searchsorted(used_verts[0], src[0]['use_tris'])
         rh_tris = np.searchsorted(used_verts[1], src[1]['use_tris'])

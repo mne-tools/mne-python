@@ -556,7 +556,7 @@ class Label(object):
         if not isinstance(subject_to, string_types):
             raise TypeError('"subject_to" must be entered as a string')
         if not isinstance(smooth, int):
-            raise ValueError('smooth must be an integer')
+            raise TypeError('smooth must be an integer')
         if np.all(self.values == 0):
             raise ValueError('Morphing label with all zero values will result '
                              'in the label having no vertices. Consider using '
