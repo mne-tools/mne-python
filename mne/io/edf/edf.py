@@ -128,12 +128,12 @@ class RawEDF(_BaseRaw):
         cal = np.array([ch['cal'] for ch in self.info['chs']])
         gains = np.atleast_2d(self._raw_extras[fi]['units'] *
                               (physical_range / cal))
-        
+
         # physical dimension in uV
-        physical_min = np.atleast_2d(self._raw_extras[fi]['units'] * 
+        physical_min = np.atleast_2d(self._raw_extras[fi]['units'] *
                                      self._raw_extras[fi]['physical_min'])
         digital_min = self._raw_extras[fi]['digital_min']
-        
+
         offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
         if tal_channel is not None:
             offsets[tal_channel] = 0
