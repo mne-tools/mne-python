@@ -509,7 +509,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    show=show, block=block)
 
     def plot(self, picks=None, scalings=None, n_epochs=8, n_channels=10,
-             bad_color=(0.8, 0.8, 0.8), title=None, show=True, block=False):
+             bad_color=(1.0, 0.0, 0.0), title=None, show=True, block=False):
         """Visualize single trials.
 
         Bad epochs can be marked with a left click on top of the epoch.
@@ -532,7 +532,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The number of channels per view. Defaults to 10.
         bad_color : Tuple
             A matplotlib-compatible color to use for bad channels. Defaults to
-            (0.8, 0.8, 0.8) (light gray).
+            (1.0, 0.0, 0.0) (red).
         title : str | None
             The title of the window. If None, epochs name or <unknown> will be
             displayed. Defaults to None.

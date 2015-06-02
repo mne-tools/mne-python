@@ -444,7 +444,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
-                n_channels=10, bad_color=(0.8, 0.8, 0.8),
+                n_channels=10, bad_color=(1.0, 0.0, 0.0),
                 title=None, show=True, block=False):
     """ Visualize single trials.
 
@@ -471,7 +471,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
         The number of channels per view. Defaults to 10.
     bad_color : Tuple
         A matplotlib-compatible color to use for bad channels. Defaults to
-        (0.8, 0.8, 0.8) (light gray).
+        (1.0, 0.0, 0.0) (red).
     title : str | None
         The title of the window. If None, epochs name or <unknown> will be
         displayed. Defaults to None.
@@ -656,6 +656,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=8,
     fig.canvas.mpl_connect('close_event', callback_close)
 
     _plot_traces(params)
+
     tight_layout(fig=fig)
     if show:
         try:
@@ -763,9 +764,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
-    import matplotlib as mpl
     ax = params['ax']
-    ylim = ax.get_ylim()
     n_channels = params['n_channels']
     lines = params['lines']
     data = params['data']
@@ -776,15 +775,6 @@ def _plot_traces(params):
     start_idx = int(params['t_start'] / length)
     end = params['t_start'] + params['duration']
     end_idx = int(end / length)
-    bad_idxs = params['bads'] - start_idx
-    while len(ax.patches) > 0:
-        ax.patches.remove(ax.patches[0])
-    for bad_idx in bad_idxs:
-        if bad_idx < params['n_epochs'] and bad_idx >= 0:
-            ax.add_patch(mpl.patches.Rectangle((bad_idx * length + 1, 0),
-                                               length - 1, ylim[0],
-                                               facecolor='none', edgecolor='r',
-                                               linewidth=2))
     labels = params['labels'][start_idx:]
     ax.set_xticklabels(labels)
     # do the plotting
