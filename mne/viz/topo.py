@@ -184,7 +184,7 @@ def _plot_topo_onpick(event, show_func=None, colorbar=False):
 
 def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
                 freq=None, vline=None, x_label=None, y_label=None,
-                colorbar=False, picker=True, cmap='jet', title=None):
+                colorbar=False, picker=True, cmap='RdBu_r', title=None):
     """ Aux function to show time-freq map on topo """
     import matplotlib.pyplot as plt
     extent = (tmin, tmax, freq[0], freq[-1])
