@@ -1276,8 +1276,7 @@ class Epochs(_BaseEpochs, ToDataFrameMixin):
                                        'event matches all criteria.')
             select = np.any(np.atleast_2d([epochs._key_match(k)
                                            for k in key]), axis=0)
-            epochs.name = ('+'.join(key) if epochs.name == 'Unknown'
-                           else 'epochs_%s' % '+'.join(key))
+            epochs.name = '+'.join(key)
         else:
             select = key if isinstance(key, slice) else np.atleast_1d(key)
 
