@@ -180,6 +180,7 @@ def test_surf2bem():
 
 @slow_test
 @requires_freesurfer
+@sample.requires_sample_data
 def test_watershed_bem():
     """Test mne watershed bem"""
     check_usage(mne_watershed_bem)
