@@ -885,7 +885,8 @@ def _mouse_click(event, params):
     elif event.inaxes == params['ax_hscroll']:
         # find the closest epoch time
         times = params['epoch_times']
-        xdata = times.flat[np.abs(times - event.xdata).argmin()]
+        offset = 0.5 * params['n_epochs'] * len(params['epochs'].times)
+        xdata = times.flat[np.abs(times - (event.xdata - offset)).argmin()]
         _plot_window(xdata, params)
     # main axes
     elif event.inaxes == params['ax']:
