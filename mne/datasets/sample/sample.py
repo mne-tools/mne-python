@@ -33,9 +33,9 @@ get_version.__doc__ = _version_doc.format(name='sample')
 
 # Allow forcing of sample dataset skip
 def _skip_sample_data():
-    skip_testing = (get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') ==
+    skip_sample = (get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') ==
                     'true')
-    skip = skip_testing or not has_sample_data()
+    skip = skip_sample or not has_sample_data()
     return skip
 
 requires_sample_data = np.testing.dec.skipif(_skip_sample_data,
