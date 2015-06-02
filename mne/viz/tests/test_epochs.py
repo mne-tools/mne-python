@@ -118,6 +118,7 @@ def test_plot_epochs():
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('pageup')
     fig.canvas.key_press_event('pagedown')
+    fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
     with warnings.catch_warnings(record=True):
         fig = epochs.plot(kind='continuous')
