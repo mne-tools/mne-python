@@ -126,14 +126,17 @@ class RawEDF(_BaseRaw):
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        gains = np.atleast_2d(self._raw_extras[0]['units'] *
+        gains = np.atleast_2d(self._raw_extras[fi]['units'] *
                               (physical_range / cal))
+        
         # physical dimension in uV
-        physical_min = self._raw_extras[fi]['physical_min'] * 1e-6
+        physical_min = np.atleast_2d(self._raw_extras[fi]['units'] * 
+                                     self._raw_extras[fi]['physical_min'])
         digital_min = self._raw_extras[fi]['digital_min']
+        
         offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
-        picks = [stim_channel, tal_channel]
-        offsets[picks] = 0
+        if tal_channel is not None:
+            offsets[tal_channel] = 0
 
         read_size = blockstop - blockstart
         this_data = np.empty((len(sel), buf_len))
@@ -495,8 +498,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
         check3 = info['nchan'] > 1
         stim_check = np.logical_and(np.logical_or(check1, check2), check3)
         if stim_check:
-            chan_info['range'] = 1
-            chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
