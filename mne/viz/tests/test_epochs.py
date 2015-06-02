@@ -108,7 +108,6 @@ def test_plot_epochs():
     epochs.plot(scalings=None, title='Epochs')
     plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None)
-    plt.close('all')
     fig = plt.gcf()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
