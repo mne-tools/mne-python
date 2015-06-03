@@ -34,7 +34,7 @@ get_version.__doc__ = _version_doc.format(name='sample')
 # Allow forcing of sample dataset skip
 def _skip_sample_data():
     skip_sample = (get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') ==
-                    'true')
+                   'true')
     skip = skip_sample or not has_sample_data()
     return skip
 
