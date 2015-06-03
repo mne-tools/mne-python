@@ -81,6 +81,7 @@ def test_raw():
             os.remove(tmp_raw_fname)
         with Raw(exported, preload=True) as ex:
             with read_raw_bti(pdf, config, hs) as ra:
+                assert_true('RawBTi' in repr(ra))
                 assert_equal(ex.ch_names[:NCH], ra.ch_names[:NCH])
                 assert_array_almost_equal(ex.info['dev_head_t']['trans'],
                                           ra.info['dev_head_t']['trans'], 7)

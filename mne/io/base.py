@@ -226,7 +226,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @verbose
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
-                 filenames=(), raw_extras=(),
+                 filenames=(None,), raw_extras=(None,),
                  comp=None, orig_comp_grade=None,
                  orig_format='double', dtype=np.float64,
                  verbose=None):
@@ -1610,6 +1610,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self._filenames += r._filenames
         self._update_times()
 
+        if not (len(self._first_samps) == len(self._last_samps) ==
+                len(self._raw_extras) == len(self._filenames)):
+            raise RuntimeError('Append error')  # should never happen
+
     def close(self):
         """Clean up the object.
 
@@ -1624,8 +1628,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return deepcopy(self)
 
     def __repr__(self):
-        s = ', '.join(('%r' % op.basename(self._filenames[0]),
-                       "n_channels x n_times : %s x %s"
+        name = self._filenames[0]
+        name = 'None' if name is None else op.basename(name)
+        s = ', '.join(('%r' % name, "n_channels x n_times : %s x %s"
                        % (len(self.ch_names), self.n_times)))
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                 self.n_times)
