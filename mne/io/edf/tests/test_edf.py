@@ -36,6 +36,9 @@ edf_uneven_path = op.join(data_dir, 'test_uneven_samp.edf')
 bdf_eeglab_path = op.join(data_dir, 'test_bdf_eeglab.mat')
 edf_eeglab_path = op.join(data_dir, 'test_edf_eeglab.mat')
 edf_uneven_eeglab_path = op.join(data_dir, 'test_uneven_samp.mat')
+edf_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.edf')
+edf_txt_stim_channel_path = op.join(data_dir, 'test_edf_stim_channel.txt')
+
 
 eog = ['REOG', 'LEOG', 'IEOG']
 misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
@@ -242,5 +245,21 @@ def test_write_annotations():
     assert_equal(sorted(raw1.info.keys()), sorted(raw11.info.keys()))
 
     assert_raises(RuntimeError, read_raw_edf, edf_path, preload=False)
+
+
+def test_edf_stim_channel():
+    """Test stim channel for edf file
+    """
+    raw = read_raw_edf(edf_stim_channel_path, preload=True,
+                       stim_channel=-1)
+    true_data = np.loadtxt(edf_txt_stim_channel_path).T
+    # EDF reader pad data if file to small
+    _, Ns = true_data.shape
+    edf_data = raw._data[:, :Ns]
+    # assert stim channels are the same
+    assert_array_equal(true_data[-1], edf_data[-1])
+    # assert data are equal
+    assert_array_almost_equal(true_data[0:-1] * 1e-6, edf_data[0:-1])
+
 
 run_tests_if_main()
