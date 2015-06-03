@@ -485,15 +485,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
     bad_color = (1.0, 0.0, 0.0)
-    n_epochs = np.min([n_epochs, len(epochs.events)])
-    duration = len(epochs.times) * n_epochs
+
     epoch_data = epochs.get_data()
     if picks is None:
         picks = _handle_picks(epochs)
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
-
+    n_epochs = np.min([n_epochs, len(epochs.events)])
+    duration = len(epochs.times) * n_epochs
     n_channels = np.min([n_channels, len(picks)])
     times = epochs.times * 1e3
 
@@ -539,7 +539,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         size = tuple(float(s) for s in size)
     if fig_title is None:
         fig_title = epochs.name
-        if len(fig_title) == 0:  # empty list or absent key
+        if len(fig_title) == 0 or epochs.name is None:
             fig_title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
@@ -612,7 +612,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.set_xlim(0, xlim)
 
     # fit horizontal scroll bar ticks
-    hscroll_ticks = ax_hscroll.get_xticks()
+    hscroll_ticks = np.arange(0, xlim, xlim / 7.0)
+    hscroll_ticks = np.append(hscroll_ticks, epoch_times[-1])
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
