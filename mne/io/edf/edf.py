@@ -249,8 +249,10 @@ class RawEDF(_BaseRaw):
         data *= gains.T[sel]
         data += offsets[sel]
 
-        if stim_channel is not None:
-            stim_channel_idx = np.where(sel == stim_channel)[0][0]
+        # only try to read the stim channel if it's not None and it's
+        # actually one of the requested channels
+        if stim_channel is not None and (sel == stim_channel).sum() > 0:
+            stim_channel_idx = np.where(sel == stim_channel)[0]
             if annot and annotmap:
                 evts = _read_annot(annot, annotmap, sfreq,
                                    self._last_samps[fi])
