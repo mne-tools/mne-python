@@ -507,18 +507,41 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     picks = np.sort(picks)  # to make scaling work properly
     n_channels = np.min([n_channels, len(picks)])
     times = epochs.times * 1e3
-    types = [channel_type(epochs.info, idx) for idx in
-             picks]
+
+    # Reorganize channels
+    inds = list()
+    types = list()
+    for t in ['grad', 'mag']:
+        idxs = pick_types(epochs.info, meg=t, ref_meg=False, exclude=[])
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+    pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
+    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+              'misc', 'chpi', 'syst', 'ias', 'exci']:
+        pick_kwargs[t] = True
+        idxs = pick_types(epochs.info, **pick_kwargs)
+        if len(idxs) < 1:
+            continue
+        mask = np.in1d(idxs, picks, assume_unique=True)
+        inds.append(idxs[mask])
+        types += [t] * len(inds[-1])
+        pick_kwargs[t] = False
+    inds = np.concatenate(inds).astype(int)
+    if not len(inds) == len(picks):
+        raise RuntimeError('Some channels not classified, please report '
+                           'this problem')
 
     # preallocation needed for min / max scaling
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
 
     for ii, epoch in enumerate(epoch_data):
         pick = 0
-        for jj, this_channel in enumerate(epoch):
-            if jj in picks:
-                data[ii, pick] = this_channel / scalings[types[pick]]
-                pick += 1
+        for ind in inds:
+            data[ii, pick] = epoch[ind] / scalings[types[pick]]
+            pick += 1
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -630,11 +653,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'types': types,
               'colors': colors,
               'def_colors': typecolors,  # don't change at runtime
-              'ch_names': epochs.ch_names,
               'picks': picks,
               'bad_color': bad_color,
               'bads': np.array(list(), dtype=int),
-              'ch_names': [epochs.info['ch_names'][x] for x in picks],
+              'ch_names': [epochs.info['ch_names'][x] for x in inds],
               'hsel_patch': hsel_patch,
               'data': epoch_data,
               'times': times,
