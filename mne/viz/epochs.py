@@ -354,12 +354,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
     idx_handler = deque(create_chunks(epoch_idx, 20))
 
     if picks is None:
-        if any('ICA' in k for k in epochs.ch_names):
-            picks = pick_types(epochs.info, misc=True, ref_meg=False,
-                               exclude=[])
-        else:
-            picks = pick_types(epochs.info, meg=True, eeg=True, ref_meg=False,
-                               exclude=[])
+        picks = _handle_picks(epochs)
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
@@ -494,17 +489,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     duration = len(epochs.times) * n_epochs
     epoch_data = epochs.get_data()
     if picks is None:
-        if any('ICA' in k for k in epochs.ch_names):
-            picks = pick_types(epochs.info, misc=True, ref_meg=False,
-                               exclude=[])
-        else:
-            picks = pick_types(epochs.info, meg=True, eeg=True, eog=True,
-                               ref_meg=False, exclude=[])
+        picks = _handle_picks(epochs)
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
 
-    picks = np.sort(picks)  # to make scaling work properly
     n_channels = np.min([n_channels, len(picks)])
     times = epochs.times * 1e3
 
@@ -552,10 +541,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         fig_title = epochs.name
         if len(fig_title) == 0:  # empty list or absent key
             fig_title = ''
-    fig = figure_nobar(figsize=size)
+    fig = figure_nobar(facecolor='w', figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
     ax.set_title(fig_title, fontsize=12)
     ax.axis([0, duration, 0, 200])
+
     ax_hscroll = plt.subplot2grid((10, 15), (9, 0), colspan=14)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
@@ -676,6 +666,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('key_press_event', callback_key)
     callback_close = partial(_close_event, params=params)
     fig.canvas.mpl_connect('close_event', callback_close)
+    callback_resize = partial(_resize_event, params=params)
+    fig.canvas.mpl_connect('resize_event', callback_resize)
 
     _plot_traces(params)
 
@@ -832,6 +824,17 @@ def _plot_traces(params):
     params['fig'].canvas.draw()
 
 
+def _handle_picks(epochs):
+    """Aux function to handle picks."""
+    if any('ICA' in k for k in epochs.ch_names):
+            picks = pick_types(epochs.info, misc=True, ref_meg=False,
+                               exclude=[])
+    else:
+        picks = pick_types(epochs.info, meg=True, eeg=True, eog=True,
+                           ref_meg=False, exclude=[])
+    return picks
+
+
 def _plot_window(value, params):
     """Deal with horizontal epoch window."""
     max_times = len(params['times']) - params['duration']
@@ -947,3 +950,8 @@ def _plot_onkey(event, params):
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
     params['epochs'].drop_epochs(params['bads'])
+
+
+def _resize_event(event, params):
+    """Function to handle resize event"""
+    tight_layout(fig=params['fig'])
