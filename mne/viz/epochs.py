@@ -562,11 +562,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
 
+    ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
+                                               facecolor='w', zorder=2))
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
                                                    facecolor=color[types[ci]],
-                                                   edgecolor=color[types[ci]]))
+                                                   edgecolor=color[types[ci]],
+                                                   zorder=3))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
                                        edgecolor='w', facecolor='w')
