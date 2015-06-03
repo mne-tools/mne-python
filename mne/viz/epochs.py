@@ -531,8 +531,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         pick_kwargs[t] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(picks):
-        raise RuntimeError('Some channels not classified, please report '
-                           'this problem')
+        raise RuntimeError('Some channels not classified. Please'
+                           ' check your picks')
 
     # preallocation needed for min / max scaling
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
@@ -572,7 +572,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                                    zorder=3))
 
     vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
-                                       edgecolor='w', facecolor='w')
+                                       edgecolor='w', facecolor='w', zorder=4)
     ax_vscroll.add_patch(vsel_patch)
 
     ax_vscroll.set_ylim(len(types), 0)
