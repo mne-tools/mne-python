@@ -475,8 +475,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True, block=False, n_epochs=20,
-             n_channels=10, bad_color=(1.0, 0.0, 0.0), fig_title=None,
-             kind='trellis'):
+             n_channels=10, fig_title=None, trellis=True):
         """Visualize single trials.
 
         Bad epochs can be marked with a left click on top of the epoch.
@@ -510,30 +509,26 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channels : int
             The number of channels per view on a continuous plot.
             Defaults to 10.
-        bad_color : Tuple
-            A matplotlib-compatible color to use for bad channels. Defaults to
-            (1.0, 0.0, 0.0) (red).
         fig_title : str | None
-            The title of the window. If None, epochs name or <unknown> will be
-            displayed. Defaults to None.
-        kind : str
-            What kind of plot to draw. Possible values 'trellis', 'continuous'.
-            Defaults to 'trellis'.
+            The title of the window. If None, epochs name will be displayed.
+            Defaults to None.
+        trellis : bool
+            Whether to use Trellis plotting. If False, the epochs are plotted
+            as continuous curves. Defaults to True.
 
         Returns
         -------
         fig : Instance of matplotlib.figure.Figure
             The figure.
         """
-        if kind == 'trellis':
+        if trellis:
             return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
                                        scalings=scalings, title_str=title_str,
                                        show=show, block=block)
-        elif kind == 'continuous':
+        else:
             return plot_epochs(self, picks=picks, scalings=scalings,
                                n_epochs=n_epochs, n_channels=n_channels,
-                               bad_color=bad_color, fig_title=fig_title,
-                               show=show, block=block)
+                               fig_title=fig_title, show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',

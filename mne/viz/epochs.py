@@ -444,8 +444,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
-                n_channels=10, bad_color=(1.0, 0.0, 0.0),
-                fig_title=None, show=True, block=False):
+                n_channels=10, fig_title=None, show=True, block=False):
     """ Visualize single trials.
 
     Bad epochs can be marked with a left click on top of the epoch.
@@ -469,12 +468,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         The number of epochs per view. Defaults to 20.
     n_channels : int
         The number of channels per view. Defaults to 10.
-    bad_color : Tuple
-        A matplotlib-compatible color to use for bad channels. Defaults to
-        (1.0, 0.0, 0.0) (red).
     fig_title : str | None
-        The title of the window. If None, epochs name or <unknown> will be
-        displayed. Defaults to None.
+        The title of the window. If None, epochs name will be displayed.
+        Defaults to None.
     show : bool
         Show figure if True. Defaults to True
     block : bool
@@ -493,6 +489,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     from matplotlib.colors import colorConverter
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
+    bad_color = (1.0, 0.0, 0.0)
     n_epochs = np.min([n_epochs, len(epochs.events)])
     duration = len(epochs.times) * n_epochs
     epoch_data = epochs.get_data()
@@ -531,7 +528,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if fig_title is None:
         fig_title = epochs.name
         if len(fig_title) == 0:  # empty list or absent key
-            fig_title = '<unknown>'
+            fig_title = ''
     fig = figure_nobar(figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
     ax.set_title(fig_title, fontsize=12)
