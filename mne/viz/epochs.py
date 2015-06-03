@@ -569,7 +569,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         if len(colors) - 1 < channel:
             break
         lc = LineCollection(np.array([line] * len(epochs.events)),
-                            linewidths=0.5, colors=colors[channel])
+                            linewidths=0.5, colors=colors[channel], zorder=3)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -585,7 +585,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         if epoch_idx % 2 == 1:  # every second area painted blue
             ax.fill_betweenx(ylim, epoch_idx * length,
                              epoch_idx * length + length, alpha=0.2,
-                             facecolor='y')
+                             facecolor='y', zorder=1)
     times = np.arange(0, len(data) * len(epochs.times), 1)
     epoch_times = np.arange(0, len(times), length)
 
@@ -610,7 +610,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     for epoch_idx in range(len(epoch_times)):
         ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * length, 0),
                                                    length, 1, facecolor='w',
-                                                   edgecolor='w'))
+                                                   edgecolor='w', alpha=0.6))
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
@@ -848,11 +848,14 @@ def _pick_bad_epochs(event, params):
         for ch_idx in range(len(params['ch_names'])):
             params['colors'][ch_idx][epoch_idx] = params['def_colors'][ch_idx]
         params['ax_hscroll'].patches[epoch_idx].set_color('w')
+        params['ax_hscroll'].patches[epoch_idx].set_zorder(1)
         _plot_traces(params)
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
     params['ax_hscroll'].patches[epoch_idx].set_color(params['bad_color'])
+    params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
+    params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
         params['colors'][ch_idx][epoch_idx] = params['bad_color']
     _plot_traces(params)

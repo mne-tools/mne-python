@@ -6,7 +6,7 @@ Demonstration for plotting and rejecting epochs interactively
 This example shows how to visualize and reject bad epochs interactively.
 Bad epochs can be selected by a left click on the top of the epoch.
 The selected bad epochs are dropped on closing of the figure.
-Scaling can be changed runtime by pressing page up and page down keys.
+Scaling can be changed in runtime by pressing page up and page down keys.
 """
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>

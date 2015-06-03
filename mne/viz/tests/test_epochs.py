@@ -91,6 +91,7 @@ def test_plot_trellis():
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s',
                 kind='trellis')
+    plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s',
                          kind='trellis')
     # fake a click
@@ -111,6 +112,7 @@ def test_plot_epochs():
     epochs.plot(scalings=None, fig_title='Epochs', kind='continuous')
     plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, kind='continuous')
+    plt.close('all')
     fig = plt.gcf()
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')

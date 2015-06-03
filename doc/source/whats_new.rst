@@ -112,7 +112,7 @@ Changelog
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
-   - Add concatenated epoch plotting where user can select bad epochs interactively by `Jaakko Leppakangas`_
+   - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
 
 
 BUG
