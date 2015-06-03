@@ -539,7 +539,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         size = tuple(float(s) for s in size)
     if fig_title is None:
         fig_title = epochs.name
-        if len(fig_title) == 0 or epochs.name is None:
+        if epochs.name is None or len(fig_title) == 0:
             fig_title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
