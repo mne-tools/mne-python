@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
 
@@ -81,15 +82,9 @@ def test_plot_trellis():
     plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
     plt.close('all')
-    # test clicking: should increase coverage on
-    # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
-    fig = plt.gcf()
-    fig.canvas.button_press_event(10, 10, 'left')
     # now let's add a bad channel
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
-    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
-    plt.close('all')
-    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    fig = epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     # fake a click
     event = namedtuple('Event', 'inaxes')
     func = _get_presser(fig)
