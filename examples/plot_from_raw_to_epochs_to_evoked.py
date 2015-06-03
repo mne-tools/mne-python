@@ -49,7 +49,9 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=dict(eeg=80e-6, eog=150e-6),
                     preload=True)
 
-epochs.plot()
+# Two ways of viewing and rejecting the epochs.
+epochs.plot(block=True)
+epochs.plot(trellis=False, block=True, fig_title='Epochs')
 
 # Look at channels that caused dropped events, showing that the subject's
 # blinks were likely to blame for most epochs being dropped
