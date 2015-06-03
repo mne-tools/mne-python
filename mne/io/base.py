@@ -1053,6 +1053,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
         raw._raw_extras = [r for ri, r in enumerate(raw._raw_extras)
                            if ri in keepers]
+        raw._filenames = [r for ri, r in enumerate(raw._filenames)
+                          if ri in keepers]
         if raw.preload:
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
