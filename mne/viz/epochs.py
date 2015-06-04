@@ -445,7 +445,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     Bad epochs can be marked with a left click on top of the epoch.
     Calling this function drops all the selected bad epochs as well as bad
     epochs marked beforehand with rejection parameters.
-    The scaling can be adjusted with 'page up' and 'page down'.
 
     Parameters
     ----------
@@ -477,6 +476,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     -------
     fig : Instance of matplotlib.figure.Figure
         The figure.
+
+    Notes
+    -----
+    With trellis set to False, the arrow keys (up/down/left/right) can
+    typically be used to navigate between channels and time ranges and the
+    scaling can be adjusted with 'page up' and 'page down' keys, but
+    this depends on the backend matplotlib is configured to use
+    (e.g., mpl.use('TkAgg') should work).
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -492,9 +499,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
-    n_epochs = np.min([n_epochs, len(epochs.events)])
+    n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
-    n_channels = np.min([n_channels, len(picks)])
+    n_channels = min(n_channels, len(picks))
     times = epochs.times * 1e3
 
     # Reorganize channels
@@ -527,10 +534,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
 
     for ii, epoch in enumerate(epoch_data):
-        pick = 0
-        for ind in inds:
+        for pick, ind in enumerate(inds):
             data[ii, pick] = epoch[ind] / scalings[types[pick]]
-            pick += 1
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -568,21 +573,21 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_vscroll.set_ylim(len(types), 0)
     ax_vscroll.set_title('Ch.')
 
-    length = len(epochs.times)
+    # populate colors list
     typecolors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
     for ii in range(len(typecolors)):
         colors.append(list())
-        for jj in range(len(epochs.events)):
-            colors[ii].append(typecolors[ii])
+        colors[ii] = [typecolors[ii]] * len(epochs.events)
     lines = list()
+    length = len(epochs.times)
     line = [(0, 0) for x in range(length)]
 
-    for channel in range(n_channels):
-        if len(colors) - 1 < channel:
+    for ch_idx in range(n_channels):
+        if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(np.array([line] * len(epochs.events)),
-                            linewidths=0.5, colors=colors[channel], zorder=3)
+                            linewidths=0.5, colors=colors[ch_idx], zorder=3)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -599,14 +604,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
             ax.fill_betweenx(ylim, epoch_idx * length,
                              epoch_idx * length + length, alpha=0.2,
                              facecolor='y', zorder=1)
-    times = np.arange(0, len(data) * len(epochs.times), 1)
+    times = np.arange(len(data) * len(epochs.times))
     epoch_times = np.arange(0, len(times), length)
 
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * length
     ax.set_xticks(ticks)
-    labels = [x + 1 for x in range(len(ticks))]  # epoch numbers
+    labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
