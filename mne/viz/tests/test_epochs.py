@@ -84,6 +84,10 @@ def test_plot_trellis():
     plt.close('all')
     # now let's add a bad channel
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
+    epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
     fig = epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     # fake a click
     event = namedtuple('Event', 'inaxes')
