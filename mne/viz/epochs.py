@@ -677,16 +677,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('resize_event', callback_resize)
 
     _plot_traces(params)
-    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        plt.tight_layout()
-    except Exception:
-        warn('Matplotlib function \'tight_layout\' is not supported.'
-             ' Skipping subplot adjusment.')
-    else:
-        try:
-            fig.set_tight_layout()
-        except Exception:
-            pass
+    tight_layout(fig=fig)
 
     if show:
         try:
