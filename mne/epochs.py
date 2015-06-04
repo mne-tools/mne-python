@@ -506,21 +506,17 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_epochs : int
             The number of epochs to show on a continuous plot. If trellis is
             True, this parameter has no effect. Defaults to 20.
-            .. versionadded:: 0.10.0
         n_channels : int
             The number of channels per view on a continuous plot. If trellis is
             True, this parameter has no effect. Defaults to 10.
-            .. versionadded:: 0.10.0
         fig_title : str | None
             The title of the window. If None, epochs name will be displayed.
             If trellis is True, this parameter has no effect.
             Defaults to None.
-            .. versionadded:: 0.10.0
         trellis : bool
             Whether to use Trellis plotting. If False, plotting is similar to
             Raw plot methods, with epochs stacked horizontally.
             Defaults to True.
-            .. versionadded:: 0.10.0
 
         Returns
         -------
@@ -530,10 +526,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Notes
         -----
         With trellis set to False, the arrow keys (up/down/left/right) can
-        typically be used to navigate between channels and time ranges and the
+        be used to navigate between channels and time ranges and the
         scaling can be adjusted with 'page up' and 'page down' keys, but
         this depends on the backend matplotlib is configured to use
         (e.g., mpl.use(``TkAgg``) should work).
+
+        .. versionadded:: 0.10.0
         """
         if trellis is True:
             return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,

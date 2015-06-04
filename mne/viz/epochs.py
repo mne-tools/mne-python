@@ -480,7 +480,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     Notes
     -----
     With trellis set to False, the arrow keys (up/down/left/right) can
-    typically be used to navigate between channels and time ranges and the
+    be used to navigate between channels and time ranges and the
     scaling can be adjusted with 'page up' and 'page down' keys, but
     this depends on the backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work).
