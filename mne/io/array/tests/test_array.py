@@ -60,6 +60,7 @@ def test_array_raw():
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw2.copy(), raw2])
     assert_equal(raw_concat.n_times, 2 * raw2.n_times)
+    assert_true('RawArray' in repr(raw2))
 
     # saving
     temp_fname = op.join(tempdir, 'raw.fif')

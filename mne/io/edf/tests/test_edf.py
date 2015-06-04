@@ -52,6 +52,7 @@ def test_bdf_data():
     """
     raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
                           misc=misc, preload=True)
+    assert_true('RawEDF' in repr(raw_py))
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
     data_py, _ = raw_py[picks]
 

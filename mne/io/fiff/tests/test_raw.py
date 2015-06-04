@@ -379,6 +379,7 @@ def test_io_raw():
     # test unicode io
     for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
         with Raw(fif_fname) as r:
+            assert_true('Raw' in repr(r))
             desc1 = r.info['description'] = chars.decode('utf-8')
             temp_file = op.join(tempdir, 'raw.fif')
             r.save(temp_file, overwrite=True)

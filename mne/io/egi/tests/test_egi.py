@@ -27,6 +27,7 @@ def test_io_egi():
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter('always', category=RuntimeWarning)
         raw = read_raw_egi(egi_fname, include=None)
+        assert_true('RawEGI' in repr(raw))
         raw.preload_data()  # currently does nothing
         assert_equal(len(w), 1)
         assert_true(w[0].category == RuntimeWarning)

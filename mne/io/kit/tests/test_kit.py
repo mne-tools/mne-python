@@ -9,7 +9,7 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 import scipy.io
 
 from mne import pick_types, concatenate_raws, Epochs, read_events
@@ -54,7 +54,7 @@ def test_data():
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
                           stim=list(range(167, 159, -1)), slope='+',
                           stimthresh=1, preload=True)
-    print(repr(raw_py))
+    assert_true('RawKIT' in repr(raw_py))
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
