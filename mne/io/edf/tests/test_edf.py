@@ -4,6 +4,7 @@ from __future__ import print_function
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Martin Billinger <martin.billinger@tugraz.at>
 #          Alan Leggitt <alan.leggitt@ucsf.edu>
+#          Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD (3-clause)
 
@@ -45,14 +46,12 @@ misc = ['EXG1', 'EXG5', 'EXG8', 'M1', 'M2']
 
 
 def test_concat():
-    """Test EDF concatenation
-    """
+    """Test EDF concatenation"""
     _test_concat(read_raw_edf, bdf_path)
 
 
 def test_bdf_data():
-    """Test reading raw bdf files
-    """
+    """Test reading raw bdf files"""
     raw_py = read_raw_edf(bdf_path, montage=montage_path, eog=eog,
                           misc=misc, preload=True)
     picks = pick_types(raw_py.info, meg=False, eeg=True, exclude='bads')
@@ -76,8 +75,7 @@ def test_bdf_data():
 
 
 def test_edf_data():
-    """Test reading raw edf files
-    """
+    """Test reading raw edf files"""
     raw_py = read_raw_edf(edf_path, misc=range(-4, 0), stim_channel=139,
                           preload=True)
 
@@ -114,8 +112,7 @@ def test_edf_data():
 
 
 def test_read_segment():
-    """Test writing raw edf files when preload is False
-    """
+    """Test writing raw edf files when preload is False"""
     tempdir = _TempDir()
     raw1 = read_raw_edf(edf_path, stim_channel=None, preload=False)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
@@ -157,8 +154,7 @@ def test_read_segment():
 
 
 def test_append():
-    """Test appending raw edf objects using Raw.append
-    """
+    """Test appending raw edf objects using Raw.append"""
     for preload in (True, False):
         raw = read_raw_edf(bdf_path, preload=False)
         raw0 = raw.copy()
@@ -176,8 +172,7 @@ def test_append():
 
 
 def test_parse_annotation():
-    """Test parsing the tal channel
-    """
+    """Test parsing the tal channel"""
 
     # test the parser
     annot = (b'+180\x14Lights off\x14Close door\x14\x00\x00\x00\x00\x00'
@@ -199,8 +194,7 @@ def test_parse_annotation():
 
 
 def test_edf_annotations():
-    """Test if events are detected correctly in a typical MNE workflow.
-    """
+    """Test if events are detected correctly in a typical MNE workflow."""
 
     # test an actual file
     raw = read_raw_edf(edf_path, preload=True)
@@ -230,8 +224,7 @@ def test_edf_annotations():
 
 
 def test_write_annotations():
-    """Test writing raw files when annotations were parsed.
-    """
+    """Test writing raw files when annotations were parsed."""
     tempdir = _TempDir()
     raw1 = read_raw_edf(edf_path, preload=True)
     raw1_file = op.join(tempdir, 'test1-raw.fif')
@@ -248,16 +241,18 @@ def test_write_annotations():
 
 
 def test_edf_stim_channel():
-    """Test stim channel for edf file
-    """
+    """Test stim channel for edf file"""
     raw = read_raw_edf(edf_stim_channel_path, preload=True,
                        stim_channel=-1)
     true_data = np.loadtxt(edf_txt_stim_channel_path).T
-    # EDF reader pad data if file to small
-    _, Ns = true_data.shape
-    edf_data = raw._data[:, :Ns]
-    # assert stim channels are the same
+
+    # EDF writer pad data if file to small
+    _, ns = true_data.shape
+    edf_data = raw._data[:, :ns]
+
+    # assert stim channels are equal
     assert_array_equal(true_data[-1], edf_data[-1])
+
     # assert data are equal
     assert_array_almost_equal(true_data[0:-1] * 1e-6, edf_data[0:-1])
 
