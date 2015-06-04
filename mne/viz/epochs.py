@@ -483,7 +483,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     typically be used to navigate between channels and time ranges and the
     scaling can be adjusted with 'page up' and 'page down' keys, but
     this depends on the backend matplotlib is configured to use
-    (e.g., mpl.use('TkAgg') should work).
+    (e.g., mpl.use(``TkAgg``) should work).
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -597,7 +597,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ylim = [n_channels * 2.0 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
-    offsets = np.arange(n_channels) * offset + (offset / 2)
+    offsets = np.arange(n_channels) * offset + (offset / 2.)
 
     for epoch_idx in range(n_epochs):
         if epoch_idx % 2 == 1:  # every second area painted blue
@@ -960,4 +960,39 @@ def _close_event(event, params):
 
 def _resize_event(event, params):
     """Function to handle resize event"""
-    tight_layout(fig=params['fig'])
+    s = params['fig'].get_size_inches()
+    scroll_width = 0.33
+    hscroll_dist = 0.33
+    vscroll_dist = 0.1
+    l_border = 1.2
+    r_border = 0.1
+    t_border = 0.33
+    b_border = 0.5
+
+    # only bother trying to reset layout if it's reasonable to do so
+    if s[0] < 2 * scroll_width or s[1] < 2 * scroll_width + hscroll_dist:
+        return
+
+    # convert to relative units
+    scroll_width_x = scroll_width / s[0]
+    scroll_width_y = scroll_width / s[1]
+    vscroll_dist /= s[0]
+    hscroll_dist /= s[1]
+    l_border /= s[0]
+    r_border /= s[0]
+    t_border /= s[1]
+    b_border /= s[1]
+    # main axis (traces)
+    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
+    ax_y = hscroll_dist + scroll_width_y + b_border
+    ax_height = 1.0 - ax_y - t_border
+    params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
+    # vscroll (channels)
+    pos = [ax_width + l_border + vscroll_dist, ax_y,
+           scroll_width_x, ax_height]
+    params['ax_vscroll'].set_position(pos)
+    # hscroll (time)
+    pos = [l_border, b_border, ax_width, scroll_width_y]
+    params['ax_hscroll'].set_position(pos)
+
+    params['fig'].canvas.draw()

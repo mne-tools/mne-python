@@ -533,7 +533,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         typically be used to navigate between channels and time ranges and the
         scaling can be adjusted with 'page up' and 'page down' keys, but
         this depends on the backend matplotlib is configured to use
-        (e.g., mpl.use('TkAgg') should work).
+        (e.g., mpl.use(``TkAgg``) should work).
         """
         if trellis is True:
             return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
