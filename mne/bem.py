@@ -369,7 +369,7 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     verbose : bool, str or None
         If not None, override default verbose level
     """
-    if not os.environ['FREESURFER_HOME']:
+    if not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('FREESURFER_HOME environment variable not set')
     if subject:
         os.environ['SUBJECT'] = subject
@@ -396,8 +396,8 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
         raise RuntimeError('Could not find the MRI data')
     if op.exists(ws_dir):
         if not overwrite:
-            raise RuntimeError('%s already exists. Use the overwrite option to'
-                               ' recreate it.' % ws_dir)
+            raise RuntimeError('%s already exists. Use the --overwrite option'
+                               'to recreate it.' % ws_dir)
         else:
             shutil.rmtree(ws_dir)
     # put together the command
