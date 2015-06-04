@@ -12,6 +12,7 @@ from __future__ import print_function
 
 from collections import deque
 from functools import partial
+from warnings import warn
 
 import numpy as np
 
@@ -676,8 +677,17 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('resize_event', callback_resize)
 
     _plot_traces(params)
+    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
+        plt.tight_layout()
+    except Exception:
+        warn('Matplotlib function \'tight_layout\' is not supported.'
+             ' Skipping subplot adjusment.')
+    else:
+        try:
+            fig.set_tight_layout()
+        except Exception:
+            pass
 
-    tight_layout(fig=fig)
     if show:
         try:
             plt.show(block=block)
@@ -960,7 +970,8 @@ def _close_event(event, params):
 
 def _resize_event(event, params):
     """Function to handle resize event"""
-    s = params['fig'].get_size_inches()
+    size = params['fig'].get_size_inches()
+
     scroll_width = 0.33
     hscroll_dist = 0.33
     vscroll_dist = 0.1
@@ -970,26 +981,26 @@ def _resize_event(event, params):
     b_border = 0.5
 
     # only bother trying to reset layout if it's reasonable to do so
-    if s[0] < 2 * scroll_width or s[1] < 2 * scroll_width + hscroll_dist:
+    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
         return
 
     # convert to relative units
-    scroll_width_x = scroll_width / s[0]
-    scroll_width_y = scroll_width / s[1]
-    vscroll_dist /= s[0]
-    hscroll_dist /= s[1]
-    l_border /= s[0]
-    r_border /= s[0]
-    t_border /= s[1]
-    b_border /= s[1]
+    scroll_width_x = scroll_width / size[0]
+    scroll_width_y = scroll_width / size[1]
+    vscroll_dist /= size[0]
+    hscroll_dist /= size[1]
+    l_border /= size[0]
+    r_border /= size[0]
+    t_border /= size[1]
+    b_border /= size[1]
     # main axis (traces)
     ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
     ax_y = hscroll_dist + scroll_width_y + b_border
     ax_height = 1.0 - ax_y - t_border
     params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
     # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
+    pos = [ax_width + l_border + vscroll_dist, ax_y, scroll_width_x,
+           ax_height]
     params['ax_vscroll'].set_position(pos)
     # hscroll (time)
     pos = [l_border, b_border, ax_width, scroll_width_y]
