@@ -12,7 +12,6 @@ from __future__ import print_function
 
 from collections import deque
 from functools import partial
-from warnings import warn
 
 import numpy as np
 
@@ -546,7 +545,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if fig_title is None:
         fig_title = epochs.name
         if epochs.name is None or len(fig_title) == 0:
-            fig_title = ''
+            fig_title = 'mne_browse_epochs'
     fig = figure_nobar(facecolor='w', figsize=size)
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
     ax.set_title(fig_title, fontsize=12)

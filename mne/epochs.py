@@ -504,10 +504,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Useful for rejecting bad trials on the fly by clicking on a
             sub plot.
         n_epochs : int
-            The number of epochs to show on a continuous plot. If trellis is
+            The number of epochs per view on mne_browse_epochs. If trellis is
             True, this parameter has no effect. Defaults to 20.
         n_channels : int
-            The number of channels per view on a continuous plot. If trellis is
+            The number of channels per view on mne_browse_epochs. If trellis is
             True, this parameter has no effect. Defaults to 10.
         fig_title : str | None
             The title of the window. If None, epochs name will be displayed.
