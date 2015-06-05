@@ -298,9 +298,7 @@ def pick_info(info, sel=[], copy=True):
 
     # Check if bads_channels are included, otherwise
     # remove info['bads']
-    idx_bad_channels = pick_channels(info['ch_names'], info['bads'])
-    if not np.in1d(idx_bad_channels, sel).all():
-        info['bads'] = []
+    info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
