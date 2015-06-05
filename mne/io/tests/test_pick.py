@@ -129,20 +129,21 @@ def test_picks_by_channels():
     assert_equal(len(pick_list), len(pick_list2))
     assert_equal(pick_list2[0][0], 'mag')
 
-    @testing.requires_testing_data
-    def test_clean_info_bads():
 
-        data_path = testing.data_path()
-        raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-        raw = Raw(raw_fname)
+@testing.requires_testing_data
+def test_clean_info_bads():
 
-        # select eeg channels exluding bads
-        picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
-        info_eeg = pick_info(raw.info, picks_eeg)
+    data_path = testing.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+    raw = Raw(raw_fname)
 
-        # select meg channels exluding bads
-        picks_meg = pick_types(raw.info, meg='mag', eeg=False, exclude='bads')
-        info_meg = pick_info(raw.info, picks_meg)
+    # select eeg channels excluding bads
+    picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    info_eeg = pick_info(raw.info, picks_eeg)
 
-        assert_equal(info_eeg['bads'], 0)
-        assert_equal(info_meg['bads'], 0)
+    # select meg channels excluding bads
+    picks_meg = pick_types(raw.info, meg='mag', eeg=False, exclude='bads')
+    info_meg = pick_info(raw.info, picks_meg)
+
+    assert_equal(len(info_eeg['bads']), 0)
+    assert_equal(len(info_meg['bads']), 0)

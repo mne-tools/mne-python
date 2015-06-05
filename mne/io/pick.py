@@ -296,13 +296,14 @@ def pick_info(info, sel=[], copy=True):
     if len(sel) == 0:
         raise ValueError('No channels match the selection.')
 
+    info['chs'] = [info['chs'][k] for k in sel]
+    info['ch_names'] = [info['ch_names'][k] for k in sel]
+    info['nchan'] = len(sel)
+
     # Check if bads_channels are included, otherwise
     # remove info['bads']
     info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
 
-    info['chs'] = [info['chs'][k] for k in sel]
-    info['ch_names'] = [info['ch_names'][k] for k in sel]
-    info['nchan'] = len(sel)
     return info
 
 
