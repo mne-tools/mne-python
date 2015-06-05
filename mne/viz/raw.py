@@ -17,6 +17,7 @@ from ..io.proj import setup_proj
 from ..utils import set_config, get_config, verbose
 from ..time_frequency import compute_raw_psd
 from .utils import figure_nobar, _toggle_options, _toggle_proj, tight_layout
+from .utils import _layout_figure
 from ..defaults import _handle_default
 
 
@@ -64,54 +65,11 @@ def _update_raw_data(params):
     params['times'] = times
 
 
-def _layout_raw(params):
-    """Set raw figure layout"""
-    s = params['fig'].get_size_inches()
-    scroll_width = 0.33
-    hscroll_dist = 0.33
-    vscroll_dist = 0.1
-    l_border = 1.2
-    r_border = 0.1
-    t_border = 0.33
-    b_border = 0.5
-
-    # only bother trying to reset layout if it's reasonable to do so
-    if s[0] < 2 * scroll_width or s[1] < 2 * scroll_width + hscroll_dist:
-        return
-
-    # convert to relative units
-    scroll_width_x = scroll_width / s[0]
-    scroll_width_y = scroll_width / s[1]
-    vscroll_dist /= s[0]
-    hscroll_dist /= s[1]
-    l_border /= s[0]
-    r_border /= s[0]
-    t_border /= s[1]
-    b_border /= s[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
-    params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-    # options button
-    pos = [l_border + ax_width + vscroll_dist, b_border,
-           scroll_width_x, scroll_width_y]
-    params['ax_button'].set_position(pos)
-    params['fig'].canvas.draw()
-
-
 def _helper_resize(event, params):
     """Helper for resizing"""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size)
-    _layout_raw(params)
+    _layout_figure(params)
 
 
 def _pick_bad_channels(event, params):
@@ -622,7 +580,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # do initial plots
     callback_proj('none')
-    _layout_raw(params)
+    _layout_figure(params)
 
     # deal with projectors
     if show_options is True:

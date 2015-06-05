@@ -12,14 +12,17 @@ from __future__ import print_function
 
 from collections import deque
 from functools import partial
+import copy
 
 import numpy as np
 
 from ..utils import create_chunks, verbose, get_config
 from ..io.pick import pick_types, channel_type
-from ..fixes import Counter
+from ..io.proj import setup_proj
+from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
+from .utils import _toggle_options, _toggle_proj, _layout_figure
 from ..defaults import _handle_default
 
 
@@ -308,7 +311,7 @@ def _epochs_axes_onclick(event, params):
 
 def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
                         title_str='#%003i', show=True, block=False):
-    """ Visualize single trials using Trellis plot.
+    """ Visualize epochs using Trellis plot.
 
     Parameters
     ----------
@@ -440,7 +443,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                 n_channels=10, fig_title=None, show=True, block=False):
-    """ Visualize single trials.
+    """ Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch.
     Calling this function drops all the selected bad epochs as well as bad
@@ -503,6 +506,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     duration = len(epochs.times) * n_epochs
     n_channels = min(n_channels, len(picks))
     times = epochs.times * 1e3
+    projs = epochs.info['projs']
+    epochs.info['projs'] = []
 
     # Reorganize channels
     inds = list()
@@ -511,7 +516,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         idxs = pick_types(epochs.info, meg=t, ref_meg=False, exclude=[])
         if len(idxs) < 1:
             continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
+        mask = _in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
@@ -521,7 +526,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         idxs = pick_types(epochs.info, **pick_kwargs)
         if len(idxs) < 1:
             continue
-        mask = np.in1d(idxs, picks, assume_unique=True)
+        mask = _in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
         pick_kwargs[t] = False
@@ -545,8 +550,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if fig_title is None:
         fig_title = epochs.name
         if epochs.name is None or len(fig_title) == 0:
-            fig_title = 'mne_browse_epochs'
+            fig_title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
+    fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
     ax.set_title(fig_title, fontsize=12)
     ax.axis([0, duration, 0, 200])
@@ -556,6 +562,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
+    ax_button = plt.subplot2grid((10, 15), (9, 14))
 
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
@@ -645,6 +652,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ax': ax,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
+              'ax_button': ax_button,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
@@ -658,10 +666,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ch_names': [epochs.info['ch_names'][x] for x in inds],
               'hsel_patch': hsel_patch,
               'data': epoch_data,
+              'orig_data': copy.deepcopy(epoch_data),
               'times': times,
               'epoch_times': epoch_times,
               'offsets': offsets,
-              'labels': labels}
+              'labels': labels,
+              'projs': projs,
+              'scale_factor': 1.0,
+              'fig_proj': None}
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
@@ -675,7 +687,24 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
 
-    _plot_traces(params)
+    if len(projs) > 0:
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
+    else:
+        opt_button = mpl.widgets.Button(ax_button, '')
+
+    # As here code is shared with plot_evoked, some extra steps:
+    # first the actual plot update function
+    params['plot_update_proj_callback'] = _plot_update_epochs_proj
+    # then the toggle handler
+    callback_proj = partial(_toggle_proj, params=params)
+    # store these for use by callbacks in the options figure
+    params['callback_proj'] = callback_proj
+    params['callback_key'] = callback_key
+
+    callback_proj('none')
+
     tight_layout(fig=fig)
 
     if show:
@@ -787,7 +816,7 @@ def _plot_traces(params):
     ax = params['ax']
     n_channels = params['n_channels']
     lines = params['lines']
-    data = params['data']
+    data = params['data'] * params['scale_factor']
     offsets = params['offsets']
 
     length = len(params['epochs'].times)
@@ -828,6 +857,23 @@ def _plot_traces(params):
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
+
+
+def _plot_update_epochs_proj(params, bools):
+    """Helper only needs to be called when proj is changed"""
+    if bools is not None:
+        inds = np.where(bools)[0]
+        params['epochs'].info['projs'] = [copy.deepcopy(params['projs'][ii])
+                                          for ii in inds]
+        params['proj_bools'] = bools
+    params['projector'], _ = setup_proj(params['epochs'].info,
+                                        add_eeg_ref=False, verbose=False)
+
+    data = params['orig_data']
+    if params['projector'] is not None:
+        params['data'] = np.dot(params['projector'], data)
+
+    _plot_traces(params)
 
 
 def _handle_picks(epochs):
@@ -946,10 +992,10 @@ def _plot_onkey(event, params):
         xdata = times.flat[np.abs(times - sample).argmin()]
         _plot_window(xdata, params)
     elif event.key == 'pagedown':
-        params['data'] /= 1.1
+        params['scale_factor'] /= 1.1
         _plot_traces(params)
     elif event.key == 'pageup':
-        params['data'] *= 1.1
+        params['scale_factor'] *= 1.1
         _plot_traces(params)
 
 
@@ -960,40 +1006,4 @@ def _close_event(event, params):
 
 def _resize_event(event, params):
     """Function to handle resize event"""
-    size = params['fig'].get_size_inches()
-
-    scroll_width = 0.33
-    hscroll_dist = 0.33
-    vscroll_dist = 0.1
-    l_border = 1.2
-    r_border = 0.1
-    t_border = 0.33
-    b_border = 0.5
-
-    # only bother trying to reset layout if it's reasonable to do so
-    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
-        return
-
-    # convert to relative units
-    scroll_width_x = scroll_width / size[0]
-    scroll_width_y = scroll_width / size[1]
-    vscroll_dist /= size[0]
-    hscroll_dist /= size[1]
-    l_border /= size[0]
-    r_border /= size[0]
-    t_border /= size[1]
-    b_border /= size[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
-    params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y, scroll_width_x,
-           ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-
-    params['fig'].canvas.draw()
+    _layout_figure(params)

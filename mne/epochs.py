@@ -476,7 +476,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True, block=False, n_epochs=20,
              n_channels=10, fig_title=None, trellis=True):
-        """Visualize single trials.
+        """Visualize epochs.
 
         Bad epochs can be marked with a left click on top of the epoch.
         Calling this function drops all the selected bad epochs as well as bad
