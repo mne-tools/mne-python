@@ -13,6 +13,8 @@ from mne.datasets import testing
 from mne.forward.tests import test_forward
 from mne.io import Raw
 from mne import pick_info
+import mne
+import os.path as op
 
 
 def test_pick_channels_regexp():
@@ -130,19 +132,35 @@ def test_picks_by_channels():
     assert_equal(pick_list2[0][0], 'mag')
 
 
-@testing.requires_testing_data
 def test_clean_info_bads():
 
-    data_path = testing.data_path()
-    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
-    raw = Raw(raw_fname)
+    raw_file = op.join(op.dirname(mne.__file__), 'io', 'tests', 'data',
+                       'test_raw.fif')
+    raw = Raw(raw_file)
 
-    # select eeg channels excluding bads
+    # select eeg channels
+    pick_eeg = pick_types(raw.info, meg=False, eeg=True)
+
+    # select randomly 3 eeg channels as bads
+    idx_eeg_bad_ch = pick_eeg[np.random.permutation(pick_eeg.shape[0])][:3]
+    eeg_bad_ch = [raw.info['ch_names'][k] for k in idx_eeg_bad_ch]
+
+    # select meg channels
+    pick_meg = pick_types(raw.info, meg=True, eeg=False)
+
+    # select randomly 3 meg channels as bads
+    idx_meg_bad_ch = pick_meg[np.random.permutation(pick_meg.shape[0])][:3]
+    meg_bad_ch = [raw.info['ch_names'][k] for k in idx_meg_bad_ch]
+
+    # simulate the bad channels
+    raw.info['bads'] = eeg_bad_ch + meg_bad_ch
+
+    # simulate the call to pick_info excluding the bad eeg channels
     picks_eeg = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
     info_eeg = pick_info(raw.info, picks_eeg)
 
-    # select meg channels excluding bads
-    picks_meg = pick_types(raw.info, meg='mag', eeg=False, exclude='bads')
+    # simulate the call to pick_info excluding the bad meg channels
+    picks_meg = pick_types(raw.info, meg=True, eeg=False, exclude='bads')
     info_meg = pick_info(raw.info, picks_meg)
 
     assert_equal(len(info_eeg['bads']), 0)
