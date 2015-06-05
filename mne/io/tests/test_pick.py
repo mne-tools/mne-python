@@ -1,20 +1,20 @@
 from nose.tools import assert_equal, assert_raises
 from numpy.testing import assert_array_equal
 import numpy as np
+import os.path as op
 
 from mne import (pick_channels_regexp, pick_types, Epochs,
-                 read_forward_solution, rename_channels)
+                 read_forward_solution, rename_channels,
+                 pick_info, __file__)
+
 from mne.io.meas_info import create_info
 from mne.io.array import RawArray
 from mne.io.pick import (channel_indices_by_type, channel_type,
                          pick_types_forward, _picks_by_type)
 from mne.io.constants import FIFF
+from mne.io import Raw
 from mne.datasets import testing
 from mne.forward.tests import test_forward
-from mne.io import Raw
-from mne import pick_info
-import mne
-import os.path as op
 
 
 def test_pick_channels_regexp():
@@ -133,8 +133,9 @@ def test_picks_by_channels():
 
 
 def test_clean_info_bads():
+    """Test cleaning info['bads'] when bad_channels are excluded """
 
-    raw_file = op.join(op.dirname(mne.__file__), 'io', 'tests', 'data',
+    raw_file = op.join(op.dirname(__file__), 'io', 'tests', 'data',
                        'test_raw.fif')
     raw = Raw(raw_file)
 
