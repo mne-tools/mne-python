@@ -590,8 +590,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         colors.append(list())
         colors[ii] = [typecolors[ii]] * len(epochs.events)
     lines = list()
-    n_samples = len(epochs.times)
-    line = [(0, 0) for x in range(n_samples)]
+    n_times = len(epochs.times)
+    line = [(0, 0) for x in range(n_times)]
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
@@ -611,15 +611,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     for epoch_idx in range(n_epochs):
         if epoch_idx % 2 == 1:  # every second area painted yellow
-            ax.fill_betweenx(ylim, epoch_idx * n_samples,
-                             epoch_idx * n_samples + n_samples, alpha=0.2,
+            ax.fill_betweenx(ylim, epoch_idx * n_times,
+                             epoch_idx * n_times + n_times, alpha=0.2,
                              facecolor='y', zorder=1)
     times = np.arange(len(data) * len(epochs.times))
-    epoch_times = np.arange(0, len(times), n_samples)
+    epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
-    ticks = epoch_times + 0.5 * n_samples
+    ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
@@ -632,19 +632,26 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
-    hlabels = [x / n_samples + 1 for x in hticks]
+    hlabels = [x / n_times + 1 for x in hticks]
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
     for epoch_idx in range(len(epoch_times)):
-        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * n_samples, 0),
-                                                   n_samples, 1, facecolor='w',
+        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * n_times, 0),
+                                                   n_times, 1, facecolor='w',
                                                    edgecolor='w', alpha=0.6))
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
+
+    # color for each event
+    ev_colors = plt.cm.rainbow(np.linspace(0, 1,
+                                           len(set(epochs.events[:, 2]))))
+    color_map = dict()
+    for idx, event_id in enumerate(set(epochs.events[:, 2])):
+        color_map[event_id] = ev_colors[idx]
 
     params = {'vsel_patch': vsel_patch,
               'epochs': epochs,
@@ -676,7 +683,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'labels': labels,
               'projs': projs,
               'scale_factor': 1.0,
-              'fig_proj': None}
+              'fig_proj': None,
+              'ev_cmap': color_map}
 
     # callbacks
     callback_scroll = partial(_plot_onscroll, params=params)
@@ -821,12 +829,13 @@ def _plot_traces(params):
     lines = params['lines']
     data = params['data'] * params['scale_factor']
     offsets = params['offsets']
+    epochs = params['epochs']
 
-    n_samples = len(params['epochs'].times)
+    n_times = len(epochs.times)
     tick_list = list()
-    start_idx = int(params['t_start'] / n_samples)
+    start_idx = int(params['t_start'] / n_times)
     end = params['t_start'] + params['duration']
-    end_idx = int(end / n_samples)
+    end_idx = int(end / n_times)
     labels = params['labels'][start_idx:]
     ax.set_xticklabels(labels)
     # do the plotting
@@ -844,7 +853,7 @@ def _plot_traces(params):
             ydata = offset - this_data
             xdata = params['times'][:params['duration']]
             num_epochs = np.min([params['n_epochs'],
-                                len(params['epochs'].events)])
+                                len(epochs.events)])
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
             lines[ii].set_segments(segments)
@@ -853,6 +862,14 @@ def _plot_traces(params):
             lines[ii].set_color(this_color)
         else:
             lines[ii].set_segments(list())
+
+    # event colors
+    for event_idx, event in enumerate(epochs.events[start_idx:end_idx]):
+        l_width = 3
+        color = params['ev_cmap'][event[2]]
+        pos = [event_idx * n_times + l_width / 2.0,
+               event_idx * n_times + l_width / 2.0]
+        ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=l_width)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
@@ -919,8 +936,8 @@ def _channels_changed(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
-    n_samples = len(params['epochs'].times)
-    start_idx = int(params['t_start'] / n_samples)
+    n_times = len(params['epochs'].times)
+    start_idx = int(params['t_start'] / n_times)
     xdata = event.xdata
     xlim = event.inaxes.get_xlim()
     epoch_idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))
