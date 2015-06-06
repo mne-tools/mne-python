@@ -504,8 +504,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Useful for rejecting bad trials on the fly by clicking on a
             sub plot.
         n_epochs : int
-            The number of epochs per view on mne_browse_epochs. If trellis is
-            True, this parameter has no effect. Defaults to 20.
+            The number of epochs per view.
         n_channels : int
             The number of channels per view on mne_browse_epochs. If trellis is
             True, this parameter has no effect. Defaults to 10.
@@ -526,9 +525,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Notes
         -----
         With trellis set to False, the arrow keys (up/down/left/right) can
-        be used to navigate between channels and time ranges and the
-        scaling can be adjusted with 'page up' and 'page down' keys, but
-        this depends on the backend matplotlib is configured to use
+        be used to navigate between channels and epochs and the scaling can be
+        adjusted with 'page up' and 'page down' keys, but this depends on the
+        backend matplotlib is configured to use
         (e.g., mpl.use(``TkAgg``) should work).
 
         .. versionadded:: 0.10.0
@@ -536,7 +535,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if trellis is True:
             return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
                                        scalings=scalings, title_str=title_str,
-                                       show=show, block=block)
+                                       show=show, block=block,
+                                       n_epochs=n_epochs)
         else:
             return plot_epochs(self, picks=picks, scalings=scalings,
                                n_epochs=n_epochs, n_channels=n_channels,

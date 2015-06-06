@@ -310,7 +310,8 @@ def _epochs_axes_onclick(event, params):
 
 
 def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
-                        title_str='#%003i', show=True, block=False):
+                        title_str='#%003i', show=True, block=False,
+                        n_epochs=20):
     """ Visualize epochs using Trellis plot.
 
     Parameters
@@ -336,7 +337,9 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
     block : bool
         Whether to halt program execution until the figure is closed.
         Useful for rejecting bad trials on the fly by clicking on a
-        sub plot.
+        sub plot. Defaults to False.
+    n_epochs : int
+        The number of epochs per view. Defaults to 20.
 
     Returns
     -------
@@ -354,7 +357,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
     else:
         n_events = len(epoch_idx)
     epoch_idx = epoch_idx[:n_events]
-    idx_handler = deque(create_chunks(epoch_idx, 20))
+    idx_handler = deque(create_chunks(epoch_idx, n_epochs))
 
     if picks is None:
         picks = _handle_picks(epochs)
@@ -374,7 +377,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
     n_events = len(epochs.events)
     epoch_idx = epoch_idx[:n_events]
-    idx_handler = deque(create_chunks(epoch_idx, 20))
+    idx_handler = deque(create_chunks(epoch_idx, n_epochs))
     # handle bads
     bad_ch_idx = None
     ch_names = epochs.ch_names
@@ -483,9 +486,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     Notes
     -----
     With trellis set to False, the arrow keys (up/down/left/right) can
-    be used to navigate between channels and time ranges and the
-    scaling can be adjusted with 'page up' and 'page down' keys, but
-    this depends on the backend matplotlib is configured to use
+    be used to navigate between channels and epochs and the scaling can be
+    adjusted with 'page up' and 'page down' keys, but this depends on the
+    backend matplotlib is configured to use
     (e.g., mpl.use(``TkAgg``) should work).
     """
     import matplotlib.pyplot as plt
@@ -587,8 +590,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         colors.append(list())
         colors[ii] = [typecolors[ii]] * len(epochs.events)
     lines = list()
-    length = len(epochs.times)
-    line = [(0, 0) for x in range(length)]
+    n_samples = len(epochs.times)
+    line = [(0, 0) for x in range(n_samples)]
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
@@ -607,16 +610,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
     for epoch_idx in range(n_epochs):
-        if epoch_idx % 2 == 1:  # every second area painted blue
-            ax.fill_betweenx(ylim, epoch_idx * length,
-                             epoch_idx * length + length, alpha=0.2,
+        if epoch_idx % 2 == 1:  # every second area painted yellow
+            ax.fill_betweenx(ylim, epoch_idx * n_samples,
+                             epoch_idx * n_samples + n_samples, alpha=0.2,
                              facecolor='y', zorder=1)
     times = np.arange(len(data) * len(epochs.times))
-    epoch_times = np.arange(0, len(times), length)
+    epoch_times = np.arange(0, len(times), n_samples)
 
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
-    ticks = epoch_times + 0.5 * length
+    ticks = epoch_times + 0.5 * n_samples
     ax.set_xticks(ticks)
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
@@ -629,13 +632,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     hticks = list()
     for tick in hscroll_ticks:
         hticks.append(epoch_times.flat[np.abs(epoch_times - tick).argmin()])
-    hlabels = [x / length + 1 for x in hticks]
+    hlabels = [x / n_samples + 1 for x in hticks]
     ax_hscroll.set_xticks(hticks)
     ax_hscroll.set_xticklabels(hlabels)
 
     for epoch_idx in range(len(epoch_times)):
-        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * length, 0),
-                                                   length, 1, facecolor='w',
+        ax_hscroll.add_patch(mpl.patches.Rectangle((epoch_idx * n_samples, 0),
+                                                   n_samples, 1, facecolor='w',
                                                    edgecolor='w', alpha=0.6))
     hsel_patch = mpl.patches.Rectangle((0, 0), duration, 1,
                                        edgecolor='k',
@@ -687,7 +690,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
 
-    if len(projs) > 0:
+    if len(projs) > 0 and not any([p['active'] for p in epochs.info['projs']]):
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
@@ -819,11 +822,11 @@ def _plot_traces(params):
     data = params['data'] * params['scale_factor']
     offsets = params['offsets']
 
-    length = len(params['epochs'].times)
+    n_samples = len(params['epochs'].times)
     tick_list = list()
-    start_idx = int(params['t_start'] / length)
+    start_idx = int(params['t_start'] / n_samples)
     end = params['t_start'] + params['duration']
-    end_idx = int(end / length)
+    end_idx = int(end / n_samples)
     labels = params['labels'][start_idx:]
     ax.set_xticklabels(labels)
     # do the plotting
@@ -857,6 +860,11 @@ def _plot_traces(params):
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
+    # XXX This is a hack to make sure this figure gets drawn last
+    # so that when matplotlib goes to calculate bounds we don't get a
+    # CGContextRef error on the MacOSX backend :(
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
 
 
 def _plot_update_epochs_proj(params, bools):
@@ -911,8 +919,8 @@ def _channels_changed(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
-    length = len(params['epochs'].times)
-    start_idx = int(params['t_start'] / length)
+    n_samples = len(params['epochs'].times)
+    start_idx = int(params['t_start'] / n_samples)
     xdata = event.xdata
     xlim = event.inaxes.get_xlim()
     epoch_idx = start_idx + int(xdata / (xlim[1] / params['n_epochs']))

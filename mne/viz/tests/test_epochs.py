@@ -124,11 +124,15 @@ def test_plot_epochs():
         x = fig.get_axes()[0].get_xlim()[1] / 2
         y = fig.get_axes()[0].get_ylim()[0] / 2
         data_ax = fig.get_axes()[0]
+        n_epochs = len(epochs)
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
         _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change epochs
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        fig.canvas.close_event()  # closing and epoch dropping
+        assert(n_epochs - 1 == len(epochs))
+        plt.close('all')
 
         assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
         plt.close('all')
