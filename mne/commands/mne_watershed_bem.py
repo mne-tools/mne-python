@@ -19,7 +19,7 @@ def run():
     parser = get_optparser(__file__)
 
     parser.add_option("-s", "--subject", dest="subject",
-                      help="Subject name", default=None)
+                      help="Subject name (required)", default=None)
     parser.add_option("-d", "--subjects-dir", dest="subjects_dir",
                       help="Subjects directory", default=None)
     parser.add_option("-o", "--overwrite", dest="overwrite",
