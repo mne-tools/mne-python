@@ -15,7 +15,7 @@ from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
                        ArgvSetter, slow_test)
 from mne.io import Raw
-from mne.datasets import testing, sample
+from mne.datasets import testing
 
 
 base_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
