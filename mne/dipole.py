@@ -11,7 +11,7 @@ import re
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
 from .io.pick import pick_types
-from .io.proj import make_projector
+from .io.proj import make_projector, make_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
@@ -358,8 +358,8 @@ def _fit_dipoles(min_dist_to_inner_skull, data, times, rrs, guess_fwd_svd,
     ori = np.array([r[2] for r in res])
     gof = np.array([r[3] for r in res]) * 100  # convert to percentage
     residual = np.array([r[4] for r in res]).T
-    dist_to_inner_skull = np.array([r[5] for r in res])
-    return pos, amp, ori, gof, residual, dist_to_inner_skull
+
+    return pos, amp, ori, gof, residual
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
@@ -428,7 +428,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
                                            return_dists=True)[1][0]
     logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
                 (1000 * t, dist_to_inner_skull * 1000))
-    return rd_final, amp, ori, gof, residual, dist_to_inner_skull
+    return rd_final, amp, ori, gof, residual
 
 
 @verbose
@@ -470,6 +470,14 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
     """
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
+
+    evoked.info['projs'] = []  # get rid of SSP projections
+    if 'eeg' in evoked:
+        evoked = evoked.copy()
+        avg_proj = make_eeg_average_ref_proj(evoked.info)
+        evoked.add_proj([avg_proj])
+        evoked.apply_proj()
+
     data = evoked.data
     info = evoked.info
     times = evoked.times.copy()
@@ -586,6 +594,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
                        whitener, proj_op, n_jobs)
     dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
     residual = out[4]
-    dist_to_inner_skull = out[5]
+
     logger.info('%d dipoles fitted' % len(dipoles.times))
-    return dipoles, residual, dist_to_inner_skull
+    return dipoles, residual
