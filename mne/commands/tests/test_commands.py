@@ -184,8 +184,6 @@ def test_surf2bem():
 def test_watershed_bem():
     """Test mne watershed bem"""
     check_usage(mne_watershed_bem)
-    orig_subject_dir = os.getenv('SUBJECTS_DIR', None)
-    orig_subject = os.getenv('SUBJECT', None)
     # Copy necessary files to tempdir
     tempdir = _TempDir()
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
@@ -202,9 +200,6 @@ def test_watershed_bem():
     with ArgvSetter(('-d', tempdir, '-s', 'sample', '-o'),
                     disable_stdout=False, disable_stderr=False):
         mne_watershed_bem.run()
-
-    os.environ['SUBJECTS_DIR'] = orig_subject_dir
-    os.environ['SUBJECT'] = orig_subject
 
 
 run_tests_if_main()
