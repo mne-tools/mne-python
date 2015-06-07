@@ -180,7 +180,7 @@ def test_surf2bem():
 
 @slow_test
 @requires_freesurfer
-@sample.requires_sample_data
+@testing.requires_testing_data
 def test_watershed_bem():
     """Test mne watershed bem"""
     check_usage(mne_watershed_bem)
@@ -188,7 +188,6 @@ def test_watershed_bem():
     orig_subject = os.getenv('SUBJECT', None)
     # Copy necessary files to tempdir
     tempdir = _TempDir()
-    subjects_dir = op.join(sample.data_path(download=False), 'subjects')
     mridata_path = op.join(subjects_dir, 'sample', 'mri')
     mridata_path_new = op.join(tempdir, 'sample', 'mri')
     os.mkdir(op.join(tempdir, 'sample'))
