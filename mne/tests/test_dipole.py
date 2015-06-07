@@ -8,7 +8,7 @@ from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
                  transform_surface_to, make_sphere_model, pick_types,
-                 EvokedArray, pick_info)
+                 pick_info, EvokedArray)
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
@@ -197,16 +197,9 @@ def test_min_distance_fit_dipole():
 
     simulated_scalp_map = simulated_scalp_map[:, None]
 
-    min_distance = 5  # distance in mm
-
     evoked = EvokedArray(simulated_scalp_map, info, tmin=0)
 
-    evoked.info['projs'] = []  # get rid of SSP projections
-    if 'eeg' in evoked:
-        evoked = evoked.copy()
-        avg_proj = make_eeg_average_ref_proj(evoked.info)
-        evoked.add_proj([avg_proj])
-        evoked.apply_proj()
+    min_distance = 5  # distance in mm
 
     dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
                                min_dist=min_distance)
