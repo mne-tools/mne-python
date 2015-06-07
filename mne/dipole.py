@@ -358,7 +358,8 @@ def _fit_dipoles(min_dist_to_inner_skull, data, times, rrs, guess_fwd_svd,
     ori = np.array([r[2] for r in res])
     gof = np.array([r[3] for r in res]) * 100  # convert to percentage
     residual = np.array([r[4] for r in res]).T
-    return pos, amp, ori, gof, residual
+    dist_to_inner_skull = np.array([r[5] for r in res])
+    return pos, amp, ori, gof, residual, dist_to_inner_skull
 
 
 def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
@@ -422,11 +423,12 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
     norm = 1 if amp == 0 else amp
     ori = Q / norm
 
-    dist = _compute_nearest(surf['rr'], rd_final[np.newaxis, :],
-                            return_dists=True)[1][0]
+    dist_to_inner_skull = _compute_nearest(surf['rr'],
+                                           rd_final[np.newaxis, :],
+                                           return_dists=True)[1][0]
     logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
-                (1000 * t, dist * 1000))
-    return rd_final, amp, ori, gof, residual
+                (1000 * t, dist_to_inner_skull * 1000))
+    return rd_final, amp, ori, gof, residual, dist_to_inner_skull
 
 
 @verbose
@@ -584,5 +586,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
                        whitener, proj_op, n_jobs)
     dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
     residual = out[4]
+    dist_to_inner_skull = out[5]
     logger.info('%d dipoles fitted' % len(dipoles.times))
-    return dipoles, residual
+    return dipoles, residual, dist_to_inner_skull

@@ -7,12 +7,15 @@ import warnings
 from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
-                 transform_surface_to, make_sphere_model, pick_types)
+                 transform_surface_to, make_sphere_model, pick_types,
+                 EvokedArray, pick_info)
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
                        run_subprocess)
 from mne.proj import make_eeg_average_ref_proj
+
+from mne.io import Raw
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -151,3 +154,57 @@ def test_len_index_dipoles():
 
 
 run_tests_if_main(False)
+
+
+@testing.requires_testing_data
+def test_min_distance_fit_dipole():
+
+    data_path = testing.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+
+    subjects_dir = op.join(data_path, 'subjects')
+    fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+    fname_trans = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-trans.fif')
+    fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-1280-1280-1280-bem-sol.fif')
+
+    raw = Raw(raw_fname, preload=True)
+
+    # select eeg data
+    picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    info = pick_info(raw.info, picks)
+
+    # Let's use cov = Identity
+    cov = read_cov(fname_cov)
+    cov['data'] = np.eye(cov['data'].shape[0])
+
+    # Simulated scal map
+    simulated_scalp_map = np.zeros(picks.shape[0])
+    simulated_scalp_map[27] = 1
+    simulated_scalp_map[28] = 1
+    simulated_scalp_map[29] = 1
+    simulated_scalp_map[30] = 1
+    simulated_scalp_map[31] = 1
+    simulated_scalp_map[32] = 1
+    simulated_scalp_map[33] = 1
+
+    simulated_scalp_map = simulated_scalp_map[:, None]
+
+    min_distance = 5  # distance in mm
+
+    evoked = EvokedArray(simulated_scalp_map, info, tmin=0)
+
+    info['projs'] = []  # get rid of SSP projections
+    if 'eeg' in evoked:
+        evoked = evoked.copy()
+        avg_proj = make_eeg_average_ref_proj(evoked.info)
+        evoked.add_proj([avg_proj])
+        evoked.apply_proj()
+
+    dip, residual, dist_to_inner_skull = fit_dipole(evoked, cov,
+                                                    fname_bem,
+                                                    fname_trans,
+                                                    min_dist=min_distance)
+
+    assert (dist_to_inner_skull * 1000) > min_distance
