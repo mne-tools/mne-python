@@ -369,16 +369,16 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     verbose : bool, str or None
         If not None, override default verbose level
     """
+    env = os.environ.copy()
+
     if not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('FREESURFER_HOME environment variable not set')
     if subject:
-        os.environ['SUBJECT'] = subject
+        env['SUBJECT'] = subject
     else:
         subject = get_config('SUBJECT', raise_error=True)
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
-    os.environ['SUBJECTS_DIR'] = subjects_dir
-
-    env = os.environ.copy()
+    env['SUBJECTS_DIR'] = subjects_dir
 
     subject_dir = op.join(subjects_dir, subject)
     mri_dir = op.join(subject_dir, 'mri')
