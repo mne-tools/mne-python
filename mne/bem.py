@@ -352,7 +352,7 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     Parameters
     ----------
     subject : string
-        Subject name (SUBJECT environment variable)
+        Subject name (required)
     subjects_dir : string
         Directory containing subjects data. If None use
         the Freesurfer SUBJECTS_DIR environment variable.
@@ -376,7 +376,7 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     if subject:
         env['SUBJECT'] = subject
     else:
-        subject = get_config('SUBJECT', raise_error=True)
+        raise RuntimeError('The subject argument must be set')
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env['SUBJECTS_DIR'] = subjects_dir
 
