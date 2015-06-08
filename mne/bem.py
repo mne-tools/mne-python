@@ -12,8 +12,7 @@ import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import (verbose, logger, run_subprocess, get_config,
-                    get_subjects_dir)
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir)
 from .io.constants import FIFF
 from .externals.six import string_types
 
