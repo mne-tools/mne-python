@@ -199,18 +199,17 @@ def test_min_distance_fit_dipole():
 
     evoked = EvokedArray(simulated_scalp_map, info, tmin=0)
 
-    min_distance = 5  # distance in mm
+    min_dist = 5.  # distance in mm
 
     dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
-                               min_dist=min_distance)
+                               min_dist=min_dist)
 
-    dist, radiality = _compute_depth_and_radiality(dip, fname_trans,
-                                                   subject, subjects_dir)
+    dist = _compute_depth(dip, fname_trans, subject, subjects_dir)
 
-    assert (dist * 1000) > min_distance
+    assert (dist * 1000.) > min_dist
 
 
-def _compute_depth_and_radiality(dip, fname_trans, subject, subjects_dir):
+def _compute_depth(dip, fname_trans, subject, subjects_dir):
     trans = read_trans(fname_trans)
     trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
@@ -220,17 +219,10 @@ def _compute_depth_and_radiality(dip, fname_trans, subject, subjects_dir):
     points = apply_trans(trans['trans'], points * 1e-3)
 
     pos = dip.pos
-    ori = dip.ori
 
     from sklearn.neighbors import NearestNeighbors
     nn = NearestNeighbors()
     nn.fit(points)
     depth, idx = nn.kneighbors(pos, 1, return_distance=True)
-    idx = np.ravel(idx)
 
-    direction = pos - points[idx]
-    direction /= np.sqrt(np.sum(direction ** 2, axis=1))[:, None]
-    ori /= np.sqrt(np.sum(ori ** 2, axis=1))[:, None]
-
-    radiality = np.abs(np.sum(ori * direction, axis=1))
-    return np.ravel(depth), radiality
+    return np.ravel(depth)

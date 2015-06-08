@@ -11,7 +11,8 @@ import re
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
 from .io.pick import pick_types
-from .io.proj import make_projector, make_eeg_average_ref_proj
+from .io.proj import make_projector, make_eeg_average_ref_proj,\
+    _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
@@ -343,15 +344,13 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd):
 
 
 def _fit_dipoles(min_dist_to_inner_skull, data, times, rrs, guess_fwd_svd,
-                 fwd_data, whitener,
-                 proj_op, n_jobs):
+                 fwd_data, whitener, proj_op, n_jobs):
     """Fit a single dipole to the given whitened, projected data"""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(_fit_dipole, n_jobs)
     # parallel over time points
     res = parallel(p_fun(min_dist_to_inner_skull, B, t, rrs, guess_fwd_svd,
-                         fwd_data, whitener, proj_op,
-                         fmin_cobyla)
+                         fwd_data, whitener, proj_op, fmin_cobyla)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
@@ -373,22 +372,24 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
         surf = fwd_data['inner_skull']
 
         def constraint(rd):
+
+            dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
+                                    return_dists=True)[1][0]
+
             if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
-                dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
-                                        return_dists=True)[1][0]
                 return -dist
             else:
 
                 # Once we know the dipole is below the inner skull,
                 # let's check if its distance to the inner skull is at least
-                # min_dist_to_inner_skull. If it is not, it is penalized
-                # proportional to its distance.
+                # min_dist_to_inner_skull. This can be enforced by adding a
+                # constrain proportional to its distance.
 
-                dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
-                                        return_dists=True)[1][0]
+                if dist < min_dist_to_inner_skull and \
+                   min_dist_to_inner_skull > 0:
 
-                if dist < min_dist_to_inner_skull:
                     return -(min_dist_to_inner_skull - dist)
+
                 else:
                     return 1.
     else:  # sphere
@@ -427,7 +428,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
                                            rd_final[np.newaxis, :],
                                            return_dists=True)[1][0]
     logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
-                (1000 * t, dist_to_inner_skull * 1000))
+                (1000. * t, dist_to_inner_skull * 1000.))
     return rd_final, amp, ori, gof, residual
 
 
@@ -448,7 +449,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
-    min_dist : int, float
+    min_dist : float
         Minimum distance (in milimeters) from the dipole to the inner skull.
     n_jobs : int
         Number of jobs to run in parallel (used in field computation
@@ -471,12 +472,45 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
 
-    evoked.info['projs'] = []  # get rid of SSP projections
-    if 'eeg' in evoked:
-        evoked = evoked.copy()
-        avg_proj = make_eeg_average_ref_proj(evoked.info)
-        evoked.add_proj([avg_proj])
-        evoked.apply_proj()
+    evoked = evoked.copy()
+
+    # Determine if a list of projectors has an average EEG ref
+    if "eeg" in evoked and not _has_eeg_average_ref_proj(evoked.info['projs']):
+        raise ValueError('EEG average reference is mandatory for dipole '
+                         'fitting.')
+    else:
+        # Determine if the 'Average EEG reference' projector is active.
+        for proj in evoked.info['projs']:
+            if (proj['desc'] == 'Average EEG reference' or
+                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
+                idx_eeg_average_proj = evoked.info['projs'].index(proj)
+
+        if not evoked.info['projs'][idx_eeg_average_proj]['active']:
+
+            # if it is not active, we need to apply only this projector
+            # to the data.
+
+            # Currently it is only possible to apply all projectors
+            # to the data, but we need to apply only one. To achieve
+            # this we are going to use the following hack:
+
+            # - Remove the eeg_average_ref_proj and save the rest of
+            # the projectors
+            evoked.info['projs'].pop(idx_eeg_average_proj)
+            projs = evoked.info['projs']
+
+            # - Once the projectors have been saved, remove all of them from
+            # evoke.info
+            evoked.info['projs'] = []
+
+            # - Make an eeg_average_ref_proj and apply it to the data
+            avg_proj = make_eeg_average_ref_proj(evoked.info)
+            evoked.add_proj([avg_proj])
+            evoked.apply_proj()
+
+            # - Append this new projector to the previously saved
+            # projectors, and stored them into evoked.info['projs']
+            evoked.info['projs'] = projs + evoked.info['projs']
 
     data = evoked.data
     info = evoked.info
@@ -484,7 +518,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
     comment = evoked.comment
 
     # Convert the min_dist to meters
-    min_dist_to_inner_skull = float(min_dist) / 1000
+    min_dist_to_inner_skull = min_dist / 1000.
 
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
