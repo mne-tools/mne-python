@@ -187,13 +187,7 @@ def test_min_distance_fit_dipole():
 
     # Simulated scal map
     simulated_scalp_map = np.zeros(picks.shape[0])
-    simulated_scalp_map[27] = 1
-    simulated_scalp_map[28] = 1
-    simulated_scalp_map[29] = 1
-    simulated_scalp_map[30] = 1
-    simulated_scalp_map[31] = 1
-    simulated_scalp_map[32] = 1
-    simulated_scalp_map[33] = 1
+    simulated_scalp_map[27:34] = 1
 
     simulated_scalp_map = simulated_scalp_map[:, None]
 
