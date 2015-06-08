@@ -13,7 +13,7 @@ from mne.commands import (mne_browse_raw, mne_bti2fiff, mne_clean_eog_ecg,
                           mne_report, mne_surf2bem, mne_watershed_bem)
 from mne.utils import (run_tests_if_main, _TempDir, requires_mne, requires_PIL,
                        requires_mayavi, requires_tvtk, requires_freesurfer,
-                       ArgvSetter, slow_test)
+                       ArgvSetter, slow_test, ultra_slow_test)
 from mne.io import Raw
 from mne.datasets import testing
 
@@ -178,7 +178,7 @@ def test_surf2bem():
     check_usage(mne_surf2bem)
 
 
-@slow_test
+@ultra_slow_test
 @requires_freesurfer
 @testing.requires_testing_data
 def test_watershed_bem():
