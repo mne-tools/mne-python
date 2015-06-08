@@ -44,7 +44,7 @@ $(CURDIR)/examples/MNE-sample-data/MEG/sample/sample_audvis_raw.fif:
 
 test: in
 	rm -f .coverage
-	$(NOSETESTS) mne
+	$(NOSETESTS) -a '!ultra_slow_test' mne
 
 test-no-network: in
 	sudo unshare -n -- sh -c 'MNE_SKIP_NETWORK_TESTS=1 nosetests mne'
