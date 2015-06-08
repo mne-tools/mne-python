@@ -13,7 +13,7 @@ from __future__ import print_function
 from collections import deque
 from functools import partial
 import copy
-import platform
+from sys import platform
 
 import numpy as np
 
@@ -1034,4 +1034,4 @@ def _close_event(event, params):
 
 def _resize_event(event, params):
     """Function to handle resize event"""
-    _layout_figure(params, platform.system())
+    _layout_figure(params, platform)

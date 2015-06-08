@@ -272,10 +272,10 @@ def _layout_figure(params, platform=None):
     """Aux function for setting figure layout"""
     size = params['fig'].get_size_inches()
     scroll_width = 0.33
-    if not platform == 'Linux' and platform is not None:
-        hscroll_dist = 0.8
-    else:
+    if platform is None or platform == "linux" or platform == "linux2":
         hscroll_dist = 0.33
+    else:
+        hscroll_dist = 0.8
     vscroll_dist = 0.1
     l_border = 1.2
     r_border = 0.1
