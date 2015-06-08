@@ -22,7 +22,8 @@ from ..transforms import (invert_transform, transform_surface_to, apply_trans,
 from ..utils import logger, verbose
 from ..source_space import (read_source_spaces, _filter_source_spaces,
                             SourceSpaces)
-from ..surface import read_bem_solution, _normalize_vectors, _bem_find_surface
+from ..surface import _normalize_vectors
+from ..bem import read_bem_solution, _bem_find_surface
 from ..externals.six import string_types
 
 

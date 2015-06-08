@@ -159,7 +159,8 @@ Functions:
    read_trans
    save_stc_as_volume
    write_labels_to_annot
-   write_bem_surface
+   write_bem_solution
+   write_bem_surfaces
    write_cov
    write_events
    write_evokeds
@@ -544,6 +545,8 @@ Functions:
    average_forward_solutions
    convert_forward_solution
    do_forward_solution
+   make_bem_model
+   make_bem_solution
    make_forward_solution
    make_field_map
    make_sphere_model

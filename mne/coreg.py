@@ -21,8 +21,8 @@ from .io.meas_info import read_fiducials, write_fiducials
 from .label import read_label, Label
 from .source_space import (add_source_space_distances, read_source_spaces,
                            write_source_spaces)
-from .surface import (read_surface, write_surface, read_bem_surfaces,
-                      write_bem_surface)
+from .surface import read_surface, write_surface
+from .bem import read_bem_surfaces, write_bem_surfaces
 from .transforms import rotation, rotation3d, scaling, translation
 from .utils import get_config, get_subjects_dir, logger, pformat
 from functools import reduce
@@ -851,7 +851,7 @@ def scale_bem(subject_to, bem_name, subject_from=None, scale=None,
                                   % src)
     surf0 = surfs[0]
     surf0['rr'] = surf0['rr'] * scale
-    write_bem_surface(dst, surf0)
+    write_bem_surfaces(dst, surf0)
 
 
 def scale_labels(subject_to, pattern=None, overwrite=False, subject_from=None,
