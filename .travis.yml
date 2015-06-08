@@ -124,7 +124,7 @@ install:
       fi;
 
 script:
-    - nosetests --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
+    - nosetests -a '!ultra_slow_test' --with-timer --timer-top-n 30 --verbosity=2 $COVERAGE
     - if [ "${DEPS}" == "nodata" ]; then
         make flake;
       fi;
