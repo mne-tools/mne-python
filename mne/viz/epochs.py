@@ -13,6 +13,7 @@ from __future__ import print_function
 from collections import deque
 from functools import partial
 import copy
+from warnings import warn
 
 import numpy as np
 
@@ -716,7 +717,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     callback_proj('none')
 
-    tight_layout(fig=fig)
+    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
+        fig.tight_layout(True)
+    except Exception:
+        warn('Matplotlib function \'tight_layout\' is not supported.'
+             ' Skipping subplot adjusment.')
+        try:
+            plt.tight_layout(True)
+        except Exception:
+            pass
 
     if show:
         try:
@@ -869,10 +878,11 @@ def _plot_traces(params):
     ylim = ax.get_ylim()
     events = epochs.events
     t_zero = np.where(epochs.times == 0.)[0]
-    for event_idx, event in enumerate(events[start_idx:end_idx]):
-        color = params['ev_cmap'][event[2]]
-        pos = [event_idx * n_times + t_zero, event_idx * n_times + t_zero]
-        ax.plot(pos, ylim, color=color, zorder=-1, linewidth=1)
+    if len(t_zero) == 1:
+        for event_idx, event in enumerate(events[start_idx:end_idx]):
+            color = params['ev_cmap'][event[2]]
+            pos = [event_idx * n_times + t_zero, event_idx * n_times + t_zero]
+            ax.plot(pos, ylim, color=color, zorder=-1, linewidth=1)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
