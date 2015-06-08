@@ -825,6 +825,8 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
     ax = params['ax']
+    while len(ax.lines) > 0:
+        ax.lines.pop(0)
     n_channels = params['n_channels']
     lines = params['lines']
     data = params['data'] * params['scale_factor']
@@ -864,12 +866,13 @@ def _plot_traces(params):
             lines[ii].set_segments(list())
 
     # event colors
-    for event_idx, event in enumerate(epochs.events[start_idx:end_idx]):
-        l_width = 3
+    ylim = ax.get_ylim()
+    events = epochs.events
+    t_zero = np.where(epochs.times == 0.)[0]
+    for event_idx, event in enumerate(events[start_idx:end_idx]):
         color = params['ev_cmap'][event[2]]
-        pos = [event_idx * n_times + l_width / 2.0,
-               event_idx * n_times + l_width / 2.0]
-        ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=l_width)
+        pos = [event_idx * n_times + t_zero, event_idx * n_times + t_zero]
+        ax.plot(pos, ylim, color=color, zorder=-1, linewidth=1)
 
     # finalize plot
     params['ax'].set_xlim(params['times'][0],
