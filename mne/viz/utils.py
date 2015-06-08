@@ -268,11 +268,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         pass
 
 
-def _layout_figure(params):
+def _layout_figure(params, platform=None):
     """Aux function for setting figure layout"""
     size = params['fig'].get_size_inches()
     scroll_width = 0.33
-    hscroll_dist = 0.33
+    if not platform == 'Linux' and platform is not None:
+        hscroll_dist = 0.8
+    else:
+        hscroll_dist = 0.33
     vscroll_dist = 0.1
     l_border = 1.2
     r_border = 0.1
