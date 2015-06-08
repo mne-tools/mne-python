@@ -13,7 +13,6 @@ from __future__ import print_function
 from collections import deque
 from functools import partial
 import copy
-from warnings import warn
 
 import numpy as np
 
@@ -716,16 +715,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params['callback_key'] = callback_key
 
     callback_proj('none')
-
-    try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        fig.tight_layout(True)
-    except Exception:
-        warn('Matplotlib function \'tight_layout\' is not supported.'
-             ' Skipping subplot adjusment.')
-        try:
-            plt.tight_layout(True)
-        except Exception:
-            pass
 
     if show:
         try:
