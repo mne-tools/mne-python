@@ -548,6 +548,13 @@ def slow_test(f):
     return f
 
 
+@nottest
+def ultra_slow_test(f):
+    """Decorator for ultra slow tests"""
+    f.ultra_slow_test = True
+    return f
+
+
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed
 
@@ -1025,7 +1032,8 @@ known_config_types = [
     'MNE_CACHE_DIR',
     'MNE_MEMMAP_MIN_SIZE',
     'MNE_SKIP_TESTING_DATASET_TESTS',
-    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS'
+    'MNE_DATASETS_SPM_FACE_DATASETS_TESTS',
+    'MNE_SKIP_SAMPLE_DATASET_TESTS'
 ]
 
 # These allow for partial matches, e.g. 'MNE_STIM_CHANNEL_1' is okay key
