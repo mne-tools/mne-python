@@ -391,7 +391,7 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
                            % subject_dir)
     if not op.exists(bem_dir):
         os.makedirs(bem_dir)
-    if (not op.exists(T1_dir) and not op.exists(T1_mgz)):
+    if not op.exists(T1_dir) and not op.exists(T1_mgz):
         raise RuntimeError('Could not find the MRI data')
     if op.exists(ws_dir):
         if not overwrite:
@@ -402,7 +402,8 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     # put together the command
     cmd = ['mri_watershed']
     if preflood:
-        cmd += [preflood]
+        cmd += ["-h",  "%s" % int(preflood)]
+
     if gcaatlas:
         cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
                 '/average/RB_all_withskull_2007-08-08.gca',
