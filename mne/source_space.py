@@ -2073,7 +2073,7 @@ def _points_outside_surface(rr, surf, n_jobs=1, verbose=None):
     return np.abs(np.sum(tot_angles, axis=0) / (2 * np.pi) - 1.0) > 1e-5
 
 
-def _get_solids(tri_rrs, fros):
+def _get_solids(tri_rrs, fros, return_triples=False):
     """Helper for computing _sum_solids_div total angle in chunks"""
     # NOTE: This incorporates the division by 4PI that used to be separate
     # for tri_rr in tri_rrs:
@@ -2093,6 +2093,8 @@ def _get_solids(tri_rrs, fros):
     # This is the vectorized version, but with a slicing heuristic to
     # prevent memory explosion
     tot_angle = np.zeros((len(fros)))
+    if return_triples:
+        tot_triples = np.zeros((len(fros)))
     slices = np.r_[np.arange(0, len(fros), 100), [len(fros)]]
     for i1, i2 in zip(slices[:-1], slices[1:]):
         v1 = fros[i1:i2] - tri_rrs[:, 0, :][:, np.newaxis]
@@ -2107,7 +2109,12 @@ def _get_solids(tri_rrs, fros):
               np.sum(v1 * v3, axis=2) * l2 +
               np.sum(v2 * v3, axis=2) * l1)
         tot_angle[i1:i2] = -np.sum(np.arctan2(triples, ss), axis=0)
-    return tot_angle
+        if return_triples:
+            tot_triples[i1:i2] = triples
+    if return_triples:
+        return tot_angle, tot_triples
+    else:
+        return tot_angle
 
 
 @verbose

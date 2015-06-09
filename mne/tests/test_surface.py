@@ -6,12 +6,10 @@ import warnings
 from shutil import copyfile
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
-from numpy.testing import (assert_array_equal, assert_array_almost_equal,
-                           assert_allclose, assert_equal)
+from numpy.testing import assert_array_equal, assert_allclose, assert_equal
 
 from mne.datasets import testing
-from mne import (read_bem_surfaces, write_bem_surface, read_surface,
-                 write_surface, decimate_surface)
+from mne import read_surface, write_surface, decimate_surface
 from mne.surface import (read_morph_map, _compute_nearest,
                          fast_cross_3d, get_head_surf, read_curvature,
                          get_meg_helmet_surf)
@@ -115,23 +113,6 @@ def test_make_morph_maps():
     mmap = read_morph_map('sample', 'sample', subjects_dir=tempdir)
     for mm in mmap:
         assert_true((mm - sparse.eye(mm.shape[0], mm.shape[0])).sum() == 0)
-
-
-@testing.requires_testing_data
-def test_io_bem_surfaces():
-    """Test reading of bem surfaces
-    """
-    tempdir = _TempDir()
-    surf = read_bem_surfaces(fname, patch_stats=True)
-    surf = read_bem_surfaces(fname, patch_stats=False)
-    print("Number of surfaces : %d" % len(surf))
-
-    write_bem_surface(op.join(tempdir, 'bem_surf.fif'), surf[0])
-    surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  patch_stats=False)
-
-    for key in surf[0].keys():
-        assert_array_almost_equal(surf[0][key], surf_read[0][key])
 
 
 @testing.requires_testing_data

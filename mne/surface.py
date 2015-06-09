@@ -477,13 +477,14 @@ def _read_surface_geom(fname, patch_stats=True, norm_rr=False, verbose=None):
 ##############################################################################
 # SURFACE CREATION
 
-def _get_ico_surface(grade):
+def _get_ico_surface(grade, patch_stats=False):
     """Return an icosahedral surface of the desired grade"""
     # always use verbose=False since users don't need to know we're pulling
     # these from a file
     ico_file_name = op.join(op.dirname(__file__), 'data',
                             'icos.fif.gz')
-    ico = read_bem_surfaces(ico_file_name, s_id=9000 + grade, verbose=False)
+    ico = read_bem_surfaces(ico_file_name, patch_stats, s_id=9000 + grade,
+                            verbose=False)
     return ico
 
 
