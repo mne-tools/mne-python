@@ -557,16 +557,18 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
             fig_title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
-    ax = plt.subplot2grid((10, 15), (0, 0), colspan=14, rowspan=9)
+    ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
     ax.set_title(fig_title, fontsize=12)
     ax.axis([0, duration, 0, 200])
 
-    ax_hscroll = plt.subplot2grid((10, 15), (9, 0), colspan=14)
+    ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
     ax_button = plt.subplot2grid((10, 15), (9, 14))
+    ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
+    legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
 
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
@@ -648,11 +650,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.add_patch(hsel_patch)
 
     # color for each event
-    ev_colors = plt.cm.rainbow(np.linspace(0, 1,
-                                           len(set(epochs.events[:, 2]))))
+    ev_colors = plt.cm.rainbow(np.linspace(0, 1, len(epochs.event_id)))
     color_map = dict()
+    patches = list()
+    used_events = list()
     for idx, event_id in enumerate(set(epochs.events[:, 2])):
         color_map[event_id] = ev_colors[idx]
+        if event_id not in used_events:
+            patches.append(mpl.patches.Patch(color=ev_colors[idx],
+                                             label=str(event_id)))
+            used_events += event_id
 
     params = {'vsel_patch': vsel_patch,
               'epochs': epochs,
@@ -664,6 +671,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
               'ax_button': ax_button,
+              'ax_legend_button': ax_legend_button,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
@@ -698,15 +706,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('close_event', callback_close)
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
-
-    if len(projs) > 0 and not any([p['active'] for p in epochs.info['projs']]):
-        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+    opt_button = mpl.widgets.Button(ax_button, 'Proj')
+    if len(projs) > 0 and not all([p['active'] for p in projs]):
         callback_option = partial(_toggle_options, params=params)
-        opt_button.on_clicked(callback_option)
     else:
-        opt_button = mpl.widgets.Button(ax_button, '')
-
-    # To draw event lines for the first time.
+        callback_option = partial(_show_proj_message)
+    opt_button.on_clicked(callback_option)
+    # Draw event lines for the first time.
     _plot_events(params)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -718,6 +724,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params['callback_key'] = callback_key
 
     callback_proj('none')
+    legend = ax.legend(handles=patches)
+    legend.set_visible(False)
+    params['legend'] = legend
+    callback_legend = partial(_toggle_legend, params=params)
+    legend_button.on_clicked(callback_legend)
 
     if show:
         try:
@@ -1035,6 +1046,22 @@ def _plot_onkey(event, params):
     elif event.key == 'pageup':
         params['scale_factor'] *= 1.1
         _plot_traces(params)
+
+
+def _show_proj_message(event):
+    """Function for showing message of applied projectors."""
+    import matplotlib.pyplot as plt
+    fig_projs = figure_nobar(figsize=(4, 1.5))
+    fig_projs.canvas.set_window_title('No projectors.')
+    plt.figtext(0.2, 0.4, 'No projection vectors exist\n'
+                'or projectors are already applied.')
+    fig_projs.show()
+
+
+def _toggle_legend(event, params):
+    """Function for toggling legend on/off."""
+    params['legend'].set_visible(not params['legend'].get_visible())
+    params['fig'].canvas.draw()
 
 
 def _close_event(event, params):

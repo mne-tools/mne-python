@@ -311,6 +311,10 @@ def _layout_figure(params, platform=None):
     pos = [l_border + ax_width + vscroll_dist, b_border,
            scroll_width_x, scroll_width_y]
     params['ax_button'].set_position(pos)
+    if 'ax_legend_button' in params:
+        pos = pos = [l_border - 2 * scroll_width_x - vscroll_dist, b_border,
+                     scroll_width_x * 2, scroll_width_y]
+        params['ax_legend_button'].set_position(pos)
     params['fig'].canvas.draw()
 
 
