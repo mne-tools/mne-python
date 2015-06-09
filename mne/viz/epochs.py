@@ -567,8 +567,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
     ax_button = plt.subplot2grid((10, 15), (9, 14))
-    ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
-    legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
 
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
@@ -671,7 +669,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
               'ax_button': ax_button,
-              'ax_legend_button': ax_legend_button,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
@@ -695,7 +692,24 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'fig_proj': None,
               'ev_cmap': color_map}
 
+    legend = ax.legend(handles=patches)
+    # Apparently does not work on all platforms.
+    if legend is not None:
+        ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
+        params['ax_legend_button'] = ax_legend_button
+        legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
+        legend.set_visible(False)
+        params['legend'] = legend
+        callback_legend = partial(_toggle_legend, params=params)
+        legend_button.on_clicked(callback_legend)
+
     # callbacks
+    opt_button = mpl.widgets.Button(ax_button, 'Proj')
+    if len(projs) > 0 and not all([p['active'] for p in projs]):
+        callback_option = partial(_toggle_options, params=params)
+    else:
+        callback_option = partial(_show_proj_message)
+    opt_button.on_clicked(callback_option)
     callback_scroll = partial(_plot_onscroll, params=params)
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
     callback_click = partial(_mouse_click, params=params)
@@ -706,12 +720,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('close_event', callback_close)
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
-    opt_button = mpl.widgets.Button(ax_button, 'Proj')
-    if len(projs) > 0 and not all([p['active'] for p in projs]):
-        callback_option = partial(_toggle_options, params=params)
-    else:
-        callback_option = partial(_show_proj_message)
-    opt_button.on_clicked(callback_option)
+
     # Draw event lines for the first time.
     _plot_events(params)
     # As here code is shared with plot_evoked, some extra steps:
@@ -724,11 +733,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params['callback_key'] = callback_key
 
     callback_proj('none')
-    legend = ax.legend(handles=patches)
-    legend.set_visible(False)
-    params['legend'] = legend
-    callback_legend = partial(_toggle_legend, params=params)
-    legend_button.on_clicked(callback_legend)
 
     if show:
         try:

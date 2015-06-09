@@ -130,6 +130,7 @@ def test_plot_epochs():
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
         _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change epochs
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
+        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # projs
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
         plt.close('all')
