@@ -3,9 +3,7 @@
 #          Eric Larson <larson.eric.d@gmail.com>
 # License: BSD Style.
 
-import numpy as np
-
-from ...utils import verbose, get_config
+from ...utils import verbose
 from ...fixes import partial
 from ..utils import (has_dataset, _data_path, _data_path_doc,
                      _get_version, _version_doc)
@@ -29,14 +27,3 @@ def get_version():
     return _get_version('sample')
 
 get_version.__doc__ = _version_doc.format(name='sample')
-
-
-# Allow forcing of sample dataset skip
-def _skip_sample_data():
-    skip_sample = (get_config('MNE_SKIP_SAMPLE_DATASET_TESTS', 'false') ==
-                   'true')
-    skip = skip_sample or not has_sample_data()
-    return skip
-
-requires_sample_data = np.testing.dec.skipif(_skip_sample_data,
-                                             'Requires sample dataset')
