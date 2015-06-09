@@ -52,46 +52,49 @@ _SOLID_EPS = np.pi / 1.0e6
 
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """The linear potential matrix element computations"""
-    from .source_space import _get_solids
+    from .source_space import _get_solids, _fast_cross_nd_sum
     omega = np.zeros((len(fros), 3))
-    beta = np.empty((len(fros), 3))
-    bbeta = np.empty((len(fros), 3))
-    vec_omega = np.zeros((len(fros), 3))
+    # This circularity makes things easy for us...
+    solids, triples = _get_solids(tri_rr[np.newaxis, :, :], fros,
+                                  return_triples=True)
+    good_mask = (np.abs(solids) >= _SOLID_EPS)
+
+    # XXX todo:
+    # 1. Profile with lprun some more
+    # 2. Fix IP-approach code
+    n_good = good_mask.sum()
+    beta = np.empty((n_good, 3))
+    bbeta = np.empty((n_good, 3))
+    vec_omega = np.zeros((n_good, 3))
+    idx = [0, 1, 2, 0, 2]
+    solids = solids[good_mask]
+    triples = triples[good_mask]
+    fros = fros[good_mask]
     y1s = tri_rr[0][np.newaxis, :] - fros
     y2s = tri_rr[1][np.newaxis, :] - fros
     y3s = tri_rr[2][np.newaxis, :] - fros
-    # This circularity makes things easy for us...
-    idx = [0, 1, 2, 0, 2]
     yys = np.array([y1s, y2s, y3s])
-    solids, triples = _get_solids(tri_rr[np.newaxis, :, :], fros,
-                                  return_triples=True)
-    good_idx = np.where(np.abs(solids) >= _SOLID_EPS)[0]
-
-    # XXX todo:
-    # 1. Add z_sums to move the np.cross out of the loop
-    # 2. Only calculate the following items for good_idx items instead of all
-
     for j in range(3):
         beta[:, j] = _calc_beta(yys[idx[j]], yys[idx[j + 1]])
     bbeta[:, 0] = beta[:, 2] - beta[:, 0]
     bbeta[:, 1] = beta[:, 0] - beta[:, 1]
     bbeta[:, 2] = beta[:, 1] - beta[:, 2]
+    zdots = [_fast_cross_nd_sum(yys[idx[1]], yys[idx[-1]], tri_nn),
+             _fast_cross_nd_sum(yys[idx[2]], yys[idx[0]], tri_nn),
+             _fast_cross_nd_sum(yys[idx[3]], yys[idx[1]], tri_nn)]
     # Calculate the magic vector vec_omega
     for j in range(3):
         for k in range(3):
             vec_omega[:, k] += bbeta[:, j] * yys[idx[j], :, k]
 
+    area2 = 2.0 * tri_area
+    n2 = 1.0 / (area2 * area2)
     # leave omega = 0 otherwise
-    for fi in good_idx:
-        # Put it all together...
-        area2 = 2.0 * tri_area
-        n2 = 1.0 / (area2 * area2)
-        for k in range(3):
-            z = np.cross(yys[idx[k + 1], fi], yys[idx[k - 1], fi])
-            z_dot = np.dot(z, tri_nn)
-            diff = yys[idx[k - 1], fi] - yys[idx[k + 1], fi]
-            omega[fi, k] = -n2 * (area2 * z_dot * 2. * solids[fi] +
-                                  triples[fi] * np.dot(diff, vec_omega[fi]))
+    # Put it all together...
+    for k in range(3):
+        diff = yys[idx[k - 1]] - yys[idx[k + 1]]
+        omega[good_mask, k] = -n2 * (area2 * zdots[k] * 2. * solids +
+                                     triples * (diff * vec_omega).sum(axis=-1))
     return omega
 
 
@@ -196,10 +199,11 @@ def _fwd_bem_homog_solution(solids, nps):
     return _fwd_bem_multi_solution(solids, None, nps)
 
 
-def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, nsurf, n_tri):
+def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     """Modify the solution according to the IP approach"""
     koff = np.sum(n_tri[:-1])
     nlast = n_tri[-1]
+    nsurf = len(n_tri)
     n_tot = koff + nlast
 
     row = np.empty(nlast)
@@ -249,14 +253,14 @@ def _fwd_bem_linear_collocation_solution(m):
         if ip_mult <= FIFF.FWD_BEM_IP_APPROACH_LIMIT:
             logger.info('IP approach required...')
             logger.info('    Matrix coefficients (homog)...')
-            coeff = _fwd_bem_lin_pot_coeff(m['surfs'][-1], 1)
+            coeff = _fwd_bem_lin_pot_coeff([m['surfs'][-1]])
             logger.info('    Inverting the coefficient matrix (homog)...')
             ip_solution = _fwd_bem_homog_solution(coeff,
                                                   [m['surfs'][-1]['np']])
             logger.info('    Modify the original solution to incorporate '
                         'IP approach...')
             _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
-                                        m['nsurf'], m['np'])
+                                        m['np'])
     m['bem_method'] = FIFF.FWD_BEM_LINEAR_COLL
     logger.info("Solution ready.")
 
