@@ -706,6 +706,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     else:
         opt_button = mpl.widgets.Button(ax_button, '')
 
+    # To draw event lines for the first time.
+    _plot_events(params)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -824,8 +826,6 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
     ax = params['ax']
-    while len(ax.lines) > 0:
-        ax.lines.pop(0)
     n_channels = params['n_channels']
     lines = params['lines']
     data = params['data'] * params['scale_factor']
@@ -864,20 +864,10 @@ def _plot_traces(params):
         else:
             lines[ii].set_segments(list())
 
-    # event colors
-    ylim = ax.get_ylim()
-    events = epochs.events
-    t_zero = np.where(epochs.times == 0.)[0]
-    if len(t_zero) == 1:
-        for event_idx, event in enumerate(events[start_idx:end_idx]):
-            color = params['ev_cmap'][event[2]]
-            pos = [event_idx * n_times + t_zero, event_idx * n_times + t_zero]
-            ax.plot(pos, ylim, color=color, zorder=-1, linewidth=1)
-
     # finalize plot
-    params['ax'].set_xlim(params['times'][0],
-                          params['times'][0] + params['duration'], False)
-    params['ax'].set_yticklabels(tick_list)
+    ax.set_xlim(params['times'][0], params['times'][0] + params['duration'],
+                False)
+    ax.set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
@@ -925,6 +915,7 @@ def _plot_window(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
+        _plot_events(params)
         _plot_traces(params)
 
 
@@ -935,6 +926,25 @@ def _channels_changed(params):
     elif params['ch_start'] < 0:
         params['ch_start'] = 0
     _plot_traces(params)
+
+
+def _plot_events(params):
+    """ Helper function for plotting vertical event lines."""
+    ax = params['ax']
+    while len(ax.lines) > 0:
+        ax.lines.pop(0)
+    epochs = params['epochs']
+    events = epochs.events
+    t_zero = np.where(epochs.times == 0.)[0]
+    n_times = len(epochs.times)
+    start_idx = int(params['t_start'] / n_times)
+    end_idx = int((params['t_start'] + params['duration']) / n_times)
+    if len(t_zero) == 1:
+        for event_idx, event in enumerate(events[start_idx:end_idx]):
+            color = params['ev_cmap'][event[2]]
+            pos = [event_idx * n_times + t_zero[0],
+                   event_idx * n_times + t_zero[0]]
+            ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=1)
 
 
 def _pick_bad_epochs(event, params):
