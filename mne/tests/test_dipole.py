@@ -12,12 +12,12 @@ from mne import (read_dipole, read_forward_solution,
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
-                       run_subprocess, requires_sklearn, get_subjects_dir)
+                       run_subprocess, requires_sklearn)
 from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import Raw
 
-from mne.surface import read_surface
+from mne.surface import _bem_find_surface, _compute_nearest, read_bem_solution
 from mne.transforms import (read_trans, apply_trans, _get_mri_head_t)
 
 warnings.simplefilter('always')
@@ -156,9 +156,6 @@ def test_len_index_dipoles():
     _compare_dipoles(d_mask, dipole[idx])
 
 
-run_tests_if_main(False)
-
-
 @requires_sklearn
 @testing.requires_testing_data
 def test_min_distance_fit_dipole():
@@ -198,25 +195,20 @@ def test_min_distance_fit_dipole():
     dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
                                min_dist=min_dist)
 
-    dist = _compute_depth(dip, fname_trans, subject, subjects_dir)
+    dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
 
-    assert (dist * 1000.) > min_dist
+    assert_true(min_dist < (dist[0] * 1000.) < (min_dist + 1.))
 
 
-def _compute_depth(dip, fname_trans, subject, subjects_dir):
+def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
     trans = read_trans(fname_trans)
     trans = _get_mri_head_t(trans)[0]
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-    fname = op.join(subjects_dir, subject, 'bem',
-                    'inner_skull.surf')
-    points, faces = read_surface(fname)
-    points = apply_trans(trans['trans'], points * 1e-3)
-
-    pos = dip.pos
-
-    from sklearn.neighbors import NearestNeighbors
-    nn = NearestNeighbors()
-    nn.fit(points)
-    depth, idx = nn.kneighbors(pos, 1, return_distance=True)
-
+    bem = read_bem_solution(fname_bem)
+    surf = _bem_find_surface(bem, 'inner_skull')
+    points = surf['rr']
+    points = apply_trans(trans['trans'], points)
+    depth = _compute_nearest(points, dip.pos, return_dists=True)[1][0]
     return np.ravel(depth)
+
+
+run_tests_if_main(False)

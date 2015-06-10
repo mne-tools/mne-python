@@ -366,6 +366,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
                 fmin_cobyla):
     """Fit a single bit of data"""
     B = np.dot(whitener, B_orig)
+    assert min_dist_to_inner_skull >= 0.
 
     # make constraint function to keep the solver within the inner skull
     if isinstance(fwd_data['inner_skull'], dict):  # bem
@@ -377,21 +378,15 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
                                     return_dists=True)[1][0]
 
             if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
-                return -dist
-            else:
+                dist *= -1.
 
-                # Once we know the dipole is below the inner skull,
-                # let's check if its distance to the inner skull is at least
-                # min_dist_to_inner_skull. This can be enforced by adding a
-                # constrain proportional to its distance.
+            # Once we know the dipole is below the inner skull,
+            # let's check if its distance to the inner skull is at least
+            # min_dist_to_inner_skull. This can be enforced by adding a
+            # constrain proportional to its distance.
+            dist -= min_dist_to_inner_skull
+            return dist
 
-                if dist < min_dist_to_inner_skull and \
-                   min_dist_to_inner_skull > 0:
-
-                    return -(min_dist_to_inner_skull - dist)
-
-                else:
-                    return 1.
     else:  # sphere
         R, r0 = fwd_data['inner_skull']
         R_adj = R - 1e-5  # to be sure we don't hit the innermost surf
@@ -420,13 +415,14 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
     # Compute the dipole moment at the final point
     Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,
                               rd_final)
-    amp = np.sqrt(np.sum(Q * Q))
-    norm = 1 if amp == 0 else amp
+    amp = np.sqrt(np.dot(Q, Q))
+    norm = 1. if amp == 0. else amp
     ori = Q / norm
 
     dist_to_inner_skull = _compute_nearest(surf['rr'],
                                            rd_final[np.newaxis, :],
                                            return_dists=True)[1][0]
+    # print constraint(rd_final)
     logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
                 (1000. * t, dist_to_inner_skull * 1000.))
     return rd_final, amp, ori, gof, residual
