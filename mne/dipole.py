@@ -429,9 +429,8 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, trans=None, min_dist=5,
-               n_jobs=1, verbose=None,
-               ):
+def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
+               n_jobs=1, verbose=None):
     """Fit a dipole
 
     Parameters
