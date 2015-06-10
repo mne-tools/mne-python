@@ -91,7 +91,8 @@ def test_bem_solution():
     conductivities = [(0.3,), ]  # (0.3, 0.006, 0.3)]
     fnames = [fname_bem_sol_1, ]  # fname_bem_sol_3]
     for cond, fname in zip(conductivities, fnames):
-        model = make_bem_model('sample', conductivity=cond, ico=2)
+        model = make_bem_model('sample', conductivity=cond, ico=2,
+                               subjects_dir=subjects_dir)
         solution = make_bem_solution(model)
         solution_c = read_bem_solution(fname)
         _compare_bem_solutions(solution, solution_c)
