@@ -648,13 +648,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     # color for each event
     ev_colors = plt.cm.rainbow(np.linspace(0, 1, len(epochs.event_id)))
     color_map = dict()
-    patches = list()
+    legend_lines = list()
     used_events = list()
     for idx, event_id in enumerate(set(epochs.events[:, 2])):
         color_map[event_id] = ev_colors[idx]
         if event_id not in used_events:
-            patches.append(mpl.patches.Patch(color=ev_colors[idx],
-                                             label=str(event_id)))
+            legend_lines.append(mpl.lines.Line2D(list(), list(),
+                                                 color=ev_colors[idx],
+                                                 label=str(event_id)))
             used_events += event_id
 
     params = {'vsel_patch': vsel_patch,
@@ -691,7 +692,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'fig_proj': None,
               'ev_cmap': color_map}
 
-    legend = ax.legend(handles=patches)
+    legend = ax.legend(handles=legend_lines)
     # Apparently does not work on all platforms.
     if legend is not None:
         ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
@@ -951,15 +952,24 @@ def _plot_events(params):
     epochs = params['epochs']
     events = epochs.events
     t_zero = np.where(epochs.times == 0.)[0]
-    n_times = len(epochs.times)
-    start_idx = int(params['t_start'] / n_times)
-    end_idx = int((params['t_start'] + params['duration']) / n_times)
-    if len(t_zero) == 1:
-        for event_idx, event in enumerate(events[start_idx:end_idx]):
-            color = params['ev_cmap'][event[2]]
-            pos = [event_idx * n_times + t_zero[0],
-                   event_idx * n_times + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=1)
+    times = epochs.times
+    start_idx = int(params['t_start'] / len(times))
+    end_idx = int((params['t_start'] + params['duration']) / len(times))
+    if len(t_zero) != 1:
+        if epochs.baseline is not None:  # t0 not found, use end of baseline
+            if epochs.baseline[1] is not None:
+                bl_end = epochs.baseline[1]
+                sample = times.flat[np.abs(times - bl_end).argmin()]
+                t_zero = np.where(times == sample)[0]
+            else:
+                return
+        else:
+            return
+    for event_idx, event in enumerate(events[start_idx:end_idx]):
+        color = params['ev_cmap'][event[2]]
+        pos = [event_idx * len(times) + t_zero[0],
+               event_idx * len(times) + t_zero[0]]
+        ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=1)
 
 
 def _pick_bad_epochs(event, params):
