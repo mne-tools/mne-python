@@ -59,9 +59,6 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
                                   return_triples=True)
     good_mask = (np.abs(solids) >= _SOLID_EPS)
 
-    # XXX todo:
-    # 1. Profile with lprun some more
-    # 2. Fix IP-approach code
     n_good = good_mask.sum()
     beta = np.empty((n_good, 3))
     bbeta = np.empty((n_good, 3))
@@ -100,51 +97,53 @@ def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
 
 def _correct_auto_elements(surf, mat):
     """Improve auto-element approximation..."""
-    nnode = surf['np']
     pi2 = 2.0 * np.pi
-    for j in range(nnode):
+    tris_flat = surf['tris'].ravel()
+    misses = pi2 - mat.sum(axis=1)
+    for j, miss in enumerate(misses):
         # How much is missing?
-        row = mat[j]
-        sum_ = row[:nnode].sum()
-        miss = pi2 - sum_
         n_memb = len(surf['neighbor_tri'][j])
         # The node itself receives one half
-        row[j] = miss / 2.0
+        mat[j, j] = miss / 2.0
         # The rest is divided evenly among the member nodes...
         miss /= (4.0 * n_memb)
-        for k, tri in enumerate(surf['tris']):
-            if tri[0] == j:
-                row[tri[1]] += miss
-                row[tri[2]] += miss
-            elif tri[1] == j:
-                row[tri[0]] += miss
-                row[tri[2]] += miss
-            elif tri[2] == j:
-                row[tri[0]] += miss
-                row[tri[1]] += miss
+        members = np.where(j == tris_flat)[0]
+        mods = members % 3
+        offsets = np.array([[1, 2], [-1, 1], [-1, -2]])
+        tri_1 = members + offsets[mods, 0]
+        tri_2 = members + offsets[mods, 1]
+        for t1, t2 in zip(tri_1, tri_2):
+            mat[j, tris_flat[t1]] += miss
+            mat[j, tris_flat[t2]] += miss
     return
 
 
 def _fwd_bem_lin_pot_coeff(surfs):
     """Calculate the coefficients for linear collocation approach"""
     # taken from fwd_bem_linear_collocation.c
-    np_tot = sum(surf['np'] for surf in surfs)
+    nps = [surf['np'] for surf in surfs]
+    np_tot = sum(nps)
     coeff = np.zeros((np_tot, np_tot))
-    joff = 0
-    for sidx1, surf1 in enumerate(surfs):
-        np1 = surf1['np']
-        koff = 0
-        for sidx2, surf2 in enumerate(surfs):
-            np2 = surf2['np']
+    offsets = np.cumsum(np.concatenate(([0], nps)))
+    for si_1, surf1 in enumerate(surfs):
+        rr_ord = np.arange(nps[si_1])
+        for si_2, surf2 in enumerate(surfs):
             logger.info("        %s (%d) -> %s (%d) ..." %
-                        (_bem_explain_surface(surf1['id']), np1,
-                         _bem_explain_surface(surf2['id']), np2))
+                        (_bem_explain_surface(surf1['id']), nps[si_1],
+                         _bem_explain_surface(surf2['id']), nps[si_2]))
             tri_rr = surf2['rr'][surf2['tris']]
             tri_nn = surf2['tri_nn']
             tri_area = surf2['tri_area']
-            submat = np.zeros((np1, np2))
+            submat = coeff[offsets[si_1]:offsets[si_1 + 1],
+                           offsets[si_2]:offsets[si_2 + 1]]  # view
             for k in range(surf2['ntri']):
                 tri = surf2['tris'][k]
+                if si_1 == si_2:
+                    skip_idx = ((rr_ord == tri[0]) |
+                                (rr_ord == tri[1]) |
+                                (rr_ord == tri[2]))
+                else:
+                    skip_idx = []
                 # No contribution from a triangle that
                 # this vertex belongs to
                 # if sidx1 == sidx2 and (tri == j).any():
@@ -152,12 +151,10 @@ def _fwd_bem_lin_pot_coeff(surfs):
                 # Otherwise do the hard job
                 coeffs = _lin_pot_coeff(surf1['rr'], tri_rr[k], tri_nn[k],
                                         tri_area[k])
+                coeffs[skip_idx] = 0.
                 submat[:, tri] -= coeffs
-            coeff[joff:joff + np1, koff:koff + np2] = submat
-            if sidx1 == sidx2:
-                _correct_auto_elements(surf1, coeff[joff:joff + np1, koff:])
-            koff += np2
-        joff += np1
+            if si_1 == si_2:
+                _correct_auto_elements(surf1, submat)
     return coeff
 
 
@@ -170,7 +167,6 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
       * This is the general multilayer case
 
     """
-    # XXX this can be vectorized
     from scipy import linalg
     pi2 = 1.0 / (2 * np.pi)
     n_tot = np.sum(nps)
@@ -178,18 +174,13 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
     nsurf = len(nps)
     defl = 1.0 / n_tot
     # Modify the matrix
-    joff = 0
-    for p in range(nsurf):
-        jup = nps[p] + joff
-        koff = 0
-        for q in range(nsurf):
-            kup = nps[q] + koff
-            mult = pi2 if gamma is None else pi2 * gamma[p][q]
-            slice_j = slice(joff, jup)
-            slice_k = slice(koff, kup)
+    offsets = np.cumsum(np.concatenate(([0], nps)))
+    for si_1 in range(nsurf):
+        for si_2 in range(nsurf):
+            mult = pi2 if gamma is None else pi2 * gamma[si_1, si_2]
+            slice_j = slice(offsets[si_1], offsets[si_1 + 1])
+            slice_k = slice(offsets[si_2], offsets[si_2 + 1])
             solids[slice_j, slice_k] = defl - solids[slice_j, slice_k] * mult
-            koff = kup
-        joff = jup
     solids += np.eye(n_tot)
     return linalg.inv(solids, overwrite_a=True)
 
@@ -204,33 +195,19 @@ def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     koff = np.sum(n_tri[:-1])
     nlast = n_tri[-1]
     nsurf = len(n_tri)
-    n_tot = koff + nlast
-
-    row = np.empty(nlast)
-    sub = np.empty(n_tot)
     mult = (1.0 + ip_mult) / ip_mult
 
     logger.info('        Combining...')
-    ip_solution = ip_solution.T
-    joff = 0
-    for s in range(nsurf):
-        # Pick the correct submatrix
-        for j in range(n_tri[s]):
-            sub[j] = solution[j + joff] + koff
-        # Multiply
-        for j in range(n_tri[s]):
-            for k in range(nlast):
-                row[k] = np.dot(sub[j], ip_solution[k])
-            sub[j] -= 2 * row
-        joff += n_tri[s]
-    ip_solution = ip_solution.T
+    offsets = np.cumsum(np.concatenate(([0], n_tri)))
+    for si in range(nsurf):
+        # Pick the correct submatrix and multiply
+        sub = solution[offsets[si]:offsets[si + 1], koff:]
+        sub -= 2 * np.dot(sub, ip_solution.T)
     # The lower right corner is a special case
-    sl = slice(nlast)
-    sub[sl, sl] += mult * ip_solution[sl, sl]
+    sub[-nlast:, -nlast:] += mult * ip_solution
     # Final scaling
     logger.info('        Scaling...')
     solution[0] *= ip_mult
-    logger.info('done.')
     return
 
 
@@ -260,7 +237,7 @@ def _fwd_bem_linear_collocation_solution(m):
             logger.info('    Modify the original solution to incorporate '
                         'IP approach...')
             _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
-                                        m['np'])
+                                        nps)
     m['bem_method'] = FIFF.FWD_BEM_LINEAR_COLL
     logger.info("Solution ready.")
 
@@ -535,8 +512,8 @@ def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
            FIFF.FIFFV_BEM_SURF_ID_HEAD]
     logger.info('Creating the BEM geometry...')
     if len(conductivity) == 1:
-        surfaces = surfaces[2:3]
-        ids = ids[2:3]
+        surfaces = surfaces[:1]
+        ids = ids[:1]
     surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
     logger.info('Complete.\n')
     return surfaces
