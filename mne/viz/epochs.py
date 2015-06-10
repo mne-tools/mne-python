@@ -591,13 +591,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         colors[ii] = [typecolors[ii]] * len(epochs.events)
     lines = list()
     n_times = len(epochs.times)
-    line = [(0, 0) for x in range(n_times)]
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(np.array([line] * len(epochs.events)),
-                            linewidths=0.5, colors=colors[ch_idx], zorder=3)
+        lc = LineCollection(list(), linewidths=0.5, colors=colors[ch_idx],
+                            zorder=3)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -948,8 +947,7 @@ def _channels_changed(params):
 def _plot_events(params):
     """ Helper function for plotting vertical event lines."""
     ax = params['ax']
-    while len(ax.lines) > 0:
-        ax.lines.pop(0)
+    ax.lines = list()
     epochs = params['epochs']
     events = epochs.events
     t_zero = np.where(epochs.times == 0.)[0]
