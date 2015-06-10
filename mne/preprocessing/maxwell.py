@@ -24,7 +24,7 @@ from ..transforms import _sphere_to_cartesian as sph_to_cart
 from scipy.misc import factorial as fact
 
 
-def maxwell_filter(raw, origin, in_order=8, out_order=3):
+def maxwell_filter(raw, origin, int_order=8, ext_order=3):
     """
     Apply Maxwell filter to data using spherical harmonics.
 
@@ -35,9 +35,9 @@ def maxwell_filter(raw, origin, in_order=8, out_order=3):
     origin : tuple, shape (3,)
         Origin of head
     in_order : int
-        Order of in-component spherical expansion
+        Order of internal component of spherical expansion
     out_order : int
-        Order of out-component spherical expansion
+        Order of external component of spherical expansion
 
     Returns
     -------
@@ -51,6 +51,34 @@ def maxwell_filter(raw, origin, in_order=8, out_order=3):
     #TODO: Compute spherical harmonics
     #TODO: Project data into spherical harmonics space
     #TODO: Reconstruct and return Raw file object
+
+
+def _sss_basis(origin_int, origin_ext, int_order, ext_order, int_pts, int_ws,
+               int_norms):
+    """Compute SSS basis for given conditions
+
+    Parameters
+    ----------
+    origin_int : ndarray, shape(3,)
+        Origin of the internal space.
+    origin_ext : ndarray, shape(3,)
+        Origin of the external space.
+    int_order : int
+        Order of internal space
+    ext_order : int
+        Order of external space
+    int_pts :
+        3D position of integration points for each sensor
+    int_ws :
+        Weights for each sensors integration points
+    int_norms :
+        Unit normal vector for each integration point
+
+    Returns
+    -------
+    list
+        List of length 2 containing internal and external basis sets
+    """
 
 
 def _sph_harmonic(degree, order, az, pol):
@@ -90,13 +118,12 @@ def _sph_harmonic(degree, order, az, pol):
     #TODO: Check that [-m to m] convention is correct for all equations
 
     #Ensure that polar and azimuth angles are arrays
-    polar = np.array(pol)
     azimuth = np.array(az)
+    polar = np.array(pol)
 
     # Real valued spherical expansion as given by Wikso, (11)
-    base = np.sqrt(((2 * degree + 1) / (4 * np.pi) *
-                    factorial(degree - order) / factorial(degree + order)) *
-                   lpmv(order, degree, np.cos(polar)))
+    base = np.sqrt((2 * degree + 1) / (4 * np.pi) * fact(degree - order) /
+                   fact(degree + order)) * lpmv(order, degree, np.cos(polar))
     if order < 0:
         return base * np.sin(order * azimuth)
     else:
@@ -107,28 +134,6 @@ def _sph_harmonic(degree, order, az, pol):
     # Degree/order and theta/phi reversed
     #return np.real(sph_harm(order, degree, az, pol))
 
-
-def get_num_harmonics(in_order, out_order):
-    """
-    Compute total number of spherical harmonics.
-
-    Parameters
-    ---------
-    in_order : int
-        Internal expansion order
-    out_order : int
-        External expansion order
-
-    Returns
-    -------
-    M : int
-        Total number of spherical harmonics
-    """
-
-    #TODO: Eventually, reuse code in field_interpolation
-
-    M = in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
-    return M
 
 def _alegendre_deriv(degree, order, val):
     """
@@ -275,3 +280,53 @@ def _to_real_and_cart(grad_vec_raw, order):
     # Convert to rectanglar coords
     # TODO: confirm that this equation follows the correct convention
     return sph_to_cart(grad_vec[:, 0], grad_vec[:, 1], grad_vec[:, 2])
+
+
+def get_num_harmonics(in_order, out_order):
+    """
+    Compute total number of spherical harmonics.
+
+    Parameters
+    ---------
+    in_order : int
+        Internal expansion order
+    out_order : int
+        External expansion order
+
+    Returns
+    -------
+    M : int
+        Total number of spherical harmonics
+    """
+
+    #TODO: Eventually, reuse code in field_interpolation
+
+    M = in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
+    return M
+
+
+def _spherical_to_cartesian(r, az, pol):
+    """ Convert spherical coords to cartesian coords.
+
+    Parameters
+    ----------
+    r : ndarray
+        Radius
+    az : ndarray
+        Azimuth angle in radians. 0 is along X-axis
+    pol : ndarray
+        Polar (or inclination) angle in radians. 0 is along z-axis.
+        (Note, this is NOT the elevation angle)
+    Returns
+    -------
+    tuple
+        Cartesian coordinate triplet
+    """
+
+    rsin_phi = r * np.sin(pol)
+
+    x = rsin_phi * np.cos(az)
+    y = rsin_phi * np.sin(az)
+    z = r * np.cos(pol)
+
+    return np.array([x, y, z])
