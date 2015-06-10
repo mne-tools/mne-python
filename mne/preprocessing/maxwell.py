@@ -18,8 +18,7 @@ from scipy.special import sph_harm, lpmv
 from scipy.misc import factorial
 from ..forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
                                   _get_legen_lut_accurate)
-from ..fixes import partial
-from ..transforms import _cartesian_to_sphere as cart_to_sph
+#from ..fixes import partial
 from ..transforms import _sphere_to_cartesian as sph_to_cart
 from scipy.misc import factorial as fact
 
@@ -67,7 +66,7 @@ def _sss_basis(origin_int, origin_ext, int_order, ext_order, int_pts, int_ws,
         Order of internal space
     ext_order : int
         Order of external space
-    int_pts :
+    int_pts : list, len(n_sensors)
         3D position of integration points for each sensor
     int_ws :
         Weights for each sensors integration points
@@ -79,6 +78,40 @@ def _sss_basis(origin_int, origin_ext, int_order, ext_order, int_pts, int_ws,
     list
         List of length 2 containing internal and external basis sets
     """
+    n_sens = len(int_pts)
+    n_bases = (int_order - 1) ** 2 + (ext_order - 1) ** 2 - 2
+    n_int_pts = len(int_pts)
+    S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1)).fill(np.nan)
+    S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1)).fill(np.nan)
+
+    assert n_bases >= n_sens, ('Number of requested bases (%s) exceeds number '
+                               'of sensors (%s)' % (str(n_bases), str(n_sens)))
+
+    # Compute internal basis vectors
+    for deg in range(int_order):
+        for order in range(- deg, deg + 1):
+            cvec = int_pts - origin_int * np.ones(n_int_pts, 1)
+            grads = -1 * _grad_in_components(deg, order, cvec[:, 0],
+                                             cvec[:, 1], cvec[:, 2])
+            #a1_all = int_ws * np.dot(grads, int_norms, 2)
+            a1_all = np.einsum('ij,kj->ik', cvec, grads)
+
+            #XXX: sum all signals correctly
+            S_in[:, deg ** 2 + deg + ord] = np.sum(a1_all, 1)
+
+    # Compute external basis vectors
+    for deg in range(int_order):
+        for order in range(- deg, deg + 1):
+            cvec = int_pts - origin_int * np.ones(n_int_pts, 1)
+            grads = -1 * _grad_out_components(deg, order, cvec[:, 0],
+                                              cvec[:, 1], cvec[:, 2])
+            #b1_all = int_ws * np.dot(grads, int_norms, 2)
+            b1_all = np.einsum('ij,kj->ik', cvec, grads)
+
+            #XXX: sum all signals correctly
+            S_out[:, deg ** 2 + deg + ord] = np.sum(b1_all, 1)
+
+    return [S_in, S_out]
 
 
 def _sph_harmonic(degree, order, az, pol):
@@ -165,7 +198,7 @@ def _alegendre_deriv(degree, order, val):
                 lpmv(order, degree - 1, val)) / (1 - val ** 2)
 
 
-def _grad_in_components(degree, order, rad, az, pol, lut_fun):
+def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
     """
     Compute gradient of in-component of V(r) spherical expansion having form
     Ylm(pol, az) / (rad ** (degree + 1))
@@ -215,7 +248,7 @@ def _grad_in_components(degree, order, rad, az, pol, lut_fun):
     return _to_real_and_cart(np.concatenate((r1, theta1, phi1)), order)
 
 
-def _grad_out_components(degree, order, rad, az, pol, lut_fun):
+def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
     """
     Compute gradient of RHS of V(r) spherical expansion having form
     Ylm(azimuth, polar) * (radius ** degree)
