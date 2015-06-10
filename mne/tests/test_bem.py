@@ -52,16 +52,21 @@ def _compare_bem_solutions(sol_a, sol_b):
 
 
 @testing.requires_testing_data
-def test_io_bem_surfaces():
-    """Test reading and writing of bem surfaces
+def test_io_bem():
+    """Test reading and writing of bem surfaces and solutions
     """
     tempdir = _TempDir()
+    temp_bem = op.join(tempdir, 'temp-bem.fif')
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=False)
-    write_bem_surfaces(op.join(tempdir, 'bem_surf.fif'), surf[0])
-    surf_read = read_bem_surfaces(op.join(tempdir, 'bem_surf.fif'),
-                                  patch_stats=False)
+    write_bem_surfaces(temp_bem, surf[0])
+    surf_read = read_bem_surfaces(temp_bem, patch_stats=False)
     _compare_bem_surfaces(surf, surf_read)
+    temp_sol = op.join(tempdir, 'temp-sol.fif')
+    sol = read_bem_solution(fname_bem_sol_3)
+    write_bem_solution(temp_sol, sol)
+    sol_read = read_bem_solution(temp_sol)
+    _compare_bem_solutions(sol, sol_read)
 
 
 @testing.requires_testing_data
