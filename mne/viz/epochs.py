@@ -17,6 +17,7 @@ from sys import platform
 
 import numpy as np
 
+from ..utils import deprecated
 from ..utils import create_chunks, verbose, get_config
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
@@ -237,8 +238,8 @@ def _draw_epochs_axes(epoch_idx, good_ch_idx, bad_ch_idx, data, times, axes,
         if title_str is not None:
             ax.set_title(title_str % ii, fontsize=12)
         ax.set_ylim(data.min(), data.max())
-        ax.set_yticks([])
-        ax.set_xticks([])
+        ax.set_yticks(list())
+        ax.set_xticks(list())
         if vars(ax)[this]['reject'] is True:
             #  memorizing reject
             [l.set_color((0.8, 0.8, 0.8)) for l in ax.lines]
@@ -310,6 +311,8 @@ def _epochs_axes_onclick(event, params):
     ax.get_figure().canvas.draw()
 
 
+@deprecated("It will be removed in version 0.11. Use trellis=False "
+            "option in epochs.plot method.")
 def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
                         title_str='#%003i', show=True, block=False,
                         n_epochs=20):
@@ -511,7 +514,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     n_channels = min(n_channels, len(picks))
     times = epochs.times * 1e3
     projs = epochs.info['projs']
-    epochs.info['projs'] = []
 
     # Reorganize channels
     inds = list()
@@ -524,24 +526,22 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for t in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-              'misc', 'chpi', 'syst', 'ias', 'exci']:
-        pick_kwargs[t] = True
+    for ch_type in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
+                    'misc', 'chpi', 'syst', 'ias', 'exci']:
+        pick_kwargs[ch_type] = True
         idxs = pick_types(epochs.info, **pick_kwargs)
         if len(idxs) < 1:
             continue
         mask = _in1d(idxs, picks, assume_unique=True)
         inds.append(idxs[mask])
-        types += [t] * len(inds[-1])
-        pick_kwargs[t] = False
+        types += [ch_type] * len(inds[-1])
+        pick_kwargs[ch_type] = False
     inds = np.concatenate(inds).astype(int)
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
 
-    # preallocation needed for min / max scaling
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
-
     for ii, epoch in enumerate(epoch_data):
         for pick, ind in enumerate(inds):
             data[ii, pick] = epoch[ind] / scalings[types[pick]]
@@ -661,6 +661,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     params = {'vsel_patch': vsel_patch,
               'epochs': epochs,
+              'info': copy.deepcopy(epochs.info),  # needed for projs
               'lines': lines,
               'n_channels': n_channels,
               'n_epochs': n_epochs,
@@ -705,7 +706,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     # callbacks
     opt_button = mpl.widgets.Button(ax_button, 'Proj')
-    if len(projs) > 0 and not all([p['active'] for p in projs]):
+    if len(projs) > 0 and not epochs.proj:
         callback_option = partial(_toggle_options, params=params)
     else:
         callback_option = partial(_show_proj_message)
@@ -733,12 +734,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     params['callback_key'] = callback_key
 
     callback_proj('none')
+    _layout_figure(params)
 
     if show:
         try:
             plt.show(block=block)
         except TypeError:  # not all versions have this
             plt.show()
+
     return fig
 
 
@@ -896,11 +899,11 @@ def _plot_update_epochs_proj(params, bools):
     """Helper only needs to be called when proj is changed"""
     if bools is not None:
         inds = np.where(bools)[0]
-        params['epochs'].info['projs'] = [copy.deepcopy(params['projs'][ii])
-                                          for ii in inds]
+        params['info']['projs'] = [copy.deepcopy(params['projs'][ii])
+                                   for ii in inds]
         params['proj_bools'] = bools
-    params['projector'], _ = setup_proj(params['epochs'].info,
-                                        add_eeg_ref=False, verbose=False)
+    params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
+                                        verbose=False)
 
     data = params['orig_data']
     if params['projector'] is not None:
