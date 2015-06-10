@@ -13,7 +13,7 @@ from mne.transforms import rotation
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, _TempDir
 
-subjects_dir = op.join(testing.data_path(), 'subjects')
+subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 fname_bem_3 = op.join(subjects_dir, 'sample', 'bem',
                       'sample-1280-1280-1280-bem.fif')
 fname_bem_1 = op.join(subjects_dir, 'sample', 'bem',
