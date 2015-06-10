@@ -289,6 +289,7 @@ Functions:
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
+   plot_epochs
    plot_events
    plot_evoked
    plot_evoked_image

@@ -17,8 +17,7 @@ from sys import platform
 
 import numpy as np
 
-from ..utils import deprecated
-from ..utils import create_chunks, verbose, get_config
+from ..utils import create_chunks, verbose, get_config, deprecated
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
