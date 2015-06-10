@@ -15,6 +15,7 @@ from .fixes import partial
 from .utils import (verbose, logger, run_subprocess, get_subjects_dir)
 from .io.constants import FIFF
 from .externals.six import string_types
+from .surface import read_surface, write_bem_surface
 
 
 # ############################################################################
@@ -342,7 +343,7 @@ def _fit_sphere(points, disp='auto'):
 # Create BEM surfaces
 
 @verbose
-def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
+def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                        volume='T1', atlas=False, gcaatlas=False, preflood=None,
                        verbose=None):
     """
@@ -350,14 +351,14 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
 
     Parameters
     ----------
-    subject : string
+    subject : str
         Subject name (required)
-    subjects_dir : string
+    subjects_dir : str
         Directory containing subjects data. If None use
         the Freesurfer SUBJECTS_DIR environment variable.
     overwrite : bool
         Write over existing files
-    volume : string
+    volume : str
         Defaults to T1
     atlas : bool
         Specify the --atlas option for mri_watershed
@@ -372,10 +373,9 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
 
     if not os.environ.get('FREESURFER_HOME'):
         raise RuntimeError('FREESURFER_HOME environment variable not set')
-    if subject:
-        env['SUBJECT'] = subject
-    else:
-        raise RuntimeError('The subject argument must be set')
+
+    env['SUBJECT'] = subject
+
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env['SUBJECTS_DIR'] = subjects_dir
 
@@ -427,6 +427,7 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     #
     os.chdir(ws_dir)
     if op.exists(T1_mgz):
+        # XXX : do this with python code
         surfaces = [subject + '_brain_surface', subject +
                     '_inner_skull_surface', subject + '_outer_skull_surface',
                     subject + '_outer_skin_surface']
@@ -437,8 +438,13 @@ def make_watershed_bem(subject=None, subjects_dir=None, overwrite=False,
     os.chdir(bem_dir)
     if op.exists(subject + '-head.fif'):
         os.remove(subject + '-head.fif')
-    cmd = ['mne_surf2bem', '--surf', op.join(ws_dir,
-           subject + '_outer_skin_surface'), '--id', '4', '--fif',
-           subject + '-head.fif']
-    run_subprocess(cmd, env=env, stdout=sys.stdout)
+
+    # run the equivalent of mne_surf2bem
+    points, tris = read_surface(op.join(ws_dir,
+                                        subject + '_outer_skin_surface'))
+    points *= 1e-3
+    surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
+                ntri=len(tris), rr=points, sigma=1, tris=tris)
+    write_bem_surface(subject + '-head.fif', surf)
+
     logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))

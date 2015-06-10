@@ -557,6 +557,14 @@ Functions:
    write_bem_surface
    write_trans
 
+.. currentmodule:: mne.bem
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   make_watershed_bem
+
 .. currentmodule:: mne.forward
 
 .. autosummary::
