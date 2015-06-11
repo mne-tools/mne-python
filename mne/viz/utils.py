@@ -307,14 +307,11 @@ def _layout_figure(params, platform=None):
     # hscroll (time)
     pos = [l_border, b_border, ax_width, scroll_width_y]
     params['ax_hscroll'].set_position(pos)
-    # options button
-    pos = [l_border + ax_width + vscroll_dist, b_border,
-           scroll_width_x, scroll_width_y]
-    params['ax_button'].set_position(pos)
-    if 'ax_legend_button' in params:
-        pos = pos = [l_border - 2 * scroll_width_x - vscroll_dist, b_border,
-                     scroll_width_x * 2, scroll_width_y]
-        params['ax_legend_button'].set_position(pos)
+    if 'ax_button' in params:
+        # options button
+        pos = [l_border + ax_width + vscroll_dist, b_border,
+               scroll_width_x, scroll_width_y]
+        params['ax_button'].set_position(pos)
     params['fig'].canvas.draw()
 
 

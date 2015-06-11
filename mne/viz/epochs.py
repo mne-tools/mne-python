@@ -567,7 +567,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
-    ax_button = plt.subplot2grid((10, 15), (9, 14))
 
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
@@ -647,19 +646,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
 
-    # color for each event
-    ev_colors = plt.cm.rainbow(np.linspace(0, 1, len(epochs.event_id)))
-    color_map = dict()
-    legend_lines = list()
-    used_events = list()
-    for idx, event_id in enumerate(set(epochs.events[:, 2])):
-        color_map[event_id] = ev_colors[idx]
-        if event_id not in used_events:
-            legend_lines.append(mpl.lines.Line2D(list(), list(),
-                                                 color=ev_colors[idx],
-                                                 label=str(event_id)))
-            used_events += event_id
-
     params = {'vsel_patch': vsel_patch,
               'epochs': epochs,
               'info': copy.deepcopy(epochs.info),  # needed for projs
@@ -670,7 +656,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ax': ax,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
-              'ax_button': ax_button,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
@@ -689,28 +674,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'labels': labels,
               'projs': projs,
               'scale_factor': 1.0,
-              'fig_proj': None,
-              'ev_cmap': color_map}
+              'fig_proj': None}
 
-    legend = ax.legend(handles=legend_lines)
-    # Apparently does not work on all platforms.
-    if legend is not None:
-        legend.set_visible(False)
-        if 0. in epochs.times:
-            ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
-            params['ax_legend_button'] = ax_legend_button
-            legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
-            params['legend'] = legend
-            callback_legend = partial(_toggle_legend, params=params)
-            legend_button.on_clicked(callback_legend)
+    if len(projs) > 0 and not epochs.proj:
+        ax_button = plt.subplot2grid((10, 15), (9, 14))
+        opt_button = mpl.widgets.Button(ax_button, 'Proj')
+        callback_option = partial(_toggle_options, params=params)
+        opt_button.on_clicked(callback_option)
+        params['ax_button'] = ax_button
 
     # callbacks
-    opt_button = mpl.widgets.Button(ax_button, 'Proj')
-    if len(projs) > 0 and not epochs.proj:
-        callback_option = partial(_toggle_options, params=params)
-    else:
-        callback_option = partial(_show_proj_message)
-    opt_button.on_clicked(callback_option)
     callback_scroll = partial(_plot_onscroll, params=params)
     fig.canvas.mpl_connect('scroll_event', callback_scroll)
     callback_click = partial(_mouse_click, params=params)
@@ -933,7 +906,6 @@ def _plot_window(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
-        _plot_events(params)
         _plot_traces(params)
 
 
@@ -951,27 +923,12 @@ def _plot_events(params):
     ax = params['ax']
     ax.lines = list()
     epochs = params['epochs']
-    events = epochs.events
     t_zero = np.where(epochs.times == 0.)[0]
-    times = epochs.times
-    start_idx = int(params['t_start'] / len(times))
-    end_idx = int((params['t_start'] + params['duration']) / len(times))
-    if len(t_zero) != 1:
-        if epochs.baseline is not None:  # t0 not found, use end of baseline
-            if epochs.baseline[1] is not None:
-                bl_end = epochs.baseline[1]
-                sample = times.flat[np.abs(times - bl_end).argmin()]
-                t_zero = np.where(times == sample)[0]
-                for event_idx, event in enumerate(events[start_idx:end_idx]):
-                    pos = [event_idx * len(times) + t_zero[0],
-                           event_idx * len(times) + t_zero[0]]
-                    ax.plot(pos, ax.get_ylim(), color='c', zorder=-1)
-    else:
-        for event_idx, event in enumerate(events[start_idx:end_idx]):
-            color = params['ev_cmap'][event[2]]
-            pos = [event_idx * len(times) + t_zero[0],
-                   event_idx * len(times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), color=color, zorder=-1)
+    if len(t_zero) == 1:
+        for event_idx in range(params['n_epochs']):
+            pos = [event_idx * len(epochs.times) + t_zero[0],
+                   event_idx * len(epochs.times) + t_zero[0]]
+            ax.plot(pos, ax.get_ylim(), 'g--', zorder=-1)
 
 
 def _pick_bad_epochs(event, params):
@@ -1062,22 +1019,6 @@ def _plot_onkey(event, params):
     elif event.key == 'pageup':
         params['scale_factor'] *= 1.1
         _plot_traces(params)
-
-
-def _show_proj_message(event):
-    """Function for showing message of applied projectors."""
-    import matplotlib.pyplot as plt
-    fig_projs = figure_nobar(figsize=(4, 1.5))
-    fig_projs.canvas.set_window_title('No projectors.')
-    plt.figtext(0.2, 0.4, 'No projection vectors exist\n'
-                'or projectors are already applied.')
-    fig_projs.show()
-
-
-def _toggle_legend(event, params):
-    """Function for toggling legend on/off."""
-    params['legend'].set_visible(not params['legend'].get_visible())
-    params['fig'].canvas.draw()
 
 
 def _close_event(event, params):
