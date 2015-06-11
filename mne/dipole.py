@@ -425,8 +425,8 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
         dist_to_inner_skull = _compute_nearest(surf['rr'],
                                                rd_final[np.newaxis, :],
                                                return_dists=True)[1][0]
-        msg = (", distance to inner skull : %2.4f mm"
-               % (dist_to_inner_skull * 1000.))
+        msg += (", distance to inner skull : %2.4f mm"
+                % (dist_to_inner_skull * 1000.))
 
     logger.info(msg)
     return rd_final, amp, ori, gof, residual
