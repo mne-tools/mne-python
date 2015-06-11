@@ -368,6 +368,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
     B = np.dot(whitener, B_orig)
     assert min_dist_to_inner_skull >= 0.
 
+    surf = None
     # make constraint function to keep the solver within the inner skull
     if isinstance(fwd_data['inner_skull'], dict):  # bem
         surf = fwd_data['inner_skull']
@@ -419,12 +420,15 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
     norm = 1. if amp == 0. else amp
     ori = Q / norm
 
-    dist_to_inner_skull = _compute_nearest(surf['rr'],
-                                           rd_final[np.newaxis, :],
-                                           return_dists=True)[1][0]
-    # print constraint(rd_final)
-    logger.info('---- Fitted : %7.1f ms, distance to inner skull : %2.4f mm' %
-                (1000. * t, dist_to_inner_skull * 1000.))
+    msg = '---- Fitted : %7.1f ms' % (1000. * t)
+    if surf is not None:
+        dist_to_inner_skull = _compute_nearest(surf['rr'],
+                                               rd_final[np.newaxis, :],
+                                               return_dists=True)[1][0]
+        msg = (", distance to inner skull : %2.4f mm"
+               % (dist_to_inner_skull * 1000.))
+
+    logger.info(msg)
     return rd_final, amp, ori, gof, residual
 
 
