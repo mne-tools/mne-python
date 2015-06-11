@@ -543,9 +543,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                            ' check your picks')
 
     data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
-    for ii, epoch in enumerate(epoch_data):
+    for idx, epoch in enumerate(epoch_data):
         for pick, ind in enumerate(inds):
-            data[ii, pick] = epoch[ind] / scalings[types[pick]]
+            data[idx, pick] = epoch[ind] / scalings[types[pick]]
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -588,9 +588,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     # populate colors list
     typecolors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
-    for ii in range(len(typecolors)):
+    for color_idx in range(len(typecolors)):
         colors.append(list())
-        colors[ii] = [typecolors[ii]] * len(epochs.events)
+        colors[color_idx] = [typecolors[color_idx]] * len(epochs.events)
     lines = list()
     n_times = len(epochs.times)
 
@@ -697,13 +697,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     legend = ax.legend(handles=legend_lines)
     # Apparently does not work on all platforms.
     if legend is not None:
-        ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
-        params['ax_legend_button'] = ax_legend_button
-        legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
         legend.set_visible(False)
-        params['legend'] = legend
-        callback_legend = partial(_toggle_legend, params=params)
-        legend_button.on_clicked(callback_legend)
+        if 0. in epochs.times:
+            ax_legend_button = plt.subplot2grid((10, 15), (9, 0))
+            params['ax_legend_button'] = ax_legend_button
+            legend_button = mpl.widgets.Button(ax_legend_button, 'Legend')
+            params['legend'] = legend
+            callback_legend = partial(_toggle_legend, params=params)
+            legend_button.on_clicked(callback_legend)
 
     # callbacks
     opt_button = mpl.widgets.Button(ax_button, 'Proj')
@@ -859,15 +860,15 @@ def _plot_traces(params):
     labels = params['labels'][start_idx:]
     ax.set_xticklabels(labels)
     # do the plotting
-    for ii in range(n_channels):
-        ch_ind = ii + params['ch_start']
-        if ii >= len(lines):
+    for line_idx in range(n_channels):
+        ch_idx = line_idx + params['ch_start']
+        if line_idx >= len(lines):
             break
-        elif ch_ind < len(params['picks']):
-            ch_name = params['ch_names'][ch_ind]
+        elif ch_idx < len(params['picks']):
+            ch_name = params['ch_names'][ch_idx]
             tick_list += [ch_name]
-            offset = offsets[ii]
-            this_data = data[ch_ind][params['t_start']:end]
+            offset = offsets[line_idx]
+            this_data = data[ch_idx][params['t_start']:end]
 
             # subtraction here gets correct orientation for flipped ylim
             ydata = offset - this_data
@@ -876,12 +877,12 @@ def _plot_traces(params):
                                 len(epochs.events)])
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
-            lines[ii].set_segments(segments)
-            vars(lines[ii])['ch_name'] = ch_name
-            this_color = params['colors'][ch_ind][start_idx:end_idx]
-            lines[ii].set_color(this_color)
+            lines[line_idx].set_segments(segments)
+            vars(lines[line_idx])['ch_name'] = ch_name
+            this_color = params['colors'][ch_idx][start_idx:end_idx]
+            lines[line_idx].set_color(this_color)
         else:
-            lines[ii].set_segments(list())
+            lines[line_idx].set_segments(list())
 
     # finalize plot
     ax.set_xlim(params['times'][0], params['times'][0] + params['duration'],
@@ -963,15 +964,16 @@ def _plot_events(params):
                 bl_end = epochs.baseline[1]
                 sample = times.flat[np.abs(times - bl_end).argmin()]
                 t_zero = np.where(times == sample)[0]
-            else:
-                return
-        else:
-            return
-    for event_idx, event in enumerate(events[start_idx:end_idx]):
-        color = params['ev_cmap'][event[2]]
-        pos = [event_idx * len(times) + t_zero[0],
-               event_idx * len(times) + t_zero[0]]
-        ax.plot(pos, ax.get_ylim(), color=color, zorder=-1, linewidth=1)
+                for event_idx, event in enumerate(events[start_idx:end_idx]):
+                    pos = [event_idx * len(times) + t_zero[0],
+                           event_idx * len(times) + t_zero[0]]
+                    ax.plot(pos, ax.get_ylim(), color='c', zorder=-1)
+    else:
+        for event_idx, event in enumerate(events[start_idx:end_idx]):
+            color = params['ev_cmap'][event[2]]
+            pos = [event_idx * len(times) + t_zero[0],
+                   event_idx * len(times) + t_zero[0]]
+            ax.plot(pos, ax.get_ylim(), color=color, zorder=-1)
 
 
 def _pick_bad_epochs(event, params):
