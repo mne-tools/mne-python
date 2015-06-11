@@ -478,39 +478,6 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
     if "eeg" in evoked and not _has_eeg_average_ref_proj(evoked.info['projs']):
         raise ValueError('EEG average reference is mandatory for dipole '
                          'fitting.')
-    else:
-        # Determine if the 'Average EEG reference' projector is active.
-        for proj in evoked.info['projs']:
-            if (proj['desc'] == 'Average EEG reference' or
-                    proj['kind'] == FIFF.FIFFV_MNE_PROJ_ITEM_EEG_AVREF):
-                idx_eeg_average_proj = evoked.info['projs'].index(proj)
-
-        if not evoked.info['projs'][idx_eeg_average_proj]['active']:
-
-            # if it is not active, we need to apply only this projector
-            # to the data.
-
-            # Currently it is only possible to apply all projectors
-            # to the data, but we need to apply only one. To achieve
-            # this we are going to use the following hack:
-
-            # - Remove the eeg_average_ref_proj and save the rest of
-            # the projectors
-            evoked.info['projs'].pop(idx_eeg_average_proj)
-            projs = evoked.info['projs']
-
-            # - Once the projectors have been saved, remove all of them from
-            # evoke.info
-            evoked.info['projs'] = []
-
-            # - Make an eeg_average_ref_proj and apply it to the data
-            avg_proj = make_eeg_average_ref_proj(evoked.info)
-            evoked.add_proj([avg_proj])
-            evoked.apply_proj()
-
-            # - Append this new projector to the previously saved
-            # projectors, and stored them into evoked.info['projs']
-            evoked.info['projs'] = projs + evoked.info['projs']
 
     data = evoked.data
     info = evoked.info
