@@ -674,8 +674,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
-              'scalings': scalings,
-              'types': types,
               'colors': colors,
               'def_colors': typecolors,  # don't change at runtime
               'picks': picks,
