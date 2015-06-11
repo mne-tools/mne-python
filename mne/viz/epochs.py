@@ -609,11 +609,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    for epoch_idx in range(n_epochs):
-        if epoch_idx % 2 == 1:  # every second area painted yellow
-            ax.fill_betweenx(ylim, epoch_idx * n_times,
-                             epoch_idx * n_times + n_times, alpha=0.2,
-                             facecolor='y', zorder=1)
     times = np.arange(len(data) * len(epochs.times))
     epoch_times = np.arange(0, len(times), n_times)
 
@@ -697,6 +692,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     # Draw event lines for the first time.
     _plot_events(params)
+    for epoch_idx in range(n_epochs):
+        pos = [epoch_idx * n_times, epoch_idx * n_times]
+        ax.plot(pos, ax.get_ylim(), color='black', zorder=1)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
