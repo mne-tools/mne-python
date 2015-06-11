@@ -559,9 +559,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.set_title(fig_title, fontsize=12)
+    ax.set_title(fig_title, fontsize=12, y=1.015)
     ax.axis([0, duration, 0, 200])
-
+    ax2 = ax.twiny()
+    ax2.set_zorder(-1)
+    ax2.axis([0, duration, 0, 200])
     ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
@@ -616,8 +618,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
+    ax2.set_xticks(ticks[:n_epochs])
     labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
+    ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
 
@@ -649,6 +653,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'n_epochs': n_epochs,
               'fig': fig,
               'ax': ax,
+              'ax2': ax2,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
               'ch_start': 0,
@@ -827,6 +832,8 @@ def _plot_traces(params):
     end = params['t_start'] + params['duration']
     end_idx = int(end / n_times)
     labels = params['labels'][start_idx:]
+    event_ids = params['epochs'].events[:, 2]
+    params['ax2'].set_xticklabels(event_ids[start_idx:end_idx])
     ax.set_xticklabels(labels)
     # do the plotting
     for line_idx in range(n_channels):
@@ -895,7 +902,7 @@ def _handle_picks(epochs):
 
 
 def _plot_window(value, params):
-    """Deal with horizontal epoch window."""
+    """Deal with horizontal shift of the viewport."""
     max_times = len(params['times']) - params['duration']
     if value > max_times:
         value = len(params['times']) - params['duration']

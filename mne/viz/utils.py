@@ -299,7 +299,13 @@ def _layout_figure(params, platform=None):
     ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
     ax_y = hscroll_dist + scroll_width_y + b_border
     ax_height = 1.0 - ax_y - t_border
-    params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
+
+    if 'ax2' in params:
+        pos = [l_border, ax_y - 0.005, ax_width, ax_height]
+        params['ax2'].set_position(pos)
+    else:
+        pos = [l_border, ax_y, ax_width, ax_height]
+    params['ax'].set_position(pos)
     # vscroll (channels)
     pos = [ax_width + l_border + vscroll_dist, ax_y,
            scroll_width_x, ax_height]
