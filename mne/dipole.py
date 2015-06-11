@@ -390,7 +390,7 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
 
     else:  # sphere
         R, r0 = fwd_data['inner_skull']
-        R_adj = R - 1e-5  # to be sure we don't hit the innermost surf
+        R_adj = R - 1e-3  # to be sure we don't hit the innermost surf
 
         def constraint(rd):
             return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
@@ -450,6 +450,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
         is a sphere model.
     min_dist : float
         Minimum distance (in milimeters) from the dipole to the inner skull.
+        Only used when using a BEM forward model.
     n_jobs : int
         Number of jobs to run in parallel (used in field computation
         and fitting).
