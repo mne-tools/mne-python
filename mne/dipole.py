@@ -11,7 +11,7 @@ import re
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
 from .io.pick import pick_types
-from .io.proj import make_projector
+from .io.proj import make_projector, _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
@@ -342,43 +342,53 @@ def _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig, rd):
     return Q, gof, B_residual
 
 
-def _fit_dipoles(data, times, rrs, guess_fwd_svd, fwd_data, whitener,
-                 proj_op, n_jobs):
+def _fit_dipoles(min_dist_to_inner_skull, data, times, rrs, guess_fwd_svd,
+                 fwd_data, whitener, proj_op, n_jobs):
     """Fit a single dipole to the given whitened, projected data"""
     from scipy.optimize import fmin_cobyla
     parallel, p_fun, _ = parallel_func(_fit_dipole, n_jobs)
     # parallel over time points
-    res = parallel(p_fun(B, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
-                         fmin_cobyla)
+    res = parallel(p_fun(min_dist_to_inner_skull, B, t, rrs, guess_fwd_svd,
+                         fwd_data, whitener, proj_op, fmin_cobyla)
                    for B, t in zip(data.T, times))
     pos = np.array([r[0] for r in res])
     amp = np.array([r[1] for r in res])
     ori = np.array([r[2] for r in res])
     gof = np.array([r[3] for r in res]) * 100  # convert to percentage
     residual = np.array([r[4] for r in res]).T
+
     return pos, amp, ori, gof, residual
 
 
-def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
+def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
+                guess_fwd_svd, fwd_data, whitener, proj_op,
                 fmin_cobyla):
     """Fit a single bit of data"""
-    logger.info('---- Fitting : %7.1f ms' % (1000 * t,))
     B = np.dot(whitener, B_orig)
 
+    surf = None
     # make constraint function to keep the solver within the inner skull
     if isinstance(fwd_data['inner_skull'], dict):  # bem
         surf = fwd_data['inner_skull']
 
         def constraint(rd):
+
+            dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
+                                    return_dists=True)[1][0]
+
             if _points_outside_surface(rd[np.newaxis, :], surf, 1)[0]:
-                dist = _compute_nearest(surf['rr'], rd[np.newaxis, :],
-                                        return_dists=True)[1][0]
-                return -dist
-            else:
-                return 1.
+                dist *= -1.
+
+            # Once we know the dipole is below the inner skull,
+            # let's check if its distance to the inner skull is at least
+            # min_dist_to_inner_skull. This can be enforced by adding a
+            # constrain proportional to its distance.
+            dist -= min_dist_to_inner_skull
+            return dist
+
     else:  # sphere
         R, r0 = fwd_data['inner_skull']
-        R_adj = R - 1e-5  # to be sure we don't hit the innermost surf
+        R_adj = R - 1e-3  # to be sure we don't hit the innermost surf
 
         def constraint(rd):
             return R_adj - np.sqrt(np.sum((rd - r0) ** 2))
@@ -404,14 +414,25 @@ def _fit_dipole(B_orig, t, rrs, guess_fwd_svd, fwd_data, whitener, proj_op,
     # Compute the dipole moment at the final point
     Q, gof, residual = _fit_Q(fwd_data, whitener, proj_op, B, B2, B_orig,
                               rd_final)
-    amp = np.sqrt(np.sum(Q * Q))
-    norm = 1 if amp == 0 else amp
+    amp = np.sqrt(np.dot(Q, Q))
+    norm = 1. if amp == 0. else amp
     ori = Q / norm
+
+    msg = '---- Fitted : %7.1f ms' % (1000. * t)
+    if surf is not None:
+        dist_to_inner_skull = _compute_nearest(surf['rr'],
+                                               rd_final[np.newaxis, :],
+                                               return_dists=True)[1][0]
+        msg += (", distance to inner skull : %2.4f mm"
+                % (dist_to_inner_skull * 1000.))
+
+    logger.info(msg)
     return rd_final, amp, ori, gof, residual
 
 
 @verbose
-def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
+def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
+               n_jobs=1, verbose=None):
     """Fit a dipole
 
     Parameters
@@ -425,6 +446,9 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     trans : str | None
         The head<->MRI transform filename. Must be provided unless BEM
         is a sphere model.
+    min_dist : float
+        Minimum distance (in milimeters) from the dipole to the inner skull.
+        Only used when using a BEM forward model. Must be positive.
     n_jobs : int
         Number of jobs to run in parallel (used in field computation
         and fitting).
@@ -445,10 +469,24 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     """
     # This could eventually be adapted to work with other inputs, these
     # are what is needed:
+
+    evoked = evoked.copy()
+
+    # Determine if a list of projectors has an average EEG ref
+    if "eeg" in evoked and not _has_eeg_average_ref_proj(evoked.info['projs']):
+        raise ValueError('EEG average reference is mandatory for dipole '
+                         'fitting.')
+
+    if min_dist < 0:
+        raise ValueError('min_dist should be positive. Got %s' % min_dist)
+
     data = evoked.data
     info = evoked.info
     times = evoked.times.copy()
     comment = evoked.comment
+
+    # Convert the min_dist to meters
+    min_dist_to_inner_skull = min_dist / 1000.
 
     # Figure out our inputs
     neeg = len(pick_types(info, meg=False, eeg=True, exclude=[]))
@@ -553,9 +591,11 @@ def fit_dipole(evoked, cov, bem, trans=None, n_jobs=1, verbose=None):
     data = data[picks]
     ch_names = [info['ch_names'][p] for p in picks]
     proj_op = make_projector(info['projs'], ch_names, info['bads'])[0]
-    out = _fit_dipoles(data, times, src['rr'], guess_fwd_svd, fwd_data,
+    out = _fit_dipoles(min_dist_to_inner_skull, data, times, src['rr'],
+                       guess_fwd_svd, fwd_data,
                        whitener, proj_op, n_jobs)
     dipoles = Dipole(times, out[0], out[1], out[2], out[3], comment)
     residual = out[4]
+
     logger.info('%d dipoles fitted' % len(dipoles.times))
     return dipoles, residual

@@ -1,18 +1,24 @@
 import os.path as op
 import numpy as np
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_allclose
 import warnings
 
 from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
-                 transform_surface_to, make_sphere_model, pick_types)
+                 transform_surface_to, make_sphere_model, pick_types,
+                 pick_info, EvokedArray)
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
-                       run_subprocess)
+                       run_subprocess, requires_sklearn)
 from mne.proj import make_eeg_average_ref_proj
+
+from mne.io import Raw
+
+from mne.surface import _bem_find_surface, _compute_nearest, read_bem_solution
+from mne.transforms import (read_trans, apply_trans, _get_mri_head_t)
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -148,6 +154,65 @@ def test_len_index_dipoles():
     d_mask = dipole[mask]
     _check_dipole(d_mask, 4)
     _compare_dipoles(d_mask, dipole[idx])
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_min_distance_fit_dipole():
+    """Test dipole min_dist to inner_skull"""
+    data_path = testing.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+
+    subjects_dir = op.join(data_path, 'subjects')
+    fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+    fname_trans = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-trans.fif')
+    fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-1280-1280-1280-bem-sol.fif')
+
+    subject = 'sample'
+
+    raw = Raw(raw_fname, preload=True)
+
+    # select eeg data
+    picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    info = pick_info(raw.info, picks)
+
+    # Let's use cov = Identity
+    cov = read_cov(fname_cov)
+    cov['data'] = np.eye(cov['data'].shape[0])
+
+    # Simulated scal map
+    simulated_scalp_map = np.zeros(picks.shape[0])
+    simulated_scalp_map[27:34] = 1
+
+    simulated_scalp_map = simulated_scalp_map[:, None]
+
+    evoked = EvokedArray(simulated_scalp_map, info, tmin=0)
+
+    min_dist = 5.  # distance in mm
+
+    dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
+                               min_dist=min_dist)
+
+    dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
+
+    assert_true(min_dist < (dist[0] * 1000.) < (min_dist + 1.))
+
+    assert_raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
+                  -1.)
+
+
+def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
+    """Compute dipole depth"""
+    trans = read_trans(fname_trans)
+    trans = _get_mri_head_t(trans)[0]
+    bem = read_bem_solution(fname_bem)
+    surf = _bem_find_surface(bem, 'inner_skull')
+    points = surf['rr']
+    points = apply_trans(trans['trans'], points)
+    depth = _compute_nearest(points, dip.pos, return_dists=True)[1][0]
+    return np.ravel(depth)
 
 
 run_tests_if_main(False)
