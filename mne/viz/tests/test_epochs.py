@@ -115,6 +115,10 @@ def test_plot_epochs():
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('pageup')
     fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')

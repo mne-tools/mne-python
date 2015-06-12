@@ -695,7 +695,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     # Draw event lines for the first time.
     _plot_events(params)
-    for epoch_idx in range(n_epochs):
+    for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * n_times, epoch_idx * n_times]
         ax.plot(pos, ax.get_ylim(), color='black', zorder=1)
     # As here code is shared with plot_evoked, some extra steps:
@@ -831,7 +831,7 @@ def _plot_traces(params):
     end_idx = int(end / n_times)
     labels = params['labels'][start_idx:]
     event_ids = params['epochs'].events[:, 2]
-    params['ax2'].set_xticklabels(event_ids[start_idx:end_idx])
+    params['ax2'].set_xticklabels(event_ids[start_idx:])
     ax.set_xticklabels(labels)
     # do the plotting
     for line_idx in range(n_channels):
@@ -861,6 +861,8 @@ def _plot_traces(params):
     # finalize plot
     ax.set_xlim(params['times'][0], params['times'][0] + params['duration'],
                 False)
+    params['ax2'].set_xlim(params['times'][0],
+                           params['times'][0] + params['duration'], False)
     ax.set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
@@ -930,7 +932,7 @@ def _plot_events(params):
     epochs = params['epochs']
     t_zero = np.where(epochs.times == 0.)[0]
     if len(t_zero) == 1:
-        for event_idx in range(params['n_epochs']):
+        for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
             ax.plot(pos, ax.get_ylim(), 'g--', zorder=-1)
@@ -1047,6 +1049,28 @@ def _plot_onkey(event, params):
         params['ax'].set_yticks(params['offsets'])
         params['lines'].pop()
         params['vsel_patch'].set_height(n_channels)
+        _plot_traces(params)
+    elif event.key == 'home':
+        n_epochs = params['n_epochs'] - 1
+        if n_epochs <= 0:
+            return
+        n_times = len(params['epochs'].times)
+        ticks = params['epoch_times'] + 0.5 * n_times
+        params['ax2'].set_xticks(ticks[:n_epochs])
+        params['n_epochs'] = n_epochs
+        params['duration'] -= n_times
+        params['hsel_patch'].set_width(params['duration'])
+        _plot_traces(params)
+    elif event.key == 'end':
+        n_epochs = params['n_epochs'] + 1
+        n_times = len(params['epochs'].times)
+        if n_times * n_epochs > len(params['data'][0]):
+            return
+        ticks = params['epoch_times'] + 0.5 * n_times
+        params['ax2'].set_xticks(ticks[:n_epochs])
+        params['n_epochs'] = n_epochs
+        params['duration'] += n_times
+        params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
 
 
