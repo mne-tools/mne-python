@@ -1024,6 +1024,30 @@ def _plot_onkey(event, params):
     elif event.key == 'pageup':
         params['scale_factor'] *= 1.1
         _plot_traces(params)
+    elif event.key == '+':
+        from matplotlib.collections import LineCollection
+        n_channels = params['n_channels'] + 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        params['ax'].add_collection(lc)
+        params['ax'].set_yticks(params['offsets'])
+        params['lines'].append(lc)
+        params['vsel_patch'].set_height(n_channels)
+        _plot_traces(params)
+    elif event.key == '-':
+        if params['n_channels'] == 1:
+            return
+        n_channels = params['n_channels'] - 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].collections.pop()
+        params['ax'].set_yticks(params['offsets'])
+        params['lines'].pop()
+        params['vsel_patch'].set_height(n_channels)
+        _plot_traces(params)
 
 
 def _close_event(event, params):
