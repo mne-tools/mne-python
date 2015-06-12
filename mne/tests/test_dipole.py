@@ -1,6 +1,6 @@
 import os.path as op
 import numpy as np
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_allclose
 import warnings
 
@@ -159,7 +159,7 @@ def test_len_index_dipoles():
 @requires_sklearn
 @testing.requires_testing_data
 def test_min_distance_fit_dipole():
-
+    """Test dipole min_dist to inner_skull"""
     data_path = testing.data_path()
     raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
 
@@ -199,8 +199,12 @@ def test_min_distance_fit_dipole():
 
     assert_true(min_dist < (dist[0] * 1000.) < (min_dist + 1.))
 
+    assert_raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
+                  -1.)
+
 
 def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
+    """Compute dipole depth"""
     trans = read_trans(fname_trans)
     trans = _get_mri_head_t(trans)[0]
     bem = read_bem_solution(fname_bem)

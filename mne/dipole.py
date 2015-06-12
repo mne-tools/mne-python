@@ -365,7 +365,6 @@ def _fit_dipole(min_dist_to_inner_skull, B_orig, t, rrs,
                 fmin_cobyla):
     """Fit a single bit of data"""
     B = np.dot(whitener, B_orig)
-    assert min_dist_to_inner_skull >= 0.
 
     surf = None
     # make constraint function to keep the solver within the inner skull
@@ -449,7 +448,7 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
         is a sphere model.
     min_dist : float
         Minimum distance (in milimeters) from the dipole to the inner skull.
-        Only used when using a BEM forward model.
+        Only used when using a BEM forward model. Must be positive.
     n_jobs : int
         Number of jobs to run in parallel (used in field computation
         and fitting).
@@ -477,6 +476,9 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
     if "eeg" in evoked and not _has_eeg_average_ref_proj(evoked.info['projs']):
         raise ValueError('EEG average reference is mandatory for dipole '
                          'fitting.')
+
+    if min_dist < 0:
+        raise ValueError('min_dist should be positive. Got %s' % min_dist)
 
     data = evoked.data
     info = evoked.info
