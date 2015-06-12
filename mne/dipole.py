@@ -11,8 +11,7 @@ import re
 from .cov import read_cov, _get_whitener_data
 from .io.constants import FIFF
 from .io.pick import pick_types
-from .io.proj import make_projector, make_eeg_average_ref_proj,\
-    _has_eeg_average_ref_proj
+from .io.proj import make_projector, _has_eeg_average_ref_proj
 from .bem import _fit_sphere
 from .transforms import (_print_coord_trans, _coord_frame_name,
                          apply_trans, invert_transform)
