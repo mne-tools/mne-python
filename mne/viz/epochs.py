@@ -513,7 +513,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
     n_channels = min(n_channels, len(picks))
-    times = epochs.times * 1e3
     projs = epochs.info['projs']
 
     # Reorganize channels
@@ -541,11 +540,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if not len(inds) == len(picks):
         raise RuntimeError('Some channels not classified. Please'
                            ' check your picks')
-
-    data = np.zeros((len(epochs.events), epochs.info['nchan'], len(times)))
-    for idx, epoch in enumerate(epoch_data):
-        for pick, ind in enumerate(inds):
-            data[idx, pick] = epoch[ind] / scalings[types[pick]]
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -603,15 +597,16 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         ax.add_collection(lc)
         lines.append(lc)
 
-    # concatenation
-    epoch_data = np.concatenate(data, axis=1)
+    epoch_data = np.concatenate(epoch_data, axis=1)
+    times = epochs.times
+    data = np.zeros((epochs.info['nchan'], len(times) * len(epochs.events)))
 
     ylim = [n_channels * 2.0 + 1, 0]
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
 
-    times = np.arange(len(data) * len(epochs.times))
+    times = np.arange(len(data[0]))
     epoch_times = np.arange(0, len(times), n_times)
 
     ax.set_yticks(offsets)
@@ -666,15 +661,18 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'bads': np.array(list(), dtype=int),
               'ch_names': [epochs.info['ch_names'][x] for x in inds],
               'hsel_patch': hsel_patch,
-              'data': epoch_data,
-              'orig_data': copy.deepcopy(epoch_data),
+              'data': data,
+              'orig_data': epoch_data,
               'times': times,
               'epoch_times': epoch_times,
               'offsets': offsets,
               'labels': labels,
               'projs': projs,
               'scale_factor': 1.0,
-              'fig_proj': None}
+              'fig_proj': None,
+              'inds': inds,
+              'scalings': scalings,
+              'types': types}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -885,8 +883,10 @@ def _plot_update_epochs_proj(params, bools):
 
     data = params['orig_data']
     if params['projector'] is not None:
-        params['data'] = np.dot(params['projector'], data)
-
+        data = np.dot(params['projector'], data)
+    types = params['types']
+    for pick, ind in enumerate(params['inds']):
+        params['data'][pick] = data[ind] / params['scalings'][types[pick]]
     _plot_traces(params)
 
 
