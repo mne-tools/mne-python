@@ -935,7 +935,7 @@ def _plot_events(params):
         for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g--', zorder=-1)
+            ax.plot(pos, ax.get_ylim(), 'g--', zorder=-1, alpha=0.2)
 
 
 def _pick_bad_epochs(event, params):
