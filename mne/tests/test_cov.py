@@ -434,9 +434,11 @@ def test_compute_covariance_auto_reg():
     # cov with merged events and keep_sample_mean=True
     events_merged = merge_events(events, event_ids, 1234)
     picks = pick_types(raw.info, meg='mag', eeg=False)
-    epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
-                    picks=picks[:7], baseline=(-0.2, -0.1), proj=True,
-                    reject=reject, preload=True)
+    epochs = Epochs(
+        raw, events_merged, 1234, tmin=-0.2, tmax=0,
+        picks=picks[:10],  # we need a few channels for numerical reasons
+        # in PCA/FA.
+        baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
     epochs.crop(None, 0)[:10]
 
     method_params = dict(factor_analysis=dict(iter_n_components=[3]),
@@ -453,20 +455,13 @@ def test_compute_covariance_auto_reg():
     methods = ['empirical',
                'factor_analysis',
                'ledoit_wolf',
-               'pca',
-               ]
+               'pca']
     cov3 = compute_covariance(epochs, method=methods,
-                              method_params=method_params, projs=False,
+                              method_params=method_params, projs=None,
                               return_estimators=True)
 
     assert_equal(set([c['method'] for c in cov3]),
                  set(methods))
-
-    # projs not allowed with FA or PCA
-    # XXX : projs does not seem to be allowed to be a bool !!!
-    # and no error is raised.
-    # assert_raises(ValueError, compute_covariance, epochs, method='pca',
-    #               projs=True)
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
