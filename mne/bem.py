@@ -433,7 +433,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                     subject + '_outer_skin_surface']
         for s in surfaces:
             cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
-                   '--surfout', s]
+                   '--surfout', s, "--replacegeom"]
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     os.chdir(bem_dir)
     if op.exists(subject + '-head.fif'):
