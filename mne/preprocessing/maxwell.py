@@ -22,19 +22,24 @@ from ..forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
 from scipy.misc import factorial as fact
 
 
-def maxwell_filter(raw, origin, int_order=8, ext_order=3):
+def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
         Data to be filtered
+    coils : list
+        List of MEG coils. Each element must a contain coil information dict
+        continaining 'rmag', 'cosmag', and 'w' keys
     origin : tuple, shape (3,)
-        Origin of head
-    in_order : int
+        Origin of internal and external multipolar moment space
+    int_order : int
         Order of internal component of spherical expansion
-    out_order : int
+    ext_order : int
         Order of external component of spherical expansion
+    n_jobs : int
+        Number of jobs to run in parallel
 
     Returns
     -------
@@ -42,12 +47,36 @@ def maxwell_filter(raw, origin, int_order=8, ext_order=3):
         The raw data with Maxwell filtering applied
     """
 
-    # TODO: Figure out all parameters required
     # TODO: Error checks on input parameters
+    picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
+                                                       for coil in coils]]
+    data, times = raw[picks, :]
 
-    # TODO: Compute spherical harmonics
-    # TODO: Project data into spherical harmonics space
-    # TODO: Reconstruct and return Raw file object
+    # Compute spherical harmonics
+    S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
+
+    # TODO: check if normalization of basis vectors needed
+    S_in_norm = np.linalg.norm(S_in, axis=0)
+    S_in_norm[S_in_norm == 0] = 1.
+    S_in /= S_in_norm
+    S_out_norm = np.linalg.norm(S_out, axis=0)
+    S_out_norm[S_out_norm == 0] = 1.
+    S_out /= S_out_norm
+
+    # Compute inverse of multipolar moments
+    # TODO: check that default pinv tolerance is sufficient
+    pS_in = np.linalg.pinv(S_in)
+    pS_out = np.linalg.pinv(S_out)
+
+    # Estimate multipolar moments and then reconstruct internal/external signal
+    int_recon = np.dot(S_in, np.dot(pS_in, data))
+    ext_recon = np.dot(S_out, np.dot(pS_out, data))
+
+    # Return raw file object
+    raw_sss = raw.copy()
+    raw_sss[:, :] = int_recon
+
+    return raw_sss
 
 
 def _sss_basis(origin, coils, int_order=8, ext_order=3):
@@ -66,8 +95,9 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
 
     Returns
     -------
-    list
-        List of length 2 containing internal and external basis sets
+    tuple, len (2)
+        Internal and external basis sets ndarrays with shape
+        (n_mult_moments, n_coils)
     """
     r_int_pts, ncoils, wcoils, int_pts = _concatenate_coils(coils)
     n_sens = len(int_pts)
@@ -75,8 +105,8 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
     n_int_pts = len(r_int_pts)
     int_lens = np.insert(np.cumsum(int_pts), obj=0, values=0)
 
-    S_in = np.empty(((int_order + 1) ** 2, n_sens))
-    S_out = np.empty(((ext_order + 1) ** 2, n_sens))
+    S_in = np.empty((n_sens, (int_order + 1) ** 2))
+    S_out = np.empty((n_sens, (ext_order + 1) ** 2))
     S_in.fill(np.nan)
     S_out.fill(np.nan)
 
@@ -99,7 +129,7 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
                 int_pts_sum = np.sum(a1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_in[deg ** 2 + deg + order, pt_i] = int_pts_sum
+                S_in[pt_i, deg ** 2 + deg + order] = int_pts_sum
 
     # Compute external basis vectors
     for deg in range(0, ext_order + 1):
@@ -117,9 +147,9 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
                 int_pts_sum = np.sum(b1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_out[deg ** 2 + deg + order, pt_i] = int_pts_sum
+                S_out[pt_i, deg ** 2 + deg + order] = int_pts_sum
 
-    return [S_in, S_out]
+    return (S_in, S_out)
 
 
 def _sph_harmonic(degree, order, az, pol):
@@ -293,8 +323,8 @@ def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
 
     g_theta = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
                                             fact(degree - order) /
-                                           (4 * np.pi *
-                                            fact(degree + order))) * \
+                                            (4 * np.pi *
+                                             fact(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
