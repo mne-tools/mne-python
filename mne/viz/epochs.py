@@ -490,11 +490,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     -----
     With trellis set to False, the arrow keys (up/down/left/right) can
     be used to navigate between channels and epochs and the scaling can be
-    adjusted with 'page up' and 'page down' keys, but this depends on the
-    backend matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should
-    work). Vertical lines indicate the event time. If the event time is not
-    within the epoch, the vertical line is drawn at the end of the baseline if
-    available.
+    adjusted with - and + keys, but this depends on the backend matplotlib is
+    configured to use (e.g., mpl.use(``TkAgg``) should work). The amount of
+    epochs and channels per view can be adjusted with home/end and
+    page down/page up keys.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -697,7 +696,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     _plot_events(params)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * n_times, epoch_idx * n_times]
-        ax.plot(pos, ax.get_ylim(), color='black', zorder=1)
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -935,7 +934,7 @@ def _plot_events(params):
         for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g--', zorder=-1, alpha=0.2)
+            ax.plot(pos, ax.get_ylim(), 'g', zorder=-1, alpha=0.2)
 
 
 def _pick_bad_epochs(event, params):
@@ -969,12 +968,19 @@ def _pick_bad_epochs(event, params):
 
 def _plot_onscroll(event, params):
     """Function to handle scroll events."""
+    if event.key == 'control':
+        if event.step < 0:
+            event.key = '-'
+        else:
+            event.key = '+'
+        _plot_onkey(event, params)
+        return
     orig_start = params['ch_start']
     if event.step < 0:
         params['ch_start'] = min(params['ch_start'] + params['n_channels'],
                                  len(params['ch_names']) -
                                  params['n_channels'])
-    else:  # event.key == 'up':
+    else:
         params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
     if orig_start != params['ch_start']:
         _channels_changed(params)
@@ -1020,25 +1026,13 @@ def _plot_onkey(event, params):
         times = params['epoch_times']
         xdata = times.flat[np.abs(times - sample).argmin()]
         _plot_window(xdata, params)
-    elif event.key == 'pagedown':
+    elif event.key == '-':
         params['scale_factor'] /= 1.1
         _plot_traces(params)
-    elif event.key == 'pageup':
+    elif event.key == '+':
         params['scale_factor'] *= 1.1
         _plot_traces(params)
-    elif event.key == '+':
-        from matplotlib.collections import LineCollection
-        n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        lc = LineCollection(list(), linewidths=0.5, zorder=3)
-        params['ax'].add_collection(lc)
-        params['ax'].set_yticks(params['offsets'])
-        params['lines'].append(lc)
-        params['vsel_patch'].set_height(n_channels)
-        _plot_traces(params)
-    elif event.key == '-':
+    elif event.key == 'pagedown':
         if params['n_channels'] == 1:
             return
         n_channels = params['n_channels'] - 1
@@ -1048,6 +1042,18 @@ def _plot_onkey(event, params):
         params['ax'].collections.pop()
         params['ax'].set_yticks(params['offsets'])
         params['lines'].pop()
+        params['vsel_patch'].set_height(n_channels)
+        _plot_traces(params)
+    elif event.key == 'pageup':
+        from matplotlib.collections import LineCollection
+        n_channels = params['n_channels'] + 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        params['ax'].add_collection(lc)
+        params['ax'].set_yticks(params['offsets'])
+        params['lines'].append(lc)
         params['vsel_patch'].set_height(n_channels)
         _plot_traces(params)
     elif event.key == 'home':

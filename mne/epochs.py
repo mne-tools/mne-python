@@ -526,11 +526,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -----
         With trellis set to False, the arrow keys (up/down/left/right) can
         be used to navigate between channels and epochs and the scaling can be
-        adjusted with 'page up' and 'page down' keys, but this depends on the
-        backend matplotlib is configured to use (e.g., mpl.use(``TkAgg``)
-        should work). Vertical lines indicate the event time. If the event time
-        is not within the epoch, the vertical line is drawn at the end of the
-        baseline if available.
+        adjusted with - and + keys, but this depends on the backend matplotlib
+        is configured to use (e.g., mpl.use(``TkAgg``) should work). The amount
+        of epochs and channels per view can be adjusted with home/end and
+        page down/page up keys.
 
         .. versionadded:: 0.10.0
         """
