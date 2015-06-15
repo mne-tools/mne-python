@@ -552,7 +552,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.set_title(fig_title, fontsize=12, y=1.02)
+    ax.annotate(fig_title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
+                ha='center', va='bottom', size=10, xycoords='axes fraction',
+                textcoords='offset points')
+
     ax.axis([0, duration, 0, 200])
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
