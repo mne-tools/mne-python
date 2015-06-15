@@ -529,7 +529,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         adjusted with - and + keys, but this depends on the backend matplotlib
         is configured to use (e.g., mpl.use(``TkAgg``) should work). The amount
         of epochs and channels per view can be adjusted with home/end and
-        page down/page up keys.
+        page down/page up keys. Right mouse click adds a vertical line to the
+        plot.
 
         .. versionadded:: 0.10.0
         """

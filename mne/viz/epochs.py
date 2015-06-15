@@ -493,7 +493,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     adjusted with - and + keys, but this depends on the backend matplotlib is
     configured to use (e.g., mpl.use(``TkAgg``) should work). The amount of
     epochs and channels per view can be adjusted with home/end and
-    page down/page up keys.
+    page down/page up keys. Right mouse click adds a vertical line to the plot.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -618,6 +618,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
+    vertline_t = ax_hscroll.text(0, 0.5, '', color='y',
+                                 verticalalignment='center',
+                                 horizontalalignment='right')
 
     # fit horizontal scroll bar ticks
     hscroll_ticks = np.arange(0, xlim, xlim / 7.0)
@@ -672,7 +675,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'inds': inds,
               'scalings': scalings,
               'types': types,
-              'vert_lines': list()}
+              'vert_lines': list(),
+              'vertline_t': vertline_t}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -1008,7 +1012,7 @@ def _mouse_click(event, params):
             _pick_bad_epochs(event, params)
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
         n_times = len(params['epochs'].times)
-        xdata = event.xdata % n_times
+        xdata = int(event.xdata % n_times)
         prev_xdata = 0
         if len(params['vert_lines']) > 0:
             prev_xdata = params['vert_lines'][0][0].get_data()[0][0]
@@ -1016,6 +1020,7 @@ def _mouse_click(event, params):
                 params['ax'].lines.remove(params['vert_lines'][0][0])
                 params['vert_lines'].pop(0)
         if prev_xdata == xdata:
+            params['vertline_t'].set_text('')
             _plot_traces(params)
             return
         ylim = params['ax'].get_ylim()
@@ -1023,6 +1028,7 @@ def _mouse_click(event, params):
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
                                                           zorder=-1))
+        params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
         _plot_traces(params)
 
 
