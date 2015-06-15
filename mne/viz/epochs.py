@@ -448,7 +448,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
-                n_channels=10, fig_title=None, show=True, block=False):
+                n_channels=20, fig_title=None, show=True, block=False):
     """ Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch.
@@ -470,7 +470,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     n_epochs : int
         The number of epochs per view. Defaults to 20.
     n_channels : int
-        The number of channels per view. Defaults to 10.
+        The number of channels per view. Defaults to 20.
     fig_title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
@@ -552,7 +552,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.set_title(fig_title, fontsize=12, y=1.015)
+    ax.set_title(fig_title, fontsize=12, y=1.02)
     ax.axis([0, duration, 0, 200])
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
@@ -642,17 +642,18 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
 
-    params = {'vsel_patch': vsel_patch,
+    params = {'fig': fig,
+              'ax': ax,
+              'ax2': ax2,
+              'ax_hscroll': ax_hscroll,
+              'ax_vscroll': ax_vscroll,
+              'vsel_patch': vsel_patch,
+              'hsel_patch': hsel_patch,
               'epochs': epochs,
               'info': copy.deepcopy(epochs.info),  # needed for projs
               'lines': lines,
               'n_channels': n_channels,
               'n_epochs': n_epochs,
-              'fig': fig,
-              'ax': ax,
-              'ax2': ax2,
-              'ax_hscroll': ax_hscroll,
-              'ax_vscroll': ax_vscroll,
               'ch_start': 0,
               't_start': 0,
               'duration': duration,
@@ -662,7 +663,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'bad_color': bad_color,
               'bads': np.array(list(), dtype=int),
               'ch_names': [epochs.info['ch_names'][x] for x in inds],
-              'hsel_patch': hsel_patch,
               'data': data,
               'orig_data': epoch_data,
               'times': times,
@@ -939,7 +939,7 @@ def _plot_events(params):
         for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g', zorder=-1, alpha=0.2)
+            ax.plot(pos, ax.get_ylim(), 'g', zorder=-1, alpha=0.4)
 
 
 def _pick_bad_epochs(event, params):

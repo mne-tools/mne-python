@@ -300,8 +300,8 @@ def _layout_figure(params, platform=None):
     ax_y = hscroll_dist + scroll_width_y + b_border
     ax_height = 1.0 - ax_y - t_border
 
-    if 'ax2' in params:
-        pos = [l_border, ax_y - 0.005, ax_width, ax_height]
+    if 'ax2' in params:  # ugly hack for making space for the title
+        pos = [l_border, ax_y - 0.005, ax_width, ax_height - 0.005]
         params['ax2'].set_position(pos)
     else:
         pos = [l_border, ax_y, ax_width, ax_height]
