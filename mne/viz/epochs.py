@@ -671,7 +671,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'fig_proj': None,
               'inds': inds,
               'scalings': scalings,
-              'types': types}
+              'types': types,
+              'vert_lines': list()}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -988,24 +989,41 @@ def _plot_onscroll(event, params):
 
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
-    if event.inaxes is None or event.button != 1:
-        return
-    # vertical scroll bar changed
-    if event.inaxes == params['ax_vscroll']:
-        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-        if params['ch_start'] != ch_start:
-            params['ch_start'] = ch_start
+    if event.inaxes is not None and event.button == 1:
+        # vertical scroll bar changed
+        if event.inaxes == params['ax_vscroll']:
+            ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+            if params['ch_start'] != ch_start:
+                params['ch_start'] = ch_start
+                _plot_traces(params)
+        # horizontal scroll bar changed
+        elif event.inaxes == params['ax_hscroll']:
+            # find the closest epoch time
+            times = params['epoch_times']
+            offset = 0.5 * params['n_epochs'] * len(params['epochs'].times)
+            xdata = times.flat[np.abs(times - (event.xdata - offset)).argmin()]
+            _plot_window(xdata, params)
+        # main axes
+        elif event.inaxes == params['ax']:
+            _pick_bad_epochs(event, params)
+    elif event.inaxes == params['ax'] and event.button == 3:  # right click
+        n_times = len(params['epochs'].times)
+        xdata = event.xdata % n_times
+        prev_xdata = 0
+        if len(params['vert_lines']) > 0:
+            prev_xdata = params['vert_lines'][0][0].get_data()[0][0]
+            while len(params['vert_lines']) > 0:
+                params['ax'].lines.remove(params['vert_lines'][0][0])
+                params['vert_lines'].pop(0)
+        if prev_xdata == xdata:
             _plot_traces(params)
-    # horizontal scroll bar changed
-    elif event.inaxes == params['ax_hscroll']:
-        # find the closest epoch time
-        times = params['epoch_times']
-        offset = 0.5 * params['n_epochs'] * len(params['epochs'].times)
-        xdata = times.flat[np.abs(times - (event.xdata - offset)).argmin()]
-        _plot_window(xdata, params)
-    # main axes
-    elif event.inaxes == params['ax']:
-        _pick_bad_epochs(event, params)
+            return
+        ylim = params['ax'].get_ylim()
+        for epoch_idx in range(params['n_epochs']):
+            pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
+            params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
+                                                          zorder=-1))
+        _plot_traces(params)
 
 
 def _plot_onkey(event, params):
@@ -1075,6 +1093,11 @@ def _plot_onkey(event, params):
         ticks = params['epoch_times'] + 0.5 * n_times
         params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
+        if len(params['vert_lines']) > 0:
+            ax = params['ax']
+            pos = params['vert_lines'][0][0].get_data()[0] + params['duration']
+            params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
+                                                zorder=-1))
         params['duration'] += n_times
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
