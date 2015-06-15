@@ -1981,7 +1981,11 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs.tmax = tmax
     epochs.name = comment
     epochs.times = times
+    epochs._raw_times = times
+    epochs._offset = None
     epochs._data = data
+    epochs.detrend = None
+    epochs.decim = None
     activate = False if epochs._check_delayed() else proj
     epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                 activate=activate)
