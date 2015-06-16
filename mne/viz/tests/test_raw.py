@@ -72,6 +72,7 @@ def test_plot_raw():
         fig.canvas.key_press_event('-')
         fig.canvas.key_press_event('+')
         fig.canvas.key_press_event('=')
+        fig.canvas.key_press_event('f11')
         fig.canvas.key_press_event('escape')
         # Color setting
         assert_raises(KeyError, raw.plot, event_color={0: 'r'})
