@@ -72,7 +72,7 @@ forward = mne.read_forward_solution(fwd_fname, force_fixed=False,
 alpha_space = 50.  # spatial regularization parameter
 # alpha_time parameter promotes temporal smoothness
 # (0 means no temporal regularization)
-alpha_time = 1.  # temporal regularization parameter
+alpha_time = 0.1  # temporal regularization parameter
 
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 
@@ -87,7 +87,7 @@ stc, residual = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                               loose=loose, depth=depth, maxit=200, tol=1e-4,
                               weights=stc_dspm, weights_min=8., debias=True,
                               wsize=16, tstep=4, window=0.05,
-                              return_residual=True)
+                              return_residual=True, solver='bcd_glmnet')
 
 # Crop to remove edges
 stc.crop(tmin=-0.05, tmax=0.3)
