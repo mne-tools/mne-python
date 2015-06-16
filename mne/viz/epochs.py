@@ -680,7 +680,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'scalings': scalings,
               'types': types,
               'vert_lines': list(),
-              'vertline_t': vertline_t}
+              'vertline_t': vertline_t,
+              'butterfly': False}
+
+    ax_type_button = plt.subplot2grid((10, 15), (0, 0))
+    type_button = mpl.widgets.Button(ax_type_button, 'All')
+    ax_type_button.set_visible(False)
+    params['ax_type_button'] = ax_type_button
+    callback_type = partial(_toggle_ch_type, params=params)
+    type_button.on_clicked(callback_type)
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -826,7 +834,23 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
     ax = params['ax']
-    n_channels = params['n_channels']
+    butterfly = params['butterfly']
+    if butterfly:
+        ch_start = 0
+        title = params['ax_type_button'].texts[0].get_text()
+        if title == 'All':
+            picks = range(len(params['picks']))
+        else:
+            picks = np.where(params['types'] == title)[0]
+        n_channels = len(params['picks'])
+        offsets = np.zeros(n_channels)
+        ylim = ax.get_ylim()
+        offsets.fill(ylim[0] / 2)
+    else:
+        ch_start = params['ch_start']
+        n_channels = params['n_channels']
+        offsets = params['offsets']
+        picks = range(len(params['picks']))
     lines = params['lines']
     data = params['data'] * params['scale_factor']
     offsets = params['offsets']
@@ -849,6 +873,8 @@ def _plot_traces(params):
         elif ch_idx < len(params['picks']):
             ch_name = params['ch_names'][ch_idx]
             tick_list += [ch_name]
+            if not butterfly:
+                tick_list += [ch_name]
             offset = offsets[line_idx]
             this_data = data[ch_idx][params['t_start']:end]
 
@@ -926,6 +952,8 @@ def _plot_window(value, params):
 
 def _channels_changed(params):
     """Deal with vertical shift of the viewport."""
+    if params['butterfly']:
+        return
     if params['ch_start'] + params['n_channels'] > len(params['ch_names']):
         params['ch_start'] = len(params['ch_names']) - params['n_channels']
     elif params['ch_start'] < 0:
@@ -1000,6 +1028,8 @@ def _mouse_click(event, params):
     if event.inaxes is not None and event.button == 1:
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
+            if params['butterfly']:
+                return
             ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
             if params['ch_start'] != ch_start:
                 params['ch_start'] = ch_start
@@ -1115,6 +1145,23 @@ def _plot_onkey(event, params):
         params['duration'] += n_times
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
+    elif event.key == 'b':
+        params['butterfly'] = not params['butterfly']
+        for line in params['lines']:
+            line.set_segments(list())
+        params['ax_type_button'].set_visible(params['butterfly'])
+        _plot_traces(params)
+
+
+def _toggle_ch_type(event, params):
+    """Function for changing showed channels on butterfly plot."""
+    types = np.unique(np.append(params['types'], 'All'))
+    title = params['ax_type_button'].texts[0].get_text()
+    idx = np.where(types == title)[0][0] + 1
+    if idx == len(types):
+        idx = 0
+    params['ax_type_button'].texts[0].set_text(types[idx])
+    _plot_traces(params)
 
 
 def _close_event(event, params):
