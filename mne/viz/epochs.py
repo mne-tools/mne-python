@@ -678,7 +678,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'fig_proj': None,
               'inds': inds,
               'scalings': scalings,
-              'types': types,
+              'types': np.array(types),
               'vert_lines': list(),
               'vertline_t': vertline_t,
               'butterfly': False}
@@ -839,7 +839,7 @@ def _plot_traces(params):
         ch_start = 0
         title = params['ax_type_button'].texts[0].get_text()
         if title == 'All':
-            picks = range(len(params['picks']))
+            picks = params['picks']
         else:
             picks = np.where(params['types'] == title)[0]
         n_channels = len(params['picks'])
@@ -850,10 +850,9 @@ def _plot_traces(params):
         ch_start = params['ch_start']
         n_channels = params['n_channels']
         offsets = params['offsets']
-        picks = range(len(params['picks']))
+        picks = params['picks']
     lines = params['lines']
     data = params['data'] * params['scale_factor']
-    offsets = params['offsets']
     epochs = params['epochs']
 
     n_times = len(epochs.times)
@@ -867,12 +866,11 @@ def _plot_traces(params):
     ax.set_xticklabels(labels)
     # do the plotting
     for line_idx in range(n_channels):
-        ch_idx = line_idx + params['ch_start']
+        ch_idx = line_idx + ch_start
         if line_idx >= len(lines):
             break
-        elif ch_idx < len(params['picks']):
+        elif ch_idx in picks:
             ch_name = params['ch_names'][ch_idx]
-            tick_list += [ch_name]
             if not butterfly:
                 tick_list += [ch_name]
             offset = offsets[line_idx]
@@ -898,7 +896,7 @@ def _plot_traces(params):
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
     ax.set_yticklabels(tick_list)
-    params['vsel_patch'].set_y(params['ch_start'])
+    params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
     # so that when matplotlib goes to calculate bounds we don't get a
@@ -1095,7 +1093,7 @@ def _plot_onkey(event, params):
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
     elif event.key == 'pagedown':
-        if params['n_channels'] == 1:
+        if params['n_channels'] == 1 or params['butterfly']:
             return
         n_channels = params['n_channels'] - 1
         offset = params['ax'].get_ylim()[0] / n_channels
@@ -1107,6 +1105,8 @@ def _plot_onkey(event, params):
         params['vsel_patch'].set_height(n_channels)
         _plot_traces(params)
     elif event.key == 'pageup':
+        if params['butterfly']:
+            return
         from matplotlib.collections import LineCollection
         n_channels = params['n_channels'] + 1
         offset = params['ax'].get_ylim()[0] / n_channels
@@ -1146,10 +1146,19 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
     elif event.key == 'b':
-        params['butterfly'] = not params['butterfly']
-        for line in params['lines']:
-            line.set_segments(list())
-        params['ax_type_button'].set_visible(params['butterfly'])
+        from matplotlib.collections import LineCollection
+        butterfly = not params['butterfly']
+        if butterfly:
+            while len(params['lines']) < len(params['picks']):
+                lc = LineCollection(list(), linewidths=0.5, zorder=3)
+                params['ax'].add_collection(lc)
+                params['lines'].append(lc)
+        else:
+            while len(params['lines']) > params['n_channels']:
+                params['ax'].collections.pop()
+                params['lines'].pop()
+        params['ax_type_button'].set_visible(butterfly)
+        params['butterfly'] = butterfly
         _plot_traces(params)
 
 
