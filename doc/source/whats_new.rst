@@ -112,6 +112,8 @@ Changelog
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
 
+   - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
+
 
 BUG
 ~~~

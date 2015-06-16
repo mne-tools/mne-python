@@ -35,8 +35,8 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
 from .filter import resample, detrend, FilterMixin
 from .event import _read_events_fif
 from .fixes import in1d
-from .viz import (plot_epochs, _drop_log_stats, plot_epochs_psd,
-                  plot_epochs_psd_topomap)
+from .viz import (plot_epochs, plot_epochs_trellis, _drop_log_stats,
+                  plot_epochs_psd, plot_epochs_psd_topomap)
 from .utils import (check_fname, logger, verbose, _check_type_picks,
                     _time_mask, check_random_state, object_hash)
 from .externals.six import iteritems
@@ -474,8 +474,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         return self.info['ch_names']
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
-             title_str='#%003i', show=True, block=False):
-        """Visualize single trials using Trellis plot.
+             title_str='#%003i', show=True, block=False, n_epochs=20,
+             n_channels=20, fig_title=None, trellis=True):
+        """Visualize epochs.
+
+        Bad epochs can be marked with a left click on top of the epoch.
+        Calling this function drops all the selected bad epochs as well as bad
+        epochs marked beforehand with rejection parameters.
 
         Parameters
         ----------
@@ -498,15 +503,46 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Whether to halt program execution until the figure is closed.
             Useful for rejecting bad trials on the fly by clicking on a
             sub plot.
+        n_epochs : int
+            The number of epochs per view.
+        n_channels : int
+            The number of channels per view on mne_browse_epochs. If trellis is
+            True, this parameter has no effect. Defaults to 20.
+        fig_title : str | None
+            The title of the window. If None, epochs name will be displayed.
+            If trellis is True, this parameter has no effect.
+            Defaults to None.
+        trellis : bool
+            Whether to use Trellis plotting. If False, plotting is similar to
+            Raw plot methods, with epochs stacked horizontally.
+            Defaults to True.
 
         Returns
         -------
         fig : Instance of matplotlib.figure.Figure
             The figure.
+
+        Notes
+        -----
+        With trellis set to False, the arrow keys (up/down/left/right) can
+        be used to navigate between channels and epochs and the scaling can be
+        adjusted with - and + keys, but this depends on the backend matplotlib
+        is configured to use (e.g., mpl.use(``TkAgg``) should work). The amount
+        of epochs and channels per view can be adjusted with home/end and
+        page down/page up keys. Right mouse click adds a vertical line to the
+        plot.
+
+        .. versionadded:: 0.10.0
         """
-        return plot_epochs(self, epoch_idx=epoch_idx, picks=picks,
-                           scalings=scalings, title_str=title_str,
-                           show=show, block=block)
+        if trellis is True:
+            return plot_epochs_trellis(self, epoch_idx=epoch_idx, picks=picks,
+                                       scalings=scalings, title_str=title_str,
+                                       show=show, block=block,
+                                       n_epochs=n_epochs)
+        else:
+            return plot_epochs(self, picks=picks, scalings=scalings,
+                               n_epochs=n_epochs, n_channels=n_channels,
+                               fig_title=fig_title, show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',
