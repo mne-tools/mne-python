@@ -46,10 +46,16 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
-@slow_test
 def test_concat():
     """Test RawFIF concatenation"""
-    _test_concat(read_raw_fif, test_fif_fname)
+    # we trim the file to save lots of memory and some time
+    tempdir = _TempDir()
+    raw = read_raw_fif(test_fif_fname)
+    raw.crop(0, 2., copy=False)
+    test_name = op.join(tempdir, 'test_raw.fif')
+    raw.save(test_name)
+    # now run the standard test
+    _test_concat(read_raw_fif, test_name)
 
 
 @testing.requires_testing_data

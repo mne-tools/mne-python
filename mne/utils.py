@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
@@ -1628,7 +1627,8 @@ def run_tests_if_main(measure_mem=False):
         faulthandler.enable()
     except Exception:
         pass
-    mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
+    with warnings.catch_warnings(record=True):  # memory_usage internal dep.
+        mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
     if mem >= 0:
         print('Memory consumption after import: %s' % mem)
     t0 = time.time()
@@ -1647,7 +1647,8 @@ def run_tests_if_main(measure_mem=False):
             try:
                 t1 = time.time()
                 if measure_mem:
-                    mem = int(round(max(memory_usage((val, (), {})))))
+                    with warnings.catch_warnings(record=True):  # dep warn
+                        mem = int(round(max(memory_usage((val, (), {})))))
                 else:
                     val()
                     mem = -1
