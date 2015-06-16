@@ -683,13 +683,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'vertline_t': vertline_t,
               'butterfly': False}
 
-    ax_type_button = plt.subplot2grid((10, 15), (0, 0))
-    type_button = mpl.widgets.Button(ax_type_button, 'All')
-    ax_type_button.set_visible(False)
-    params['ax_type_button'] = ax_type_button
-    callback_type = partial(_toggle_ch_type, params=params)
-    type_button.on_clicked(callback_type)
-
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
@@ -833,21 +826,14 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
-    import matplotlib as mpl
     ax = params['ax']
     butterfly = params['butterfly']
     ylim = ax.get_ylim()
-    ch_type = params['ax_type_button'].texts[0].get_text()
     if butterfly:
         ch_start = 0
-        if ch_type == 'All':
-            picks = params['picks']
-        else:
-            picks = np.where(params['types'] == ch_type)[0]
-        ax.yaxis.set_major_locator(mpl.ticker.LinearLocator(numticks=15))
+        picks = params['picks']
         n_channels = len(params['picks'])
-        offsets = np.zeros(n_channels)
-        offsets.fill(ylim[0] / 2)
+        offsets = [ylim[0] * (2. / 12.), ylim[0] * 0.5, ylim[0] * (10. / 12.)]
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
@@ -873,9 +859,20 @@ def _plot_traces(params):
             break
         elif ch_idx in picks:
             ch_name = params['ch_names'][ch_idx]
-            if not butterfly:
+            if butterfly:
+                type = params['types'][ch_idx]
+                if type == 'grad':
+                    offset = offsets[0]
+                elif type == 'mag':
+                    offset = offsets[1]
+                elif type == 'eeg':
+                    offset = offsets[2]
+                else:
+                    lines[line_idx].set_segments(list())
+                    continue
+            else:
                 tick_list += [ch_name]
-            offset = offsets[line_idx]
+                offset = offsets[line_idx]
             this_data = data[ch_idx][params['t_start']:end]
 
             # subtraction here gets correct orientation for flipped ylim
@@ -897,13 +894,22 @@ def _plot_traces(params):
                 False)
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
-    if params['butterfly']:
-        if ch_type != 'All':
-            factor = params['scalings'][ch_type] * -1. / params['scale_factor']
-            labels = ['{:.2e}'.format((label._y - offsets[0]) * factor)
-                      for label in ax.get_yticklabels()]
-        else:
-            labels = list()
+    if butterfly:
+        factor = -1. / params['scale_factor']
+        mag_factor = params['scalings']['mag'] * factor
+        grad_factor = params['scalings']['grad'] * factor
+        eeg_factor = params['scalings']['eeg'] * factor
+        labels = ['']
+        ticks = ax.get_yticks()
+        for tick in ticks[1:4]:
+            labels.append('{:.2e}'.format((tick - offsets[0]) * grad_factor))
+        labels.append('')
+        for tick in ticks[5:8]:
+            labels.append('{:.2e}'.format((tick - offsets[1]) * mag_factor))
+        labels.append('')
+        for tick in ticks[9:12]:
+            labels.append('{:.2e}'.format((tick - offsets[2]) * eeg_factor))
+        labels.append('')
         ax.set_yticklabels(labels)
     else:
         ax.set_yticklabels(tick_list)
@@ -1157,31 +1163,29 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
     elif event.key == 'b':
-        from matplotlib.collections import LineCollection
-        butterfly = not params['butterfly']
-        if butterfly:
-            while len(params['lines']) < len(params['picks']):
-                lc = LineCollection(list(), linewidths=0.5, zorder=3)
-                params['ax'].add_collection(lc)
-                params['lines'].append(lc)
-        else:
-            while len(params['lines']) > params['n_channels']:
-                params['ax'].collections.pop()
-                params['lines'].pop()
-        params['ax_type_button'].set_visible(butterfly)
-        params['butterfly'] = butterfly
+        _prepare_butterfly(params)
         _plot_traces(params)
 
 
-def _toggle_ch_type(event, params):
-    """Function for changing showed channels on butterfly plot."""
-    types = np.unique(np.append(params['types'], 'All'))
-    title = params['ax_type_button'].texts[0].get_text()
-    idx = np.where(types == title)[0][0] + 1
-    if idx == len(types):
-        idx = 0
-    params['ax_type_button'].texts[0].set_text(types[idx])
-    _plot_traces(params)
+def _prepare_butterfly(params):
+    """Helper function for setting up butterfly plot."""
+    from matplotlib.collections import LineCollection
+    butterfly = not params['butterfly']
+    if butterfly:
+        ax = params['ax']
+        ylim = ax.get_ylim()[0]
+        offset = ax.get_ylim()[0] / 12.0
+        ax.set_yticks(np.arange(0, ylim, offset))
+        while len(params['lines']) < len(params['picks']):
+            lc = LineCollection(list(), linewidths=0.5, zorder=3)
+            params['ax'].add_collection(lc)
+            params['lines'].append(lc)
+    else:
+        params['ax'].set_yticks(params['offsets'])
+        while len(params['lines']) > params['n_channels']:
+            params['ax'].collections.pop()
+            params['lines'].pop()
+    params['butterfly'] = butterfly
 
 
 def _close_event(event, params):
