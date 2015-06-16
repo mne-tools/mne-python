@@ -34,10 +34,10 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id)
 from .io.base import ToDataFrameMixin
 
-aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-              str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
+                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
+_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
+               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -121,13 +121,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # find string-based entry
             if isinstance(condition, string_types):
-                if kind not in aspect_dict.keys():
+                if kind not in _aspect_dict.keys():
                     raise ValueError('kind must be "average" or '
                                      '"standard_error"')
 
                 comments, aspect_kinds, t = _get_entries(fid, evoked_node)
                 goods = np.logical_and(in1d(comments, [condition]),
-                                       in1d(aspect_kinds, [aspect_dict[kind]]))
+                                       in1d(aspect_kinds, [_aspect_dict[kind]]))
                 found_cond = np.where(goods)[0]
                 if len(found_cond) != 1:
                     raise ValueError('condition "%s" (%s) not found, out of '
@@ -258,7 +258,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
-        self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.first = first
         self.last = last
         self.comment = comment
@@ -852,9 +852,9 @@ class EvokedArray(Evoked):
         self.verbose = verbose
         self._projector = None
         if self.kind == 'average':
-            self._aspect_kind = aspect_dict['average']
+            self._aspect_kind = _aspect_dict['average']
         else:
-            self._aspect_kind = aspect_dict['standard_error']
+            self._aspect_kind = _aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
@@ -881,7 +881,7 @@ def _get_entries(fid, evoked_node):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '  ' + '\n  '.join(t)
     return comments, aspect_kinds, t

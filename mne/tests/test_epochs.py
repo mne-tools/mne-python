@@ -65,10 +65,9 @@ def test_base_epochs():
     """Test base epochs class
     """
     raw = _get_data()[0]
-    epochs = _BaseEpochs(raw.info, event_id, tmin, tmax)
+    epochs = _BaseEpochs(raw.info, None, np.ones((1, 3), int),
+                         event_id, tmin, tmax)
     assert_raises(NotImplementedError, epochs.get_data)
-    assert_raises(NotImplementedError, epochs.__next__)
-    assert_equal(epochs.__iter__()._current, 0)
 
 
 @requires_scipy_version('0.14')
