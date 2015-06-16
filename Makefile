@@ -59,7 +59,6 @@ test-no-testing-data: in
 
 test-no-sample-with-coverage: in testing_data
 	rm -rf coverage .coverage
-	@MNE_SKIP_SAMPLE_DATASET_TESTS=true \
 	$(NOSETESTS) --with-coverage --cover-package=mne --cover-html --cover-html-dir=coverage
 
 test-doc: sample_data testing_data

@@ -368,6 +368,8 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
         Change the preflood height
     verbose : bool, str or None
         If not None, override default verbose level
+
+    .. versionadded:: 0.10
     """
     env = os.environ.copy()
 
