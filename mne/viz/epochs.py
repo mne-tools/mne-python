@@ -490,9 +490,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     -----
     With trellis set to False, the arrow keys (up/down/left/right) can
     be used to navigate between channels and epochs and the scaling can be
-    adjusted with - and + keys, but this depends on the backend matplotlib is
-    configured to use (e.g., mpl.use(``TkAgg``) should work). The amount of
-    epochs and channels per view can be adjusted with home/end and
+    adjusted with - and + (or =) keys, but this depends on the backend
+    matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work). The
+    amount of epochs and channels per view can be adjusted with home/end and
     page down/page up keys. Right mouse click adds a vertical line to the plot.
     """
     import matplotlib.pyplot as plt
@@ -1056,7 +1056,7 @@ def _plot_onkey(event, params):
     elif event.key == '-':
         params['scale_factor'] /= 1.1
         _plot_traces(params)
-    elif event.key == '+':
+    elif event.key == '+' or event.key == '=':
         params['scale_factor'] *= 1.1
         _plot_traces(params)
     elif event.key == 'pagedown':

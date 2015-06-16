@@ -169,6 +169,14 @@ def _plot_raw_onkey(event, params):
     elif event.key in ['o', 'p']:
         _toggle_options(None, params)
         return
+    elif event.key == '+' or event.key == '=':
+        params['scale_factor'] *= 1.1
+        params['plot_fun']()
+        return
+    elif event.key == '-':
+        params['scale_factor'] /= 1.1
+        params['plot_fun']()
+        return
 
     # deal with plotting changes
     if ch_changed:
@@ -219,7 +227,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
             offset = offsets[ii]
 
             # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][inds[ch_ind]]
+            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
             this_z = -1 if ch_name in info['bads'] else 0
             if isinstance(this_color, dict):
@@ -361,10 +369,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     -----
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
-    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
-    To mark or un-mark a channel as bad, click on the rather flat segments
-    of a channel's time series. The changes will be reflected immediately
-    in the raw object's ``raw.info['bads']`` entry.
+    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
+    scaling can be adjusted with - and + or = keys. To mark or un-mark a
+    channel as bad, click on the rather flat segments of a channel's time
+    series. The changes will be reflected immediately in the raw object's
+    ``raw.info['bads']`` entry.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -493,13 +502,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax_hscroll.set_xlabel('Time (s)')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
-    ax_button = plt.subplot2grid((10, 10), (9, 9))
     # store these so they can be fixed on resize
     params['fig'] = fig
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
-    params['ax_button'] = ax_button
 
     # populate vertical and horizontal scrollbars
     for ci in range(len(info['ch_names'])):
@@ -551,10 +558,13 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  color=color, bad_color=bad_color, lines=lines,
                                  event_lines=event_lines,
                                  event_color=event_color, offsets=offsets)
+    params['scale_factor'] = 1.0
 
     # set up callbacks
     opt_button = None
-    if len(raw.info['projs']) > 0:
+    if len(raw.info['projs']) > 0 and not raw.proj:
+        ax_button = plt.subplot2grid((10, 10), (9, 9))
+        params['ax_button'] = ax_button
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
