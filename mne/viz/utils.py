@@ -317,8 +317,8 @@ def _layout_figure(params, platform=None):
                scroll_width_x, scroll_width_y]
         params['ax_button'].set_position(pos)
     if 'ax_type_button' in params:
-        pos = [l_border - scroll_width_x - vscroll_dist, ax_y, scroll_width_x,
-               scroll_width_y]
+        pos = [l_border - scroll_width_x * 2 - vscroll_dist, b_border,
+               scroll_width_x * 2, scroll_width_y]
         params['ax_type_button'].set_position(pos)
     params['fig'].canvas.draw()
 

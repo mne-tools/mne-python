@@ -833,18 +833,20 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
+    import matplotlib as mpl
     ax = params['ax']
     butterfly = params['butterfly']
+    ylim = ax.get_ylim()
+    ch_type = params['ax_type_button'].texts[0].get_text()
     if butterfly:
         ch_start = 0
-        title = params['ax_type_button'].texts[0].get_text()
-        if title == 'All':
+        if ch_type == 'All':
             picks = params['picks']
         else:
-            picks = np.where(params['types'] == title)[0]
+            picks = np.where(params['types'] == ch_type)[0]
+        ax.yaxis.set_major_locator(mpl.ticker.LinearLocator(numticks=15))
         n_channels = len(params['picks'])
         offsets = np.zeros(n_channels)
-        ylim = ax.get_ylim()
         offsets.fill(ylim[0] / 2)
     else:
         ch_start = params['ch_start']
@@ -895,7 +897,16 @@ def _plot_traces(params):
                 False)
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
-    ax.set_yticklabels(tick_list)
+    if params['butterfly']:
+        if ch_type != 'All':
+            factor = params['scalings'][ch_type] * -1. / params['scale_factor']
+            labels = ['{:.2e}'.format((label._y - offsets[0]) * factor)
+                      for label in ax.get_yticklabels()]
+        else:
+            labels = list()
+        ax.set_yticklabels(labels)
+    else:
+        ax.set_yticklabels(tick_list)
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
