@@ -526,9 +526,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -----
         With trellis set to False, the arrow keys (up/down/left/right) can
         be used to navigate between channels and epochs and the scaling can be
-        adjusted with - and + keys, but this depends on the backend matplotlib
-        is configured to use (e.g., mpl.use(``TkAgg``) should work). The amount
-        of epochs and channels per view can be adjusted with home/end and
+        adjusted with - and + (or =) keys, but this depends on the backend
+        matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
+        Full screen mode can be to toggled with f11 key. The amount of epochs
+        and channels per view can be adjusted with home/end and
         page down/page up keys. Right mouse click adds a vertical line to the
         plot.
 

@@ -117,6 +117,8 @@ def test_plot_epochs():
     fig.canvas.key_press_event('pagedown')
     fig.canvas.key_press_event('-')
     fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('f11')
     fig.canvas.key_press_event('home')
     fig.canvas.key_press_event('end')
     fig.canvas.resize_event()

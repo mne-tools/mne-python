@@ -490,10 +490,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     -----
     With trellis set to False, the arrow keys (up/down/left/right) can
     be used to navigate between channels and epochs and the scaling can be
-    adjusted with - and + keys, but this depends on the backend matplotlib is
-    configured to use (e.g., mpl.use(``TkAgg``) should work). The amount of
-    epochs and channels per view can be adjusted with home/end and
-    page down/page up keys. Right mouse click adds a vertical line to the plot.
+    adjusted with - and + (or =) keys, but this depends on the backend
+    matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
+    Full screen mode can be to toggled with f11 key. The amount of epochs and
+    channels per view can be adjusted with home/end and page down/page up keys.
+    Right mouse click adds a vertical line to the plot.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -1037,6 +1038,7 @@ def _mouse_click(event, params):
 
 def _plot_onkey(event, params):
     """Function to handle key presses."""
+    import matplotlib.pyplot as plt
     if event.key == 'down':
         params['ch_start'] += params['n_channels']
         _channels_changed(params)
@@ -1056,9 +1058,12 @@ def _plot_onkey(event, params):
     elif event.key == '-':
         params['scale_factor'] /= 1.1
         _plot_traces(params)
-    elif event.key == '+':
+    elif event.key in ['+', '=']:
         params['scale_factor'] *= 1.1
         _plot_traces(params)
+    elif event.key == 'f11':
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
     elif event.key == 'pagedown':
         if params['n_channels'] == 1:
             return
