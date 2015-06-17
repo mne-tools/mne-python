@@ -427,6 +427,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
         is less than weights_min.
     pca: bool
         If True the rank of the data is reduced to true dimension.
+    debias: bool
+        Remove coefficient amplitude bias due to L1 penalty.
     wsize: int
         Length of the STFT window in samples (must be a multiple of 4).
     tstep: int
@@ -436,8 +438,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
         and right window length.
-    debias: bool
-        Remove coefficient amplitude bias due to L1 penalty.
     solver : 'prox' | 'bcd' | 'bcd_glmnet' | 'auto'
         The algorithm to use for the optimization. prox stands for
         proximal interations using the FISTA algorithm while bcd applies
