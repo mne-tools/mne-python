@@ -108,7 +108,8 @@ def _pick_bad_channels(event, params):
 
 def _mouse_click(event, params):
     """Vertical select callback"""
-    if event.inaxes is None or event.button != 1:
+    # only left and right click handled
+    if event.inaxes is None or (event.button != 1 and event.button != 3):
         return
     # vertical scrollbar changed
     if event.inaxes == params['ax_vscroll']:
@@ -121,7 +122,56 @@ def _mouse_click(event, params):
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
 
     elif event.inaxes == params['ax']:
-        _pick_bad_channels(event, params)
+        # vertical lines added
+        if event.key == 'shift':
+            scrl = params['ax_hscroll']
+            if (params['fillarea'] in params['ax'].collections):
+                params['ax'].collections.remove(params['fillarea'])
+                scrl.collections.remove(params['hscroll_fillarea'])
+            x = np.array([event.xdata] * 2)
+            y = np.array(params['ax'].get_ylim())
+            if event.button == 1:
+                xdata = params['ax_leftline'].get_xdata()
+                if np.abs(xdata[0] - x[0]) < 0.2:
+                    params['ax_leftline'].set_data([0, 0], y)
+                    params['leftline_t'].set_text('')
+                    params['ax_hscroll_leftline'].set_data([0, 0], [0, 1])
+                    event.canvas.draw()
+                    return
+                params['ax_leftline'].set_data(x, y)
+                params['leftline_t'].set_text('%0.3f' % x[0])
+                params['ax_hscroll_leftline'].set_data(x, np.array([0., 1.]))
+                xdata = params['ax_rightline'].get_xdata()
+                params['fillarea'] = params['ax'].fill_betweenx(y, x, xdata,
+                                                                alpha=0.2,
+                                                                facecolor='y')
+                params['hscroll_fillarea'] = scrl.fill_betweenx([0, 1], x,
+                                                                xdata,
+                                                                alpha=0.2,
+                                                                facecolor='y')
+            elif event.button == 3:
+                xdata = params['ax_rightline'].get_xdata()
+                if np.abs(xdata[0] - x[0]) < 0.2:
+                    x = params['raw'].index_as_time(params['raw'].last_samp)[0]
+                    params['ax_rightline'].set_data([x, x], y)
+                    params['rightline_t'].set_text('')
+                    params['ax_hscroll_rightline'].set_data([x, x], [0, 1])
+                    event.canvas.draw()
+                    return
+                params['ax_rightline'].set_data(x, y)
+                params['rightline_t'].set_text('%0.3f' % x[0])
+                params['ax_hscroll_rightline'].set_data(x, [0, 1])
+                xdata = params['ax_leftline'].get_xdata()
+                params['fillarea'] = params['ax'].fill_betweenx(y, xdata, x,
+                                                                alpha=0.2,
+                                                                facecolor='y')
+                params['hscroll_fillarea'] = scrl.fill_betweenx([0, 1], x,
+                                                                xdata,
+                                                                alpha=0.2,
+                                                                facecolor='y')
+            event.canvas.draw()
+        else:
+            _pick_bad_channels(event, params)
 
 
 def _plot_raw_time(value, params):
@@ -365,6 +415,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     To mark or un-mark a channel as bad, click on the rather flat segments
     of a channel's time series. The changes will be reflected immediately
     in the raw object's ``raw.info['bads']`` entry.
+    Shift + mouse click can be used to paint an area in the plot. Shift +
+    left click marks the beginning of an area and shift + right click marks the
+    end of the area. The area and the markers can be deleted by clicking the
+    start and end points again.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -536,6 +590,29 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
              for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
+    leftline_color = 'r'
+    rightline_color = 'b'
+    params['ax_leftline'] = ax.plot([0, 0], ylim, color=leftline_color,
+                                    zorder=-1)[0]
+    params['ax_leftline'].ch_name = ''
+    params['leftline_t'] = ax_hscroll.text(0, 0.8, '', color=leftline_color,
+                                           verticalalignment='bottom',
+                                           horizontalalignment='right')
+    params['ax_hscroll_leftline'] = ax_hscroll.plot([0, 0], [0, 1],
+                                                    color=leftline_color,
+                                                    zorder=1)[0]
+    xlim = n_times / float(info['sfreq'])
+    params['ax_rightline'] = ax.plot([xlim, xlim], ylim, color=rightline_color,
+                                     zorder=-1)[0]
+    params['ax_rightline'].ch_name = ''
+    params['rightline_t'] = ax_hscroll.text(0, 0.2, '', color=rightline_color,
+                                            verticalalignment='top',
+                                            horizontalalignment='right')
+    params['ax_hscroll_rightline'] = ax_hscroll.plot([0, 0], [0, 1],
+                                                     color=rightline_color,
+                                                     zorder=1)[0]
+    params['fillarea'] = ax.fill_betweenx([0, 0], [0, 0])
+    params['hscroll_fillarea'] = ax_hscroll.fill_betweenx([0, 0], [0, 0])
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
