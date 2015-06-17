@@ -31,8 +31,7 @@ from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
-from mne.externals.six.moves import zip
-from mne.externals.six.moves import cPickle as pickle
+from mne.externals.six.moves import zip, cPickle as pickle
 
 matplotlib.use('Agg')  # for testing don't use X server
 
@@ -1293,6 +1292,7 @@ def test_add_channels_epochs():
 def test_array_epochs():
     """Test creating epochs from array
     """
+    import matplotlib.pyplot as plt
     tempdir = _TempDir()
 
     # creating
@@ -1321,6 +1321,7 @@ def test_array_epochs():
 
     # plotting
     epochs[0].plot()
+    plt.close('all')
 
     # indexing
     assert_array_equal(np.unique(epochs['a'].events[:, 2]), np.array([1]))
