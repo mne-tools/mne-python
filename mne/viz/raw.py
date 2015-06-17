@@ -583,7 +583,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     event_lines = [ax.plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
     params['offsets'] = offsets
-    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+    params['lines'] = [ax.plot([np.nan], linewidth=0.5)[0]
                        for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
