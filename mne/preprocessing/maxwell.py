@@ -9,7 +9,7 @@
 # Note, there are an absurd number of different notations for spherical
 # harmonics (partly because there is also no accepted standard for spherical
 # coordinates). Here, we purposefully stay away from shorthand notation in
-# both and use explicit terms to avoid confusion.
+# both and use explicit terms (like 'azimuth' and 'polar') to avoid confusion.
 
 # TODO: write in equation numbers from Samu's paper
 
@@ -55,18 +55,10 @@ def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
     # Compute spherical harmonics
     S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
 
-    # TODO: check if normalization of basis vectors needed
-    S_in_norm = np.linalg.norm(S_in, axis=0)
-    S_in_norm[S_in_norm == 0] = 1.
-    S_in /= S_in_norm
-    S_out_norm = np.linalg.norm(S_out, axis=0)
-    S_out_norm[S_out_norm == 0] = 1.
-    S_out /= S_out_norm
-
     # Compute inverse of multipolar moments
-    # TODO: check that default pinv tolerance is sufficient
-    pS_in = np.linalg.pinv(S_in)
-    pS_out = np.linalg.pinv(S_out)
+    # TODO: determine appropriate pinv tolerance
+    pS_in = np.linalg.pinv(S_in, rcond=1e-100)
+    pS_out = np.linalg.pinv(S_out, rcond=1e-100)
 
     # Estimate multipolar moments and then reconstruct internal/external signal
     int_recon = np.dot(S_in, np.dot(pS_in, data))
@@ -105,49 +97,60 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
     n_int_pts = len(r_int_pts)
     int_lens = np.insert(np.cumsum(int_pts), obj=0, values=0)
 
-    S_in = np.empty((n_sens, (int_order + 1) ** 2))
-    S_out = np.empty((n_sens, (ext_order + 1) ** 2))
+    S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1))
+    S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1))
     S_in.fill(np.nan)
     S_out.fill(np.nan)
 
     assert n_bases <= n_sens, ('Number of requested bases (%s) exceeds number '
                                'of sensors (%s)' % (str(n_bases), str(n_sens)))
 
-    # Compute internal basis vectors
-    for deg in range(0, int_order + 1):
+    # Compute position vector between origin and coil integration pts
+    cvec_cart = r_int_pts - origin * np.ones((n_int_pts, 1))
+    # Convert points to spherical coordinates
+    cvec_sph = _cart_to_sph(cvec_cart)
+
+    # Compute internal basis vectors (exclude deg, order 0)
+    for deg in range(1, int_order + 1):
         for order in range(-deg, deg + 1):
 
-            # Compute position vector between origin and coil integration pts
-            cvec = r_int_pts - origin * np.ones((n_int_pts, 1))
             # Compute gradient for integration point position vectors
-            grads = -1 * _grad_in_components(deg, order, cvec[:, 0],
-                                             cvec[:, 1], cvec[:, 2])
+            grads = -1 * _grad_in_components(deg, order, cvec_sph[:, 0],
+                                             cvec_sph[:, 1], cvec_sph[:, 2])
 
             # Gradients dotted with integration point normals and weighted
-            a1_all = wcoils * np.einsum('ij,ij->i', cvec, grads)
+            a1_all = wcoils * np.einsum('ij,ij->i', ncoils, grads)
 
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
                 int_pts_sum = np.sum(a1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_in[pt_i, deg ** 2 + deg + order] = int_pts_sum
+                S_in[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
 
-    # Compute external basis vectors
-    for deg in range(0, ext_order + 1):
+    # Compute external basis vectors (exclude deg, order 0)
+    for deg in range(1, ext_order + 1):
         for order in range(-deg, deg + 1):
 
-            # Compute position vector between origin and coil integration pts
-            cvec = r_int_pts - origin * np.ones((n_int_pts, 1))
             # Compute gradient for integration point position vectors
-            grads = -1 * _grad_out_components(deg, order, cvec[:, 0],
-                                              cvec[:, 1], cvec[:, 2])
+            grads = -1 * _grad_out_components(deg, order, cvec_sph[:, 0],
+                                              cvec_sph[:, 1], cvec_sph[:, 2])
 
             # Gradients dotted with integration point normals and weighted
-            b1_all = wcoils * np.einsum('ij,ij->i', cvec, grads)
+            b1_all = wcoils * np.einsum('ij,ij->i', ncoils, grads)
 
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
                 int_pts_sum = np.sum(b1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_out[pt_i, deg ** 2 + deg + order] = int_pts_sum
+                S_out[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
+
+    # TODO: check if normalization of basis vectors needed
+    norm = False
+    if norm:
+        S_in_norm = np.linalg.norm(S_in, axis=0)
+        S_in_norm[S_in_norm == 0] = 1.
+        S_in /= S_in_norm
+        S_out_norm = np.linalg.norm(S_out, axis=0)
+        S_out_norm[S_out_norm == 0] = 1.
+        S_out /= S_out_norm
 
     return (S_in, S_out)
 
@@ -174,7 +177,7 @@ def _sph_harmonic(degree, order, az, pol):
 
     Returns
     -------
-    y : complex float
+    base : complex float
         The spherical harmonic value at the specified azimuth and polar angles
     """
     assert np.abs(order) <= degree, ('Absolute value of expansion coefficient'
@@ -184,26 +187,20 @@ def _sph_harmonic(degree, order, az, pol):
     #lut, n_fact = _get_legen_table('meg', False, 100)
     #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
 
-    # TODO: Decide on notation for spherical coords
     # TODO: Should factorial function use floating or long precision?
-    # TODO: Check that [-m to m] convention is correct for all equations
 
     #Ensure that polar and azimuth angles are arrays
     azimuth = np.array(az)
     polar = np.array(pol)
 
-    # Real valued spherical expansion as given by Wikso, (11)
     base = np.sqrt((2 * degree + 1) / (4 * np.pi) * fact(degree - order) /
-                   fact(degree + order)) * lpmv(order, degree, np.cos(polar))
-    if order < 0:
-        return base * np.sin(order * azimuth)
-    else:
-        return base * np.cos(order * azimuth)
+                   fact(degree + order)) * lpmv(order, degree, np.cos(polar)) \
+        * np.exp(1j * order * azimuth)
+    return base
 
     # TODO: Check speed of taking real part of scipy's sph harmonic function
     # Note reversal in notation order between scipy and original SSS papers
     # Degree/order and theta/phi reversed
-    #return np.real(sph_harm(order, degree, az, pol))
 
 
 def _alegendre_deriv(degree, order, val):
@@ -224,15 +221,14 @@ def _alegendre_deriv(degree, order, val):
         Associated Legendre function derivative
     """
 
-    # TODO: Eventually, probably want to switch to look up table but optimize
-    # later
+    # TODO: Eventually, want to switch to look up table but optimize later
     C = 1
     if order < 0:
         order = abs(order)
-        C = (-1) ** order * fact(degree - order) / fact(1 + order)
+        C = (-1) ** order * fact(degree - order) / fact(degree + order)
     return C * (order * val * lpmv(order, degree, val) + (degree + order) *
                 (degree - order + 1) * np.sqrt(1 - val ** 2) *
-                lpmv(order, degree - 1, val)) / (1 - val ** 2)
+                lpmv(order - 1, degree, val)) / (1 - val ** 2)
 
 
 def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
@@ -257,8 +253,8 @@ def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
 
     Returns
     -------
-    grad_vec
-        Gradient at the spherical harmonic and vector specified in rectangular
+    ndarray, shape (n_samples, 3)
+        Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
     # TODO: add check/warning if az or pol outside appropriate ranges
@@ -271,24 +267,25 @@ def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
     g_rad = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order,
                                                                 az, pol)
 
-    g_theta = 1 / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
-                                                fact(degree - order) /
-                                                (4 * np.pi *
-                                                 fact(degree + order))) * \
+    g_az = 1. / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
+        _sph_harmonic(degree, order, az, pol)
+
+    g_pol = 1. / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
+                                               fact(degree - order) /
+                                               (4 * np.pi *
+                                                fact(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
-    g_phi = 1 / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
-        _sph_harmonic(degree, order, az, pol)
-
     # Get real component of vectors, convert to cartesian coords, and return
-    return _to_real_and_cart(np.c_[g_rad, g_theta, g_phi], order)
+    real_grads = _get_real_grad(np.c_[g_rad, g_az, g_pol], order)
+    return _sph_to_cart_partials(np.c_[rad, az, pol], real_grads)
 
 
 def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
-    """Compute gradient of internal component of V(r) spherical expansion.
+    """Compute gradient of external component of V(r) spherical expansion.
 
-    Internal component has form: Ylm(azimuth, polar) * (radius ** degree)
+    External component has form: Ylm(azimuth, polar) * (radius ** degree)
 
     Parameters
     ----------
@@ -307,8 +304,8 @@ def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
 
     Returns
     -------
-    grad_vec
-        Gradient at the spherical harmonic and vector specified in rectangular
+    ndarray, shape (n_samples, 3)
+        Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
     # TODO: add check/warning if az or pol outside appropriate ranges
@@ -321,55 +318,56 @@ def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
     g_rad = degree * rad ** (degree - 1) * _sph_harmonic(degree, order, az,
                                                          pol)
 
-    g_theta = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
-                                            fact(degree - order) /
-                                            (4 * np.pi *
-                                             fact(degree + order))) * \
+    g_az = rad ** (degree - 1) / np.sin(pol) * 1j * order * \
+        _sph_harmonic(degree, order, az, pol)
+
+    g_pol = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
+                                          fact(degree - order) /
+                                          (4 * np.pi *
+                                           fact(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
-    g_phi = rad ** (degree - 1) / np.sin(pol) * 1j * order * \
-        _sph_harmonic(degree, order, az, pol)
-
     # Get real component of vectors, convert to cartesian coords, and return
-    return _to_real_and_cart(np.c_[g_rad, g_theta, g_phi], order)
+    real_grads = _get_real_grad(np.c_[g_rad, g_az, g_pol], order)
+    return _sph_to_cart_partials(np.c_[rad, az, pol], real_grads)
 
 
-def _to_real_and_cart(grad_vec_raw, order):
-    """Helper function to take real component of gradient vector and convert
-    from spherical to cartesian coords.
+def _get_real_grad(grad_vec_raw, order):
+    """Helper function to get real component of gradient vector.
 
     Parameters
     ----------
-    grad_vec_raw :
+    grad_vec_raw : ndarray, shape (n_gradients, 3)
+        Gradient array with columns for radius, azimuth, polar points
     order : int
         Order (usually 'm') of multipolar moment.
 
     Returns
     -------
+    grad_vec : ndarray, shape (n_gradients, 3)
+        Gradient vectors with only real componnet
     """
 
-    # TODO: Check if there's away to not have to explicitly take real part
     if order > 0:
-        grad_vec = np.real(np.sqrt(2) * np.real(grad_vec_raw))
+        grad_vec = np.sqrt(2) * np.real(grad_vec_raw)
     elif order < 0:
-        grad_vec = np.real(np.sqrt(2) * np.imag(grad_vec_raw))
+        grad_vec = np.sqrt(2) * np.imag(grad_vec_raw)
     else:
-        grad_vec = np.real(grad_vec_raw)
+        grad_vec = grad_vec_raw
 
-    # Convert to rectanglar coords
-    return _spherical_to_cartesian(grad_vec[:, 0], grad_vec[:, 1],
-                                   grad_vec[:, 2])
+    #print 'Grad Vec: ' + str(grad_vec)
+    return np.real(grad_vec)
 
 
-def get_num_harmonics(in_order, out_order):
+def get_num_harmonics(int_order, ext_order):
     """Compute total number of spherical harmonics.
 
     Parameters
     ---------
-    in_order : int
+    int_order : int
         Internal expansion order
-    out_order : int
+    ext_order : int
         External expansion order
 
     Returns
@@ -380,38 +378,77 @@ def get_num_harmonics(in_order, out_order):
 
     # TODO: Eventually, reuse code in field_interpolation
 
-    M = in_order ** 2 + 2 * in_order + out_order ** 2 + 2 * out_order
+    M = int_order ** 2 + 2 * int_order + ext_order ** 2 + 2 * ext_order
     return M
 
 
 # TODO: confirm that this equation follows the correct convention
-def _spherical_to_cartesian(r, az, pol):
-    """Convert spherical coords to cartesian coords.
+def _sph_to_cart_partials(sph_pts, sph_grads):
+    """Convert spherical partial derivatives to cartesian coords.
+
+    Note: Because we are dealing with partial derivatives, this calculation is
+    not a static transformation. The transformation matrix itself is dependent
+    on azimuth and polar coord.
+    See mathworld.wolfram.com/SphericalCoordinates.html Eq. 96
 
     Parameters
     ----------
-    r : ndarray
-        Radius
-    az : ndarray
-        Azimuth angle in radians. 0 is along X-axis
-    pol : ndarray
-        Polar (or inclination) angle in radians. 0 is along z-axis.
-        (Note, this is NOT the elevation angle)
+    sph_pts : ndarray, shape (n_points, 3)
+        Array containing spherical coordinates points (rad, azimuth, polar)
+    sph_grads : ndarray, shape (n_points, 3)
+        Array containing partial derivatives at each spherical coordinate
+
     Returns
     -------
-    tuple
-        Cartesian coordinate triplet
+    cart_grads : ndarray, shape (n_points, 3)
+        Array containing partial derivatives in Cartesian coordinates (x, y, z)
     """
 
-    rsin_phi = r * np.sin(pol)
+    cart_grads = np.zeros_like(sph_grads)
 
-    x = rsin_phi * np.cos(az)
-    y = rsin_phi * np.sin(az)
-    z = r * np.cos(pol)
+    # TODO: needs vectorization, currently matching Jussi's code for debugging
+    for pt_i, (sph_pt, sph_grad) in enumerate(zip(sph_pts, sph_grads)):
+        # get cosine and sine of azimuth and polar coord
+        c_a, s_a = np.cos(sph_pt[1]), np.sin(sph_pt[1])
+        c_p, s_p = np.cos(sph_pt[2]), np.sin(sph_pt[2])
 
-    return np.c_[x, y, z]
+        trans = np.array([[c_a * s_p, c_a * c_p, -s_a],
+                          [s_a * s_p, c_p * s_a, c_p],
+                          [c_p, -s_p, 0]])
+
+        #print 'Trans shape: ' + str(trans.shape)
+        #print 'Trans: \n' + str(trans)
+        #print 'sph_grad shape: ' + str(sph_grad.shape)
+        #print 'sph_grad: \n' + str(sph_grad)
+
+        reord_sph_grads = np.array([sph_grad[0], sph_grad[2], sph_grad[1]])
+        cart_grads[pt_i, :] = np.dot(trans, reord_sph_grads)
+
+    return cart_grads
 
 
+def _cart_to_sph(cart_pts):
+    """Convert Cartesian coordinates to spherical coordinates
+
+    Parameters
+    ----------
+    cart_pts : ndarray, shape (n_points, 3)
+        Array containing points in Cartesian coordinates (x, y, z)
+
+    Returns
+    -------
+    ndarray, shape (n_points, 3)
+        Array containing points in spherical coordinates (rad, azimuth, polar)
+    """
+
+    rad = np.linalg.norm(cart_pts, axis=1)
+    az = np.arctan2(cart_pts[:, 1], cart_pts[:, 0])
+    pol = np.arccos(cart_pts[:, 2] / rad)
+
+    return np.c_[rad, az, pol]
+
+
+# TODO: Find cleaner way to get channel info than reusing forward soln code
 import os
 from os import path as op
 
@@ -422,7 +459,6 @@ from ..externals.six import string_types
 from mne.forward._make_forward import _prep_channels
 
 
-# TODO: Find cleaner way to get channel info than reusing forward soln code
 def _make_coils(info, trans, src, bem, fname=None, meg=True, eeg=True,
                 mindist=0.0, ignore_ref=False, overwrite=False, n_jobs=1):
     """Prepare dict of coil information
