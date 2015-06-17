@@ -1007,8 +1007,8 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
                         Z[j] = 0.0
                         active_set_j[:] = False
                     else:
-                        shrink = np.maximum(1.0 - alpha_space_lc[j]\
-                                            / np.maximum(row_norm,
+                        shrink = np.maximum(1.0 - alpha_space_lc[j] /
+                                            np.maximum(row_norm,
                                             alpha_space_lc[j]), 0.0)
                         Z_j_new *= shrink
                         Z[j] = Z_j_new.reshape(-1, *shape_init[1:]).copy()
@@ -1017,9 +1017,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
 
                         if log_objective:
                             val_norm_l21_tf += norm_l21_tf(
-                                    Z[j], shape, n_orient)
+                                Z[j], shape, n_orient)
                             val_norm_l1_tf += norm_l1_tf(
-                                    Z[j], shape, n_orient)
+                                Z[j], shape, n_orient)
 
             max_diff = np.maximum(max_diff, np.max(np.abs(Z[j] - Z0)))
 
@@ -1121,9 +1121,9 @@ def _tf_mixed_norm_solver_bcd_glmnet(M, G, alpha, rho, lipschitz_constant,
         active = np.where(active_set)[0][::n_orient] // n_orient
         Z_init = dict(zip(range(len(active)), [Z[idx] for idx in active]))
         Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
-            M, G[:, active_set], Z_init, np.ones(len(active) * n_orient,
-            dtype=np.bool), alpha, rho,
-            lipschitz_constant[active_set[::n_orient]],
+            M, G[:, active_set], Z_init,
+            np.ones(len(active) * n_orient, dtype=np.bool),
+            alpha, rho, lipschitz_constant[active_set[::n_orient]],
             phi, phiT, wsize=wsize, tstep=tstep, n_orient=n_orient,
             maxit=maxit, tol=tol, log_objective=log_objective,
             perc=0.5, verbose=verbose)
@@ -1159,7 +1159,7 @@ def _tf_mixed_norm_solver_bcd_glmnet(M, G, alpha, rho, lipschitz_constant,
 
 def _alpha_max_fun(alpha, rho, GTM, shape):
     thresh = GTM * np.maximum(1. - (alpha * rho) / np.maximum(np.abs(GTM),
-        alpha * rho), 0.0)
+                              alpha * rho), 0.0)
     alpha_max = stft_norm2(thresh.reshape(*shape)).sum()
     alpha_max -= ((1. - rho) * alpha) ** 2
     return alpha_max
@@ -1188,7 +1188,8 @@ def compute_alpha_max(G, M, phi, rho, n_orient, shape):
     if rho > 0.:
         parallel, my_func, n_jobs = parallel_func(_compute_alpha_max, 1)
         alpha_max = parallel(my_func(G[:, idx * n_orient:(idx + 1) * n_orient],
-            M, phi, rho, shape) for idx in range(n_positions))
+                             M, phi, rho, shape)
+                             for idx in range(n_positions))
     else:
         alpha_max = stft_norm2(phi(np.dot(G.T, M)).reshape(*shape))
         alpha_max = np.sqrt(alpha_max.reshape(n_positions, -1).sum(axis=1))

@@ -466,11 +466,11 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
 
     if (alpha < 0.) or (alpha > 100.):
         raise Exception('alpha must be in range [0, 100]. Got alpha = %f'
-                         % alpha)
+                        % alpha)
 
     if (rho < 0.) or (rho > 1.):
         raise Exception('rho must be in range [0, 1]. Got rho = %f'
-                         % rho)
+                        % rho)
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
