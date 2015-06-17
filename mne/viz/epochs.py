@@ -899,29 +899,28 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['scale_factor']
-        mag_factor = params['scalings']['mag'] * factor
-        grad_factor = params['scalings']['grad'] * factor
-        eeg_factor = params['scalings']['eeg'] * factor
-        eog_factor = params['scalings']['eog'] * factor
-        labels = ['']
+        labels = np.empty(16, dtype='S15')
+        labels.fill('')
         ticks = ax.get_yticks()
-        for tick in ticks[1:4]:
-            labels.append('{:.2e}'.format((tick - offsets[0]) * grad_factor))
-        labels.append('')
-        for tick in ticks[5:8]:
-            labels.append('{:.2e}'.format((tick - offsets[1]) * mag_factor))
-        labels.append('')
-        for tick in ticks[9:12]:
-            labels.append('{:.2e}'.format((tick - offsets[2]) * eeg_factor))
-        labels.append('')
-        for tick in ticks[13:16]:
-            labels.append('{:.2e}'.format((tick - offsets[3]) * eog_factor))
-        labels.append('')
-        for idx in [2, 6, 10, 14]:  # because of floating point precision
-            labels[idx] = '0.00'
-        ax.set_yticklabels(labels)
+        for idx in [1, 3]:
+            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[0]) *
+                                          params['scalings']['grad'] * factor)
+        for idx in [5, 7]:
+            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[1]) *
+                                          params['scalings']['mag'] * factor)
+        for idx in [9, 11]:
+            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[2]) *
+                                          params['scalings']['eeg'] * factor)
+        for idx in [13, 15]:
+            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[3]) *
+                                          params['scalings']['eog'] * factor)
+        labels[2] = 'Grad(T/cm) 0.00'
+        labels[6] = 'Mag(T) 0.00'
+        labels[10] = 'EEG(V) 0.00'
+        labels[14] = 'EOG(V) 0.00'
+        ax.set_yticklabels(labels, fontsize=10)
     else:
-        ax.set_yticklabels(tick_list)
+        ax.set_yticklabels(tick_list, fontsize=12)
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
@@ -1181,6 +1180,7 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
+        params['ax_vscroll'].set_visible(False)
         ax = params['ax']
         ylim = ax.get_ylim()[0]
         offset = ax.get_ylim()[0] / 16.0
@@ -1190,6 +1190,7 @@ def _prepare_butterfly(params):
             params['ax'].add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
+        params['ax_vscroll'].set_visible(True)
         params['ax'].set_yticks(params['offsets'])
         while len(params['lines']) > params['n_channels']:
             params['ax'].collections.pop()
