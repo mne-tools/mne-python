@@ -590,8 +590,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(0, 0.5, '0.000',
-                                           color=vertline_color,
+    params['vertline_t'] = ax_hscroll.text(0, 0.5, '', color=vertline_color,
                                            verticalalignment='center',
                                            horizontalalignment='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
