@@ -1058,7 +1058,7 @@ def _plot_onkey(event, params):
     elif event.key == '-':
         params['scale_factor'] /= 1.1
         _plot_traces(params)
-    elif event.key == '+' or event.key == '=':
+    elif event.key in ['+', '=']:
         params['scale_factor'] *= 1.1
         _plot_traces(params)
     elif event.key == 'f11':

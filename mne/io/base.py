@@ -1287,10 +1287,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
-        The scaling can be adjusted with - and + or = keys. Full screen mode
-        can be to toggled with f11 key. To mark or un-mark a channel as bad,
-        click on the rather flat segments of a channel's time series. The
-        changes will be reflected immediately in the raw object's
+        The scaling can be adjusted with - and + or = keys. The viewport
+        dimensions can be adjusted with page up/page down and home/end keys.
+        Full screen mode can be to toggled with f11 key. To mark or un-mark a
+        channel as bad, click on the rather flat segments of a channel's time
+        series. The changes will be reflected immediately in the raw object's
         ``raw.info['bads']`` entry.
         """
         return plot_raw(self, events, duration, start, n_channels, bgcolor,

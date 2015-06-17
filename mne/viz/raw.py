@@ -170,7 +170,7 @@ def _plot_raw_onkey(event, params):
     elif event.key in ['o', 'p']:
         _toggle_options(None, params)
         return
-    elif event.key == '+' or event.key == '=':
+    elif event.key in ['+', '=']:
         params['scale_factor'] *= 1.1
         params['plot_fun']()
         return
@@ -199,6 +199,22 @@ def _plot_raw_onkey(event, params):
             params['lines'][n_channels].set_xdata([])
             params['lines'][n_channels].set_ydata([])
         ch_changed = True
+    elif event.key == 'home':
+        duration = params['duration'] - 1.0
+        if duration <= 0:
+            return
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        _update_raw_data(params)
+        params['plot_fun']()
+    elif event.key == 'end':
+        duration = params['duration'] + 1.0
+        if duration > params['raw'].times[-1]:
+            duration = params['raw'].times[-1]
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        _update_raw_data(params)
+        params['plot_fun']()
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
@@ -395,9 +411,10 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
     matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
-    scaling can be adjusted with - and + or = keys. Full screen mode can be to
-    toggled with f11 key. To mark or un-mark a channel as bad, click on the
-    rather flat segments of a channel's time series. The changes will be
+    scaling can be adjusted with - and + or = keys. The viewport dimensions can
+    be adjusted with page up/page down and home/end keys. Full screen mode can
+    be to toggled with f11 key. To mark or un-mark a channel as bad, click on
+    the rather flat segments of a channel's time series. The changes will be
     reflected immediately in the raw object's ``raw.info['bads']`` entry.
     """
     import matplotlib.pyplot as plt
