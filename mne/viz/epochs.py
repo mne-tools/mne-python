@@ -595,8 +595,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(list(), linewidths=0.5, colors=colors[ch_idx],
-                            zorder=3)
+        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                            colors=colors[ch_idx], zorder=3)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -1137,7 +1137,8 @@ def _plot_onkey(event, params):
         offset = params['ax'].get_ylim()[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
-        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                            zorder=3)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1186,7 +1187,8 @@ def _prepare_butterfly(params):
         offset = ax.get_ylim()[0] / 16.0
         ax.set_yticks(np.arange(0, ylim, offset))
         while len(params['lines']) < len(params['picks']):
-            lc = LineCollection(list(), linewidths=0.5, zorder=3)
+            lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                                zorder=3)
             params['ax'].add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
