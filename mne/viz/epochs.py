@@ -448,7 +448,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
-                n_channels=20, fig_title=None, show=True, block=False):
+                n_channels=20, title=None, show=True, block=False):
     """ Visualize epochs.
 
     Bad epochs can be marked with a left click on top of the epoch.
@@ -471,7 +471,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         The number of epochs per view. Defaults to 20.
     n_channels : int
         The number of channels per view. Defaults to 20.
-    fig_title : str | None
+    title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
     show : bool
@@ -546,21 +546,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
-    if fig_title is None:
-        fig_title = epochs.name
-        if epochs.name is None or len(fig_title) == 0:
-            fig_title = ''
+    if title is None:
+        title = epochs.name
+        if epochs.name is None or len(title) == 0:
+            title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.annotate(fig_title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
-                ha='center', va='bottom', size=10, xycoords='axes fraction',
-                textcoords='offset points')
-
+    ax.set_title(title, fontsize=12)
     ax.axis([0, duration, 0, 200])
-    ax2 = ax.twiny()
-    ax2.set_zorder(-1)
-    ax2.axis([0, duration, 0, 200])
     ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
@@ -616,10 +610,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
-    ax2.set_xticks(ticks[:n_epochs])
-    labels = list(range(1, len(ticks) + 1))  # epoch numbers
+    events = epochs.events[:, 2]
+    labels = [str(x + 1) + ' (' + str(events[x]) + ')'
+              for x in range(len(ticks))]
     ax.set_xticklabels(labels)
-    ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 0.5, '', color='y',
@@ -648,7 +642,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     params = {'fig': fig,
               'ax': ax,
-              'ax2': ax2,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
               'vsel_patch': vsel_patch,
@@ -833,7 +826,8 @@ def _plot_traces(params):
         ch_start = 0
         picks = params['picks']
         n_channels = len(params['picks'])
-        offsets = [ylim[0] * (2. / 12.), ylim[0] * 0.5, ylim[0] * (10. / 12.)]
+        offsets = [ylim[0] * (2. / 16.), ylim[0] * (6. / 16.),
+                   ylim[0] * (10. / 16.), ylim[0] * (14. / 16.)]
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
@@ -849,8 +843,6 @@ def _plot_traces(params):
     end = params['t_start'] + params['duration']
     end_idx = int(end / n_times)
     labels = params['labels'][start_idx:]
-    event_ids = params['epochs'].events[:, 2]
-    params['ax2'].set_xticklabels(event_ids[start_idx:])
     ax.set_xticklabels(labels)
     # do the plotting
     for line_idx in range(n_channels):
@@ -867,6 +859,8 @@ def _plot_traces(params):
                     offset = offsets[1]
                 elif type == 'eeg':
                     offset = offsets[2]
+                elif type == 'eog':
+                    offset = offsets[3]
                 else:
                     lines[line_idx].set_segments(list())
                     continue
@@ -892,13 +886,12 @@ def _plot_traces(params):
     # finalize plot
     ax.set_xlim(params['times'][0], params['times'][0] + params['duration'],
                 False)
-    params['ax2'].set_xlim(params['times'][0],
-                           params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['scale_factor']
         mag_factor = params['scalings']['mag'] * factor
         grad_factor = params['scalings']['grad'] * factor
         eeg_factor = params['scalings']['eeg'] * factor
+        eog_factor = params['scalings']['eog'] * factor
         labels = ['']
         ticks = ax.get_yticks()
         for tick in ticks[1:4]:
@@ -910,6 +903,11 @@ def _plot_traces(params):
         for tick in ticks[9:12]:
             labels.append('{:.2e}'.format((tick - offsets[2]) * eeg_factor))
         labels.append('')
+        for tick in ticks[13:16]:
+            labels.append('{:.2e}'.format((tick - offsets[3]) * eog_factor))
+        labels.append('')
+        for idx in [2, 6, 10, 14]:  # because of floating point precision
+            labels[idx] = '0.00'
         ax.set_yticklabels(labels)
     else:
         ax.set_yticklabels(tick_list)
@@ -1140,8 +1138,6 @@ def _plot_onkey(event, params):
         if n_epochs <= 0:
             return
         n_times = len(params['epochs'].times)
-        ticks = params['epoch_times'] + 0.5 * n_times
-        params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
@@ -1151,8 +1147,6 @@ def _plot_onkey(event, params):
         n_times = len(params['epochs'].times)
         if n_times * n_epochs > len(params['data'][0]):
             return
-        ticks = params['epoch_times'] + 0.5 * n_times
-        params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         if len(params['vert_lines']) > 0:
             ax = params['ax']
@@ -1174,13 +1168,13 @@ def _prepare_butterfly(params):
     if butterfly:
         ax = params['ax']
         ylim = ax.get_ylim()[0]
-        offset = ax.get_ylim()[0] / 12.0
+        offset = ax.get_ylim()[0] / 16.0
         ax.set_yticks(np.arange(0, ylim, offset))
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), linewidths=0.5, zorder=3)
             params['ax'].add_collection(lc)
             params['lines'].append(lc)
-    else:
+    else:  # change back to default view
         params['ax'].set_yticks(params['offsets'])
         while len(params['lines']) > params['n_channels']:
             params['ax'].collections.pop()

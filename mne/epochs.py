@@ -475,7 +475,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     def plot(self, epoch_idx=None, picks=None, scalings=None,
              title_str='#%003i', show=True, block=False, n_epochs=20,
-             n_channels=20, fig_title=None, trellis=True):
+             n_channels=20, title=None, trellis=True):
         """Visualize epochs.
 
         Bad epochs can be marked with a left click on top of the epoch.
@@ -508,7 +508,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_channels : int
             The number of channels per view on mne_browse_epochs. If trellis is
             True, this parameter has no effect. Defaults to 20.
-        fig_title : str | None
+        title : str | None
             The title of the window. If None, epochs name will be displayed.
             If trellis is True, this parameter has no effect.
             Defaults to None.
@@ -543,7 +543,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         else:
             return plot_epochs(self, picks=picks, scalings=scalings,
                                n_epochs=n_epochs, n_channels=n_channels,
-                               fig_title=fig_title, show=show, block=block)
+                               title=title, show=show, block=block)
 
     def plot_psd(self, fmin=0, fmax=np.inf, proj=False, n_fft=256,
                  picks=None, ax=None, color='black', area_mode='std',
