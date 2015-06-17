@@ -496,6 +496,7 @@ def iterative_mixed_norm_solver(M, G, alpha, n_mxne_iter, maxit=3000,
     """Solves L0.5/L2 mixed-norm inverse problem with active set strategy
 
     Algorithm is detailed in:
+
     Strohmeier D., Haueisen J., and Gramfort A.:
     Improved MEG/EEG source localization with reweighted mixed-norms,
     4th International Workshop on Pattern Recognition in Neuroimaging,
@@ -726,16 +727,27 @@ def _tf_mixed_norm_solver_prox(M, G, alpha, rho, lipschitz_constant, phi,
         The data.
     G : array
         The forward operator.
-    alpha_space : float
-        The spatial regularization parameter. It should be between 0 and 100.
-    alpha_time : float
-        The temporal regularization parameter. The higher it is the smoother
-        will be the estimated time series.
+    alpha : float in [0, 100]
+        Regularization parameter for spatial sparsity. If larger than 100,
+        then no source will be active.
+    rho : float in [0, 1]
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
+    lipschitz_constant : float
+        The lipschitz constant of the spatio temporal linear operator.
+    phi : instance of _Phi
+        The forward STFT operator.
+    phiT : instance of _PhiT
+        The inverse STFT operator.
+    Z_init : None | array
+        The initialization of the TF coefficient matrix. If None, zeros
+        will be used for all coefficients.
     wsize: int
-        length of the STFT window in samples (must be a multiple of 4).
+        The length of the STFT window in samples (must be a multiple of 4).
     tstep: int
-        step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+        The step between successive windows in samples (must be a multiple
+        of 2, a divider of wsize and smaller than wsize/2) (default: wsize/2).
     n_orient : int
         The number of orientation (1 : fixed or 3 : free or loose).
     maxit : int
@@ -746,9 +758,6 @@ def _tf_mixed_norm_solver_prox(M, G, alpha, rho, lipschitz_constant, phi,
     log_objective : bool
         If True, the value of the minimized objective function is computed
         and stored at every iteration.
-    lipschitz_constant : float | None
-        The lipschitz constant of the spatio temporal linear operator.
-        If None it is estimated.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -865,66 +874,6 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
                                wsize=64, tstep=4, n_orient=1,
                                maxit=200, tol=1e-8, log_objective=True,
                                perc=None, verbose=None):
-    """Solves TF L21+L1 inverse solver
-
-    Algorithm is detailed in:
-
-    A. Gramfort, D. Strohmeier, J. Haueisen, M. Hamalainen, M. Kowalski
-    Time-Frequency Mixed-Norm Estimates: Sparse M/EEG imaging with
-    non-stationary source activations
-    Neuroimage, Volume 70, 15 April 2013, Pages 410-422, ISSN 1053-8119,
-    DOI: 10.1016/j.neuroimage.2012.12.051.
-
-    Functional Brain Imaging with M/EEG Using Structured Sparsity in
-    Time-Frequency Dictionaries
-    Gramfort A., Strohmeier D., Haueisen J., Hamalainen M. and Kowalski M.
-    INFORMATION PROCESSING IN MEDICAL IMAGING
-    Lecture Notes in Computer Science, 2011, Volume 6801/2011,
-    600-611, DOI: 10.1007/978-3-642-22092-0_49
-    http://dx.doi.org/10.1007/978-3-642-22092-0_49
-
-    Parameters
-    ----------
-    M : array
-        The data.
-    G : array
-        The forward operator.
-    alpha_space : float
-        The spatial regularization parameter. It should be between 0 and 100.
-    alpha_time : float
-        The temporal regularization parameter. The higher it is the smoother
-        will be the estimated time series.
-    wsize: int
-        length of the STFT window in samples (must be a multiple of 4).
-    tstep: int
-        step between successive windows in samples (must be a multiple of 2,
-        a divider of wsize and smaller than wsize/2) (default: wsize/2).
-    n_orient : int
-        The number of orientation (1 : fixed or 3 : free or loose).
-    maxit : int
-        The number of iterations.
-    tol : float
-        If absolute difference between estimates at 2 successive iterations
-        is lower than tol, the convergence is reached.
-    log_objective : bool
-        If True, the value of the minimized objective function is computed
-        and stored at every iteration.
-    lipschitz_constant : float | None
-        The lipschitz constant of the spatio temporal linear operator.
-        If None it is estimated.
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-
-    Returns
-    -------
-    X : array
-        The source estimates.
-    active_set : array
-        The mask of active sources.
-    E : list
-        The value of the objective function at each iteration. If log_objective
-        is False, it will be empty.
-    """
     # First make G fortran for faster access to blocks of columns
     G = np.asfortranarray(G)
 
@@ -1050,7 +999,68 @@ def _tf_mixed_norm_solver_bcd(M, G, alpha, rho, lipschitz_constant, phi, phiT,
                               Z_init=None, wsize=64, tstep=4, n_orient=1,
                               maxit=200, tol=1e-8, log_objective=True,
                               perc=None, verbose=None):
-    """Solves L21 inverse problem with block coordinate descent"""
+    """Solves TF L21+L1 inverse solver with BCD
+
+    Algorithm is detailed in:
+
+    Strohmeier D., Gramfort A., and Haueisen J.:
+    MEG/EEG source imaging with a non-convex penalty in the time-
+    frequency domain,
+    5th International Workshop on Pattern Recognition in Neuroimaging,
+    Stanford University, 2015
+
+    Parameters
+    ----------
+    M : array
+        The data.
+    G : array
+        The forward operator.
+    alpha : float in [0, 100]
+        Regularization parameter for spatial sparsity. If larger than 100,
+        then no source will be active.
+    rho : float in [0, 1]
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
+    lipschitz_constant : float
+        The lipschitz constant of the spatio temporal linear operator.
+    phi : instance of _Phi
+        The forward STFT operator.
+    phiT : instance of _PhiT
+        The inverse STFT operator.
+    Z_init : None | array
+        The initialization of the TF coefficient matrix. If None, zeros
+        will be used for all coefficients.
+    wsize: int
+        length of the STFT window in samples (must be a multiple of 4).
+    tstep: int
+        step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    maxit : int
+        The number of iterations.
+    tol : float
+        If absolute difference between estimates at 2 successive iterations
+        is lower than tol, the convergence is reached.
+    log_objective : bool
+        If True, the value of the minimized objective function is computed
+        and stored at every iteration.
+    perc :
+
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function at each iteration. If log_objective
+        is False, it will be empty.
+    """
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
@@ -1093,7 +1103,71 @@ def _tf_mixed_norm_solver_bcd_glmnet(M, G, alpha, rho, lipschitz_constant,
                                      tstep=4, n_orient=1, maxit=200, tol=1e-8,
                                      log_objective=True, perc=None,
                                      verbose=None):
-    """Solves L21 inverse problem with block coordinate descent"""
+    """Solves TF L21+L1 inverse solver with BCD and active set approach
+
+    Algorithm is detailed in:
+
+    Strohmeier D., Gramfort A., and Haueisen J.:
+    MEG/EEG source imaging with a non-convex penalty in the time-
+    frequency domain,
+    5th International Workshop on Pattern Recognition in Neuroimaging,
+    Stanford University, 2015
+
+    Parameters
+    ----------
+    M : array
+        The data.
+    G : array
+        The forward operator.
+    alpha : float in [0, 100]
+        Regularization parameter for spatial sparsity. If larger than 100,
+        then no source will be active.
+    rho : float in [0, 1]
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
+    lipschitz_constant : float
+        The lipschitz constant of the spatio temporal linear operator.
+    phi : instance of _Phi
+        The forward STFT operator.
+    phiT : instance of _PhiT
+        The inverse STFT operator.
+    Z_init : None | array
+        The initialization of the TF coefficient matrix. If None, zeros
+        will be used for all coefficients.
+    wsize: int
+        length of the STFT window in samples (must be a multiple of 4).
+    tstep: int
+        step between successive windows in samples (must be a multiple of 2,
+        a divider of wsize and smaller than wsize/2) (default: wsize/2).
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    maxit : int
+        The number of iterations.
+    tol : float
+        If absolute difference between estimates at 2 successive iterations
+        is lower than tol, the convergence is reached.
+    log_objective : bool
+        If True, the value of the minimized objective function is computed
+        and stored at every iteration.
+    perc : None | float in [0, 1]
+        The early stopping parameter used for BCD with active set approach.
+        If the active set size is smaller than perc * n_sources, the
+        subproblem limited to the active set is stopped. If None, full
+        convergence will be achieved.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    X : array
+        The source estimates.
+    active_set : array
+        The mask of active sources.
+    E : list
+        The value of the objective function at each iteration. If log_objective
+        is False, it will be empty.
+    """
     n_sources = G.shape[1]
     n_positions = n_sources // n_orient
 
@@ -1183,6 +1257,33 @@ def compute_alpha_max(G, M, phi, rho, n_orient, shape):
     Sparse group lasso and high dimensional multinomial classification.
     Computational Statistics & Data Analysis, Volume 71, 01 March 2014,
     Pages 771-786, ISSN 0167-9473, DOI: 10.1016/j.csda.2013.06.004.
+
+    Parameters
+    ----------
+    M : array
+        The data.
+    G : array
+        The forward operator.
+    phi : instance of _Phi
+        The forward STFT operator.
+    rho : float in [0, 1]
+        Regularization parameter for temporal sparsity. It set to 0,
+        no temporal regularization is applied. It this case, TF-MxNE is
+        equivalent to MxNE with L21 norm.
+    Z_init : None | array
+        The initialization of the TF coefficient matrix. If None, zeros
+        will be used for all coefficients.
+    n_orient : int
+        The number of orientation (1 : fixed or 3 : free or loose).
+    shape : tuple
+        The shape of the time-frequency coefficient matrix, i.e.
+        (-1, n_freq, n_step).
+
+    Returns
+    -------
+    alpha_max : float
+        The smallest alpha given rho, such that the active set is empty
+        for all alphas > alpha
     """
     n_positions = G.shape[1] // n_orient
     if rho > 0.:
@@ -1199,7 +1300,7 @@ def compute_alpha_max(G, M, phi, rho, n_orient, shape):
 @verbose
 def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
                          maxit=200, tol=1e-8, log_objective=True,
-                         lipschitz_constant=None, debias=True, solver='auto',
+                         debias=True, solver='auto',
                          verbose=None):
     """Solves TF L21+L1 inverse solver
 
@@ -1218,6 +1319,12 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
     Lecture Notes in Computer Science, 2011, Volume 6801/2011,
     600-611, DOI: 10.1007/978-3-642-22092-0_49
     http://dx.doi.org/10.1007/978-3-642-22092-0_49
+
+    Strohmeier D., Gramfort A., and Haueisen J.:
+    MEG/EEG source imaging with a non-convex penalty in the time-
+    frequency domain,
+    5th International Workshop on Pattern Recognition in Neuroimaging,
+    Stanford University, 2015
 
     Parameters
     ----------
@@ -1247,9 +1354,6 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
     log_objective : bool
         If True, the value of the minimized objective function is computed
         and stored at every iteration.
-    lipschitz_constant : float | None
-        The lipschitz constant of the spatio temporal linear operator.
-        If None it is estimated.
     debias : bool
         Debias source estimates.
     solver : 'prox' | 'bcd' | 'bcd_glmnet' | 'auto'
