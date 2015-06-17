@@ -72,6 +72,8 @@ def test_plot_raw():
         fig.canvas.key_press_event('-')
         fig.canvas.key_press_event('+')
         fig.canvas.key_press_event('=')
+        fig.canvas.key_press_event('pageup')
+        fig.canvas.key_press_event('pagedown')
         fig.canvas.key_press_event('f11')
         fig.canvas.key_press_event('escape')
         # Color setting
