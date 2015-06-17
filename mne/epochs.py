@@ -53,7 +53,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                  baseline=(None, 0), raw=None,
                  picks=None, name='Unknown', reject=None, flat=None,
                  decim=1, reject_tmin=None, reject_tmax=None, detrend=None,
-                 add_eeg_ref=True, on_missing='error', verbose=None):
+                 add_eeg_ref=True, proj=True, on_missing='error',
+                 preload_at_end=False, verbose=None):
 
         self.verbose = verbose
         self.name = name
@@ -78,29 +79,41 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             event_id = {str(event_id): event_id}
         else:
             raise ValueError('event_id must be dict or int.')
-
-        for key, val in event_id.items():
-            if val not in events[:, 2]:
-                msg = ('No matching events found for %s '
-                       '(event id %i)' % (key, val))
-                if on_missing == 'error':
-                    raise ValueError(msg)
-                elif on_missing == 'warning':
-                    logger.warning(msg)
-                    warnings.warn(msg)
-                else:  # on_missing == 'ignore':
-                    pass
-
-        # Select the desired events
         self.event_id = event_id
         del event_id
-        values = list(self.event_id.values())
-        selected = in1d(events[:, 2], values)
-        self.selection = np.where(selected)[0]
-        self.drop_log = [list() if k in self.selection else ['IGNORED']
-                         for k in range(len(events))]
-        self.events = events[selected]
-        del events
+
+        if events is not None:  # RtEpochs can have events=None
+            for key, val in self.event_id.items():
+                if val not in events[:, 2]:
+                    msg = ('No matching events found for %s '
+                           '(event id %i)' % (key, val))
+                    if on_missing == 'error':
+                        raise ValueError(msg)
+                    elif on_missing == 'warning':
+                        logger.warning(msg)
+                        warnings.warn(msg)
+                    else:  # on_missing == 'ignore':
+                        pass
+
+            values = list(self.event_id.values())
+            selected = in1d(events[:, 2], values)
+            self.selection = np.where(selected)[0]
+            self.drop_log = [list() if k in self.selection else ['IGNORED']
+                             for k in range(len(events))]
+            events = events[selected]
+            n_events = len(events)
+            if n_events > 1:
+                if np.diff(events.astype(np.int64)[:, 0]).min() <= 0:
+                    warnings.warn('The events passed to the Epochs '
+                                  'constructor are not chronologically '
+                                  'ordered.', RuntimeWarning)
+
+            if n_events > 0:
+                logger.info('%d matching events found' % n_events)
+            else:
+                raise ValueError('No desired events found.')
+            self.events = events
+            del events
 
         # check reject_tmin and reject_tmax
         if (reject_tmin is not None) and (reject_tmin < tmin):
@@ -127,6 +140,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                     err = ("Baseline interval (tmax = %s) is outside of epoch "
                            "data (tmax = %s)" % (baseline_tmax, tmax))
                     raise ValueError(err)
+        if tmin >= tmax:
+            raise ValueError('tmin has to be smaller than tmax')
 
         self.tmin = tmin
         self.tmax = tmax
@@ -135,13 +150,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
         self.flat = flat
-        self.decim = decim = int(decim)
         self._bad_dropped = False
         self.detrend = detrend
         self._raw = raw
-
-        # Handle measurement info
         self.info = info
+        del info
+
         if picks is None:
             picks = list(range(len(self.info['ch_names'])))
         else:
@@ -149,58 +163,128 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self.info['ch_names'] = [self.info['ch_names'][k] for k in picks]
             self.info['nchan'] = len(picks)
         self.picks = _check_type_picks(picks)
-
         if len(picks) == 0:
             raise ValueError("Picks cannot be empty.")
-
-        # Handle times
-        if tmin >= tmax:
-            raise ValueError('tmin has to be smaller than tmax')
-        sfreq = float(self.info['sfreq'])
-        start_idx = int(round(tmin * sfreq))
-        self._raw_times = np.arange(start_idx,
-                                    int(round(tmax * sfreq)) + 1) / sfreq
-        self._epoch_stop = ep_len = len(self._raw_times)
-        if decim > 1:
-            new_sfreq = sfreq / decim
-            lowpass = self.info['lowpass']
-            if lowpass is None:
-                msg = ('The measurement information indicates data is not '
-                       'low-pass filtered. The decim=%i parameter will '
-                       'result in a sampling frequency of %g Hz, which can '
-                       'cause aliasing artifacts.'
-                       % (decim, new_sfreq))
-                warnings.warn(msg)
-            elif new_sfreq < 2.5 * lowpass:
-                msg = ('The measurement information indicates a low-pass '
-                       'frequency of %g Hz. The decim=%i parameter will '
-                       'result in a sampling frequency of %g Hz, which can '
-                       'cause aliasing artifacts.'
-                       % (lowpass, decim, new_sfreq))  # 50% over nyquist limit
-                warnings.warn(msg)
-
-            i_start = start_idx % decim
-            self._decim_idx = slice(i_start, ep_len, decim)
-            self.times = self._raw_times[self._decim_idx]
-            self.info['sfreq'] = new_sfreq
-        else:
-            self.times = self._raw_times
 
         if data is None:
             self.preload = False
             self._data = None
         else:
+            assert decim == 1
+            if data.ndim != 3 or data.shape[2] != \
+                    round((tmax - tmin) * self.info['sfreq']) + 1:
+                raise RuntimeError('bad data shape')
             self.preload = True
             self._data = data
         self._offset = None
 
+        # Handle times
+        sfreq = float(self.info['sfreq'])
+        start_idx = int(round(self.tmin * sfreq))
+        self._raw_times = np.arange(start_idx,
+                                    int(round(self.tmax * sfreq)) + 1) / sfreq
+        self._decim = 1
+        self.decimate(decim)
+
         # setup epoch rejection
         self._reject_setup()
 
-    def _reject_setup(self):
-        """Sets self._reject_time and self._channel_type_idx (called from
-        __init__)
+        # do the rest
+        if proj not in [True, 'delayed', False]:
+            raise ValueError(r"'proj' must either be 'True', 'False' or "
+                             "'delayed'")
+
+        # proj is on when applied in Raw
+        proj = proj or (raw is not None and raw.proj)
+        if proj == 'delayed':
+            if self.reject is None:
+                raise RuntimeError('The delayed SSP mode was requested '
+                                   'but no rejection parameters are present. '
+                                   'Please add rejection parameters before '
+                                   'using this option.')
+            self._delayed_proj = True
+            logger.info('Entering delayed SSP mode.')
+        else:
+            self._delayed_proj = False
+
+        activate = False if self._delayed_proj else proj
+        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
+                                                activate=activate)
+
+        if preload_at_end:
+            assert self._data is None
+            assert self.preload is False
+            self.preload_data()
+
+    def preload_data(self):
+        """Preload the data"""
+        if self.preload:
+            return
+        self._data = self._get_data()
+        self.preload = True
+
+    def decimate(self, decim, copy=False):
+        """Decimate the epochs
+
+        Parameters
+        ----------
+        decim : int
+            The amount to decimate data.
+        copy : bool
+            If True, operate on and return a copy of the Epochs object.
+
+        Returns
+        -------
+        epochs : instance of Epochs
+            The decimated Epochs object.
+
+        Notes
+        -----
+        Decimation can be done multiple times. For example,
+        ``epochs.decimate(2).decimate(2)`` will be the same as
+        ``epochs.decimate(4)``.
+
+        .. versionadded:: 0.10
         """
+        if decim < 1 or decim != int(decim):
+            raise ValueError('decim must be an integer > 0')
+        decim = int(decim)
+        epochs = self.copy() if copy else self
+        del self
+
+        new_sfreq = epochs.info['sfreq'] / float(decim)
+        lowpass = epochs.info['lowpass']
+        if decim > 1 and lowpass is None:
+            warnings.warn('The measurement information indicates data is not '
+                          'low-pass filtered. The decim=%i parameter will '
+                          'result in a sampling frequency of %g Hz, which can '
+                          'cause aliasing artifacts.'
+                          % (decim, new_sfreq))
+        elif decim > 1 and new_sfreq < 2.5 * lowpass:
+            warnings.warn('The measurement information indicates a low-pass '
+                          'frequency of %g Hz. The decim=%i parameter will '
+                          'result in a sampling frequency of %g Hz, which can '
+                          'cause aliasing artifacts.'
+                          % (lowpass, decim, new_sfreq))  # > 50% nyquist limit
+
+        start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
+                                                      epochs._decim)))
+        i_start = start_idx % decim
+        decim_slice = slice(i_start, len(epochs._raw_times), decim)
+        if epochs.preload:
+            epochs._data = epochs._data[:, :, decim_slice].copy()
+            epochs._raw_times = epochs._raw_times[decim_slice]
+            epochs._decim_slice = slice(None, None, None)
+            epochs._decim = 1
+        else:
+            epochs._decim_slice = decim_slice
+            epochs._decim *= decim
+        epochs.times = epochs._raw_times[epochs._decim_slice]
+        epochs.info['sfreq'] = new_sfreq
+        return epochs
+
+    def _reject_setup(self):
+        """Sets self._reject_time and self._channel_type_idx"""
         if self.reject is None and self.flat is None:
             return
 
@@ -251,7 +335,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     @verbose
     def _preprocess(self, epoch, verbose=None):
-        """ Aux Function
+        """Aux Function: detrend, baseline correct, offset, decim
+
+        Note: operates inplace
         """
         # Detrend
         if self.detrend is not None:
@@ -271,9 +357,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if self._offset is not None:
             epoch += self._offset
 
-        # Decimate
-        if self.decim > 1:
-            epoch = epoch[:, self._decim_idx]
+        # Decimate if necessary (i.e., epoch not preloaded)
+        epoch = epoch[:, self._decim_slice]
         return epoch
 
     def iter_evoked(self):
@@ -413,10 +498,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_times = len(self.times)
         if self.preload:
             n_events = len(self.events)
-            if not _do_std:
-                data = np.mean(self._data, axis=0)
-            else:
-                data = np.std(self._data, axis=0)
+            fun = np.std if _do_std else np.mean
+            data = fun(self._data, axis=0)
             assert len(self.events) == len(self._data)
         else:
             data = np.zeros((n_channels, n_times))
@@ -695,8 +778,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             disk. To avoid reading epochs form disk multiple times, initialize
             Epochs object with preload=True.
 
+        Dropping bad epochs with different rejection and flat parameters
+        can be done by changing ``epochs.reject`` and ``epochs.flat`` and
+        re-calling this function.
         """
-        self._get_data_from_disk(out=False)
+        self._bad_dropped = False
+        self._get_data(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):
         """Compute the channel stats based on a drop_log from Epochs.
@@ -744,29 +831,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The figure.
         """
         if not self._bad_dropped:
-            print("Bad epochs have not yet been dropped.")
+            logger.error("Bad epochs have not yet been dropped.")
             return
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
                              color=color, width=width, ignore=ignore,
                              show=show)
-
-    def _check_delayed(self, proj=None):
-        """ Aux method
-        """
-        is_delayed = False
-        if proj == 'delayed':
-            if self.reject is None:
-                raise RuntimeError('The delayed SSP mode was requested '
-                                   'but no rejection parameters are present. '
-                                   'Please add rejection parameters before '
-                                   'using this option.')
-            self._delayed_proj = True
-            is_delayed = True
-        elif hasattr(self, '_delayed_proj'):
-            is_delayed = self._delayed_proj
-        return is_delayed
 
     @verbose
     def drop_epochs(self, indices, reason='USER', verbose=None):
@@ -816,13 +887,25 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         count = len(indices)
         logger.info('Dropped %d epoch%s' % (count, '' if count == 1 else 's'))
 
-    def _get_epoch_from_disk(self, idx, verbose=None):
+    def _get_epoch_from_raw(self, idx, verbose=None):
         """Method to get a given epoch from disk"""
         raise NotImplementedError
 
+    def _process_epoch_raw(self, epoch_raw):
+        """Helper to process a raw epoch based on the delayed param"""
+        # whenever requested, the first epoch is being projected.
+        if epoch_raw is None:  # can happen if t < 0
+            return None
+        proj = self._delayed_proj or self.proj
+        if self._projector is not None and proj is True:
+            epoch = self._preprocess(np.dot(self._projector, epoch_raw))
+        else:
+            epoch = self._preprocess(epoch_raw.copy())
+        return epoch
+
     @verbose
-    def _get_data_from_disk(self, out=True, verbose=None):
-        """Load all data from disk
+    def _get_data(self, out=True, verbose=None):
+        """Load all data, dropping bad epochs along the way
 
         Parameters
         ----------
@@ -834,25 +917,35 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Defaults to self.verbose.
         """
         n_events = len(self.events)
-        data = np.array([])
+        data = np.array([])  # in case there are no good events
         if self._bad_dropped:
             if not out:
                 return
 
             for idx in range(n_events):
                 # faster to pre-allocate memory here
-                epoch, epoch_raw = self._get_epoch_from_disk(idx)
+                if self.preload:
+                    epoch_raw = self._data[idx]
+                else:
+                    epoch_raw = self._get_epoch_from_raw(idx)
                 if idx == 0:
-                    data = np.empty((n_events, epoch.shape[0],
-                                     epoch.shape[1]), dtype=epoch.dtype)
-                if self._check_delayed():
+                    data = np.empty((n_events, epoch_raw.shape[0],
+                                     epoch_raw.shape[1]),
+                                    dtype=epoch_raw.dtype)
+                if self._delayed_proj:
                     epoch = epoch_raw
+                else:
+                    epoch = self._process_epoch_raw(epoch_raw)
                 data[idx] = epoch
         else:
             good_events = []
             n_out = 0
             for idx, sel in zip(range(n_events), self.selection):
-                epoch, epoch_raw = self._get_epoch_from_disk(idx)
+                if self.preload:
+                    epoch_raw = self._data[idx]
+                else:
+                    epoch_raw = self._get_epoch_from_raw(idx)
+                epoch = self._process_epoch_raw(epoch_raw)
                 is_good, offenders = self._is_good_epoch(epoch)
 
                 if not is_good:
@@ -860,7 +953,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                     continue
 
                 good_events.append(idx)
-                if self._check_delayed():
+                if self._delayed_proj:
                     epoch = epoch_raw
 
                 if out:
@@ -896,8 +989,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         data : array of shape (n_epochs, n_channels, n_times)
             A copy of the epochs data.
         """
-        data_ = self._data if self.preload else self._get_data_from_disk()
-        if self._check_delayed():
+        data_ = self._data if self.preload else self._get_data()
+        if self._delayed_proj:
             data = np.zeros_like(data_)
             for ii, e in enumerate(data_):
                 data[ii] = self._preprocess(e.copy(), self.verbose)
@@ -909,11 +1002,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """Number of epochs.
         """
         if not self._bad_dropped:
-            err = ("Since bad epochs have not been dropped, the length of the "
-                   "Epochs is not known. Load the Epochs with preload=True, "
-                   "or call Epochs.drop_bad_epochs(). To find the number of "
-                   "events in the Epochs, use len(Epochs.events).")
-            raise RuntimeError(err)
+            raise RuntimeError('Since bad epochs have not been dropped, the '
+                               'length of the Epochs is not known. Load the '
+                               'Epochs with preload=True, or call '
+                               'Epochs.drop_bad_epochs(). To find the number '
+                               'of events in the Epochs, use '
+                               'len(Epochs.events).')
         return len(self.events)
 
     def __iter__(self):
@@ -941,7 +1035,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             if self._current >= len(self._data):
                 raise StopIteration
             epoch = self._data[self._current]
-            if self._check_delayed():
+            if self._delayed_proj:
                 epoch = self._preprocess(epoch.copy(), self.verbose)
             self._current += 1
         else:
@@ -949,11 +1043,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             while not is_good:
                 if self._current >= len(self.events):
                     raise StopIteration
-                epoch, epoch_raw = self._get_epoch_from_disk(self._current)
+                epoch_raw = self._get_epoch_from_raw(self._current)
+                epoch = self._process_epoch_raw(epoch_raw)
                 self._current += 1
                 is_good, _ = self._is_good_epoch(epoch)
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
-            if self._check_delayed():
+            if self._delayed_proj:
                 epoch = self._preprocess(epoch_raw, self.verbose)
 
         if not return_event_id:
@@ -966,10 +1061,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def __repr__(self):
         """ Build string representation
         """
-        if not self._bad_dropped:
-            s = 'n_events : %s (good & bad)' % len(self.events)
-        else:
-            s = 'n_events : %s (all good)' % len(self.events)
+        s = 'n_events : %s ' % len(self.events)
+        s += '(all good)' if self._bad_dropped else '(good & bad)'
         s += ', tmin : %s (s)' % self.tmin
         s += ', tmax : %s (s)' % self.tmax
         s += ', baseline : %s' % str(self.baseline)
@@ -977,7 +1070,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in sorted(self.event_id.items())]
             s += ',\n %s' % ', '.join(counts)
-
         return '<%s  |  %s>' % (self.__class__.__name__, s)
 
     def _key_match(self, key):
@@ -993,6 +1085,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         del self._data
         epochs = self.copy()
         self._data, epochs._data = data, data
+        del self
 
         if isinstance(key, string_types):
             key = [key]
@@ -1022,11 +1115,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.preload:
             epochs._data = epochs._data[select]
-
         # update event id to reflect new content of epochs
         epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
                                if v in epochs.events[:, 2])
-
         return epochs
 
     def crop(self, tmin=None, tmax=None, copy=False):
@@ -1051,6 +1142,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Unlike Python slices, MNE time intervals include both their end points;
         crop(tmin, tmax) returns the interval tmin <= t <= tmax.
         """
+        # XXX this could be made to work on non-preloaded data...
         if not self.preload:
             raise RuntimeError('Modifying data of epochs is only supported '
                                'when preloading is used. Use preload=True '
@@ -1104,16 +1196,16 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         For some data, it may be more accurate to use npad=0 to reduce
         artifacts. This is dataset dependent -- check your data!
         """
-        if self.preload:
-            o_sfreq = self.info['sfreq']
-            self._data = resample(self._data, sfreq, o_sfreq, npad,
-                                  n_jobs=n_jobs)
-            # adjust indirectly affected variables
-            self.info['sfreq'] = sfreq
-            self.times = (np.arange(self._data.shape[2], dtype=np.float) /
-                          sfreq + self.times[0])
-        else:
+        # XXX this could operate on non-preloaded data, too
+        if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
+        o_sfreq = self.info['sfreq']
+        self._data = resample(self._data, sfreq, o_sfreq, npad,
+                              n_jobs=n_jobs)
+        # adjust indirectly affected variables
+        self.info['sfreq'] = sfreq
+        self.times = (np.arange(self._data.shape[2], dtype=np.float) /
+                      sfreq + self.times[0])
 
     def copy(self):
         """Return copy of Epochs instance"""
@@ -1122,7 +1214,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new = cp.deepcopy(self)
         self._raw = raw
         new._raw = raw
-
         return new
 
     def save(self, fname):
@@ -1451,91 +1542,25 @@ class Epochs(_BaseEpochs):
                                      name=name, reject=reject, flat=flat,
                                      decim=decim, reject_tmin=reject_tmin,
                                      reject_tmax=reject_tmax, detrend=detrend,
-                                     add_eeg_ref=add_eeg_ref,
-                                     on_missing=on_missing, verbose=verbose)
-
-        # do the rest
-        if proj not in [True, 'delayed', False]:
-            raise ValueError(r"'proj' must either be 'True', 'False' or "
-                             "'delayed'")
-
-        proj = proj or raw.proj  # proj is on when applied in Raw
-
-        if self._check_delayed(proj):
-            logger.info('Entering delayed SSP mode.')
-
-        activate = False if self._check_delayed() else proj
-        self._projector, self.info = setup_proj(self.info, add_eeg_ref,
-                                                activate=activate)
-
-        n_events = len(self.events)
-        if n_events > 1:
-            if np.diff(self.events.astype(np.int64)[:, 0]).min() <= 0:
-                warnings.warn('The events passed to the Epochs constructor '
-                              'are not chronologically ordered.',
-                              RuntimeWarning)
-
-        if n_events > 0:
-            logger.info('%d matching events found' % n_events)
-        else:
-            raise ValueError('No desired events found.')
-
-        if preload:
-            self._data = self._get_data_from_disk()
-            self.preload = True
-        else:
-            self._data = None
-            self.preload = False
+                                     add_eeg_ref=add_eeg_ref, proj=proj,
+                                     on_missing=on_missing,
+                                     preload_at_end=preload, verbose=verbose)
 
     @verbose
-    def _get_epoch_from_disk(self, idx, verbose=None):
+    def _get_epoch_from_raw(self, idx, verbose=None):
         """Load one epoch from disk"""
-        proj = True if self._check_delayed() else self.proj
-
         if self._raw is None:
             # This should never happen, as raw=None only if preload=True
             raise ValueError('An error has occurred, no valid raw file found.'
                              ' Please report this to the mne-python '
                              'developers.')
         sfreq = self._raw.info['sfreq']
-
-        if self.events.ndim == 1:
-            # single event
-            event_samp = self.events[0]
-        else:
-            event_samp = self.events[idx, 0]
-
+        event_samp = self.events[idx, 0]
         # Read a data segment
         first_samp = self._raw.first_samp
         start = int(round(event_samp + self.tmin * sfreq)) - first_samp
-        stop = start + self._epoch_stop
-        if start < 0:
-            return None, None
-
-        epoch_raw, _ = self._raw[self.picks, start:stop]
-
-        # setup list of epochs to handle delayed SSP
-        epochs = []
-        # whenever requested, the first epoch is being projected.
-        if self._projector is not None and proj is True:
-            epochs += [np.dot(self._projector, epoch_raw)]
-        else:
-            epochs += [epoch_raw]
-
-        # if has delayed SSP append another unprojected epoch
-        if self._check_delayed():
-            epochs += [epoch_raw.copy()]
-
-        # only preprocess first candidate, to make delayed SSP working
-        # we need to postpone the preprocessing since projection comes
-        # first.
-        epochs[0] = self._preprocess(epochs[0])
-
-        # return a second None if nothing is projected
-        if len(epochs) == 1:
-            epochs += [None]
-
-        return epochs
+        stop = start + len(self._raw_times)
+        return None if start < 0 else self._raw[self.picks, start:stop][0]
 
 
 class EpochsArray(_BaseEpochs):
@@ -1610,14 +1635,15 @@ class EpochsArray(_BaseEpochs):
         if len(info['ch_names']) != np.shape(data)[1]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
-        # XXX eventually we shouldn't need to specify tmax...
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
+        # we set proj to "delayed" here to force detrending, decimation,
+        # and baseline correction to occur
         super(EpochsArray, self).__init__(info, data, events, event_id, tmin,
-                                          tmax, baseline, None, reject=reject,
+                                          tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1)
-        if baseline is not None:
-            rescale(self._data, self.times, baseline, mode='mean', copy=False)
+        for ii, e in enumerate(self._data):
+            self._preprocess(e, self.verbose)
         self.drop_bad_epochs()
 
 
@@ -1922,7 +1948,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
                     if mappings is None else mappings)
         epochs = _BaseEpochs(info, data, events, event_id, tmin, tmax,
                              baseline, name=name, verbose=verbose)
-        activate = False if epochs._check_delayed() else proj
+        activate = False if epochs._delayed_proj else proj
         epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                     activate=activate)
 
@@ -2116,12 +2142,13 @@ def concatenate_epochs(epochs_list):
         event_id.update(epochs.event_id)
     events = np.concatenate(events, axis=0)
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
-
-    out = EpochsArray(
-        data=np.concatenate(data, axis=0), info=out.info,
-        events=events,
-        event_id=event_id, tmin=out.tmin)
-    out._raw = None
-    out.preload = True
+    out = _BaseEpochs(out.info, np.concatenate(data, axis=0), events, event_id,
+                      out.tmin, out.tmax, baseline=None, add_eeg_ref=False,
+                      proj=False, verbose=out.verbose)
+    # We previously only set the drop log here, but we also need to set the
+    # selection, too
+    selection = np.where([len(d) == 0 for d in drop_log])[0]
+    assert len(selection) == len(out.drop_log)
+    out.selection = selection
     out.drop_log = drop_log
     return out

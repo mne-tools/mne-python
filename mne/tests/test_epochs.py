@@ -233,10 +233,11 @@ def test_read_write_epochs():
         raw.info['lowpass'] = lowpass
 
     data_dec = epochs_dec.get_data()
-    assert_array_equal(data[:, :, epochs_dec._decim_idx], data_dec)
+    assert_array_equal(data[:, :, epochs_dec._decim_slice], data_dec)
 
     evoked_dec = epochs_dec.average()
-    assert_array_equal(evoked.data[:, epochs_dec._decim_idx], evoked_dec.data)
+    assert_array_equal(evoked.data[:, epochs_dec._decim_slice],
+                       evoked_dec.data)
 
     n = evoked.data.shape[1]
     n_dec = evoked_dec.data.shape[1]
@@ -289,6 +290,7 @@ def test_read_write_epochs():
     epochs.save(op.join(tempdir, 'test-epo.fif'))
     epochs_read5 = read_epochs(op.join(tempdir, 'test-epo.fif'))
     assert_array_equal(epochs_read5.selection, epochs.selection)
+    assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
 
     # Test that one can drop channels on read file
@@ -1320,7 +1322,7 @@ def test_array_epochs():
     assert_array_equal(epochs.events, epochs2.events)
 
     # plotting
-    epochs[0].plot()
+    epochs[0].plot(trellis=False)
     plt.close('all')
 
     # indexing
@@ -1335,7 +1337,8 @@ def test_array_epochs():
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
-    assert_equal(len(events), len(epochs.selection))
+    print(epochs.drop_log)
+    assert_equal(len(epochs.events), len(epochs.selection))
 
     # baseline
     data = np.ones((10, 20, 300))
@@ -1346,8 +1349,7 @@ def test_array_epochs():
 
 
 def test_concatenate_epochs():
-    """test concatenate epochs"""
-
+    """Test concatenate epochs"""
     raw, events, picks = _get_data()
     epochs = Epochs(
         raw=raw, events=events, event_id=event_id, tmin=tmin, tmax=tmax,
@@ -1377,7 +1379,7 @@ def test_concatenate_epochs():
         ValueError,
         concatenate_epochs, [epochs, epochs2])
 
-    assert_equal(epochs_conc.raw, None)
+    assert_equal(epochs_conc._raw, None)
 
 
 run_tests_if_main()

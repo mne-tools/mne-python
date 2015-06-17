@@ -114,11 +114,11 @@ def equalize_channels(candidates, verbose=None):
     This function operates inplace.
     """
     from ..io.base import _BaseRaw
-    from ..epochs import Epochs
+    from ..epochs import _BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
+    if not all(isinstance(c, (_BaseRaw, _BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
@@ -433,11 +433,11 @@ class PickDropChannelsMixin(object):
     def _pick_drop_channels(self, idx):
         # avoid circular imports
         from ..io.base import _BaseRaw
-        from ..epochs import Epochs
+        from ..epochs import _BaseEpochs
         from ..evoked import Evoked
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (_BaseRaw, Epochs)):
+        if isinstance(self, (_BaseRaw, _BaseEpochs)):
             if not self.preload:
                 raise RuntimeError('Raw data must be preloaded to drop or pick'
                                    ' channels')
@@ -458,7 +458,7 @@ class PickDropChannelsMixin(object):
 
         if isinstance(self, _BaseRaw) and inst_has('_data'):
             self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, Epochs) and inst_has('_data'):
+        elif isinstance(self, _BaseEpochs) and inst_has('_data'):
             self._data = self._data.take(idx, axis=1)
         elif isinstance(self, AverageTFR) and inst_has('data'):
             self.data = self.data.take(idx, axis=0)

@@ -928,12 +928,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         The Raw object has to be constructed using preload=True (or string).
 
-        WARNING: The intended purpose of this function is primarily to speed
-        up computations (e.g., projection calculation) when precise timing
-        of events is not required, as downsampling raw data effectively
-        jitters trigger timings. It is generally recommended not to epoch
-        downsampled data, but instead epoch and then downsample, as epoching
-        downsampled data jitters triggers.
+        .. warning:: The intended purpose of this function is primarily to
+                     speed up computations (e.g., projection calculation) when
+                     precise timing of events is not required, as downsampling
+                     raw data effectively jitters trigger timings. It is
+                     generally recommended not to epoch downsampled data,
+                     but instead epoch and then downsample, as epoching
+                     downsampled data jitters triggers. See here for an
+                     example:
+
+                         https://gist.github.com/Eric89GXL/01642cb3789992fbca59
 
         Parameters
         ----------
