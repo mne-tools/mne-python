@@ -104,7 +104,7 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot(scalings=None, fig_title='Epochs', trellis=False)
+    epochs.plot(scalings=None, title='Epochs', trellis=False)
     plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, trellis=False)
     plt.close('all')
@@ -134,8 +134,8 @@ def test_plot_epochs():
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
-        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
-        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
+        _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change epochs
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
         plt.close('all')
