@@ -553,8 +553,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.set_title(title, fontsize=12)
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
+                ha='center', va='bottom', size=10, xycoords='axes fraction',
+                textcoords='offset points')
+
     ax.axis([0, duration, 0, 200])
+    ax2 = ax.twiny()
+    ax2.set_zorder(-1)
+    ax2.axis([0, duration, 0, 200])
     ax_hscroll = plt.subplot2grid((10, 15), (9, 1), colspan=13)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Epochs')
@@ -610,10 +616,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax.set_ylim(ylim)
     ticks = epoch_times + 0.5 * n_times
     ax.set_xticks(ticks)
-    events = epochs.events[:, 2]
-    labels = [str(x + 1) + ' (' + str(events[x]) + ')'
-              for x in range(len(ticks))]
+    ax2.set_xticks(ticks[:n_epochs])
+    labels = list(range(1, len(ticks) + 1))  # epoch numbers
     ax.set_xticklabels(labels)
+    ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
     vertline_t = ax_hscroll.text(0, 0.5, '', color='y',
@@ -642,6 +648,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     params = {'fig': fig,
               'ax': ax,
+              'ax2': ax2,
               'ax_hscroll': ax_hscroll,
               'ax_vscroll': ax_vscroll,
               'vsel_patch': vsel_patch,
@@ -843,6 +850,8 @@ def _plot_traces(params):
     end = params['t_start'] + params['duration']
     end_idx = int(end / n_times)
     labels = params['labels'][start_idx:]
+    event_ids = params['epochs'].events[:, 2]
+    params['ax2'].set_xticklabels(event_ids[start_idx:])
     ax.set_xticklabels(labels)
     # do the plotting
     for line_idx in range(n_channels):
@@ -886,6 +895,8 @@ def _plot_traces(params):
     # finalize plot
     ax.set_xlim(params['times'][0], params['times'][0] + params['duration'],
                 False)
+    params['ax2'].set_xlim(params['times'][0],
+                           params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['scale_factor']
         mag_factor = params['scalings']['mag'] * factor
@@ -1138,6 +1149,8 @@ def _plot_onkey(event, params):
         if n_epochs <= 0:
             return
         n_times = len(params['epochs'].times)
+        ticks = params['epoch_times'] + 0.5 * n_times
+        params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
@@ -1147,6 +1160,8 @@ def _plot_onkey(event, params):
         n_times = len(params['epochs'].times)
         if n_times * n_epochs > len(params['data'][0]):
             return
+        ticks = params['epoch_times'] + 0.5 * n_times
+        params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
         if len(params['vert_lines']) > 0:
             ax = params['ax']
