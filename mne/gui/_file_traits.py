@@ -317,7 +317,7 @@ class RawSource(HasPrivateTraits):
     @cached_property
     def _get_raw(self):
         if self.file:
-            return Raw(self.file)
+            return Raw(self.file, allow_maxshield=True)
 
     @cached_property
     def _get_raw_dir(self):
