@@ -268,7 +268,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         pass
 
 
-def _layout_figure(params, platform=None):
+def _layout_figure(params):
     """Aux function for setting figure layout"""
     size = params['fig'].get_size_inches() * params['fig'].dpi
     scroll_width = 25
