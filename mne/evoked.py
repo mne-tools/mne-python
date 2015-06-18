@@ -127,7 +127,8 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
                 comments, aspect_kinds, t = _get_entries(fid, evoked_node)
                 goods = np.logical_and(in1d(comments, [condition]),
-                                       in1d(aspect_kinds, [_aspect_dict[kind]]))
+                                       in1d(aspect_kinds,
+                                            [_aspect_dict[kind]]))
                 found_cond = np.where(goods)[0]
                 if len(found_cond) != 1:
                     raise ValueError('condition "%s" (%s) not found, out of '
