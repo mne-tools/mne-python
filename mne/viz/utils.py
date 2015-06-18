@@ -270,17 +270,14 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 def _layout_figure(params, platform=None):
     """Aux function for setting figure layout"""
-    size = params['fig'].get_size_inches()
-    scroll_width = 0.33
-    if platform is None or platform == "linux" or platform == "linux2":
-        hscroll_dist = 0.33
-    else:
-        hscroll_dist = 0.8
-    vscroll_dist = 0.1
-    l_border = 1.2
-    r_border = 0.1
-    t_border = 0.33
-    b_border = 0.5
+    size = params['fig'].get_size_inches() * params['fig'].dpi
+    scroll_width = 25
+    hscroll_dist = 25
+    vscroll_dist = 10
+    l_border = 100
+    r_border = 10
+    t_border = 35
+    b_border = 40
 
     # only bother trying to reset layout if it's reasonable to do so
     if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
