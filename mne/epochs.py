@@ -965,8 +965,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                     data[n_out] = epoch
                     n_out += 1
 
-            self.selection = self.selection[good_events]
-            self.events = np.atleast_2d(self.events[good_events])
+            if len(good_events) == 0:  # silly fix for old numpy index error
+                self.selection = np.array([], int)
+                self.events = np.empty((0, 3))
+            else:
+                self.selection = self.selection[good_events]
+                self.events = np.atleast_2d(self.events[good_events])
             self._bad_dropped = True
             logger.info("%d bad epochs dropped"
                         % (n_events - len(good_events)))
