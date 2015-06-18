@@ -341,6 +341,15 @@ class InstSource(HasPrivateTraits):
         return points
 
     @cached_property
+    def _get_eeg_points(self):
+        if not self.raw:
+            return np.zeros((1, 3))
+
+        points = np.array([d['r'] for d in self.raw.info['dig']
+                           if d['kind'] == FIFF.FIFFV_POINT_EEG])
+        return points
+
+    @cached_property
     def _get_points(self):
         if self.points_filter is None:
             return self.inst_points

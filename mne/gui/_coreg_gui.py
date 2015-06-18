@@ -1139,6 +1139,9 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                HGroup('hsp_always_visible',
                                       Label("Always Show Head Shape Points"),
                                       show_labels=False),
+                               HGroup('use_eeg_as_hsp',
+                                      Label("Use EEG Locations as Head Shape Points"),
+                                      show_labels=False),
                                Item('fid_panel', style='custom'),
                                label="MRI Fiducials", show_border=True,
                                show_labels=False),
@@ -1212,6 +1215,7 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
+    use_eeg_as_hsp = Bool(False, label="Use EEG Locations as Head Shape Points")
 
     # visualization
     hsp_obj = Instance(PointObject)
@@ -1346,6 +1350,10 @@ class CoregFrame(HasTraits):
     @cached_property
     def _get_hsp_visible(self):
         return self.hsp_always_visible or self.lock_fiducials
+
+    @cached_property
+    def _get_eeg_as_hsp(self):
+        return self.use_eeg_as_hsp
 
     @cached_property
     def _get_omitted_info(self):
