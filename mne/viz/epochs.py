@@ -596,7 +596,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            colors=colors[ch_idx], zorder=3)
+                            colors=colors[ch_idx], zorder=3, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -645,7 +645,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
-
+    text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
+                   horizontalalignment='left', fontweight='bold')
+    text.set_visible(False)
     params = {'fig': fig,
               'ax': ax,
               'ax2': ax2,
@@ -681,7 +683,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'types': np.array(types),
               'vert_lines': list(),
               'vertline_t': vertline_t,
-              'butterfly': False}
+              'butterfly': False,
+              'text': text}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -701,6 +704,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('close_event', callback_close)
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
+    fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
 
     # Draw event lines for the first time.
     _plot_events(params)
@@ -826,6 +830,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
+    params['text'].set_visible(False)
     ax = params['ax']
     butterfly = params['butterfly']
     ylim = ax.get_ylim()
@@ -1048,7 +1053,7 @@ def _plot_onscroll(event, params):
 
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
-    if event.inaxes is not None and event.button == 1:
+    if event.inaxes is not None and event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
             if params['butterfly']:
@@ -1067,6 +1072,8 @@ def _mouse_click(event, params):
         # main axes
         elif event.inaxes == params['ax']:
             _pick_bad_epochs(event, params)
+    elif event.inaxes == params['ax'] and event.button == 2:  # middle click
+        params['fig'].canvas.draw()
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
         n_times = len(params['epochs'].times)
         xdata = int(event.xdata % n_times)
@@ -1138,7 +1145,7 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=3)
+                            zorder=3, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1188,7 +1195,7 @@ def _prepare_butterfly(params):
         ax.set_yticks(np.arange(0, ylim, offset))
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                                zorder=3)
+                                zorder=3, picker=3.)
             params['ax'].add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
@@ -1198,6 +1205,21 @@ def _prepare_butterfly(params):
             params['ax'].collections.pop()
             params['lines'].pop()
     params['butterfly'] = butterfly
+
+
+def _onpick(event, params):
+    """Helper to add a channel name on click"""
+    if event.mouseevent.button != 2 or not params['butterfly']:
+        return  # text label added with a middle mouse button
+    lidx = np.where([l is event.artist for l in params['lines']])[0][0]
+    text = params['text']
+    text.set_x(event.mouseevent.xdata)
+    text.set_y(event.mouseevent.ydata)
+    text.set_text(params['ch_names'][lidx])
+    text.set_visible(True)
+    # do NOT redraw here, since for butterfly plots hundreds of lines could
+    # potentially be picked -- use _mouse_click (happens once per click)
+    # to do the drawing
 
 
 def _close_event(event, params):
