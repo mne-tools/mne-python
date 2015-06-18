@@ -596,7 +596,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            colors=colors[ch_idx], zorder=3, picker=3.)
+                            colors=colors[ch_idx], zorder=2, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -710,7 +710,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     _plot_events(params)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * n_times, epoch_idx * n_times]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=3)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -997,7 +997,7 @@ def _plot_events(params):
         for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g', zorder=-1, alpha=0.4)
+            ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
 
 
 def _pick_bad_epochs(event, params):
@@ -1089,7 +1089,7 @@ def _mouse_click(event, params):
         for epoch_idx in range(params['n_epochs']):
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
-                                                          zorder=-1))
+                                                          zorder=4))
         params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
         _plot_traces(params)
 
@@ -1143,7 +1143,7 @@ def _plot_onkey(event, params):
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            zorder=3, picker=3.)
+                            zorder=2, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1172,7 +1172,7 @@ def _plot_onkey(event, params):
             ax = params['ax']
             pos = params['vert_lines'][0][0].get_data()[0] + params['duration']
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
-                                                zorder=-1))
+                                                zorder=3))
         params['duration'] += n_times
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
@@ -1188,24 +1188,28 @@ def _prepare_butterfly(params):
     if butterfly:
         params['ax_vscroll'].set_visible(False)
         params['ax2'].annotate('Grad (fT/cm)', xy=(0, 0.875), xytext=(-70, 0),
-                               ha='left', size=12, xycoords='axes fraction',
-                               rotation=90, textcoords='offset points')
+                               ha='left', size=12, va='center',
+                               xycoords='axes fraction', rotation=90,
+                               textcoords='offset points')
         params['ax2'].annotate('Mag (fT)', xy=(0, 0.625), xytext=(-70, 0),
-                               ha='left', size=12, xycoords='axes fraction',
-                               rotation=90, textcoords='offset points')
+                               ha='left', size=12, va='center',
+                               xycoords='axes fraction', rotation=90,
+                               textcoords='offset points')
         params['ax2'].annotate('EEG (uV)', xy=(0, 0.375), xytext=(-70, 0),
-                               ha='left', size=12, xycoords='axes fraction',
-                               rotation=90, textcoords='offset points')
+                               ha='left', size=12, va='center',
+                               xycoords='axes fraction', rotation=90,
+                               textcoords='offset points')
         params['ax2'].annotate('EOG (uV)', xy=(0, 0.125), xytext=(-70, 0),
-                               ha='left', size=12, xycoords='axes fraction',
-                               rotation=90, textcoords='offset points')
+                               ha='left', size=12, va='center',
+                               xycoords='axes fraction', rotation=90,
+                               textcoords='offset points')
         ax = params['ax']
         ylim = ax.get_ylim()[0]
         offset = ax.get_ylim()[0] / 16.0
         ax.set_yticks(np.arange(0, ylim, offset))
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                                zorder=3, picker=3.)
+                                zorder=2, picker=3.)
             params['ax'].add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
