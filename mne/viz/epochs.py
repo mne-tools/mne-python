@@ -908,22 +908,20 @@ def _plot_traces(params):
         labels.fill('')
         ticks = ax.get_yticks()
         for idx in [1, 3]:
-            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[0]) *
-                                          params['scalings']['grad'] * factor)
+            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) * 1e13 *
+                                           params['scalings']['grad'] * factor)
         for idx in [5, 7]:
-            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[1]) *
-                                          params['scalings']['mag'] * factor)
+            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) * 1e15 *
+                                           params['scalings']['mag'] * factor)
         for idx in [9, 11]:
-            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[2]) *
-                                          params['scalings']['eeg'] * factor)
+            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) * 1e6 *
+                                           params['scalings']['eeg'] * factor)
         for idx in [13, 15]:
-            labels[idx] = '{:.2e}'.format((ticks[idx] - offsets[3]) *
-                                          params['scalings']['eog'] * factor)
-        labels[2] = 'Grad(T/cm) 0.00'
-        labels[6] = 'Mag(T) 0.00'
-        labels[10] = 'EEG(V) 0.00'
-        labels[14] = 'EOG(V) 0.00'
-        ax.set_yticklabels(labels, fontsize=10)
+            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) * 1e6 *
+                                           params['scalings']['eog'] * factor)
+        for idx in [2, 6, 10, 14]:
+            labels[idx] = '0.00'
+        ax.set_yticklabels(labels, fontsize=12)
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
     params['vsel_patch'].set_y(ch_start)
@@ -1189,6 +1187,18 @@ def _prepare_butterfly(params):
     butterfly = not params['butterfly']
     if butterfly:
         params['ax_vscroll'].set_visible(False)
+        params['ax2'].annotate('Grad (fT/cm)', xy=(0, 0.875), xytext=(-70, 0),
+                               ha='left', size=12, xycoords='axes fraction',
+                               rotation=90, textcoords='offset points')
+        params['ax2'].annotate('Mag (fT)', xy=(0, 0.625), xytext=(-70, 0),
+                               ha='left', size=12, xycoords='axes fraction',
+                               rotation=90, textcoords='offset points')
+        params['ax2'].annotate('EEG (uV)', xy=(0, 0.375), xytext=(-70, 0),
+                               ha='left', size=12, xycoords='axes fraction',
+                               rotation=90, textcoords='offset points')
+        params['ax2'].annotate('EOG (uV)', xy=(0, 0.125), xytext=(-70, 0),
+                               ha='left', size=12, xycoords='axes fraction',
+                               rotation=90, textcoords='offset points')
         ax = params['ax']
         ylim = ax.get_ylim()[0]
         offset = ax.get_ylim()[0] / 16.0
@@ -1200,6 +1210,8 @@ def _prepare_butterfly(params):
             params['lines'].append(lc)
     else:  # change back to default view
         params['ax_vscroll'].set_visible(True)
+        while len(params['ax2'].texts) > 0:
+            params['ax2'].texts.pop()
         params['ax'].set_yticks(params['offsets'])
         while len(params['lines']) > params['n_channels']:
             params['ax'].collections.pop()
