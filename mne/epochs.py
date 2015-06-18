@@ -268,7 +268,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                           % (lowpass, decim, new_sfreq))  # > 50% nyquist limit
 
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
-                                                      epochs._decim)))
+                                                      decim)))
         i_start = start_idx % decim
         decim_slice = slice(i_start, len(epochs._raw_times), decim)
         if epochs.preload:
@@ -1639,13 +1639,20 @@ class EpochsArray(_BaseEpochs):
         if len(info['ch_names']) != np.shape(data)[1]:
             raise ValueError('Info and data must have same number of '
                              'channels.')
+        if data.shape[0] != len(events):
+            raise ValueError('The number of epochs and the number of events'
+                             'must match')
         tmax = (data.shape[2] - 1) / info['sfreq'] + tmin
-        # we set proj to "delayed" here to force detrending, decimation,
-        # and baseline correction to occur
+        if event_id is None:  # convert to int to make typing-checks happy
+            event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
         super(EpochsArray, self).__init__(info, data, events, event_id, tmin,
                                           tmax, baseline, reject=reject,
                                           flat=flat, reject_tmin=reject_tmin,
                                           reject_tmax=reject_tmax, decim=1)
+        if len(events) != in1d(self.events[:, 2],
+                               list(event_id.values())).sum():
+            raise ValueError('The events must only contain event numbers from '
+                             'event_id')
         for ii, e in enumerate(self._data):
             self._preprocess(e, self.verbose)
         self.drop_bad_epochs()

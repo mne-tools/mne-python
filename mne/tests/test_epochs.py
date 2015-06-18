@@ -60,6 +60,73 @@ flat = dict(grad=1e-15, mag=1e-15)
 clean_warning_registry()  # really clean warning stack
 
 
+def test_aadecim():
+    """Test epochs decimation
+    """
+    # First with EpochsArray
+    n_epochs, n_channels, n_times = 5, 10, 20
+    sfreq, decim = 1000., 4
+    sfreq_new = sfreq / decim
+    data = np.random.randn(n_epochs, n_channels, n_times)
+    events = np.array([np.arange(n_epochs), [0] * n_epochs, [1] * n_epochs]).T
+    info = create_info(n_channels, sfreq, 'eeg')
+    info['lowpass'] = sfreq_new / 4.
+    epochs = EpochsArray(data, info, events)
+    data_epochs = epochs.decimate(4, copy=True).get_data()
+    data_epochs_2 = epochs.decimate(2).decimate(2).get_data()
+    assert_array_equal(data_epochs, data[:, :, ::4])
+    assert_array_equal(data_epochs, data_epochs_2)
+
+    # Now let's do it with some real data
+    raw, events, picks = _get_data()
+    sfreq_new = raw.info['sfreq'] / decim
+    raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
+    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=False)
+    assert_raises(ValueError, epochs.decimate, -1)
+    expected_data = epochs.get_data()[:, :, ::4]
+    expected_times = epochs.times[::4]
+    for preload in (True, False):
+        # at init
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=4,
+                        preload=preload)
+        assert_array_equal(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # split between init and afterward
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=2,
+                        preload=preload).decimate(2)
+        # XXX these do not work quite yet, indicative of a logic problem...
+        # assert_array_equal(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        # assert_array_equal(epochs.times, expected_times)
+
+        # split between init and afterward, with preload in between
+        epochs = Epochs(raw, events, event_id, tmin, tmax, decim=2,
+                        preload=preload)
+        epochs.preload_data()
+        epochs = epochs.decimate(2)
+        assert_array_equal(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        # assert_array_equal(epochs.times, expected_times)
+
+        # decimate afterward
+        epochs = Epochs(raw, events, event_id, tmin, tmax,
+                        preload=preload).decimate(4)
+        assert_array_equal(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+        # decimate afterward, with preload in between
+        epochs = Epochs(raw, events, event_id, tmin, tmax,
+                        preload=preload)
+        epochs.preload_data()
+        epochs.decimate(4)
+        assert_array_equal(epochs.get_data(), expected_data)
+        assert_equal(epochs.info['sfreq'], sfreq_new)
+        assert_array_equal(epochs.times, expected_times)
+
+
 def test_base_epochs():
     """Test base epochs class
     """
@@ -308,6 +375,7 @@ def test_read_write_epochs():
 def test_epochs_proj():
     """Test handling projection (apply proj in Raw or in Epochs)
     """
+    tempdir = _TempDir()
     raw, events, picks = _get_data()
     exclude = raw.info['bads'] + ['MEG 2443', 'EEG 053']  # bads + 2 more
     this_picks = pick_types(raw.info, meg=True, eeg=False, stim=True,
@@ -346,6 +414,22 @@ def test_epochs_proj():
     epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
                     baseline=(None, 0), proj=True)
     assert_true(not _has_eeg_average_ref_proj(epochs.info['projs']))
+
+    # From GH#2200:
+    # This has no problem
+    proj = raw.info['projs']
+    epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=this_picks,
+                    baseline=(None, 0), proj=False)
+    epochs.info['projs'] = []
+    data = epochs.copy().add_proj(proj).apply_proj().get_data()
+    # save and reload data
+    fname_epo = op.join(tempdir, 'temp-epo.fif')
+    epochs.save(fname_epo)  # Save without proj added
+    epochs_read = read_epochs(fname_epo)
+    epochs_read.add_proj(proj)
+    epochs_read.apply_proj()  # This used to bomb
+    data_2 = epochs_read.get_data()  # Let's check the result
+    assert_allclose(data, data_2, atol=1e-15, rtol=1e-3)
 
 
 def test_evoked_arithmetic():
@@ -1308,8 +1392,12 @@ def test_array_epochs():
                    np.zeros(10),
                    [1, 2] * 5]
     event_id = {'a': 1, 'b': 2}
-    epochs = EpochsArray(data, info, events=events, event_id=event_id,
-                         tmin=-.2)
+    epochs = EpochsArray(data, info, events, tmin, event_id)
+    # From GH#1963
+    assert_raises(ValueError, EpochsArray, data[:-1], info, events, tmin,
+                  event_id)
+    assert_raises(ValueError, EpochsArray, data, info, events, tmin,
+                  dict(a=1))
 
     # saving
     temp_fname = op.join(tempdir, 'test-epo.fif')
@@ -1337,7 +1425,7 @@ def test_array_epochs():
                          reject_tmin=0.1, reject_tmax=0.2)
     assert_equal(len(epochs), len(events) - 2)
     assert_equal(epochs.drop_log[0], ['EEG 006'])
-    print(epochs.drop_log)
+    assert_equal(len(epochs.drop_log), 10)
     assert_equal(len(epochs.events), len(epochs.selection))
 
     # baseline
