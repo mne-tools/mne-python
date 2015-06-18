@@ -368,9 +368,8 @@ def _window_evoked(evoked, size):
 def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
-                  wsize=64, tstep=4, window=0.02, solver='auto',
-                  log_objective=True, return_residual=False,
-                  verbose=None):
+                  wsize=64, tstep=4, window=0.02, log_objective=True,
+                  return_residual=False, verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
     Compute L1/L2 + L1 mixed-norm solution on time frequency
@@ -438,11 +437,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
         Length of time window used to take care of edge artifacts in seconds.
         It can be one float or float if the values are different for left
         and right window length.
-    solver : 'prox' | 'bcd' | 'bcd_glmnet' | 'auto'
-        The algorithm to use for the optimization. prox stands for
-        proximal interations using the FISTA algorithm while bcd applies
-        block coordinate descent. bcd_glmnet applies bcd with an active_set
-        approach
     log_objective : bool
         If True, the cost function is evaluated in every iteration.
     return_residual : bool
@@ -495,7 +489,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha, rho, wsize=wsize, tstep=tstep, maxit=maxit,
         tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        log_objective=log_objective, debias=debias, solver=solver)
+        log_objective=log_objective, debias=debias)
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=np.bool)
