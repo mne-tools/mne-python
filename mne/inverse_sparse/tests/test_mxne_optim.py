@@ -104,31 +104,31 @@ def test_l21_mxne():
 
 def test_tf_mxne():
     """Test convergence of TF-MxNE solver"""
-    alpha_space = 40.
-    alpha_time = 0.1
+    alpha = 40.
+    rho = 0.1
 
     M, G, active_set = _generate_tf_data()
 
     X_hat_tf, active_set_hat_tf, E = tf_mixed_norm_solver(
-        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+        M, G, alpha, rho, maxit=200, tol=1e-8, verbose=True,
         n_orient=1, tstep=4, wsize=32)
     assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
 
 
 def test_tf_mxne_vs_mxne():
-    """Test equivalence of TF-MxNE (with alpha_time=0) and MxNE"""
-    alpha_space = 60.
-    alpha_time = 0.
+    """Test equivalence of TF-MxNE (with rho=0) and MxNE"""
+    alpha = 60.
+    rho = 0.
 
     M, G, active_set = _generate_tf_data()
 
     X_hat_tf, active_set_hat_tf, E = tf_mixed_norm_solver(
-        M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
+        M, G, alpha, rho, maxit=200, tol=1e-8, verbose=True,
         debias=False, n_orient=1, tstep=4, wsize=32)
 
     # Also run L21 and check that we get the same
     X_hat_l21, _, _ = mixed_norm_solver(
-        M, G, alpha_space, maxit=200, tol=1e-8, verbose=False, n_orient=1,
+        M, G, alpha, maxit=200, tol=1e-8, verbose=False, n_orient=1,
         active_set_size=None, debias=False)
 
     assert_allclose(X_hat_tf, X_hat_l21, rtol=1e-1)

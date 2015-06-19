@@ -672,7 +672,6 @@ class _PhiT(object):
                      self.n_times)
 
 
-@verbose
 def norm_l21_tf(Z, shape, n_orient):
     if Z.shape[0]:
         Z2 = Z.reshape(*shape)
@@ -683,7 +682,6 @@ def norm_l21_tf(Z, shape, n_orient):
     return l21_norm
 
 
-@verbose
 def norm_l1_tf(Z, shape, n_orient):
     if Z.shape[0]:
         n_positions = Z.shape[0] // n_orient
