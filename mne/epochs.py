@@ -222,6 +222,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             return
         self._data = self._get_data()
         self.preload = True
+        self._decim_slice = slice(None, None, None)
+        self._decim = 1
+        self._raw_times = self.times
 
     def decimate(self, decim, copy=False):
         """Decimate the epochs
@@ -267,20 +270,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                           'cause aliasing artifacts.'
                           % (lowpass, decim, new_sfreq))  # > 50% nyquist limit
 
+        epochs._decim *= decim
         start_idx = int(round(epochs._raw_times[0] * (epochs.info['sfreq'] *
-                                                      decim)))
-        i_start = start_idx % decim
-        decim_slice = slice(i_start, len(epochs._raw_times), decim)
+                                                      epochs._decim)))
+        i_start = start_idx % epochs._decim
+        decim_slice = slice(i_start, len(epochs._raw_times), epochs._decim)
+        epochs.info['sfreq'] = new_sfreq
         if epochs.preload:
             epochs._data = epochs._data[:, :, decim_slice].copy()
-            epochs._raw_times = epochs._raw_times[decim_slice]
+            epochs._raw_times = epochs._raw_times[decim_slice].copy()
             epochs._decim_slice = slice(None, None, None)
             epochs._decim = 1
+            epochs.times = epochs._raw_times
         else:
             epochs._decim_slice = decim_slice
-            epochs._decim *= decim
-        epochs.times = epochs._raw_times[epochs._decim_slice]
-        epochs.info['sfreq'] = new_sfreq
+            epochs.times = epochs._raw_times[epochs._decim_slice]
         return epochs
 
     def _reject_setup(self):
