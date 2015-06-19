@@ -200,6 +200,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
+    inst.info['nchan'] = len(inst.info['ch_names'])
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
 

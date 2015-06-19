@@ -9,6 +9,10 @@ Changelog
 ~~~~~~~~~
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs by `Denis Engemann`_
 
+BUG
+~~~
+
+    - Fix ``mne.io.add_reference_channels`` not setting ``info[nchan]`` correctly by `Federico Raimondo`_
 
 .. _changes_0_9:
 
