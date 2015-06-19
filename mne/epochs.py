@@ -222,7 +222,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self.preload_data()
 
     def preload_data(self):
-        """Preload the data"""
+        """Preload the data if not already preloaded
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
         if self.preload:
             return
         self._data = self._get_data()
@@ -252,7 +257,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         ``epochs.decimate(2).decimate(2)`` will be the same as
         ``epochs.decimate(4)``.
 
-        .. versionadded:: 0.10
+        .. versionadded:: 0.10.0
         """
         if decim < 1 or decim != int(decim):
             raise ValueError('decim must be an integer > 0')
