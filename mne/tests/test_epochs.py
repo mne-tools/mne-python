@@ -60,6 +60,56 @@ flat = dict(grad=1e-15, mag=1e-15)
 clean_warning_registry()  # really clean warning stack
 
 
+def test_reject():
+    """Test epochs rejection
+    """
+    raw, events, picks = _get_data()
+    # cull the list just to contain the relevent event
+    events = events[events[:, 2] == event_id, :]
+    selection = np.arange(3)
+    drop_log = [[]] * 3 + [['MEG 2443']] * 4
+
+    for preload in (True, False):
+        # no rejection
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        preload=preload)
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events))
+        assert_array_equal(epochs.selection, np.arange(len(events)))
+        assert_array_equal(epochs.drop_log, [[]] * 7)
+
+        # with rejection
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        reject=reject, preload=preload)
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events) - 4)
+        assert_array_equal(epochs.selection, selection)
+        assert_array_equal(epochs.drop_log, drop_log)
+
+        # rejection post-hoc
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        preload=preload)
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events))
+        epochs.reject = reject
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events) - 4)
+        assert_array_equal(epochs.selection, selection)
+        assert_array_equal(epochs.drop_log, drop_log)
+
+        # rejection twice
+        reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                        reject=reject_part, preload=preload)
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events) - 1)
+        epochs.reject = reject
+        epochs.drop_bad_epochs()
+        assert_equal(len(epochs), len(events) - 4)
+        assert_array_equal(epochs.selection, selection)
+        assert_array_equal(epochs.drop_log, drop_log)
+
+
 def test_decim():
     """Test epochs decimation
     """
@@ -83,7 +133,8 @@ def test_decim():
     raw, events, picks = _get_data()
     sfreq_new = raw.info['sfreq'] / decim
     raw.info['lowpass'] = sfreq_new / 4.  # suppress aliasing warnings
-    epochs = Epochs(raw, events, event_id, tmin, tmax, preload=False)
+    epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                    preload=False)
     assert_raises(ValueError, epochs.decimate, -1)
     expected_data = epochs.get_data()[:, :, ::decim]
     expected_times = epochs.times[::decim]

@@ -114,6 +114,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 raise ValueError('No desired events found.')
             self.events = events
             del events
+        else:
+            self.drop_log = []
+            self.selection = np.array([], int)
+            # do not set self.events here, let subclass do it
 
         # check reject_tmin and reject_tmax
         if (reject_tmin is not None) and (reject_tmin < tmin):
@@ -184,6 +188,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._raw_times = np.arange(start_idx,
                                     int(round(self.tmax * sfreq)) + 1) / sfreq
         self._decim = 1
+        # this method sets the self.times property
         self.decimate(decim)
 
         # setup epoch rejection
@@ -787,6 +792,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         re-calling this function.
         """
         self._bad_dropped = False
+        self._reject_setup()
         self._get_data(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):
@@ -1492,10 +1498,10 @@ class Epochs(_BaseEpochs):
         a list of the reasons the event is not longer in the selection, e.g.:
 
         'IGNORED' if it isn't part of the current subset defined by the user;
-        'NO DATA' or 'TOO SHORT' if epoch didn't contain enough data;
+        'NO_DATA' or 'TOO_SHORT' if epoch didn't contain enough data;
         names of channels that exceeded the amplitude threshold;
         'EQUALIZED_COUNTS' (see equalize_event_counts);
-        or user-defined reasons (see drop_epochs).
+        or 'USER' for user-defined reasons (see drop_epochs).
     verbose : bool, str, int, or None
         See above.
 
