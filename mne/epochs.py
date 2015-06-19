@@ -1012,7 +1012,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         if self._delayed_proj:
             data = np.zeros_like(data_)
             for ii, e in enumerate(data_):
-                data[ii] = self._preprocess(e.copy(), self.verbose)
+                data[ii] = self._preprocess(e.copy())
         else:
             data = data_.copy()
         return data
@@ -1055,7 +1055,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 raise StopIteration
             epoch = self._data[self._current]
             if self._delayed_proj:
-                epoch = self._preprocess(epoch.copy(), self.verbose)
+                epoch = self._preprocess(epoch.copy())
             self._current += 1
         else:
             is_good = False
@@ -1068,7 +1068,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 is_good, _ = self._is_good_epoch(epoch)
             # If delayed-ssp mode, pass 'virgin' data after rejection decision.
             if self._delayed_proj:
-                epoch = self._preprocess(epoch_raw, self.verbose)
+                epoch = self._preprocess(epoch_raw)
 
         if not return_event_id:
             return epoch
@@ -1669,7 +1669,7 @@ class EpochsArray(_BaseEpochs):
             raise ValueError('The events must only contain event numbers from '
                              'event_id')
         for ii, e in enumerate(self._data):
-            self._preprocess(e, self.verbose)
+            self._preprocess(e)
         self.drop_bad_epochs()
 
 
