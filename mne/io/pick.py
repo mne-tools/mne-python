@@ -391,6 +391,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
 
     sel = pick_channels(orig['sol']['row_names'], include=include,
                         exclude=exclude)
+    sel_info = pick_channels(orig['info']['ch_names'], include=include,
+                        exclude=exclude)
 
     fwd = deepcopy(orig)
 
@@ -411,8 +413,8 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     fwd['nchan'] = nuse
     fwd['sol']['row_names'] = ch_names
 
-    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel]
-    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel]
+    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel_info]
+    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']['nchan'] = nuse
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
