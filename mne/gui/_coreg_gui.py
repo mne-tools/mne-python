@@ -106,6 +106,8 @@ class CoregModel(HasPrivateTraits):
     has_fid_data = Property(Bool, depends_on=['mri_origin', 'hsp.nasion'],
                             desc="Required fiducials data is present.")
     has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
+    has_eegpts_data = Property(Bool, depends_on=['hsp.eeg_points'])
+    dig_points = Property(depends_on=['hsp.raw_points','hsp.has_eegpts_data','use_eeg_as_hsp'])
 
     # MRI dependent
     mri_origin = Property(depends_on=['mri.nasion', 'scale'],
@@ -169,6 +171,11 @@ class CoregModel(HasPrivateTraits):
     @cached_property
     def _get_has_pts_data(self):
         has = (np.any(self.mri.points) and np.any(self.hsp.points))
+        return has
+
+    @cached_property
+    def _get_has_eegpts_data(self):
+        has = np.any(self.hsp.eeg_points)
         return has
 
     @cached_property
@@ -1227,6 +1234,7 @@ class CoregFrame(HasTraits):
     hsp_nasion_obj = Instance(PointObject)
     hsp_rpa_obj = Instance(PointObject)
     hsp_visible = Property(depends_on=['hsp_always_visible', 'lock_fiducials'])
+    eeg_as_hsp = Property(depends_on=['use_eeg_as_hsp'])
 
     view_options = Button(label="View Options")
 
