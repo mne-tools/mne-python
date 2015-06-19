@@ -1135,7 +1135,7 @@ class Report(object):
         else:
             fname = op.realpath(fname)
 
-        self._render_toc(verbose=self.verbose)
+        self._render_toc()
 
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
