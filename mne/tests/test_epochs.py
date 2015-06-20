@@ -77,52 +77,55 @@ def test_reject():
     assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks, preload=False, reject=dict(foo=1.))
 
-    data_7 = None
+    data_7 = dict()
     keep_idx = [0, 1, 2]
     for preload in (True, False):
-        # no rejection
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        preload=preload)
-        assert_raises(ValueError, epochs.drop_bad_epochs, reject='foo')
-        epochs.drop_bad_epochs()
-        assert_equal(len(epochs), len(events))
-        assert_array_equal(epochs.selection, np.arange(len(events)))
-        assert_array_equal(epochs.drop_log, [[]] * 7)
-        data_7 = epochs.get_data() if data_7 is None else data_7
+        for proj in (True, False):
+            # no rejection
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=preload)
+            assert_raises(ValueError, epochs.drop_bad_epochs, reject='foo')
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events))
+            assert_array_equal(epochs.selection, np.arange(len(events)))
+            assert_array_equal(epochs.drop_log, [[]] * 7)
+            if proj not in data_7:
+                data_7[proj] = epochs.get_data()
+            assert_array_equal(epochs.get_data(), data_7[proj])
 
-        # with rejection
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        reject=reject, preload=preload)
-        epochs.drop_bad_epochs()
-        assert_equal(len(epochs), len(events) - 4)
-        assert_array_equal(epochs.selection, selection)
-        assert_array_equal(epochs.drop_log, drop_log)
-        assert_array_equal(epochs.get_data(), data_7[keep_idx])
+            # with rejection
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=reject, preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
-        # rejection post-hoc
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        preload=preload)
-        epochs.drop_bad_epochs()
-        assert_equal(len(epochs), len(events))
-        assert_array_equal(epochs.get_data(), data_7)
-        epochs.drop_bad_epochs(reject)
-        assert_equal(len(epochs), len(events) - 4)
-        assert_equal(len(epochs), len(epochs.get_data()))
-        assert_array_equal(epochs.selection, selection)
-        assert_array_equal(epochs.drop_log, drop_log)
-        assert_array_equal(epochs.get_data(), data_7[keep_idx])
+            # rejection post-hoc
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events))
+            assert_array_equal(epochs.get_data(), data_7[proj])
+            epochs.drop_bad_epochs(reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_equal(len(epochs), len(epochs.get_data()))
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
-        # rejection twice
-        reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
-        epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
-                        reject=reject_part, preload=preload)
-        epochs.drop_bad_epochs()
-        assert_equal(len(epochs), len(events) - 1)
-        epochs.drop_bad_epochs(reject)
-        assert_equal(len(epochs), len(events) - 4)
-        assert_array_equal(epochs.selection, selection)
-        assert_array_equal(epochs.drop_log, drop_log)
-        assert_array_equal(epochs.get_data(), data_7[keep_idx])
+            # rejection twice
+            reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=reject_part, preload=preload)
+            epochs.drop_bad_epochs()
+            assert_equal(len(epochs), len(events) - 1)
+            epochs.drop_bad_epochs(reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.selection, selection)
+            assert_array_equal(epochs.drop_log, drop_log)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
 
 def test_decim():
