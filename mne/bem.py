@@ -388,14 +388,14 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     bem_dir = op.join(subject_dir, 'bem')
     ws_dir = op.join(subject_dir, 'bem', 'watershed')
 
-    if not op.exists(subject_dir):
+    if not op.isdir(subject_dir):
         raise RuntimeError('Could not find the MRI data directory "%s"'
                            % subject_dir)
-    if not op.exists(bem_dir):
+    if not op.isdir(bem_dir):
         os.makedirs(bem_dir)
-    if not op.exists(T1_dir) and not op.exists(T1_mgz):
+    if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
         raise RuntimeError('Could not find the MRI data')
-    if op.exists(ws_dir):
+    if op.isdir(ws_dir):
         if not overwrite:
             raise RuntimeError('%s already exists. Use the --overwrite option'
                                'to recreate it.' % ws_dir)
@@ -423,12 +423,12 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                 'following parameters:\n\n'
                 'SUBJECTS_DIR = %s\n'
                 'SUBJECT = %s\n'
-                'Result dir = %s\n' % (subjects_dir, subject, ws_dir))
+                'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
     os.makedirs(op.join(ws_dir, 'ws'))
     run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     os.chdir(ws_dir)
-    if op.exists(T1_mgz):
+    if op.isfile(T1_mgz):
         # XXX : do this with python code
         surfaces = [subject + '_brain_surface', subject +
                     '_inner_skull_surface', subject + '_outer_skull_surface',
@@ -438,7 +438,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
                    '--surfout', s, "--replacegeom"]
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     os.chdir(bem_dir)
-    if op.exists(subject + '-head.fif'):
+    if op.isfile(subject + '-head.fif'):
         os.remove(subject + '-head.fif')
 
     # run the equivalent of mne_surf2bem
