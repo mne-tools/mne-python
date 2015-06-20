@@ -64,7 +64,7 @@ def test_reject():
     """Test epochs rejection
     """
     raw, events, picks = _get_data()
-    # cull the list just to contain the relevent event
+    # cull the list just to contain the relevant event
     events = events[events[:, 2] == event_id, :]
     selection = np.arange(3)
     drop_log = [[]] * 3 + [['MEG 2443']] * 4

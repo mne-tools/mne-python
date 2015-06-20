@@ -115,7 +115,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             self.events = events
             del events
         else:
-            self.drop_log = []
+            self.drop_log = list()
             self.selection = np.array([], int)
             # do not set self.events here, let subclass do it
 
@@ -224,8 +224,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     def preload_data(self):
         """Preload the data if not already preloaded
 
+        Returns
+        -------
+        epochs : instance of Epochs
+            The epochs object.
+
         Notes
         -----
+        This function operates inplace.
+
         .. versionadded:: 0.10.0
         """
         if self.preload:
@@ -235,6 +242,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self._decim_slice = slice(None, None, None)
         self._decim = 1
         self._raw_times = self.times
+        return self
 
     def decimate(self, decim, copy=False):
         """Decimate the epochs
@@ -789,7 +797,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         Should be used before slicing operations.
 
         .. Warning:: Operation is slow since all epochs have to be read from
-            disk. To avoid reading epochs form disk multiple times, initialize
+            disk. To avoid reading epochs from disk multiple times, initialize
             Epochs object with preload=True.
 
         Dropping bad epochs with different rejection and flat parameters
@@ -1395,7 +1403,7 @@ class Epochs(_BaseEpochs):
         by event_id, they will be marked as 'IGNORED' in the drop log.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with
@@ -1418,7 +1426,7 @@ class Epochs(_BaseEpochs):
     picks : array-like of int | None (default)
         Indices of channels to include (if None, all channels are used).
     name : string
-        Comment that describes the Evoked data created.
+        Comment that describes the Epochs data created.
     preload : boolean
         Load all epochs from disk when creating the object
         or wait before accessing each epoch (more memory
@@ -1487,9 +1495,9 @@ class Epochs(_BaseEpochs):
     info: dict
         Measurement info.
     event_id : dict
-        Names of  of conditions corresponding to event_ids.
+        Names of conditions corresponding to event_ids.
     ch_names : list of string
-        List of channels' names.
+        List of channel names.
     selection : array
         List of indices of selected events (not dropped or ignored etc.). For
         example, if the original event array had 4 events and the second event
@@ -1600,7 +1608,7 @@ class EpochsArray(_BaseEpochs):
         Start time before event.
     event_id : int | list of int | dict | None
         The id of the event to consider. If dict,
-        the keys can later be used to acces associated events. Example:
+        the keys can later be used to access associated events. Example:
         dict(auditory=1, visual=3). If int, a dict will be created with
         the id as string. If a list, all events with the IDs specified
         in the list are used. If None, all events will be used with
@@ -2059,7 +2067,7 @@ def add_channels_epochs(epochs_list, name='Unknown', add_eeg_ref=True,
     epochs_list : list of Epochs
         Epochs object to concatenate.
     name : str
-        Comment that describes the Evoked data created.
+        Comment that describes the Epochs data created.
     add_eeg_ref : bool
         If True, an EEG average reference will be added (unless there is no
         EEG in the data).
