@@ -150,11 +150,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.tmin = tmin
         self.tmax = tmax
         self.baseline = baseline
-        self.reject = reject
         self.reject_tmin = reject_tmin
         self.reject_tmax = reject_tmax
-        self.flat = flat
-        self._bad_dropped = False
         self.detrend = detrend
         self._raw = raw
         self.info = info
@@ -192,7 +189,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.decimate(decim)
 
         # setup epoch rejection
-        self._reject_setup()
+        self._reject_setup(reject, flat)
 
         # do the rest
         if proj not in [True, 'delayed', False]:
@@ -305,20 +302,31 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             epochs.times = epochs._raw_times[epochs._decim_slice]
         return epochs
 
-    def _reject_setup(self):
+    def _reject_setup(self, reject, flat):
         """Sets self._reject_time and self._channel_type_idx"""
-        if self.reject is None and self.flat is None:
-            return
-
         idx = channel_indices_by_type(self.info)
+        for rej, kind in zip((reject, flat), ('reject', 'flat')):
+            if not isinstance(rej, (type(None), dict)):
+                raise TypeError('reject and flat must be dict or None, not %s'
+                                % type(rej))
+            if isinstance(rej, dict):
+                bads = set(rej.keys()) - set(idx.keys())
+                if len(bads) > 0:
+                    raise KeyError('Unknown channel types found in %s: %s'
+                                   % (kind, bads))
+
         for key in idx.keys():
-            if (self.reject is not None and key in self.reject) \
-                    or (self.flat is not None and key in self.flat):
+            if (reject is not None and key in reject) \
+                    or (flat is not None and key in flat):
                 if len(idx[key]) == 0:
                     raise ValueError("No %s channel found. Cannot reject based"
                                      " on %s." % (key.upper(), key.upper()))
 
+        # after validation, set parameters
+        self._bad_dropped = False
         self._channel_type_idx = idx
+        self.reject = reject
+        self.flat = flat
 
         if (self.reject_tmin is None) and (self.reject_tmax is None):
             self._reject_time = None
@@ -791,7 +799,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
-    def drop_bad_epochs(self):
+    def drop_bad_epochs(self, reject='original', flat='original'):
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
@@ -800,12 +808,37 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             disk. To avoid reading epochs from disk multiple times, initialize
             Epochs object with preload=True.
 
-        Dropping bad epochs with different rejection and flat parameters
-        can be done by changing ``epochs.reject`` and ``epochs.flat`` and
-        re-calling this function.
+        Parameters
+        ----------
+        reject : dict | str | None
+            Rejection parameters based on peak-to-peak amplitude.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
+            If reject is None then no rejection is done. If 'original',
+            then the rejection parameters set at instantiation are used.
+        flat : dict | str | None
+            Rejection parameters based on flatness of signal.
+            Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
+            are floats that set the minimum acceptable peak-to-peak amplitude.
+            If flat is None then no rejection is done. If 'original',
+            then the flat parameters set at instantiation are used.
+
+        Notes
+        -----
+        Dropping bad epochs can be done multiple times with different
+        ``reject`` and ``flat`` parameters. However, once an epoch is
+        dropped, it is dropped forever, so if more lenient thresholds may
+        subsequently be applied, `epochs.copy` should be used.
         """
-        self._bad_dropped = False
-        self._reject_setup()
+        if reject == 'original':
+            if flat == 'original' and self._bad_dropped:
+                return
+            reject = self.reject
+        if flat == 'original':
+            flat = self.flat
+        if any(isinstance(rej, string_types) and rej != 'original' for
+               rej in (reject, flat)):
+            raise ValueError('reject and flat, if strings, must be "original"')
+        self._reject_setup(reject, flat)
         self._get_data(out=False)
 
     def drop_log_stats(self, ignore=['IGNORED']):

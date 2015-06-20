@@ -68,11 +68,20 @@ def test_reject():
     events = events[events[:, 2] == event_id, :]
     selection = np.arange(3)
     drop_log = [[]] * 3 + [['MEG 2443']] * 4
+    assert_raises (TypeError, pick_types, raw)
+    picks_meg = pick_types(raw.info, meg=True, eeg=False)
+    assert_raises(TypeError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks, preload=False, reject='foo')
+    assert_raises(ValueError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks_meg, preload=False, reject=dict(eeg=1.))
+    assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
+                  picks=picks, preload=False, reject=dict(foo=1.))
 
     for preload in (True, False):
         # no rejection
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         preload=preload)
+        assert_raises(ValueError, epochs.drop_bad_epochs, reject='foo')
         epochs.drop_bad_epochs()
         assert_equal(len(epochs), len(events))
         assert_array_equal(epochs.selection, np.arange(len(events)))
@@ -91,8 +100,7 @@ def test_reject():
                         preload=preload)
         epochs.drop_bad_epochs()
         assert_equal(len(epochs), len(events))
-        epochs.reject = reject
-        epochs.drop_bad_epochs()
+        epochs.drop_bad_epochs(reject)
         assert_equal(len(epochs), len(events) - 4)
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
@@ -103,8 +111,7 @@ def test_reject():
                         reject=reject_part, preload=preload)
         epochs.drop_bad_epochs()
         assert_equal(len(epochs), len(events) - 1)
-        epochs.reject = reject
-        epochs.drop_bad_epochs()
+        epochs.drop_bad_epochs(reject)
         assert_equal(len(epochs), len(events) - 4)
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
