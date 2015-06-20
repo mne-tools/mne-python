@@ -547,6 +547,13 @@ def slow_test(f):
     return f
 
 
+@nottest
+def ultra_slow_test(f):
+    """Decorator for ultra slow tests"""
+    f.ultra_slow_test = True
+    return f
+
+
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed
 
@@ -777,7 +784,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
                "that you use '$HOME' instead of '~'.")
         warnings.warn(msg)
 
-    logger.info("Running subprocess: %s" % str(command))
+    logger.info("Running subprocess: %s" % ' '.join(command))
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
