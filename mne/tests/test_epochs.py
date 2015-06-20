@@ -110,7 +110,6 @@ def test_reject():
         assert_equal(len(epochs), len(epochs.get_data()))
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
-        print(preload)
         assert_array_equal(epochs.get_data(), data_7[keep_idx])
 
         # rejection twice
