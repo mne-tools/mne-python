@@ -190,7 +190,8 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     # PickChannelsMixin
     from .meas_info import Info
     if not isinstance(info, Info):
-        raise TypeError('info must be an instance of Info, not %s' % info)
+        raise TypeError('info must be an instance of Info, not %s'
+                        % type(info))
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 

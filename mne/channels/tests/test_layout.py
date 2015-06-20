@@ -20,8 +20,8 @@ from mne.channels.layout import (_box_size, _auto_topomap_coords,
                                  generate_2d_layout)
 from mne.utils import run_tests_if_main
 from mne import pick_types, pick_info
-from mne.io import Raw
-from mne.io import read_raw_kit
+from mne.io import Raw, read_raw_kit
+from mne.io.meas_info import Info
 from mne.io.constants import FIFF
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.utils import _TempDir
@@ -43,7 +43,7 @@ fname_ctf_raw = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
 fname_kit_157 = op.join(op.dirname(__file__), '..', '..',  'io', 'kit',
                         'tests', 'data', 'test.sqd')
 
-test_info = {
+test_info = Info({
     'ch_names': ['ICA 001', 'ICA 002', 'EOG 061'],
     'chs': [{'cal': 1,
              'ch_name': 'ICA 001',
@@ -87,7 +87,7 @@ test_info = {
              'scanno': 376,
              'unit': 107,
              'unit_mul': 0}],
-    'nchan': 3}
+    'nchan': 3})
 
 
 def test_io_layout_lout():
