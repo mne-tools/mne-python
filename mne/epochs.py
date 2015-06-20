@@ -973,73 +973,82 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Defaults to self.verbose.
         """
         n_events = len(self.events)
-        data = np.array([])  # in case there are no good events
+        # in case there are no good events
+        if self.preload:
+            # we will store our result in our existing array
+            data = self._data
+        else:
+            # we start out with an empty array, allocate only if necessary
+            data = np.empty((0, len(self.info['ch_names']), len(self.times)))
         if self._bad_dropped:
             if not out:
                 return
+            if self.preload:
+                return data
 
+            # we need to load from disk, drop, and return data
             for idx in range(n_events):
                 # faster to pre-allocate memory here
-                if self.preload:
-                    epoch_raw = self._data[idx]
-                else:
-                    epoch_raw = self._get_epoch_from_raw(idx)
+                epoch_raw = self._get_epoch_from_raw(idx)
                 if idx == 0:
                     data = np.empty((n_events, epoch_raw.shape[0],
                                      epoch_raw.shape[1]),
                                     dtype=epoch_raw.dtype)
                 if self._delayed_proj:
-                    epoch = epoch_raw
+                    epoch_out = epoch_raw
                 else:
-                    epoch = self._process_epoch_raw(epoch_raw)
-                data[idx] = epoch
+                    epoch_out = self._process_epoch_raw(epoch_raw)
+                data[idx] = epoch_out
         else:
-            good_events = []
+            # bads need to be dropped, this might occur after a preload
+            # e.g., when calling drop_bad_epochs w/new params
+            good_idx = []
             n_out = 0
-            for idx, sel in zip(range(n_events), self.selection):
-                if self.preload:
-                    epoch_raw = self._data[idx]
-                else:
+            assert n_events == len(self.selection)
+            for idx, sel in enumerate(self.selection):
+                if self.preload:  # from memory
+                    if self._delayed_proj:
+                        epoch_raw = self._data[idx]
+                        epoch = self._process_epoch_raw(epoch_raw)
+                    else:
+                        epoch_raw = None
+                        epoch = self._data[idx]
+                else:  # from disk
                     epoch_raw = self._get_epoch_from_raw(idx)
-                epoch = self._process_epoch_raw(epoch_raw)
+                    epoch = self._process_epoch_raw(epoch_raw)
+                epoch_out = epoch_raw if self._delayed_proj else epoch
                 is_good, offenders = self._is_good_epoch(epoch)
-
                 if not is_good:
                     self.drop_log[sel] += offenders
                     continue
+                good_idx.append(idx)
 
-                good_events.append(idx)
-                if self._delayed_proj:
-                    epoch = epoch_raw
-
-                if out:
+                # store the epoch if there is a reason to (output or update)
+                if out or self.preload:
                     # faster to pre-allocate, then trim as necessary
-                    if n_out == 0:
-                        data = np.empty((n_events, epoch.shape[0],
-                                         epoch.shape[1]),
-                                        dtype=epoch.dtype, order='C')
-                    data[n_out] = epoch
+                    if n_out == 0 and not self.preload:
+                        data = np.empty((n_events, epoch_out.shape[0],
+                                         epoch_out.shape[1]),
+                                        dtype=epoch_out.dtype, order='C')
+                    data[n_out] = epoch_out
                     n_out += 1
 
-            if len(good_events) == 0:  # silly fix for old numpy index error
+            self._bad_dropped = True
+            logger.info("%d bad epochs dropped" % (n_events - len(good_idx)))
+
+            # Now update our properties
+            if len(good_idx) == 0:  # silly fix for old numpy index error
                 self.selection = np.array([], int)
                 self.events = np.empty((0, 3))
             else:
-                self.selection = self.selection[good_events]
-                self.events = np.atleast_2d(self.events[good_events])
-            self._bad_dropped = True
-            logger.info("%d bad epochs dropped"
-                        % (n_events - len(good_events)))
-            if not out:
-                return
-            # just take the good events
-            assert len(good_events) == n_out
-            if n_out > 0:
-                # slicing won't free the space, so we resize
-                # we have ensured the C-contiguity of the array in allocation
-                # so this operation will be safe unless np is very broken
+                self.selection = self.selection[good_idx]
+                self.events = np.atleast_2d(self.events[good_idx])
+
+            # adjust the data size if there is a reason to (output or update)
+            if out or self.preload:
                 data.resize((n_out,) + data.shape[1:], refcheck=False)
-        return data
+
+        return data if out else None
 
     def get_data(self):
         """Get all epochs as a 3D array
@@ -1049,7 +1058,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         data : array of shape (n_epochs, n_channels, n_times)
             A copy of the epochs data.
         """
-        data_ = self._data if self.preload else self._get_data()
+        data_ = self._get_data()
         if self._delayed_proj:
             data = np.zeros_like(data_)
             for ii, e in enumerate(data_):

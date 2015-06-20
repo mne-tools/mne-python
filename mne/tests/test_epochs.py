@@ -68,7 +68,7 @@ def test_reject():
     events = events[events[:, 2] == event_id, :]
     selection = np.arange(3)
     drop_log = [[]] * 3 + [['MEG 2443']] * 4
-    assert_raises (TypeError, pick_types, raw)
+    assert_raises(TypeError, pick_types, raw)
     picks_meg = pick_types(raw.info, meg=True, eeg=False)
     assert_raises(TypeError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks, preload=False, reject='foo')
@@ -77,6 +77,8 @@ def test_reject():
     assert_raises(KeyError, Epochs, raw, events, event_id, tmin, tmax,
                   picks=picks, preload=False, reject=dict(foo=1.))
 
+    data_7 = None
+    keep_idx = [0, 1, 2]
     for preload in (True, False):
         # no rejection
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -86,6 +88,7 @@ def test_reject():
         assert_equal(len(epochs), len(events))
         assert_array_equal(epochs.selection, np.arange(len(events)))
         assert_array_equal(epochs.drop_log, [[]] * 7)
+        data_7 = epochs.get_data() if data_7 is None else data_7
 
         # with rejection
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
@@ -94,16 +97,21 @@ def test_reject():
         assert_equal(len(epochs), len(events) - 4)
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
+        assert_array_equal(epochs.get_data(), data_7[keep_idx])
 
         # rejection post-hoc
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         preload=preload)
         epochs.drop_bad_epochs()
         assert_equal(len(epochs), len(events))
+        assert_array_equal(epochs.get_data(), data_7)
         epochs.drop_bad_epochs(reject)
         assert_equal(len(epochs), len(events) - 4)
+        assert_equal(len(epochs), len(epochs.get_data()))
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
+        print(preload)
+        assert_array_equal(epochs.get_data(), data_7[keep_idx])
 
         # rejection twice
         reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
@@ -115,6 +123,7 @@ def test_reject():
         assert_equal(len(epochs), len(events) - 4)
         assert_array_equal(epochs.selection, selection)
         assert_array_equal(epochs.drop_log, drop_log)
+        assert_array_equal(epochs.get_data(), data_7[keep_idx])
 
 
 def test_decim():
