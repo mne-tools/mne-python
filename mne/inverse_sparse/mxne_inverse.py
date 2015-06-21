@@ -362,7 +362,7 @@ def _window_evoked(evoked, size):
 
 
 @verbose
-def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
+def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
@@ -396,10 +396,10 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
         Forward operator.
     noise_cov : instance of Covariance
         Noise covariance to compute whitener.
-    alpha : float in [0, 100]
+    alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
         then no source will be active.
-    rho : float in [0, 1]
+    alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
         equivalent to MxNE with L21 norm.
@@ -452,16 +452,13 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
     all_ch_names = evoked.ch_names
     info = evoked.info
 
-    alpha = float(alpha)
-    rho = float(rho)
+    if (alpha_space < 0.) or (alpha_space > 100.):
+        raise Exception('alpha_space must be in range [0, 100].'
+                        ' Got alpha_space = %f' % alpha_space)
 
-    if (alpha < 0.) or (alpha > 100.):
-        raise Exception('alpha must be in range [0, 100]. Got alpha = %f'
-                        % alpha)
-
-    if (rho < 0.) or (rho > 1.):
-        raise Exception('rho must be in range [0, 1]. Got rho = %f'
-                        % rho)
+    if (alpha_time < 0.) or (alpha_time > 100.):
+        raise Exception('alpha_time must be in range [0, 100].'
+                        ' Got alpha_time = %f' % alpha_time)
 
     # put the forward solution in fixed orientation if it's not already
     if loose is None and not is_fixed_orient(forward):
@@ -484,8 +481,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha, rho,
     M = np.dot(whitener, M)
 
     X, active_set, E = tf_mixed_norm_solver(
-        M, gain, alpha, rho, wsize=wsize, tstep=tstep, maxit=maxit,
-        tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
+        M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
+        maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
         log_objective=log_objective, debias=debias)
 
     if mask is not None:

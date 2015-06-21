@@ -8,11 +8,10 @@ from copy import deepcopy
 import warnings
 from math import sqrt, ceil
 import numpy as np
-from scipy import linalg, optimize
+from scipy import linalg
 
 from .mxne_debiasing import compute_bias
 from ..utils import logger, verbose, sum_squared
-from ..parallel import parallel_func
 from ..time_frequency.stft import stft_norm2, stft, istft
 from ..externals.six.moves import xrange as range
 
@@ -697,7 +696,7 @@ def norm_l1_tf(Z, shape, n_orient):
 
 
 @verbose
-def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
+def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha_space, alpha_time,
                                lipschitz_constant, phi, phiT,
                                wsize=64, tstep=4, n_orient=1,
                                maxit=200, tol=1e-8, log_objective=True,
@@ -721,8 +720,6 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
 
     E = []  # track cost function
 
-    alpha_time = alpha * rho
-    alpha_space = alpha * (1. - rho)
     alpha_time_lc = alpha_time / lipschitz_constant
     alpha_space_lc = alpha_space / lipschitz_constant
 
@@ -824,9 +821,9 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha, rho,
 
 @verbose
 def _tf_mixed_norm_solver_bcd_active_set(
-        M, G, alpha, rho, lipschitz_constant, phi, phiT, Z_init=None, wsize=64,
-        tstep=4, n_orient=1, maxit=200, tol=1e-8, log_objective=True,
-        perc=None, verbose=None):
+        M, G, alpha_space, alpha_time, lipschitz_constant, phi, phiT,
+        Z_init=None, wsize=64, tstep=4, n_orient=1, maxit=200, tol=1e-8,
+        log_objective=True, perc=None, verbose=None):
     """Solves TF L21+L1 inverse solver with BCD and active set approach
 
     Algorithm is detailed in:
@@ -843,10 +840,10 @@ def _tf_mixed_norm_solver_bcd_active_set(
         The data.
     G : array
         The forward operator.
-    alpha : float in [0, 100]
+    alpha_space : float in [0, 100]
         Regularization parameter for spatial sparsity. If larger than 100,
         then no source will be active.
-    rho : float in [0, 1]
+    alpha_time : float in [0, 100]
         Regularization parameter for temporal sparsity. It set to 0,
         no temporal regularization is applied. It this case, TF-MxNE is
         equivalent to MxNE with L21 norm.
@@ -911,9 +908,9 @@ def _tf_mixed_norm_solver_bcd_active_set(
                      len(active)))))
 
     Z, active_set, E, _ = _tf_mixed_norm_solver_bcd_(
-        M, G, Z, active_set, alpha, rho, lipschitz_constant, phi, phiT,
-        wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=1, tol=tol,
-        log_objective=log_objective, perc=None, verbose=verbose)
+        M, G, Z, active_set, alpha_space, alpha_time, lipschitz_constant,
+        phi, phiT, wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=1,
+        tol=tol, log_objective=log_objective, perc=None, verbose=verbose)
 
     while active_set.sum():
         active = np.where(active_set)[0][::n_orient] // n_orient
@@ -921,7 +918,8 @@ def _tf_mixed_norm_solver_bcd_active_set(
         Z, as_, E_tmp, converged = _tf_mixed_norm_solver_bcd_(
             M, G[:, active_set], Z_init,
             np.ones(len(active) * n_orient, dtype=np.bool),
-            alpha, rho, lipschitz_constant[active_set[::n_orient]],
+            alpha_space, alpha_time,
+            lipschitz_constant[active_set[::n_orient]],
             phi, phiT, wsize=wsize, tstep=tstep, n_orient=n_orient,
             maxit=maxit, tol=tol, log_objective=log_objective,
             perc=0.5, verbose=verbose)
@@ -932,9 +930,10 @@ def _tf_mixed_norm_solver_bcd_active_set(
         active_set[active_set] = as_
         active_set_0 = active_set.copy()
         Z, active_set, E_tmp, _ = _tf_mixed_norm_solver_bcd_(
-            M, G, Z_init, active_set, alpha, rho, lipschitz_constant, phi,
-            phiT, wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=1,
-            tol=tol, log_objective=log_objective, perc=None, verbose=verbose)
+            M, G, Z_init, active_set, alpha_space, alpha_time,
+            lipschitz_constant, phi, phiT, wsize=wsize, tstep=tstep,
+            n_orient=n_orient, maxit=1, tol=tol, log_objective=log_objective,
+            perc=None, verbose=verbose)
         E += E_tmp
         if converged:
             if np.array_equal(active_set_0, active_set):
@@ -955,75 +954,9 @@ def _tf_mixed_norm_solver_bcd_active_set(
     return X, Z, active_set, E
 
 
-def _alpha_max_fun(alpha, rho, GTM, shape):
-    thresh = GTM * np.maximum(1. - (alpha * rho) / np.maximum(np.abs(GTM),
-                              alpha * rho), 0.0)
-    alpha_max = stft_norm2(thresh.reshape(*shape)).sum()
-    alpha_max -= ((1. - rho) * alpha) ** 2
-    return alpha_max
-
-
-def _compute_alpha_max(G, M, phi, rho, shape):
-    GTM = np.abs(phi(np.dot(G.T, M))) ** 2.
-    GTM = np.sqrt(np.sum(GTM, axis=0))
-    alpha_max = np.max(GTM) / rho
-    if rho < 1.0:
-        alpha_max = optimize.brentq(_alpha_max_fun, 0., alpha_max,
-                                    args=(rho, GTM, shape))
-    return alpha_max
-
-
-def compute_alpha_max(G, M, phi, rho, n_orient, shape):
-    """ Compute maximum alpha given rho
-
-    Algorithm is detailed in:
-    M. Vincent, N.R. Hansen
-    Sparse group lasso and high dimensional multinomial classification.
-    Computational Statistics & Data Analysis, Volume 71, 01 March 2014,
-    Pages 771-786, ISSN 0167-9473, DOI: 10.1016/j.csda.2013.06.004.
-
-    Parameters
-    ----------
-    M : array
-        The data.
-    G : array
-        The forward operator.
-    phi : instance of _Phi
-        The forward STFT operator.
-    rho : float in [0, 1]
-        Regularization parameter for temporal sparsity. It set to 0,
-        no temporal regularization is applied. It this case, TF-MxNE is
-        equivalent to MxNE with L21 norm.
-    Z_init : None | array
-        The initialization of the TF coefficient matrix. If None, zeros
-        will be used for all coefficients.
-    n_orient : int
-        The number of orientation (1 : fixed or 3 : free or loose).
-    shape : tuple
-        The shape of the time-frequency coefficient matrix, i.e.
-        (-1, n_freq, n_step).
-
-    Returns
-    -------
-    alpha_max : float
-        The smallest alpha given rho, such that the active set is empty
-        for all alphas > alpha
-    """
-    n_positions = G.shape[1] // n_orient
-    if rho > 0.:
-        parallel, my_func, n_jobs = parallel_func(_compute_alpha_max, 1)
-        alpha_max = parallel(my_func(G[:, idx * n_orient:(idx + 1) * n_orient],
-                             M, phi, rho, shape)
-                             for idx in range(n_positions))
-    else:
-        alpha_max = stft_norm2(phi(np.dot(G.T, M)).reshape(*shape))
-        alpha_max = np.sqrt(alpha_max.reshape(n_positions, -1).sum(axis=1))
-    return max(alpha_max)
-
-
 @verbose
-def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
-                         maxit=200, tol=1e-8, log_objective=True,
+def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
+                         n_orient=1, maxit=200, tol=1e-8, log_objective=True,
                          debias=True, verbose=None):
     """Solves TF L21+L1 inverse solver with BCD and active set approach
 
@@ -1043,25 +976,17 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
     600-611, DOI: 10.1007/978-3-642-22092-0_49
     http://dx.doi.org/10.1007/978-3-642-22092-0_49
 
-    Strohmeier D., Gramfort A., and Haueisen J.:
-    MEG/EEG source imaging with a non-convex penalty in the time-
-    frequency domain,
-    5th International Workshop on Pattern Recognition in Neuroimaging,
-    Stanford University, 2015
-
     Parameters
     ----------
-    M : array
+    M : array, shape (n_sensors, n_times)
         The data.
-    G : array
-        The forward operator.
-    alpha : float in [0, 100]
-        Regularization parameter for spatial sparsity. If larger than 100,
-        then no source will be active.
-    rho : float in [0, 1]
-        Regularization parameter for temporal sparsity. It set to 0,
-        no temporal regularization is applied. It this case, TF-MxNE is
-        equivalent to MxNE with L21 norm.
+    G : array, shape (n_sensors, n_dipoles)
+        The gain matrix a.k.a. lead field.
+    alpha_space : float
+        The spatial regularization parameter. It should be between 0 and 100.
+    alpha_time : float
+        The temporal regularization parameter. The higher it is the smoother
+        will be the estimated time series.
     wsize: int
         length of the STFT window in samples (must be a multiple of 4).
     tstep: int
@@ -1084,7 +1009,7 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
 
     Returns
     -------
-    X : array
+    X : array, shape (n_active, n_times)
         The source estimates.
     active_set : array
         The mask of active sources.
@@ -1098,18 +1023,9 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
 
     n_step = int(ceil(n_times / float(tstep)))
     n_freq = wsize / 2 + 1
-    shape = (-1, n_freq, n_step)
     n_coefs = n_step * n_freq
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
-
-    logger.info('Computing and normalizing alpha_max ...')
-    alpha_max = compute_alpha_max(G, M, phi, rho, n_orient, shape)
-    alpha_max *= 0.01
-    G /= alpha_max
-
-    alpha_max_tmp = compute_alpha_max(G, M, phi, rho, n_orient, shape)
-    logger.info('alpha_max = %f' % alpha_max_tmp)
 
     if n_orient == 1:
         lc = np.sum(G * G, axis=0)
@@ -1121,15 +1037,13 @@ def tf_mixed_norm_solver(M, G, alpha, rho, wsize=64, tstep=4, n_orient=1,
 
     logger.info("Using block coordinate descent and active set approach")
     X, Z, active_set, E = _tf_mixed_norm_solver_bcd_active_set(
-        M, G, alpha, rho, lc, phi, phiT, Z_init=None, wsize=wsize,
-        tstep=tstep, n_orient=n_orient, maxit=maxit, tol=tol,
+        M, G, alpha_space, alpha_time, lc, phi, phiT, Z_init=None,
+        wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=maxit, tol=tol,
         log_objective=log_objective, verbose=None)
 
     if debias:
         if active_set.sum() > 0:
             bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
-            X *= bias[:, np.newaxis] / alpha_max
-        else:
-            X /= alpha_max
+            X *= bias[:, np.newaxis]
 
     return X, active_set, E
