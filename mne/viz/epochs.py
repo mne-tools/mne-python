@@ -584,11 +584,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_vscroll.set_title('Ch.')
 
     # populate colors list
-    typecolors = [colorConverter.to_rgba(color[c]) for c in types]
+    ch_names = [epochs.info['ch_names'][x] for x in inds]
+    type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
-    for color_idx in range(len(typecolors)):
-        colors.append(list())
-        colors[color_idx] = [typecolors[color_idx]] * len(epochs.events)
+    for color_idx in range(len(type_colors)):
+        if ch_names[color_idx] in epochs.info['bads']:  # bad colors
+            colors.append([(0.8, 0.8, 0.8, 1.0)] * len(epochs.events))
+            type_colors[color_idx] = [(0.8, 0.8, 0.8, 1.0)]
+        else:
+            colors.append([type_colors[color_idx]] * len(epochs.events))
     lines = list()
     n_times = len(epochs.times)
 
@@ -596,7 +600,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         if len(colors) - 1 < ch_idx:
             break
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
-                            colors=colors[ch_idx], zorder=2, picker=3.)
+                            zorder=2, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -664,11 +668,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               't_start': 0,
               'duration': duration,
               'colors': colors,
-              'def_colors': typecolors,  # don't change at runtime
+              'def_colors': type_colors,  # don't change at runtime
               'picks': picks,
               'bad_color': bad_color,
               'bads': np.array(list(), dtype=int),
-              'ch_names': [epochs.info['ch_names'][x] for x in inds],
+              'ch_names': ch_names,
               'data': data,
               'orig_data': epoch_data,
               'times': times,
@@ -833,8 +837,8 @@ def _plot_traces(params):
     params['text'].set_visible(False)
     ax = params['ax']
     butterfly = params['butterfly']
-    ylim = ax.get_ylim()
     if butterfly:
+        ylim = ax.get_ylim()
         ch_start = 0
         picks = params['picks']
         n_channels = len(params['picks'])
@@ -1204,9 +1208,10 @@ def _prepare_butterfly(params):
                                xycoords='axes fraction', rotation=90,
                                textcoords='offset points')
         ax = params['ax']
-        ylim = ax.get_ylim()[0]
-        offset = ax.get_ylim()[0] / 16.0
-        ax.set_yticks(np.arange(0, ylim, offset))
+        ylim = (20, 0)
+        ax.set_ylim(ylim)
+        offset = ylim[0] / 16.0
+        ax.set_yticks(np.arange(0, ylim[0], offset))
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
                                 zorder=2, picker=3.)
