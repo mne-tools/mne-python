@@ -14,6 +14,8 @@ BUG
 
     - Fix ``mne.io.add_reference_channels`` not setting ``info[nchan]`` correctly by `Federico Raimondo`_
 
+    - Fix ``mne.stats.bonferroni_correction`` reject mask output to use corrected p-values by `Denis Engemann`_
+
 .. _changes_0_9:
 
 Changelog
