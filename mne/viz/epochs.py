@@ -838,17 +838,14 @@ def _plot_traces(params):
     ax = params['ax']
     butterfly = params['butterfly']
     if butterfly:
-        ylim = ax.get_ylim()
         ch_start = 0
         picks = params['picks']
         n_channels = len(params['picks'])
-        offsets = [ylim[0] * (2. / 16.), ylim[0] * (6. / 16.),
-                   ylim[0] * (10. / 16.), ylim[0] * (14. / 16.)]
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
-        offsets = params['offsets']
         picks = params['picks']
+    offsets = params['offsets']
     lines = params['lines']
     data = params['data'] * params['scale_factor']
     epochs = params['epochs']
@@ -1211,6 +1208,8 @@ def _prepare_butterfly(params):
         ylim = (20, 0)
         ax.set_ylim(ylim)
         offset = ylim[0] / 16.0
+        params['offsets'] = [offset * 2., offset * 6., offset * 10.,
+                             offset * 14.]
         ax.set_yticks(np.arange(0, ylim[0], offset))
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
@@ -1221,10 +1220,13 @@ def _prepare_butterfly(params):
         params['ax_vscroll'].set_visible(True)
         while len(params['ax2'].texts) > 0:
             params['ax2'].texts.pop()
-        params['ax'].set_yticks(params['offsets'])
-        while len(params['lines']) > params['n_channels']:
+        n_channels = params['n_channels']
+        while len(params['lines']) > n_channels:
             params['ax'].collections.pop()
             params['lines'].pop()
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['ax'].set_yticks(params['offsets'])
     params['butterfly'] = butterfly
 
 
