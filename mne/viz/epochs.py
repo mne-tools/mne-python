@@ -650,6 +650,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
                    horizontalalignment='left', fontweight='bold')
     text.set_visible(False)
+
+    ax_help_button = plt.subplot2grid((10, 15), (0, 14))
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(_onclick_help)
+
     params = {'fig': fig,
               'ax': ax,
               'ax2': ax2,
@@ -688,6 +693,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'vertline_t': vertline_t,
               'butterfly': False,
               'text': text}
+              'ax_help_button': ax_help_button}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -1358,3 +1364,32 @@ def _close_event(event, params):
 def _resize_event(event, params):
     """Function to handle resize event"""
     _layout_figure(params)
+
+
+def _onclick_help(event):
+    """Function for drawing help window"""
+    import matplotlib.pyplot as plt
+    text = 'left arrow : Navigate left\n'\
+           'right arrow : Navigate right\n'\
+           'down arrow : Navigate channels down\n'\
+           'up arrow : Navigate channels up\n'\
+           '- : Scale down\n'\
+           '+ : Scale up\n'\
+           '= : Scale up\n'\
+           'home : Reduce the number of epochs per view\n'\
+           'end : Increase the number of epochs per view\n'\
+           'page down : Reduce the number of channels per view\n'\
+           'page up : Increase the number of channels per view\n'\
+           'b : Toggle butterfly plot on/off\n'
+    width = 10
+    height = 0.2 * 15
+    fig_help = figure_nobar(figsize=(width, height))
+    fig_help.canvas.set_window_title('Help')
+    plt.axis('off')
+    plt.text(0, 0, text)
+    # this should work for non-test cases
+    try:
+        fig_help.canvas.draw()
+        fig_help.show()
+    except Exception:
+        pass

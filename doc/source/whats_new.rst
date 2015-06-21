@@ -16,6 +16,8 @@ Changelog
 
     - Speed up zero-phase overlap-add (default) filtering by a factor of up to 2 using linearity by `Ross Maddox`_ and `Eric Larson`_
 
+    - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
+
 
 BUG
 ~~~
@@ -26,8 +28,11 @@ BUG
 
     - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
 
+<<<<<<< HEAD
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
+=======
+>>>>>>> Rebase
 .. _changes_0_9:
 
 Version 0.9

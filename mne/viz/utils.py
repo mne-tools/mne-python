@@ -269,7 +269,7 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
 
 
 def _layout_figure(params):
-    """Aux function for setting figure layout"""
+    """Function for setting figure layout. Shared with raw and epoch plots"""
     size = params['fig'].get_size_inches() * params['fig'].dpi
     scroll_width = 25
     hscroll_dist = 25
@@ -298,6 +298,8 @@ def _layout_figure(params):
     ax_height = 1.0 - ax_y - t_border
 
     pos = [l_border, ax_y, ax_width, ax_height]
+
+    params['ax'].set_position(pos)
     if 'ax2' in params:
         params['ax2'].set_position(pos)
     params['ax'].set_position(pos)
@@ -313,6 +315,10 @@ def _layout_figure(params):
         pos = [l_border + ax_width + vscroll_dist, b_border,
                scroll_width_x, scroll_width_y]
         params['ax_button'].set_position(pos)
+    if 'ax_help_button' in params:
+        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
+               scroll_width_x * 2, scroll_width_y]
+        params['ax_help_button'].set_position(pos)
     params['fig'].canvas.draw()
 
 
