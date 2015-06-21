@@ -568,9 +568,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
-
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
+
+    ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(_onclick_help)
+
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
@@ -650,10 +654,6 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
                    horizontalalignment='left', fontweight='bold')
     text.set_visible(False)
-
-    ax_help_button = plt.subplot2grid((10, 15), (0, 14))
-    help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(_onclick_help)
 
     params = {'fig': fig,
               'ax': ax,
