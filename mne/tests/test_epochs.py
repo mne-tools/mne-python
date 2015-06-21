@@ -80,7 +80,7 @@ def test_reject():
     data_7 = dict()
     keep_idx = [0, 1, 2]
     for preload in (True, False):
-        for proj in (True, False):
+        for proj in (True, False, 'delayed'):
             # no rejection
             epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                             preload=preload)
@@ -1166,7 +1166,7 @@ def test_epochs_proj_mixin():
     for preload in [True, False]:
         epochs = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), proj='delayed', preload=preload,
-                        add_eeg_ref=True, verbose=True, reject=reject)
+                        add_eeg_ref=True, reject=reject)
         epochs2 = Epochs(raw, events[:4], event_id, tmin, tmax, picks=picks,
                          baseline=(None, 0), proj=True, preload=preload,
                          add_eeg_ref=True, reject=reject)
