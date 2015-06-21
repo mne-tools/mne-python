@@ -12,6 +12,7 @@ import numpy as np
 from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs
 from ..io import read_info
+from ..io.meas_info import create_info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
@@ -436,11 +437,13 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     # make a new dict with the relevant information
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra_long,
-                meas_id=None, working_dir=os.getcwd(),
-                command_line=cmd, bads=info['bads'])
+    fwd_info = create_info(info['ch_names'], info['sfreq'])
+    fwd_info.update(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
+                    ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
+                    mri_file=trans, mri_id=mri_id, meas_file=info_extra_long,
+                    meas_id=None, working_dir=os.getcwd(),
+                    command_line=cmd, bads=info['bads'])
+    info = fwd_info
     logger.info('')
 
     megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
