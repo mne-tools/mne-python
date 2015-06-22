@@ -104,15 +104,15 @@ def test_l21_mxne():
 
 def test_tf_mxne():
     """Test convergence of TF-MxNE solver"""
-    alpha_space = 10.
-    alpha_time = 5.
+    alpha_space = 40.
+    alpha_time = 0.1
 
     M, G, active_set = _generate_tf_data()
 
-    X_hat_prox, active_set_hat_prox, E = tf_mixed_norm_solver(
+    X_hat_tf, active_set_hat_tf, E = tf_mixed_norm_solver(
         M, G, alpha_space, alpha_time, maxit=200, tol=1e-8, verbose=True,
         n_orient=1, tstep=4, wsize=32)
-    assert_array_equal(np.where(active_set_hat_prox)[0], active_set)
+    assert_array_equal(np.where(active_set_hat_tf)[0], active_set)
 
 
 def test_tf_mxne_vs_mxne():
