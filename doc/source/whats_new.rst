@@ -8,7 +8,7 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`stats.parametric.f_mway_rm by` `Denis Engemann`_
+    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`stats.parametric.f_mway_rm` by `Denis Engemann`_
 
     - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
 
