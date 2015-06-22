@@ -189,6 +189,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         self.decimate(decim)
 
         # setup epoch rejection
+        self.reject = None
+        self.flat = None
         self._reject_setup(reject, flat)
 
         # do the rest
@@ -321,6 +323,27 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 if len(idx[key]) == 0:
                     raise ValueError("No %s channel found. Cannot reject based"
                                      " on %s." % (key.upper(), key.upper()))
+            # now check to see if our rejection and flat are getting more
+            # restrictive
+            old_reject = self.reject if self.reject is not None else dict()
+            new_reject = reject if reject is not None else dict()
+            new_flat = flat if flat is not None else dict()
+            old_flat = self.flat if self.flat is not None else dict()
+            bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
+                       '{kind} values must be at least as stringent as '
+                       'previous ones')
+            for key in set(new_reject.keys()).union(old_reject.keys()):
+                old = old_reject.get(key, np.inf)
+                new = new_reject.get(key, np.inf)
+                if new > old:
+                    raise ValueError(bad_msg.format(kind='reject', key=key,
+                                                    new=new, old=old, op='>'))
+            for key in set(new_flat.keys()).union(old_flat.keys()):
+                old = old_flat.get(key, -np.inf)
+                new = new_flat.get(key, -np.inf)
+                if new < old:
+                    raise ValueError(bad_msg.format(kind='flat', key=key,
+                                                    new=new, old=old, op='<'))
 
         # after validation, set parameters
         self._bad_dropped = False
@@ -799,7 +822,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             agg_fun=agg_fun, dB=dB, n_jobs=n_jobs, normalize=normalize,
             cbar_fmt=cbar_fmt, outlines=outlines, show=show, verbose=None)
 
-    def drop_bad_epochs(self, reject='original', flat='original'):
+    def drop_bad_epochs(self, reject='existing', flat='existing'):
         """Drop bad epochs without retaining the epochs data.
 
         Should be used before slicing operations.
@@ -813,13 +836,13 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         reject : dict | str | None
             Rejection parameters based on peak-to-peak amplitude.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg'.
-            If reject is None then no rejection is done. If 'original',
+            If reject is None then no rejection is done. If 'existing',
             then the rejection parameters set at instantiation are used.
         flat : dict | str | None
             Rejection parameters based on flatness of signal.
             Valid keys are 'grad' | 'mag' | 'eeg' | 'eog' | 'ecg', and values
             are floats that set the minimum acceptable peak-to-peak amplitude.
-            If flat is None then no rejection is done. If 'original',
+            If flat is None then no rejection is done. If 'existing',
             then the flat parameters set at instantiation are used.
 
         Notes
@@ -829,15 +852,15 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         dropped, it is dropped forever, so if more lenient thresholds may
         subsequently be applied, `epochs.copy` should be used.
         """
-        if reject == 'original':
-            if flat == 'original' and self._bad_dropped:
+        if reject == 'existing':
+            if flat == 'existing' and self._bad_dropped:
                 return
             reject = self.reject
-        if flat == 'original':
+        if flat == 'existing':
             flat = self.flat
-        if any(isinstance(rej, string_types) and rej != 'original' for
+        if any(isinstance(rej, string_types) and rej != 'existing' for
                rej in (reject, flat)):
-            raise ValueError('reject and flat, if strings, must be "original"')
+            raise ValueError('reject and flat, if strings, must be "existing"')
         self._reject_setup(reject, flat)
         self._get_data(out=False)
 
