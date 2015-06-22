@@ -9,12 +9,16 @@ Changelog
 ~~~~~~~~~
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs by `Denis Engemann`_
 
+    - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
+
+
 BUG
 ~~~
 
     - Fix ``mne.io.add_reference_channels`` not setting ``info[nchan]`` correctly by `Federico Raimondo`_
 
     - Fix ``mne.stats.bonferroni_correction`` reject mask output to use corrected p-values by `Denis Engemann`_
+
 
 .. _changes_0_9:
 
@@ -117,8 +121,6 @@ Changelog
    - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
 
    - Add support for custom sensor positions when creating Layout objects by `Chris Holdgraf`_
-
-   - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
 
 
 BUG
