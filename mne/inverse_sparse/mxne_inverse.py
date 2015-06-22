@@ -480,10 +480,22 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     logger.info('Whitening data matrix.')
     M = np.dot(whitener, M)
 
+    # Scaling to make setting of alpha easy
+    alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
+    alpha_max *= 0.01
+    gain /= alpha_max
+    source_weighting /= alpha_max
+
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
         maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
         log_objective=log_objective, debias=debias)
+
+    if active_set.sum() == 0:
+        raise Exception("No active dipoles found. "
+                        "alpha_space/alpha_time are too big.")
+    else:
+        X /= alpha_max
 
     if mask is not None:
         active_set_tmp = np.zeros(len(mask), dtype=np.bool)

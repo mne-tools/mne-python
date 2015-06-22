@@ -850,9 +850,9 @@ def _tf_mixed_norm_solver_bcd_active_set(
     lipschitz_constant : float
         The lipschitz constant of the spatio temporal linear operator.
     phi : instance of _Phi
-        The forward STFT operator.
+        The TF operator.
     phiT : instance of _PhiT
-        The inverse STFT operator.
+        The transpose of the TF operator.
     Z_init : None | array
         The initialization of the TF coefficient matrix. If None, zeros
         will be used for all coefficients.
@@ -937,8 +937,6 @@ def _tf_mixed_norm_solver_bcd_active_set(
         E += E_tmp
         if converged:
             if np.array_equal(active_set_0, active_set):
-                logger.info(
-                    "Convergence reached!")
                 break
 
     if active_set.sum():
@@ -1041,9 +1039,8 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
         wsize=wsize, tstep=tstep, n_orient=n_orient, maxit=maxit, tol=tol,
         log_objective=log_objective, verbose=None)
 
-    if debias:
-        if active_set.sum() > 0:
-            bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
-            X *= bias[:, np.newaxis]
+    if np.any(active_set) and debias:
+        bias = compute_bias(M, G[:, active_set], X, n_orient=n_orient)
+        X *= bias[:, np.newaxis]
 
     return X, active_set, E

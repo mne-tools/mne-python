@@ -72,7 +72,7 @@ forward = mne.read_forward_solution(fwd_fname, force_fixed=False,
 alpha_space = 50.  # spatial regularization parameter
 # alpha_time parameter promotes temporal smoothness
 # (0 means no temporal regularization)
-alpha_time = 10.  # temporal regularization parameter
+alpha_time = 1.  # temporal regularization parameter
 
 loose, depth = 0.2, 0.9  # loose orientation & depth weighting
 

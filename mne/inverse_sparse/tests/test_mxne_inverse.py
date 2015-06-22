@@ -101,7 +101,7 @@ def test_mxne_inverse():
 
     # Do with TF-MxNE for test memory savings
     alpha_space = 60.  # spatial regularization parameter
-    alpha_time = 10.  # temporal regularization parameter
+    alpha_time = 1.  # temporal regularization parameter
 
     stc, _ = tf_mixed_norm(evoked, forward, cov, alpha_space, alpha_time,
                            loose=loose, depth=depth, maxit=100, tol=1e-4,
