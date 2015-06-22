@@ -839,12 +839,10 @@ def _plot_traces(params):
     butterfly = params['butterfly']
     if butterfly:
         ch_start = 0
-        picks = params['picks']
         n_channels = len(params['picks'])
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
-        picks = params['picks']
     offsets = params['offsets']
     lines = params['lines']
     data = params['data'] * params['scale_factor']
@@ -864,7 +862,7 @@ def _plot_traces(params):
         ch_idx = line_idx + ch_start
         if line_idx >= len(lines):
             break
-        elif ch_idx in picks:
+        elif ch_idx < len(params['ch_names']):
             ch_name = params['ch_names'][ch_idx]
             if butterfly:
                 type = params['types'][ch_idx]
@@ -878,7 +876,6 @@ def _plot_traces(params):
                     offset = offsets[3]
                 else:
                     lines[line_idx].set_segments(list())
-                    continue
             else:
                 tick_list += [ch_name]
                 offset = offsets[line_idx]
@@ -908,20 +905,34 @@ def _plot_traces(params):
         labels = np.empty(16, dtype='S15')
         labels.fill('')
         ticks = ax.get_yticks()
-        for idx in [1, 3]:
-            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) * 1e13 *
-                                           params['scalings']['grad'] * factor)
-        for idx in [5, 7]:
-            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) * 1e15 *
-                                           params['scalings']['mag'] * factor)
-        for idx in [9, 11]:
-            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) * 1e6 *
-                                           params['scalings']['eeg'] * factor)
-        for idx in [13, 15]:
-            labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) * 1e6 *
-                                           params['scalings']['eog'] * factor)
-        for idx in [2, 6, 10, 14]:
-            labels[idx] = '0.00'
+        idx_offset = 1
+        if 'grad' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) *
+                                               params['scalings']['grad'] *
+                                               1e13 * factor)
+            idx_offset += 4
+        if 'mag' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) *
+                                               params['scalings']['mag'] *
+                                               1e15 * factor)
+            idx_offset += 4
+        if 'eeg' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) *
+                                               params['scalings']['eeg'] *
+                                               1e6 * factor)
+            idx_offset += 4
+        if 'eog' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) *
+                                               params['scalings']['eog'] *
+                                               1e6 * factor)
         ax.set_yticklabels(labels, fontsize=12)
     else:
         ax.set_yticklabels(tick_list, fontsize=12)
@@ -1180,6 +1191,8 @@ def _plot_onkey(event, params):
     elif event.key == 'b':
         _prepare_butterfly(params)
         _plot_traces(params)
+    elif event.key == 'escape':
+        plt.close(params['fig'])
 
 
 def _prepare_butterfly(params):
@@ -1187,30 +1200,51 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
+        types = set(['grad', 'mag', 'eeg', 'eog']) & set(params['types'])
+        if len(types) < 1:
+            return
         params['ax_vscroll'].set_visible(False)
-        params['ax2'].annotate('Grad (fT/cm)', xy=(0, 0.875), xytext=(-70, 0),
-                               ha='left', size=12, va='center',
-                               xycoords='axes fraction', rotation=90,
-                               textcoords='offset points')
-        params['ax2'].annotate('Mag (fT)', xy=(0, 0.625), xytext=(-70, 0),
-                               ha='left', size=12, va='center',
-                               xycoords='axes fraction', rotation=90,
-                               textcoords='offset points')
-        params['ax2'].annotate('EEG (uV)', xy=(0, 0.375), xytext=(-70, 0),
-                               ha='left', size=12, va='center',
-                               xycoords='axes fraction', rotation=90,
-                               textcoords='offset points')
-        params['ax2'].annotate('EOG (uV)', xy=(0, 0.125), xytext=(-70, 0),
-                               ha='left', size=12, va='center',
-                               xycoords='axes fraction', rotation=90,
-                               textcoords='offset points')
         ax = params['ax']
-        ylim = (20, 0)
+        ylim = (5 * len(types), 0)
         ax.set_ylim(ylim)
-        offset = ylim[0] / 16.0
-        params['offsets'] = [offset * 2., offset * 6., offset * 10.,
-                             offset * 14.]
-        ax.set_yticks(np.arange(0, ylim[0], offset))
+        offset = ylim[0] / (4. * len(types))
+        ticks = np.arange(0, ylim[0], offset)
+        ax.set_yticks(ticks)
+        used_types = 0
+        ticks = np.pad(ticks, (0, 10), 'constant')
+        params['offsets'] = [ticks[2]]
+        if 'grad' in types:
+            pos = (0, 1 - (ticks[2] / ylim[0]))
+            params['ax2'].annotate('Grad (fT/cm)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'mag' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('Mag (fT)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'eeg' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('EEG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'eog' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('EOG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
                                 zorder=2, picker=3.)
@@ -1224,7 +1258,9 @@ def _prepare_butterfly(params):
         while len(params['lines']) > n_channels:
             params['ax'].collections.pop()
             params['lines'].pop()
-        offset = params['ax'].get_ylim()[0] / n_channels
+        ylim = [n_channels * 2.0 + 1, 0]
+        params['ax'].set_ylim(ylim)
+        offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
     params['butterfly'] = butterfly
