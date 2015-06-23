@@ -127,7 +127,7 @@ def test_reject():
             assert_array_equal(epochs.drop_log, drop_log)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
 
-            # ensure that thresholds must be come more stringent, not less
+            # ensure that thresholds must become more stringent, not less
             assert_raises(ValueError, epochs.drop_bad_epochs, reject_part)
             assert_equal(len(epochs), len(events) - 4)
             assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])

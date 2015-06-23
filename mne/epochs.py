@@ -327,8 +327,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             # restrictive
             old_reject = self.reject if self.reject is not None else dict()
             new_reject = reject if reject is not None else dict()
-            new_flat = flat if flat is not None else dict()
             old_flat = self.flat if self.flat is not None else dict()
+            new_flat = flat if flat is not None else dict()
             bad_msg = ('{kind}["{key}"] == {new} {op} {old} (old value), new '
                        '{kind} values must be at least as stringent as '
                        'previous ones')
