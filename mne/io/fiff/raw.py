@@ -161,15 +161,16 @@ class RawFIF(_BaseRaw):
                     if (len(raw_node) == 0):
                         raise ValueError('No raw data in %s' % fname)
                     elif allow_maxshield:
-                        msg = ('This file contains raw Internal Active Shielding '
-                               'data. It may be distorted. Elekta recommends it be'
-                               ' run through MaxFilter to produce reliable '
-                               'results. Consider closing the file and running '
-                               'MaxFilter on the data.')
+                        msg = ('This file contains raw Internal Active '
+                               'Shielding data. It may be distorted. Elekta '
+                               'recommends it be run through MaxFilter to '
+                               'produce reliable results. Consider closing '
+                               'the file and running MaxFilter on the data.')
                         info['maxshield'] = True
                         warnings.warn(msg)
                     else:
-                        raise ValueError('IAS detected, but allow_maxshield=False')
+                        raise ValueError('IAS detected, '
+                                         'but allow_maxshield=False')
 
             if len(raw_node) == 1:
                 raw_node = raw_node[0]
