@@ -958,7 +958,7 @@ class Report(object):
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, section=section,
                                 caption=caption)
-        html, caption = self._validate_input(html, caption, section)
+        html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
 
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
