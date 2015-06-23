@@ -692,8 +692,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'vert_lines': list(),
               'vertline_t': vertline_t,
               'butterfly': False,
-              'text': text}
-              'ax_help_button': ax_help_button}
+              'text': text,
+              'ax_help_button': ax_help_button,
+              'fig_options': None}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -1240,6 +1241,9 @@ def _plot_onkey(event, params):
         n_times = len(params['epochs'].times)
         if n_times * n_epochs > len(params['data'][0]):
             return
+        if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
+            params['t_start'] -= n_times
+            params['hsel_patch'].set_x(params['t_start'])
         ticks = params['epoch_times'] + 0.5 * n_times
         params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
@@ -1257,6 +1261,8 @@ def _plot_onkey(event, params):
     elif event.key == 'b':
         _prepare_butterfly(params)
         _plot_traces(params)
+    elif event.key == 'i':
+        _open_options(params)
     elif event.key == 'escape':
         plt.close(params['fig'])
 
@@ -1391,5 +1397,76 @@ def _onclick_help(event):
     try:
         fig_help.canvas.draw()
         fig_help.show()
+    except Exception:
+        pass
+
+
+def _update_epochs(params, n_epochs):
+    """Function for changing the amount of epochs per view."""
+    n_times = len(params['epochs'].times)
+    ticks = params['epoch_times'] + 0.5 * n_times
+    params['ax2'].set_xticks(ticks[:n_epochs])
+    params['n_epochs'] = n_epochs
+    params['duration'] = n_times * n_epochs
+    params['hsel_patch'].set_width(params['duration'])
+    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
+        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
+        params['hsel_patch'].set_x(params['t_start'])
+
+
+def _update_channels(params, n_channels):
+    """Function for changing the amount of channels per view."""
+    from matplotlib.collections import LineCollection
+    offset = params['ax'].get_ylim()[0] / n_channels
+    params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+    while len(params['lines']) > n_channels:
+        params['ax'].collections.pop()
+        params['lines'].pop()
+    while len(params['lines']) < n_channels:
+        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        params['ax'].add_collection(lc)
+        params['lines'].append(lc)
+    params['ax'].set_yticks(params['offsets'])
+    params['vsel_patch'].set_height(n_channels)
+    params['n_channels'] = n_channels
+
+
+def _open_options(params):
+    """Function for opening the option window."""
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    if params['fig_options'] is not None:
+        # turn off options dialog
+        plt.close(params['fig_options'])
+        params['fig_options'] = None
+        return
+    width = 10
+    height = 7.5
+    params['fig_options'] = figure_nobar(figsize=(width, height))
+    ax_color = 'lightgoldenrodyellow'
+    ax_channels = plt.axes([0.25, 0.1, 0.65, 0.2], axisbg=ax_color)
+    ax_epochs = plt.axes([0.25, 0.35, 0.65, 0.2], axisbg=ax_color)
+    channel_slider = mpl.widgets.Slider(ax_channels, 'Channels', 1,
+                                        len(params['ch_names']),
+                                        valfmt='%0.0f',
+                                        valinit=params['n_channels'])
+    epoch_slider = mpl.widgets.Slider(ax_epochs, 'Epochs', 1,
+                                      len(params['epoch_times']),
+                                      valfmt='%0.0f',
+                                      valinit=params['n_epochs'])
+
+    def update_epochs(val):
+        _update_epochs(params, int(np.around(epoch_slider.val)))
+        _plot_traces(params)
+
+    def update_channels(val):
+        _update_channels(params, int(np.around(channel_slider.val)))
+        _plot_traces(params)
+
+    channel_slider.on_changed(update_channels)
+    epoch_slider.on_changed(update_epochs)
+    try:
+        params['fig_options'].canvas.draw()
+        params['fig_options'].show()
     except Exception:
         pass
