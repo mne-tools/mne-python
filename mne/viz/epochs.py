@@ -503,7 +503,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     from matplotlib.colors import colorConverter
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
-    bad_color = (1.0, 0.0, 0.0)
+    bad_color = (0.8, 0.8, 0.8)
     if picks is None:
         picks = _handle_picks(epochs)
     if len(picks) < 1:
@@ -715,7 +715,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     _plot_events(params)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * n_times, epoch_idx * n_times]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=3)
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
