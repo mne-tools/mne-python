@@ -589,11 +589,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
     for color_idx in range(len(type_colors)):
-        if ch_names[color_idx] in epochs.info['bads']:  # bad colors
-            colors.append([(0.8, 0.8, 0.8, 1.0)] * len(epochs.events))
-            type_colors[color_idx] = (0.8, 0.8, 0.8, 1.0)
-        else:
-            colors.append([type_colors[color_idx]] * len(epochs.events))
+        colors.append([type_colors[color_idx]] * len(epochs.events))
     lines = list()
     n_times = len(epochs.times)
 
@@ -854,10 +850,11 @@ def _plot_traces(params):
     start_idx = int(params['t_start'] / n_times)
     end = params['t_start'] + params['duration']
     end_idx = int(end / n_times)
-    labels = params['labels'][start_idx:]
+    xlabels = params['labels'][start_idx:]
     event_ids = params['epochs'].events[:, 2]
     params['ax2'].set_xticklabels(event_ids[start_idx:])
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(xlabels)
+    ylabels = ax.yaxis.get_ticklabels()
     # do the plotting
     for line_idx in range(n_channels):
         ch_idx = line_idx + ch_start
@@ -890,8 +887,14 @@ def _plot_traces(params):
                                 len(epochs.events)])
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
+            ch_name = params['ch_names'][ch_idx]
+            if not butterfly and ch_name in params['epochs'].info['bads']:
+                this_color = params['bad_color']
+                ylabels[line_idx].set_color(this_color)
+            else:
+                this_color = params['colors'][ch_idx][start_idx:end_idx]
+                ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
-            this_color = params['colors'][ch_idx][start_idx:end_idx]
             lines[line_idx].set_color(this_color)
         else:
             lines[line_idx].set_segments(list())
@@ -1073,7 +1076,29 @@ def _plot_onscroll(event, params):
 
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
-    if event.inaxes is not None and event.button == 1:  # left click
+    if event.inaxes is None:
+        if params['n_channels'] > 100 or params['butterfly']:
+            return
+        ax = params['ax']
+        ylim = ax.get_ylim()
+        pos = ax.transData.inverted().transform((event.x, event.y))
+        if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
+            return
+        labels = ax.yaxis.get_ticklabels()
+        offsets = np.array(params['offsets']) + params['offsets'][0]
+        ch_idx = np.searchsorted(offsets, pos[1])
+        text = labels[ch_idx].get_text()
+        if text in params['epochs'].info['bads']:
+            params['epochs'].info['bads'].remove(text)
+            labels[ch_idx].set_color('black')
+            color_idx = params['ch_start'] + ch_idx
+            params['lines'][ch_idx].set_color(params['colors'][color_idx])
+        else:
+            params['epochs'].info['bads'].append(text)
+            labels[ch_idx].set_color(params['bad_color'])
+            params['lines'][ch_idx].set_color(params['bad_color'])
+        params['fig'].canvas.draw()
+    elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
             if params['butterfly']:
@@ -1092,6 +1117,7 @@ def _mouse_click(event, params):
         # main axes
         elif event.inaxes == params['ax']:
             _pick_bad_epochs(event, params)
+
     elif event.inaxes == params['ax'] and event.button == 2:  # middle click
         params['fig'].canvas.draw()
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
@@ -1196,6 +1222,9 @@ def _plot_onkey(event, params):
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
                                                 zorder=3))
         params['duration'] += n_times
+        if params['t_start'] + params['duration'] > len(params['data'][0]):
+            params['t_start'] -= n_times
+            params['hsel_patch'].set_x(params['t_start'])
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
     elif event.key == 'b':
