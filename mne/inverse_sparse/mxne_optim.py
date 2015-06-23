@@ -1020,7 +1020,7 @@ def tf_mixed_norm_solver(M, G, alpha_space, alpha_time, wsize=64, tstep=4,
     n_positions = n_sources // n_orient
 
     n_step = int(ceil(n_times / float(tstep)))
-    n_freq = wsize / 2 + 1
+    n_freq = wsize // 2 + 1
     n_coefs = n_step * n_freq
     phi = _Phi(wsize, tstep, n_coefs)
     phiT = _PhiT(tstep, n_freq, n_step, n_times)
