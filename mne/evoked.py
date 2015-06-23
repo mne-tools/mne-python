@@ -471,7 +471,7 @@ class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
         vmax : float | callable
             The value specfying the upper bound of the color range.
             If None, the maximum absolute value is used. If vmin is None,
-            but vmax is not, defaults to np.min(data).
+            but vmax is not, defaults to np.max(data).
             If callable, the output equals vmax(data).
         cmap : matplotlib colormap
             Colormap. Defaults to 'RdBu_r'.
