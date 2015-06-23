@@ -449,6 +449,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         The residual a.k.a. data not explained by the sources.
         Only returned if return_residual is True.
     """
+    _check_reference(evoked)
+
     all_ch_names = evoked.ch_names
     info = evoked.info
 
@@ -464,6 +466,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     if loose is None and not is_fixed_orient(forward):
         forward = deepcopy(forward)
         _to_fixed_ori(forward)
+
     n_dip_per_pos = 1 if is_fixed_orient(forward) else 3
 
     gain, gain_info, whitener, source_weighting, mask = _prepare_gain(
@@ -519,5 +522,8 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         out = stc, residual
     else:
         out = stc
+
+    if log_objective:
+        out = out, E
 
     return out
