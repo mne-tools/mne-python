@@ -391,16 +391,18 @@ slider_template = HTMLTemplate(u"""
 """)
 
 
-def _build_html_slider(slices_range, slides_klass, slider_id):
+def _build_html_slider(slices_range, slides_klass, slider_id,
+                       start_value=None):
     """Build an html slider for a given slices range and a slices klass.
     """
-    startvalue = slices_range[len(slices_range) // 2]
+    if start_value is None:
+        startvalue = slices_range[len(slices_range) // 2]
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       step=slices_range[1] - slices_range[0],
                                       minvalue=slices_range[0],
                                       maxvalue=slices_range[-1],
-                                      startvalue=startvalue)
+                                      startvalue=start_value)
 
 
 ###############################################################################
@@ -1009,6 +1011,89 @@ class Report(object):
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
         self._sectionlabels.append(sectionvar)
         self.html.extend(html)
+
+    def add_slider_to_section(self, figs, captions=None, section='custom',
+                              scale=None, image_format='png'):
+        """Renders a slider of figs to the report.
+
+        figs : list of figures.
+            Each figure in the list can be an instance of
+            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
+            or np.ndarray (images read in using scipy.imread).
+        captions : list of str | float | None
+            A list of captions to the figures. If float, a str will be
+            constructed as `Data: %f ms`. If None, it will default to
+            `Data slice %d`.
+        section : str
+            Name of the section. If section already exists, the figures
+            will be appended to the end of the section
+        scale : float | None | callable
+            Scale the images maintaining the aspect ratio.
+            If None, no scaling is applied. If float, scale will determine
+            the relative scaling (might not work for scale <= 1 depending on
+            font sizes). If function, should take a figure object as input
+            parameter. Defaults to None.
+        image_format : {'png', 'svg'}
+            The image format to be used for the report. Defaults to 'png'.
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
+        """
+
+        _check_scale(scale)
+        if not isinstance(figs[0], list):
+            figs = [figs]
+        figs, _, _ = self._validate_input(figs, section, section)
+
+        sectionvar = self._sectionvars[section]
+        global_id = self._get_id()
+        div_klass = self._sectionvars[section]
+        img_klass = self._sectionvars[section]
+
+        name = section
+        html = []
+        html.append(u'<center><div class="col-xs-6 col-md-4">')
+        slides_klass = '%s-%s' % (name, global_id)
+
+        figs = figs[0]  # temp hack
+        sl = np.arange(0, len(figs))
+        slices = []
+        img_klass = 'slideimg-%s' % name
+        div_klass = 'span12 %s' % slides_klass
+
+        
+        if captions is '':
+            pass
+        elif isinstance(captions[0], float):
+            captions = ['Data: %0.3f s' % caption for caption in captions]
+        elif isinstance(captions[0], str):
+            pass
+        else:
+            raise TypeError('Captions must be iterable of float, str, '
+                            'or None. Got %s' % type(captions))
+        for ii, fig in enumerate(zip(figs, captions)):
+            fig, caption = fig
+            img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
+            slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
+            first = True if ii == 0 else False
+            slices.append(_build_html_image(img, slice_id, div_klass,
+                          img_klass, caption, first))
+        # Render the slider
+        slider_id = 'select-%s-%s' % (name, global_id)
+        html.append(u'<div id="%s"></div>' % slider_id)
+        html.append(u'<ul class="thumbnails">')
+        # Render the slices
+        html.append(u'\n'.join(slices))
+        html.append(u'</ul>')
+        html.append(_build_html_slider(sl, slides_klass, slider_id,
+                                       start_value=0))
+        html.append(u'</div></center>')
+        html = '\n'.join(html)
+        
+        self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
+        self._sectionlabels.append(sectionvar)
+        self.html.append(html)
 
     ###########################################################################
     # HTML rendering
