@@ -494,7 +494,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
     Full screen mode can be to toggled with f11 key. The amount of epochs and
     channels per view can be adjusted with home/end and page down/page up keys.
-    Right mouse click adds a vertical line to the plot.
+    Butterfly plot can be toggled with ``b`` key. Right mouse click adds a
+    vertical line to the plot.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -503,13 +504,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
     bad_color = (1.0, 0.0, 0.0)
-
-    epoch_data = epochs.get_data()
     if picks is None:
         picks = _handle_picks(epochs)
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
+    epoch_data = epochs.get_data()
+
     n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
     n_channels = min(n_channels, len(picks))
@@ -590,7 +591,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     for color_idx in range(len(type_colors)):
         if ch_names[color_idx] in epochs.info['bads']:  # bad colors
             colors.append([(0.8, 0.8, 0.8, 1.0)] * len(epochs.events))
-            type_colors[color_idx] = [(0.8, 0.8, 0.8, 1.0)]
+            type_colors[color_idx] = (0.8, 0.8, 0.8, 1.0)
         else:
             colors.append([type_colors[color_idx]] * len(epochs.events))
     lines = list()
@@ -874,6 +875,8 @@ def _plot_traces(params):
                     offset = offsets[2]
                 elif type == 'eog':
                     offset = offsets[3]
+                elif type == 'ecg':
+                    offset = offsets[4]
                 else:
                     lines[line_idx].set_segments(list())
             else:
@@ -902,7 +905,7 @@ def _plot_traces(params):
                            params['times'][0] + params['duration'], False)
     if butterfly:
         factor = -1. / params['scale_factor']
-        labels = np.empty(16, dtype='S15')
+        labels = np.empty(20, dtype='S15')
         labels.fill('')
         ticks = ax.get_yticks()
         idx_offset = 1
@@ -932,6 +935,13 @@ def _plot_traces(params):
             for idx in [idx_offset, idx_offset + 2]:
                 labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) *
                                                params['scalings']['eog'] *
+                                               1e6 * factor)
+            idx_offset += 4
+        if 'ecg' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[4]) *
+                                               params['scalings']['ecg'] *
                                                1e6 * factor)
         ax.set_yticklabels(labels, fontsize=12)
     else:
@@ -967,10 +977,10 @@ def _plot_update_epochs_proj(params, bools):
 def _handle_picks(epochs):
     """Aux function to handle picks."""
     if any('ICA' in k for k in epochs.ch_names):
-            picks = pick_types(epochs.info, misc=True, ref_meg=False,
-                               exclude=[])
+        picks = pick_types(epochs.info, misc=True, ref_meg=False,
+                           exclude=[])
     else:
-        picks = pick_types(epochs.info, meg=True, eeg=True, eog=True,
+        picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
                            ref_meg=False, exclude=[])
     return picks
 
@@ -1200,7 +1210,8 @@ def _prepare_butterfly(params):
     from matplotlib.collections import LineCollection
     butterfly = not params['butterfly']
     if butterfly:
-        types = set(['grad', 'mag', 'eeg', 'eog']) & set(params['types'])
+        types = set(['grad', 'mag', 'eeg', 'eog',
+                     'ecg']) & set(params['types'])
         if len(types) < 1:
             return
         params['ax_vscroll'].set_visible(False)
@@ -1209,9 +1220,9 @@ def _prepare_butterfly(params):
         ax.set_ylim(ylim)
         offset = ylim[0] / (4. * len(types))
         ticks = np.arange(0, ylim[0], offset)
+        ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
         ax.set_yticks(ticks)
         used_types = 0
-        ticks = np.pad(ticks, (0, 10), 'constant')
         params['offsets'] = [ticks[2]]
         if 'grad' in types:
             pos = (0, 1 - (ticks[2] / ylim[0]))
@@ -1240,6 +1251,14 @@ def _prepare_butterfly(params):
         if 'eog' in types:
             pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
             params['ax2'].annotate('EOG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'ecg' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('ECG (uV)', xy=pos, xytext=(-70, 0),
                                    ha='left', size=12, va='center',
                                    xycoords='axes fraction', rotation=90,
                                    textcoords='offset points')

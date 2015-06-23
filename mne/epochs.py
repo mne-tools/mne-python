@@ -530,8 +530,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
         Full screen mode can be to toggled with f11 key. The amount of epochs
         and channels per view can be adjusted with home/end and
-        page down/page up keys. Right mouse click adds a vertical line to the
-        plot.
+        page down/page up keys. Butterfly plot can be toggled with ``b`` key.
+        Right mouse click adds a vertical line to the plot.
 
         .. versionadded:: 0.10.0
         """
