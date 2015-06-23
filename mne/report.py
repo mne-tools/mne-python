@@ -1051,9 +1051,14 @@ class Report(object):
         div_klass = self._sectionvars[section]
         img_klass = self._sectionvars[section]
 
-        name = section
+        name = 'slider'
         html = []
-        html.append(u'<center><div class="col-xs-6 col-md-4">')
+
+        html.append(u'<li class="slider" id="%d">\n' % global_id)
+        html.append(u'<h2>%s</h2>\n' % name)
+        html.append(u'<div class="row">')
+
+        html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
         figs = figs[0]  # temp hack
@@ -1061,7 +1066,6 @@ class Report(object):
         slices = []
         img_klass = 'slideimg-%s' % name
         div_klass = 'span12 %s' % slides_klass
-
         
         if captions is '':
             pass
@@ -1088,9 +1092,12 @@ class Report(object):
         html.append(u'</ul>')
         html.append(_build_html_slider(sl, slides_klass, slider_id,
                                        start_value=0))
-        html.append(u'</div></center>')
+        html.append(u'</div>')
+        html.append(u'</div>')
+        html.append(u'</li>\n')
+
         html = '\n'.join(html)
-        
+
         self.fnames.append('%s-#-%s-#-custom' % (section, sectionvar))
         self._sectionlabels.append(sectionvar)
         self.html.append(html)
