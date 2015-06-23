@@ -107,7 +107,8 @@ class CoregModel(HasPrivateTraits):
                             desc="Required fiducials data is present.")
     has_pts_data = Property(Bool, depends_on=['mri.points', 'hsp.points'])
     has_eegpts_data = Property(Bool, depends_on=['hsp.eeg_points'])
-    dig_points = Property(depends_on=['hsp.raw_points','hsp.has_eegpts_data','use_eeg_as_hsp'])
+    dig_points = Property(depends_on=['hsp.raw_points', 'hsp.has_eegpts_data',
+                                      'use_eeg_as_hsp'])
 
     # MRI dependent
     mri_origin = Property(depends_on=['mri.nasion', 'scale'],
@@ -1147,7 +1148,8 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                       Label("Always Show Head Shape Points"),
                                       show_labels=False),
                                HGroup('use_eeg_as_hsp',
-                                      Label("Use EEG Locations as Head Shape Points"),
+                                      Label("Use EEG Locations as "
+                                            "Head Shape Points"),
                                       show_labels=False),
                                Item('fid_panel', style='custom'),
                                label="MRI Fiducials", show_border=True,
@@ -1222,7 +1224,8 @@ class CoregFrame(HasTraits):
     fid_ok = DelegatesTo('model', 'mri.fid_ok')
     lock_fiducials = DelegatesTo('model')
     hsp_always_visible = Bool(False, label="Always Show Head Shape")
-    use_eeg_as_hsp = Bool(False, label="Use EEG Locations as Head Shape Points")
+    use_eeg_as_hsp = Bool(False, label="Use EEG Locations as "
+                                       "Head Shape Points")
 
     # visualization
     hsp_obj = Instance(PointObject)
