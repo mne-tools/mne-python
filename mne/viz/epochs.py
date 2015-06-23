@@ -864,7 +864,6 @@ def _plot_traces(params):
         if line_idx >= len(lines):
             break
         elif ch_idx < len(params['ch_names']):
-            ch_name = params['ch_names'][ch_idx]
             if butterfly:
                 type = params['types'][ch_idx]
                 if type == 'grad':
@@ -880,7 +879,7 @@ def _plot_traces(params):
                 else:
                     lines[line_idx].set_segments(list())
             else:
-                tick_list += [ch_name]
+                tick_list += [params['ch_names'][ch_idx]]
                 offset = offsets[line_idx]
             this_data = data[ch_idx][params['t_start']:end]
 
@@ -892,7 +891,6 @@ def _plot_traces(params):
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
             lines[line_idx].set_segments(segments)
-            vars(lines[line_idx])['ch_name'] = ch_name
             this_color = params['colors'][ch_idx][start_idx:end_idx]
             lines[line_idx].set_color(this_color)
         else:
@@ -945,6 +943,8 @@ def _plot_traces(params):
                                                1e6 * factor)
         ax.set_yticklabels(labels, fontsize=12)
     else:
+        if n_channels > 100:
+            tick_list = ['']
         ax.set_yticklabels(tick_list, fontsize=12)
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
