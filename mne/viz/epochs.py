@@ -606,7 +606,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     times = epochs.times
     data = np.zeros((epochs.info['nchan'], len(times) * len(epochs.events)))
 
-    ylim = (20., 0.)
+    ylim = (25., 0.)
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
@@ -1327,7 +1327,7 @@ def _prepare_butterfly(params):
         while len(params['lines']) > n_channels:
             params['ax'].collections.pop()
             params['lines'].pop()
-        ylim = (20., 0.)
+        ylim = (25., 0.)
         params['ax'].set_ylim(ylim)
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
