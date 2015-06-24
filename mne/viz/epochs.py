@@ -555,7 +555,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
 
-    ax.annotate(fig_title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
                 ha='center', va='bottom', size=12, xycoords='axes fraction',
                 textcoords='offset points')
 
@@ -1259,10 +1259,16 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
     elif event.key == 'b':
+        if params['fig_options'] is not None:
+            plt.close(params['fig_options'])
+            params['fig_options'] = None
         _prepare_butterfly(params)
         _plot_traces(params)
-    elif event.key == 'i':
-        _open_options(params)
+    elif event.key == 'o':
+        if not params['butterfly']:
+            _open_options(params)
+    elif event.key == '?':
+        _onclick_help(event)
     elif event.key == 'escape':
         plt.close(params['fig'])
 
@@ -1386,9 +1392,13 @@ def _onclick_help(event):
            'end : Increase the number of epochs per view\n'\
            'page down : Reduce the number of channels per view\n'\
            'page up : Increase the number of channels per view\n'\
-           'b : Toggle butterfly plot on/off\n'
-    width = 10
-    height = 0.2 * 15
+           'b : Toggle butterfly plot on/off\n'\
+           'o : Open dialog for adjusting viewport dimensions\n'\
+           'f11 : Toggle full screen mode\n'\
+           '? : Open help box'\
+           'esc : Close mne_browse_epochs\n'
+    width = 8
+    height = 0.25 * 15  # 15 rows of text
     fig_help = figure_nobar(figsize=(width, height))
     fig_help.canvas.set_window_title('Help')
     plt.axis('off')
@@ -1412,7 +1422,8 @@ def _update_channels_epochs(event, params):
         params['ax'].collections.pop()
         params['lines'].pop()
     while len(params['lines']) < n_channels:
-        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        lc = LineCollection(list(), linewidths=0.5, antialiased=False,
+                            zorder=2, picker=3.)
         params['ax'].add_collection(lc)
         params['lines'].append(lc)
     params['ax'].set_yticks(params['offsets'])
