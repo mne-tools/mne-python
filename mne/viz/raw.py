@@ -350,7 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     color : dict | color object | None
         Color for the data traces. If None, defaults to::
 
-            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
                  emg='k', ref_meg='steelblue', misc='k', stim='k',
                  resp='k', chpi='k')
 
