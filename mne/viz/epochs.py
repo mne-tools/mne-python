@@ -679,6 +679,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'labels': labels,
               'projs': projs,
               'scale_factor': 1.0,
+              'butterfly_scale': 1.0,
               'fig_proj': None,
               'inds': inds,
               'scalings': scalings,
@@ -710,9 +711,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     # Draw event lines for the first time.
     _plot_events(params)
-    for epoch_idx in range(len(epochs.events)):
-        pos = [epoch_idx * n_times, epoch_idx * n_times]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
+
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -838,12 +837,13 @@ def _plot_traces(params):
     if butterfly:
         ch_start = 0
         n_channels = len(params['picks'])
+        data = params['data'] * params['butterfly_scale']
     else:
         ch_start = params['ch_start']
         n_channels = params['n_channels']
+        data = params['data'] * params['scale_factor']
     offsets = params['offsets']
     lines = params['lines']
-    data = params['data'] * params['scale_factor']
     epochs = params['epochs']
 
     n_times = len(epochs.times)
@@ -913,7 +913,7 @@ def _plot_traces(params):
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
     if butterfly:
-        factor = -1. / params['scale_factor']
+        factor = -1. / params['butterfly_scale']
         labels = np.empty(20, dtype='S15')
         labels.fill('')
         ticks = ax.get_yticks()
@@ -1031,6 +1031,9 @@ def _plot_events(params):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
             ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+    for epoch_idx in range(len(epochs.events)):
+        pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
 
 
 def _pick_bad_epochs(event, params):
@@ -1170,10 +1173,16 @@ def _plot_onkey(event, params):
         xdata = times.flat[np.abs(times - sample).argmin()]
         _plot_window(xdata, params)
     elif event.key == '-':
-        params['scale_factor'] /= 1.1
+        if params['butterfly']:
+            params['butterfly_scale'] /= 1.1
+        else:
+            params['scale_factor'] /= 1.1
         _plot_traces(params)
     elif event.key in ['+', '=']:
-        params['scale_factor'] *= 1.1
+        if params['butterfly']:
+            params['butterfly_scale'] *= 1.1
+        else:
+            params['scale_factor'] *= 1.1
         _plot_traces(params)
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
@@ -1319,6 +1328,7 @@ def _prepare_butterfly(params):
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
+        _plot_events(params)
     params['butterfly'] = butterfly
 
 
