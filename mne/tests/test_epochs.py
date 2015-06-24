@@ -136,6 +136,15 @@ def test_reject():
             assert_raises(ValueError, epochs.drop_bad_epochs,
                           flat=dict(mag=0.))
 
+            # rejection of subset of trials (ensure array ownership)
+            reject_part = dict(grad=1100e-12, mag=4e-12, eeg=80e-6, eog=150e-6)
+            epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
+                            reject=None, preload=preload)
+            epochs = epochs[:-1]
+            epochs.drop_bad_epochs(reject=reject)
+            assert_equal(len(epochs), len(events) - 4)
+            assert_array_equal(epochs.get_data(), data_7[proj][keep_idx])
+
 
 def test_decim():
     """Test epochs decimation

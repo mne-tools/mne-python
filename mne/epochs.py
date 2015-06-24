@@ -1206,7 +1206,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         epochs.selection = key_selection
         epochs.events = np.atleast_2d(epochs.events[select])
         if epochs.preload:
-            epochs._data = epochs._data[select]
+            # ensure that each Epochs instance owns its own data so we can
+            # resize later if necessary
+            epochs._data = np.require(epochs._data[select], requirements=['O'])
         # update event id to reflect new content of epochs
         epochs.event_id = dict((k, v) for k, v in epochs.event_id.items()
                                if v in epochs.events[:, 2])
