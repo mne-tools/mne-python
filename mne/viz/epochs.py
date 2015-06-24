@@ -710,7 +710,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
 
     # Draw event lines for the first time.
-    _plot_events(params)
+    _plot_vert_lines(params)
 
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
@@ -1020,8 +1020,8 @@ def _channels_changed(params):
     _plot_traces(params)
 
 
-def _plot_events(params):
-    """ Helper function for plotting vertical event lines."""
+def _plot_vert_lines(params):
+    """ Helper function for plotting vertical lines."""
     ax = params['ax']
     ax.lines = list()
     epochs = params['epochs']
@@ -1191,20 +1191,24 @@ def _plot_onkey(event, params):
         if params['n_channels'] == 1 or params['butterfly']:
             return
         n_channels = params['n_channels'] - 1
-        offset = params['ax'].get_ylim()[0] / n_channels
+        ylim = params['ax'].get_ylim()
+        offset = ylim[0] / params['n_channels']
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         params['ax'].collections.pop()
         params['ax'].set_yticks(params['offsets'])
         params['lines'].pop()
         params['vsel_patch'].set_height(n_channels)
+        params['ax'].set_ylim((ylim[0] - offset, 0))
+        _plot_vert_lines(params)
         _plot_traces(params)
     elif event.key == 'pageup':
         if params['butterfly']:
             return
         from matplotlib.collections import LineCollection
         n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
+        ylim = params['ax'].get_ylim()
+        offset = ylim[0] / params['n_channels']
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
@@ -1213,6 +1217,8 @@ def _plot_onkey(event, params):
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
         params['vsel_patch'].set_height(n_channels)
+        params['ax'].set_ylim((ylim[0] + offset, 0))
+        _plot_vert_lines(params)
         _plot_traces(params)
     elif event.key == 'home':
         n_epochs = params['n_epochs'] - 1
@@ -1328,7 +1334,7 @@ def _prepare_butterfly(params):
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
-        _plot_events(params)
+    _plot_vert_lines(params)
     params['butterfly'] = butterfly
 
 
