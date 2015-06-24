@@ -1401,22 +1401,11 @@ def _onclick_help(event):
         pass
 
 
-def _update_epochs(params, n_epochs):
-    """Function for changing the amount of epochs per view."""
-    n_times = len(params['epochs'].times)
-    ticks = params['epoch_times'] + 0.5 * n_times
-    params['ax2'].set_xticks(ticks[:n_epochs])
-    params['n_epochs'] = n_epochs
-    params['duration'] = n_times * n_epochs
-    params['hsel_patch'].set_width(params['duration'])
-    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
-        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
-        params['hsel_patch'].set_x(params['t_start'])
-
-
-def _update_channels(params, n_channels):
+def _update_channels_epochs(event, params):
     """Function for changing the amount of channels per view."""
     from matplotlib.collections import LineCollection
+    # Channels
+    n_channels = int(np.around(params['channel_slider'].val))
     offset = params['ax'].get_ylim()[0] / n_channels
     params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
     while len(params['lines']) > n_channels:
@@ -1430,6 +1419,19 @@ def _update_channels(params, n_channels):
     params['vsel_patch'].set_height(n_channels)
     params['n_channels'] = n_channels
 
+    # Epochs
+    n_epochs = int(np.around(params['epoch_slider'].val))
+    n_times = len(params['epochs'].times)
+    ticks = params['epoch_times'] + 0.5 * n_times
+    params['ax2'].set_xticks(ticks[:n_epochs])
+    params['n_epochs'] = n_epochs
+    params['duration'] = n_times * n_epochs
+    params['hsel_patch'].set_width(params['duration'])
+    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
+        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
+        params['hsel_patch'].set_x(params['t_start'])
+    _plot_traces(params)
+
 
 def _open_options(params):
     """Function for opening the option window."""
@@ -1441,30 +1443,24 @@ def _open_options(params):
         params['fig_options'] = None
         return
     width = 10
-    height = 7.5
+    height = 5
     params['fig_options'] = figure_nobar(figsize=(width, height))
     ax_color = 'lightgoldenrodyellow'
-    ax_channels = plt.axes([0.25, 0.1, 0.65, 0.2], axisbg=ax_color)
-    ax_epochs = plt.axes([0.25, 0.35, 0.65, 0.2], axisbg=ax_color)
-    channel_slider = mpl.widgets.Slider(ax_channels, 'Channels', 1,
-                                        len(params['ch_names']),
-                                        valfmt='%0.0f',
-                                        valinit=params['n_channels'])
-    epoch_slider = mpl.widgets.Slider(ax_epochs, 'Epochs', 1,
-                                      len(params['epoch_times']),
-                                      valfmt='%0.0f',
-                                      valinit=params['n_epochs'])
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.2], axisbg=ax_color)
+    ax_epochs = plt.axes([0.15, 0.35, 0.65, 0.2], axisbg=ax_color)
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.4])
+    params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
+    params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
+                                                  len(params['ch_names']),
+                                                  valfmt='%0.0f',
+                                                  valinit=params['n_channels'])
+    params['epoch_slider'] = mpl.widgets.Slider(ax_epochs, 'Epochs', 1,
+                                                len(params['epoch_times']),
+                                                valfmt='%0.0f',
+                                                valinit=params['n_epochs'])
 
-    def update_epochs(val):
-        _update_epochs(params, int(np.around(epoch_slider.val)))
-        _plot_traces(params)
-
-    def update_channels(val):
-        _update_channels(params, int(np.around(channel_slider.val)))
-        _plot_traces(params)
-
-    channel_slider.on_changed(update_channels)
-    epoch_slider.on_changed(update_epochs)
+    update = partial(_update_channels_epochs, params=params)
+    params['update_button'].on_clicked(update)
     try:
         params['fig_options'].canvas.draw()
         params['fig_options'].show()
