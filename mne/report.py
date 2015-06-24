@@ -396,7 +396,7 @@ def _build_html_slider(slices_range, slides_klass, slider_id,
     """Build an html slider for a given slices range and a slices klass.
     """
     if start_value is None:
-        startvalue = slices_range[len(slices_range) // 2]
+        start_value = slices_range[len(slices_range) // 2]
     return slider_template.substitute(slider_id=slider_id,
                                       klass=slides_klass,
                                       step=slices_range[1] - slices_range[0],
@@ -1066,7 +1066,7 @@ class Report(object):
         slides_klass = '%s-%s' % (name, global_id)
 
         if isinstance(figs[0], list):
-           figs = figs[0] 
+            figs = figs[0]
         sl = np.arange(0, len(figs))
         slices = []
         img_klass = 'slideimg-%s' % name
