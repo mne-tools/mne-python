@@ -17,6 +17,7 @@ import copy
 import numpy as np
 
 from ..utils import create_chunks, verbose, get_config, deprecated, set_config
+from ..utils import logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
@@ -1371,6 +1372,7 @@ def _onpick(event, params):
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
     params['epochs'].drop_epochs(params['bads'])
+    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _resize_event(event, params):
