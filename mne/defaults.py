@@ -7,7 +7,7 @@
 from copy import deepcopy
 
 DEFAULTS = dict(
-    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
                emg='k', ref_meg='steelblue', misc='k', stim='k',
                resp='k', chpi='k', exci='k', ias='k', syst='k',
                seeg='k'),

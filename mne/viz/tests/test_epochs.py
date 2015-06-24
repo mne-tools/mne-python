@@ -104,9 +104,10 @@ def test_plot_epochs():
     """Test epoch plotting"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
-    epochs.plot(scalings=None, fig_title='Epochs', trellis=False)
+    epochs.plot(scalings=None, title='Epochs', trellis=False)
     plt.close('all')
-    epochs[0].plot(picks=[0, 2, 3], scalings=None, trellis=False)
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, trellis=False)
+    fig.canvas.key_press_event('escape')
     plt.close('all')
     fig = epochs.plot(trellis=False)
     fig.canvas.key_press_event('left')
@@ -118,6 +119,7 @@ def test_plot_epochs():
     fig.canvas.key_press_event('-')
     fig.canvas.key_press_event('+')
     fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('b')
     fig.canvas.key_press_event('f11')
     fig.canvas.key_press_event('home')
     fig.canvas.key_press_event('end')

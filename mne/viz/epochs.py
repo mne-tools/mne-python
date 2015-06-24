@@ -448,12 +448,13 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
-                n_channels=20, fig_title=None, show=True, block=False):
+                n_channels=20, title=None, show=True, block=False):
     """ Visualize epochs.
 
-    Bad epochs can be marked with a left click on top of the epoch.
-    Calling this function drops all the selected bad epochs as well as bad
-    epochs marked beforehand with rejection parameters.
+    Bad epochs can be marked with a left click on top of the epoch. Bad
+    channels can be selected by clicking the channel name on the left side of
+    the main axes. Calling this function drops all the selected bad epochs as
+    well as bad epochs marked beforehand with rejection parameters.
 
     Parameters
     ----------
@@ -471,7 +472,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         The number of epochs per view. Defaults to 20.
     n_channels : int
         The number of channels per view. Defaults to 20.
-    fig_title : str | None
+    title : str | None
         The title of the window. If None, epochs name will be displayed.
         Defaults to None.
     show : bool
@@ -494,7 +495,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     matplotlib is configured to use (e.g., mpl.use(``TkAgg``) should work).
     Full screen mode can be to toggled with f11 key. The amount of epochs and
     channels per view can be adjusted with home/end and page down/page up keys.
-    Right mouse click adds a vertical line to the plot.
+    Butterfly plot can be toggled with ``b`` key. Right mouse click adds a
+    vertical line to the plot.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -502,14 +504,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     from matplotlib.colors import colorConverter
     scalings = _handle_default('scalings_plot_raw', scalings)
     color = _handle_default('color', None)
-    bad_color = (1.0, 0.0, 0.0)
-
-    epoch_data = epochs.get_data()
+    bad_color = (0.8, 0.8, 0.8)
     if picks is None:
         picks = _handle_picks(epochs)
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
+    epoch_data = epochs.get_data()
+
     n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
     n_channels = min(n_channels, len(picks))
@@ -546,14 +548,14 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     if size is not None:
         size = size.split(',')
         size = tuple(float(s) for s in size)
-    if fig_title is None:
-        fig_title = epochs.name
-        if epochs.name is None or len(fig_title) == 0:
-            fig_title = ''
+    if title is None:
+        title = epochs.name
+        if epochs.name is None or len(title) == 0:
+            title = ''
     fig = figure_nobar(facecolor='w', figsize=size)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.annotate(fig_title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
                 ha='center', va='bottom', size=10, xycoords='axes fraction',
                 textcoords='offset points')
 
@@ -584,19 +586,19 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_vscroll.set_title('Ch.')
 
     # populate colors list
-    typecolors = [colorConverter.to_rgba(color[c]) for c in types]
+    ch_names = [epochs.info['ch_names'][x] for x in inds]
+    type_colors = [colorConverter.to_rgba(color[c]) for c in types]
     colors = list()
-    for color_idx in range(len(typecolors)):
-        colors.append(list())
-        colors[color_idx] = [typecolors[color_idx]] * len(epochs.events)
+    for color_idx in range(len(type_colors)):
+        colors.append([type_colors[color_idx]] * len(epochs.events))
     lines = list()
     n_times = len(epochs.times)
 
     for ch_idx in range(n_channels):
         if len(colors) - 1 < ch_idx:
             break
-        lc = LineCollection(list(), linewidths=0.5, colors=colors[ch_idx],
-                            zorder=3)
+        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                            zorder=2, picker=3.)
         ax.add_collection(lc)
         lines.append(lc)
 
@@ -604,7 +606,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     times = epochs.times
     data = np.zeros((epochs.info['nchan'], len(times) * len(epochs.events)))
 
-    ylim = [n_channels * 2.0 + 1, 0]
+    ylim = (25., 0.)
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
@@ -645,7 +647,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        facecolor=(0.75, 0.75, 0.75),
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
-
+    text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
+                   horizontalalignment='left', fontweight='bold')
+    text.set_visible(False)
     params = {'fig': fig,
               'ax': ax,
               'ax2': ax2,
@@ -662,11 +666,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               't_start': 0,
               'duration': duration,
               'colors': colors,
-              'def_colors': typecolors,  # don't change at runtime
+              'def_colors': type_colors,  # don't change at runtime
               'picks': picks,
               'bad_color': bad_color,
               'bads': np.array(list(), dtype=int),
-              'ch_names': [epochs.info['ch_names'][x] for x in inds],
+              'ch_names': ch_names,
               'data': data,
               'orig_data': epoch_data,
               'times': times,
@@ -675,12 +679,15 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'labels': labels,
               'projs': projs,
               'scale_factor': 1.0,
+              'butterfly_scale': 1.0,
               'fig_proj': None,
               'inds': inds,
               'scalings': scalings,
-              'types': types,
+              'types': np.array(types),
               'vert_lines': list(),
-              'vertline_t': vertline_t}
+              'vertline_t': vertline_t,
+              'butterfly': False,
+              'text': text}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -700,12 +707,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     fig.canvas.mpl_connect('close_event', callback_close)
     callback_resize = partial(_resize_event, params=params)
     fig.canvas.mpl_connect('resize_event', callback_resize)
+    fig.canvas.mpl_connect('pick_event', partial(_onpick, params=params))
 
     # Draw event lines for the first time.
-    _plot_events(params)
-    for epoch_idx in range(len(epochs.events)):
-        pos = [epoch_idx * n_times, epoch_idx * n_times]
-        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
+    _plot_vert_lines(params)
+
     # As here code is shared with plot_evoked, some extra steps:
     # first the actual plot update function
     params['plot_update_proj_callback'] = _plot_update_epochs_proj
@@ -825,11 +831,19 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 def _plot_traces(params):
     """ Helper for plotting concatenated epochs """
+    params['text'].set_visible(False)
     ax = params['ax']
-    n_channels = params['n_channels']
-    lines = params['lines']
-    data = params['data'] * params['scale_factor']
+    butterfly = params['butterfly']
+    if butterfly:
+        ch_start = 0
+        n_channels = len(params['picks'])
+        data = params['data'] * params['butterfly_scale']
+    else:
+        ch_start = params['ch_start']
+        n_channels = params['n_channels']
+        data = params['data'] * params['scale_factor']
     offsets = params['offsets']
+    lines = params['lines']
     epochs = params['epochs']
 
     n_times = len(epochs.times)
@@ -837,19 +851,34 @@ def _plot_traces(params):
     start_idx = int(params['t_start'] / n_times)
     end = params['t_start'] + params['duration']
     end_idx = int(end / n_times)
-    labels = params['labels'][start_idx:]
+    xlabels = params['labels'][start_idx:]
     event_ids = params['epochs'].events[:, 2]
     params['ax2'].set_xticklabels(event_ids[start_idx:])
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(xlabels)
+    ylabels = ax.yaxis.get_ticklabels()
     # do the plotting
     for line_idx in range(n_channels):
-        ch_idx = line_idx + params['ch_start']
+        ch_idx = line_idx + ch_start
         if line_idx >= len(lines):
             break
-        elif ch_idx < len(params['picks']):
-            ch_name = params['ch_names'][ch_idx]
-            tick_list += [ch_name]
-            offset = offsets[line_idx]
+        elif ch_idx < len(params['ch_names']):
+            if butterfly:
+                type = params['types'][ch_idx]
+                if type == 'grad':
+                    offset = offsets[0]
+                elif type == 'mag':
+                    offset = offsets[1]
+                elif type == 'eeg':
+                    offset = offsets[2]
+                elif type == 'eog':
+                    offset = offsets[3]
+                elif type == 'ecg':
+                    offset = offsets[4]
+                else:
+                    lines[line_idx].set_segments(list())
+            else:
+                tick_list += [params['ch_names'][ch_idx]]
+                offset = offsets[line_idx]
             this_data = data[ch_idx][params['t_start']:end]
 
             # subtraction here gets correct orientation for flipped ylim
@@ -859,9 +888,23 @@ def _plot_traces(params):
                                 len(epochs.events)])
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
+            ch_name = params['ch_names'][ch_idx]
+            if ch_name in params['epochs'].info['bads']:
+                if not butterfly:
+                    this_color = params['bad_color']
+                    ylabels[line_idx].set_color(this_color)
+                this_color = np.tile((params['bad_color']), (num_epochs, 1))
+                for bad_idx in params['bads']:
+                    if bad_idx < start_idx or bad_idx > end_idx:
+                        continue
+                    this_color[bad_idx - start_idx] = (1., 0., 0.)
+                lines[line_idx].set_zorder(1)
+            else:
+                this_color = params['colors'][ch_idx][start_idx:end_idx]
+                lines[line_idx].set_zorder(2)
+                if not butterfly:
+                    ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
-            vars(lines[line_idx])['ch_name'] = ch_name
-            this_color = params['colors'][ch_idx][start_idx:end_idx]
             lines[line_idx].set_color(this_color)
         else:
             lines[line_idx].set_segments(list())
@@ -871,8 +914,52 @@ def _plot_traces(params):
                 False)
     params['ax2'].set_xlim(params['times'][0],
                            params['times'][0] + params['duration'], False)
-    ax.set_yticklabels(tick_list)
-    params['vsel_patch'].set_y(params['ch_start'])
+    if butterfly:
+        factor = -1. / params['butterfly_scale']
+        labels = np.empty(20, dtype='S15')
+        labels.fill('')
+        ticks = ax.get_yticks()
+        idx_offset = 1
+        if 'grad' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[0]) *
+                                               params['scalings']['grad'] *
+                                               1e13 * factor)
+            idx_offset += 4
+        if 'mag' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[1]) *
+                                               params['scalings']['mag'] *
+                                               1e15 * factor)
+            idx_offset += 4
+        if 'eeg' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[2]) *
+                                               params['scalings']['eeg'] *
+                                               1e6 * factor)
+            idx_offset += 4
+        if 'eog' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[3]) *
+                                               params['scalings']['eog'] *
+                                               1e6 * factor)
+            idx_offset += 4
+        if 'ecg' in params['types']:
+            labels[idx_offset + 1] = '0.00'
+            for idx in [idx_offset, idx_offset + 2]:
+                labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[4]) *
+                                               params['scalings']['ecg'] *
+                                               1e6 * factor)
+        ax.set_yticklabels(labels, fontsize=12, color='black')
+    else:
+        if n_channels > 100:
+            tick_list = ['']
+        ax.set_yticklabels(tick_list, fontsize=12)
+    params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
     # XXX This is a hack to make sure this figure gets drawn last
     # so that when matplotlib goes to calculate bounds we don't get a
@@ -903,10 +990,10 @@ def _plot_update_epochs_proj(params, bools):
 def _handle_picks(epochs):
     """Aux function to handle picks."""
     if any('ICA' in k for k in epochs.ch_names):
-            picks = pick_types(epochs.info, misc=True, ref_meg=False,
-                               exclude=[])
+        picks = pick_types(epochs.info, misc=True, ref_meg=False,
+                           exclude=[])
     else:
-        picks = pick_types(epochs.info, meg=True, eeg=True, eog=True,
+        picks = pick_types(epochs.info, meg=True, eeg=True, eog=True, ecg=True,
                            ref_meg=False, exclude=[])
     return picks
 
@@ -926,6 +1013,8 @@ def _plot_window(value, params):
 
 def _channels_changed(params):
     """Deal with vertical shift of the viewport."""
+    if params['butterfly']:
+        return
     if params['ch_start'] + params['n_channels'] > len(params['ch_names']):
         params['ch_start'] = len(params['ch_names']) - params['n_channels']
     elif params['ch_start'] < 0:
@@ -933,8 +1022,8 @@ def _channels_changed(params):
     _plot_traces(params)
 
 
-def _plot_events(params):
-    """ Helper function for plotting vertical event lines."""
+def _plot_vert_lines(params):
+    """ Helper function for plotting vertical lines."""
     ax = params['ax']
     ax.lines = list()
     epochs = params['epochs']
@@ -943,7 +1032,10 @@ def _plot_events(params):
         for event_idx in range(len(epochs.events)):
             pos = [event_idx * len(epochs.times) + t_zero[0],
                    event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g', zorder=-1, alpha=0.4)
+            ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+    for epoch_idx in range(len(epochs.events)):
+        pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
+        ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
 
 
 def _pick_bad_epochs(event, params):
@@ -967,11 +1059,11 @@ def _pick_bad_epochs(event, params):
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
-    params['ax_hscroll'].patches[epoch_idx].set_color(params['bad_color'])
+    params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
     params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
-        params['colors'][ch_idx][epoch_idx] = params['bad_color']
+        params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
     _plot_traces(params)
 
 
@@ -997,9 +1089,33 @@ def _plot_onscroll(event, params):
 
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
-    if event.inaxes is not None and event.button == 1:
+    if event.inaxes is None:
+        if params['n_channels'] > 100 or params['butterfly']:
+            return
+        ax = params['ax']
+        ylim = ax.get_ylim()
+        pos = ax.transData.inverted().transform((event.x, event.y))
+        if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
+            return
+        labels = ax.yaxis.get_ticklabels()
+        offsets = np.array(params['offsets']) + params['offsets'][0]
+        line_idx = np.searchsorted(offsets, pos[1])
+        text = labels[line_idx].get_text()
+        ch_idx = params['ch_start'] + line_idx
+        if text in params['epochs'].info['bads']:
+            params['epochs'].info['bads'].remove(text)
+            color = params['def_colors'][ch_idx]
+            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+        else:
+            params['epochs'].info['bads'].append(text)
+            color = params['bad_color']
+            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+        _plot_traces(params)
+    elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
+            if params['butterfly']:
+                return
             ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
             if params['ch_start'] != ch_start:
                 params['ch_start'] = ch_start
@@ -1014,6 +1130,9 @@ def _mouse_click(event, params):
         # main axes
         elif event.inaxes == params['ax']:
             _pick_bad_epochs(event, params)
+
+    elif event.inaxes == params['ax'] and event.button == 2:  # middle click
+        params['fig'].canvas.draw()
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
         n_times = len(params['epochs'].times)
         xdata = int(event.xdata % n_times)
@@ -1031,7 +1150,7 @@ def _mouse_click(event, params):
         for epoch_idx in range(params['n_epochs']):
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
-                                                          zorder=-1))
+                                                          zorder=4))
         params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
         _plot_traces(params)
 
@@ -1056,19 +1175,26 @@ def _plot_onkey(event, params):
         xdata = times.flat[np.abs(times - sample).argmin()]
         _plot_window(xdata, params)
     elif event.key == '-':
-        params['scale_factor'] /= 1.1
+        if params['butterfly']:
+            params['butterfly_scale'] /= 1.1
+        else:
+            params['scale_factor'] /= 1.1
         _plot_traces(params)
     elif event.key in ['+', '=']:
-        params['scale_factor'] *= 1.1
+        if params['butterfly']:
+            params['butterfly_scale'] *= 1.1
+        else:
+            params['scale_factor'] *= 1.1
         _plot_traces(params)
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
     elif event.key == 'pagedown':
-        if params['n_channels'] == 1:
+        if params['n_channels'] == 1 or params['butterfly']:
             return
         n_channels = params['n_channels'] - 1
-        offset = params['ax'].get_ylim()[0] / n_channels
+        ylim = params['ax'].get_ylim()
+        offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         params['ax'].collections.pop()
@@ -1077,12 +1203,16 @@ def _plot_onkey(event, params):
         params['vsel_patch'].set_height(n_channels)
         _plot_traces(params)
     elif event.key == 'pageup':
+        if params['butterfly']:
+            return
         from matplotlib.collections import LineCollection
         n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
+        ylim = params['ax'].get_ylim()
+        offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
-        lc = LineCollection(list(), linewidths=0.5, zorder=3)
+        lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                            zorder=2, picker=3.)
         params['ax'].add_collection(lc)
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
@@ -1111,10 +1241,113 @@ def _plot_onkey(event, params):
             ax = params['ax']
             pos = params['vert_lines'][0][0].get_data()[0] + params['duration']
             params['vert_lines'].append(ax.plot(pos, ax.get_ylim(), 'y',
-                                                zorder=-1))
+                                                zorder=3))
         params['duration'] += n_times
+        if params['t_start'] + params['duration'] > len(params['data'][0]):
+            params['t_start'] -= n_times
+            params['hsel_patch'].set_x(params['t_start'])
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
+    elif event.key == 'b':
+        _prepare_butterfly(params)
+        _plot_traces(params)
+    elif event.key == 'escape':
+        plt.close(params['fig'])
+
+
+def _prepare_butterfly(params):
+    """Helper function for setting up butterfly plot."""
+    from matplotlib.collections import LineCollection
+    butterfly = not params['butterfly']
+    if butterfly:
+        types = set(['grad', 'mag', 'eeg', 'eog',
+                     'ecg']) & set(params['types'])
+        if len(types) < 1:
+            return
+        params['ax_vscroll'].set_visible(False)
+        ax = params['ax']
+        ylim = (5. * len(types), 0.)
+        ax.set_ylim(ylim)
+        offset = ylim[0] / (4. * len(types))
+        ticks = np.arange(0, ylim[0], offset)
+        ticks = [ticks[x] if x < len(ticks) else 0 for x in range(20)]
+        ax.set_yticks(ticks)
+        used_types = 0
+        params['offsets'] = [ticks[2]]
+        if 'grad' in types:
+            pos = (0, 1 - (ticks[2] / ylim[0]))
+            params['ax2'].annotate('Grad (fT/cm)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'mag' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('Mag (fT)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'eeg' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('EEG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'eog' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('EOG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+        params['offsets'].append(ticks[2 + used_types * 4])
+        if 'ecg' in types:
+            pos = (0, 1 - (ticks[2 + used_types * 4] / ylim[0]))
+            params['ax2'].annotate('ECG (uV)', xy=pos, xytext=(-70, 0),
+                                   ha='left', size=12, va='center',
+                                   xycoords='axes fraction', rotation=90,
+                                   textcoords='offset points')
+            used_types += 1
+
+        while len(params['lines']) < len(params['picks']):
+            lc = LineCollection(list(), antialiased=False, linewidths=0.5,
+                                zorder=2, picker=3.)
+            params['ax'].add_collection(lc)
+            params['lines'].append(lc)
+    else:  # change back to default view
+        params['ax_vscroll'].set_visible(True)
+        while len(params['ax2'].texts) > 0:
+            params['ax2'].texts.pop()
+        n_channels = params['n_channels']
+        while len(params['lines']) > n_channels:
+            params['ax'].collections.pop()
+            params['lines'].pop()
+        ylim = (25., 0.)
+        params['ax'].set_ylim(ylim)
+        offset = ylim[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['ax'].set_yticks(params['offsets'])
+    params['butterfly'] = butterfly
+
+
+def _onpick(event, params):
+    """Helper to add a channel name on click"""
+    if event.mouseevent.button != 2 or not params['butterfly']:
+        return  # text label added with a middle mouse button
+    lidx = np.where([l is event.artist for l in params['lines']])[0][0]
+    text = params['text']
+    text.set_x(event.mouseevent.xdata)
+    text.set_y(event.mouseevent.ydata)
+    text.set_text(params['ch_names'][lidx])
+    text.set_visible(True)
+    # do NOT redraw here, since for butterfly plots hundreds of lines could
+    # potentially be picked -- use _mouse_click (happens once per click)
+    # to do the drawing
 
 
 def _close_event(event, params):
