@@ -606,7 +606,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     times = epochs.times
     data = np.zeros((epochs.info['nchan'], len(times) * len(epochs.events)))
 
-    ylim = [n_channels * 2.0 + 1, 0]
+    ylim = (20., 0.)
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
@@ -898,8 +898,10 @@ def _plot_traces(params):
                     if bad_idx < start_idx or bad_idx > end_idx:
                         continue
                     this_color[bad_idx - start_idx] = (1., 0., 0.)
+                lines[line_idx].set_zorder(1)
             else:
                 this_color = params['colors'][ch_idx][start_idx:end_idx]
+                lines[line_idx].set_zorder(2)
                 if not butterfly:
                     ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
@@ -952,7 +954,7 @@ def _plot_traces(params):
                 labels[idx] = '{0:.2f}'.format((ticks[idx] - offsets[4]) *
                                                params['scalings']['ecg'] *
                                                1e6 * factor)
-        ax.set_yticklabels(labels, fontsize=12)
+        ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
         if n_channels > 100:
             tick_list = ['']
@@ -1192,15 +1194,13 @@ def _plot_onkey(event, params):
             return
         n_channels = params['n_channels'] - 1
         ylim = params['ax'].get_ylim()
-        offset = ylim[0] / params['n_channels']
+        offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         params['ax'].collections.pop()
         params['ax'].set_yticks(params['offsets'])
         params['lines'].pop()
         params['vsel_patch'].set_height(n_channels)
-        params['ax'].set_ylim((ylim[0] - offset, 0))
-        _plot_vert_lines(params)
         _plot_traces(params)
     elif event.key == 'pageup':
         if params['butterfly']:
@@ -1208,7 +1208,7 @@ def _plot_onkey(event, params):
         from matplotlib.collections import LineCollection
         n_channels = params['n_channels'] + 1
         ylim = params['ax'].get_ylim()
-        offset = ylim[0] / params['n_channels']
+        offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['n_channels'] = n_channels
         lc = LineCollection(list(), antialiased=False, linewidths=0.5,
@@ -1217,8 +1217,6 @@ def _plot_onkey(event, params):
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
         params['vsel_patch'].set_height(n_channels)
-        params['ax'].set_ylim((ylim[0] + offset, 0))
-        _plot_vert_lines(params)
         _plot_traces(params)
     elif event.key == 'home':
         n_epochs = params['n_epochs'] - 1
@@ -1268,7 +1266,7 @@ def _prepare_butterfly(params):
             return
         params['ax_vscroll'].set_visible(False)
         ax = params['ax']
-        ylim = (5 * len(types), 0)
+        ylim = (5. * len(types), 0.)
         ax.set_ylim(ylim)
         offset = ylim[0] / (4. * len(types))
         ticks = np.arange(0, ylim[0], offset)
@@ -1329,12 +1327,11 @@ def _prepare_butterfly(params):
         while len(params['lines']) > n_channels:
             params['ax'].collections.pop()
             params['lines'].pop()
-        ylim = [n_channels * 2.0 + 1, 0]
+        ylim = (20., 0.)
         params['ax'].set_ylim(ylim)
         offset = ylim[0] / n_channels
         params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
         params['ax'].set_yticks(params['offsets'])
-    _plot_vert_lines(params)
     params['butterfly'] = butterfly
 
 
