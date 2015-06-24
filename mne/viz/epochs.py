@@ -1443,12 +1443,14 @@ def _open_options(params):
         params['fig_options'] = None
         return
     width = 10
-    height = 5
-    params['fig_options'] = figure_nobar(figsize=(width, height))
+    height = 1
+    fig_options = figure_nobar(figsize=(width, height))
+    fig_options.canvas.set_window_title('Viewport dimensions')
+    params['fig_options'] = fig_options
     ax_color = 'lightgoldenrodyellow'
-    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.2], axisbg=ax_color)
-    ax_epochs = plt.axes([0.15, 0.35, 0.65, 0.2], axisbg=ax_color)
-    ax_button = plt.axes([0.85, 0.1, 0.1, 0.4])
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.4], axisbg=ax_color)
+    ax_epochs = plt.axes([0.15, 0.55, 0.65, 0.4], axisbg=ax_color)
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.85])
     params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
     params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
                                                   len(params['ch_names']),
