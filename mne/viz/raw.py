@@ -535,7 +535,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         size = size.split(',')
         size = tuple([float(s) for s in size])
         # have to try/catch when there's no toolbar
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    fig = figure_nobar(facecolor=bgcolor, figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_raw')
     ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title, fontsize=12)

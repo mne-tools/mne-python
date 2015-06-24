@@ -16,7 +16,7 @@ import copy
 
 import numpy as np
 
-from ..utils import create_chunks, verbose, get_config, deprecated
+from ..utils import create_chunks, verbose, get_config, deprecated, set_config
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
@@ -551,7 +551,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         title = epochs.name
         if epochs.name is None or len(title) == 0:
             title = ''
-    fig = figure_nobar(facecolor='w', figsize=size)
+    fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
 
@@ -1375,13 +1375,16 @@ def _close_event(event, params):
 
 def _resize_event(event, params):
     """Function to handle resize event"""
+    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', size)
     _layout_figure(params)
 
 
 def _onclick_help(event):
     """Function for drawing help window"""
     import matplotlib.pyplot as plt
-    text = 'left arrow : Navigate left\n'\
+    text = 'Hotkeys:\n\n'\
+           'left arrow : Navigate left\n'\
            'right arrow : Navigate right\n'\
            'down arrow : Navigate channels down\n'\
            'up arrow : Navigate channels up\n'\
@@ -1395,11 +1398,16 @@ def _onclick_help(event):
            'b : Toggle butterfly plot on/off\n'\
            'o : Open dialog for adjusting viewport dimensions\n'\
            'f11 : Toggle full screen mode\n'\
-           '? : Open help box'\
-           'esc : Close mne_browse_epochs\n'
+           '? : Open help box\n'\
+           'esc : Close mne_browse_epochs\n\n'\
+           'Left click on an epoch marks bad epoch to be dropped\n'\
+           'Right click on main axes draws a vertical line on the plot\n'\
+           'Middle click on a line shows the channel name\n'\
+           'Mouse click on the channel name marks a bad channel\n'\
+
     width = 8
-    height = 0.25 * 15  # 15 rows of text
-    fig_help = figure_nobar(figsize=(width, height))
+    height = 0.25 * 21  # 21 rows of text
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
     plt.axis('off')
     plt.text(0, 0, text)
@@ -1412,7 +1420,7 @@ def _onclick_help(event):
 
 
 def _update_channels_epochs(event, params):
-    """Function for changing the amount of channels per view."""
+    """Function for changing the amount of channels and epochs per view."""
     from matplotlib.collections import LineCollection
     # Channels
     n_channels = int(np.around(params['channel_slider'].val))
@@ -1455,12 +1463,11 @@ def _open_options(params):
         return
     width = 10
     height = 1
-    fig_options = figure_nobar(figsize=(width, height))
+    fig_options = figure_nobar(figsize=(width, height), dpi=80)
     fig_options.canvas.set_window_title('Viewport dimensions')
     params['fig_options'] = fig_options
-    ax_color = 'lightgoldenrodyellow'
-    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.4], axisbg=ax_color)
-    ax_epochs = plt.axes([0.15, 0.55, 0.65, 0.4], axisbg=ax_color)
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.4])
+    ax_epochs = plt.axes([0.15, 0.55, 0.65, 0.4])
     ax_button = plt.axes([0.85, 0.1, 0.1, 0.85])
     params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
     params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
