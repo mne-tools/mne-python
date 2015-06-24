@@ -451,9 +451,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                 n_channels=20, title=None, show=True, block=False):
     """ Visualize epochs.
 
-    Bad epochs can be marked with a left click on top of the epoch.
-    Calling this function drops all the selected bad epochs as well as bad
-    epochs marked beforehand with rejection parameters.
+    Bad epochs can be marked with a left click on top of the epoch. Bad
+    channels can be selected by clicking the channel name on the left side of
+    the main axes. Calling this function drops all the selected bad epochs as
+    well as bad epochs marked beforehand with rejection parameters.
 
     Parameters
     ----------
@@ -888,12 +889,19 @@ def _plot_traces(params):
             segments = np.split(np.array((xdata, ydata)).T, num_epochs)
 
             ch_name = params['ch_names'][ch_idx]
-            if not butterfly and ch_name in params['epochs'].info['bads']:
-                this_color = params['bad_color']
-                ylabels[line_idx].set_color(this_color)
+            if ch_name in params['epochs'].info['bads']:
+                if not butterfly:
+                    this_color = params['bad_color']
+                    ylabels[line_idx].set_color(this_color)
+                this_color = np.tile((params['bad_color']), (num_epochs, 1))
+                for bad_idx in params['bads']:
+                    if bad_idx < start_idx or bad_idx > end_idx:
+                        continue
+                    this_color[bad_idx - start_idx] = (1., 0., 0.)
             else:
                 this_color = params['colors'][ch_idx][start_idx:end_idx]
-                ylabels[line_idx].set_color('black')
+                if not butterfly:
+                    ylabels[line_idx].set_color('black')
             lines[line_idx].set_segments(segments)
             lines[line_idx].set_color(this_color)
         else:
@@ -1046,11 +1054,11 @@ def _pick_bad_epochs(event, params):
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
-    params['ax_hscroll'].patches[epoch_idx].set_color(params['bad_color'])
+    params['ax_hscroll'].patches[epoch_idx].set_color((1., 0., 0., 1.))
     params['ax_hscroll'].patches[epoch_idx].set_zorder(2)
     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
-        params['colors'][ch_idx][epoch_idx] = params['bad_color']
+        params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
     _plot_traces(params)
 
 
@@ -1086,18 +1094,18 @@ def _mouse_click(event, params):
             return
         labels = ax.yaxis.get_ticklabels()
         offsets = np.array(params['offsets']) + params['offsets'][0]
-        ch_idx = np.searchsorted(offsets, pos[1])
-        text = labels[ch_idx].get_text()
+        line_idx = np.searchsorted(offsets, pos[1])
+        text = labels[line_idx].get_text()
+        ch_idx = params['ch_start'] + line_idx
         if text in params['epochs'].info['bads']:
             params['epochs'].info['bads'].remove(text)
-            labels[ch_idx].set_color('black')
-            color_idx = params['ch_start'] + ch_idx
-            params['lines'][ch_idx].set_color(params['colors'][color_idx])
+            color = params['def_colors'][ch_idx]
+            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
         else:
             params['epochs'].info['bads'].append(text)
-            labels[ch_idx].set_color(params['bad_color'])
-            params['lines'][ch_idx].set_color(params['bad_color'])
-        params['fig'].canvas.draw()
+            color = params['bad_color']
+            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+        _plot_traces(params)
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:

@@ -478,9 +478,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
              n_channels=20, title=None, trellis=True):
         """Visualize epochs.
 
-        Bad epochs can be marked with a left click on top of the epoch.
-        Calling this function drops all the selected bad epochs as well as bad
-        epochs marked beforehand with rejection parameters.
+        Bad epochs can be marked with a left click on top of the epoch. Bad
+        channels can be selected by clicking the channel name on the left side
+        of the main axes. Calling this function drops all the selected bad
+        epochs as well as bad epochs marked beforehand with rejection
+        parameters.
 
         Parameters
         ----------
