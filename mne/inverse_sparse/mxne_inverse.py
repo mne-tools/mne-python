@@ -487,7 +487,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     alpha_max = norm_l2inf(np.dot(gain.T, M), n_dip_per_pos, copy=False)
     alpha_max *= 0.01
     gain /= alpha_max
-    source_weighting /= alpha_max
 
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
@@ -522,8 +521,5 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         out = stc, residual
     else:
         out = stc
-
-    if log_objective:
-        out = out, E
 
     return out
