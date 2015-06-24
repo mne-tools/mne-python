@@ -1022,7 +1022,7 @@ class Report(object):
             or np.ndarray (images read in using scipy.imread).
         captions : list of str | float | None
             A list of captions to the figures. If float, a str will be
-            constructed as `Data: %f ms`. If None, it will default to
+            constructed as `%f s`. If None, it will default to
             `Data slice %d`.
         section : str
             Name of the section. If section already exists, the figures
@@ -1044,40 +1044,42 @@ class Report(object):
         _check_scale(scale)
         if not isinstance(figs[0], list):
             figs = [figs]
+        else:
+            raise NotImplementedError('`add_slider_to_section` '
+                                      'can only add one slider at a time.')
         figs, _, _ = self._validate_input(figs, section, section)
 
         sectionvar = self._sectionvars[section]
         global_id = self._get_id()
         div_klass = self._sectionvars[section]
         img_klass = self._sectionvars[section]
-
         name = 'slider'
-        html = []
 
+        html = []
         html.append(u'<li class="slider" id="%d">\n' % global_id)
-        html.append(u'<h2>%s</h2>\n' % name)
+        html.append(u'<h2>%s</h2>\n' % section)
         html.append(u'<div class="row">')
 
         html.append(u'<div class="col-xs-6 col-md-4">')
         slides_klass = '%s-%s' % (name, global_id)
 
-        figs = figs[0]  # temp hack
+        if isinstance(figs[0], list):
+           figs = figs[0] 
         sl = np.arange(0, len(figs))
         slices = []
         img_klass = 'slideimg-%s' % name
         div_klass = 'span12 %s' % slides_klass
-        
-        if captions is '':
-            pass
-        elif isinstance(captions[0], float):
-            captions = ['Data: %0.3f s' % caption for caption in captions]
+
+        if isinstance(captions[0], float):
+            captions = ['%0.3f s' % caption for caption in captions]
+        elif captions is None:
+            captions = ['Data slice %d' % ii for ii in sl]
         elif isinstance(captions[0], str):
             pass
         else:
             raise TypeError('Captions must be iterable of float, str, '
                             'or None. Got %s' % type(captions))
-        for ii, fig in enumerate(zip(figs, captions)):
-            fig, caption = fig
+        for ii, (fig, caption) in enumerate(zip(figs, captions)):
             img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
