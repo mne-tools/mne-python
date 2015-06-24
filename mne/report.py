@@ -1016,6 +1016,8 @@ class Report(object):
                               scale=None, image_format='png'):
         """Renders a slider of figs to the report.
 
+        Parameters
+        ----------
         figs : list of figures.
             Each figure in the list can be an instance of
             matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
