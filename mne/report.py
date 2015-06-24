@@ -46,6 +46,21 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
+def _scene_to_fig(fig, mayavi):
+    tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'test')
+    if fig.scene is not None:
+        fig.scene.save_png(temp_fname)
+        img = imread(temp_fname)
+    else:  # Testing mode
+        img = np.zeros((2, 2, 3))
+
+    mayavi.mlab.close(fig)
+    fig = plt.figure()
+    plt.imshow(img)
+    plt.axis('off')
+
+
 def _fig_to_img(function=None, fig=None, image_format='png',
                 scale=None, **kwargs):
     """Wrapper function to plot figure and create a binary image"""
@@ -828,19 +843,7 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                tempdir = _TempDir()
-                temp_fname = op.join(tempdir, 'test')
-                if fig.scene is not None:
-                    fig.scene.save_png(temp_fname)
-                    img = imread(temp_fname)
-                else:  # Testing mode
-                    img = np.zeros((2, 2, 3))
-
-                mayavi.mlab.close(fig)
-                fig = plt.figure()
-                plt.imshow(img)
-                plt.axis('off')
-
+                fig = _scene_to_fig(fig, mayavi)
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
             html = image_template.substitute(img=img, id=global_id,
@@ -1059,10 +1062,11 @@ class Report(object):
 
         html = []
         html.append(u'<li class="slider" id="%d">\n' % global_id)
-        html.append(u'<h2>%s</h2>\n' % section)
+        html.append(u'<h4>%s</h4>\n' % section)
         html.append(u'<div class="row">')
 
         html.append(u'<div class="col-xs-6 col-md-4">')
+        html.append(u'<div style="text-align:center;">')
         slides_klass = '%s-%s' % (name, global_id)
 
         if isinstance(figs[0], list):
@@ -1073,6 +1077,7 @@ class Report(object):
         div_klass = 'span12 %s' % slides_klass
 
         if isinstance(captions[0], float):
+            assert len(figs) == len(captions)
             captions = ['%0.3f s' % caption for caption in captions]
         elif captions is None:
             captions = ['Data slice %d' % ii for ii in sl]
@@ -1082,6 +1087,17 @@ class Report(object):
             raise TypeError('Captions must be iterable of float, str, '
                             'or None. Got %s' % type(captions))
         for ii, (fig, caption) in enumerate(zip(figs, captions)):
+            mayavi = None
+            try:
+                # on some version mayavi.core won't be exposed unless ...
+                from mayavi import mlab  # noqa, mlab imported
+                import mayavi
+            except:  # on some systems importing Mayavi raises SystemExit (!)
+                warnings.warn('Could not import mayavi. Trying to render '
+                              '`mayavi.core.scene.Scene` figure instances'
+                              ' will throw an error.')
+            if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
+                fig = _scene_to_fig(fig, mayavi)
             img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
@@ -1096,8 +1112,9 @@ class Report(object):
         html.append(u'</ul>')
         html.append(_build_html_slider(sl, slides_klass, slider_id,
                                        start_value=0))
-        html.append(u'</div>')
-        html.append(u'</div>')
+        html.append(u'</div>')  # div for center
+        html.append(u'</div>')  # div for grid
+        html.append(u'</div>')  # div for row
         html.append(u'</li>\n')
 
         html = '\n'.join(html)
