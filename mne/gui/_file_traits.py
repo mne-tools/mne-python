@@ -26,7 +26,7 @@ except:
         Int = List = Property = Str = View = Item = VGroup = trait_wraith
 
 from ..io.constants import FIFF
-from ..io import Raw, read_fiducials
+from ..io import read_info, read_fiducials
 from ..surface import read_bem_surfaces
 from ..coreg import (_is_mri_subject, _mri_subject_has_bem,
                      create_default_subject)
@@ -317,7 +317,7 @@ class RawSource(HasPrivateTraits):
     @cached_property
     def _get_raw(self):
         if self.file:
-            return Raw(self.file, allow_maxshield=True)
+            return read_info(self.file)
 
     @cached_property
     def _get_raw_dir(self):
@@ -335,7 +335,7 @@ class RawSource(HasPrivateTraits):
         if not self.raw:
             return np.zeros((1, 3))
 
-        points = np.array([d['r'] for d in self.raw.info['dig']
+        points = np.array([d['r'] for d in self.raw['dig']
                            if d['kind'] == FIFF.FIFFV_POINT_EXTRA])
         return points
 
@@ -351,7 +351,7 @@ class RawSource(HasPrivateTraits):
         """Fiducials for info['dig']"""
         if not self.raw:
             return []
-        dig = self.raw.info['dig']
+        dig = self.raw['dig']
         dig = [d for d in dig if d['kind'] == FIFF.FIFFV_POINT_CARDINAL]
         return dig
 
