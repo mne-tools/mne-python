@@ -14,7 +14,8 @@ from mne.event import read_events
 from mne.epochs import Epochs
 from mne.source_estimate import read_source_estimate, VolSourceEstimate
 from mne import (read_cov, read_forward_solution, read_evokeds, pick_types,
-                 pick_types_forward)
+                 pick_types_forward, make_forward_solution,
+                 convert_forward_solution)
 from mne.io import Raw
 from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
                                       apply_inverse_raw, apply_inverse_epochs,
@@ -44,6 +45,12 @@ fname_event = op.join(s_path, 'sample_audvis_trunc_raw-eve.fif')
 fname_label = op.join(s_path, 'labels', '%s.label')
 fname_vol_inv = op.join(s_path,
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
+# trans and bem needed for channel reordering tests incl. forward computation
+fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
+s_path_bem = op.join(testing.data_path(download=False), 'subjects',
+                     'sample', 'bem')
+fname_bem = op.join(s_path_bem, 'sample-320-320-320-bem-sol.fif')
+src_fname = op.join(s_path_bem, 'sample-oct-4-src.fif')
 
 snr = 3.0
 lambda2 = 1.0 / snr ** 2
@@ -192,6 +199,50 @@ def test_make_inverse_operator():
     _compare_inverses_approx(my_inv_op, inverse_operator, evoked, 1e-2, 1e-2)
     assert_true('dev_head_t' in my_inv_op['info'])
     assert_true('mri_head_t' in my_inv_op)
+
+
+@slow_test
+@testing.requires_testing_data
+def test_inverse_operator_channel_ordering():
+    """Test MNE inverse computation is immune to channel reorderings
+    """
+    # These are with original ordering
+    evoked = _get_evoked()
+    noise_cov = read_cov(fname_cov)
+
+    inv_op = read_inverse_operator(fname_inv)
+    stc_1 = apply_inverse(evoked, inv_op, lambda2, "dSPM")
+
+    # Assume that a raw reordering applies to both evoked and noise_cov,
+    # so we don't need to create those from scratch. Just reorder them,
+    # then try to apply the original inverse operator
+    new_order = [375] + range(315, 375) + range(0, 306) + range(306, 315)
+    evoked.data = evoked.data[new_order]
+    evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
+    evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
+
+    cov_ch_reorder = [c['ch_name'] for c in evoked.info['chs']
+                      if (c['ch_name'] in noise_cov.ch_names)]
+
+    new_order_cov = [noise_cov.ch_names.index(name) for name in cov_ch_reorder]
+    noise_cov['data'] = noise_cov.data[np.ix_(new_order_cov, new_order_cov)]
+    noise_cov['ch_names'] = [noise_cov.ch_names[idx] for idx in new_order_cov]
+
+    fwd_reorder = make_forward_solution(evoked.info, fname_trans, src_fname,
+                                        fname_bem, eeg=True, mindist=5.0)
+    fwd_reorder = convert_forward_solution(fwd_reorder, surf_ori=True)
+
+    # Does this make any sense?
+    inv_reorder = make_inverse_operator(evoked.info, fwd_reorder, noise_cov,
+                                        loose=0.2, depth=0.8,
+                                        limit_depth_chs=False)
+
+    stc_2 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
+
+    assert_true(stc_1.subject == stc_2.subject)
+    assert_equal(stc_1.times, stc_2.times)
+    assert_allclose(stc_1.data, stc_2.data, rtol=1e-2, atol=1e-2)
+    assert_true(inv_op['units'] == inv_reorder['units'])
 
 
 @slow_test
