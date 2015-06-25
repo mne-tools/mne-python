@@ -122,6 +122,8 @@ def test_plot_epochs():
     fig.canvas.key_press_event('b')
     fig.canvas.key_press_event('f11')
     fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('?')
+    fig.canvas.key_press_event('o')
     fig.canvas.key_press_event('end')
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping

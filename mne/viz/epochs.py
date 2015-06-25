@@ -1,6 +1,6 @@
 """Functions to plot epochs data
 """
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -1385,34 +1385,60 @@ def _resize_event(event, params):
 def _onclick_help(event):
     """Function for drawing help window"""
     import matplotlib.pyplot as plt
-    text = 'Hotkeys:\n\n'\
-           'left arrow : Navigate left\n'\
-           'right arrow : Navigate right\n'\
-           'down arrow : Navigate channels down\n'\
-           'up arrow : Navigate channels up\n'\
-           '- : Scale down\n'\
-           '+ : Scale up\n'\
-           '= : Scale up\n'\
-           'home : Reduce the number of epochs per view\n'\
-           'end : Increase the number of epochs per view\n'\
-           'page down : Reduce the number of channels per view\n'\
-           'page up : Increase the number of channels per view\n'\
-           'b : Toggle butterfly plot on/off\n'\
-           'o : Open dialog for adjusting viewport dimensions\n'\
-           'f11 : Toggle full screen mode\n'\
-           '? : Open help box\n'\
-           'esc : Close mne_browse_epochs\n\n'\
-           'Left click on an epoch marks bad epoch to be dropped\n'\
-           'Right click on main axes draws a vertical line on the plot\n'\
-           'Middle click on a line shows the channel name\n'\
-           'Mouse click on the channel name marks a bad channel\n'\
 
-    width = 8
-    height = 0.25 * 21  # 21 rows of text
+    text = u'\u2190 : \n'\
+           u'\u2192 : \n'\
+           u'\u2193 : \n'\
+           u'\u2191 : \n'\
+           u'- : \n'\
+           u'+ or = : \n'\
+           u'home : \n'\
+           u'end : \n'\
+           u'page down : \n'\
+           u'page up : \n'\
+           u'b : \n'\
+           u'o : \n'\
+           u'F11 : \n'\
+           u'? : \n'\
+           u'esc : \n\n'\
+
+    text2 = 'Navigate left\n'\
+            'Navigate right\n'\
+            'Navigate channels down\n'\
+            'Navigate channels up\n'\
+            'Scale down\n'\
+            'Scale up\n'\
+            'Reduce the number of epochs per view\n'\
+            'Increase the number of epochs per view\n'\
+            'Reduce the number of channels per view\n'\
+            'Increase the number of channels per view\n'\
+            'Toggle butterfly plot on/off\n'\
+            'Open dialog for adjusting viewport\n'\
+            'Toggle full screen mode\n'\
+            'Open help box\n'\
+            'Close mne_browse_epochs\n\n'
+
+    text3 = 'Left click on an epoch marks bad epoch to be dropped\n'\
+            'Right click on main axes draws a vertical line on the plot\n'\
+            'Middle click on a line shows the channel name\n'\
+            'Mouse click on the channel name marks a bad channel\n'
+    width = 5
+    height = 0.25 * 19  # 19 rows of text
+
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
+    ax1 = plt.subplot2grid((3, 5), (0, 0), rowspan=2)
+    plt.text(0, 1, text, fontname='STIXGeneral', va='top', weight='bold')
+    ax1.set_title('Keyboard shortcuts', va='bottom', ha='left')
     plt.axis('off')
-    plt.text(0, 0, text)
+    plt.subplot2grid((3, 5), (0, 1), rowspan=2, colspan=4)
+    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
+    plt.axis('off')
+    plt.subplot2grid((3, 5), (2, 0), colspan=5)
+    plt.text(0, 1, text3, fontname='STIXGeneral', va='top')
+    plt.axis('off')
+
+    tight_layout(fig=fig_help)
     # this should work for non-test cases
     try:
         fig_help.canvas.draw()
