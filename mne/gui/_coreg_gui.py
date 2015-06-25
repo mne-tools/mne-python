@@ -46,7 +46,7 @@ from ..coreg import (fit_matched_points, fit_point_cloud, scale_mri,
                      _point_cloud_error)
 from ..utils import get_subjects_dir, logger
 from ._fiducials_gui import MRIHeadWithFiducialsModel, FiducialsPanel
-from ._file_traits import (set_mne_root, trans_wildcard, RawSource,
+from ._file_traits import (set_mne_root, trans_wildcard, InstSource,
                            SubjectSelectorPanel)
 from ._viewer import (defaults, HeadViewController, PointObject, SurfaceObject,
                       _testing_mode)
@@ -78,7 +78,7 @@ class CoregModel(HasPrivateTraits):
     """
     # data sources
     mri = Instance(MRIHeadWithFiducialsModel, ())
-    hsp = Instance(RawSource, ())
+    hsp = Instance(InstSource, ())
 
     # parameters
     grow_hair = Float(label="Grow Hair [mm]", desc="Move the back of the MRI "
