@@ -695,7 +695,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'butterfly': False,
               'text': text,
               'ax_help_button': ax_help_button,
-              'fig_options': None}
+              'fig_options': None,
+              't0_visible': True}
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -1031,14 +1032,16 @@ def _channels_changed(params):
 def _plot_vert_lines(params):
     """ Helper function for plotting vertical lines."""
     ax = params['ax']
-    ax.lines = list()
+    while len(ax.lines) > 0:
+        ax.lines.pop()
     epochs = params['epochs']
-    t_zero = np.where(epochs.times == 0.)[0]
-    if len(t_zero) == 1:
-        for event_idx in range(len(epochs.events)):
-            pos = [event_idx * len(epochs.times) + t_zero[0],
-                   event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+    if params['t0_visible']:
+        t_zero = np.where(epochs.times == 0.)[0]
+        if len(t_zero) == 1:
+            for event_idx in range(len(epochs.events)):
+                pos = [event_idx * len(epochs.times) + t_zero[0],
+                       event_idx * len(epochs.times) + t_zero[0]]
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
         ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
@@ -1480,9 +1483,13 @@ def _update_channels_epochs(event, params):
 
 def _toggle_labels(label, params):
     """Function for toggling y labels on/off."""
-    labels = params['ax'].yaxis.get_ticklabels()
-    for label in labels:
-        label.set_visible(not label.get_visible())
+    if label == 'Y labels visible':
+        labels = params['ax'].yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(not label.get_visible())
+    elif label == 'T0 visible':
+        params['t0_visible'] = not params['t0_visible']
+        _plot_vert_lines(params)
     params['fig'].canvas.draw()
 
 
@@ -1500,10 +1507,10 @@ def _open_options(params):
     fig_options = figure_nobar(figsize=(width, height), dpi=80)
     fig_options.canvas.set_window_title('Viewport dimensions')
     params['fig_options'] = fig_options
-    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.25])
-    ax_epochs = plt.axes([0.15, 0.4, 0.65, 0.25])
-    ax_button = plt.axes([0.85, 0.1, 0.1, 0.55])
-    ax_check = plt.axes([0.15, 0.70, 0.4, 0.25])
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.2])
+    ax_epochs = plt.axes([0.15, 0.35, 0.65, 0.2])
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.45])
+    ax_check = plt.axes([0.15, 0.60, 0.4, 0.35])
     plt.axis('off')
     params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
     params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
@@ -1514,10 +1521,12 @@ def _open_options(params):
                                                 len(params['epoch_times']),
                                                 valfmt='%0.0f',
                                                 valinit=params['n_epochs'])
-    toggled = params['ax'].yaxis.get_ticklabels()[0].get_visible()
+    actives = [params['ax'].yaxis.get_ticklabels()[0].get_visible(),
+               params['t0_visible']]
     params['checkbox'] = mpl.widgets.CheckButtons(ax_check,
-                                                  ['Y labels visible'],
-                                                  actives=[toggled])
+                                                  ['Y labels visible',
+                                                   'T0 visible'],
+                                                  actives=actives)
     update = partial(_update_channels_epochs, params=params)
     params['update_button'].on_clicked(update)
     labels_callback = partial(_toggle_labels, params=params)
