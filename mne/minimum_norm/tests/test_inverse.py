@@ -210,8 +210,13 @@ def test_inverse_operator_channel_ordering():
     evoked = _get_evoked()
     noise_cov = read_cov(fname_cov)
 
-    inv_op = read_inverse_operator(fname_inv)
-    stc_1 = apply_inverse(evoked, inv_op, lambda2, "dSPM")
+    fwd_orig = make_forward_solution(evoked.info, fname_trans, src_fname,
+                                     fname_bem, eeg=True, mindist=5.0)
+    fwd_orig = convert_forward_solution(fwd_orig, surf_ori=True)
+    inv_orig = make_inverse_operator(evoked.info, fwd_orig, noise_cov,
+                                     loose=0.2, depth=0.8,
+                                     limit_depth_chs=False)
+    stc_1 = apply_inverse(evoked, inv_orig, lambda2, "dSPM")
 
     # Assume that a raw reordering applies to both evoked and noise_cov,
     # so we don't need to create those from scratch. Just reorder them,
@@ -221,18 +226,16 @@ def test_inverse_operator_channel_ordering():
     evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
 
-    cov_ch_reorder = [c['ch_name'] for c in evoked.info['chs']
-                      if (c['ch_name'] in noise_cov.ch_names)]
+    cov_ch_reorder = [c for c in evoked.info['ch_names']
+                      if (c in noise_cov.ch_names)]
 
     new_order_cov = [noise_cov.ch_names.index(name) for name in cov_ch_reorder]
     noise_cov['data'] = noise_cov.data[np.ix_(new_order_cov, new_order_cov)]
-    noise_cov['ch_names'] = [noise_cov.ch_names[idx] for idx in new_order_cov]
+    noise_cov['names'] = [noise_cov['names'][idx] for idx in new_order_cov]
 
     fwd_reorder = make_forward_solution(evoked.info, fname_trans, src_fname,
                                         fname_bem, eeg=True, mindist=5.0)
     fwd_reorder = convert_forward_solution(fwd_reorder, surf_ori=True)
-
-    # Does this make any sense?
     inv_reorder = make_inverse_operator(evoked.info, fwd_reorder, noise_cov,
                                         loose=0.2, depth=0.8,
                                         limit_depth_chs=False)
@@ -242,7 +245,7 @@ def test_inverse_operator_channel_ordering():
     assert_true(stc_1.subject == stc_2.subject)
     assert_equal(stc_1.times, stc_2.times)
     assert_allclose(stc_1.data, stc_2.data, rtol=1e-2, atol=1e-2)
-    assert_true(inv_op['units'] == inv_reorder['units'])
+    assert_true(inv_orig['units'] == inv_reorder['units'])
 
 
 @slow_test
