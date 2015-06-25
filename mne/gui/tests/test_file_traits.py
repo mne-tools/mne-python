@@ -61,7 +61,7 @@ def test_inst_source():
     from mne.gui._file_traits import InstSource
 
     raw = InstSource()
-    assert_equal(raw.raw_fname, '-')
+    assert_equal(raw.inst_fname, '-')
 
     raw.file = raw_path
     assert_equal(raw.raw_dir, os.path.dirname(raw_path))

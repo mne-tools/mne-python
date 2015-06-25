@@ -125,7 +125,7 @@ class CoregModel(HasPrivateTraits):
     can_prepare_bem_model = Property(Bool, depends_on=['n_scale_params',
                                                        'subject_has_bem'])
     can_save = Property(Bool, depends_on=['head_mri_trans'])
-    raw_subject = Property(depends_on='hsp.raw_fname', desc="Subject guess "
+    raw_subject = Property(depends_on='hsp.inst_fname', desc="Subject guess "
                            "based on the raw file name.")
 
     # transformed geometry
@@ -318,9 +318,9 @@ class CoregModel(HasPrivateTraits):
         return "Average Points Error: %.1f mm" % (av_dist * 1000)
 
     def _get_raw_subject(self):
-        # subject name guessed based on the raw file name
-        if '_' in self.hsp.raw_fname:
-            subject, _ = self.hsp.raw_fname.split('_', 1)
+        # subject name guessed based on the inst file name
+        if '_' in self.hsp.inst_fname:
+            subject, _ = self.hsp.inst_fname.split('_', 1)
             if not subject:
                 subject = None
         else:
