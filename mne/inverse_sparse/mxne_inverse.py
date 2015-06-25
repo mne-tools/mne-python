@@ -106,6 +106,7 @@ def _reapply_source_weighting(X, source_weighting, active_set,
 
 
 def _compute_residual(forward, evoked, X, active_set, info):
+    # OK, picking based on row_names is safe
     sel = [forward['sol']['row_names'].index(c) for c in info['ch_names']]
     residual = evoked.copy()
     residual = pick_channels_evoked(residual, include=info['ch_names'])

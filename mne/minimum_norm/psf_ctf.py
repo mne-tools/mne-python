@@ -30,7 +30,9 @@ def _prepare_info(inverse_operator):
 
 def _pick_leadfield(leadfield, forward, ch_names):
     """Helper to pick out correct lead field components"""
-    picks_fwd = pick_channels(forward['info']['ch_names'], ch_names)
+    # NB must pick from fwd['sol']['row_names'], not ['info']['ch_names'],
+    # because ['sol']['data'] may be ordered differently from functional data
+    picks_fwd = pick_channels(forward['sol']['row_names'], ch_names)
     return leadfield[picks_fwd]
 
 

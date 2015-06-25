@@ -1087,11 +1087,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
     """Util function to prepare forward solution for inverse solvers
     """
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
+    fwd_sol_ch_names = forward['sol']['row_names']
     ch_names = [c['ch_name'] for c in info['chs']
                 if ((c['ch_name'] not in info['bads'] and
                      c['ch_name'] not in noise_cov['bads']) and
-                    (c['ch_name'] in fwd_ch_names and
+                    (c['ch_name'] in fwd_sol_ch_names and
                      c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
@@ -1124,8 +1125,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 
     gain = forward['sol']['data']
 
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    # This actually reorders the gain matrix to conform to the info ch order
+    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
+    # Any function calling this helper will be using the returned fwd_info
+    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
+
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)
 
