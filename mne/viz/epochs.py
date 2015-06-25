@@ -1503,14 +1503,14 @@ def _open_options(params):
         params['fig_options'] = None
         return
     width = 10
-    height = 5
+    height = 3
     fig_options = figure_nobar(figsize=(width, height), dpi=80)
     fig_options.canvas.set_window_title('Viewport dimensions')
     params['fig_options'] = fig_options
-    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.2])
-    ax_epochs = plt.axes([0.15, 0.35, 0.65, 0.2])
-    ax_button = plt.axes([0.85, 0.1, 0.1, 0.45])
-    ax_check = plt.axes([0.15, 0.60, 0.4, 0.35])
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.1])
+    ax_epochs = plt.axes([0.15, 0.25, 0.65, 0.1])
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.25])
+    ax_check = plt.axes([0.15, 0.4, 0.4, 0.55])
     plt.axis('off')
     params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
     params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
