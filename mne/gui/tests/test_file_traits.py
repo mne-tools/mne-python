@@ -56,11 +56,11 @@ def test_fiducials_source():
 
 @testing.requires_testing_data
 @requires_traits
-def test_raw_source():
-    """Test RawSource"""
-    from mne.gui._file_traits import RawSource
+def test_inst_source():
+    """Test InstSource"""
+    from mne.gui._file_traits import InstSource
 
-    raw = RawSource()
+    raw = InstSource()
     assert_equal(raw.raw_fname, '-')
 
     raw.file = raw_path
