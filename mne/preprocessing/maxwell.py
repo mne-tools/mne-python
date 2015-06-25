@@ -15,6 +15,7 @@
 
 import numpy as np
 from scipy.special import sph_harm, lpmv
+from scipy.linalg import pinv
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
                                   _get_legen_lut_accurate)
@@ -54,19 +55,19 @@ def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
 
     # Compute spherical harmonics
     S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
+    S_tot = np.c_[S_in, S_out]
 
-    # Compute inverse of multipolar moments
+    # Pseudo-inverse of total multipolar moment basis set
     # TODO: determine appropriate pinv tolerance
-    pS_in = np.linalg.pinv(S_in, rcond=1e-100)
-    pS_out = np.linalg.pinv(S_out, rcond=1e-100)
-
-    # Estimate multipolar moments and then reconstruct internal/external signal
-    int_recon = np.dot(S_in, np.dot(pS_in, data))
-    ext_recon = np.dot(S_out, np.dot(pS_out, data))
+    pS_tot = pinv(S_tot, rcond=1e-15)
+    # Compute multipolar moments of data
+    mm = np.dot(pS_tot, data)
+    # Reconstruct data from internal space
+    recon = np.dot(S_in, mm[:80, :])
 
     # Return raw file object
     raw_sss = raw.copy()
-    raw_sss[:, :] = int_recon
+    raw_sss[:, :] = recon
 
     return raw_sss
 
@@ -77,9 +78,10 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
     Parameters
     ----------
     origin : ndarray, shape (3,)
-        Origin of the multipolar moment space.
+        Origin of the multipolar moment space
     coils : list
-        List of MEG coils. Each should contain coil information dict
+        List of MEG coils. Each should contain coil information dict. All
+        position info must be in the same coordinate frame as 'origin'
     int_order : int
         Order of the internal multipolar moment space
     ext_order : int
@@ -89,7 +91,7 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
     -------
     tuple, len (2)
         Internal and external basis sets ndarrays with shape
-        (n_mult_moments, n_coils)
+        (n_coils, n_mult_moments)
     """
     r_int_pts, ncoils, wcoils, int_pts = _concatenate_coils(coils)
     n_sens = len(int_pts)
@@ -119,7 +121,7 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
                                              cvec_sph[:, 1], cvec_sph[:, 2])
 
             # Gradients dotted with integration point normals and weighted
-            a1_all = wcoils * np.einsum('ij,ij->i', ncoils, grads)
+            a1_all = wcoils * np.einsum('ij,ij->i', grads, ncoils)
 
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
@@ -135,22 +137,16 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
                                               cvec_sph[:, 1], cvec_sph[:, 2])
 
             # Gradients dotted with integration point normals and weighted
-            b1_all = wcoils * np.einsum('ij,ij->i', ncoils, grads)
+            b1_all = wcoils * np.einsum('ij,ij->i', grads, ncoils)
 
             # For order and degree, sum across integration pts for each sensor
             for pt_i in range(0, len(int_lens) - 1):
                 int_pts_sum = np.sum(b1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
                 S_out[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
 
-    # TODO: check if normalization of basis vectors needed
-    norm = False
-    if norm:
-        S_in_norm = np.linalg.norm(S_in, axis=0)
-        S_in_norm[S_in_norm == 0] = 1.
-        S_in /= S_in_norm
-        S_out_norm = np.linalg.norm(S_out, axis=0)
-        S_out_norm[S_out_norm == 0] = 1.
-        S_out /= S_out_norm
+    # Normalize each basis vector to have unity magnitude
+    S_in = np.divide(S_in, np.linalg.norm(S_in, axis=0))
+    S_out = np.divide(S_out, np.linalg.norm(S_out, axis=0))
 
     return (S_in, S_out)
 
@@ -334,7 +330,7 @@ def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
 
 
 def _get_real_grad(grad_vec_raw, order):
-    """Helper function to get real component of gradient vector.
+    """Helper function to convert gradient vector to to real basis functions.
 
     Parameters
     ----------
@@ -357,7 +353,7 @@ def _get_real_grad(grad_vec_raw, order):
         grad_vec = grad_vec_raw
 
     #print 'Grad Vec: ' + str(grad_vec)
-    return np.real(grad_vec)
+    return np.real_if_close(grad_vec)
 
 
 def get_num_harmonics(int_order, ext_order):
@@ -412,17 +408,17 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
         c_a, s_a = np.cos(sph_pt[1]), np.sin(sph_pt[1])
         c_p, s_p = np.cos(sph_pt[2]), np.sin(sph_pt[2])
 
-        trans = np.array([[c_a * s_p, c_a * c_p, -s_a],
-                          [s_a * s_p, c_p * s_a, c_p],
-                          [c_p, -s_p, 0]])
+        trans = np.array([[c_a * s_p, -s_a, c_a * c_p],
+                          [s_a * s_p, c_a, c_p * s_a],
+                          [c_p, 0, -s_p]])
 
         #print 'Trans shape: ' + str(trans.shape)
         #print 'Trans: \n' + str(trans)
         #print 'sph_grad shape: ' + str(sph_grad.shape)
         #print 'sph_grad: \n' + str(sph_grad)
+        #reord_sph_grads = np.array([sph_grad[0], sph_grad[2], sph_grad[1]])
 
-        reord_sph_grads = np.array([sph_grad[0], sph_grad[2], sph_grad[1]])
-        cart_grads[pt_i, :] = np.dot(trans, reord_sph_grads)
+        cart_grads[pt_i, :] = np.dot(trans, sph_grad)
 
     return cart_grads
 
