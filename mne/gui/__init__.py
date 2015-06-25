@@ -43,6 +43,9 @@ def coregistration(tabbed=False, split=True, scene_width=0o1, inst=None,
     subjects_dir : None | path
         Override the SUBJECTS_DIR environment variable
         (sys.environ['SUBJECTS_DIR'])
+    raw : str(path)
+        This parameter has been deprecated for the `inst` parameter.
+        `raw` will be removed in 0.11.
 
     Notes
     -----
