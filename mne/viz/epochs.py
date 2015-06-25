@@ -964,8 +964,6 @@ def _plot_traces(params):
                                                1e6 * factor)
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
-        if n_channels > 100:
-            tick_list = ['']
         ax.set_yticklabels(tick_list, fontsize=12)
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
@@ -1098,7 +1096,7 @@ def _plot_onscroll(event, params):
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
     if event.inaxes is None:
-        if params['n_channels'] > 100 or params['butterfly']:
+        if params['butterfly']:
             return
         ax = params['ax']
         ylim = ax.get_ylim()
@@ -1416,7 +1414,7 @@ def _onclick_help(event):
             'Open dialog for adjusting viewport\n'\
             'Toggle full screen mode\n'\
             'Open help box\n'\
-            'Close mne_browse_epochs\n\n'
+            'Quit\n\n'
 
     text3 = 'Left click on an epoch marks bad epoch to be dropped\n'\
             'Right click on main axes draws a vertical line on the plot\n'\
@@ -1480,6 +1478,14 @@ def _update_channels_epochs(event, params):
     _plot_traces(params)
 
 
+def _toggle_labels(label, params):
+    """Function for toggling y labels on/off."""
+    labels = params['ax'].yaxis.get_ticklabels()
+    for label in labels:
+        label.set_visible(not label.get_visible())
+    params['fig'].canvas.draw()
+
+
 def _open_options(params):
     """Function for opening the option window."""
     import matplotlib.pyplot as plt
@@ -1490,13 +1496,15 @@ def _open_options(params):
         params['fig_options'] = None
         return
     width = 10
-    height = 1
+    height = 5
     fig_options = figure_nobar(figsize=(width, height), dpi=80)
     fig_options.canvas.set_window_title('Viewport dimensions')
     params['fig_options'] = fig_options
-    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.4])
-    ax_epochs = plt.axes([0.15, 0.55, 0.65, 0.4])
-    ax_button = plt.axes([0.85, 0.1, 0.1, 0.85])
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.25])
+    ax_epochs = plt.axes([0.15, 0.4, 0.65, 0.25])
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.55])
+    ax_check = plt.axes([0.15, 0.70, 0.4, 0.25])
+    plt.axis('off')
     params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
     params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
                                                   len(params['ch_names']),
@@ -1506,9 +1514,14 @@ def _open_options(params):
                                                 len(params['epoch_times']),
                                                 valfmt='%0.0f',
                                                 valinit=params['n_epochs'])
-
+    toggled = params['ax'].yaxis.get_ticklabels()[0].get_visible()
+    params['checkbox'] = mpl.widgets.CheckButtons(ax_check,
+                                                  ['Y labels visible'],
+                                                  actives=[toggled])
     update = partial(_update_channels_epochs, params=params)
     params['update_button'].on_clicked(update)
+    labels_callback = partial(_toggle_labels, params=params)
+    params['checkbox'].on_clicked(labels_callback)
     try:
         params['fig_options'].canvas.draw()
         params['fig_options'].show()
