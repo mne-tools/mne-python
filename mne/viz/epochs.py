@@ -1433,13 +1433,16 @@ def _onclick_help(event):
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
-    ax1 = plt.subplot2grid((1, 5), (0, 0), colspan=2)
+    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
+    ax.set_title('Keyboard shortcuts')
+    plt.axis('off')
+    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
     ax1.set_yticklabels(list())
     plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
              ha='right')
     plt.axis('off')
 
-    ax2 = plt.subplot2grid((1, 5), (0, 2), colspan=3)
+    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
     ax2.set_yticklabels(list())
     plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
     plt.axis('off')
