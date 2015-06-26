@@ -1,6 +1,6 @@
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_almost_equal,
-                           assert_array_equal)
+                           assert_array_equal, assert_allclose)
 from nose.tools import assert_equal, assert_true, assert_raises
 import os.path as op
 import warnings
@@ -144,7 +144,11 @@ def test_filters():
     lp_oa = low_pass_filter(a, sfreq, 8, filter_length)
     hp_oa = high_pass_filter(lp_oa, sfreq, 4, filter_length)
     assert_array_almost_equal(hp_oa, bp_oa, 2)
-    assert_array_almost_equal(bp_oa + bs_oa, a, 2)
+    # Our filters are no longer quite complementary with linear rolloffs :(
+    # this is the tradeoff for stability of the filtering
+    # obtained by directly using the result of firwin2 instead of
+    # modifying it...
+    assert_array_almost_equal(bp_oa + bs_oa, a, 1)
 
     # The two methods should give the same result
     # As filtering for short signals uses a circular convolution (FFT) and
@@ -205,6 +209,19 @@ def test_filters():
     a = np.random.randn(2, 2, 2, 2)
     assert_raises(ValueError, band_pass_filter, a, sfreq, Fp1=4, Fp2=8,
                   picks=np.array([0, 1]))
+
+    # test that our overlap-add filtering doesn't introduce strange
+    # artifacts (from mne_analyze mailing list 2015/06/25)
+    N = 300
+    sfreq = 100.
+    lp = 10.
+    sine_freq = 1.
+    x = np.ones(N)
+    x += np.sin(2 * np.pi * sine_freq * np.arange(N) / sfreq)
+    with warnings.catch_warnings(record=True):  # filter attenuation
+        x_filt = low_pass_filter(x, sfreq, lp, '1s')
+    # the firwin2 function gets us this close
+    assert_allclose(x, x_filt, rtol=1e-3, atol=1e-3)
 
 
 def test_cuda():
