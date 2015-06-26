@@ -49,8 +49,9 @@ Changelog
 
     - Deprecated `lws` and renamed `ledoit_wolf` for the ``reg`` argument in :class:`mne.decoding.csp.CSP` and :class:`mne.preprocessing.Xdawn` by `Romain Trachel`_ 
 
-
     - Add interactive plotting of topomap from time-frequency representation by `Jaakko Leppakangas`_
+
+    - Add ``plot_topo`` method to ``Evoked`` object by `Jaakko Leppakangas`_
 
 BUG
 ~~~
