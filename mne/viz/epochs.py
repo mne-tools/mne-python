@@ -696,7 +696,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'text': text,
               'ax_help_button': ax_help_button,
               'fig_options': None,
-              't0_visible': True}
+              'settings': [True, True, True, True]}  # for options dialog
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -1035,7 +1035,7 @@ def _plot_vert_lines(params):
     while len(ax.lines) > 0:
         ax.lines.pop()
     epochs = params['epochs']
-    if params['t0_visible']:
+    if params['settings'][3]:  # if zeroline visible
         t_zero = np.where(epochs.times == 0.)[0]
         if len(t_zero) == 1:
             for event_idx in range(len(epochs.events)):
@@ -1402,6 +1402,11 @@ def _onclick_help(event):
            u'F11 : \n'\
            u'? : \n'\
            u'esc : \n\n'\
+           u'Mouse controls\n'\
+           u'click epoch :\n'\
+           u'click channel name :\n'\
+           u'right click :\n'\
+           u'middle click :\n'
 
     text2 = 'Navigate left\n'\
             'Navigate right\n'\
@@ -1414,29 +1419,29 @@ def _onclick_help(event):
             'Reduce the number of channels per view\n'\
             'Increase the number of channels per view\n'\
             'Toggle butterfly plot on/off\n'\
-            'Open dialog for adjusting viewport\n'\
+            'View settings (orig. view only)\n'\
             'Toggle full screen mode\n'\
             'Open help box\n'\
-            'Quit\n\n'
+            'Quit\n\n\n'\
+            'Mark bad epoch\n'\
+            'Mark bad channel\n'\
+            'Verticlal line at a time instant\n'\
+            'Show channel name (butterfly plot)\n'
 
-    text3 = 'Left click on an epoch marks bad epoch to be dropped\n'\
-            'Right click on main axes draws a vertical line on the plot\n'\
-            'Middle click on a line shows the channel name\n'\
-            'Mouse click on the channel name marks a bad channel\n'
-    width = 5
+    width = 5.5
     height = 0.25 * 19  # 19 rows of text
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')
-    ax1 = plt.subplot2grid((3, 5), (0, 0), rowspan=2)
-    plt.text(0, 1, text, fontname='STIXGeneral', va='top', weight='bold')
-    ax1.set_title('Keyboard shortcuts', va='bottom', ha='left')
+    ax1 = plt.subplot2grid((1, 5), (0, 0), colspan=2)
+    ax1.set_yticklabels(list())
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
+             ha='right')
     plt.axis('off')
-    plt.subplot2grid((3, 5), (0, 1), rowspan=2, colspan=4)
+
+    ax2 = plt.subplot2grid((1, 5), (0, 2), colspan=3)
+    ax2.set_yticklabels(list())
     plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
-    plt.axis('off')
-    plt.subplot2grid((3, 5), (2, 0), colspan=5)
-    plt.text(0, 1, text3, fontname='STIXGeneral', va='top')
     plt.axis('off')
 
     tight_layout(fig=fig_help)
@@ -1482,13 +1487,24 @@ def _update_channels_epochs(event, params):
 
 
 def _toggle_labels(label, params):
-    """Function for toggling y labels on/off."""
-    if label == 'Y labels visible':
+    """Function for toggling axis labels on/off."""
+    if label == 'Channel names visible':
+        params['settings'][0] = not params['settings'][0]
         labels = params['ax'].yaxis.get_ticklabels()
         for label in labels:
-            label.set_visible(not label.get_visible())
-    elif label == 'T0 visible':
-        params['t0_visible'] = not params['t0_visible']
+            label.set_visible(params['settings'][0])
+    elif label == 'Event-id visible':
+        params['settings'][1] = not params['settings'][1]
+        labels = params['ax2'].xaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][1])
+    elif label == 'Epoch-id visible':
+        params['settings'][2] = not params['settings'][2]
+        labels = params['ax'].xaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][2])
+    elif label == 'Zeroline visible':
+        params['settings'][3] = not params['settings'][3]
         _plot_vert_lines(params)
     params['fig'].canvas.draw()
 
@@ -1521,12 +1537,12 @@ def _open_options(params):
                                                 len(params['epoch_times']),
                                                 valfmt='%0.0f',
                                                 valinit=params['n_epochs'])
-    actives = [params['ax'].yaxis.get_ticklabels()[0].get_visible(),
-               params['t0_visible']]
     params['checkbox'] = mpl.widgets.CheckButtons(ax_check,
-                                                  ['Y labels visible',
-                                                   'T0 visible'],
-                                                  actives=actives)
+                                                  ['Channel names visible',
+                                                   'Event-id visible',
+                                                   'Epoch-id visible',
+                                                   'Zeroline visible'],
+                                                  actives=params['settings'])
     update = partial(_update_channels_epochs, params=params)
     params['update_button'].on_clicked(update)
     labels_callback = partial(_toggle_labels, params=params)
