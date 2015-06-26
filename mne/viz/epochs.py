@@ -1,6 +1,5 @@
 """Functions to plot epochs data
 """
-from __future__ import print_function, unicode_literals
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -1099,7 +1098,7 @@ def _plot_onscroll(event, params):
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
     if event.inaxes is None:
-        if params['butterfly']:
+        if params['butterfly'] or not params['settings'][0]:
             return
         ax = params['ax']
         ylim = ax.get_ylim()
@@ -1286,6 +1285,9 @@ def _prepare_butterfly(params):
             return
         params['ax_vscroll'].set_visible(False)
         ax = params['ax']
+        labels = ax.yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(True)
         ylim = (5. * len(types), 0.)
         ax.set_ylim(ylim)
         offset = ylim[0] / (4. * len(types))
@@ -1337,9 +1339,12 @@ def _prepare_butterfly(params):
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
                                 zorder=2, picker=3.)
-            params['ax'].add_collection(lc)
+            ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
+        labels = params['ax'].yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][0])
         params['ax_vscroll'].set_visible(True)
         while len(params['ax2'].texts) > 0:
             params['ax2'].texts.pop()
@@ -1524,7 +1529,7 @@ def _open_options(params):
     width = 10
     height = 3
     fig_options = figure_nobar(figsize=(width, height), dpi=80)
-    fig_options.canvas.set_window_title('Viewport dimensions')
+    fig_options.canvas.set_window_title('View settings')
     params['fig_options'] = fig_options
     ax_channels = plt.axes([0.15, 0.1, 0.65, 0.1])
     ax_epochs = plt.axes([0.15, 0.25, 0.65, 0.1])
