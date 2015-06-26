@@ -221,7 +221,8 @@ def test_inverse_operator_channel_ordering():
     # Assume that a raw reordering applies to both evoked and noise_cov,
     # so we don't need to create those from scratch. Just reorder them,
     # then try to apply the original inverse operator
-    new_order = [375] + range(315, 375) + range(0, 306) + range(306, 315)
+    new_order = np.arange(len(evoked.info['ch_names']))
+    np.random.shuffle(new_order)
     evoked.data = evoked.data[new_order]
     evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
