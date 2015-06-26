@@ -7,6 +7,7 @@ Current
 
 Changelog
 ~~~~~~~~~
+
     - Add support for generalized M-way repeated measures ANOVA for fully balanced designs by `Denis Engemann`_
 
     - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
@@ -18,6 +19,8 @@ BUG
     - Fix ``mne.io.add_reference_channels`` not setting ``info[nchan]`` correctly by `Federico Raimondo`_
 
     - Fix ``mne.stats.bonferroni_correction`` reject mask output to use corrected p-values by `Denis Engemann`_
+
+    - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
 
 
 .. _changes_0_9:
