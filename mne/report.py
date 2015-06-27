@@ -923,10 +923,12 @@ class Report(object):
         for html, caption in zip(htmls, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
+            div_klass = self._sectionvars[section]
 
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
-            self.html.append(html)
+            self.html.append('<li class="%s"><h4>%s</h4><div class="thumbnail"'
+                             '>%s</div></li>' % (div_klass, caption, html))
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
