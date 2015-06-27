@@ -8,12 +8,52 @@ from scipy.signal import resample as sp_resample
 
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
                         band_stop_filter, resample, construct_iir_filter,
-                        notch_filter, detrend)
+                        notch_filter, detrend, _overlap_add_filter,
+                        _smart_pad)
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
+
+
+def test_1d_filter():
+    """Test our private overlap-add filtering function"""
+    rng = np.random.RandomState(0)
+    # make some random signals and filters
+    for n_signal in (1, 2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+        x = rng.randn(n_signal)
+        for n_filter in (2, 5, 10, 20, 40, 100, 200, 400, 1000, 2000):
+            if n_filter > n_signal:
+                continue  # only equal or lesser lengths supported
+            h = rng.randn(n_filter)
+            # ensure we pad the signal the same way for both filters
+            n_pad = max(min(n_filter, n_signal - 1), 0)
+            x_pad = _smart_pad(x, n_pad)
+            for zero_phase in (True, False):
+                # compute our expected result the slow way\
+                if zero_phase:
+                    x_expected = np.convolve(x_pad, h)[::-1]
+                    x_expected = np.convolve(x_expected, h)[::-1]
+                    x_expected = x_expected[len(h) - 1:-(len(h) - 1)]
+                else:
+                    x_expected = np.convolve(x_pad, h)
+                    x_expected = x_expected[:-(len(h) - 1)]
+                # remove padding
+                if n_pad > 0:
+                    x_expected = x_expected[n_pad:-n_pad]
+                # compute our version
+                for n_fft in (None, 32, 128, 129, 1023, 1024, 1025, 2048):
+                    # need to use .copy() b/c our signal gets modified inplace
+                    x_copy = x[np.newaxis, :].copy()
+                    if n_fft is not None and n_fft < 2 * n_filter - 1:
+                        assert_raises(ValueError, _overlap_add_filter,
+                                      x_copy, h, n_fft, zero_phase)
+                    else:
+                        with warnings.catch_warnings(record=True):  # bad len
+                            x_filtered = _overlap_add_filter(x_copy, h, n_fft,
+                                                             zero_phase)[0]
+                        assert_allclose(x_expected, x_filtered)
 
 
 def test_iir_stability():

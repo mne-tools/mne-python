@@ -77,17 +77,21 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     # Extend the signal by mirroring the edges to reduce transient filter
     # response
     n_h = len(h)
+    if n_h < 2:
+        raise ValueError('filter length must be at least 2')
+    if x.shape[1] < len(h):
+        raise ValueError('Overlap add should only be used for signals '
+                         'longer than the requested filter')
     n_edge = max(min(n_h, x.shape[1]) - 1, 0)
 
     n_x = x.shape[1] + 2 * n_edge
 
     # Determine FFT length to use
     if n_fft is None:
-        if n_x > n_h:
+        min_fft = 2 * n_h - 1
+        max_fft = n_x
+        if max_fft >= min_fft:
             n_tot = 2 * n_x if zero_phase else n_x
-
-            min_fft = 2 * n_h - 1
-            max_fft = n_x
 
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
@@ -189,7 +193,6 @@ def _filter_attenuation(h, freq, gain):
     idx = np.argmax(filt_resp)
     att_db = -20 * np.log10(filt_resp[idx])
     att_freq = freq[idx]
-
     return att_db, att_freq
 
 
