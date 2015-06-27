@@ -10,10 +10,14 @@ from .. import Covariance, Evoked
 from ..io.pick import (pick_types, pick_channels, pick_info)
 
 
-def _least_square_evoked(data, events, events_id, nmin, nmax):
+def _least_square_evoked(data, events, events_id, tmin, tmax, sfreq, decim):
     """Least square estimation of evoked response from data
     return evoked data and toeplitz matrices.
     """
+    nmin = int(tmin * sfreq / decim)
+    nmax = int(tmax * sfreq / decim)
+    data = data[:, ::decim]
+
     window = nmax - nmin
     ne, ns = data.shape
     to = {}
@@ -24,7 +28,8 @@ def _least_square_evoked(data, events, events_id, nmin, nmax):
 
         # build toeplitz matrix
         trig = np.zeros((ns, 1))
-        trig[events[ix_ev, 0] + nmin] = 1
+        ix_trig = np.round(events[ix_ev, 0] / decim) + nmin
+        trig[ix_trig] = 1
         toep = linalg.toeplitz(trig[0:window], trig)
         to[eid] = np.matrix(toep)
 
