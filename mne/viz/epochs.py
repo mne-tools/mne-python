@@ -1141,6 +1141,8 @@ def _mouse_click(event, params):
 
     elif event.inaxes == params['ax'] and event.button == 2:  # middle click
         params['fig'].canvas.draw()
+        if params['fig_proj'] is not None:
+            params['fig_proj'].canvas.draw()
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
         n_times = len(params['epochs'].times)
         xdata = int(event.xdata % n_times)
@@ -1515,6 +1517,8 @@ def _toggle_labels(label, params):
         params['settings'][3] = not params['settings'][3]
         _plot_vert_lines(params)
     params['fig'].canvas.draw()
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
 
 
 def _open_options(params):
@@ -1555,8 +1559,17 @@ def _open_options(params):
     params['update_button'].on_clicked(update)
     labels_callback = partial(_toggle_labels, params=params)
     params['checkbox'].on_clicked(labels_callback)
+    close_callback = partial(_settings_closed, params=params)
+    params['fig_options'].canvas.mpl_connect('close_event', close_callback)
     try:
         params['fig_options'].canvas.draw()
         params['fig_options'].show()
+        if params['fig_proj'] is not None:
+            params['fig_proj'].canvas.draw()
     except Exception:
         pass
+
+
+def _settings_closed(events, params):
+    """Function to handle close event from settings dialog."""
+    params['fig_options'] = None
