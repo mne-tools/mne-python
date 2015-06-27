@@ -208,7 +208,7 @@ def test_add_htmls_to_section():
     report.add_htmls_to_section(html, caption, section)
     idx = report._sectionlabels.index('report_' + section)
     html_compare = report.html[idx]
-    assert_equal(html, html_compare)
+    assert_true(html in html_compare)
 
 
 def test_validate_input():
