@@ -21,7 +21,7 @@ from ...utils import verbose, logger
 from ...transforms import (apply_trans, als_ras_trans, als_ras_trans_mm,
                            get_ras_to_neuromag_trans)
 from ..base import _BaseRaw
-from ...epochs import EpochsArray
+from ...epochs import _BaseEpochs
 from ..constants import FIFF
 from ..meas_info import _empty_info, _read_dig_points, _make_dig_points
 from ..tag import _loc_to_trans
@@ -250,7 +250,7 @@ class RawKIT(_BaseRaw):
             np.dot(mult, data_) if mult is not None else data_[sel]
 
 
-class EpochsKIT(EpochsArray):
+class EpochsKIT(_BaseEpochs):
     """Epochs Array object from KIT SQD file
 
     Parameters
@@ -367,21 +367,20 @@ class EpochsKIT(EpochsArray):
                                  '(event id %i)' % (key, val))
 
         self._filename = input_fname
-        data = self._read_data()
+        data = self._read_kit_data()
         assert data.shape == (self._raw_extras[0]['n_epochs'],
                               self.info['nchan'],
                               self._raw_extras[0]['frame_length'])
-
-        super(EpochsKIT, self).__init__(data=data, info=self.info,
-                                        events=events, event_id=event_id,
-                                        baseline=baseline, tmin=tmin,
+        tmax = ((data.shape[2] - 1) / self.info['sfreq']) + tmin
+        super(EpochsKIT, self).__init__(self.info, data, events, event_id,
+                                        tmin, tmax, baseline,
                                         reject=reject, flat=flat,
                                         reject_tmin=reject_tmin,
                                         reject_tmax=reject_tmax,
                                         verbose=verbose)
         logger.info('Ready.')
 
-    def _read_data(self):
+    def _read_kit_data(self):
         """Read epochs data
 
         Returns

@@ -28,11 +28,11 @@ from .._hdf5 import write_hdf5, read_hdf5
 
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time"""
-    from ..epochs import Epochs
+    from ..epochs import _BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (Epochs, Evoked)):
+    if not isinstance(inst, (_BaseEpochs, Evoked)):
         raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, Epochs):
+    if isinstance(inst, _BaseEpochs):
         data = inst.get_data()
     else:
         if return_itc:

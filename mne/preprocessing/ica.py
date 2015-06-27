@@ -683,7 +683,7 @@ class ICA(ContainsMixin):
 
         self._export_info(out.info, epochs, add_channels)
         out.preload = True
-        out.raw = None
+        out._raw = None
         out._projector = None
 
         return out

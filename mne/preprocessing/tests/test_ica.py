@@ -506,7 +506,7 @@ def test_ica_additional():
     ica_chans = [ch for ch in ica_epochs.ch_names if 'ICA' in ch]
     assert_true(ica.n_components_ == len(ica_chans))
     assert_true(ica.n_components_ == ica_epochs.get_data().shape[1])
-    assert_true(ica_epochs.raw is None)
+    assert_true(ica_epochs._raw is None)
     assert_true(ica_epochs.preload is True)
 
     # test float n pca components

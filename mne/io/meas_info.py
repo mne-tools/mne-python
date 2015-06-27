@@ -51,6 +51,16 @@ class Info(dict):
     """ Info class to nicely represent info dicts
     """
 
+    def copy(self):
+        """Copy the instance
+
+        Returns
+        -------
+        info : instance of Info
+            The copied info.
+        """
+        return Info(super(Info, self).copy())
+
     def __repr__(self):
         """Summarize info instead of printing all"""
         strs = ['<Info | %s non-empty fields']
