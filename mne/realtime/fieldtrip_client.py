@@ -11,6 +11,7 @@ import numpy as np
 
 from ..io.constants import FIFF
 from ..io.meas_info import _empty_info
+from ..io.pick import pick_info
 from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
@@ -254,15 +255,13 @@ class FieldTripClient(object):
         events = np.expand_dims(np.array([start, 1, 1]), axis=0)
 
         # get the data
-        data = self.ft_client.getData([start, stop]).transpose()[np.newaxis]
+        data = self.ft_client.getData([start, stop]).transpose()
 
         # create epoch from data
-        epoch = EpochsArray(data, self.info, events)
-
-        # pick channels
+        info = self.info
         if picks is not None:
-            ch_names = [self.info['ch_names'][k] for k in picks]
-            epoch.pick_channels(ch_names=ch_names, copy=False)
+            info = pick_info(info, picks, copy=True)
+        epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch
 

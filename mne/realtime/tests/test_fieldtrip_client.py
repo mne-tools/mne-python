@@ -71,10 +71,15 @@ def test_fieldtrip_client():
                 epoch = rt_client.get_data_as_epoch(n_samples=5, picks=picks)
                 n_channels, n_samples = epoch.get_data().shape[1:]
 
+                epoch2 = rt_client.get_data_as_epoch(n_samples=5, picks=picks)
+                n_channels2, n_samples2 = epoch2.get_data().shape[1:]
+
         assert_true(tmin_samp2 > tmin_samp1)
         assert_true(len(w) >= 1)
         assert_equal(n_samples, 5)
+        assert_equal(n_samples2, 5)
         assert_equal(n_channels, len(picks))
+        assert_equal(n_channels2, len(picks))
         kill_signal.put(False)  # stop the buffer
     except:
         kill_signal.put(False)  # stop the buffer even if tests fail
