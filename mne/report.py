@@ -898,9 +898,15 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             # Convert image to binary string.
-            im = Image.open(fname)
             output = BytesIO()
-            im.save(output, format=image_format)
+            im = Image.open(fname)
+            if image_format == 'png':
+                im.save(output, format='png')
+            elif image_format == 'gif':
+                with open(fname, 'rb') as f:
+                    output.write(f.read())
+            else:
+                raise ValueError('Unknown image format %s' % image_format)
             img = base64.b64encode(output.getvalue()).decode('ascii')
             html = image_template.substitute(img=img, id=global_id,
                                              image_format=image_format,
