@@ -7,6 +7,7 @@ import numpy as np
 from scipy import linalg
 import copy as cp
 
+from ..io.proj import Projection
 from ..io.base import _BaseRaw
 from .. import Covariance, EvokedArray, compute_raw_data_covariance
 from ..io.pick import pick_types, pick_info
@@ -30,16 +31,16 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
         # build toeplitz matrix
         trig = np.zeros((ns, 1))
-        ix_trig = np.round(events[ix_ev, 0] / decim) + nmin
+        ix_trig = (events[ix_ev, 0] / decim) + nmin
         trig[ix_trig] = 1
         toep = linalg.toeplitz(trig[0:window], trig)
-        to[eid] = np.matrix(toep)
+        to[eid] = toep
 
     # Concatenate toeplitz
     to_tot = np.concatenate(to.values())
 
     # least square estimation
-    evo = linalg.pinv(to_tot * to_tot.T) * to_tot * data.T
+    evo = np.dot(np.dot(linalg.pinv(np.dot(to_tot, to_tot.T)), to_tot), data.T)
 
     # parse evoked response
     evoked_data = {}
@@ -88,7 +89,7 @@ def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
         An array of evoked instance for each event type in event_id.
     """
     if not isinstance(raw, _BaseRaw):
-        raise ValueError('The first argument an instance of `mne.io.Raw`')
+        raise ValueError('The raw must be an instance of `mne.io.Raw`')
 
     if event_id is None:  # convert to int to make typing-checks happy
         event_id = dict((str(e), int(e)) for e in np.unique(events[:, 2]))
@@ -106,7 +107,9 @@ def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
     if picks is None:
         picks = pick_types(raw.info, meg=True, eeg=True)
 
-    evo, to = _least_square_evoked(raw._data[picks], events, event_id,
+    evs = events.copy()
+    evs[:, 0] -= raw.first_samp
+    evo, to = _least_square_evoked(raw._data[picks], evs, event_id,
                                    tmin=tmin, tmax=tmax,
                                    sfreq=raw.info['sfreq'], decim=decim)
     evokeds = []
@@ -153,6 +156,7 @@ class Xdawn():
         self.filters_ = {}
         self.patterns_ = {}
         self.evokeds_ = {}
+        self.projs_ = {}
 
     def fit(self, raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
             picks=None):
@@ -186,5 +190,18 @@ class Xdawn():
 
             self.filters_[eid] = evecs
             self.patterns_[eid] = linalg.inv(evecs.T)
+
+            # Create and add projectors
+            ch_names = evokeds[i].ch_names
+            projs = []
+            for j in range(self.n_components):
+                proj_data = dict(col_names=ch_names, row_names=None,
+                                 data=evecs[:, j].T, nrow=1,
+                                 ncol=len(ch_names))
+                projs.append(Projection(active=True, data=proj_data,
+                             desc="%s Xdawn #%d" % (eid, j)))
+
+            # self.evokeds_[eid].add_proj(projs)
+            self.projs_[eid] = projs
 
         return self
