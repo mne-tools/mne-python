@@ -257,7 +257,7 @@ It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
-    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
