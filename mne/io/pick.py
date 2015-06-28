@@ -399,7 +399,7 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     fwd = deepcopy(orig)
 
     # Check that forward solution and original data file agree on #channels
-    if not len(sel_sol) == len(sel_info):
+    if len(sel_sol) != len(sel_info):
         raise ValueError('Forward solution and functional data appear to '
                          'have different channel names, please check.')
 
