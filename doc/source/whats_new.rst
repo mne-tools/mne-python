@@ -25,6 +25,9 @@ BUG
 
 .. _changes_0_9:
 
+Version 0.9
+-----------
+
 Changelog
 ~~~~~~~~~
 
