@@ -246,7 +246,7 @@ def test_inverse_operator_channel_ordering():
 
     assert_equal(stc_1.subject, stc_2.subject)
     assert_array_equal(stc_1.times, stc_2.times)
-    assert_allclose(stc_1.data, stc_2.data, rtol=1e-7, atol=1e-7)
+    assert_allclose(stc_1.data, stc_2.data, rtol=1e-5, atol=1e-5)
     assert_true(inv_orig['units'] == inv_reorder['units'])
 
     # Reload with original ordering & apply reordered inverse
