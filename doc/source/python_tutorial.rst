@@ -201,9 +201,9 @@ Define peak-to-peak rejection parameters for gradiometers, magnetometers and EOG
 Read epochs:
 
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
+    145 matching events found
     Created an SSP operator (subspace dimension = 4)
     4 projection items activated
-    145 matching events found
     >>> print(epochs)
     <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0),
      'aud_l': 72, 'aud_r': 73>
@@ -257,7 +257,7 @@ It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
-    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
