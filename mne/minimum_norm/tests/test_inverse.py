@@ -2,7 +2,7 @@ from __future__ import print_function
 import os.path as op
 import numpy as np
 from numpy.testing import (assert_array_almost_equal, assert_equal,
-                           assert_allclose)
+                           assert_allclose, assert_array_equal)
 from scipy import sparse
 from nose.tools import assert_true, assert_raises
 import copy
@@ -26,7 +26,8 @@ from mne.minimum_norm.inverse import (apply_inverse, read_inverse_operator,
 from mne.utils import _TempDir, run_tests_if_main, slow_test
 from mne.externals import six
 
-s_path = op.join(testing.data_path(download=False), 'MEG', 'sample')
+test_path = testing.data_path(download=False)
+s_path = op.join(test_path, 'MEG', 'sample')
 fname_fwd = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-4-fwd.fif')
 # Four inverses:
 fname_full = op.join(s_path, 'sample_audvis_trunc-meg-eeg-oct-6-meg-inv.fif')
@@ -47,8 +48,7 @@ fname_vol_inv = op.join(s_path,
                         'sample_audvis_trunc-meg-vol-7-meg-inv.fif')
 # trans and bem needed for channel reordering tests incl. forward computation
 fname_trans = op.join(s_path, 'sample_audvis_trunc-trans.fif')
-s_path_bem = op.join(testing.data_path(download=False), 'subjects',
-                     'sample', 'bem')
+s_path_bem = op.join(test_path, 'subjects', 'sample', 'bem')
 fname_bem = op.join(s_path_bem, 'sample-320-320-320-bem-sol.fif')
 src_fname = op.join(s_path_bem, 'sample-oct-4-src.fif')
 
@@ -222,7 +222,8 @@ def test_inverse_operator_channel_ordering():
     # so we don't need to create those from scratch. Just reorder them,
     # then try to apply the original inverse operator
     new_order = np.arange(len(evoked.info['ch_names']))
-    np.random.shuffle(new_order)
+    randomiser = np.random.RandomState(42)
+    randomiser.shuffle(new_order)
     evoked.data = evoked.data[new_order]
     evoked.info['ch_names'] = [evoked.info['ch_names'][n] for n in new_order]
     evoked.info['chs'] = [evoked.info['chs'][n] for n in new_order]
@@ -243,10 +244,17 @@ def test_inverse_operator_channel_ordering():
 
     stc_2 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
 
-    assert_true(stc_1.subject == stc_2.subject)
-    assert_equal(stc_1.times, stc_2.times)
-    assert_allclose(stc_1.data, stc_2.data, rtol=1e-2, atol=1e-2)
+    assert_equal(stc_1.subject, stc_2.subject)
+    assert_array_equal(stc_1.times, stc_2.times)
+    assert_allclose(stc_1.data, stc_2.data, rtol=1e-7, atol=1e-7)
     assert_true(inv_orig['units'] == inv_reorder['units'])
+
+    # Reload with original ordering & apply reordered inverse
+    evoked = _get_evoked()
+    noise_cov = read_cov(fname_cov)
+
+    stc_3 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
+    assert_allclose(stc_1.data, stc_3.data, rtol=1e-7, atol=1e-7)
 
 
 @slow_test
