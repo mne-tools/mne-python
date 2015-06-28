@@ -9,9 +9,11 @@ import copy as cp
 
 from ..io.proj import Projection
 from ..io.base import _BaseRaw
+from ..epochs import _BaseEpochs
 from .. import Covariance, EvokedArray, compute_raw_data_covariance
 from ..io.pick import pick_types, pick_info
-
+from .ica import _get_fast_dot
+from ..utils import logger
 
 def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     """Least square estimation of evoked response from data
@@ -166,14 +168,17 @@ class Xdawn():
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True)
 
+        self.picks = picks
         evokeds, to = least_square_evoked(raw=raw, events=events,
                                           event_id=event_id, tmin=tmin,
-                                          tmax=tmax, decim=decim, picks=picks,
+                                          tmax=tmax, decim=decim,
+                                          picks=self.picks,
                                           return_toeplitz=True)
-
+        self.ch_names = [raw.ch_names[i] for i in self.picks]
+        self.exclude = range(self.n_components, len(self.picks))
         # Compute noise cov
         # FIXME : Use mne method
-        noise_cov = np.cov(raw._data[picks, ::decim])
+        noise_cov = np.cov(raw._data[self.picks, ::decim])
 
         for i, eid in enumerate(event_id):
             self.evokeds_[eid] = evokeds[i]
@@ -205,3 +210,158 @@ class Xdawn():
             self.projs_[eid] = projs
 
         return self
+
+    def apply(self, inst, event_id=None, include=None, exclude=None):
+        """Remove selected components from the signal.
+
+        Given the unmixing matrix, transform data,
+        zero out components, and inverse transform the data.
+        This procedure will reconstruct M/EEG signals from which
+        the dynamics described by the excluded components is subtracted.
+
+        Parameters
+        ----------
+        inst : instance of Raw, Epochs or Evoked
+            The data to be processed.
+        include : array_like of int.
+            The indices refering to columns in the ummixing matrix. The
+            components to be kept.
+        exclude : array_like of int.
+            The indices refering to columns in the ummixing matrix. The
+            components to be zeroed out.
+        event_id : dict or None
+            The kind of event to appy. if none, an array of inst will be return
+            one for each type of event xdawn has been fitted.
+        copy : bool
+            Whether to return a copy or whether to apply the solution in place.
+            Defaults to False.
+        """
+        if isinstance(inst, _BaseRaw):
+            out = self._apply_raw(raw=inst, include=include,
+                                  exclude=exclude, event_id=event_id)
+        elif isinstance(inst, _BaseEpochs):
+            out = self._apply_epochs(epochs=inst, include=include,
+                                     exclude=exclude, event_id=event_id)
+        elif isinstance(inst, Evoked):
+            out = self._apply_evoked(evoked=inst, include=include,
+                                     exclude=exclude, event_id=event_id)
+        else:
+            raise ValueError('Data input must be of Raw, Epochs or Evoked '
+                             'type')
+        return out
+
+    def _apply_raw(self, raw, include, exclude, event_id):
+        """Aux method"""
+        if not raw.preload:
+            raise ValueError('Raw data must be preloaded to apply Xdawn')
+
+        if exclude is None:
+            exclude = list(set(self.exclude))
+        else:
+            exclude = list(set(self.exclude + exclude))
+
+        picks = pick_types(raw.info, meg=False, include=self.ch_names,
+                           exclude='bads')
+        raws = {}
+        for eid in event_id:
+            data = raw[picks, :][0]
+
+            data = self._pick_sources(data, include, exclude, eid)
+
+            raw_r = raw.copy()
+
+            raw_r[picks, :] = data
+            raws[eid] = raw_r
+        return raws
+
+    def _apply_epochs(self, epochs, include, exclude, event_id):
+
+        if not epochs.preload:
+            raise ValueError('Epochs must be preloaded to apply ICA')
+
+        picks = pick_types(epochs.info, meg=False, ref_meg=False,
+                           include=self.ch_names,
+                           exclude='bads')
+
+        # special case where epochs come picked but fit was 'unpicked'.
+        if len(picks) != len(self.ch_names):
+            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+                               'fitted but %i channels supplied. \nPlease '
+                               'provide Epochs compatible with '
+                               'ica.ch_names' % (len(self.ch_names),
+                                                 len(picks)))
+
+        epochs_dict = {}
+        data = np.hstack(epochs.get_data()[:, picks])
+
+        for eid in event_id:
+
+            data_r = self._pick_sources(data, include, exclude, eid)
+
+            epochs_r = epochs.copy()
+            epochs_r._data[:, picks] = np.array(np.split(data_r,
+                                                len(epochs.events), 1))
+            epochs_r.preload = True
+            epochs_dict[eid] = epochs_r
+
+        return epochs_dict
+
+    def _apply_evoked(self, evoked, include, exclude, event_id):
+
+        picks = pick_types(evoked.info, meg=False, ref_meg=False,
+                           include=self.ch_names,
+                           exclude='bads')
+
+        # special case where evoked come picked but fit was 'unpicked'.
+        if len(picks) != len(self.ch_names):
+            raise RuntimeError('Evoked does not match fitted data: %i channels'
+                               ' fitted but %i channels supplied. \nPlease '
+                               'provide an Evoked object that\'s compatible '
+                               'with ica.ch_names' % (len(self.ch_names),
+                                                      len(picks)))
+
+        data = evoked.data[picks]
+        evokeds = {}
+
+        for eid in event_id:
+
+            data_r = self._pick_sources(data, include, exclude, eid)
+            evo = evoked.copy()
+
+            # restore evoked
+            evo.data[picks] = data_r
+            evokeds[eid] = evo
+
+        return evokeds
+
+    def _pick_sources(self, data, include, exclude, eid):
+        """Aux function"""
+        fast_dot = _get_fast_dot()
+        if exclude is None:
+            exclude = self.exclude
+        else:
+            exclude = list(set(self.exclude + list(exclude)))
+
+
+        n_components = self.n_components
+        logger.info('Transforming to Xdawn space (%i components)' %
+                    n_components)
+
+
+        # Apply unmixing
+        sources = fast_dot(self.filters_[eid], data)
+
+        if include not in (None, []):
+            mask = np.ones(len(sources), dtype=np.bool)
+            mask[np.unique(include)] = False
+            sources[mask] = 0.
+            logger.info('Zeroing out %i Xdawn components' % mask.sum())
+        elif exclude not in (None, []):
+            exclude_ = np.unique(exclude)
+            sources[exclude_] = 0.
+            logger.info('Zeroing out %i Xdawn components' % len(exclude_))
+        logger.info('Inverse transforming to PCA space')
+        data = fast_dot(self.patterns_[eid], sources)
+
+
+        return data
