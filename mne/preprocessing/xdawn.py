@@ -176,6 +176,7 @@ class Xdawn():
                                           return_toeplitz=True)
         self.ch_names = [raw.ch_names[i] for i in self.picks]
         self.exclude = range(self.n_components, len(self.picks))
+        self.event_id = event_id
         # Compute noise cov
         # FIXME : Use mne method
         noise_cov = np.cov(raw._data[self.picks, ::decim])
@@ -236,6 +237,9 @@ class Xdawn():
             Whether to return a copy or whether to apply the solution in place.
             Defaults to False.
         """
+        if event_id is None:
+            event_id = self.event_id
+
         if isinstance(inst, _BaseRaw):
             out = self._apply_raw(raw=inst, include=include,
                                   exclude=exclude, event_id=event_id)
@@ -349,7 +353,7 @@ class Xdawn():
 
 
         # Apply unmixing
-        sources = fast_dot(self.filters_[eid], data)
+        sources = fast_dot(self.filters_[eid].T, data)
 
         if include not in (None, []):
             mask = np.ones(len(sources), dtype=np.bool)
@@ -360,7 +364,7 @@ class Xdawn():
             exclude_ = np.unique(exclude)
             sources[exclude_] = 0.
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
-        logger.info('Inverse transforming to PCA space')
+        logger.info('Inverse transforming to sensor space')
         data = fast_dot(self.patterns_[eid], sources)
 
 
