@@ -254,7 +254,7 @@ def test_inverse_operator_channel_ordering():
     noise_cov = read_cov(fname_cov)
 
     stc_3 = apply_inverse(evoked, inv_reorder, lambda2, "dSPM")
-    assert_allclose(stc_1.data, stc_3.data, rtol=1e-7, atol=1e-7)
+    assert_allclose(stc_1.data, stc_3.data, rtol=1e-5, atol=1e-5)
 
 
 @slow_test
