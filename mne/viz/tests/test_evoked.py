@@ -111,6 +111,9 @@ def test_plot_evoked():
         evoked.plot_image(exclude=evoked.info['bads'])  # does the same thing
         plt.close('all')
 
+        evoked.plot_topo()  # should auto-find layout
+        plt.close('all')
+
         cov = read_cov(cov_fname)
         cov['method'] = 'empirical'
         evoked.plot_white(cov)

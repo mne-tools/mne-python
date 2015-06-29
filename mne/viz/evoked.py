@@ -22,7 +22,7 @@ from .utils import _draw_proj_checkbox, tight_layout, _check_delayed_ssp
 from ..utils import logger
 from ..fixes import partial
 from ..io.pick import pick_info
-from .topo import plot_topo
+from .topo import _plot_evoked_topo
 
 
 def _butterfly_onpick(event, params):
@@ -345,13 +345,14 @@ def plot_evoked_topo(evoked, layout=None, layout_scale=0.945, color=None,
     fig : Instance of matplotlib.figure.Figure
         Images of evoked responses at sensor locations
     """
-    return plot_topo(evoked=evoked, layout=layout, layout_scale=layout_scale,
-                     color=color, border=border, ylim=ylim, scalings=scalings,
-                     title=title, proj=proj, vline=vline,
-                     fig_facecolor=fig_facecolor,
-                     fig_background=fig_background,
-                     axis_facecolor=axis_facecolor, font_color=font_color,
-                     show=show)
+    return _plot_evoked_topo(evoked=evoked, layout=layout,
+                             layout_scale=layout_scale, color=color,
+                             border=border, ylim=ylim, scalings=scalings,
+                             title=title, proj=proj, vline=vline,
+                             fig_facecolor=fig_facecolor,
+                             fig_background=fig_background,
+                             axis_facecolor=axis_facecolor,
+                             font_color=font_color, show=show)
 
 
 def plot_evoked_image(evoked, picks=None, exclude='bads', unit=True, show=True,

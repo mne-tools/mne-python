@@ -61,8 +61,9 @@ _deprecation_ignores = [
     'mne.fixes._in1d',  # fix function
     'mne.utils.plot_epochs_trellis',  # deprecated
     'mne.utils.write_bem_surface',  # deprecated
-    'mne.gui.coregistration'  # deprecated
-]
+    'mne.gui.coregistration',  # deprecated
+    'mne.utils.plot_topo'
+    ]
 
 
 def check_parameters_match(func, doc=None):
