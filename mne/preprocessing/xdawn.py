@@ -51,6 +51,24 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
     return evoked_data, to
 
+def _construct_signal_from_epochs(epochs):
+    """Reconstruct pseudo continuous signal from epochs"""
+
+    start_ix = (np.min(epochs.events[:, 0])
+                + int(epochs.tmin * epochs.info['sfreq']))
+    end_ix = (np.max(epochs.events[:, 0])
+              + int(epochs.tmax * epochs.info['sfreq']) + 1)
+
+    ns = end_ix - start_ix
+    ns_epochs = epochs._data.shape[2]
+    ne = epochs._data.shape[1]
+    ix_events = epochs.events[:, 0] - epochs.events[0, 0]
+
+    data = np.zeros((ne, ns))
+    for i, ix in enumerate(ix_events):
+        data[:, ix:(ix + ns_epochs)] = epochs._data[i]
+
+    return data
 
 def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
                         picks=None, return_toeplitz=False):
