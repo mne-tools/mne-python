@@ -239,7 +239,8 @@ def _check_vlim(vlim):
 
 
 @deprecated("It will be removed in version 0.11. "
-            "Please use evoked.plot_topo instead.")
+            "Please use evoked.plot_topo or viz.evoked.plot_evoked_topo "
+            "for list of evoked instead.")
 def plot_topo(evoked, layout=None, layout_scale=0.945, color=None,
               border='none', ylim=None, scalings=None, title=None, proj=False,
               vline=[0.0], fig_facecolor='k', fig_background=None,
