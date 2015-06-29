@@ -52,6 +52,12 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
     return evoked_data, to
 
+def _check_overlapp(epochs):
+    """check if events are overllaped"""
+    isi = np.diff(epochs.events[:, 0])
+    window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
+    return isi.min() < window
+
 def _construct_signal_from_epochs(epochs):
     """Reconstruct pseudo continuous signal from epochs."""
 
@@ -71,8 +77,9 @@ def _construct_signal_from_epochs(epochs):
 
     return data
 
-def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
-                        picks=None, return_toeplitz=False):
+def _least_square_evoked_from_raw(raw, events, event_id, tmin=0.0,
+                                  tmax=1.0, decim=1, picks=None,
+                                  return_toeplitz=False):
     """Least square estimation of evoked response from a raw instance.
 
 
@@ -149,6 +156,44 @@ def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
 
     return evokeds
 
+def least_square_evoked(epochs, return_toeplitz=False):
+    """Least square estimation of evoked response from a epoch instance.
+
+
+    Parameters
+    ----------
+    epochs : Epoch object
+        An instance of Epoch.
+    return_toeplitz : bool
+        if true, compute the toeplitz matrix
+
+    Returns
+    -------
+    evokeds : dict of evoked instance
+        An dict of evoked instance for each event type in event_id.
+    """
+    if not isinstance(epochs, _BaseEpochs):
+        raise ValueError('epochs must be an instance of `mne.Epochs`')
+
+    evs = epochs.events.copy()
+    evs[:, 0] -= evs[0, 0] + int(epochs.tmin * epochs.info['sfreq'])
+    data = _construct_signal_from_epochs(epochs)
+    evo, to = _least_square_evoked(data, evs, epochs.event_id,
+                                   tmin=epochs.tmin, tmax=epochs.tmax,
+                                   sfreq=epochs.info['sfreq'], decim=1)
+    evokeds = {}
+    info = cp.deepcopy(epochs.info)
+    for name, data in evo.items():
+        n_events = len(evs[evs[:, 2] == epochs.event_id[name]])
+        evoked = EvokedArray(data, info, tmin=epochs.tmin,
+                             comment=name, nave=n_events)
+        evokeds[name] = evoked
+
+    if return_toeplitz:
+        return evokeds, to
+
+    return evokeds
+
 class Xdawn():
 
     """
@@ -183,6 +228,76 @@ class Xdawn():
         self.evokeds_ = {}
         self.projs_ = {}
 
+    def fit(self, epochs, signal_cov=None, correct_overlap='auto'):
+        """Fit Xdawn from epochs."""
+        if correct_overlap is 'auto':
+            correct_overlap = _check_overlapp(epochs)
+
+        # Extract signal covariance
+        if signal_cov is None:
+            if correct_overlap:
+                sig_data = _construct_signal_from_epochs(epochs)
+            else:
+                sig_data = np.hstack(epochs.get_data())
+            # FIXME use MNE cov estimator
+            self.signal_cov_ = np.cov(sig_data)
+        elif isinstance(signal_cov, Covariance):
+            self.signal_cov_ = signal_cov.data
+        elif isinstance(signal_cov, np.ndarray):
+            self.signal_cov_ = signal_cov
+        else:
+            raise ValueError('signal_cov must be None, a covariance instance '
+                             'or a ndarray')
+
+        # estimates evoked covariance
+        self.evokeds_cov_ = {}
+        if correct_overlap:
+            if epochs.baseline is not None:
+                raise ValueError('Baseline correction must be None if overlap '
+                                 'correction activated')
+            evo, to = least_square_evoked(epochs, return_toeplitz=True)
+        else:
+            evo = {eid: epochs[eid].average() for eid in epochs.event_id}
+            to = {eid: 1.0 / len(epochs[eid]) for eid in epochs.event_id}
+        self.evokeds_ = evo
+
+        for eid in epochs.event_id:
+            # FIXME use mne covariance estimator
+            self.evokeds_cov_[eid] = np.cov(np.dot(evo[eid].data, to[eid]))
+
+        # estimates spatial filters
+        for eid in epochs.event_id:
+
+            if self.signal_cov_.shape != self.evokeds_cov_[eid].shape:
+                raise ValueError('Size of signal cov must be the same as the'
+                                 ' number of channels in epochs')
+
+            evals, evecs = linalg.eigh(self.evokeds_cov_[eid],
+                                       self.signal_cov_)
+            evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
+            evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
+
+            self.filters_[eid] = evecs
+            self.patterns_[eid] = linalg.inv(evecs.T)
+
+            # Create and add projectors
+            ch_names = self.evokeds_[eid].ch_names
+            projs = []
+            for j in range(self.n_components):
+                proj_data = dict(col_names=ch_names, row_names=None,
+                                 data=evecs[:, j].T, nrow=1,
+                                 ncol=len(ch_names))
+                projs.append(Projection(active=True, data=proj_data,
+                             desc="%s Xdawn #%d" % (eid, j)))
+
+            self.projs_[eid] = projs
+
+        # store some values
+        self.ch_names = epochs.ch_names
+        self.exclude = range(self.n_components, len(self.ch_names))
+        self.event_id = epochs.event_id
+        return self
+
     def _fit_from_raw(self, raw, events, event_id, tmin=0.0, tmax=1.0,
                       decim=1, picks=None):
         """Fit xdawn from raw."""
@@ -190,17 +305,18 @@ class Xdawn():
             picks = pick_types(raw.info, meg=True, eeg=True)
 
         self.picks = picks
-        evokeds, to = least_square_evoked(raw=raw, events=events,
-                                          event_id=event_id, tmin=tmin,
-                                          tmax=tmax, decim=decim,
-                                          picks=self.picks,
-                                          return_toeplitz=True)
+        evokeds, to = _least_square_evoked_from_raw(raw=raw, events=events,
+                                                    event_id=event_id,
+                                                    tmin=tmin, tmax=tmax,
+                                                    decim=decim,
+                                                    picks=self.picks,
+                                                    return_toeplitz=True)
         self.ch_names = [raw.ch_names[i] for i in self.picks]
         self.exclude = range(self.n_components, len(self.picks))
         self.event_id = event_id
         # Compute noise cov
         # FIXME : Use mne method
-        noise_cov = np.cov(raw._data[self.picks, ::decim])
+        signal_cov = np.cov(raw._data[self.picks, ::decim])
 
         for i, eid in enumerate(event_id):
             self.evokeds_[eid] = evokeds[i]
@@ -211,7 +327,7 @@ class Xdawn():
                 # FIXME : use mne reg
                 raise NotImplementedError('Regularization not implemented')
 
-            evals, evecs = linalg.eigh(evoked_cov, noise_cov)
+            evals, evecs = linalg.eigh(evoked_cov, signal_cov)
             evecs = evecs[:, np.argsort(evals)[::-1]]  # sort eigenvectors
             evecs /= np.apply_along_axis(np.linalg.norm, 0, evecs)
 
@@ -367,9 +483,7 @@ class Xdawn():
         else:
             exclude = list(set(self.exclude + list(exclude)))
 
-        n_components = self.n_components
-        logger.info('Transforming to Xdawn space (%i components)' %
-                    n_components)
+        logger.info('Transforming to Xdawn space')
 
         # Apply unmixing
         sources = fast_dot(self.filters_[eid].T, data)
