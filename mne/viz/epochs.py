@@ -1400,15 +1400,15 @@ def _onclick_help(event):
            u'\u2191 : \n'\
            u'- : \n'\
            u'+ or = : \n'\
-           u'home : \n'\
-           u'end : \n'\
-           u'page down : \n'\
-           u'page up : \n'\
+           u'Home : \n'\
+           u'End : \n'\
+           u'Page down : \n'\
+           u'Page up : \n'\
            u'b : \n'\
            u'o : \n'\
            u'F11 : \n'\
            u'? : \n'\
-           u'esc : \n\n'\
+           u'Esc : \n\n'\
            u'Mouse controls\n'\
            u'click epoch :\n'\
            u'click channel name :\n'\
