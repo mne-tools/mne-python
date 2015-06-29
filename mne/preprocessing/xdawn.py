@@ -16,7 +16,8 @@ from .ica import _get_fast_dot
 from ..utils import logger
 
 def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
-    """Least square estimation of evoked response from data
+    """
+    Least square estimation of evoked response from data.
     return evoked data and toeplitz matrices.
     """
     nmin = int(tmin * sfreq / decim)
@@ -52,7 +53,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     return evoked_data, to
 
 def _construct_signal_from_epochs(epochs):
-    """Reconstruct pseudo continuous signal from epochs"""
+    """Reconstruct pseudo continuous signal from epochs."""
 
     start_ix = (np.min(epochs.events[:, 0])
                 + int(epochs.tmin * epochs.info['sfreq']))
@@ -72,7 +73,8 @@ def _construct_signal_from_epochs(epochs):
 
 def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
                         picks=None, return_toeplitz=False):
-    """ Least square estimation of evoked response from a raw instance.
+    """Least square estimation of evoked response from a raw instance.
+
 
     Parameters
     ----------
@@ -148,6 +150,7 @@ def least_square_evoked(raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
     return evokeds
 
 class Xdawn():
+
     """
     Parameters
     ----------
@@ -168,9 +171,11 @@ class Xdawn():
         If fit, the Xdawn patterns used to restore M/EEG signals for each event
         type, else empty.
     evokeds_ : dict of evoked instance
-        If fit, the evoked response for each event type
+        If fit, the evoked response for each event type.
     """
-    def __init__(self,n_components=2, reg=None):
+
+    def __init__(self, n_components=2, reg=None):
+        """init xdawn."""
         self.n_components = n_components
         self.reg = reg
         self.filters_ = {}
@@ -178,11 +183,9 @@ class Xdawn():
         self.evokeds_ = {}
         self.projs_ = {}
 
-    def fit(self, raw, events, event_id, tmin=0.0, tmax=1.0, decim=1,
-            picks=None):
-        """
-        Fit xdawn
-        """
+    def _fit_from_raw(self, raw, events, event_id, tmin=0.0, tmax=1.0,
+                      decim=1, picks=None):
+        """Fit xdawn from raw."""
         if picks is None:
             picks = pick_types(raw.info, meg=True, eeg=True)
 
@@ -273,7 +276,7 @@ class Xdawn():
         return out
 
     def _apply_raw(self, raw, include, exclude, event_id):
-        """Aux method"""
+        """Aux method."""
         if not raw.preload:
             raise ValueError('Raw data must be preloaded to apply Xdawn')
 
@@ -357,18 +360,16 @@ class Xdawn():
         return evokeds
 
     def _pick_sources(self, data, include, exclude, eid):
-        """Aux function"""
+        """Aux function."""
         fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
         else:
             exclude = list(set(self.exclude + list(exclude)))
 
-
         n_components = self.n_components
         logger.info('Transforming to Xdawn space (%i components)' %
                     n_components)
-
 
         # Apply unmixing
         sources = fast_dot(self.filters_[eid].T, data)
@@ -384,6 +385,5 @@ class Xdawn():
             logger.info('Zeroing out %i Xdawn components' % len(exclude_))
         logger.info('Inverse transforming to sensor space')
         data = fast_dot(self.patterns_[eid], sources)
-
 
         return data
