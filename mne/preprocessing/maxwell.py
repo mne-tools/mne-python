@@ -6,19 +6,17 @@
 
 # License: BSD (3-clause)
 
-# Note, there are an absurd number of different notations for spherical
-# harmonics (partly because there is also no accepted standard for spherical
-# coordinates). Here, we purposefully stay away from shorthand notation in
-# both and use explicit terms (like 'azimuth' and 'polar') to avoid confusion.
+# Note, there are an absurd number of different possible notations for
+# spherical coordinates, which confounds the notation for spherical harmonics.
+# Here, we purposefully stay away from shorthand notation in both and use
+# explicit terms (like 'azimuth' and 'polar') to avoid confusion.
 
 # TODO: write in equation numbers from Samu's paper
 
 import numpy as np
-from scipy.special import sph_harm, lpmv
+from scipy.special import lpmv
 from scipy.linalg import pinv
 from ..forward._compute_forward import _concatenate_coils
-from ..forward._lead_dots import (_get_legen_table, _get_legen_lut_fast,
-                                  _get_legen_lut_accurate)
 #from ..fixes import partial
 from scipy.misc import factorial as fact
 
@@ -33,8 +31,8 @@ def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
     coils : list
         List of MEG coils. Each element must a contain coil information dict
         continaining 'rmag', 'cosmag', and 'w' keys
-    origin : tuple, shape (3,)
-        Origin of internal and external multipolar moment space
+    origin : ndarray or tuple, shape (3,)
+        Origin of internal and external multipolar moment space in millimeters
     int_order : int
         Order of internal component of spherical expansion
     ext_order : int
@@ -48,37 +46,42 @@ def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
         The raw data with Maxwell filtering applied
     """
 
-    # TODO: Error checks on input parameters
+    # TODO: Add error checks on input parameters
     picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
                                                        for coil in coils]]
     data, times = raw[picks, :]
 
+    # Magnetometers (with coil_class == 1.0) must be scaled by 100 to # improve
+    # numerical stability as they have different scales than gradiometers
+    coil_scale = np.ones((len(picks)))
+    coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
+
     # Compute spherical harmonics
+    origin = np.array(origin) / 1000.  # Convert scale from mm to m
     S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
     S_tot = np.c_[S_in, S_out]
 
     # Pseudo-inverse of total multipolar moment basis set
-    # TODO: determine appropriate pinv tolerance
-    pS_tot = pinv(S_tot, rcond=1e-15)
-    # Compute multipolar moments of data
-    mm = np.dot(pS_tot, data)
+    pS_tot = pinv(S_tot, cond=1e-15)
+    # Compute multipolar moments of (magnetometer scaled) data
+    mm = np.dot(pS_tot, data * coil_scale[:, np.newaxis])
     # Reconstruct data from internal space
-    recon = np.dot(S_in, mm[:80, :])
+    recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
-    # Return raw file object
+    # Return reconstructed raw file object
     raw_sss = raw.copy()
-    raw_sss[:, :] = recon
+    raw_sss[:, :] = recon / coil_scale[:, np.newaxis]
 
     return raw_sss
 
 
-def _sss_basis(origin, coils, int_order=8, ext_order=3):
+def _sss_basis(origin, coils, int_order, ext_order):
     """Compute SSS basis for given conditions.
 
     Parameters
     ----------
     origin : ndarray, shape (3,)
-        Origin of the multipolar moment space
+        Origin of the multipolar moment space in millimeters
     coils : list
         List of MEG coils. Each should contain coil information dict. All
         position info must be in the same coordinate frame as 'origin'
@@ -103,6 +106,10 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
     S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1))
     S_in.fill(np.nan)
     S_out.fill(np.nan)
+
+    # Set all magnetometers (with 'coil_type' == 1.0) to be scaled by 100
+    coil_scale = np.ones((len(coils)))
+    coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
 
     assert n_bases <= n_sens, ('Number of requested bases (%s) exceeds number '
                                'of sensors (%s)' % (str(n_bases), str(n_sens)))
@@ -144,7 +151,9 @@ def _sss_basis(origin, coils, int_order=8, ext_order=3):
                 int_pts_sum = np.sum(b1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
                 S_out[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
 
-    # Normalize each basis vector to have unity magnitude
+    # Scale and normalize each basis vector to have unity magnitude
+    S_in *= coil_scale[:, np.newaxis]
+    S_out *= coil_scale[:, np.newaxis]
     S_in = np.divide(S_in, np.linalg.norm(S_in, axis=0))
     S_out = np.divide(S_out, np.linalg.norm(S_out, axis=0))
 
@@ -176,14 +185,13 @@ def _sph_harmonic(degree, order, az, pol):
     base : complex float
         The spherical harmonic value at the specified azimuth and polar angles
     """
+    # Error checks
     assert np.abs(order) <= degree, ('Absolute value of expansion coefficient'
                                      ' must be <= degree')
-
-    # Get function for Legendre derivatives
-    #lut, n_fact = _get_legen_table('meg', False, 100)
-    #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
-
-    # TODO: Should factorial function use floating or long precision?
+    assert ((az >= -2 * np.pi).all() and (az <= 2 * np.pi).all(),
+            'Azimuth coord outside [-2*pi, 2*pi]')
+    assert ((pol >= 0).all() and (pol <= np.pi).all()), ('Polar coord outside '
+                                                         '[0, pi]')
 
     #Ensure that polar and azimuth angles are arrays
     azimuth = np.array(az)
@@ -195,8 +203,6 @@ def _sph_harmonic(degree, order, az, pol):
     return base
 
     # TODO: Check speed of taking real part of scipy's sph harmonic function
-    # Note reversal in notation order between scipy and original SSS papers
-    # Degree/order and theta/phi reversed
 
 
 def _alegendre_deriv(degree, order, val):
@@ -217,7 +223,6 @@ def _alegendre_deriv(degree, order, val):
         Associated Legendre function derivative
     """
 
-    # TODO: Eventually, want to switch to look up table but optimize later
     C = 1
     if order < 0:
         order = abs(order)
@@ -227,7 +232,7 @@ def _alegendre_deriv(degree, order, val):
                 lpmv(order - 1, degree, val)) / (1 - val ** 2)
 
 
-def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
+def _grad_in_components(degree, order, rad, az, pol):
     """Compute gradient of internal component of V(r) spherical expansion.
 
     Internal component has form: Ylm(pol, az) / (rad ** (degree + 1))
@@ -253,12 +258,6 @@ def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
-    # TODO: add check/warning if az or pol outside appropriate ranges
-
-    # Get function for Legendre derivatives
-    #lut, n_fact = _get_legen_table('meg', False, 100)
-    #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
-
     # Compute gradients for all spherical coordinates
     g_rad = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order,
                                                                 az, pol)
@@ -278,7 +277,7 @@ def _grad_in_components(degree, order, rad, az, pol, lut_fun=None):
     return _sph_to_cart_partials(np.c_[rad, az, pol], real_grads)
 
 
-def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
+def _grad_out_components(degree, order, rad, az, pol):
     """Compute gradient of external component of V(r) spherical expansion.
 
     External component has form: Ylm(azimuth, polar) * (radius ** degree)
@@ -304,12 +303,6 @@ def _grad_out_components(degree, order, rad, az, pol, lut_fun=None):
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
-    # TODO: add check/warning if az or pol outside appropriate ranges
-
-    # Get function for Legendre derivatives
-    #lut, n_fact = _get_legen_table('meg', False, 100)
-    #lut_deriv_fun = partial(_get_legen_lut_accurate, lut=lut)
-
     # Compute gradients for all spherical coordinates
     g_rad = degree * rad ** (degree - 1) * _sph_harmonic(degree, order, az,
                                                          pol)
@@ -352,7 +345,6 @@ def _get_real_grad(grad_vec_raw, order):
     else:
         grad_vec = grad_vec_raw
 
-    #print 'Grad Vec: ' + str(grad_vec)
     return np.real_if_close(grad_vec)
 
 
@@ -378,7 +370,6 @@ def get_num_harmonics(int_order, ext_order):
     return M
 
 
-# TODO: confirm that this equation follows the correct convention
 def _sph_to_cart_partials(sph_pts, sph_grads):
     """Convert spherical partial derivatives to cartesian coords.
 
@@ -411,12 +402,6 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
         trans = np.array([[c_a * s_p, -s_a, c_a * c_p],
                           [s_a * s_p, c_a, c_p * s_a],
                           [c_p, 0, -s_p]])
-
-        #print 'Trans shape: ' + str(trans.shape)
-        #print 'Trans: \n' + str(trans)
-        #print 'sph_grad shape: ' + str(sph_grad.shape)
-        #print 'sph_grad: \n' + str(sph_grad)
-        #reord_sph_grads = np.array([sph_grad[0], sph_grad[2], sph_grad[1]])
 
         cart_grads[pt_i, :] = np.dot(trans, sph_grad)
 
