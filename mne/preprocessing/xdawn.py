@@ -1,3 +1,4 @@
+"""Xdawn implementation."""
 # Authors: Alexandre Barachant <alexandre.barachant@gmail.com>
 #
 # License: BSD (3-clause)
@@ -10,8 +11,8 @@ import copy as cp
 from ..io.proj import Projection
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
-from .. import Covariance, EvokedArray, compute_raw_data_covariance
-from ..io.pick import pick_types, pick_info
+from .. import Covariance, EvokedArray, Evoked
+from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
 
@@ -53,7 +54,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     return evoked_data, to
 
 def _check_overlapp(epochs):
-    """check if events are overllaped"""
+    """check if events are overllaped."""
     isi = np.diff(epochs.events[:, 0])
     window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
     return isi.min() < window
