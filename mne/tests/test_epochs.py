@@ -360,6 +360,7 @@ def test_read_write_epochs():
     """
     raw, events, picks = _get_data()
     tempdir = _TempDir()
+    temp_fname = op.join(tempdir, 'test-epo.fif')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     evoked = epochs.average()
@@ -413,8 +414,8 @@ def test_read_write_epochs():
     assert_true(evoked_dec.info['sfreq'] == evoked.info['sfreq'] / 4)
 
     # test IO
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs_read = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname)
 
     assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
     assert_array_equal(epochs_read.times, epochs.times)
@@ -440,9 +441,9 @@ def test_read_write_epochs():
     # add reject here so some of the epochs get dropped
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), reject=reject)
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
+    epochs.save(temp_fname)
     # ensure bad events are not saved
-    epochs_read3 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    epochs_read3 = read_epochs(temp_fname)
     assert_array_equal(epochs_read3.events, epochs.events)
     data = epochs.get_data()
     assert_true(epochs_read3.events.shape[0] == data.shape[0])
@@ -454,8 +455,8 @@ def test_read_write_epochs():
     epochs_read4.equalize_event_counts(epochs.event_id)
 
     epochs.drop_epochs([1, 2], reason='can we recover orig ID?')
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs_read5 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    epochs.save(temp_fname)
+    epochs_read5 = read_epochs(temp_fname)
     assert_array_equal(epochs_read5.selection, epochs.selection)
     assert_equal(len(epochs_read5.selection), len(epochs_read5.events))
     assert_array_equal(epochs_read5.drop_log, epochs.drop_log)
@@ -470,6 +471,15 @@ def test_read_write_epochs():
         epochs.save(epochs_badname)
         read_epochs(epochs_badname)
     assert_true(len(w) == 2)
+
+    # test loading epochs with missing events
+    epochs = Epochs(raw, events, dict(foo=1, bar=999), tmin, tmax, picks=picks,
+                    on_missing='ignore')
+    epochs.save(temp_fname)
+    epochs_read = read_epochs(temp_fname)
+    assert_allclose(epochs.get_data(), epochs_read.get_data())
+    assert_array_equal(epochs.events, epochs_read.events)
+    assert_equal(set(epochs.event_id.keys()), epochs_read.event_id.keys())
 
 
 def test_epochs_proj():
@@ -1087,8 +1097,9 @@ def test_access_by_name():
     epochs = Epochs(raw, events, {'a': 1, 'b': 2}, tmin, tmax, picks=picks,
                     preload=True)
     assert_raises(KeyError, epochs.__getitem__, 'bar')
-    epochs.save(op.join(tempdir, 'test-epo.fif'))
-    epochs2 = read_epochs(op.join(tempdir, 'test-epo.fif'))
+    temp_fname = op.join(tempdir, 'test-epo.fif')
+    epochs.save(temp_fname)
+    epochs2 = read_epochs(temp_fname)
 
     for ep in [epochs, epochs2]:
         data = ep['a'].get_data()
