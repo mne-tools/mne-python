@@ -860,8 +860,7 @@ class Report(object):
                                          comments=comments)
 
     def add_anims_to_section(self, anims, captions, scale=None,
-                             section='custom', comments=None,
-                             image_format='png'):
+                             section='custom', comments=None):
         """Append custom user-defined animations.
 
         Parameters
