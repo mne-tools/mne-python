@@ -22,6 +22,7 @@ BUG
 
     - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
 
+    - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
 .. _changes_0_9:
 
@@ -1052,3 +1053,5 @@ of commits):
 .. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
+
+.. _Chris Bailey: https://github.com/cjayb
