@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import mne
 
 from mne.io import Raw
-from mne.viz.evoked import plot_evoked_topo
+from mne.viz import plot_evoked_topo
 from mne.datasets import sample
 
 print(__doc__)

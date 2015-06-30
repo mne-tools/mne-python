@@ -39,6 +39,8 @@ Changelog
 
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and decoding of ERP/ERF by `Alexandre Barachant`_
 
+    - Add ``plot_topo`` method to ``Evoked`` object which deprecates ``mne.viz.plot_topo`` by `Jaakko Leppakangas`_
+
     - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
 
     - Add new object :class:`mne.decoding.base.LinearModel` for decoding M/EEG data and interpreting coefficients of linear models with patterns attribute by `Romain Trachel`_ and `Alex Gramfort`_
