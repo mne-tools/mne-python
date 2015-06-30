@@ -628,9 +628,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
-    vertline_t = ax_hscroll.text(0, 0.5, '', color='y',
-                                 verticalalignment='center',
-                                 horizontalalignment='right')
+    vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
 
     # fit horizontal scroll bar ticks
     hscroll_ticks = np.arange(0, xlim, xlim / 7.0)
@@ -652,7 +650,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
-                   horizontalalignment='left', fontweight='bold')
+                   ha='left', fontweight='bold')
     text.set_visible(False)
 
     params = {'fig': fig,
