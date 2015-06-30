@@ -12,8 +12,10 @@ from functools import partial
 
 import numpy as np
 
-from .utils import tight_layout, _prepare_trellis
+from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
+from .utils import _layout_figure
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from ..io.meas_info import create_info
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -512,15 +514,68 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     return fig
 
 
-def _plot_raw_components(ica, raw):
+def _plot_raw_components(ica, raw, title=None, duration=10.0, start=0.0,
+                         n_channels=20, bgcolor='w', color=None,
+                         bad_color=(0.8, 0.8, 0.8), event_color='cyan'):
     """Helper function for plotting the ICA components as raw array."""
     data = ica._transform_raw(raw, 0, len(raw.times))
-    c_names = ['ICA ' + str(x + 1) for x in range(len(data))]
-    #info = create_info(c_names, raw.info['sfreq'])
-    #raw_ica = RawArray(data, info)
+    inds = range(len(data))
+    c_names = ['ICA ' + str(x + 1) for x in inds]
+    if title is None:
+        title = 'ICA components'
+    info = create_info(c_names, raw.info['sfreq'])
     scalings = {'misc': 2}
-    plot_traces(data)
-    return raw_ica.plot(scalings=scalings)
+    params = dict(raw=raw, data=data, ch_start=0, t_start=start, info=info,
+                  duration=duration, n_channels=n_channels, scalings=scalings,
+                  n_times=raw.n_times, bad_color=(0.8, 0.8, 0.8))
+    _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
+                            n_channels)
+    params['scale_factor'] = 1.0
+    _layout_figure(params)
+    plot_traces(params)
+    return params['fig']
 
-def plot_traces(data):
-    pass
+
+def plot_traces(params):
+    lines = params['lines']
+    info = params['info']
+    n_channels = params['n_channels']
+    bad_color = params['bad_color']
+    color = 'black'
+    # do the plotting
+    tick_list = []
+    for ii in range(n_channels):
+        ch_ind = ii + params['ch_start']
+        # let's be generous here and allow users to pass
+        # n_channels per view >= the number of traces available
+        if ii >= len(lines):
+            break
+        elif ch_ind < len(info['ch_names']):
+            # scale to fit
+            ch_name = info['ch_names'][ch_ind]
+            tick_list += [ch_name]
+            offset = params['offsets'][ii]
+
+            # do NOT operate in-place lest this get screwed up
+            this_data = params['data'][ch_ind] * params['scale_factor']
+            this_color = bad_color if ch_name in info['bads'] else color
+            this_z = -1 if ch_name in info['bads'] else 0
+
+            # subtraction here gets correct orientation for flipped ylim
+            lines[ii].set_ydata(offset - this_data)
+            lines[ii].set_xdata(params['raw'].times)
+            lines[ii].set_color(this_color)
+            lines[ii].set_zorder(this_z)
+            vars(lines[ii])['ch_name'] = ch_name
+            vars(lines[ii])['def_color'] = this_color
+        else:
+            # "remove" lines
+            lines[ii].set_xdata([])
+            lines[ii].set_ydata([])
+
+    # finalize plot
+    params['ax'].set_xlim(params['raw'].times[0],
+                          params['raw'].times[0] + params['duration'], False)
+    params['ax'].set_yticklabels(tick_list)
+    params['vsel_patch'].set_y(params['ch_start'])
+    params['fig'].canvas.draw()

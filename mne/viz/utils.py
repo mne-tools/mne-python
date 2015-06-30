@@ -19,7 +19,7 @@ import tempfile
 import numpy as np
 
 from ..io import show_fiff
-from ..utils import verbose
+from ..utils import verbose, get_config
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -388,6 +388,87 @@ def figure_nobar(*args, **kwargs):
     finally:
         rcParams['toolbar'] = old_val
     return fig
+
+
+def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
+                            n_channels):
+    """Helper for setting up the mne_browse_raw window."""
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    size = get_config('MNE_BROWSE_RAW_SIZE')
+    if size is not None:
+        size = size.split(',')
+        size = tuple([float(s) for s in size])
+
+    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    fig.canvas.set_window_title('mne_browse_raw')
+    ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
+    ax.set_title(title, fontsize=12)
+    ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
+    ax_hscroll.get_yaxis().set_visible(False)
+    ax_hscroll.set_xlabel('Time (s)')
+    ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
+    ax_vscroll.set_axis_off()
+    # store these so they can be fixed on resize
+    params['fig'] = fig
+    params['ax'] = ax
+    params['ax_hscroll'] = ax_hscroll
+    params['ax_vscroll'] = ax_vscroll
+
+    # populate vertical and horizontal scrollbars
+    info = params['info']
+    for ci in range(len(info['ch_names'])):
+        this_color = (bad_color if info['ch_names'][inds[ci]] in info['bads']
+                      else color)
+        if isinstance(this_color, dict):
+            this_color = this_color[params['types'][inds[ci]]]
+        ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
+                                                   facecolor=this_color,
+                                                   edgecolor=this_color))
+    vsel_patch = mpl.patches.Rectangle((0, 0), 1, n_channels, alpha=0.5,
+                                       facecolor='w', edgecolor='w')
+    ax_vscroll.add_patch(vsel_patch)
+    params['vsel_patch'] = vsel_patch
+    hsel_patch = mpl.patches.Rectangle((params['t_start'], 0),
+                                       params['duration'], 1, edgecolor='k',
+                                       facecolor=(0.75, 0.75, 0.75),
+                                       alpha=0.25, linewidth=1, clip_on=False)
+    ax_hscroll.add_patch(hsel_patch)
+    params['hsel_patch'] = hsel_patch
+    ax_hscroll.set_xlim(0, params['n_times'] / float(info['sfreq']))
+    n_ch = len(info['ch_names'])
+    ax_vscroll.set_ylim(n_ch, 0)
+    ax_vscroll.set_title('Ch.')
+
+    # make shells for plotting traces
+    ylim = [n_channels * 2 + 1, 0]
+    offset = ylim[0] / n_channels
+    offsets = np.arange(n_channels) * offset + (offset / 2.)
+    ax.set_yticks(offsets)
+    ax.set_ylim(ylim)
+
+    params['offsets'] = offsets
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+                       for _ in range(n_ch)]
+    ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
+    vertline_color = (0., 0.75, 0.)
+    params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
+                                    zorder=-1)[0]
+    params['ax_vertline'].ch_name = ''
+    params['vertline_t'] = ax_hscroll.text(0, 0.5, '', color=vertline_color,
+                                           verticalalignment='center',
+                                           horizontalalignment='right')
+    params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
+                                                    color=vertline_color,
+                                                    zorder=1)[0]
+
+
+def _channels_changed(params, len_channels):
+    """Helper function for dealing with the vertical shift of the viewport."""
+    if params['ch_start'] + params['n_channels'] > len_channels:
+        params['ch_start'] = len_channels - params['n_channels']
+    elif params['ch_start'] < 0:
+        params['ch_start'] = 0
 
 
 class ClickableImage(object):

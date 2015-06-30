@@ -23,6 +23,7 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
 from .utils import _toggle_options, _toggle_proj, _layout_figure
+from .utils import _channels_changed
 from ..defaults import _handle_default
 
 
@@ -1015,17 +1016,6 @@ def _plot_window(value, params):
         _plot_traces(params)
 
 
-def _channels_changed(params):
-    """Deal with vertical shift of the viewport."""
-    if params['butterfly']:
-        return
-    if params['ch_start'] + params['n_channels'] > len(params['ch_names']):
-        params['ch_start'] = len(params['ch_names']) - params['n_channels']
-    elif params['ch_start'] < 0:
-        params['ch_start'] = 0
-    _plot_traces(params)
-
-
 def _plot_vert_lines(params):
     """ Helper function for plotting vertical lines."""
     ax = params['ax']
@@ -1082,6 +1072,8 @@ def _plot_onscroll(event, params):
             event.key = '+'
         _plot_onkey(event, params)
         return
+    if params['butterfly']:
+        return
     orig_start = params['ch_start']
     if event.step < 0:
         params['ch_start'] = min(params['ch_start'] + params['n_channels'],
@@ -1090,7 +1082,8 @@ def _plot_onscroll(event, params):
     else:
         params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
     if orig_start != params['ch_start']:
-        _channels_changed(params)
+        _channels_changed(params, len(params['ch_names']))
+        _plot_traces(params)
 
 
 def _mouse_click(event, params):
@@ -1167,11 +1160,17 @@ def _plot_onkey(event, params):
     """Function to handle key presses."""
     import matplotlib.pyplot as plt
     if event.key == 'down':
+        if params['butterfly']:
+            return
         params['ch_start'] += params['n_channels']
-        _channels_changed(params)
+        _channels_changed(params, len(params['ch_names']))
+        _plot_traces(params)
     elif event.key == 'up':
+        if params['butterfly']:
+            return
         params['ch_start'] -= params['n_channels']
-        _channels_changed(params)
+        _channels_changed(params, len(params['ch_names']))
+        _plot_traces(params)
     elif event.key == 'left':
         sample = params['t_start'] - params['duration']
         sample = np.max([0, sample])
