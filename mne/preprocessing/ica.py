@@ -1572,7 +1572,7 @@ class ICA(ContainsMixin):
 
         return _n_pca_comp
 
-    def plot_raw_components(self, raw, bads=[], title=None, duration=10.0,
+    def plot_raw_components(self, raw, exclude=None, title=None, duration=10.0,
                             start=0.0, n_channels=20, bgcolor='w', color=None,
                             bad_color=(1., 0., 0.)):
         """Plot ICA components
@@ -1581,9 +1581,9 @@ class ICA(ContainsMixin):
         ----------
         raw : instance of Raw
             Raw object to draw sources from.
-        bads : list
-            List of components to be marked in the plot. Defaults to empty
-            list.
+        exclude : array_like of int | None
+            The components marked for exclusion. If None (default), ICA.exclude
+            will be used.
         title : str
             Title for the plot. If None, ``ICA components`` is displayed.
             Defaults to None
@@ -1591,7 +1591,7 @@ class ICA(ContainsMixin):
             Time window (sec) to plot in a given time. Defaults to 10.0.
         start : float
             Starting point for the plot. Defaults to 0.0.
-        n_channel : int
+        n_channels : int
             The number of channels per view. Defaults to 20.
         bgcolor : color object
             Color of the background.
@@ -1601,8 +1601,13 @@ class ICA(ContainsMixin):
         bad_color : color object
             Color to use for components marked as bad.
             Defaults to (1., 0., 0.) (red).
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            The figure.
         """
-        _plot_raw_components(self, raw, bads, title, duration, start,
+        _plot_raw_components(self, raw, exclude, title, duration, start,
                              n_channels, bgcolor, color, bad_color)
 
 

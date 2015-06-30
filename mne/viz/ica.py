@@ -515,7 +515,7 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     return fig
 
 
-def _plot_raw_components(ica, raw, bads=[], title=None, duration=10.0,
+def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
                          start=0.0, n_channels=20, bgcolor='w', color=None,
                          bad_color=(1., 0., 0.)):
     """Helper function for plotting the ICA components as raw array."""
@@ -526,9 +526,11 @@ def _plot_raw_components(ica, raw, bads=[], title=None, duration=10.0,
         title = 'ICA components'
     info = create_info(c_names, raw.info['sfreq'])
 
+    if exclude is None:
+        exclude = list()  # TODO -> ica.exclude
     params = dict(raw=raw, data=data, ch_start=0, t_start=start, info=info,
                   duration=duration, n_channels=n_channels,
-                  n_times=raw.n_times, bad_color=bad_color, bads=bads)
+                  n_times=raw.n_times, bad_color=bad_color, bads=exclude)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -551,6 +553,9 @@ def _plot_traces(params):
     n_channels = params['n_channels']
     bad_color = params['bad_color']
     color = 'black'
+    scale_factor = params['scale_factor']
+    t_start = int(params['t_start'] * params['info']['sfreq'])
+    t_end = int((t_start + params['duration']) * params['info']['sfreq'])
     # do the plotting
     tick_list = []
     for ii in range(n_channels):
@@ -566,13 +571,13 @@ def _plot_traces(params):
             offset = params['offsets'][ii]
 
             # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][ch_ind] * params['scale_factor']
+            this_data = params['data'][ch_ind][t_start:t_end] * scale_factor
             this_color = bad_color if ch_ind in params['bads'] else color
             this_z = -1 if ch_ind in params['bads'] else 0
 
             # subtraction here gets correct orientation for flipped ylim
             lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['raw'].times)
+            lines[ii].set_xdata(params['raw'].times[t_start:t_end])
             lines[ii].set_color(this_color)
             lines[ii].set_zorder(this_z)
             vars(lines[ii])['ch_name'] = ch_name
@@ -583,8 +588,8 @@ def _plot_traces(params):
             lines[ii].set_ydata([])
 
     # finalize plot
-    params['ax'].set_xlim(params['raw'].times[0],
-                          params['raw'].times[0] + params['duration'], False)
+    params['ax'].set_xlim(params['t_start'],
+                          params['t_start'] + params['duration'], False)
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
@@ -602,10 +607,12 @@ def _plot_onkey(event, params):
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['info']['ch_names']))
     elif event.key == 'right':
-        _plot_raw_time(params['t_start'] + params['duration'], params)
+        value = params['t_start'] + params['duration']
+        _plot_raw_time(value, params)
         params['plot_fun']()
     elif event.key == 'left':
-        _plot_raw_time(params['t_start'] - params['duration'], params)
+        value = params['t_start'] - params['duration']
+        _plot_raw_time(value, params)
         params['plot_fun']()
     elif event.key in ['+', '=']:
         params['scale_factor'] *= 1.1
