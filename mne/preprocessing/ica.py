@@ -1572,21 +1572,38 @@ class ICA(ContainsMixin):
 
         return _n_pca_comp
 
-
-    def plot_raw_components(self, raw):
+    def plot_raw_components(self, raw, bads=[], title=None, duration=10.0,
+                            start=0.0, n_channels=20, bgcolor='w', color=None,
+                            bad_color=(1., 0., 0.)):
         """Plot ICA components
 
-        Note. This is still experimental and will most likely change. Over
-        
         Parameters
         ----------
         raw : instance of Raw
             Raw object to draw sources from.
-        start_find : int | float | None
-            First sample to include for artifact search. If float, data will be
-            interpreted as time in seconds. If None, data will be used from the
-	    """
-        _plot_raw_components(self, raw)
+        bads : list
+            List of components to be marked in the plot. Defaults to empty
+            list.
+        title : str
+            Title for the plot. If None, ``ICA components`` is displayed.
+            Defaults to None
+        duration : float
+            Time window (sec) to plot in a given time. Defaults to 10.0.
+        start : float
+            Starting point for the plot. Defaults to 0.0.
+        n_channel : int
+            The number of channels per view. Defaults to 20.
+        bgcolor : color object
+            Color of the background.
+        color : color object | None
+            Color for the data traces. If None ``black`` is used. Defaults to
+            None.
+        bad_color : color object
+            Color to use for components marked as bad.
+            Defaults to (1., 0., 0.) (red).
+        """
+        _plot_raw_components(self, raw, bads, title, duration, start,
+                             n_channels, bgcolor, color, bad_color)
 
 
 def _check_start_stop(raw, start, stop):

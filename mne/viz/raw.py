@@ -19,6 +19,7 @@ from ..utils import set_config, verbose
 from ..time_frequency import compute_raw_psd
 from .utils import _toggle_options, _toggle_proj, tight_layout
 from .utils import _layout_figure, _prepare_mne_browse_raw, _channels_changed
+from .utils import _plot_raw_onscroll, _plot_raw_time
 from ..defaults import _handle_default
 
 
@@ -120,24 +121,11 @@ def _mouse_click(event, params):
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
+        _update_raw_data(params)
+        params['plot_fun']()
 
     elif event.inaxes == params['ax']:
         _pick_bad_channels(event, params)
-
-
-def _plot_raw_time(value, params):
-    """Deal with changed time value"""
-    info = params['info']
-    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
-    if value > max_times:
-        value = params['n_times'] / info['sfreq'] - params['duration']
-    if value < 0:
-        value = 0
-    if params['t_start'] != value:
-        params['t_start'] = value
-        params['hsel_patch'].set_x(value)
-        _update_raw_data(params)
-        params['plot_fun']()
 
 
 def _plot_raw_onkey(event, params):
@@ -163,9 +151,13 @@ def _plot_raw_onkey(event, params):
         ch_changed = True
     elif event.key == 'right':
         _plot_raw_time(params['t_start'] + params['duration'], params)
+        _update_raw_data(params)
+        params['plot_fun']()
         return
     elif event.key == 'left':
         _plot_raw_time(params['t_start'] - params['duration'], params)
+        _update_raw_data(params)
+        params['plot_fun']()
         return
     elif event.key in ['o', 'p']:
         _toggle_options(None, params)
@@ -221,22 +213,8 @@ def _plot_raw_onkey(event, params):
         return
     # deal with plotting changes
     if ch_changed:
-        _channels_changed(params, len(params['info']['ch_names']))
-        params['plot_fun']()
-
-
-def _plot_raw_onscroll(event, params):
-    """Interpret scroll events"""
-    orig_start = params['ch_start']
-    if event.step < 0:
-        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
-                                 len(params['info']['ch_names']) -
-                                 params['n_channels'])
-    else:  # event.key == 'up':
-        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
-    if orig_start != params['ch_start']:
-        _channels_changed(params, len(params['info']['ch_names']))
-        params['plot_fun']()
+        len_channels = len(params['info']['ch_names'])
+        _channels_changed(params, len_channels)
 
 
 def _plot_traces(params, inds, color, bad_color, event_lines, event_color):

@@ -23,7 +23,7 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
 from .utils import _toggle_options, _toggle_proj, _layout_figure
-from .utils import _channels_changed
+from .utils import _channels_changed, _plot_raw_onscroll
 from ..defaults import _handle_default
 
 
@@ -696,6 +696,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'fig_options': None,
               'settings': [True, True, True, True]}  # for options dialog
 
+    params['plot_fun'] = partial(_plot_traces, params=params)
+
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
@@ -989,7 +991,7 @@ def _plot_update_epochs_proj(params, bools):
     types = params['types']
     for pick, ind in enumerate(params['inds']):
         params['data'][pick] = data[ind] / params['scalings'][types[pick]]
-    _plot_traces(params)
+    params['plot_fun']()
 
 
 def _handle_picks(epochs):
@@ -1013,7 +1015,7 @@ def _plot_window(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
-        _plot_traces(params)
+        params['plot_fun']()
 
 
 def _plot_vert_lines(params):
@@ -1051,7 +1053,7 @@ def _pick_bad_epochs(event, params):
             params['colors'][ch_idx][epoch_idx] = params['def_colors'][ch_idx]
         params['ax_hscroll'].patches[epoch_idx].set_color('w')
         params['ax_hscroll'].patches[epoch_idx].set_zorder(1)
-        _plot_traces(params)
+        params['plot_fun']()
         return
     # add bad epoch
     params['bads'] = np.append(params['bads'], epoch_idx)
@@ -1060,7 +1062,7 @@ def _pick_bad_epochs(event, params):
     params['ax_hscroll'].patches[epoch_idx].set_edgecolor('w')
     for ch_idx in range(len(params['ch_names'])):
         params['colors'][ch_idx][epoch_idx] = (1., 0., 0., 1.)
-    _plot_traces(params)
+    params['plot_fun']()
 
 
 def _plot_onscroll(event, params):
@@ -1074,16 +1076,7 @@ def _plot_onscroll(event, params):
         return
     if params['butterfly']:
         return
-    orig_start = params['ch_start']
-    if event.step < 0:
-        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
-                                 len(params['ch_names']) -
-                                 params['n_channels'])
-    else:
-        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
-    if orig_start != params['ch_start']:
-        _channels_changed(params, len(params['ch_names']))
-        _plot_traces(params)
+    _plot_raw_onscroll(event, params, len(params['ch_names']))
 
 
 def _mouse_click(event, params):
@@ -1109,7 +1102,7 @@ def _mouse_click(event, params):
             params['epochs'].info['bads'].append(text)
             color = params['bad_color']
             params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
@@ -1118,7 +1111,7 @@ def _mouse_click(event, params):
             ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
             if params['ch_start'] != ch_start:
                 params['ch_start'] = ch_start
-                _plot_traces(params)
+                params['plot_fun']()
         # horizontal scroll bar changed
         elif event.inaxes == params['ax_hscroll']:
             # find the closest epoch time
@@ -1145,7 +1138,7 @@ def _mouse_click(event, params):
                 params['vert_lines'].pop(0)
         if prev_xdata == xdata:
             params['vertline_t'].set_text('')
-            _plot_traces(params)
+            params['plot_fun']()
             return
         ylim = params['ax'].get_ylim()
         for epoch_idx in range(params['n_epochs']):
@@ -1153,7 +1146,7 @@ def _mouse_click(event, params):
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
                                                           zorder=4))
         params['vertline_t'].set_text('%0.3f' % params['epochs'].times[xdata])
-        _plot_traces(params)
+        params['plot_fun']()
 
 
 def _plot_onkey(event, params):
@@ -1164,13 +1157,11 @@ def _plot_onkey(event, params):
             return
         params['ch_start'] += params['n_channels']
         _channels_changed(params, len(params['ch_names']))
-        _plot_traces(params)
     elif event.key == 'up':
         if params['butterfly']:
             return
         params['ch_start'] -= params['n_channels']
         _channels_changed(params, len(params['ch_names']))
-        _plot_traces(params)
     elif event.key == 'left':
         sample = params['t_start'] - params['duration']
         sample = np.max([0, sample])
@@ -1186,13 +1177,13 @@ def _plot_onkey(event, params):
             params['butterfly_scale'] /= 1.1
         else:
             params['scale_factor'] /= 1.1
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key in ['+', '=']:
         if params['butterfly']:
             params['butterfly_scale'] *= 1.1
         else:
             params['scale_factor'] *= 1.1
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
@@ -1208,7 +1199,7 @@ def _plot_onkey(event, params):
         params['ax'].set_yticks(params['offsets'])
         params['lines'].pop()
         params['vsel_patch'].set_height(n_channels)
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'pageup':
         if params['butterfly']:
             return
@@ -1224,7 +1215,7 @@ def _plot_onkey(event, params):
         params['ax'].set_yticks(params['offsets'])
         params['lines'].append(lc)
         params['vsel_patch'].set_height(n_channels)
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'home':
         n_epochs = params['n_epochs'] - 1
         if n_epochs <= 0:
@@ -1235,7 +1226,7 @@ def _plot_onkey(event, params):
         params['n_epochs'] = n_epochs
         params['duration'] -= n_times
         params['hsel_patch'].set_width(params['duration'])
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'end':
         n_epochs = params['n_epochs'] + 1
         n_times = len(params['epochs'].times)
@@ -1257,7 +1248,7 @@ def _plot_onkey(event, params):
             params['t_start'] -= n_times
             params['hsel_patch'].set_x(params['t_start'])
         params['hsel_patch'].set_width(params['duration'])
-        _plot_traces(params)
+        params['plot_fun']()
     elif event.key == 'b':
         if params['fig_options'] is not None:
             plt.close(params['fig_options'])
@@ -1269,6 +1260,7 @@ def _plot_onkey(event, params):
             _open_options(params)
     elif event.key == '?':
         _onclick_help(event)
+        params['plot_fun']()
     elif event.key == 'escape':
         plt.close(params['fig'])
 

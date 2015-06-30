@@ -463,12 +463,40 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                                     zorder=1)[0]
 
 
+def _plot_raw_onscroll(event, params, len_channels=None):
+    """Interpret scroll events"""
+    if len_channels is None:
+        len_channels = len(params['info']['ch_names'])
+    orig_start = params['ch_start']
+    if event.step < 0:
+        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
+                                 len_channels - params['n_channels'])
+    else:  # event.key == 'up':
+        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
+    if orig_start != params['ch_start']:
+        _channels_changed(params, len_channels)
+
+
 def _channels_changed(params, len_channels):
     """Helper function for dealing with the vertical shift of the viewport."""
     if params['ch_start'] + params['n_channels'] > len_channels:
         params['ch_start'] = len_channels - params['n_channels']
-    elif params['ch_start'] < 0:
+    if params['ch_start'] < 0:
         params['ch_start'] = 0
+    params['plot_fun']()
+
+
+def _plot_raw_time(value, params):
+    """Deal with changed time value"""
+    info = params['info']
+    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
+    if value > max_times:
+        value = params['n_times'] / info['sfreq'] - params['duration']
+    if value < 0:
+        value = 0
+    if params['t_start'] != value:
+        params['t_start'] = value
+        params['hsel_patch'].set_x(value)
 
 
 class ClickableImage(object):
