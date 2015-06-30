@@ -510,3 +510,17 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
         plt.show()
 
     return fig
+
+
+def _plot_raw_components(ica, raw):
+    """Helper function for plotting the ICA components as raw array."""
+    data = ica._transform_raw(raw, 0, len(raw.times))
+    c_names = ['ICA ' + str(x + 1) for x in range(len(data))]
+    #info = create_info(c_names, raw.info['sfreq'])
+    #raw_ica = RawArray(data, info)
+    scalings = {'misc': 2}
+    plot_traces(data)
+    return raw_ica.plot(scalings=scalings)
+
+def plot_traces(data):
+    pass

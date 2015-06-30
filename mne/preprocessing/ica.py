@@ -32,7 +32,7 @@ from ..io.meas_info import write_meas_info, read_meas_info
 from ..io.constants import Bunch, FIFF
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
-from ..viz import (plot_ica_components, plot_ica_scores,
+from ..viz import (plot_ica_components, plot_ica_scores, _plot_raw_components,
                    plot_ica_sources, plot_ica_overlay)
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
@@ -1571,6 +1571,22 @@ class ICA(ContainsMixin):
             _n_pca_comp = self.n_components_
 
         return _n_pca_comp
+
+
+    def plot_raw_components(self, raw):
+        """Plot ICA components
+
+        Note. This is still experimental and will most likely change. Over
+        
+        Parameters
+        ----------
+        raw : instance of Raw
+            Raw object to draw sources from.
+        start_find : int | float | None
+            First sample to include for artifact search. If float, data will be
+            interpreted as time in seconds. If None, data will be used from the
+	    """
+        _plot_raw_components(self, raw)
 
 
 def _check_start_stop(raw, start, stop):
