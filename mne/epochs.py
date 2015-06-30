@@ -2050,8 +2050,11 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         tmax = last / info['sfreq']
         event_id = (dict((str(e), e) for e in np.unique(events[:, 2]))
                     if mappings is None else mappings)
+        # here we ignore missing events, since users should already be
+        # aware of missing events if they have saved data that way
         epochs = _BaseEpochs(info, data, events, event_id, tmin, tmax,
-                             baseline, name=name, verbose=verbose)
+                             baseline, name=name, on_missing='ignore',
+                             verbose=verbose)
         activate = False if epochs._delayed_proj else proj
         epochs._projector, epochs.info = setup_proj(info, add_eeg_ref,
                                                     activate=activate)
