@@ -551,6 +551,7 @@ def slow_test(f):
 def ultra_slow_test(f):
     """Decorator for ultra slow tests"""
     f.ultra_slow_test = True
+    f.slow_test = True
     return f
 
 
