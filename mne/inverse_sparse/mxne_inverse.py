@@ -366,7 +366,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
                   loose=0.2, depth=0.8, maxit=3000, tol=1e-4,
                   weights=None, weights_min=None, pca=True, debias=True,
                   wsize=64, tstep=4, window=0.02, return_residual=False,
-                  log_objective=True, verbose=None):
+                  verbose=None):
     """Time-Frequency Mixed-norm estimate (TF-MxNE)
 
     Compute L1/L2 + L1 mixed-norm solution on time frequency
@@ -436,8 +436,6 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
         and right window length.
     return_residual : bool
         If True, the residual is returned as an Evoked instance.
-    log_objective : bool
-        If True, the cost function is evaluated in every iteration.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -492,7 +490,7 @@ def tf_mixed_norm(evoked, forward, noise_cov, alpha_space, alpha_time,
     X, active_set, E = tf_mixed_norm_solver(
         M, gain, alpha_space, alpha_time, wsize=wsize, tstep=tstep,
         maxit=maxit, tol=tol, verbose=verbose, n_orient=n_dip_per_pos,
-        log_objective=log_objective, debias=debias)
+        debias=debias)
 
     if active_set.sum() == 0:
         raise Exception("No active dipoles found. "
