@@ -422,6 +422,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
+@slow_test
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
