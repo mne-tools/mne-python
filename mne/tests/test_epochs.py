@@ -31,6 +31,7 @@ from mne.io.meas_info import create_info
 from mne.io.proj import _has_eeg_average_ref_proj
 from mne.event import merge_events
 from mne.io.constants import FIFF
+from mne.externals.six import text_type
 from mne.externals.six.moves import zip, cPickle as pickle
 
 matplotlib.use('Agg')  # for testing don't use X server
@@ -479,7 +480,8 @@ def test_read_write_epochs():
     epochs_read = read_epochs(temp_fname)
     assert_allclose(epochs.get_data(), epochs_read.get_data())
     assert_array_equal(epochs.events, epochs_read.events)
-    assert_equal(set(epochs.event_id.keys()), epochs_read.event_id.keys())
+    assert_equal(set(epochs.event_id.keys()),
+                 set(text_type(x) for x in epochs_read.event_id.keys()))
 
 
 def test_epochs_proj():
