@@ -804,7 +804,7 @@ def _tf_mixed_norm_solver_bcd_(M, G, Z, active_set, alpha_space, alpha_time,
             logger.info("Iteration %d :: pobj %f :: n_active %d" % (i + 1,
                         pobj, np.sum(active_set) / n_orient))
         else:
-            logger.info("Iteration %d" % i + 1)
+            logger.info("Iteration %d" % (i + 1))
 
         if perc is not None:
             if np.sum(active_set) / float(n_orient) <= perc * n_positions:
