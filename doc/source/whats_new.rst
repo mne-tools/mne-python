@@ -12,6 +12,8 @@ Changelog
 
     - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
 
+    - Speed up TF-MxNE inverse solver with block coordinate descent by `Daniel Strohmeier`_ and `Yousra Bekhti`_
+
 
 BUG
 ~~~
