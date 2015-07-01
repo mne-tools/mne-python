@@ -19,6 +19,10 @@ from scipy.linalg import pinv
 from ..forward._compute_forward import _concatenate_coils
 #from ..fixes import partial
 from scipy.misc import factorial as fact
+from ..io.constants import FIFF
+from .. import pick_types, pick_info
+from ..utils import logger
+from ..forward._make_forward import _read_coil_defs, _create_coils
 
 
 def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
@@ -348,8 +352,8 @@ def _get_real_grad(grad_vec_raw, order):
     return np.real_if_close(grad_vec)
 
 
-def get_num_harmonics(int_order, ext_order):
-    """Compute total number of spherical harmonics.
+def get_num_moments(int_order, ext_order):
+    """Compute total number of multipolar moments
 
     Parameters
     ---------
@@ -361,7 +365,7 @@ def get_num_harmonics(int_order, ext_order):
     Returns
     -------
     M : int
-        Total number of spherical harmonics
+        Total number of multipolar moments
     """
 
     # TODO: Eventually, reuse code in field_interpolation
@@ -429,20 +433,8 @@ def _cart_to_sph(cart_pts):
     return np.c_[rad, az, pol]
 
 
-# TODO: Find cleaner way to get channel info than reusing forward soln code
-import os
-from os import path as op
-
-from ..io import read_info
-from ..transforms import _get_mri_head_t, _print_coord_trans
-from ..source_space import read_source_spaces, SourceSpaces
-from ..externals.six import string_types
-from mne.forward._make_forward import _prep_channels
-
-
-def _make_coils(info, trans, src, bem, fname=None, meg=True, eeg=True,
-                mindist=0.0, ignore_ref=False, overwrite=False, n_jobs=1):
-    """Prepare dict of coil information
+def _make_coils(info, accurate=True, coil_def=None):
+    """Prepare dict of MEG coils and their information
 
     Parameters
     ----------
@@ -450,101 +442,48 @@ def _make_coils(info, trans, src, bem, fname=None, meg=True, eeg=True,
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
-    trans : dict | str | None
-        Either a transformation filename (usually made using mne_analyze)
-        or an info dict (usually opened using read_trans()).
-        If string, an ending of `.fif` or `.fif.gz` will be assumed to
-        be in FIF format, any other ending will be assumed to be a text
-        file with a 4x4 transformation matrix (like the `--trans` MNE-C
-        option). Can be None to use the identity transform.
-    src : str | instance of SourceSpaces
-        If string, should be a source space filename. Can also be an
-        instance of loaded or generated SourceSpaces.
-    bem : dict | str
-        Filename of the BEM (e.g., "sample-5120-5120-5120-bem-sol.fif") to
-        use, or a loaded sphere model (dict).
-    fname : str | None
-        Destination forward solution filename. If None, the solution
-        will not be saved.
-    meg : bool
-        If True (Default), include MEG computations.
-    eeg : bool
-        If True (Default), include EEG computations.
-    mindist : float
-        Minimum distance of sources from inner skull surface (in mm).
-    ignore_ref : bool
-        If True, do not include reference channels in compensation. This
-        option should be True for KIT files, since forward computation
-        with reference channels is not currently supported.
-    overwrite : bool
-        If True, the destination file (if it exists) will be overwritten.
-        If False (default), an error will be raised if the file exists.
-    n_jobs : int
-        Number of jobs to run in parallel.
+    coil_def : str | None
+        Filepath to the coil definitions file.
+    accuracy : bool
+        Accuracy of coil information.
 
     Returns
     -------
-    megcoils : dict
-        MEG coil information dict
+    megcoils, meg_info : dict
+        MEG coils and information dict
     """
 
-    # read the transformation from MRI to HEAD coordinates
-    # (could also be HEAD to MRI)
-    mri_head_t, trans = _get_mri_head_t(trans)
-
-    if not isinstance(src, string_types):
-        if not isinstance(src, SourceSpaces):
-            raise TypeError('src must be a string or SourceSpaces')
-        src_extra = 'list'
+    if accurate:
+        accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
     else:
-        src_extra = src
-        if not op.isfile(src):
-            raise IOError('Source space file "%s" not found' % src)
-    if isinstance(bem, dict):
-        bem_extra = 'dict'
+        accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
+    info_extra = 'info'
+    meg_info = None
+    megnames, megcoils, compcoils = [], [], []
+
+    # MEG channels
+    # TODO: Should we exclude bads (in info['bads'])
+    picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
+                       exclude=[])
+    nmeg = len(picks)
+    if nmeg > 0:
+        megchs = pick_info(info, picks)['chs']
+        logger.info('Read %3d MEG channels from %s'
+                    % (len(picks), info_extra))
+
+    if nmeg <= 0:
+        raise RuntimeError('Could not find any MEG channels')
+
+    meg_info = pick_info(info, picks) if nmeg > 0 else None
+
+    # Create coil descriptions with transformation to head or MRI frame
+    if coil_def is None:
+        templates = _read_coil_defs()
     else:
-        bem_extra = bem
-        if not op.isfile(bem):
-            raise IOError('BEM file "%s" not found' % bem)
-    if fname is not None and op.isfile(fname) and not overwrite:
-        raise IOError('file "%s" exists, consider using overwrite=True'
-                      % fname)
-    if not isinstance(info, (dict, string_types)):
-        raise TypeError('info should be a dict or string')
-    if isinstance(info, string_types):
-        info_extra = op.split(info)[1]
-        info_extra_long = info
-        info = read_info(info, verbose=False)
-    else:
-        info_extra = 'info dict'
-        info_extra_long = info_extra
-    verbose = False
-    arg_list = [info_extra, trans, src_extra, bem_extra, fname,  meg, eeg,
-                mindist, overwrite, n_jobs, verbose]
-    cmd = 'make_forward_solution(%s)' % (', '.join([str(a) for a in arg_list]))
+        templates = _read_coil_defs(coil_def)
 
-    if isinstance(src, string_types):
-        src = read_source_spaces(src, verbose=False)
-    else:
-        # let's make a copy in case we modify something
-        src = src.copy()
-    nsource = sum(s['nuse'] for s in src)
-    if nsource == 0:
-        raise RuntimeError('No sources are active in these source spaces. '
-                           '"do_all" option should be used.')
+    if nmeg > 0:
+        megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
+                                 templates)
 
-    # Read the MRI -> head coordinate transformation
-    _print_coord_trans(mri_head_t)
-
-    # make a new dict with the relevant information
-    mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
-                ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
-                mri_file=trans, mri_id=mri_id, meas_file=info_extra_long,
-                meas_id=None, working_dir=os.getcwd(),
-                command_line=cmd, bads=info['bads'])
-
-    megcoils, compcoils, eegels, megnames, eegnames, meg_info = \
-        _prep_channels(info, meg, eeg, ignore_ref)
-
-    return megcoils
+    return megcoils, meg_info
