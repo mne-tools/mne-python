@@ -517,8 +517,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
-                         start=0.0, n_channels=20, bgcolor='w',
-                         color=(0., 0., 0.), bad_color=(1., 0., 0.)):
+                         n_channels=20, bgcolor='w', color=(0., 0., 0.),
+                         bad_color=(1., 0., 0.)):
     """Helper function for plotting the ICA components as raw array."""
     color = _handle_default('color', color)
     scalings = {'misc': 0.2}
@@ -537,7 +537,7 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
     params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
-                  ch_start=0, t_start=start, info=info, duration=duration,
+                  ch_start=0, t_start=0, info=info, duration=duration,
                   n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
