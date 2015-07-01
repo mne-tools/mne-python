@@ -935,8 +935,9 @@ class Report(object):
 
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
-            self.html.append(html_template.substitute(div_klass=div_klass, id=global_id,
-                                                      caption=caption, html=html))
+            self.html.append(
+                html_template.substitute(div_klass=div_klass, id=global_id,
+                                         caption=caption, html=html))
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
