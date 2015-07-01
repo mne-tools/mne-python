@@ -546,6 +546,13 @@ footer_template = HTMLTemplate(u"""
 </html>
 """)
 
+html_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
+    <h4>{{caption}}</h4>
+    <div class="thumbnail">{{html}}</div>
+</li>
+""")
+
 image_template = Template(u"""
 
 {{default interactive = False}}
@@ -923,12 +930,13 @@ class Report(object):
         for html, caption in zip(htmls, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
+            global_id = self._get_id()
             div_klass = self._sectionvars[section]
 
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
-            self.html.append('<li class="%s"><h4>%s</h4><div class="thumbnail"'
-                             '>%s</div></li>' % (div_klass, caption, html))
+            self.html.append(html_template.substitute(div_klass=div_klass, id=global_id,
+                                                      caption=caption, html=html))
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
