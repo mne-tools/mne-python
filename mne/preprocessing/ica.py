@@ -1573,8 +1573,8 @@ class ICA(ContainsMixin):
         return _n_pca_comp
 
     def plot_raw_components(self, raw, exclude=None, title=None, duration=10.0,
-                            start=0.0, n_channels=20, bgcolor='w', color=None,
-                            bad_color=(1., 0., 0.)):
+                            start=0.0, n_channels=20, bgcolor='w',
+                            color=(0., 0., 0.), bad_color=(1., 0., 0.)):
         """Plot ICA components
 
         Parameters

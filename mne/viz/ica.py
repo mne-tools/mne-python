@@ -14,8 +14,9 @@ import numpy as np
 
 from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
 from .utils import _layout_figure, _plot_raw_onscroll, _plot_raw_time
-from .utils import _channels_changed
+from .utils import _channels_changed, _plot_raw_traces
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from ..defaults import _handle_default
 from ..io.meas_info import create_info
 
 
@@ -516,11 +517,15 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 
 def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
-                         start=0.0, n_channels=20, bgcolor='w', color=None,
-                         bad_color=(1., 0., 0.)):
+                         start=0.0, n_channels=20, bgcolor='w',
+                         color=(0., 0., 0.), bad_color=(1., 0., 0.)):
     """Helper function for plotting the ICA components as raw array."""
-    data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2  # custom scaling
-    inds = range(len(data))
+    color = _handle_default('color', color)
+    scalings = {'misc': 0.2}
+    orig_data = ica._transform_raw(raw, 0, len(raw.times)) * scalings['misc']
+    inds = range(len(orig_data))
+    types = np.repeat('misc', len(inds))
+
     c_names = ['ICA ' + str(x + 1) for x in inds]
     if title is None:
         title = 'ICA components'
@@ -528,13 +533,18 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
 
     if exclude is None:
         exclude = list()  # TODO -> ica.exclude
-    params = dict(raw=raw, data=data, ch_start=0, t_start=start, info=info,
-                  duration=duration, n_channels=n_channels,
-                  n_times=raw.n_times, bad_color=bad_color, bads=exclude)
+    info['bads'] = [c_names[x] for x in exclude]
+    t_end = int(duration * raw.info['sfreq'])
+    times = raw.times[0:t_end]
+    params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
+                  ch_start=0, t_start=start, info=info, duration=duration,
+                  n_channels=n_channels, times=times, types=types,
+                  n_times=raw.n_times, bad_color=bad_color)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
-    params['plot_fun'] = partial(_plot_traces, params=params)
+    params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
+                                 color=color, bad_color=bad_color)
     _layout_figure(params)
     # callbacks
     callback_key = partial(_plot_onkey, params=params)
@@ -543,56 +553,10 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    _plot_traces(params)
+    params['fig_proj'] = None
+    params['event_times'] = None
+    params['plot_fun']()
     return params['fig']
-
-
-def _plot_traces(params):
-    lines = params['lines']
-    info = params['info']
-    n_channels = params['n_channels']
-    bad_color = params['bad_color']
-    color = 'black'
-    scale_factor = params['scale_factor']
-    t_start = int(params['t_start'] * params['info']['sfreq'])
-    t_end = int((t_start + params['duration']) * params['info']['sfreq'])
-    # do the plotting
-    tick_list = []
-    for ii in range(n_channels):
-        ch_ind = ii + params['ch_start']
-        # let's be generous here and allow users to pass
-        # n_channels per view >= the number of traces available
-        if ii >= len(lines):
-            break
-        elif ch_ind < len(info['ch_names']):
-            # scale to fit
-            ch_name = info['ch_names'][ch_ind]
-            tick_list += [ch_name]
-            offset = params['offsets'][ii]
-
-            # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][ch_ind][t_start:t_end] * scale_factor
-            this_color = bad_color if ch_ind in params['bads'] else color
-            this_z = -1 if ch_ind in params['bads'] else 0
-
-            # subtraction here gets correct orientation for flipped ylim
-            lines[ii].set_ydata(offset - this_data)
-            lines[ii].set_xdata(params['raw'].times[t_start:t_end])
-            lines[ii].set_color(this_color)
-            lines[ii].set_zorder(this_z)
-            vars(lines[ii])['ch_name'] = ch_name
-            lines[ii].set_color(this_color)
-        else:
-            # "remove" lines
-            lines[ii].set_xdata([])
-            lines[ii].set_ydata([])
-
-    # finalize plot
-    params['ax'].set_xlim(params['t_start'],
-                          params['t_start'] + params['duration'], False)
-    params['ax'].set_yticklabels(tick_list)
-    params['vsel_patch'].set_y(params['ch_start'])
-    params['fig'].canvas.draw()
 
 
 def _plot_onkey(event, params):
@@ -609,10 +573,12 @@ def _plot_onkey(event, params):
     elif event.key == 'right':
         value = params['t_start'] + params['duration']
         _plot_raw_time(value, params)
+        _update_data(params)
         params['plot_fun']()
     elif event.key == 'left':
         value = params['t_start'] - params['duration']
         _plot_raw_time(value, params)
+        _update_data(params)
         params['plot_fun']()
     elif event.key in ['+', '=']:
         params['scale_factor'] *= 1.1
@@ -647,6 +613,7 @@ def _plot_onkey(event, params):
             return
         params['duration'] = duration
         params['hsel_patch'].set_width(params['duration'])
+        _update_data(params)
         params['plot_fun']()
     elif event.key == 'end':
         duration = params['duration'] + 1.0
@@ -654,6 +621,7 @@ def _plot_onkey(event, params):
             duration = params['raw'].times[-1]
         params['duration'] = duration
         params['hsel_patch'].set_width(params['duration'])
+        _update_data(params)
         params['plot_fun']()
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
@@ -661,7 +629,7 @@ def _plot_onkey(event, params):
 
 
 def _mouse_click(event, params):
-    """Vertical select callback"""
+    """Function for handling mouse clicks."""
     if event.inaxes is None or event.button != 1:
         return
     # vertical scrollbar changed
@@ -673,4 +641,14 @@ def _mouse_click(event, params):
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
+        _update_data(params)
         params['plot_fun']()
+
+
+def _update_data(params):
+    """Function for preparing the data on horizontal shift of the viewport."""
+    sfreq = params['info']['sfreq']
+    start = int(params['t_start'] * sfreq)
+    end = int((params['t_start'] + params['duration']) * sfreq)
+    params['data'] = params['orig_data'][:, start:end]
+    params['times'] = params['raw'].times[start:end]

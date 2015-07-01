@@ -499,6 +499,87 @@ def _plot_raw_time(value, params):
         params['hsel_patch'].set_x(value)
 
 
+def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
+                     event_color=None):
+    """Helper for plotting raw"""
+    lines = params['lines']
+    info = params['info']
+    n_channels = params['n_channels']
+    params['bad_color'] = bad_color
+    # do the plotting
+    tick_list = []
+    for ii in range(n_channels):
+        ch_ind = ii + params['ch_start']
+        # let's be generous here and allow users to pass
+        # n_channels per view >= the number of traces available
+        if ii >= len(lines):
+            break
+        elif ch_ind < len(info['ch_names']):
+            # scale to fit
+            ch_name = info['ch_names'][inds[ch_ind]]
+            tick_list += [ch_name]
+            offset = params['offsets'][ii]
+
+            # do NOT operate in-place lest this get screwed up
+            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
+            this_color = bad_color if ch_name in info['bads'] else color
+            this_z = -1 if ch_name in info['bads'] else 0
+            if isinstance(this_color, dict):
+                this_color = this_color[params['types'][inds[ch_ind]]]
+
+            # subtraction here gets corect orientation for flipped ylim
+            lines[ii].set_ydata(offset - this_data)
+            lines[ii].set_xdata(params['times'])
+            lines[ii].set_color(this_color)
+            lines[ii].set_zorder(this_z)
+            vars(lines[ii])['ch_name'] = ch_name
+            vars(lines[ii])['def_color'] = color[params['types'][inds[ch_ind]]]
+        else:
+            # "remove" lines
+            lines[ii].set_xdata([])
+            lines[ii].set_ydata([])
+    # deal with event lines
+    if params['event_times'] is not None:
+        # find events in the time window
+        event_times = params['event_times']
+        mask = np.logical_and(event_times >= params['times'][0],
+                              event_times <= params['times'][-1])
+        event_times = event_times[mask]
+        event_nums = params['event_nums'][mask]
+        # plot them with appropriate colors
+        # go through the list backward so we end with -1, the catchall
+        used = np.zeros(len(event_times), bool)
+        ylim = params['ax'].get_ylim()
+        for ev_num, line in zip(sorted(event_color.keys())[::-1],
+                                event_lines[::-1]):
+            mask = (event_nums == ev_num) if ev_num >= 0 else ~used
+            assert not np.any(used[mask])
+            used[mask] = True
+            t = event_times[mask]
+            if len(t) > 0:
+                xs = list()
+                ys = list()
+                for tt in t:
+                    xs += [tt, tt, np.nan]
+                    ys += [0, ylim[0], np.nan]
+                line.set_xdata(xs)
+                line.set_ydata(ys)
+            else:
+                line.set_xdata([])
+                line.set_ydata([])
+    # finalize plot
+    params['ax'].set_xlim(params['times'][0],
+                          params['times'][0] + params['duration'], False)
+    params['ax'].set_yticklabels(tick_list)
+    params['vsel_patch'].set_y(params['ch_start'])
+    params['fig'].canvas.draw()
+    # XXX This is a hack to make sure this figure gets drawn last
+    # so that when matplotlib goes to calculate bounds we don't get a
+    # CGContextRef error on the MacOSX backend :(
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
+
+
 class ClickableImage(object):
 
     """
