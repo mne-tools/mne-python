@@ -20,7 +20,7 @@ from ..time_frequency import compute_raw_psd
 from .utils import _toggle_options, _toggle_proj, tight_layout
 from .utils import _layout_figure, _prepare_mne_browse_raw, _plot_raw_onkey
 from .utils import _plot_raw_onscroll, _plot_raw_traces, _mouse_click
-from .utils import _helper_raw_resize
+from .utils import _helper_raw_resize, _select_bads
 from ..defaults import _handle_default
 
 
@@ -71,34 +71,7 @@ def _update_raw_data(params):
 def _pick_bad_channels(event, params):
     """Helper for selecting / dropping bad channels onpick"""
     bads = params['raw'].info['bads']
-
-    # trade-off, avoid selecting more than one channel when drifts are present
-    # however for clean data don't click on peaks but on flat segments
-    def f(x, y):
-        return y(np.mean(x), x.std() * 2)
-    for l in event.inaxes.lines:
-        ydata = l.get_ydata()
-        if not isinstance(ydata, list) and not np.isnan(ydata).any():
-            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
-            if ymin <= event.ydata <= ymax:
-                this_chan = vars(l)['ch_name']
-                if this_chan in params['raw'].ch_names:
-                    if this_chan not in bads:
-                        bads.append(this_chan)
-                        l.set_color(params['bad_color'])
-                        l.set_zorder(-1)
-                    else:
-                        bads.pop(bads.index(this_chan))
-                        l.set_color(vars(l)['def_color'])
-                        l.set_zorder(0)
-                    break
-    else:
-        x = np.array([event.xdata] * 2)
-        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
-        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
-        params['vertline_t'].set_text('%0.3f' % x[0])
-    # update deep-copied info to persistently draw bads
-    params['info']['bads'] = bads
+    params['info']['bads'] = _select_bads(event, params, bads)
     _plot_update_raw_proj(params, None)
 
 

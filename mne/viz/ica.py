@@ -15,6 +15,7 @@ import numpy as np
 from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
 from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
 from .utils import _plot_raw_traces, _helper_raw_resize, _plot_raw_onkey
+from .utils import _select_bads
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
@@ -575,33 +576,6 @@ def _update_data(params):
 def _pick_bads(event, params):
     """Method for selecting components on click."""
     bads = params['info']['bads']
-
-    # trade-off, avoid selecting more than one channel when drifts are present
-    # however for clean data don't click on peaks but on flat segments
-    def f(x, y):
-        return y(np.mean(x), x.std() * 2)
-    for l in event.inaxes.lines:
-        ydata = l.get_ydata()
-        if not isinstance(ydata, list) and not np.isnan(ydata).any():
-            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
-            if ymin <= event.ydata <= ymax:
-                this_chan = vars(l)['ch_name']
-                if this_chan in params['info']['ch_names']:
-                    if this_chan not in bads:
-                        bads.append(this_chan)
-                        l.set_color(params['bad_color'])
-                        l.set_zorder(-1)
-                    else:
-                        bads.pop(bads.index(this_chan))
-                        l.set_color(vars(l)['def_color'])
-                        l.set_zorder(0)
-                    break
-    else:
-        x = np.array([event.xdata] * 2)
-        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
-        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
-        params['vertline_t'].set_text('%0.3f' % x[0])
-    # update deep-copied info to persistently draw bads
-    params['info']['bads'] = bads
+    params['info']['bads'] = _select_bads(event, params, bads)
     params['update_fun']()
     params['plot_fun']()

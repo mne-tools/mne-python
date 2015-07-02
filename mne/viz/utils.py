@@ -595,6 +595,40 @@ def _mouse_click(event, params):
         params['pick_bads_fun'](event)
 
 
+def _select_bads(event, params, bads):
+    """Helper for selecting bad channels onpick. Returns updated bads list."""
+    # trade-off, avoid selecting more than one channel when drifts are present
+    # however for clean data don't click on peaks but on flat segments
+    def f(x, y):
+        return y(np.mean(x), x.std() * 2)
+    lines = event.inaxes.lines
+    for line in lines:
+        ydata = line.get_ydata()
+        if not isinstance(ydata, list) and not np.isnan(ydata).any():
+            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
+            if ymin <= event.ydata <= ymax:
+                this_chan = vars(line)['ch_name']
+                if this_chan in params['info']['ch_names']:
+                    ch_idx = params['ch_start'] + lines.index(line)
+                    if this_chan not in bads:
+                        bads.append(this_chan)
+                        color = params['bad_color']
+                        line.set_zorder(-1)
+                    else:
+                        bads.pop(bads.index(this_chan))
+                        color = vars(line)['def_color']
+                        line.set_zorder(0)
+                    line.set_color(color)
+                    params['ax_vscroll'].patches[ch_idx].set_color(color)
+                    break
+    else:
+        x = np.array([event.xdata] * 2)
+        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
+        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
+        params['vertline_t'].set_text('%0.3f' % x[0])
+    return bads
+
+
 def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
                      event_color=None):
     """Helper for plotting raw"""
