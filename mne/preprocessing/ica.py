@@ -1574,7 +1574,7 @@ class ICA(ContainsMixin):
 
     def plot_raw_components(self, raw, exclude=None, title=None, duration=10.0,
                             n_channels=20, bgcolor='w', color=(0., 0., 0.),
-                            bad_color=(1., 0., 0.)):
+                            bad_color=(1., 0., 0.), show=True, block=False):
         """Plot ICA components
 
         Parameters
@@ -1598,14 +1598,26 @@ class ICA(ContainsMixin):
         bad_color : color object
             Color to use for components marked as bad.
             Defaults to (1., 0., 0.) (red).
+        show : bool
+            Show figures if True. Defaults to True.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for selecting components for exclusion on the fly
+            (click on line). May not work on all systems / platforms.
+            Defaults to False.
 
         Returns
         -------
         fig : Instance of matplotlib.figure.Figure
             The figure.
+        exclude : list
+            Updated list of components marked for exclusion.
         """
-        _plot_raw_components(self, raw, exclude, title, duration,
-                             n_channels, bgcolor, color, bad_color)
+        return _plot_raw_components(self, raw, exclude=exclude, title=title,
+                                    duration=duration, n_channels=n_channels,
+                                    bgcolor=bgcolor, color=color,
+                                    bad_color=bad_color, show=show,
+                                    block=block)
 
 
 def _check_start_stop(raw, start, stop):

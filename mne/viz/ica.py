@@ -519,8 +519,9 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
 
 def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
                          n_channels=20, bgcolor='w', color=(0., 0., 0.),
-                         bad_color=(1., 0., 0.)):
-    """Helper function for plotting the ICA components as raw array."""
+                         bad_color=(1., 0., 0.), show=True, block=False):
+    """Function for plotting the ICA components as raw array."""
+    import matplotlib.pyplot as plt
     color = _handle_default('color', color)
     scalings = {'misc': 0.2}
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * scalings['misc']
@@ -533,14 +534,14 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     info = create_info(c_names, raw.info['sfreq'])
 
     if exclude is None:
-        exclude = list()  # TODO -> ica.exclude
+        exclude = list()
     info['bads'] = [c_names[x] for x in exclude]
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
     params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
                   ch_start=0, t_start=0, info=info, duration=duration,
                   n_channels=n_channels, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color)
+                  n_times=raw.n_times, bad_color=bad_color, exclude=exclude)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -558,10 +559,18 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
     callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
+    callback_close = partial(_close_event, params=params)
+    params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
     params['event_times'] = None
     params['plot_fun']()
-    return params['fig']
+    if show:
+        try:
+            plt.show(block=block)
+        except TypeError:  # not all versions have this
+            plt.show()
+
+    return params['fig'], params['exclude']
 
 
 def _update_data(params):
@@ -574,8 +583,14 @@ def _update_data(params):
 
 
 def _pick_bads(event, params):
-    """Method for selecting components on click."""
+    """Function for selecting components on click."""
     bads = params['info']['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
     params['update_fun']()
     params['plot_fun']()
+
+
+def _close_event(events, params):
+    """Function for updating the list of excluded components."""
+    info = params['info']
+    params['exclude'] = [info['ch_names'].index(x) for x in info['bads']]
