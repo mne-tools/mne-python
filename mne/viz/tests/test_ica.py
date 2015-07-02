@@ -143,4 +143,31 @@ def test_plot_ica_scores():
     plt.close('all')
 
 
+@requires_sklearn
+def test_plot_raw_components():
+    """Test plotting of raw components."""
+    import matplotlib.pyplot as plt
+    raw = _get_raw()
+    picks = _get_picks(raw)
+    ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
+              max_pca_components=3, n_pca_components=3)
+    ica.fit(raw, picks=picks)
+    fig, _ = ica.plot_raw_components(raw, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+
+
 run_tests_if_main()
