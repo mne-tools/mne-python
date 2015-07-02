@@ -19,7 +19,7 @@ import tempfile
 import numpy as np
 
 from ..io import show_fiff
-from ..utils import verbose, get_config
+from ..utils import verbose, get_config, set_config
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -463,6 +463,13 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                                                     zorder=1)[0]
 
 
+def _helper_raw_resize(event, params):
+    """Helper for resizing"""
+    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', size)
+    _layout_figure(params)
+
+
 def _plot_raw_onscroll(event, params, len_channels=None):
     """Interpret scroll events"""
     if len_channels is None:
@@ -497,6 +504,95 @@ def _plot_raw_time(value, params):
     if params['t_start'] != value:
         params['t_start'] = value
         params['hsel_patch'].set_x(value)
+
+
+def _plot_raw_onkey(event, params):
+    """Interpret key presses"""
+    import matplotlib.pyplot as plt
+    if event.key == 'escape':
+        plt.close(params['fig'])
+    elif event.key == 'down':
+        params['ch_start'] += params['n_channels']
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'up':
+        params['ch_start'] -= params['n_channels']
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'right':
+        value = params['t_start'] + params['duration']
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'left':
+        value = params['t_start'] - params['duration']
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key in ['+', '=']:
+        params['scale_factor'] *= 1.1
+        params['plot_fun']()
+    elif event.key == '-':
+        params['scale_factor'] /= 1.1
+        params['plot_fun']()
+    elif event.key == 'pageup':
+        n_channels = params['n_channels'] + 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'pagedown':
+        n_channels = params['n_channels'] - 1
+        if n_channels == 0:
+            return
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        if len(params['lines']) > n_channels:  # remove line from view
+            params['lines'][n_channels].set_xdata([])
+            params['lines'][n_channels].set_ydata([])
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'home':
+        duration = params['duration'] - 1.0
+        if duration <= 0:
+            return
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'end':
+        duration = params['duration'] + 1.0
+        if duration > params['raw'].times[-1]:
+            duration = params['raw'].times[-1]
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'f11':
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+
+
+def _mouse_click(event, params):
+    """Vertical select callback"""
+    if event.inaxes is None or event.button != 1:
+        return
+    # vertical scrollbar changed
+    if event.inaxes == params['ax_vscroll']:
+        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+        if params['ch_start'] != ch_start:
+            params['ch_start'] = ch_start
+            params['plot_fun']()
+    # horizontal scrollbar changed
+    elif event.inaxes == params['ax_hscroll']:
+        _plot_raw_time(event.xdata - params['duration'] / 2, params)
+        params['update_fun']()
+        params['plot_fun']()
+
+    elif event.inaxes == params['ax']:
+        params['pick_bads_fun'](event)
 
 
 def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,

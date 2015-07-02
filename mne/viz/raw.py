@@ -15,11 +15,12 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types
 from ..io.proj import setup_proj
-from ..utils import set_config, verbose
+from ..utils import verbose
 from ..time_frequency import compute_raw_psd
 from .utils import _toggle_options, _toggle_proj, tight_layout
-from .utils import _layout_figure, _prepare_mne_browse_raw, _channels_changed
-from .utils import _plot_raw_onscroll, _plot_raw_time, _plot_raw_traces
+from .utils import _layout_figure, _prepare_mne_browse_raw, _plot_raw_onkey
+from .utils import _plot_raw_onscroll, _plot_raw_traces, _mouse_click
+from .utils import _helper_raw_resize
 from ..defaults import _handle_default
 
 
@@ -32,7 +33,7 @@ def _plot_update_raw_proj(params, bools):
         params['proj_bools'] = bools
     params['projector'], _ = setup_proj(params['info'], add_eeg_ref=False,
                                         verbose=False)
-    _update_raw_data(params)
+    params['update_fun']()
     params['plot_fun']()
 
 
@@ -67,13 +68,6 @@ def _update_raw_data(params):
     params['times'] = times
 
 
-def _helper_resize(event, params):
-    """Helper for resizing"""
-    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
-    set_config('MNE_BROWSE_RAW_SIZE', size)
-    _layout_figure(params)
-
-
 def _pick_bad_channels(event, params):
     """Helper for selecting / dropping bad channels onpick"""
     bads = params['raw'].info['bads']
@@ -106,115 +100,6 @@ def _pick_bad_channels(event, params):
     # update deep-copied info to persistently draw bads
     params['info']['bads'] = bads
     _plot_update_raw_proj(params, None)
-
-
-def _mouse_click(event, params):
-    """Vertical select callback"""
-    if event.inaxes is None or event.button != 1:
-        return
-    # vertical scrollbar changed
-    if event.inaxes == params['ax_vscroll']:
-        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-        if params['ch_start'] != ch_start:
-            params['ch_start'] = ch_start
-            params['plot_fun']()
-    # horizontal scrollbar changed
-    elif event.inaxes == params['ax_hscroll']:
-        _plot_raw_time(event.xdata - params['duration'] / 2, params)
-        _update_raw_data(params)
-        params['plot_fun']()
-
-    elif event.inaxes == params['ax']:
-        _pick_bad_channels(event, params)
-
-
-def _plot_raw_onkey(event, params):
-    """Interpret key presses"""
-    import matplotlib.pyplot as plt
-    # check for initial plot
-    if event is None:
-        params['plot_fun']()
-        return
-
-    # quit event
-    if event.key == 'escape':
-        plt.close(params['fig'])
-        return
-
-    # change plotting params
-    ch_changed = False
-    if event.key == 'down':
-        params['ch_start'] += params['n_channels']
-        ch_changed = True
-    elif event.key == 'up':
-        params['ch_start'] -= params['n_channels']
-        ch_changed = True
-    elif event.key == 'right':
-        _plot_raw_time(params['t_start'] + params['duration'], params)
-        _update_raw_data(params)
-        params['plot_fun']()
-        return
-    elif event.key == 'left':
-        _plot_raw_time(params['t_start'] - params['duration'], params)
-        _update_raw_data(params)
-        params['plot_fun']()
-        return
-    elif event.key in ['o', 'p']:
-        _toggle_options(None, params)
-        return
-    elif event.key in ['+', '=']:
-        params['scale_factor'] *= 1.1
-        params['plot_fun']()
-        return
-    elif event.key == '-':
-        params['scale_factor'] /= 1.1
-        params['plot_fun']()
-        return
-    elif event.key == 'pageup':
-        n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
-        ch_changed = True
-    elif event.key == 'pagedown':
-        n_channels = params['n_channels'] - 1
-        if n_channels == 0:
-            return
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
-        if len(params['lines']) > n_channels:  # remove line from view
-            params['lines'][n_channels].set_xdata([])
-            params['lines'][n_channels].set_ydata([])
-        ch_changed = True
-    elif event.key == 'home':
-        duration = params['duration'] - 1.0
-        if duration <= 0:
-            return
-        params['duration'] = duration
-        params['hsel_patch'].set_width(params['duration'])
-        _update_raw_data(params)
-        params['plot_fun']()
-    elif event.key == 'end':
-        duration = params['duration'] + 1.0
-        if duration > params['raw'].times[-1]:
-            duration = params['raw'].times[-1]
-        params['duration'] = duration
-        params['hsel_patch'].set_width(params['duration'])
-        _update_raw_data(params)
-        params['plot_fun']()
-    elif event.key == 'f11':
-        mng = plt.get_current_fig_manager()
-        mng.full_screen_toggle()
-        return
-    # deal with plotting changes
-    if ch_changed:
-        len_channels = len(params['info']['ch_names'])
-        _channels_changed(params, len_channels)
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
@@ -430,6 +315,8 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  color=color, bad_color=bad_color,
                                  event_lines=event_lines,
                                  event_color=event_color)
+    params['update_fun'] = partial(_update_raw_data, params=params)
+    params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
     params['scale_factor'] = 1.0
     # set up callbacks
     opt_button = None
@@ -445,7 +332,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
-    callback_resize = partial(_helper_resize, params=params)
+    callback_resize = partial(_helper_raw_resize, params=params)
     params['fig'].canvas.mpl_connect('resize_event', callback_resize)
 
     # As here code is shared with plot_evoked, some extra steps:

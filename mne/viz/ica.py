@@ -13,8 +13,8 @@ from functools import partial
 import numpy as np
 
 from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
-from .utils import _layout_figure, _plot_raw_onscroll, _plot_raw_time
-from .utils import _channels_changed, _plot_raw_traces
+from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
+from .utils import _plot_raw_traces, _helper_raw_resize, _plot_raw_onkey
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
@@ -545,104 +545,22 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color)
+    params['update_fun'] = partial(_update_data, params)
+    params['pick_bads_fun'] = partial(_pick_bads, params=params)
     _layout_figure(params)
     # callbacks
-    callback_key = partial(_plot_onkey, params=params)
+    callback_key = partial(_plot_raw_onkey, params=params)
     params['fig'].canvas.mpl_connect('key_press_event', callback_key)
     callback_scroll = partial(_plot_raw_onscroll, params=params)
     params['fig'].canvas.mpl_connect('scroll_event', callback_scroll)
     callback_pick = partial(_mouse_click, params=params)
     params['fig'].canvas.mpl_connect('button_press_event', callback_pick)
+    callback_resize = partial(_helper_raw_resize, params=params)
+    params['fig'].canvas.mpl_connect('resize_event', callback_resize)
     params['fig_proj'] = None
     params['event_times'] = None
     params['plot_fun']()
     return params['fig']
-
-
-def _plot_onkey(event, params):
-    """Interpret key presses"""
-    import matplotlib.pyplot as plt
-    if event.key == 'escape':
-        plt.close(params['fig'])
-    elif event.key == 'down':
-        params['ch_start'] += params['n_channels']
-        _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'up':
-        params['ch_start'] -= params['n_channels']
-        _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'right':
-        value = params['t_start'] + params['duration']
-        _plot_raw_time(value, params)
-        _update_data(params)
-        params['plot_fun']()
-    elif event.key == 'left':
-        value = params['t_start'] - params['duration']
-        _plot_raw_time(value, params)
-        _update_data(params)
-        params['plot_fun']()
-    elif event.key in ['+', '=']:
-        params['scale_factor'] *= 1.1
-        params['plot_fun']()
-    elif event.key == '-':
-        params['scale_factor'] /= 1.1
-        params['plot_fun']()
-    elif event.key == 'pageup':
-        n_channels = params['n_channels'] + 1
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
-        _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'pagedown':
-        n_channels = params['n_channels'] - 1
-        if n_channels == 0:
-            return
-        offset = params['ax'].get_ylim()[0] / n_channels
-        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
-        params['n_channels'] = n_channels
-        params['ax'].set_yticks(params['offsets'])
-        params['vsel_patch'].set_height(n_channels)
-        if len(params['lines']) > n_channels:  # remove line from view
-            params['lines'][n_channels].set_xdata([])
-            params['lines'][n_channels].set_ydata([])
-        _channels_changed(params, len(params['info']['ch_names']))
-    elif event.key == 'home':
-        duration = params['duration'] - 1.0
-        if duration <= 0:
-            return
-        params['duration'] = duration
-        params['hsel_patch'].set_width(params['duration'])
-        _update_data(params)
-        params['plot_fun']()
-    elif event.key == 'end':
-        duration = params['duration'] + 1.0
-        if duration > params['raw'].times[-1]:
-            duration = params['raw'].times[-1]
-        params['duration'] = duration
-        params['hsel_patch'].set_width(params['duration'])
-        _update_data(params)
-        params['plot_fun']()
-    elif event.key == 'f11':
-        mng = plt.get_current_fig_manager()
-        mng.full_screen_toggle()
-
-
-def _mouse_click(event, params):
-    """Function for handling mouse clicks."""
-    if event.inaxes is None or event.button != 1:
-        return
-    # vertical scrollbar changed
-    if event.inaxes == params['ax_vscroll']:
-        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
-        if params['ch_start'] != ch_start:
-            params['ch_start'] = ch_start
-            params['plot_fun']()
-    # horizontal scrollbar changed
-    elif event.inaxes == params['ax_hscroll']:
-        _plot_raw_time(event.xdata - params['duration'] / 2, params)
-        _update_data(params)
-        params['plot_fun']()
 
 
 def _update_data(params):
@@ -652,3 +570,38 @@ def _update_data(params):
     end = int((params['t_start'] + params['duration']) * sfreq)
     params['data'] = params['orig_data'][:, start:end]
     params['times'] = params['raw'].times[start:end]
+
+
+def _pick_bads(event, params):
+    """Method for selecting components on click."""
+    bads = params['info']['bads']
+
+    # trade-off, avoid selecting more than one channel when drifts are present
+    # however for clean data don't click on peaks but on flat segments
+    def f(x, y):
+        return y(np.mean(x), x.std() * 2)
+    for l in event.inaxes.lines:
+        ydata = l.get_ydata()
+        if not isinstance(ydata, list) and not np.isnan(ydata).any():
+            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
+            if ymin <= event.ydata <= ymax:
+                this_chan = vars(l)['ch_name']
+                if this_chan in params['info']['ch_names']:
+                    if this_chan not in bads:
+                        bads.append(this_chan)
+                        l.set_color(params['bad_color'])
+                        l.set_zorder(-1)
+                    else:
+                        bads.pop(bads.index(this_chan))
+                        l.set_color(vars(l)['def_color'])
+                        l.set_zorder(0)
+                    break
+    else:
+        x = np.array([event.xdata] * 2)
+        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
+        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
+        params['vertline_t'].set_text('%0.3f' % x[0])
+    # update deep-copied info to persistently draw bads
+    params['info']['bads'] = bads
+    params['update_fun']()
+    params['plot_fun']()
