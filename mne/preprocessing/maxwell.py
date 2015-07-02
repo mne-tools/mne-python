@@ -13,29 +13,26 @@
 
 # TODO: write in equation numbers from Samu's paper
 
+from __future__ import division
 import numpy as np
 from scipy.special import lpmv
 from scipy.linalg import pinv
-from ..forward._compute_forward import _concatenate_coils
-#from ..fixes import partial
 from scipy.misc import factorial as fact
-from ..io.constants import FIFF
-from .. import pick_types, pick_info
 from ..utils import logger
+from .. import pick_types, pick_info
+from ..io.constants import FIFF
+from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _read_coil_defs, _create_coils
 
 
-def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
+def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3, n_jobs=1):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
         Data to be filtered
-    coils : list
-        List of MEG coils. Each element must a contain coil information dict
-        continaining 'rmag', 'cosmag', and 'w' keys
-    origin : ndarray or tuple, shape (3,)
+    origin : list, tuple, or ndarray, shape (3,)
         Origin of internal and external multipolar moment space in millimeters
     int_order : int
         Order of internal component of spherical expansion
@@ -51,8 +48,13 @@ def maxwell_filter(raw, coils, origin, int_order=8, ext_order=3, n_jobs=1):
     """
 
     # TODO: Add error checks on input parameters
+
+    # Create coil information
+    all_coils, meg_info = _make_coils(raw.info, accurate=True)
     picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
-                                                       for coil in coils]]
+                                                       for coil in all_coils]]
+    coils = [all_coils[ci] for ci in picks]
+
     data, times = raw[picks, :]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to # improve
@@ -190,12 +192,12 @@ def _sph_harmonic(degree, order, az, pol):
         The spherical harmonic value at the specified azimuth and polar angles
     """
     # Error checks
-    assert np.abs(order) <= degree, ('Absolute value of expansion coefficient'
-                                     ' must be <= degree')
-    assert ((az >= -2 * np.pi).all() and (az <= 2 * np.pi).all(),
-            'Azimuth coord outside [-2*pi, 2*pi]')
-    assert ((pol >= 0).all() and (pol <= np.pi).all()), ('Polar coord outside '
-                                                         '[0, pi]')
+    assert np.abs(order) <= degree, (
+        'Absolute value of expansion coefficient must be <= degree')
+    assert (az >= -2 * np.pi).all() and (az <= 2 * np.pi).all(), (
+        'Azimuth coord outside [-2*pi, 2*pi]')
+    assert (pol >= 0).all() and (pol <= np.pi).all(), (
+        'Polar coord outside [0, pi]')
 
     #Ensure that polar and azimuth angles are arrays
     azimuth = np.array(az)
@@ -266,13 +268,13 @@ def _grad_in_components(degree, order, rad, az, pol):
     g_rad = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order,
                                                                 az, pol)
 
-    g_az = 1. / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
+    g_az = 1 / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
         _sph_harmonic(degree, order, az, pol)
 
-    g_pol = 1. / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
-                                               fact(degree - order) /
-                                               (4 * np.pi *
-                                                fact(degree + order))) * \
+    g_pol = 1 / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
+                                              fact(degree - order) /
+                                              (4 * np.pi *
+                                               fact(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
@@ -487,3 +489,4 @@ def _make_coils(info, accurate=True, coil_def=None):
                                  templates)
 
     return megcoils, meg_info
+
