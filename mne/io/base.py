@@ -436,6 +436,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         if not self.preload:
             self._preload_data(True)
+        return self
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
