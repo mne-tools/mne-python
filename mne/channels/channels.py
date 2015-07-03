@@ -439,8 +439,8 @@ class PickDropChannelsMixin(object):
 
         if isinstance(self, (_BaseRaw, _BaseEpochs)):
             if not self.preload:
-                raise RuntimeError('Raw data must be preloaded to drop or pick'
-                                   ' channels')
+                raise RuntimeError('Instance data must be preloaded '
+                                   'to drop or pick channels')
 
         def inst_has(attr):
             return getattr(self, attr, None) is not None
