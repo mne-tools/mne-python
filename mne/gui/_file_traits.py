@@ -289,12 +289,13 @@ class InstSource(HasPrivateTraits):
 
     # head shape
     inst_points = Property(depends_on='inst', desc="Head shape points in the "
-                          "inst file(n x 3 array)")
+                           "inst file(n x 3 array)")
     points = Property(depends_on=['inst_points', 'points_filter'], desc="Head "
                       "shape points selected by the filter (n x 3 array)")
 
     # fiducials
-    fid_dig = Property(depends_on='inst', desc="Fiducial points (list of dict)")
+    fid_dig = Property(depends_on='inst', desc="Fiducial points "
+                       "(list of dict)")
     fid_points = Property(depends_on='fid_dig', desc="Fiducial points {ident: "
                           "point} dict}")
     lpa = Property(depends_on='fid_points', desc="LPA coordinates (1 x 3 "

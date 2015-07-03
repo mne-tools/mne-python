@@ -60,11 +60,11 @@ def test_inst_source():
     """Test InstSource"""
     from mne.gui._file_traits import InstSource
 
-    raw = InstSource()
-    assert_equal(raw.inst_fname, '-')
+    inst = InstSource()
+    assert_equal(inst.inst_fname, '-')
 
-    raw.file = raw_path
-    assert_equal(raw.raw_dir, os.path.dirname(raw_path))
+    inst.file = inst_path
+    assert_equal(inst.inst_dir, os.path.dirname(raw_path))
 
     lpa = array([[-7.13766068e-02, 0.00000000e+00, 5.12227416e-09]])
     nasion = array([[3.72529030e-09, 1.02605611e-01, 4.19095159e-09]])
