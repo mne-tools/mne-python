@@ -21,6 +21,7 @@ from __future__ import print_function
 import sys
 import math
 import os
+import os.path as op
 
 import mne
 from mne.utils import get_subjects_dir
@@ -75,12 +76,12 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env['SUBJECTS_DIR'] = subjects_dir
 
-    os.chdir(os.path.join(subjects_dir, subject, "mri"))
-    if not os.path.exists('flash'):
+    os.chdir(op.join(subjects_dir, subject, "mri"))
+    if not op.exists('flash'):
         os.mkdir("flash")
     os.chdir("flash")
     # flash_dir = os.getcwd()
-    if not os.path.exists('parameter_maps'):
+    if not op.exists('parameter_maps'):
         os.mkdir("parameter_maps")
     print("--- Converting Flash 5")
     os.system('mri_convert -flip_angle %s -tr 25 %s mef05.mgz' %
@@ -90,8 +91,8 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
               (30 * math.pi / 180, flash30))
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
-    os.chdir(os.path.join(subjects_dir, subject, 'bem'))
-    if not os.path.exists('flash'):
+    os.chdir(op.join(subjects_dir, subject, 'bem'))
+    if not op.exists('flash'):
         os.mkdir("flash")
     os.chdir("flash")
     print("[done]")
@@ -141,8 +142,8 @@ def run():
 
     subject = options.subject
     subjects_dir = options.subjects_dir
-    flash05 = os.path.abspath(options.flash05)
-    flash30 = os.path.abspath(options.flash30)
+    flash05 = op.abspath(options.flash05)
+    flash30 = op.abspath(options.flash30)
     show = options.show
 
     make_flash_bem(subject, subjects_dir, flash05, flash30, show=show)
