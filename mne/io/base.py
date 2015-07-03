@@ -429,6 +429,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object with data.
+
         Notes
         -----
         This function will preload raw data if it was not already preloaded.
