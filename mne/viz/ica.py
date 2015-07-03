@@ -523,8 +523,7 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
     color = _handle_default('color', color)
-    scalings = {'misc': 0.2}
-    orig_data = ica._transform_raw(raw, 0, len(raw.times)) * scalings['misc']
+    orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     inds = range(len(orig_data))
     types = np.repeat('misc', len(inds))
 
@@ -539,9 +538,9 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
     params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
-                  ch_start=0, t_start=0, info=info, duration=duration,
+                  ch_start=0, t_start=0, info=info, duration=duration, ica=ica,
                   n_channels=n_channels, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color, exclude=exclude)
+                  n_times=raw.n_times, bad_color=bad_color)
     _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
                             n_channels)
     params['scale_factor'] = 1.0
@@ -570,7 +569,7 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
         except TypeError:  # not all versions have this
             plt.show()
 
-    return params['fig'], params['exclude']
+    return params['fig']
 
 
 def _update_data(params):
@@ -591,6 +590,7 @@ def _pick_bads(event, params):
 
 
 def _close_event(events, params):
-    """Function for updating the list of excluded components."""
+    """Function for excluding the selected components on close."""
     info = params['info']
-    params['exclude'] = [info['ch_names'].index(x) for x in info['bads']]
+    exclude = [info['ch_names'].index(x) for x in info['bads']]
+    params['ica'].exclude = exclude

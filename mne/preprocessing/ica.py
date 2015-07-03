@@ -1575,7 +1575,7 @@ class ICA(ContainsMixin):
     def plot_raw_components(self, raw, exclude=None, title=None, duration=10.0,
                             n_channels=20, bgcolor='w', color=(0., 0., 0.),
                             bad_color=(1., 0., 0.), show=True, block=False):
-        """Plot ICA components
+        """Plot ICA components.
 
         Parameters
         ----------
@@ -1610,8 +1610,12 @@ class ICA(ContainsMixin):
         -------
         fig : Instance of matplotlib.figure.Figure
             The figure.
-        exclude : list
-            Updated list of components marked for exclusion.
+
+        Notes
+        -----
+        To mark or un-mark a component for exclusion, click on the rather flat
+        segments of a channel's time series. The changes will be reflected
+        immediately in the ica object's ``ica.exclude`` entry.
         """
         return _plot_raw_components(self, raw, exclude=exclude, title=title,
                                     duration=duration, n_channels=n_channels,
