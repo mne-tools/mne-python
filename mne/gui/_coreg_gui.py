@@ -1148,7 +1148,7 @@ def _make_view(tabbed=False, split=False, scene_width=-1):
                                       show_labels=False),
                                Item('omitted_info', style='readonly',
                                     show_label=False),
-                               label='Head Shape Source (Inst)',
+                               label='Head Shape Source (Raw/Epochs/Evoked)',
                                show_border=True, show_labels=False),
                         show_labels=False, label="Data Source")
 
