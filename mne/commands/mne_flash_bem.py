@@ -23,6 +23,7 @@ import math
 import os
 
 import mne
+from mne.utils import get_subjects_dir
 
 
 def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
@@ -65,7 +66,15 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     non-linearity correction on phantom and human data," Neuroimage,
     vol. 30, Epp. 436-43, 2006.
     """
-    os.environ['SUBJECT'] = subject
+    env = os.environ.copy()
+
+    if subject:
+        env['SUBJECT'] = subject
+    else:
+        raise RuntimeError('The subject argument must be set')
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    env['SUBJECTS_DIR'] = subjects_dir
+
     os.chdir(os.path.join(subjects_dir, subject, "mri"))
     if not os.path.exists('flash'):
         os.mkdir("flash")
