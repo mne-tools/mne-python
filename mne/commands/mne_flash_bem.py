@@ -24,7 +24,7 @@ import os
 import os.path as op
 
 import mne
-from mne.utils import get_subjects_dir
+from mne.utils import (logger, get_subjects_dir)
 
 
 def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
@@ -86,12 +86,15 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     os.chdir("flash")
     if not op.exists('parameter_maps'):
         os.mkdir("parameter_maps")
-    print("--- Converting Flash 5")
-    os.system('mri_convert -flip_angle %s -tr 25 %s mef05.mgz' %
-              (5 * math.pi / 180, flash05))
-    print("--- Converting Flash 30")
-    os.system('mri_convert -flip_angle %s -tr 25 %s mef30.mgz' %
-              (30 * math.pi / 180, flash30))
+    logger.info("--- Converting Flash 5")
+    cmd = ['mri_convert', '-flip_angle', (5 * math.pi / 180), '-tr 25',
+            flash05, 'mef05.mgz']
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
+    logger.info("--- Converting Flash 30")
+    cmd = ['mri_convert', '-flip_angle', (30 * math.pi / 180), '-tr 25',
+            flash30, 'mef30.mgz']
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
+    #
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
     os.chdir(op.join(subjects_dir, subject, 'bem'))
