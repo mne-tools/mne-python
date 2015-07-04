@@ -140,8 +140,9 @@ def run():
                       help=("Path to FLASH sequence with a spin angle of 30 "
                             "degrees in Nifti format"), metavar="FILE")
     parser.add_option("-n", "--noconvert", dest="noconvert",
-                      action="store_true", help=("Assume that the images have "
-                      "already been converted"), default=False)
+                      action="store_true", default=False,
+                      help=("Assume that the images have already been "
+                            "converted"))
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
