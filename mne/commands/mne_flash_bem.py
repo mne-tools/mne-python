@@ -27,8 +27,10 @@ import mne
 from mne.utils import (logger, get_subjects_dir, run_subprocess)
 
 
-def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
-    """Create 3-Layers BEM model from Flash MRI images
+def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
+                   show=False):
+    """
+    Create 3-Layers BEM model from Flash MRI images
 
     Parameters
     ----------
@@ -81,23 +83,24 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
 
     # Step 1 : Data conversion to mgz format
     os.chdir(mri_dir)
-    if not op.exists('flash'):
-        os.mkdir("flash")
-    os.chdir("flash")
-    if not op.exists('parameter_maps'):
-        os.mkdir("parameter_maps")
-    logger.info("--- Converting Flash 5")
-    cmd = ['mri_convert', '-flip_angle', (5 * math.pi / 180), '-tr 25',
-           flash05, 'mef05.mgz']
-    run_subprocess(cmd, env=env, stdout=sys.stdout)
-    logger.info("--- Converting Flash 30")
-    cmd = ['mri_convert', '-flip_angle', (30 * math.pi / 180), '-tr 25',
-           flash30, 'mef30.mgz']
-    run_subprocess(cmd, env=env, stdout=sys.stdout)
+    if not noconvert:
+        if not op.exists('flash'):
+            os.mkdir("flash")
+        os.chdir("flash")
+        if not op.exists('parameter_maps'):
+            os.mkdir("parameter_maps")
+        logger.info("--- Converting Flash 5")
+        cmd = ['mri_convert', '-flip_angle', (5 * math.pi / 180), '-tr 25',
+               flash05, 'mef05.mgz']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
+        logger.info("--- Converting Flash 30")
+        cmd = ['mri_convert', '-flip_angle', (30 * math.pi / 180), '-tr 25',
+               flash30, 'mef30.mgz']
+        run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
-    os.chdir(op.join(subjects_dir, subject, 'bem'))
+    os.chdir(bem_dir)
     if not op.exists('flash'):
         os.mkdir("flash")
     os.chdir("flash")
@@ -136,23 +139,32 @@ def run():
     parser.add_option("-3", "--flash30", dest="flash30",
                       help=("Path to FLASH sequence with a spin angle of 30 "
                             "degrees in Nifti format"), metavar="FILE")
+    parser.add_option("-n", "--noconvert", dest="noconvert",
+                      action="store_true", help=("Assume that the images have "
+                      "already been converted"), default=False)
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
 
     options, args = parser.parse_args()
 
-    if options.flash05 is None or options.flash30 is None:
-        parser.print_help()
-        sys.exit(1)
+    if not options.noconvert:
+        if options.flash05 is None or options.flash30 is None:
+            parser.print_help()
+            sys.exit(1)
+        else:
+            options.flash05 = op.abspath(options.flash05)
+            options.flash30 = op.abspath(options.flash30)
 
     subject = options.subject
     subjects_dir = options.subjects_dir
-    flash05 = op.abspath(options.flash05)
-    flash30 = op.abspath(options.flash30)
+    flash05 = options.flash05
+    flash30 = options.flash30
+    noconvert = options.noconvert
     show = options.show
 
-    make_flash_bem(subject, subjects_dir, flash05, flash30, show=show)
+    make_flash_bem(subject=subject, subjects_dir=subjects_dir, flash05=flash05,
+                   flash30=flash30, noconvert=noconvert, show=show)
 
 is_main = (__name__ == '__main__')
 if is_main:
