@@ -76,11 +76,14 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, show=False):
     subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
     env['SUBJECTS_DIR'] = subjects_dir
 
-    os.chdir(op.join(subjects_dir, subject, "mri"))
+    mri_dir = op.join(subjects_dir, subject, 'mri')
+    bem_dir = op.join(subjects_dir, subject, 'bem')
+
+    # Step 1 : Data conversion to mgz format
+    os.chdir(mri_dir)
     if not op.exists('flash'):
         os.mkdir("flash")
     os.chdir("flash")
-    # flash_dir = os.getcwd()
     if not op.exists('parameter_maps'):
         os.mkdir("parameter_maps")
     print("--- Converting Flash 5")
