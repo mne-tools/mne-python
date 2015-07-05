@@ -136,7 +136,10 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
 def _1d_overlap_filter(x, h_fft, n_h, n_edge, zero_phase, cuda_dict):
     """Do one-dimensional overlap-add FFT FIR filtering"""
     # pad to reduce ringing
-    n_fft = len(h_fft)
+    if cuda_dict['use_cuda']:
+        n_fft = cuda_dict['x'].size  # account for CUDA's modification of h_fft
+    else:
+        n_fft = len(h_fft)
     x_ext = _smart_pad(x, n_edge)
     n_x = len(x_ext)
     filter_input = x_ext
