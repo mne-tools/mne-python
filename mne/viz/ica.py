@@ -16,6 +16,7 @@ from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
 from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
 from .utils import _plot_raw_traces, _helper_raw_resize, _plot_raw_onkey
 from .utils import _select_bads
+from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
@@ -590,6 +591,48 @@ def _pick_bads(event, params):
 
 
 def _close_event(events, params):
+    """Function for excluding the selected components on close."""
+    info = params['info']
+    exclude = [info['ch_names'].index(x) for x in info['bads']]
+    params['ica'].exclude = exclude
+
+
+def _plot_epoch_components(ica, epochs, exclude=None, title=None, n_epochs=20,
+                           n_channels=20, bgcolor='w', color=(0., 0., 0.),
+                           bad_color=(1., 0., 0.), show=True, block=False):
+    """Function for plotting the components as epochs."""
+    import matplotlib.pyplot as plt
+    data = ica._transform_epochs(epochs, concatenate=True)
+    inds = range(ica.n_components_)
+    c_names = ['ICA ' + str(x + 1) for x in range(ica.n_components_)]
+    scalings = {'misc': 2.0}
+    info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'])
+    info['projs'] = list()
+    if exclude is None:
+        exclude = ica.exclude
+    else:
+        exclude += ica.exclude
+    info['bads'] = [c_names[x] for x in exclude]
+    params = {'ica': ica,
+              'epochs': epochs,
+              'info': info,
+              'orig_data': data,
+              'bads': list()}
+    _prepare_mne_browse_epochs(params, projs=list(), n_channels=n_channels,
+                               n_epochs=n_epochs, scalings=scalings,
+                               title=title, picks=inds)
+    callback_close = partial(_close_epochs_event, params=params)
+    params['fig'].canvas.mpl_connect('close_event', callback_close)
+    if show:
+        try:
+            plt.show(block=block)
+        except TypeError:  # not all versions have this
+            plt.show()
+
+    return params['fig']
+
+
+def _close_epochs_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
     exclude = [info['ch_names'].index(x) for x in info['bads']]

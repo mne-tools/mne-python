@@ -33,7 +33,7 @@ from ..io.constants import Bunch, FIFF
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
 from ..viz import (plot_ica_components, plot_ica_scores, _plot_raw_components,
-                   plot_ica_sources, plot_ica_overlay)
+                   plot_ica_sources, plot_ica_overlay, _plot_epoch_components)
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
@@ -1622,6 +1622,58 @@ class ICA(ContainsMixin):
                                     bgcolor=bgcolor, color=color,
                                     bad_color=bad_color, show=show,
                                     block=block)
+
+    def plot_epoch_components(self, epochs, exclude=None, title=None,
+                              n_epochs=10, n_channels=20, bgcolor='w',
+                              color=(0., 0., 0.), bad_color=(1., 0., 0.),
+                              show=True, block=False):
+        """Plot ICA components.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            Epochs object to draw sources from.
+        exclude : array_like of int | None
+            The components marked for exclusion. If None (default), ICA.exclude
+            will be used.
+        title : str
+            Title for the plot. If None, ``ICA components`` is displayed.
+            Defaults to None
+        n_epochs : int
+            Number of epoch per view. Defaults to 10.
+        n_channels : int
+            The number of channels per view. Defaults to 20.
+        bgcolor : color object
+            Color of the background.
+        color : color object
+            Color for the data traces. Defaults to (0., 0., 0.) (black).
+        bad_color : color object
+            Color to use for epochs marked as bad.
+            Defaults to (1., 0., 0.) (red).
+        show : bool
+            Show figures if True. Defaults to True.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for selecting components for exclusion on the fly
+            (click on line). May not work on all systems / platforms.
+            Defaults to False.
+
+        Returns
+        -------
+        fig : Instance of matplotlib.figure.Figure
+            The figure.
+
+        Notes
+        -----
+        To mark or un-mark a component for exclusion, click on the component
+        name left of the main axes. The changes will be reflected
+        immediately in the ica object's ``ica.exclude`` entry.
+        """
+        return _plot_epoch_components(self, epochs, exclude=exclude,
+                                      title=title, n_epochs=n_epochs,
+                                      n_channels=n_channels, bgcolor=bgcolor,
+                                      color=color, bad_color=bad_color,
+                                      show=show, block=block)
 
 
 def _check_start_stop(raw, start, stop):
