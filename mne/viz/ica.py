@@ -88,6 +88,12 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     fig : instance of pyplot.Figure
         The figure.
 
+    Notes
+    -----
+    For raw and epoch instances, it is possible to select components for
+    exclusion by clicking on the line. The selected components are added to
+    ``ica.exclude`` on close.
+
     .. versionadded:: 0.10.0
     """
 

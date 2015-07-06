@@ -1374,6 +1374,12 @@ class ICA(ContainsMixin):
         fig : instance of pyplot.Figure
             The figure.
 
+        Notes
+        -----
+        For raw and epoch instances, it is possible to select components for
+        exclusion by clicking on the line. The selected components are added to
+        ``ica.exclude`` on close.
+
         .. versionadded:: 0.10.0
         """
 

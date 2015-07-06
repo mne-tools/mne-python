@@ -27,6 +27,9 @@ Changelog
 
     - Add support for BEM solution computation :func:`mne.make_bem_solution` by `Eric Larson`_
 
+    - Add ICA plotters for raw and epoch components by `Jaakko Leppakangas`_
+
+
 BUG
 ~~~
 
