@@ -617,7 +617,8 @@ def _plot_epoch_components(ica, epochs, exclude=None, title=None, n_epochs=20,
               'epochs': epochs,
               'info': info,
               'orig_data': data,
-              'bads': list()}
+              'bads': list(),
+              'bad_color': bad_color}
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=n_channels,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=inds)

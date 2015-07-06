@@ -505,7 +505,8 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
 
     params = {'epochs': epochs,
               'orig_data': np.concatenate(epochs.get_data(), axis=1),
-              'info': copy.deepcopy(epochs.info)}
+              'info': copy.deepcopy(epochs.info),
+              'bad_color': (0.8, 0.8, 0.8)}
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks)
 
@@ -679,7 +680,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                 ha='center', va='bottom', size=12, xycoords='axes fraction',
                 textcoords='offset points')
     color = _handle_default('color', None)
-    bad_color = (0.8, 0.8, 0.8)
+
     ax.axis([0, duration, 0, 200])
     ax2 = ax.twiny()
     ax2.set_zorder(-1)
@@ -699,7 +700,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
         if ch_names[ci] in params['info']['bads']:
-            this_color = bad_color
+            this_color = params['bad_color']
         else:
             this_color = color[types[ci]]
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
@@ -1055,6 +1056,10 @@ def _plot_vert_lines(params):
 
 def _pick_bad_epochs(event, params):
     """Helper for selecting / dropping bad epochs"""
+    if 'ica' in params:
+        pos = (event.xdata, event.ydata)
+        _pick_bad_channels(pos, params)
+        return
     n_times = len(params['epochs'].times)
     start_idx = int(params['t_start'] / n_times)
     xdata = event.xdata
@@ -1082,6 +1087,24 @@ def _pick_bad_epochs(event, params):
     params['plot_fun']()
 
 
+def _pick_bad_channels(pos, params):
+    """Helper function for selecting bad channels."""
+    labels = params['ax'].yaxis.get_ticklabels()
+    offsets = np.array(params['offsets']) + params['offsets'][0]
+    line_idx = np.searchsorted(offsets, pos[1])
+    text = labels[line_idx].get_text()
+    ch_idx = params['ch_start'] + line_idx
+    if text in params['info']['bads']:
+        params['info']['bads'].remove(text)
+        color = params['def_colors'][ch_idx]
+        params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+    else:
+        params['info']['bads'].append(text)
+        color = params['bad_color']
+        params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+    params['plot_fun']()
+
+
 def _plot_onscroll(event, params):
     """Function to handle scroll events."""
     if event.key == 'control':
@@ -1101,26 +1124,12 @@ def _mouse_click(event, params):
     if event.inaxes is None:
         if params['butterfly'] or not params['settings'][0]:
             return
-        # Bad channel selected
         ax = params['ax']
         ylim = ax.get_ylim()
         pos = ax.transData.inverted().transform((event.x, event.y))
         if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
             return
-        labels = ax.yaxis.get_ticklabels()
-        offsets = np.array(params['offsets']) + params['offsets'][0]
-        line_idx = np.searchsorted(offsets, pos[1])
-        text = labels[line_idx].get_text()
-        ch_idx = params['ch_start'] + line_idx
-        if text in params['info']['bads']:
-            params['info']['bads'].remove(text)
-            color = params['def_colors'][ch_idx]
-            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
-        else:
-            params['info']['bads'].append(text)
-            color = params['bad_color']
-            params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
-        params['plot_fun']()
+        _pick_bad_channels(pos, params)
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
