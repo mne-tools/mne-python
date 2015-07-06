@@ -1890,7 +1890,7 @@ def write_labels_to_annot(labels, subject=None, parc=None, overwrite=False,
 
         if None in hemi_names:
             msg = ("Found %i labels with no name. Writing annotation file"
-                   "requires all labels named" % (hemi_names.count(None))
+                   "requires all labels named" % (hemi_names.count(None)))
             # raise the error immediately rather than crash with an
             # uninformative error later (e.g. cannot join NoneType)
             raise ValueError(msg)
