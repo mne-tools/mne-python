@@ -152,7 +152,7 @@ def test_plot_raw_components():
     ica = ICA(noise_cov=read_cov(cov_fname), n_components=2,
               max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=picks)
-    fig = ica.plot_raw_components(raw, exclude=[0], title='Components')
+    fig = ica.plot_sources(raw, exclude=[0], title='Components')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('right')

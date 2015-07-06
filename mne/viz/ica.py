@@ -47,7 +47,7 @@ def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
 
 
 def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
-                     stop=None, show=True, title=None):
+                     stop=None, show=True, title=None, block=False):
     """Plot estimated latent sources given the unmixing matrix.
 
     Typical usecases:
@@ -70,18 +70,25 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
         The components marked for exclusion. If None (default), ICA.exclude
         will be used.
     start : int
-        X-axis start index. If None from the beginning.
+        X-axis start index. If None, from the beginning.
     stop : int
-        X-axis stop index. If None to the end.
+        X-axis stop index. If None, next 20 are shown, in case of evoked to the
+        end.
     show : bool
         Show figure if True.
     title : str | None
         The figure title. If None a default is provided.
+    block : bool
+        Whether to halt program execution until the figure is closed.
+        Useful for interactive selection of components in raw and epoch
+        plotter. For evoked, this parameter has no effect. Defaults to False.
 
     Returns
     -------
     fig : instance of pyplot.Figure
         The figure.
+
+    .. versionadded:: 0.10.0
     """
 
     from ..io.base import _BaseRaw
@@ -91,23 +98,14 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     if exclude is None:
         exclude = ica.exclude
 
-    if isinstance(inst, (_BaseRaw, _BaseEpochs)):
-        if isinstance(inst, _BaseRaw):
-            sources = ica._transform_raw(inst, start, stop)
-        else:
-            if start is not None or stop is not None:
-                inst = inst.crop(start, stop, copy=True)
-            sources = ica._transform_epochs(inst, concatenate=True)
-        if picks is not None:
-            if np.isscalar(picks):
-                picks = [picks]
-            sources = np.atleast_2d(sources[picks])
-
-        fig = _plot_ica_grid(sources, start=start, stop=stop,
-                             ncol=len(sources) // 10 or 1,
-                             exclude=exclude,
-                             source_idx=picks,
-                             title=title, show=show)
+    if isinstance(inst, _BaseRaw):
+        fig = _plot_raw_components(ica, inst, picks, exclude, start=start,
+                                   stop=stop, show=show, title=title,
+                                   block=block)
+    elif isinstance(inst, _BaseEpochs):
+        fig = _plot_epoch_components(ica, inst, picks, exclude, start=start,
+                                     stop=stop, show=show, title=title,
+                                     block=block)
     elif isinstance(inst, Evoked):
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
@@ -518,12 +516,11 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     return fig
 
 
-def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
-                         n_channels=20, bgcolor='w', color=(0., 0., 0.),
-                         bad_color=(1., 0., 0.), show=True, block=False):
+def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
+                         block):
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
-    color = _handle_default('color', color)
+    color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     inds = range(len(orig_data))
     types = np.repeat('misc', len(inds))
@@ -533,17 +530,23 @@ def _plot_raw_components(ica, raw, exclude=None, title=None, duration=10.0,
         title = 'ICA components'
     info = create_info(c_names, raw.info['sfreq'])
 
-    if exclude is None:
-        exclude = list()
     info['bads'] = [c_names[x] for x in exclude]
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = start + 20
+        stop = min(stop, raw.times[-1])
+    duration = stop - start
+    if duration <= 0:
+        raise RuntimeError('Stop must be larger than start.')
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
+    bad_color = (1., 0., 0.)
     params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
-                  ch_start=0, t_start=0, info=info, duration=duration, ica=ica,
-                  n_channels=n_channels, times=times, types=types,
+                  ch_start=0, t_start=start, info=info, duration=duration,
+                  ica=ica, n_channels=20, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color)
-    _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
-                            n_channels)
+    _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds, 20)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color)
@@ -597,31 +600,39 @@ def _close_event(events, params):
     params['ica'].exclude = exclude
 
 
-def _plot_epoch_components(ica, epochs, exclude=None, title=None, n_epochs=20,
-                           n_channels=20, bgcolor='w', color=(0., 0., 0.),
-                           bad_color=(1., 0., 0.), show=True, block=False):
+def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
+                           title, block):
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
     data = ica._transform_epochs(epochs, concatenate=True)
-    inds = range(ica.n_components_)
     c_names = ['ICA ' + str(x + 1) for x in range(ica.n_components_)]
-    scalings = {'misc': 2.0}
+    scalings = {'misc': 5.0}
     info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'])
     info['projs'] = list()
-    if exclude is None:
-        exclude = ica.exclude
-    else:
-        exclude += ica.exclude
     info['bads'] = [c_names[x] for x in exclude]
+    if title is None:
+        title = 'ICA components'
+    if picks is None:
+        picks = range(len(c_names))
+    if start is None:
+        start = 0
+    if stop is None:
+        stop = start + 20
+        stop = min(stop, len(epochs.events))
+    n_epochs = stop - start
+    if n_epochs <= 0:
+        raise RuntimeError('Stop must be larger than start.')
     params = {'ica': ica,
               'epochs': epochs,
               'info': info,
               'orig_data': data,
               'bads': list(),
-              'bad_color': bad_color}
-    _prepare_mne_browse_epochs(params, projs=list(), n_channels=n_channels,
+              'bad_color': (1., 0., 0.),
+              't_start': start}
+
+    _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
-                               title=title, picks=inds)
+                               title=title, picks=picks)
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     if show:

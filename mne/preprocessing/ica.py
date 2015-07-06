@@ -32,8 +32,8 @@ from ..io.meas_info import write_meas_info, read_meas_info
 from ..io.constants import Bunch, FIFF
 from ..io.base import _BaseRaw
 from ..epochs import _BaseEpochs
-from ..viz import (plot_ica_components, plot_ica_scores, _plot_raw_components,
-                   plot_ica_sources, plot_ica_overlay, _plot_epoch_components)
+from ..viz import (plot_ica_components, plot_ica_scores,
+                   plot_ica_sources, plot_ica_overlay)
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
@@ -1335,7 +1335,7 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True):
+                     stop=None, title=None, show=True, block=False):
         """Plot estimated latent sources given the unmixing matrix.
 
         Typical usecases:
@@ -1363,15 +1363,23 @@ class ICA(ContainsMixin):
             The figure title. If None a default is provided.
         show : bool
             If True, all open plots will be shown.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for interactive selection of components in raw and epoch
+            plotter. For evoked, this parameter has no effect. Defaults to
+            False.
 
         Returns
         -------
         fig : instance of pyplot.Figure
             The figure.
+
+        .. versionadded:: 0.10.0
         """
 
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
-                                title=title, start=start, stop=stop, show=show)
+                                title=title, start=start, stop=stop, show=show,
+                                block=block)
 
     def plot_scores(self, scores, exclude=None, axhline=None,
                     title='ICA component scores', figsize=(12, 6),
@@ -1571,109 +1579,6 @@ class ICA(ContainsMixin):
             _n_pca_comp = self.n_components_
 
         return _n_pca_comp
-
-    def plot_raw_components(self, raw, exclude=None, title=None, duration=10.0,
-                            n_channels=20, bgcolor='w', color=(0., 0., 0.),
-                            bad_color=(1., 0., 0.), show=True, block=False):
-        """Plot ICA components.
-
-        Parameters
-        ----------
-        raw : instance of Raw
-            Raw object to draw sources from.
-        exclude : array_like of int | None
-            The components marked for exclusion. If None (default), ICA.exclude
-            will be used.
-        title : str
-            Title for the plot. If None, ``ICA components`` is displayed.
-            Defaults to None
-        duration : float
-            Time window (sec) to plot in a given time. Defaults to 10.0.
-        n_channels : int
-            The number of channels per view. Defaults to 20.
-        bgcolor : color object
-            Color of the background.
-        color : color object
-            Color for the data traces. Defaults to (0., 0., 0.) (black).
-        bad_color : color object
-            Color to use for components marked as bad.
-            Defaults to (1., 0., 0.) (red).
-        show : bool
-            Show figures if True. Defaults to True.
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Useful for selecting components for exclusion on the fly
-            (click on line). May not work on all systems / platforms.
-            Defaults to False.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure.
-
-        Notes
-        -----
-        To mark or un-mark a component for exclusion, click on the rather flat
-        segments of a channel's time series. The changes will be reflected
-        immediately in the ica object's ``ica.exclude`` entry.
-        """
-        return _plot_raw_components(self, raw, exclude=exclude, title=title,
-                                    duration=duration, n_channels=n_channels,
-                                    bgcolor=bgcolor, color=color,
-                                    bad_color=bad_color, show=show,
-                                    block=block)
-
-    def plot_epoch_components(self, epochs, exclude=None, title=None,
-                              n_epochs=10, n_channels=20, bgcolor='w',
-                              color=(0., 0., 0.), bad_color=(1., 0., 0.),
-                              show=True, block=False):
-        """Plot ICA components.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            Epochs object to draw sources from.
-        exclude : array_like of int | None
-            The components marked for exclusion. If None (default), ICA.exclude
-            will be used.
-        title : str
-            Title for the plot. If None, ``ICA components`` is displayed.
-            Defaults to None
-        n_epochs : int
-            Number of epoch per view. Defaults to 10.
-        n_channels : int
-            The number of channels per view. Defaults to 20.
-        bgcolor : color object
-            Color of the background.
-        color : color object
-            Color for the data traces. Defaults to (0., 0., 0.) (black).
-        bad_color : color object
-            Color to use for epochs marked as bad.
-            Defaults to (1., 0., 0.) (red).
-        show : bool
-            Show figures if True. Defaults to True.
-        block : bool
-            Whether to halt program execution until the figure is closed.
-            Useful for selecting components for exclusion on the fly
-            (click on line). May not work on all systems / platforms.
-            Defaults to False.
-
-        Returns
-        -------
-        fig : Instance of matplotlib.figure.Figure
-            The figure.
-
-        Notes
-        -----
-        To mark or un-mark a component for exclusion, click on the component
-        name left of the main axes. The changes will be reflected
-        immediately in the ica object's ``ica.exclude`` entry.
-        """
-        return _plot_epoch_components(self, epochs, exclude=exclude,
-                                      title=title, n_epochs=n_epochs,
-                                      n_channels=n_channels, bgcolor=bgcolor,
-                                      color=color, bad_color=bad_color,
-                                      show=show, block=block)
 
 
 def _check_start_stop(raw, start, stop):
