@@ -128,6 +128,8 @@ def test_plot_epochs():
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
+    assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
+    plt.close('all')
     with warnings.catch_warnings(record=True):
         fig = epochs.plot(trellis=False)
         # test mouse clicks
@@ -142,9 +144,6 @@ def test_plot_epochs():
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
-        plt.close('all')
-
-        assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
         plt.close('all')
 
 
