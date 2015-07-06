@@ -558,7 +558,7 @@ def test_write_labels_to_annot():
     assert_equal(label1.name, "unknown-lh")
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
-    #unnamed labels
+    # unnamed labels
     labels4 = labels[:]
     labels4[0].name = None
     assert_raises(ValueError, write_labels_to_annot, labels4,
