@@ -531,7 +531,7 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     inds = range(len(orig_data))
     types = np.repeat('misc', len(inds))
 
-    c_names = ['ICA ' + str(x + 1) for x in inds]
+    c_names = ['ICA ' + str(x) for x in inds]
     if title is None:
         title = 'ICA components'
     info = create_info(c_names, raw.info['sfreq'])
@@ -612,8 +612,9 @@ def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
                            title, block):
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
+    plt.ion()  # Turn interactive mode on to avoid warnings.
     data = ica._transform_epochs(epochs, concatenate=True)
-    c_names = ['ICA ' + str(x + 1) for x in range(ica.n_components_)]
+    c_names = ['ICA ' + str(x) for x in range(ica.n_components_)]
     scalings = {'misc': 5.0}
     info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'])
     info['projs'] = list()
@@ -636,11 +637,12 @@ def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
               'orig_data': data,
               'bads': list(),
               'bad_color': (1., 0., 0.),
-              't_start': start}
+              't_start': start * len(epochs.times)}
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks)
+    params['hsel_patch'].set_x(params['t_start'])
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     if show:
@@ -660,7 +662,7 @@ def _close_epochs_event(events, params):
 
 
 def _label_clicked(pos, params):
-    """"""
+    """Function for plotting independent components on click to label."""
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = [np.searchsorted(offsets, pos[1]) + params['ch_start']]
     params['ica'].plot_components(picks=line_idx)
