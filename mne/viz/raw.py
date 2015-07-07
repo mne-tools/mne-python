@@ -70,6 +70,7 @@ def _update_raw_data(params):
 
 def _pick_bad_channels(event, params):
     """Helper for selecting / dropping bad channels onpick"""
+    # Both bad lists are updated. params['info'] used for colors.
     bads = params['raw'].info['bads']
     params['info']['bads'] = _select_bads(event, params, bads)
     _plot_update_raw_proj(params, None)
@@ -338,8 +339,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
 
 def _label_clicked(pos, params):
-    """Empty placeholder for clicks on channel names."""
-    pass
+    """Helper function for selecting bad channels."""
+    labels = params['ax'].yaxis.get_ticklabels()
+    offsets = np.array(params['offsets']) + params['offsets'][0]
+    line_idx = np.searchsorted(offsets, pos[1])
+    text = labels[line_idx].get_text()
+    ch_idx = params['ch_start'] + line_idx
+    bads = params['info']['bads']
+    if text in bads:
+        bads.remove(text)
+        color = vars(params['lines'][ch_idx])['def_color']
+        params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+    else:
+        bads.append(text)
+        color = params['bad_color']
+        params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
+    params['raw'].info['bads'] = bads
+    params['plot_fun']()
 
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
