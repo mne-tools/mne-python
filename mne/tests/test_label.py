@@ -564,6 +564,7 @@ def test_write_labels_to_annot():
     assert_raises(ValueError, write_labels_to_annot, labels4,
                   annot_fname=fnames[0])
 
+
 @testing.requires_testing_data
 def test_split_label():
     """Test splitting labels"""
