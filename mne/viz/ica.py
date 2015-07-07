@@ -558,6 +558,7 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
                                  color=color, bad_color=bad_color)
     params['update_fun'] = partial(_update_data, params)
     params['pick_bads_fun'] = partial(_pick_bads, params=params)
+    params['label_click_fun'] = partial(_label_clicked, params=params)
     _layout_figure(params)
     # callbacks
     callback_key = partial(_plot_raw_onkey, params=params)
@@ -572,6 +573,7 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     params['fig'].canvas.mpl_connect('close_event', callback_close)
     params['fig_proj'] = None
     params['event_times'] = None
+    params['update_fun']()
     params['plot_fun']()
     if show:
         try:
@@ -635,7 +637,7 @@ def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
               'bads': list(),
               'bad_color': (1., 0., 0.),
               't_start': start}
-
+    params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
                                title=title, picks=picks)
@@ -655,3 +657,10 @@ def _close_epochs_event(events, params):
     info = params['info']
     exclude = [info['ch_names'].index(x) for x in info['bads']]
     params['ica'].exclude = exclude
+
+
+def _label_clicked(pos, params):
+    """"""
+    offsets = np.array(params['offsets']) + params['offsets'][0]
+    line_idx = [np.searchsorted(offsets, pos[1]) + params['ch_start']]
+    params['ica'].plot_components(picks=line_idx)

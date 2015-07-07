@@ -446,6 +446,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     offsets = np.arange(n_channels) * offset + (offset / 2.)
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
+    ax.set_xlim(params['t_start'], params['t_start'] + params['duration'],
+                False)
 
     params['offsets'] = offsets
     params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
@@ -577,8 +579,17 @@ def _plot_raw_onkey(event, params):
 
 def _mouse_click(event, params):
     """Vertical select callback"""
-    if event.inaxes is None or event.button != 1:
+    if event.button != 1:
         return
+    if event.inaxes is None:
+        if params['n_channels'] > 100:
+            return
+        ax = params['ax']
+        ylim = ax.get_ylim()
+        pos = ax.transData.inverted().transform((event.x, event.y))
+        if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
+            return
+        params['label_click_fun'](pos)
     # vertical scrollbar changed
     if event.inaxes == params['ax_vscroll']:
         ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)

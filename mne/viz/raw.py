@@ -290,6 +290,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                  event_color=event_color)
     params['update_fun'] = partial(_update_raw_data, params=params)
     params['pick_bads_fun'] = partial(_pick_bad_channels, params=params)
+    params['label_click_fun'] = partial(_label_clicked, params=params)
     params['scale_factor'] = 1.0
     # set up callbacks
     opt_button = None
@@ -334,6 +335,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
             plt.show()
 
     return params['fig']
+
+
+def _label_clicked(pos, params):
+    """Empty placeholder for clicks on channel names."""
+    pass
 
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):

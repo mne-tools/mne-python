@@ -508,6 +508,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'info': copy.deepcopy(epochs.info),
               'bad_color': (0.8, 0.8, 0.8),
               't_start': 0}
+    params['label_click_fun'] = partial(_pick_bad_channels, params=params)
     _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                                title, picks)
 
@@ -1126,7 +1127,7 @@ def _mouse_click(event, params):
         pos = ax.transData.inverted().transform((event.x, event.y))
         if pos[0] > 0 or pos[1] < 0 or pos[1] > ylim[0]:
             return
-        _pick_bad_channels(pos, params)
+        params['label_click_fun'](pos)
     elif event.button == 1:  # left click
         # vertical scroll bar changed
         if event.inaxes == params['ax_vscroll']:
