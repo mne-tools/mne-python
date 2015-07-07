@@ -192,22 +192,23 @@ def _fwd_bem_homog_solution(solids, nps):
 
 def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
     """Modify the solution according to the IP approach"""
-    koff = np.sum(n_tri[:-1])
-    nlast = n_tri[-1]
-    nsurf = len(n_tri)
+    n_last = n_tri[-1]
     mult = (1.0 + ip_mult) / ip_mult
 
     logger.info('        Combining...')
     offsets = np.cumsum(np.concatenate(([0], n_tri)))
-    for si in range(nsurf):
-        # Pick the correct submatrix and multiply
-        sub = solution[offsets[si]:offsets[si + 1], koff:]
-        sub -= 2 * np.dot(sub, ip_solution.T)
+    for si in range(len(n_tri)):
+        # Pick the correct submatrix (right column) and multiply
+        sub = solution[offsets[si]:offsets[si + 1], np.sum(n_tri[:-1]):]
+        # Multiply
+        sub -= 2 * np.dot(sub, ip_solution)
+
     # The lower right corner is a special case
-    sub[-nlast:, -nlast:] += mult * ip_solution
+    sub[-n_last:, -n_last:] += mult * ip_solution
+
     # Final scaling
     logger.info('        Scaling...')
-    solution[0] *= ip_mult
+    solution *= ip_mult
     return
 
 

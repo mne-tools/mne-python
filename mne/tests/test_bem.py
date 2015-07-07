@@ -93,8 +93,8 @@ def test_bem_solution():
     tempdir = _TempDir()
     fname_temp = op.join(tempdir, 'temp-bem-sol.fif')
     # use a model and solution made in Python
-    conductivities = [(0.3,), ]  # (0.3, 0.006, 0.3)]
-    fnames = [fname_bem_sol_1, ]  # fname_bem_sol_3]
+    conductivities = [(0.3,), (0.3, 0.006, 0.3)]
+    fnames = [fname_bem_sol_1, fname_bem_sol_3]
     for cond, fname in zip(conductivities, fnames):
         model = make_bem_model('sample', conductivity=cond, ico=2,
                                subjects_dir=subjects_dir)
