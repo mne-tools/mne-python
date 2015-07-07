@@ -558,6 +558,12 @@ def test_write_labels_to_annot():
     assert_equal(label1.name, "unknown-lh")
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
 
+    # unnamed labels
+    labels4 = labels[:]
+    labels4[0].name = None
+    assert_raises(ValueError, write_labels_to_annot, labels4,
+                  annot_fname=fnames[0])
+
 
 @testing.requires_testing_data
 def test_split_label():
