@@ -144,8 +144,8 @@ def test_plot_ica_scores():
 
 
 @requires_sklearn
-def test_plot_raw_components():
-    """Test plotting of raw components."""
+def test_plot_instance_components():
+    """Test plotting of components as instances of raw and epochs."""
     import matplotlib.pyplot as plt
     raw = _get_raw()
     picks = _get_picks(raw)
@@ -166,6 +166,30 @@ def test_plot_raw_components():
     fig.canvas.key_press_event('home')
     fig.canvas.key_press_event('end')
     fig.canvas.key_press_event('f11')
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+    epochs = _get_epochs()
+    fig = ica.plot_sources(epochs, exclude=[0], title='Components')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('end')
+    fig.canvas.key_press_event('f11')
+    # Test a click
+    ax = fig.get_axes()[0]
+    line = ax.lines[0]
+    _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
     fig.canvas.key_press_event('escape')
     plt.close('all')
 
