@@ -14,6 +14,8 @@ Changelog
 
     - Speed up TF-MxNE inverse solver with block coordinate descent by `Daniel Strohmeier`_ and `Yousra Bekhti`_
 
+    - Speed up zero-phase overlap-add (default) filtering by a factor of up to 2 using linearity by `Ross Maddox`_ and `Eric Larson`_
+
 
 BUG
 ~~~
@@ -1057,3 +1059,5 @@ of commits):
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
 
 .. _Chris Bailey: https://github.com/cjayb
+
+.. _Ross Maddox: http://faculty.washington.edu/rkmaddox/
