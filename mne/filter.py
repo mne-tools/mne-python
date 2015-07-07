@@ -43,9 +43,8 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     """ Filter using overlap-add FFTs.
 
     Filters the signal x using a filter with the impulse response h.
-    If zero_phase==True, the amplitude response is scaled and the filter is
-    applied in forward and backward direction, resulting in a zero-phase
-    filter.
+    If zero_phase==True, the the filter is applied twice, once in the forward
+    direction and once backward , resulting in a zero-phase filter.
 
     .. warning:: This operates on the data in-place.
 
@@ -77,22 +76,28 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
     # Extend the signal by mirroring the edges to reduce transient filter
     # response
     n_h = len(h)
+    if n_h == 1:
+        return x * h ** 2 if zero_phase else x * h
+    if x.shape[1] < len(h):
+        raise ValueError('Overlap add should only be used for signals '
+                         'longer than the requested filter')
     n_edge = max(min(n_h, x.shape[1]) - 1, 0)
 
     n_x = x.shape[1] + 2 * n_edge
 
     # Determine FFT length to use
     if n_fft is None:
-        if n_x > n_h:
+        min_fft = 2 * n_h - 1
+        max_fft = n_x
+        if max_fft >= min_fft:
             n_tot = 2 * n_x if zero_phase else n_x
-
-            min_fft = 2 * n_h - 1
-            max_fft = n_x
 
             # cost function based on number of multiplications
             N = 2 ** np.arange(np.ceil(np.log2(min_fft)),
                                np.ceil(np.log2(max_fft)) + 1, dtype=int)
-            cost = (np.ceil(n_tot / (N - n_h + 1).astype(np.float)) *
+            # if doing zero-phase, h needs to be thought of as ~ twice as long
+            n_h_cost = 2 * n_h - 1 if zero_phase else n_h
+            cost = (np.ceil(n_tot / (N - n_h_cost + 1).astype(np.float)) *
                     N * (np.log2(N) + 1))
 
             # add a heuristic term to prevent too-long FFT's which are slow
@@ -104,15 +109,29 @@ def _overlap_add_filter(x, h, n_fft=None, zero_phase=True, picks=None,
             # Use only a single block
             n_fft = 2 ** int(np.ceil(np.log2(n_x + n_h - 1)))
 
-    if n_fft < 2 * n_h - 1:
-        raise ValueError('n_fft is too short, has to be at least '
-                         '"2 * len(h) - 1"')
+    if zero_phase and n_fft <= 2 * n_h - 1:
+        raise ValueError("n_fft is too short, has to be at least "
+                         "2 * len(h) - 1 if zero_phase == True")
+    elif not zero_phase and n_fft <= n_h:
+        raise ValueError("n_fft is too short, has to be at least "
+                         "len(h) if zero_phase == False")
 
     if not is_power2(n_fft):
         warnings.warn("FFT length is not a power of 2. Can be slower.")
 
     # Filter in frequency domain
     h_fft = fft(np.concatenate([h, np.zeros(n_fft - n_h, dtype=h.dtype)]))
+    assert(len(h_fft) == n_fft)
+
+    if zero_phase:
+        """Zero-phase filtering is now done in one pass by taking the squared
+        magnitude of h_fft. This gives equivalent results to the old two-pass
+        method but theoretically doubles the speed for long fft lengths. To
+        compensate for this, overlapping must be done both before and after
+        each segment. When zero_phase == False it only needs to be done after.
+        """
+        h_fft = (h_fft * h_fft.conj()).real
+        # equivalent to convolving h(t) and h(-t) in the time domain
 
     # Figure out if we should use CUDA
     n_jobs, cuda_dict, h_fft = setup_cuda_fft_multiply_repeated(n_jobs, h_fft)
@@ -142,39 +161,44 @@ def _1d_overlap_filter(x, h_fft, n_h, n_edge, zero_phase, cuda_dict):
         n_fft = len(h_fft)
     x_ext = _smart_pad(x, n_edge)
     n_x = len(x_ext)
-    filter_input = x_ext
-    x_filtered = np.zeros_like(filter_input)
+    x_filtered = np.zeros_like(x_ext)
 
-    # Segment length for signal x
-    n_seg = n_fft - n_h + 1
+    if zero_phase:
+        # Segment length for signal x (convolving twice)
+        n_seg = n_fft - 2 * (n_h - 1) - 1
 
-    # Number of segments (including fractional segments)
-    n_segments = int(np.ceil(n_x / float(n_seg)))
+        # Number of segments (including fractional segments)
+        n_segments = int(np.ceil(n_x / float(n_seg)))
 
-    for pass_no in list(range(2 if zero_phase else 1)):
+        # padding parameters to ensure filtering is done properly
+        pre_pad = n_h - 1
+        post_pad = n_fft - (n_h - 1)
+    else:
+        n_seg = n_fft - n_h + 1
+        n_segments = int(np.ceil(n_x / float(n_seg)))
+        pre_pad = 0
+        post_pad = n_fft
 
-        if pass_no == 1:
-            # second pass: flip signal
-            filter_input = x_filtered[::-1]
-            x_filtered = np.zeros_like(x_ext)
+    # Now the actual filtering step is identical for zero-phase (filtfilt-like)
+    # or single-pass
+    for seg_idx in range(n_segments):
+        start = seg_idx * n_seg
+        stop = (seg_idx + 1) * n_seg
+        seg = x_ext[start:stop]
+        seg = np.concatenate([np.zeros(pre_pad), seg,
+                              np.zeros(post_pad - len(seg))])
 
-        for seg_idx in range(n_segments):
-            start = seg_idx * n_seg
-            stop = (seg_idx + 1) * n_seg
-            seg = filter_input[start:stop]
-            seg = np.concatenate([seg, np.zeros(n_fft - len(seg))])
-            prod = fft_multiply_repeated(h_fft, seg, cuda_dict)
+        prod = fft_multiply_repeated(h_fft, seg, cuda_dict)
 
-            if seg_idx * n_seg + n_fft < n_x:
-                x_filtered[start:start + n_fft] += prod
-            else:
-                # Last segment
-                x_filtered[start:] += prod[:n_x - seg_idx * n_seg]
+        start_filt = max(0, start - pre_pad)
+        stop_filt = min(start - pre_pad + n_fft, n_x)
+        start_prod = max(0, pre_pad - start)
+        stop_prod = start_prod + stop_filt - start_filt
+        x_filtered[start_filt:stop_filt] += prod[start_prod:stop_prod]
 
-    # Remove mirrored edges that we added, flip back if necessary, cast
+    # Remove mirrored edges that we added and cast
     if n_edge > 0:
         x_filtered = x_filtered[n_edge:-n_edge]
-    x_filtered = x_filtered[::-1] if zero_phase else x_filtered
     x_filtered = x_filtered.astype(x.dtype)
     return x_filtered
 
@@ -189,7 +213,6 @@ def _filter_attenuation(h, freq, gain):
     idx = np.argmax(filt_resp)
     att_db = -20 * np.log10(filt_resp[idx])
     att_freq = freq[idx]
-
     return att_db, att_freq
 
 
