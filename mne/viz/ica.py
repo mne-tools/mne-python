@@ -706,9 +706,3 @@ def _label_clicked(pos, params):
     fig.canvas.draw()
 
     plt.show()
-    """
-    try:
-        params['ica'].plot_components(picks=line_idx)
-    except:
-        pass
-    """

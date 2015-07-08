@@ -1378,7 +1378,9 @@ class ICA(ContainsMixin):
         -----
         For raw and epoch instances, it is possible to select components for
         exclusion by clicking on the line. The selected components are added to
-        ``ica.exclude`` on close.
+        ``ica.exclude`` on close. The independent components can be viewed as
+        topographies by clicking on the component name on the left of of the
+        main axes.
 
         .. versionadded:: 0.10.0
         """
