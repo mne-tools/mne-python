@@ -1571,3 +1571,4 @@ def _open_options(params):
 def _settings_closed(events, params):
     """Function to handle close event from settings dialog."""
     params['fig_options'] = None
+
