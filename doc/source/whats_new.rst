@@ -16,6 +16,8 @@ Changelog
 
     - Speed up zero-phase overlap-add (default) filtering by a factor of up to 2 using linearity by `Ross Maddox`_ and `Eric Larson`_
 
+    - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
+
 
 BUG
 ~~~

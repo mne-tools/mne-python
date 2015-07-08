@@ -1,6 +1,5 @@
 """Functions to plot epochs data
 """
-from __future__ import print_function
 
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
@@ -13,11 +12,11 @@ from __future__ import print_function
 from collections import deque
 from functools import partial
 import copy
-from sys import platform
 
 import numpy as np
 
-from ..utils import create_chunks, verbose, get_config, deprecated
+from ..utils import create_chunks, verbose, get_config, deprecated, set_config
+from ..utils import logger
 from ..io.pick import pick_types, channel_type
 from ..io.proj import setup_proj
 from ..fixes import Counter, _in1d
@@ -552,11 +551,12 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         title = epochs.name
         if epochs.name is None or len(title) == 0:
             title = ''
-    fig = figure_nobar(facecolor='w', figsize=size)
+    fig = figure_nobar(facecolor='w', figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_epochs')
     ax = plt.subplot2grid((10, 15), (0, 1), colspan=13, rowspan=9)
-    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 13),
-                ha='center', va='bottom', size=10, xycoords='axes fraction',
+
+    ax.annotate(title, xy=(0.5, 1), xytext=(0, ax.get_ylim()[1] + 15),
+                ha='center', va='bottom', size=12, xycoords='axes fraction',
                 textcoords='offset points')
 
     ax.axis([0, duration, 0, 200])
@@ -568,9 +568,13 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax_hscroll.set_xlabel('Epochs')
     ax_vscroll = plt.subplot2grid((10, 15), (0, 14), rowspan=9)
     ax_vscroll.set_axis_off()
-
     ax_vscroll.add_patch(mpl.patches.Rectangle((0, 0), 1, len(picks),
                                                facecolor='w', zorder=2))
+
+    ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(_onclick_help)
+
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
         ax_vscroll.add_patch(mpl.patches.Rectangle((0, ci), 1, 1,
@@ -624,9 +628,7 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
     ax2.set_xticklabels(labels)
     xlim = epoch_times[-1] + len(epochs.times)
     ax_hscroll.set_xlim(0, xlim)
-    vertline_t = ax_hscroll.text(0, 0.5, '', color='y',
-                                 verticalalignment='center',
-                                 horizontalalignment='right')
+    vertline_t = ax_hscroll.text(0, 1, '', color='y', va='bottom', ha='right')
 
     # fit horizontal scroll bar ticks
     hscroll_ticks = np.arange(0, xlim, xlim / 7.0)
@@ -648,8 +650,9 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                                        alpha=0.25, linewidth=1, clip_on=False)
     ax_hscroll.add_patch(hsel_patch)
     text = ax.text(0, 0, 'blank', zorder=2, verticalalignment='baseline',
-                   horizontalalignment='left', fontweight='bold')
+                   ha='left', fontweight='bold')
     text.set_visible(False)
+
     params = {'fig': fig,
               'ax': ax,
               'ax2': ax2,
@@ -687,7 +690,10 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
               'vert_lines': list(),
               'vertline_t': vertline_t,
               'butterfly': False,
-              'text': text}
+              'text': text,
+              'ax_help_button': ax_help_button,
+              'fig_options': None,
+              'settings': [True, True, True, True]}  # for options dialog
 
     if len(projs) > 0 and not epochs.proj:
         ax_button = plt.subplot2grid((10, 15), (9, 14))
@@ -956,8 +962,6 @@ def _plot_traces(params):
                                                1e6 * factor)
         ax.set_yticklabels(labels, fontsize=12, color='black')
     else:
-        if n_channels > 100:
-            tick_list = ['']
         ax.set_yticklabels(tick_list, fontsize=12)
     params['vsel_patch'].set_y(ch_start)
     params['fig'].canvas.draw()
@@ -1025,14 +1029,16 @@ def _channels_changed(params):
 def _plot_vert_lines(params):
     """ Helper function for plotting vertical lines."""
     ax = params['ax']
-    ax.lines = list()
+    while len(ax.lines) > 0:
+        ax.lines.pop()
     epochs = params['epochs']
-    t_zero = np.where(epochs.times == 0.)[0]
-    if len(t_zero) == 1:
-        for event_idx in range(len(epochs.events)):
-            pos = [event_idx * len(epochs.times) + t_zero[0],
-                   event_idx * len(epochs.times) + t_zero[0]]
-            ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
+    if params['settings'][3]:  # if zeroline visible
+        t_zero = np.where(epochs.times == 0.)[0]
+        if len(t_zero) == 1:
+            for event_idx in range(len(epochs.events)):
+                pos = [event_idx * len(epochs.times) + t_zero[0],
+                       event_idx * len(epochs.times) + t_zero[0]]
+                ax.plot(pos, ax.get_ylim(), 'g', zorder=3, alpha=0.4)
     for epoch_idx in range(len(epochs.events)):
         pos = [epoch_idx * len(epochs.times), epoch_idx * len(epochs.times)]
         ax.plot(pos, ax.get_ylim(), color='black', linestyle='--', zorder=1)
@@ -1090,7 +1096,7 @@ def _plot_onscroll(event, params):
 def _mouse_click(event, params):
     """Function to handle mouse click events."""
     if event.inaxes is None:
-        if params['n_channels'] > 100 or params['butterfly']:
+        if params['butterfly'] or not params['settings'][0]:
             return
         ax = params['ax']
         ylim = ax.get_ylim()
@@ -1133,6 +1139,8 @@ def _mouse_click(event, params):
 
     elif event.inaxes == params['ax'] and event.button == 2:  # middle click
         params['fig'].canvas.draw()
+        if params['fig_proj'] is not None:
+            params['fig_proj'].canvas.draw()
     elif event.inaxes == params['ax'] and event.button == 3:  # right click
         n_times = len(params['epochs'].times)
         xdata = int(event.xdata % n_times)
@@ -1234,6 +1242,9 @@ def _plot_onkey(event, params):
         n_times = len(params['epochs'].times)
         if n_times * n_epochs > len(params['data'][0]):
             return
+        if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
+            params['t_start'] -= n_times
+            params['hsel_patch'].set_x(params['t_start'])
         ticks = params['epoch_times'] + 0.5 * n_times
         params['ax2'].set_xticks(ticks[:n_epochs])
         params['n_epochs'] = n_epochs
@@ -1249,8 +1260,16 @@ def _plot_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         _plot_traces(params)
     elif event.key == 'b':
+        if params['fig_options'] is not None:
+            plt.close(params['fig_options'])
+            params['fig_options'] = None
         _prepare_butterfly(params)
         _plot_traces(params)
+    elif event.key == 'o':
+        if not params['butterfly']:
+            _open_options(params)
+    elif event.key == '?':
+        _onclick_help(event)
     elif event.key == 'escape':
         plt.close(params['fig'])
 
@@ -1266,6 +1285,9 @@ def _prepare_butterfly(params):
             return
         params['ax_vscroll'].set_visible(False)
         ax = params['ax']
+        labels = ax.yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(True)
         ylim = (5. * len(types), 0.)
         ax.set_ylim(ylim)
         offset = ylim[0] / (4. * len(types))
@@ -1317,9 +1339,12 @@ def _prepare_butterfly(params):
         while len(params['lines']) < len(params['picks']):
             lc = LineCollection(list(), antialiased=False, linewidths=0.5,
                                 zorder=2, picker=3.)
-            params['ax'].add_collection(lc)
+            ax.add_collection(lc)
             params['lines'].append(lc)
     else:  # change back to default view
+        labels = params['ax'].yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][0])
         params['ax_vscroll'].set_visible(True)
         while len(params['ax2'].texts) > 0:
             params['ax2'].texts.pop()
@@ -1353,8 +1378,196 @@ def _onpick(event, params):
 def _close_event(event, params):
     """Function to drop selected bad epochs. Called on closing of the plot."""
     params['epochs'].drop_epochs(params['bads'])
+    logger.info('Channels marked as bad: %s' % params['epochs'].info['bads'])
 
 
 def _resize_event(event, params):
     """Function to handle resize event"""
-    _layout_figure(params, platform)
+    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', size)
+    _layout_figure(params)
+
+
+def _onclick_help(event):
+    """Function for drawing help window"""
+    import matplotlib.pyplot as plt
+
+    text = u'\u2190 : \n'\
+           u'\u2192 : \n'\
+           u'\u2193 : \n'\
+           u'\u2191 : \n'\
+           u'- : \n'\
+           u'+ or = : \n'\
+           u'Home : \n'\
+           u'End : \n'\
+           u'Page down : \n'\
+           u'Page up : \n'\
+           u'b : \n'\
+           u'o : \n'\
+           u'F11 : \n'\
+           u'? : \n'\
+           u'Esc : \n\n'\
+           u'Mouse controls\n'\
+           u'click epoch :\n'\
+           u'click channel name :\n'\
+           u'right click :\n'\
+           u'middle click :\n'
+
+    text2 = 'Navigate left\n'\
+            'Navigate right\n'\
+            'Navigate channels down\n'\
+            'Navigate channels up\n'\
+            'Scale down\n'\
+            'Scale up\n'\
+            'Reduce the number of epochs per view\n'\
+            'Increase the number of epochs per view\n'\
+            'Reduce the number of channels per view\n'\
+            'Increase the number of channels per view\n'\
+            'Toggle butterfly plot on/off\n'\
+            'View settings (orig. view only)\n'\
+            'Toggle full screen mode\n'\
+            'Open help box\n'\
+            'Quit\n\n\n'\
+            'Mark bad epoch\n'\
+            'Mark bad channel\n'\
+            'Verticlal line at a time instant\n'\
+            'Show channel name (butterfly plot)\n'
+
+    width = 5.5
+    height = 0.25 * 19  # 19 rows of text
+
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+    fig_help.canvas.set_window_title('Help')
+    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
+    ax.set_title('Keyboard shortcuts')
+    plt.axis('off')
+    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
+    ax1.set_yticklabels(list())
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
+             ha='right')
+    plt.axis('off')
+
+    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
+    ax2.set_yticklabels(list())
+    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
+    plt.axis('off')
+
+    tight_layout(fig=fig_help)
+    # this should work for non-test cases
+    try:
+        fig_help.canvas.draw()
+        fig_help.show()
+    except Exception:
+        pass
+
+
+def _update_channels_epochs(event, params):
+    """Function for changing the amount of channels and epochs per view."""
+    from matplotlib.collections import LineCollection
+    # Channels
+    n_channels = int(np.around(params['channel_slider'].val))
+    offset = params['ax'].get_ylim()[0] / n_channels
+    params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+    while len(params['lines']) > n_channels:
+        params['ax'].collections.pop()
+        params['lines'].pop()
+    while len(params['lines']) < n_channels:
+        lc = LineCollection(list(), linewidths=0.5, antialiased=False,
+                            zorder=2, picker=3.)
+        params['ax'].add_collection(lc)
+        params['lines'].append(lc)
+    params['ax'].set_yticks(params['offsets'])
+    params['vsel_patch'].set_height(n_channels)
+    params['n_channels'] = n_channels
+
+    # Epochs
+    n_epochs = int(np.around(params['epoch_slider'].val))
+    n_times = len(params['epochs'].times)
+    ticks = params['epoch_times'] + 0.5 * n_times
+    params['ax2'].set_xticks(ticks[:n_epochs])
+    params['n_epochs'] = n_epochs
+    params['duration'] = n_times * n_epochs
+    params['hsel_patch'].set_width(params['duration'])
+    if params['t_start'] + n_times * n_epochs > len(params['data'][0]):
+        params['t_start'] = len(params['data'][0]) - n_times * n_epochs
+        params['hsel_patch'].set_x(params['t_start'])
+    _plot_traces(params)
+
+
+def _toggle_labels(label, params):
+    """Function for toggling axis labels on/off."""
+    if label == 'Channel names visible':
+        params['settings'][0] = not params['settings'][0]
+        labels = params['ax'].yaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][0])
+    elif label == 'Event-id visible':
+        params['settings'][1] = not params['settings'][1]
+        labels = params['ax2'].xaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][1])
+    elif label == 'Epoch-id visible':
+        params['settings'][2] = not params['settings'][2]
+        labels = params['ax'].xaxis.get_ticklabels()
+        for label in labels:
+            label.set_visible(params['settings'][2])
+    elif label == 'Zeroline visible':
+        params['settings'][3] = not params['settings'][3]
+        _plot_vert_lines(params)
+    params['fig'].canvas.draw()
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
+
+
+def _open_options(params):
+    """Function for opening the option window."""
+    import matplotlib.pyplot as plt
+    import matplotlib as mpl
+    if params['fig_options'] is not None:
+        # turn off options dialog
+        plt.close(params['fig_options'])
+        params['fig_options'] = None
+        return
+    width = 10
+    height = 3
+    fig_options = figure_nobar(figsize=(width, height), dpi=80)
+    fig_options.canvas.set_window_title('View settings')
+    params['fig_options'] = fig_options
+    ax_channels = plt.axes([0.15, 0.1, 0.65, 0.1])
+    ax_epochs = plt.axes([0.15, 0.25, 0.65, 0.1])
+    ax_button = plt.axes([0.85, 0.1, 0.1, 0.25])
+    ax_check = plt.axes([0.15, 0.4, 0.4, 0.55])
+    plt.axis('off')
+    params['update_button'] = mpl.widgets.Button(ax_button, 'Update')
+    params['channel_slider'] = mpl.widgets.Slider(ax_channels, 'Channels', 1,
+                                                  len(params['ch_names']),
+                                                  valfmt='%0.0f',
+                                                  valinit=params['n_channels'])
+    params['epoch_slider'] = mpl.widgets.Slider(ax_epochs, 'Epochs', 1,
+                                                len(params['epoch_times']),
+                                                valfmt='%0.0f',
+                                                valinit=params['n_epochs'])
+    params['checkbox'] = mpl.widgets.CheckButtons(ax_check,
+                                                  ['Channel names visible',
+                                                   'Event-id visible',
+                                                   'Epoch-id visible',
+                                                   'Zeroline visible'],
+                                                  actives=params['settings'])
+    update = partial(_update_channels_epochs, params=params)
+    params['update_button'].on_clicked(update)
+    labels_callback = partial(_toggle_labels, params=params)
+    params['checkbox'].on_clicked(labels_callback)
+    close_callback = partial(_settings_closed, params=params)
+    params['fig_options'].canvas.mpl_connect('close_event', close_callback)
+    try:
+        params['fig_options'].canvas.draw()
+        params['fig_options'].show()
+        if params['fig_proj'] is not None:
+            params['fig_proj'].canvas.draw()
+    except Exception:
+        pass
+
+
+def _settings_closed(events, params):
+    """Function to handle close event from settings dialog."""
+    params['fig_options'] = None

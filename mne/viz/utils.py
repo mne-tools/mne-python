@@ -268,19 +268,16 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         pass
 
 
-def _layout_figure(params, platform=None):
-    """Aux function for setting figure layout"""
-    size = params['fig'].get_size_inches()
-    scroll_width = 0.33
-    if platform is None or platform == "linux" or platform == "linux2":
-        hscroll_dist = 0.33
-    else:
-        hscroll_dist = 0.8
-    vscroll_dist = 0.1
-    l_border = 1.2
-    r_border = 0.1
-    t_border = 0.33
-    b_border = 0.5
+def _layout_figure(params):
+    """Function for setting figure layout. Shared with raw and epoch plots"""
+    size = params['fig'].get_size_inches() * params['fig'].dpi
+    scroll_width = 25
+    hscroll_dist = 25
+    vscroll_dist = 10
+    l_border = 100
+    r_border = 10
+    t_border = 35
+    b_border = 40
 
     # only bother trying to reset layout if it's reasonable to do so
     if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
@@ -301,6 +298,8 @@ def _layout_figure(params, platform=None):
     ax_height = 1.0 - ax_y - t_border
 
     pos = [l_border, ax_y, ax_width, ax_height]
+
+    params['ax'].set_position(pos)
     if 'ax2' in params:
         params['ax2'].set_position(pos)
     params['ax'].set_position(pos)
@@ -316,6 +315,10 @@ def _layout_figure(params, platform=None):
         pos = [l_border + ax_width + vscroll_dist, b_border,
                scroll_width_x, scroll_width_y]
         params['ax_button'].set_position(pos)
+    if 'ax_help_button' in params:
+        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
+               scroll_width_x * 2, scroll_width_y]
+        params['ax_help_button'].set_position(pos)
     params['fig'].canvas.draw()
 
 
