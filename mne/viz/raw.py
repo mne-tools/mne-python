@@ -344,6 +344,8 @@ def _label_clicked(pos, params):
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])
     text = labels[line_idx].get_text()
+    if len(text) == 0:
+        return
     ch_idx = params['ch_start'] + line_idx
     bads = params['info']['bads']
     if text in bads:

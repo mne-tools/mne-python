@@ -1380,7 +1380,8 @@ class ICA(ContainsMixin):
         exclusion by clicking on the line. The selected components are added to
         ``ica.exclude`` on close. The independent components can be viewed as
         topographies by clicking on the component name on the left of of the
-        main axes.
+        main axes. The topography view tries to infer the correct electrode
+        layout from the data. This should work at least for Neuromag data.
 
         .. versionadded:: 0.10.0
         """

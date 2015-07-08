@@ -1091,6 +1091,8 @@ def _pick_bad_channels(pos, params):
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1])
     text = labels[line_idx].get_text()
+    if len(text) == 0:
+        return
     ch_idx = params['ch_start'] + line_idx
     if text in params['info']['bads']:
         params['info']['bads'].remove(text)

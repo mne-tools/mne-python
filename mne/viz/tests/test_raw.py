@@ -48,6 +48,7 @@ def test_plot_raw():
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad channel
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad channel
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
         _fake_click(fig, fig.get_axes()[1], [0.5, 0.5])  # change time
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window

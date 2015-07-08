@@ -19,9 +19,10 @@ from .utils import _select_bads
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from .topomap import _prepare_topo_plot, plot_topomap
+from ..utils import logger
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
-from mne.io.pick import pick_types
+from ..io.pick import pick_types
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -672,6 +673,8 @@ def _label_clicked(pos, params):
     import matplotlib.pyplot as plt
     offsets = np.array(params['offsets']) + params['offsets'][0]
     line_idx = np.searchsorted(offsets, pos[1]) + params['ch_start']
+    if line_idx >= len(params['picks']):
+        return
     ic_idx = [params['picks'][line_idx]]
     types = list()
     info = params['ica'].info
@@ -688,8 +691,14 @@ def _label_clicked(pos, params):
     data = np.atleast_2d(data)
     fig, axes = _prepare_trellis(len(types), max_col=3)
     for ch_idx, ch_type in enumerate(types):
-        data_picks, pos, merge_grads, _, _ = _prepare_topo_plot(ica, ch_type,
-                                                                None)
+        try:
+            data_picks, pos, merge_grads, _, _ = _prepare_topo_plot(ica,
+                                                                    ch_type,
+                                                                    None)
+        except Exception as exc:
+            logger.warning(exc)
+            plt.close(fig)
+            return
         this_data = data[:, data_picks]
         ax = axes[ch_idx]
         if merge_grads:
