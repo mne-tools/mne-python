@@ -348,7 +348,7 @@ def _label_clicked(pos, params):
     bads = params['info']['bads']
     if text in bads:
         bads.remove(text)
-        color = vars(params['lines'][ch_idx])['def_color']
+        color = vars(params['lines'][line_idx])['def_color']
         params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
     else:
         bads.append(text)

@@ -18,8 +18,10 @@ from .utils import _plot_raw_traces, _helper_raw_resize, _plot_raw_onkey
 from .utils import _select_bads
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
+from .topomap import _prepare_topo_plot, plot_topomap
 from ..defaults import _handle_default
 from ..io.meas_info import create_info
+from mne.io.pick import pick_types
 
 
 def _ica_plot_sources_onpick_(event, sources=None, ylims=None):
@@ -528,13 +530,15 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     import matplotlib.pyplot as plt
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
-    inds = range(len(orig_data))
-    types = np.repeat('misc', len(inds))
+    if picks is None:
+        picks = range(len(orig_data))
+    types = np.repeat('misc', len(picks))
+    picks = sorted(picks)
 
-    c_names = ['ICA ' + str(x) for x in inds]
+    c_names = ['ICA ' + str(x) for x in range(len(orig_data))]
     if title is None:
         title = 'ICA components'
-    info = create_info(c_names, raw.info['sfreq'])
+    info = create_info([c_names[x] for x in picks], raw.info['sfreq'])
 
     info['bads'] = [c_names[x] for x in exclude]
     if start is None:
@@ -548,10 +552,11 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
     bad_color = (1., 0., 0.)
+    inds = range(len(picks))
     params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=20, times=times, types=types,
-                  n_times=raw.n_times, bad_color=bad_color)
+                  n_times=raw.n_times, bad_color=bad_color, picks=picks)
     _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds, 20)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
@@ -604,7 +609,8 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    exclude = [info['ch_names'].index(x) for x in info['bads']]
+    picks = params['picks']
+    exclude = [picks[info['ch_names'].index(x)] for x in info['bads']]
     params['ica'].exclude = exclude
 
 
@@ -663,6 +669,46 @@ def _close_epochs_event(events, params):
 
 def _label_clicked(pos, params):
     """Function for plotting independent components on click to label."""
+    import matplotlib.pyplot as plt
     offsets = np.array(params['offsets']) + params['offsets'][0]
-    line_idx = [np.searchsorted(offsets, pos[1]) + params['ch_start']]
-    params['ica'].plot_components(picks=line_idx)
+    line_idx = np.searchsorted(offsets, pos[1]) + params['ch_start']
+    ic_idx = [params['picks'][line_idx]]
+    types = list()
+    info = params['ica'].info
+    if len(pick_types(info, meg=False, eeg=True, ref_meg=False)) > 0:
+        types.append('eeg')
+    if len(pick_types(info, meg='mag', ref_meg=False)) > 0:
+        types.append('mag')
+    if len(pick_types(info, meg='grad', ref_meg=False)) > 0:
+        types.append('grad')
+
+    ica = params['ica']
+    data = np.dot(ica.mixing_matrix_[:, ic_idx].T,
+                  ica.pca_components_[:ica.n_components_])
+    data = np.atleast_2d(data)
+    fig, axes = _prepare_trellis(len(types), max_col=3)
+    for ch_idx, ch_type in enumerate(types):
+        data_picks, pos, merge_grads, _, _ = _prepare_topo_plot(ica, ch_type,
+                                                                None)
+        this_data = data[:, data_picks]
+        ax = axes[ch_idx]
+        if merge_grads:
+            from ..channels.layout import _merge_grad_data
+        for ii, data_ in zip(ic_idx, this_data):
+            ax.set_title('IC #%03d ' % ii + ch_type, fontsize=12)
+            data_ = _merge_grad_data(data_) if merge_grads else data_
+            plot_topomap(data_.flatten(), pos, axis=ax, show=False)[0]
+            ax.set_yticks([])
+            ax.set_xticks([])
+            ax.set_frame_on(False)
+    tight_layout(fig=fig)
+    fig.subplots_adjust(top=0.95)
+    fig.canvas.draw()
+
+    plt.show()
+    """
+    try:
+        params['ica'].plot_components(picks=line_idx)
+    except:
+        pass
+    """

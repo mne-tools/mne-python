@@ -633,7 +633,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     if len(picks) < 1:
         raise RuntimeError('No appropriate channels found. Please'
                            ' check your picks')
-
+    picks = sorted(picks)
     # Reorganize channels
     inds = list()
     types = list()
