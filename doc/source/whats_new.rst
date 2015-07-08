@@ -28,11 +28,8 @@ BUG
 
     - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
 
-<<<<<<< HEAD
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
-=======
->>>>>>> Rebase
 .. _changes_0_9:
 
 Version 0.9
