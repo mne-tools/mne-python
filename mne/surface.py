@@ -226,7 +226,8 @@ def _triangle_coords(r, geom, best):
     return x, y, z
 
 
-def _complete_surface_info(this, do_neighbor_vert=False):
+@verbose
+def _complete_surface_info(this, do_neighbor_vert=False, verbose=None):
     """Complete surface info"""
     # based on mne_source_space_add_geometry_info() in mne_add_geometry_info.c
 

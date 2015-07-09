@@ -38,60 +38,67 @@ from .externals.six import string_types
 #
 
 
-def _calc_beta(rk, rk1):
-    rkk1 = rk1 - rk
-    size = np.sqrt((rkk1 * rkk1).sum(axis=-1))
-    num = np.sqrt((rk * rk).sum(axis=-1)) * size + (rk * rkk1).sum(axis=-1)
-    den = np.sqrt((rk1 * rk1).sum(axis=-1)) * size + (rk1 * rkk1).sum(axis=-1)
+def _calc_beta(rk, rk_norm, rk1, rk1_norm):
+    """These coefficients are used to calculate the magic vector omega"""
+    rkk1 = rk1[0] - rk[0]
+    size = np.sqrt(np.dot(rkk1, rkk1))
+    rkk1 /= size
+    num = rk_norm + np.dot(rk, rkk1)
+    den = rk1_norm + np.dot(rk1, rkk1)
     res = np.log(num / den) / size
     return res
 
 
-_SOLID_EPS = np.pi / 1.0e6
-
-
 def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
     """The linear potential matrix element computations"""
-    from .source_space import _get_solids, _fast_cross_nd_sum
+    from .source_space import _fast_cross_nd_sum
     omega = np.zeros((len(fros), 3))
-    # This circularity makes things easy for us...
-    solids, triples = _get_solids(tri_rr[np.newaxis, :, :], fros,
-                                  return_triples=True)
-    good_mask = (np.abs(solids) >= _SOLID_EPS)
 
-    n_good = good_mask.sum()
-    beta = np.empty((n_good, 3))
-    bbeta = np.empty((n_good, 3))
-    vec_omega = np.zeros((n_good, 3))
-    idx = [0, 1, 2, 0, 2]
-    solids = solids[good_mask]
-    triples = triples[good_mask]
-    fros = fros[good_mask]
-    y1s = tri_rr[0][np.newaxis, :] - fros
-    y2s = tri_rr[1][np.newaxis, :] - fros
-    y3s = tri_rr[2][np.newaxis, :] - fros
-    yys = np.array([y1s, y2s, y3s])
-    for j in range(3):
-        beta[:, j] = _calc_beta(yys[idx[j]], yys[idx[j + 1]])
-    bbeta[:, 0] = beta[:, 2] - beta[:, 0]
-    bbeta[:, 1] = beta[:, 0] - beta[:, 1]
-    bbeta[:, 2] = beta[:, 1] - beta[:, 2]
-    zdots = [_fast_cross_nd_sum(yys[idx[1]], yys[idx[-1]], tri_nn),
-             _fast_cross_nd_sum(yys[idx[2]], yys[idx[0]], tri_nn),
-             _fast_cross_nd_sum(yys[idx[3]], yys[idx[1]], tri_nn)]
+    # we replicate a little bit of the _get_solids code here for speed
+    v1 = tri_rr[np.newaxis, 0, :] - fros
+    v2 = tri_rr[np.newaxis, 1, :] - fros
+    v3 = tri_rr[np.newaxis, 2, :] - fros
+    triples = _fast_cross_nd_sum(v1, v2, v3)
+    l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    ss = (l1 * l2 * l3 +
+          np.sum(v1 * v2, axis=1) * l3 +
+          np.sum(v1 * v3, axis=1) * l2 +
+          np.sum(v2 * v3, axis=1) * l1)
+    solids = np.arctan2(triples, ss)
+
+    # We *could* subselect the good points from v1, v2, v3, triples, solids,
+    # l1, l2, and l3, but there are *very* few bad points. So instead we do
+    # some unnecessary calculations, and then omit them from the final
+    # solution. These three lines ensure we don't get invalid values in
+    # _calc_beta.
+    bad_mask = np.abs(solids) < np.pi / 1e6
+    l1[bad_mask] = 1.
+    l2[bad_mask] = 1.
+    l3[bad_mask] = 1.
+
     # Calculate the magic vector vec_omega
-    for j in range(3):
-        for k in range(3):
-            vec_omega[:, k] += bbeta[:, j] * yys[idx[j], :, k]
+    beta = [_calc_beta(v1, l1, v2, l2)[:, np.newaxis],
+            _calc_beta(v2, l2, v3, l3)[:, np.newaxis],
+            _calc_beta(v3, l3, v1, l1)[:, np.newaxis]]
+    vec_omega = (beta[2] - beta[0]) * v1
+    vec_omega += (beta[0] - beta[1]) * v2
+    vec_omega += (beta[1] - beta[2]) * v3
 
     area2 = 2.0 * tri_area
     n2 = 1.0 / (area2 * area2)
     # leave omega = 0 otherwise
     # Put it all together...
+    yys = [v1, v2, v3]
+    idx = [0, 1, 2, 0, 2]
     for k in range(3):
         diff = yys[idx[k - 1]] - yys[idx[k + 1]]
-        omega[good_mask, k] = -n2 * (area2 * zdots[k] * 2. * solids +
-                                     triples * (diff * vec_omega).sum(axis=-1))
+        zdots = _fast_cross_nd_sum(yys[idx[k + 1]], yys[idx[k - 1]], tri_nn)
+        omega[:, k] = -n2 * (area2 * zdots * 2. * solids -
+                             triples * (diff * vec_omega).sum(axis=-1))
+    # omit the bad points from the solution
+    omega[bad_mask] = 0.
     return omega
 
 
@@ -143,7 +150,7 @@ def _fwd_bem_lin_pot_coeff(surfs):
                                 (rr_ord == tri[1]) |
                                 (rr_ord == tri[2]))
                 else:
-                    skip_idx = []
+                    skip_idx = list()
                 # No contribution from a triangle that
                 # this vertex belongs to
                 # if sidx1 == sidx2 and (tri == j).any():
@@ -217,7 +224,7 @@ def _fwd_bem_linear_collocation_solution(m):
     # first, add surface geometries
     from .surface import _complete_surface_info
     for surf in m['surfs']:
-        _complete_surface_info(surf)
+        _complete_surface_info(surf, verbose=False)
 
     logger.info('Computing the linear collocation solution...')
     logger.info('    Matrix coefficients...')
@@ -431,7 +438,7 @@ def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
     """
     from .surface import _read_surface_geom
     # equivalent of mne_surf2bem
-    surfs = []
+    surfs = list()
     assert len(fname_surfs) in (1, 3)
     for fname in fname_surfs:
         surfs.append(_read_surface_geom(fname, patch_stats=False,
@@ -636,7 +643,7 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
     mu_0 = np.random.RandomState(0).rand(nfit) * f
     fun = partial(_one_step, u=u)
-    cons = []
+    cons = list()
     for ii in range(nfit):
         for val in [1., -1.]:
             cons.append({'type': 'ineq',
@@ -714,7 +721,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             head_radius = head_radius_fit / 1000.
     sphere = dict(r0=np.array(r0), is_sphere=True,
                   coord_frame=FIFF.FIFFV_COORD_HEAD)
-    sphere['layers'] = []
+    sphere['layers'] = list()
     if head_radius is not None:
         # Eventually these could be configurable...
         relative_radii = np.array(relative_radii, float)
@@ -1016,7 +1023,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
             if not len(surf) == 1:
                 raise ValueError('surface with id %d not found' % s_id)
         else:
-            surf = []
+            surf = list()
             for bsurf in bemsurf:
                 logger.info('    Reading a surface...')
                 this = _read_bem_surface(fid, bsurf, coord_frame)
@@ -1082,7 +1089,7 @@ def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
     if tag is None:
         tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
     if tag is None:
-        res['nn'] = []
+        res['nn'] = list()
     else:
         res['nn'] = tag.data
         if res['nn'].shape[0] != res['np']:
