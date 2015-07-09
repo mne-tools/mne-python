@@ -4,16 +4,24 @@
 
 import os.path as op
 import numpy as np
+from nose.tools import assert_raises
 from numpy.testing import assert_almost_equal, assert_equal, assert_allclose
 
 from mne import (make_bem_model, read_bem_surfaces, write_bem_surfaces,
-                 make_bem_solution, read_bem_solution, write_bem_solution)
+                 make_bem_solution, read_bem_solution, write_bem_solution,
+                 make_sphere_model)
 from mne.preprocessing.maxfilter import fit_sphere_to_headshape
 from mne.io.constants import FIFF
 from mne.transforms import rotation
 from mne.datasets import testing
 from mne.utils import run_tests_if_main, _TempDir, slow_test
+from mne.bem import (_ico_downsample, _get_ico_map, _order_surfaces,
+                     _assert_complete_surface, _assert_inside,
+                     _check_surface_size, _bem_find_surface)
+from mne.io import read_info
 
+fname_raw = op.join(op.dirname(__file__), '..', 'io', 'tests', 'data',
+                    'test_raw.fif')
 subjects_dir = op.join(testing.data_path(download=False), 'subjects')
 fname_bem_3 = op.join(subjects_dir, 'sample', 'bem',
                       'sample-320-320-320-bem.fif')
@@ -47,7 +55,7 @@ def _compare_bem_solutions(sol_a, sol_b):
     assert_equal(set(sol_a.keys()), set(sol_b.keys()))
     assert_equal(set(names + ['surfs']), set(sol_b.keys()))
     for key in names:
-        assert_allclose(sol_a[key], sol_b[key], rtol=1e-4, atol=1e-6,
+        assert_allclose(sol_a[key], sol_b[key], rtol=1e-3, atol=1e-5,
                         err_msg='Mismatch: %s' % key)
 
 
@@ -57,16 +65,32 @@ def test_io_bem():
     """
     tempdir = _TempDir()
     temp_bem = op.join(tempdir, 'temp-bem.fif')
+    assert_raises(ValueError, read_bem_surfaces, fname_raw)
+    assert_raises(ValueError, read_bem_surfaces, fname_bem_3, s_id=10)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=True)
     surf = read_bem_surfaces(fname_bem_3, patch_stats=False)
     write_bem_surfaces(temp_bem, surf[0])
     surf_read = read_bem_surfaces(temp_bem, patch_stats=False)
     _compare_bem_surfaces(surf, surf_read)
+
+    assert_raises(RuntimeError, read_bem_solution, fname_bem_3)
     temp_sol = op.join(tempdir, 'temp-sol.fif')
     sol = read_bem_solution(fname_bem_sol_3)
     write_bem_solution(temp_sol, sol)
     sol_read = read_bem_solution(temp_sol)
     _compare_bem_solutions(sol, sol_read)
+    sol = read_bem_solution(fname_bem_sol_1)
+    assert_raises(RuntimeError, _bem_find_surface, sol, 3)
+
+
+def test_make_sphere_model():
+    """Test making a sphere model"""
+    info = read_info(fname_raw)
+    assert_raises(ValueError, make_sphere_model, 'foo', 'auto', info)
+    assert_raises(ValueError, make_sphere_model, 'auto', 'auto', None)
+    # here we just make sure it works -- the functionality is actually
+    # tested more extensively e.g. in the forward and dipole code
+    make_sphere_model('auto', 'auto', info)
 
 
 @testing.requires_testing_data
@@ -84,20 +108,49 @@ def test_bem_model():
         model_read = read_bem_surfaces(fname_temp)
         _compare_bem_surfaces(model, model_c)
         _compare_bem_surfaces(model_read, model_c)
+    assert_raises(ValueError, make_bem_model, 'sample',  # bad conductivity
+                  conductivity=[0.3, 0.006], subjects_dir=subjects_dir)
 
 
 @slow_test
 @testing.requires_testing_data
 def test_bem_solution():
     """Test making a BEM solution from Python with I/O"""
+    # test degenerate conditions
+    surf = read_bem_surfaces(fname_bem_1)[0]
+    assert_raises(RuntimeError, _ico_downsample, surf, 10)  # bad dec grade
+    s_bad = dict(tris=surf['tris'][1:], ntri=surf['ntri'] - 1, rr=surf['rr'])
+    assert_raises(RuntimeError, _ico_downsample, s_bad, 1)  # not isomorphic
+    s_bad = dict(tris=surf['tris'].copy(), ntri=surf['ntri'],
+                 rr=surf['rr'])  # bad triangulation
+    s_bad['tris'][0] = [0, 0, 0]
+    assert_raises(RuntimeError, _ico_downsample, s_bad, 1)
+    s_bad['id'] = 1
+    assert_raises(RuntimeError, _assert_complete_surface, s_bad)
+    s_bad = dict(tris=surf['tris'], ntri=surf['ntri'], rr=surf['rr'].copy())
+    s_bad['rr'][0] = 0.
+    assert_raises(RuntimeError, _get_ico_map, surf, s_bad)
+
+    surfs = read_bem_surfaces(fname_bem_3)
+    assert_raises(RuntimeError, _assert_inside, surfs[0], surfs[1])  # outside
+    surfs[0]['id'] = 100  # bad surfs
+    assert_raises(RuntimeError, _order_surfaces, surfs)
+    surfs[1]['rr'] /= 1000.
+    assert_raises(RuntimeError, _check_surface_size, surfs[1])
+
+    # actually test functionality
     tempdir = _TempDir()
     fname_temp = op.join(tempdir, 'temp-bem-sol.fif')
     # use a model and solution made in Python
     conductivities = [(0.3,), (0.3, 0.006, 0.3)]
     fnames = [fname_bem_sol_1, fname_bem_sol_3]
     for cond, fname in zip(conductivities, fnames):
-        model = make_bem_model('sample', conductivity=cond, ico=2,
-                               subjects_dir=subjects_dir)
+        for model_type in ('python', 'c'):
+            if model_type == 'python':
+                model = make_bem_model('sample', conductivity=cond, ico=2,
+                                       subjects_dir=subjects_dir)
+            else:
+                model = fname_bem_1 if len(cond) == 1 else fname_bem_3
         solution = make_bem_solution(model)
         solution_c = read_bem_solution(fname)
         _compare_bem_solutions(solution, solution_c)

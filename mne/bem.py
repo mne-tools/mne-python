@@ -1001,7 +1001,7 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     with f as fid:
         # Find BEM
         bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
-        if bem is None:
+        if bem is None or len(bem) == 0:
             raise ValueError('BEM data not found')
 
         bem = bem[0]
@@ -1155,6 +1155,8 @@ def read_bem_solution(fname, verbose=None):
 
         # Approximation method
         tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
+        if tag is None:
+            raise RuntimeError('No BEM solution found in %s' % fname)
         method = tag.data[0]
         if method not in (FIFF.FIFFV_BEM_APPROX_CONST,
                           FIFF.FIFFV_BEM_APPROX_LINEAR):
@@ -1219,7 +1221,7 @@ def _bem_find_surface(bem, id_):
         name = id_
         id_ = _surf_dict[id_]
     else:
-        name = _bem_explain_surface[id_]
+        name = _bem_explain_surface(id_)
     idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
     if len(idx) != 1:
         raise RuntimeError('BEM model does not have the %s triangulation'
