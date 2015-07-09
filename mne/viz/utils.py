@@ -223,29 +223,53 @@ def _get_help_text(params):
     text.append(u'\u2191 : \n')
     text.append(u'- : \n')
     text.append(u'+ or = : \n')
+    text.append(u'Home : \n')
+    text.append(u'End : \n')
+    text.append(u'Page down : \n')
+    text.append(u'Page up : \n')
+
+    text.append(u'F11 : \n')
+    text.append(u'? : \n')
+    text.append(u'Esc : \n\n')
+    text.append(u'Mouse controls\n')
+    text.append(u'click on data :\n')
+
     text2.append('Navigate left\n')
     text2.append('Navigate right\n')
+
     text2.append('Scale down\n')
     text2.append('Scale up\n')
-    if 'epochs' in params:
-        text.append(u'Home : \n')
-        text.append(u'End : \n')
-        text.append(u'Page down : \n')
-        text.append(u'Page up : \n')
-        text.append(u'o : \n')
-        text.append(u'F11 : \n')
-        text.append(u'? : \n')
-        text.append(u'Esc : \n\n')
-        text.append(u'Mouse controls\n')
-        text.append(u'click on main axes :\n')
-        text.append(u'right click :\n')
 
-        text2.append('Reduce the number of epochs per view\n')
-        text2.append('Increase the number of epochs per view\n')
-        text2.append('View settings (orig. view only)\n')
-        text2.append('Toggle full screen mode\n')
-        text2.append('Open help box\n')
-        text2.append('Quit\n\n\n')
+    text2.append('Toggle full screen mode\n')
+    text2.append('Open help box\n')
+    text2.append('Quit\n\n\n')
+    if 'raw' in params:
+        text2.insert(4, 'Reduce the time shown per view\n')
+        text2.insert(5, 'Increase the time shown per view\n')
+        text.append(u'click elsewhere in the plot :\n')
+        if 'ica' in params:
+            text.append(u'click component name :\n')
+            text2.insert(2, 'Navigate components down\n')
+            text2.insert(3, 'Navigate components up\n')
+            text2.insert(8, 'Reduce the number of components per view\n')
+            text2.insert(9, 'Increase the number of components per view\n')
+            text2.append('Mark bad channel\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Show topography for the component\n')
+        else:
+            text.append(u'click channel name :\n')
+            text2.insert(2, 'Navigate channels down\n')
+            text2.insert(3, 'Navigate channels up\n')
+            text2.insert(8, 'Reduce the number of channels per view\n')
+            text2.insert(9, 'Increase the number of channels per view\n')
+            text2.append('Mark bad channel\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Mark bad channel\n')
+
+    elif 'epochs' in params:
+        text.append(u'right click :\n')
+        text2.insert(4, 'Reduce the number of epochs per view\n')
+        text2.insert(5, 'Increase the number of epochs per view\n')
         if 'ica' in params:
             text.append(u'click component name :\n')
             text2.insert(2, 'Navigate components down\n')
@@ -263,11 +287,13 @@ def _get_help_text(params):
             text2.insert(9, 'Increase the number of channels per view\n')
             text.insert(10, u'b : \n')
             text2.insert(10, 'Toggle butterfly plot on/off\n')
-            text.append(u'middle click :\n')
             text2.append('Mark bad epoch\n')
             text2.append('Vertical line at a time instant\n')
             text2.append('Mark bad channel\n')
+            text.append(u'middle click :\n')
             text2.append('Show channel name (butterfly plot)\n')
+        text.insert(11, u'o : \n')
+        text2.insert(11, 'View settings (orig. view only)\n')
 
     return ''.join(text), ''.join(text2)
 
@@ -461,18 +487,23 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
 
     fig = figure_nobar(facecolor=bgcolor, figsize=size)
     fig.canvas.set_window_title('mne_browse_raw')
-    ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
+    ax = plt.subplot2grid((10, 10), (0, 1), colspan=8, rowspan=9)
     ax.set_title(title, fontsize=12)
-    ax_hscroll = plt.subplot2grid((10, 10), (9, 0), colspan=9)
+    ax_hscroll = plt.subplot2grid((10, 10), (9, 1), colspan=8)
     ax_hscroll.get_yaxis().set_visible(False)
     ax_hscroll.set_xlabel('Time (s)')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
+    ax_help_button = plt.subplot2grid((10, 10), (0, 0), colspan=1)
+    help_button = mpl.widgets.Button(ax_help_button, 'Help')
+    help_button.on_clicked(partial(_onclick_help, params=params))
     # store these so they can be fixed on resize
     params['fig'] = fig
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
+    params['ax_help_button'] = ax_help_button
+    params['help_button'] = help_button
 
     # populate vertical and horizontal scrollbars
     info = params['info']
@@ -516,9 +547,8 @@ def _prepare_mne_browse_raw(params, title, bgcolor, color, bad_color, inds,
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(0, 0.5, '', color=vertline_color,
-                                           verticalalignment='center',
-                                           horizontalalignment='right')
+    params['vertline_t'] = ax_hscroll.text(0, 1, '', color=vertline_color,
+                                           va='bottom', ha='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
                                                     color=vertline_color,
                                                     zorder=1)[0]
@@ -631,6 +661,8 @@ def _plot_raw_onkey(event, params):
         params['hsel_patch'].set_width(params['duration'])
         params['update_fun']()
         params['plot_fun']()
+    elif event.key == '?':
+        _onclick_help(event, params)
     elif event.key == 'f11':
         mng = plt.get_current_fig_manager()
         mng.full_screen_toggle()
@@ -778,6 +810,39 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     # CGContextRef error on the MacOSX backend :(
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
+
+
+def _onclick_help(event, params):
+    """Function for drawing help window"""
+    import matplotlib.pyplot as plt
+    text, text2 = _get_help_text(params)
+
+    width = 6
+    height = 5
+
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+    fig_help.canvas.set_window_title('Help')
+    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
+    ax.set_title('Keyboard shortcuts')
+    plt.axis('off')
+    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
+    ax1.set_yticklabels(list())
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
+             ha='right')
+    plt.axis('off')
+
+    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
+    ax2.set_yticklabels(list())
+    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
+    plt.axis('off')
+
+    tight_layout(fig=fig_help)
+    # this should work for non-test cases
+    try:
+        fig_help.canvas.draw()
+        fig_help.show()
+    except Exception:
+        pass
 
 
 class ClickableImage(object):

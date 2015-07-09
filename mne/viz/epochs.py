@@ -23,7 +23,7 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
 from .utils import _toggle_options, _toggle_proj, _layout_figure
-from .utils import _channels_changed, _plot_raw_onscroll, _get_help_text
+from .utils import _channels_changed, _plot_raw_onscroll, _onclick_help
 from ..defaults import _handle_default
 
 
@@ -1293,7 +1293,6 @@ def _plot_onkey(event, params):
             _open_options(params)
     elif event.key == '?':
         _onclick_help(event, params)
-        params['plot_fun']()
     elif event.key == 'escape':
         plt.close(params['fig'])
 
@@ -1411,39 +1410,6 @@ def _resize_event(event, params):
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size)
     _layout_figure(params)
-
-
-def _onclick_help(event, params):
-    """Function for drawing help window"""
-    import matplotlib.pyplot as plt
-    text, text2 = _get_help_text(params)
-
-    width = 6
-    height = 5
-
-    fig_help = figure_nobar(figsize=(width, height), dpi=80)
-    fig_help.canvas.set_window_title('Help')
-    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
-    ax.set_title('Keyboard shortcuts')
-    plt.axis('off')
-    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
-    ax1.set_yticklabels(list())
-    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
-             ha='right')
-    plt.axis('off')
-
-    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
-    ax2.set_yticklabels(list())
-    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
-    plt.axis('off')
-
-    tight_layout(fig=fig_help)
-    # this should work for non-test cases
-    try:
-        fig_help.canvas.draw()
-        fig_help.show()
-    except Exception:
-        pass
 
 
 def _update_channels_epochs(event, params):
