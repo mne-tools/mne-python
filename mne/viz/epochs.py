@@ -23,7 +23,7 @@ from ..fixes import Counter, _in1d
 from ..time_frequency import compute_epochs_psd
 from .utils import tight_layout, _prepare_trellis, figure_nobar
 from .utils import _toggle_options, _toggle_proj, _layout_figure
-from .utils import _channels_changed, _plot_raw_onscroll
+from .utils import _channels_changed, _plot_raw_onscroll, _get_help_text
 from ..defaults import _handle_default
 
 
@@ -662,7 +662,6 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     ch_names = [params['info']['ch_names'][x] for x in inds]
 
     # set up plotting
-
     size = get_config('MNE_BROWSE_RAW_SIZE')
     n_epochs = min(n_epochs, len(epochs.events))
     duration = len(epochs.times) * n_epochs
@@ -697,7 +696,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
 
     ax_help_button = plt.subplot2grid((10, 15), (9, 0), colspan=1)
     help_button = mpl.widgets.Button(ax_help_button, 'Help')
-    help_button.on_clicked(_onclick_help)
+    help_button.on_clicked(partial(_onclick_help, params=params))
 
     # populate vertical and horizontal scrollbars
     for ci in range(len(picks)):
@@ -736,7 +735,7 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
     times = epochs.times
     data = np.zeros((params['info']['nchan'], len(times) * len(epochs.events)))
 
-    ylim = (25., 0.)
+    ylim = (25., 0.)  # Hardcoded 25 because butterfly has max 5 rows (5*5=25).
     # make shells for plotting traces
     offset = ylim[0] / n_channels
     offsets = np.arange(n_channels) * offset + (offset / 2.)
@@ -813,7 +812,8 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
                    'vertline_t': vertline_t,
                    'butterfly': False,
                    'text': text,
-                   'ax_help_button': ax_help_button,
+                   'ax_help_button': ax_help_button,  # needed for positioning
+                   'help_button': help_button,  # reference needed for clicks
                    'fig_options': None,
                    'settings': [True, True, True, True]})
 
@@ -1039,6 +1039,9 @@ def _plot_vert_lines(params):
     ax = params['ax']
     while len(ax.lines) > 0:
         ax.lines.pop()
+    params['vert_lines'] = list()
+    params['vertline_t'].set_text('')
+
     epochs = params['epochs']
     if params['settings'][3]:  # if zeroline visible
         t_zero = np.where(epochs.times == 0.)[0]
@@ -1102,7 +1105,10 @@ def _pick_bad_channels(pos, params):
         params['info']['bads'].append(text)
         color = params['bad_color']
         params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
-    params['plot_fun']()
+    if 'ica' in params:
+        params['plot_fun']()
+    else:
+        params['plot_update_proj_callback'](params, None)
 
 
 def _plot_onscroll(event, params):
@@ -1163,12 +1169,12 @@ def _mouse_click(event, params):
             while len(params['vert_lines']) > 0:
                 params['ax'].lines.remove(params['vert_lines'][0][0])
                 params['vert_lines'].pop(0)
-        if prev_xdata == xdata:
+        if prev_xdata == xdata:  # lines removed
             params['vertline_t'].set_text('')
             params['plot_fun']()
             return
         ylim = params['ax'].get_ylim()
-        for epoch_idx in range(params['n_epochs']):
+        for epoch_idx in range(params['n_epochs']):  # plot lines
             pos = [epoch_idx * n_times + xdata, epoch_idx * n_times + xdata]
             params['vert_lines'].append(params['ax'].plot(pos, ylim, 'y',
                                                           zorder=4))
@@ -1286,7 +1292,7 @@ def _plot_onkey(event, params):
         if not params['butterfly']:
             _open_options(params)
     elif event.key == '?':
-        _onclick_help(event)
+        _onclick_help(event, params)
         params['plot_fun']()
     elif event.key == 'escape':
         plt.close(params['fig'])
@@ -1407,53 +1413,13 @@ def _resize_event(event, params):
     _layout_figure(params)
 
 
-def _onclick_help(event):
+def _onclick_help(event, params):
     """Function for drawing help window"""
     import matplotlib.pyplot as plt
+    text, text2 = _get_help_text(params)
 
-    text = u'\u2190 : \n'\
-           u'\u2192 : \n'\
-           u'\u2193 : \n'\
-           u'\u2191 : \n'\
-           u'- : \n'\
-           u'+ or = : \n'\
-           u'Home : \n'\
-           u'End : \n'\
-           u'Page down : \n'\
-           u'Page up : \n'\
-           u'b : \n'\
-           u'o : \n'\
-           u'F11 : \n'\
-           u'? : \n'\
-           u'Esc : \n\n'\
-           u'Mouse controls\n'\
-           u'click epoch :\n'\
-           u'click channel name :\n'\
-           u'right click :\n'\
-           u'middle click :\n'
-
-    text2 = 'Navigate left\n'\
-            'Navigate right\n'\
-            'Navigate channels down\n'\
-            'Navigate channels up\n'\
-            'Scale down\n'\
-            'Scale up\n'\
-            'Reduce the number of epochs per view\n'\
-            'Increase the number of epochs per view\n'\
-            'Reduce the number of channels per view\n'\
-            'Increase the number of channels per view\n'\
-            'Toggle butterfly plot on/off\n'\
-            'View settings (orig. view only)\n'\
-            'Toggle full screen mode\n'\
-            'Open help box\n'\
-            'Quit\n\n\n'\
-            'Mark bad epoch\n'\
-            'Mark bad channel\n'\
-            'Verticlal line at a time instant\n'\
-            'Show channel name (butterfly plot)\n'
-
-    width = 5.5
-    height = 0.25 * 19  # 19 rows of text
+    width = 6
+    height = 5
 
     fig_help = figure_nobar(figsize=(width, height), dpi=80)
     fig_help.canvas.set_window_title('Help')

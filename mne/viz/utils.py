@@ -213,6 +213,65 @@ def _toggle_proj(event, params):
         params['plot_update_proj_callback'](params, bools)
 
 
+def _get_help_text(params):
+    """Aux function for customizing help dialogs text."""
+    text, text2 = list(), list()
+
+    text.append(u'\u2190 : \n')
+    text.append(u'\u2192 : \n')
+    text.append(u'\u2193 : \n')
+    text.append(u'\u2191 : \n')
+    text.append(u'- : \n')
+    text.append(u'+ or = : \n')
+    text2.append('Navigate left\n')
+    text2.append('Navigate right\n')
+    text2.append('Scale down\n')
+    text2.append('Scale up\n')
+    if 'epochs' in params:
+        text.append(u'Home : \n')
+        text.append(u'End : \n')
+        text.append(u'Page down : \n')
+        text.append(u'Page up : \n')
+        text.append(u'o : \n')
+        text.append(u'F11 : \n')
+        text.append(u'? : \n')
+        text.append(u'Esc : \n\n')
+        text.append(u'Mouse controls\n')
+        text.append(u'click on main axes :\n')
+        text.append(u'right click :\n')
+
+        text2.append('Reduce the number of epochs per view\n')
+        text2.append('Increase the number of epochs per view\n')
+        text2.append('View settings (orig. view only)\n')
+        text2.append('Toggle full screen mode\n')
+        text2.append('Open help box\n')
+        text2.append('Quit\n\n\n')
+        if 'ica' in params:
+            text.append(u'click component name :\n')
+            text2.insert(2, 'Navigate components down\n')
+            text2.insert(3, 'Navigate components up\n')
+            text2.insert(8, 'Reduce the number of components per view\n')
+            text2.insert(9, 'Increase the number of components per view\n')
+            text2.append('Mark component for exclusion\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Show topography for the component\n')
+        else:
+            text.append(u'click channel name :\n')
+            text2.insert(2, 'Navigate channels down\n')
+            text2.insert(3, 'Navigate channels up\n')
+            text2.insert(8, 'Reduce the number of channels per view\n')
+            text2.insert(9, 'Increase the number of channels per view\n')
+            text.insert(10, u'b : \n')
+            text2.insert(10, 'Toggle butterfly plot on/off\n')
+            text.append(u'middle click :\n')
+            text2.append('Mark bad epoch\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Mark bad channel\n')
+            text2.append('Show channel name (butterfly plot)\n')
+
+    return ''.join(text), ''.join(text2)
+
+
 def _prepare_trellis(n_cells, max_col):
     """Aux function
     """

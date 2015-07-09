@@ -357,7 +357,7 @@ def _label_clicked(pos, params):
         color = params['bad_color']
         params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
     params['raw'].info['bads'] = bads
-    params['plot_fun']()
+    _plot_update_raw_proj(params, None)
 
 
 def _set_psd_plot_params(info, proj, picks, ax, area_mode):
