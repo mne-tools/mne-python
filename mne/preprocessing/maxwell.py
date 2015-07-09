@@ -6,14 +6,18 @@
 
 # License: BSD (3-clause)
 
+# Equation numbers refer to Taulu and Kajola, 2005. 'Presentation of
+# electromagnetic multichannel data: The signal space separation method,' which
+# can be found for free online.
+
 # Note, there are an absurd number of different possible notations for
 # spherical coordinates, which confounds the notation for spherical harmonics.
 # Here, we purposefully stay away from shorthand notation in both and use
 # explicit terms (like 'azimuth' and 'polar') to avoid confusion.
 
-# TODO: write in equation numbers from Samu's paper
 
 from __future__ import division
+from os import path as op
 import numpy as np
 from scipy.special import lpmv
 from scipy.linalg import pinv
@@ -25,21 +29,20 @@ from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _read_coil_defs, _create_coils
 
 
-def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3, n_jobs=1):
+def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
     ----------
     raw : instance of mne.io.Raw
         Data to be filtered
-    origin : list, tuple, or ndarray, shape (3,)
-        Origin of internal and external multipolar moment space in millimeters
+    origin : array-like, shape (3,)
+        Origin of internal and external multipolar moment space in head coords
+        and in millimeters
     int_order : int
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
-    n_jobs : int
-        Number of jobs to run in parallel
 
     Returns
     -------
@@ -47,31 +50,40 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3, n_jobs=1):
         The raw data with Maxwell filtering applied
     """
 
-    # TODO: Add error checks on input parameters
+    # TODO: Exclude 'bads' in multipolar moment calc, add back during
+    # reconstruction
+    assert (raw.info['bads'] == [], 'Maxwell filter does not yet handle bad '
+            'channels.')
 
-    # Create coil information
-    all_coils, meg_info = _make_coils(raw.info, accurate=True)
-    picks = [raw.info['ch_names'].index(ch) for ch in [coil['chname']
-                                                       for coil in all_coils]]
+    # Read coil definitions from file
+    coil_def_file = op.join(op.split(__file__)[0], '..', 'data',
+                            'coil_def_Elekta.dat')
+    all_coils, meg_info = _make_coils(raw.info, accurate=True,
+                                      coil_def=coil_def_file)
+
+    # Create coil list and pick MEG channels
+    picks = [raw.info['ch_names'].index(coil['chname'])
+             for coil in all_coils]
     coils = [all_coils[ci] for ci in picks]
+    raw.pick_channels(coil['chname'] for coil in coils)
 
     data, times = raw[picks, :]
 
-    # Magnetometers (with coil_class == 1.0) must be scaled by 100 to # improve
+    # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
-    coil_scale = np.ones((len(picks)))
+    coil_scale = np.ones(len(picks))
     coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
 
-    # Compute spherical harmonics
+    # Compute multipolar moment bases
     origin = np.array(origin) / 1000.  # Convert scale from mm to m
     S_in, S_out = _sss_basis(origin, coils, int_order, ext_order)
     S_tot = np.c_[S_in, S_out]
 
-    # Pseudo-inverse of total multipolar moment basis set
+    # Pseudo-inverse of total multipolar moment basis set (Part of Eq. 37)
     pS_tot = pinv(S_tot, cond=1e-15)
-    # Compute multipolar moments of (magnetometer scaled) data
+    # Compute multipolar moments of (magnetometer scaled) data (Eq. 37)
     mm = np.dot(pS_tot, data * coil_scale[:, np.newaxis])
-    # Reconstruct data from internal space
+    # Reconstruct data from internal space (Eq. 38)
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
@@ -104,8 +116,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
     """
     r_int_pts, ncoils, wcoils, int_pts = _concatenate_coils(coils)
     n_sens = len(int_pts)
-    n_bases = (int_order - 1) ** 2 + (ext_order - 1) ** 2 - 2
-    n_int_pts = len(r_int_pts)
+    n_bases = get_num_moments(int_order, ext_order)
     int_lens = np.insert(np.cumsum(int_pts), obj=0, values=0)
 
     S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1))
@@ -121,11 +132,11 @@ def _sss_basis(origin, coils, int_order, ext_order):
                                'of sensors (%s)' % (str(n_bases), str(n_sens)))
 
     # Compute position vector between origin and coil integration pts
-    cvec_cart = r_int_pts - origin * np.ones((n_int_pts, 1))
+    cvec_cart = r_int_pts - origin[np.newaxis, :]
     # Convert points to spherical coordinates
     cvec_sph = _cart_to_sph(cvec_cart)
 
-    # Compute internal basis vectors (exclude deg, order 0)
+    # Compute internal basis vectors (exclude degree 0; RHS Eq. 5)
     for deg in range(1, int_order + 1):
         for order in range(-deg, deg + 1):
 
@@ -141,7 +152,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
                 int_pts_sum = np.sum(a1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
                 S_in[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
 
-    # Compute external basis vectors (exclude deg, order 0)
+    # Compute external basis vectors (exclude degree 0; RHS Eq. 5)
     for deg in range(1, ext_order + 1):
         for order in range(-deg, deg + 1):
 
@@ -167,11 +178,11 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
 
 def _sph_harmonic(degree, order, az, pol):
-    """Evaluate point in specified multipolar moment.
+    """Evaluate point in specified multipolar moment. Equation 4.
 
     When using, pay close attention to inputs. Spherical harmonic notation for
     order/degree, and theta/phi are both reversed in original SSS work compared
-    to many other sources.
+    to many other sources. Based on 'legendre_associated' by John Burkardt.
 
     Parameters
     ----------
@@ -207,8 +218,6 @@ def _sph_harmonic(degree, order, az, pol):
                    fact(degree + order)) * lpmv(order, degree, np.cos(polar)) \
         * np.exp(1j * order * azimuth)
     return base
-
-    # TODO: Check speed of taking real part of scipy's sph harmonic function
 
 
 def _alegendre_deriv(degree, order, val):
@@ -264,7 +273,7 @@ def _grad_in_components(degree, order, rad, az, pol):
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
-    # Compute gradients for all spherical coordinates
+    # Compute gradients for all spherical coordinates (Eq. 6)
     g_rad = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order,
                                                                 az, pol)
 
@@ -309,7 +318,7 @@ def _grad_out_components(degree, order, rad, az, pol):
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
-    # Compute gradients for all spherical coordinates
+    # Compute gradients for all spherical coordinates (Eq. 7)
     g_rad = degree * rad ** (degree - 1) * _sph_harmonic(degree, order, az,
                                                          pol)
 
@@ -355,7 +364,7 @@ def _get_real_grad(grad_vec_raw, order):
 
 
 def get_num_moments(int_order, ext_order):
-    """Compute total number of multipolar moments
+    """Compute total number of multipolar moments. Equivalent to eq. 32.
 
     Parameters
     ---------
@@ -382,7 +391,9 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
     Note: Because we are dealing with partial derivatives, this calculation is
     not a static transformation. The transformation matrix itself is dependent
     on azimuth and polar coord.
-    See mathworld.wolfram.com/SphericalCoordinates.html Eq. 96
+
+    See the 'Spherical coordinate sytem' section here:
+    wikipedia.org/wiki/Vector_fields_in_cylindrical_and_spherical_coordinates
 
     Parameters
     ----------
@@ -401,7 +412,7 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
 
     # TODO: needs vectorization, currently matching Jussi's code for debugging
     for pt_i, (sph_pt, sph_grad) in enumerate(zip(sph_pts, sph_grads)):
-        # get cosine and sine of azimuth and polar coord
+        # Calculate cosine and sine of azimuth and polar coord
         c_a, s_a = np.cos(sph_pt[1]), np.sin(sph_pt[1])
         c_p, s_p = np.cos(sph_pt[2]), np.sin(sph_pt[2])
 
@@ -415,7 +426,7 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
 
 
 def _cart_to_sph(cart_pts):
-    """Convert Cartesian coordinates to spherical coordinates
+    """Convert Cartesian coordinates to spherical coordinates.
 
     Parameters
     ----------
@@ -435,8 +446,10 @@ def _cart_to_sph(cart_pts):
     return np.c_[rad, az, pol]
 
 
+# TODO: Eventually refactor this in forward computation code
+
 def _make_coils(info, accurate=True, coil_def=None):
-    """Prepare dict of MEG coils and their information
+    """Prepare dict of MEG coils and their information.
 
     Parameters
     ----------
@@ -444,10 +457,10 @@ def _make_coils(info, accurate=True, coil_def=None):
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
+    accurate : bool
+        Accuracy of coil information.
     coil_def : str | None
         Filepath to the coil definitions file.
-    accuracy : bool
-        Accuracy of coil information.
 
     Returns
     -------
@@ -464,7 +477,6 @@ def _make_coils(info, accurate=True, coil_def=None):
     megnames, megcoils, compcoils = [], [], []
 
     # MEG channels
-    # TODO: Should we exclude bads (in info['bads'])
     picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
                        exclude=[])
     nmeg = len(picks)
@@ -485,6 +497,9 @@ def _make_coils(info, accurate=True, coil_def=None):
         templates = _read_coil_defs(coil_def)
 
     if nmeg > 0:
+        # TODO: In fwd solution code, reformulate check that forces head
+        # coords and remove this hack. (Or use only head coords)
+        #info['dev_head_t']['trans'] = np.eye(4)  # Uncomment for device coords
         megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
                                  templates)
 
