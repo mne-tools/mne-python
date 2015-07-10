@@ -638,7 +638,8 @@ def _select_bads(event, params, bads):
                         color = params['bad_color']
                         line.set_zorder(-1)
                     else:
-                        bads.pop(bads.index(this_chan))
+                        while this_chan in bads:
+                            bads.remove(this_chan)
                         color = vars(line)['def_color']
                         line.set_zorder(0)
                     line.set_color(color)

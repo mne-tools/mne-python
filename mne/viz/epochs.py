@@ -1098,7 +1098,8 @@ def _pick_bad_channels(pos, params):
         return
     ch_idx = params['ch_start'] + line_idx
     if text in params['info']['bads']:
-        params['info']['bads'].remove(text)
+        while text in params['info']['bads']:
+            params['info']['bads'].remove(text)
         color = params['def_colors'][ch_idx]
         params['ax_vscroll'].patches[ch_idx + 1].set_color(color)
     else:

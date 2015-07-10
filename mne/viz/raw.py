@@ -349,7 +349,8 @@ def _label_clicked(pos, params):
     ch_idx = params['ch_start'] + line_idx
     bads = params['info']['bads']
     if text in bads:
-        bads.remove(text)
+        while text in bads:  # to make sure duplicates are removed
+            bads.remove(text)
         color = vars(params['lines'][line_idx])['def_color']
         params['ax_vscroll'].patches[ch_idx].set_color(color)
     else:
