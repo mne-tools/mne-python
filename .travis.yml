@@ -1,5 +1,8 @@
 language: python
 
+# Use container-based infrastructure
+sudo: false
+
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
