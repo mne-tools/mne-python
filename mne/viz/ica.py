@@ -529,6 +529,7 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
                          block):
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
+    plt.ion()
     color = _handle_default('color', (0., 0., 0.))
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
