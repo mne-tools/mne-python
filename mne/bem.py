@@ -174,7 +174,6 @@ def _fwd_bem_multi_solution(solids, gamma, nps):
       * This is the general multilayer case
 
     """
-    from scipy import linalg
     pi2 = 1.0 / (2 * np.pi)
     n_tot = np.sum(nps)
     assert solids.shape == (n_tot, n_tot)
