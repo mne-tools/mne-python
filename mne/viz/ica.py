@@ -12,10 +12,10 @@ from functools import partial
 
 import numpy as np
 
-from .utils import tight_layout, _prepare_trellis, _prepare_mne_browse_raw
+from .utils import tight_layout, _prepare_trellis, _select_bads
 from .utils import _layout_figure, _plot_raw_onscroll, _mouse_click
-from .utils import _plot_raw_traces, _helper_raw_resize, _plot_raw_onkey
-from .utils import _select_bads
+from .utils import _helper_raw_resize, _plot_raw_onkey
+from .raw import _prepare_mne_browse_raw, _plot_raw_traces
 from .epochs import _prepare_mne_browse_epochs
 from .evoked import _butterfly_on_button_press, _butterfly_onpick
 from .topomap import _prepare_topo_plot, plot_topomap
