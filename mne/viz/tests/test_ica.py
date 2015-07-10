@@ -169,6 +169,7 @@ def test_plot_instance_components():
     ax = fig.get_axes()[0]
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
     plt.close('all')
     epochs = _get_epochs()
@@ -190,6 +191,7 @@ def test_plot_instance_components():
     ax = fig.get_axes()[0]
     line = ax.lines[0]
     _fake_click(fig, ax, [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+    _fake_click(fig, ax, [-0.1, 0.9])  # click on y-label
     fig.canvas.key_press_event('escape')
     plt.close('all')
 

@@ -112,6 +112,8 @@ def test_plot_epochs():
     fig = epochs.plot(trellis=False)
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('pageup')

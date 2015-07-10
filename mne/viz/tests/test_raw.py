@@ -53,6 +53,8 @@ def test_plot_raw():
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change channels
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # open SSP window
         fig.canvas.button_press_event(1, 1, 1)  # outside any axes
+        fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+        fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
         # sadly these fail when no renderer is used (i.e., when using Agg):
         # ssp_fig = set(plt.get_fignums()) - set([fig.number])
         # assert_equal(len(ssp_fig), 1)
