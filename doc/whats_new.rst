@@ -39,7 +39,7 @@ Changelog
 
     - Add new method :class:`mne.preprocessing.Xdawn` for denoising and decoding of ERP/ERF by `Alexandre Barachant`_
 
-    - Add ``plot_topo`` method to ``Evoked`` object which deprecates ``mne.viz.plot_topo`` by `Jaakko Leppakangas`_
+    - Add ``plot_topo`` method to ``Evoked`` object by `Jaakko Leppakangas`_
 
     - Add support for plotting patterns/filters in :class:`mne.decoding.csp.CSP` and :class:`mne.decoding.base.LinearModel` by `Romain Trachel`_
 
@@ -67,6 +67,11 @@ BUG
     - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
     - Fix dropping of events after downsampling stim channels by `Marijn van Vliet`
+
+API
+~~~
+
+    - Rename and deprecate ``mne.viz.plot_topo`` for ``mne.viz.plot_evoked_topo`` by `Jaakko Leppakangas`_
 
 .. _changes_0_9:
 
