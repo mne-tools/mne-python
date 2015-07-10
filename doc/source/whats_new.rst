@@ -1,5 +1,8 @@
 What's new
 ==========
+..
+    Note, we are now using links to highlight new functions and classes.
+    Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
 
 
 Current
@@ -8,9 +11,9 @@ Current
 Changelog
 ~~~~~~~~~
 
-    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs by `Denis Engemann`_
+    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`mne.stats.f_mway_rm` by `Denis Engemann`_
 
-    - Add epochs browser to interactively view and manipulate epochs by `Jaakko Leppakangas`_
+    - Add epochs browser to interactively view and manipulate epochs with :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
 
     - Speed up TF-MxNE inverse solver with block coordinate descent by `Daniel Strohmeier`_ and `Yousra Bekhti`_
 
