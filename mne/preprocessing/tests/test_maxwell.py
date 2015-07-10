@@ -7,16 +7,19 @@ import warnings
 import numpy as np
 from numpy.testing import (assert_equal, assert_allclose,
                            assert_array_almost_equal)
+from nose.tools import assert_true
 
 from mne.preprocessing import maxwell
 from mne.datasets import testing
 from mne.io import Raw
+from mne.utils import slow_test
 warnings.simplefilter('always')  # Always throw warnings
 
 
 def test_spherical_harmonic():
-    from scipy.special import sph_harm as scipy_sph_harm
     """Test for spherical harmonics"""
+    from scipy.special import sph_harm as scipy_sph_harm
+
     deg = 1
     order = -1
     azimuth = np.random.random_sample(size=(50, 1)) * 2 * np.pi
@@ -31,6 +34,7 @@ def test_spherical_harmonic():
                               err_msg='Spherical harmonic mismatch')
 
 
+@slow_test
 @testing.requires_testing_data
 def test_maxwell_filter():
     """Test multipolar moment and Maxwell filter"""
@@ -43,7 +47,7 @@ def test_maxwell_filter():
     raw_fname = op.join(data_path, 'SSS', file_name + '_raw.fif')
     sss_std_fname = op.join(data_path, 'SSS', file_name +
                             '_raw_simp_stdOrigin_sss.fif')
-    sss_nonStd_fname = op.join(data_path, 'SSS/', file_name +
+    sss_nonStd_fname = op.join(data_path, 'SSS', file_name +
                                '_raw_simp_nonStdOrigin_sss.fif')
 
     raw = Raw(raw_fname, preload=False, proj=False,
@@ -98,7 +102,7 @@ def test_maxwell_filter():
     bench_rms = np.sqrt(np.mean(sss_std[:, :][0] ** 2, axis=1))
     error = raw_sss[:, :][0] - sss_std[:, :][0]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000'
+    assert_true(np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000')
 
     # Test sss computation at non-standard head origin
     raw_sss = maxwell.maxwell_filter(raw, origin=[0., 20., 20.],
@@ -110,5 +114,5 @@ def test_maxwell_filter():
     bench_rms = np.sqrt(np.mean(sss_nonStd[:, :][0] ** 2, axis=1))
     error = raw_sss[:, :][0] - sss_nonStd[:, :][0]
     error_rms = np.sqrt(np.mean(error ** 2, axis=1))
-    assert np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000'
+    assert_true(np.mean(bench_rms / error_rms) > 1000, 'SNR < 1000')
 

@@ -9,7 +9,7 @@ from os import path as op
 import warnings
 import numpy as np
 from scipy.linalg import pinv
-from scipy.misc import factorial
+from math import factorial
 
 from .. import pick_types, pick_info
 from ..io.constants import FIFF
@@ -62,6 +62,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     # reconstruction
     if len(raw.info['bads']) > 0:
         raise RuntimeError('Maxwell filter does not yet handle bad channels.')
+    if raw.proj:
+        raise RuntimeError('Projectors cannot be applied to raw data.')
 
     # TODO: Improve logging process to better match Elekta's version
     # Read coil definitions from file
@@ -72,6 +74,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     picks = [raw.info['ch_names'].index(coil['chname'])
              for coil in all_coils]
     coils = [all_coils[ci] for ci in picks]
+    raw.preload_data()
     raw.pick_channels(coil['chname'] for coil in coils)
 
     data, times = raw[picks, :]
@@ -232,7 +235,7 @@ def _alegendre_deriv(degree, order, val):
 
     Returns
     -------
-    dPlm
+    dPlm : float
         Associated Legendre function derivative
     """
     from scipy.special import lpmv
@@ -269,7 +272,7 @@ def _grad_in_components(degree, order, rad, az, pol):
 
     Returns
     -------
-    ndarray, shape (n_samples, 3)
+    grads : ndarray, shape (n_samples, 3)
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
@@ -314,7 +317,7 @@ def _grad_out_components(degree, order, rad, az, pol):
 
     Returns
     -------
-    ndarray, shape (n_samples, 3)
+    grads : ndarray, shape (n_samples, 3)
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
@@ -360,7 +363,7 @@ def _get_real_grad(grad_vec_raw, order):
     else:
         grad_vec = grad_vec_raw
 
-    return np.real_if_close(grad_vec)
+    return np.real(grad_vec)
 
 
 def get_num_moments(int_order, ext_order):
@@ -381,8 +384,7 @@ def get_num_moments(int_order, ext_order):
 
     # TODO: Eventually, reuse code in field_interpolation
 
-    M = int_order ** 2 + 2 * int_order + ext_order ** 2 + 2 * ext_order
-    return M
+    return int_order ** 2 + 2 * int_order + ext_order ** 2 + 2 * ext_order
 
 
 def _sph_to_cart_partials(sph_pts, sph_grads):
@@ -435,7 +437,7 @@ def _cart_to_sph(cart_pts):
 
     Returns
     -------
-    ndarray, shape (n_points, 3)
+    sph_pts : ndarray, shape (n_points, 3)
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
 
@@ -514,11 +516,34 @@ def _make_coils(info, accurate=True, elekta_defs=False):
 
 
 def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
-    """Helper function to update info after Maxwell filtering."""
+    """Helper function to update info after Maxwell filtering.
+
+    Parameters
+    ----------
+    raw : instance of mne.io.Raw
+        Data to be filtered
+    origin : array-like, shape (3,)
+        Origin of internal and external multipolar moment space in head coords
+        and in millimeters
+    int_order : int
+        Order of internal component of spherical expansion
+    ext_order : int
+        Order of external component of spherical expansion
+    nsens : int
+        Number of sensors
+    nmoments : int
+        Number of multipolar moments
+
+    Returns
+    -------
+    raw : mne.io.Raw
+        raw file object with raw.info modified
+    """
+    from .. import __version__
 
     info_dict = dict(int_order=int_order, ext_order=ext_order,
                      origin=origin, nsens=nsens, nmoments=nmoments,
-                     creator='MNE\'s Maxwell Filter')
+                     creator='mne-python v%s' % __version__)
     raw.info['maxshield'] = False
 
     # Insert information in raw.info['proc_info']
