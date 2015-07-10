@@ -1,28 +1,16 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
 #          Jussi Nurminen <jnu@iki.fi>
 
-# This code was adapted and relicensed (with BSD form) with permission from
-# Jussi Nurminen
 
 # License: BSD (3-clause)
 
-# Equation numbers refer to Taulu and Kajola, 2005. 'Presentation of
-# electromagnetic multichannel data: The signal space separation method,' which
-# can be found for free online.
-
-# Note, there are an absurd number of different possible notations for
-# spherical coordinates, which confounds the notation for spherical harmonics.
-# Here, we purposefully stay away from shorthand notation in both and use
-# explicit terms (like 'azimuth' and 'polar') to avoid confusion.
-
-
 from __future__ import division
 from os import path as op
+import warnings
 import numpy as np
-from scipy.special import lpmv
 from scipy.linalg import pinv
-from scipy.misc import factorial as fact
-from ..utils import logger
+from scipy.misc import factorial
+
 from .. import pick_types, pick_info
 from ..io.constants import FIFF
 from ..forward._compute_forward import _concatenate_coils
@@ -48,18 +36,37 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     -------
     raw_sss : instance of mne.io.Raw
         The raw data with Maxwell filtering applied
+
+    Notes
+    -----
+    .. versionadded:: 0.10
+
+    Equation numbers refer to Taulu and Kajola, 2005.
+
+    There are an absurd number of different possible notations for spherical
+    coordinates, which confounds the notation for spherical harmonics.  Here,
+    we purposefully stay away from shorthand notation in both and use explicit
+    terms (like 'azimuth' and 'polar') to avoid confusion.
+
+    This code was adapted and relicensed (with BSD form) with permission from
+    Jussi Nurminen.
+
+    References
+    ----------
+    .. [1] Taulu and Kajola, 2005. "Presentation of electromagnetic
+           multichannel data: The signal space separation method".
+           http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
     """
 
     # TODO: Exclude 'bads' in multipolar moment calc, add back during
     # reconstruction
-    assert (raw.info['bads'] == [], 'Maxwell filter does not yet handle bad '
-            'channels.')
+    if len(raw.info['bads']) > 0:
+        raise RuntimeError('Maxwell filter does not yet handle bad channels.')
 
+    # TODO: Improve logging process to better match Elekta's version
     # Read coil definitions from file
-    coil_def_file = op.join(op.split(__file__)[0], '..', 'data',
-                            'coil_def_Elekta.dat')
     all_coils, meg_info = _make_coils(raw.info, accurate=True,
-                                      coil_def=coil_def_file)
+                                      elekta_defs=True)
 
     # Create coil list and pick MEG channels
     picks = [raw.info['ch_names'].index(coil['chname'])
@@ -87,8 +94,9 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     recon = np.dot(S_in, mm[:S_in.shape[1], :])
 
     # Return reconstructed raw file object
-    raw_sss = raw.copy()
-    raw_sss[:, :] = recon / coil_scale[:, np.newaxis]
+    raw_sss = _update_info(raw.copy(), origin, int_order, ext_order,
+                           data.shape[0], mm.shape[0])
+    raw_sss._data[:, :] = recon / coil_scale[:, np.newaxis]
 
     return raw_sss
 
@@ -110,7 +118,7 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
     Returns
     -------
-    tuple, len (2)
+    bases: tuple, len (2)
         Internal and external basis sets ndarrays with shape
         (n_coils, n_mult_moments)
     """
@@ -128,53 +136,40 @@ def _sss_basis(origin, coils, int_order, ext_order):
     coil_scale = np.ones((len(coils)))
     coil_scale[np.array([coil['coil_class'] == 1.0 for coil in coils])] = 100.
 
-    assert n_bases <= n_sens, ('Number of requested bases (%s) exceeds number '
-                               'of sensors (%s)' % (str(n_bases), str(n_sens)))
+    if n_bases > n_sens:
+        raise ValueError('Number of requested bases (%s) exceeds number of '
+                         'sensors (%s)' % (str(n_bases), str(n_sens)))
 
     # Compute position vector between origin and coil integration pts
     cvec_cart = r_int_pts - origin[np.newaxis, :]
     # Convert points to spherical coordinates
     cvec_sph = _cart_to_sph(cvec_cart)
 
-    # Compute internal basis vectors (exclude degree 0; RHS Eq. 5)
-    for deg in range(1, int_order + 1):
-        for order in range(-deg, deg + 1):
+    # Compute internal/external basis vectors (exclude degree 0; L/RHS Eq. 5)
+    for spc, g_func, order in zip([S_in, S_out],
+                                  [_grad_in_components, _grad_out_components],
+                                  [int_order, ext_order]):
+        for deg in range(1, order + 1):
+            for order in range(-deg, deg + 1):
 
-            # Compute gradient for integration point position vectors
-            grads = -1 * _grad_in_components(deg, order, cvec_sph[:, 0],
-                                             cvec_sph[:, 1], cvec_sph[:, 2])
+                # Compute gradient for all integration points
+                grads = -1 * g_func(deg, order, cvec_sph[:, 0], cvec_sph[:, 1],
+                                    cvec_sph[:, 2])
 
-            # Gradients dotted with integration point normals and weighted
-            a1_all = wcoils * np.einsum('ij,ij->i', grads, ncoils)
+                # Gradients dotted with integration point normals and weighted
+                all_grads = wcoils * np.einsum('ij,ij->i', grads, ncoils)
 
-            # For order and degree, sum across integration pts for each sensor
-            for pt_i in range(0, len(int_lens) - 1):
-                int_pts_sum = np.sum(a1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_in[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
+                # For order and degree, sum over each sensor's integration pts
+                for pt_i in range(0, len(int_lens) - 1):
+                    int_pts_sum = \
+                        np.sum(all_grads[int_lens[pt_i]:int_lens[pt_i + 1]])
+                    spc[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
 
-    # Compute external basis vectors (exclude degree 0; RHS Eq. 5)
-    for deg in range(1, ext_order + 1):
-        for order in range(-deg, deg + 1):
+        # Scale magnetometers and normalize basis vectors to unity magnitude
+        spc *= coil_scale[:, np.newaxis]
+        spc /= np.sqrt(np.sum(spc * spc, axis=0))[np.newaxis, :]
 
-            # Compute gradient for integration point position vectors
-            grads = -1 * _grad_out_components(deg, order, cvec_sph[:, 0],
-                                              cvec_sph[:, 1], cvec_sph[:, 2])
-
-            # Gradients dotted with integration point normals and weighted
-            b1_all = wcoils * np.einsum('ij,ij->i', grads, ncoils)
-
-            # For order and degree, sum across integration pts for each sensor
-            for pt_i in range(0, len(int_lens) - 1):
-                int_pts_sum = np.sum(b1_all[int_lens[pt_i]:int_lens[pt_i + 1]])
-                S_out[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
-
-    # Scale and normalize each basis vector to have unity magnitude
-    S_in *= coil_scale[:, np.newaxis]
-    S_out *= coil_scale[:, np.newaxis]
-    S_in = np.divide(S_in, np.linalg.norm(S_in, axis=0))
-    S_out = np.divide(S_out, np.linalg.norm(S_out, axis=0))
-
-    return (S_in, S_out)
+    return S_in, S_out
 
 
 def _sph_harmonic(degree, order, az, pol):
@@ -202,21 +197,24 @@ def _sph_harmonic(degree, order, az, pol):
     base : complex float
         The spherical harmonic value at the specified azimuth and polar angles
     """
+    from scipy.special import lpmv
+
     # Error checks
-    assert np.abs(order) <= degree, (
-        'Absolute value of expansion coefficient must be <= degree')
-    assert (az >= -2 * np.pi).all() and (az <= 2 * np.pi).all(), (
-        'Azimuth coord outside [-2*pi, 2*pi]')
-    assert (pol >= 0).all() and (pol <= np.pi).all(), (
-        'Polar coord outside [0, pi]')
+    if np.abs(order) > degree:
+        raise ValueError('Absolute value of expansion coefficient must be <= '
+                         'degree')
+    if (az < -2 * np.pi).any() or (az > 2 * np.pi).any():
+        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
+    if(pol < 0).any() or (pol > np.pi).any():
+        raise ValueError('Polar coords must lie in [0, pi]')
 
     #Ensure that polar and azimuth angles are arrays
     azimuth = np.array(az)
     polar = np.array(pol)
 
-    base = np.sqrt((2 * degree + 1) / (4 * np.pi) * fact(degree - order) /
-                   fact(degree + order)) * lpmv(order, degree, np.cos(polar)) \
-        * np.exp(1j * order * azimuth)
+    base = np.sqrt((2 * degree + 1) / (4 * np.pi) * factorial(degree - order) /
+                   factorial(degree + order)) * \
+        lpmv(order, degree, np.cos(polar)) * np.exp(1j * order * azimuth)
     return base
 
 
@@ -237,11 +235,13 @@ def _alegendre_deriv(degree, order, val):
     dPlm
         Associated Legendre function derivative
     """
+    from scipy.special import lpmv
 
     C = 1
     if order < 0:
         order = abs(order)
-        C = (-1) ** order * fact(degree - order) / fact(degree + order)
+        C = (-1) ** order * factorial(degree - order) / factorial(degree +
+                                                                  order)
     return C * (order * val * lpmv(order, degree, val) + (degree + order) *
                 (degree - order + 1) * np.sqrt(1 - val ** 2) *
                 lpmv(order - 1, degree, val)) / (1 - val ** 2)
@@ -281,9 +281,9 @@ def _grad_in_components(degree, order, rad, az, pol):
         _sph_harmonic(degree, order, az, pol)
 
     g_pol = 1 / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
-                                              fact(degree - order) /
+                                              factorial(degree - order) /
                                               (4 * np.pi *
-                                               fact(degree + order))) * \
+                                               factorial(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
@@ -326,9 +326,9 @@ def _grad_out_components(degree, order, rad, az, pol):
         _sph_harmonic(degree, order, az, pol)
 
     g_pol = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
-                                          fact(degree - order) /
+                                          factorial(degree - order) /
                                           (4 * np.pi *
-                                           fact(degree + order))) * \
+                                           factorial(degree + order))) * \
         -np.sin(pol) * _alegendre_deriv(degree, order, np.cos(pol)) * \
         np.exp(1j * order * az)
 
@@ -367,7 +367,7 @@ def get_num_moments(int_order, ext_order):
     """Compute total number of multipolar moments. Equivalent to eq. 32.
 
     Parameters
-    ---------
+    ----------
     int_order : int
         Internal expansion order
     ext_order : int
@@ -448,7 +448,7 @@ def _cart_to_sph(cart_pts):
 
 # TODO: Eventually refactor this in forward computation code
 
-def _make_coils(info, accurate=True, coil_def=None):
+def _make_coils(info, accurate=True, elekta_defs=False):
     """Prepare dict of MEG coils and their information.
 
     Parameters
@@ -472,7 +472,6 @@ def _make_coils(info, accurate=True, coil_def=None):
         accuracy = FIFF.FWD_COIL_ACCURACY_ACCURATE
     else:
         accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
-    info_extra = 'info'
     meg_info = None
     megnames, megcoils, compcoils = [], [], []
 
@@ -482,8 +481,6 @@ def _make_coils(info, accurate=True, coil_def=None):
     nmeg = len(picks)
     if nmeg > 0:
         megchs = pick_info(info, picks)['chs']
-        logger.info('Read %3d MEG channels from %s'
-                    % (len(picks), info_extra))
 
     if nmeg <= 0:
         raise RuntimeError('Could not find any MEG channels')
@@ -491,10 +488,20 @@ def _make_coils(info, accurate=True, coil_def=None):
     meg_info = pick_info(info, picks) if nmeg > 0 else None
 
     # Create coil descriptions with transformation to head or MRI frame
-    if coil_def is None:
-        templates = _read_coil_defs()
+    if elekta_defs:
+        elekta_coil_defs = op.join(op.split(__file__)[0], '..', 'data',
+                                   'coil_def_Elekta.dat')
+        templates = _read_coil_defs(elekta_coil_defs)
+
+        # Check that we have all coils needed
+        template_set = set([coil['coil_type'] for coil in templates['coils']])
+        req_coil_set = set([coil['coil_type'] for coil in meg_info['chs']])
+        if not req_coil_set.issubset(template_set):
+            warnings.warn('Didn\'t locate find enough Elekta coil definitions,'
+                          ' using default MNE coils.')
+            templates = _read_coil_defs()
     else:
-        templates = _read_coil_defs(coil_def)
+        templates = _read_coil_defs()
 
     if nmeg > 0:
         # TODO: In fwd solution code, reformulate check that forces head
@@ -505,3 +512,19 @@ def _make_coils(info, accurate=True, coil_def=None):
 
     return megcoils, meg_info
 
+
+def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
+    """Helper function to update info after Maxwell filtering."""
+
+    info_dict = dict(int_order=int_order, ext_order=ext_order,
+                     origin=origin, nsens=nsens, nmoments=nmoments,
+                     creator='MNE\'s Maxwell Filter')
+    raw.info['maxshield'] = False
+
+    # Insert information in raw.info['proc_info']
+    if 'proc_history' in raw.info.keys():
+        raw.info['proc_history'].insert(0, info_dict)
+    else:
+        raw.info['proc_history'] = [info_dict]
+
+    return raw
