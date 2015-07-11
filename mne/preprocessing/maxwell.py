@@ -6,7 +6,6 @@
 
 from __future__ import division
 from os import path as op
-import warnings
 import numpy as np
 from scipy.linalg import pinv
 from math import factorial
@@ -15,9 +14,12 @@ from .. import pick_types, pick_info
 from ..io.constants import FIFF
 from ..forward._compute_forward import _concatenate_coils
 from ..forward._make_forward import _read_coil_defs, _create_coils
+from ..utils import verbose, logger
 
 
-def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
+@verbose
+def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
+                   verbose=None):
     """Apply Maxwell filter to data using spherical harmonics.
 
     Parameters
@@ -31,6 +33,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
         Order of internal component of spherical expansion
     ext_order : int
         Order of external component of spherical expansion
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose)
 
     Returns
     -------
@@ -41,7 +45,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     -----
     .. versionadded:: 0.10
 
-    Equation numbers refer to Taulu and Kajola, 2005.
+    Equation numbers refer to Taulu and Kajola, 2005 [1]_.
 
     There are an absurd number of different possible notations for spherical
     coordinates, which confounds the notation for spherical harmonics.  Here,
@@ -53,8 +57,10 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
 
     References
     ----------
-    .. [1] Taulu and Kajola, 2005. "Presentation of electromagnetic
-           multichannel data: The signal space separation method".
+    .. [1] Taulu S. and Kajola M. "Presentation of electromagnetic
+           multichannel data: The signal space separation method,"
+           Journal of Applied Physics, vol. 97, pp. 124905 1-10, 2005.
+
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
     """
 
@@ -75,9 +81,8 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
              for coil in all_coils]
     coils = [all_coils[ci] for ci in picks]
     raw.preload_data()
-    raw.pick_channels(coil['chname'] for coil in coils)
 
-    data, times = raw[picks, :]
+    data, _ = raw[picks, :]
 
     # Magnetometers (with coil_class == 1.0) must be scaled by 100 to improve
     # numerical stability as they have different scales than gradiometers
@@ -99,7 +104,7 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3):
     # Return reconstructed raw file object
     raw_sss = _update_info(raw.copy(), origin, int_order, ext_order,
                            data.shape[0], mm.shape[0])
-    raw_sss._data[:, :] = recon / coil_scale[:, np.newaxis]
+    raw_sss._data[picks, :] = recon / coil_scale[:, np.newaxis]
 
     return raw_sss
 
@@ -176,11 +181,12 @@ def _sss_basis(origin, coils, int_order, ext_order):
 
 
 def _sph_harmonic(degree, order, az, pol):
-    """Evaluate point in specified multipolar moment. Equation 4.
+    """Evaluate point in specified multipolar moment. [1]_ Equation 4.
 
     When using, pay close attention to inputs. Spherical harmonic notation for
     order/degree, and theta/phi are both reversed in original SSS work compared
-    to many other sources. Based on 'legendre_associated' by John Burkardt.
+    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
+    more discussion.
 
     Parameters
     ----------
@@ -211,7 +217,7 @@ def _sph_harmonic(degree, order, az, pol):
     if(pol < 0).any() or (pol > np.pi).any():
         raise ValueError('Polar coords must lie in [0, pi]')
 
-    #Ensure that polar and azimuth angles are arrays
+    # Ensure that polar and azimuth angles are arrays
     azimuth = np.array(az)
     polar = np.array(pol)
 
@@ -367,7 +373,7 @@ def _get_real_grad(grad_vec_raw, order):
 
 
 def get_num_moments(int_order, ext_order):
-    """Compute total number of multipolar moments. Equivalent to eq. 32.
+    """Compute total number of multipolar moments. Equivalent to [1]_ Eq. 32.
 
     Parameters
     ----------
@@ -441,7 +447,7 @@ def _cart_to_sph(cart_pts):
         Array containing points in spherical coordinates (rad, azimuth, polar)
     """
 
-    rad = np.linalg.norm(cart_pts, axis=1)
+    rad = np.sqrt(np.sum(cart_pts * cart_pts, axis=1))
     az = np.arctan2(cart_pts[:, 1], cart_pts[:, 0])
     pol = np.arccos(cart_pts[:, 2] / rad)
 
@@ -475,7 +481,7 @@ def _make_coils(info, accurate=True, elekta_defs=False):
     else:
         accuracy = FIFF.FWD_COIL_ACCURACY_NORMAL
     meg_info = None
-    megnames, megcoils, compcoils = [], [], []
+    megcoils = []
 
     # MEG channels
     picks = pick_types(info, meg=True, eeg=False, ref_meg=False,
@@ -499,8 +505,8 @@ def _make_coils(info, accurate=True, elekta_defs=False):
         template_set = set([coil['coil_type'] for coil in templates['coils']])
         req_coil_set = set([coil['coil_type'] for coil in meg_info['chs']])
         if not req_coil_set.issubset(template_set):
-            warnings.warn('Didn\'t locate find enough Elekta coil definitions,'
-                          ' using default MNE coils.')
+            logger.info('Didn\'t locate find enough Elekta coil definitions,'
+                        ' using default MNE coils.')
             templates = _read_coil_defs()
     else:
         templates = _read_coil_defs()
@@ -508,7 +514,8 @@ def _make_coils(info, accurate=True, elekta_defs=False):
     if nmeg > 0:
         # TODO: In fwd solution code, reformulate check that forces head
         # coords and remove this hack. (Or use only head coords)
-        #info['dev_head_t']['trans'] = np.eye(4)  # Uncomment for device coords
+        # Uncomment below for device coords
+        # info['dev_head_t']['trans'] = np.eye(4)
         megcoils = _create_coils(megchs, accuracy, info['dev_head_t'], 'meg',
                                  templates)
 
@@ -540,16 +547,25 @@ def _update_info(raw, origin, int_order, ext_order, nsens, nmoments):
         raw file object with raw.info modified
     """
     from .. import __version__
+    # TODO: Flesh out/fix bookkeeping info
 
-    info_dict = dict(int_order=int_order, ext_order=ext_order,
-                     origin=origin, nsens=nsens, nmoments=nmoments,
-                     creator='mne-python v%s' % __version__)
     raw.info['maxshield'] = False
+    sss_info_dict = dict(in_order=int_order, out_order=ext_order,
+                         origin=origin, nsens=nsens, nmoments=nmoments,
+                         components=np.ones(nmoments))
+
+    max_info_dict = dict(max_st={}, sss_cal={}, sss_ctc={},
+                         sss_info=sss_info_dict)
+
+    block_id = dict(machid=-1 * np.ones(2), secs=-1, usecs=-1, version=-1)
+    proc_block = dict(max_info=max_info_dict, block_id=block_id,
+                      creator='mne-python v%s' % __version__,
+                      date=-1, experimentor='')
 
     # Insert information in raw.info['proc_info']
     if 'proc_history' in raw.info.keys():
-        raw.info['proc_history'].insert(0, info_dict)
+        raw.info['proc_history'].insert(0, proc_block)
     else:
-        raw.info['proc_history'] = [info_dict]
+        raw.info['proc_history'] = [proc_block]
 
     return raw
