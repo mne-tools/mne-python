@@ -47,11 +47,6 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
     Equation numbers refer to Taulu and Kajola, 2005 [1]_.
 
-    There are an absurd number of different possible notations for spherical
-    coordinates, which confounds the notation for spherical harmonics.  Here,
-    we purposefully stay away from shorthand notation in both and use explicit
-    terms (like 'azimuth' and 'polar') to avoid confusion.
-
     This code was adapted and relicensed (with BSD form) with permission from
     Jussi Nurminen.
 
@@ -63,6 +58,13 @@ def maxwell_filter(raw, origin=(0, 0, 40), int_order=8, ext_order=3,
 
            http://lib.tkk.fi/Diss/2008/isbn9789512295654/article2.pdf
     """
+
+    # There are an absurd number of different possible notations for spherical
+    # coordinates, which confounds the notation for spherical harmonics.  Here,
+    # we purposefully stay away from shorthand notation in both and use
+    # explicit terms (like 'azimuth' and 'polar') to avoid confusion.
+    # See mathworld.wolfram.com/SphericalHarmonic.html for more discussion.
+    # Our code follows the same standard that ``scipy`` uses for ``sph_harm``.
 
     # TODO: Exclude 'bads' in multipolar moment calc, add back during
     # reconstruction
@@ -180,53 +182,6 @@ def _sss_basis(origin, coils, int_order, ext_order):
     return S_in, S_out
 
 
-def _sph_harmonic(degree, order, az, pol):
-    """Evaluate point in specified multipolar moment. [1]_ Equation 4.
-
-    When using, pay close attention to inputs. Spherical harmonic notation for
-    order/degree, and theta/phi are both reversed in original SSS work compared
-    to many other sources. See mathworld.wolfram.com/SphericalHarmonic.html for
-    more discussion.
-
-    Parameters
-    ----------
-    degree : int
-        Degree of spherical harmonic. (Usually) corresponds to 'l'
-    order : int
-        Order of spherical harmonic. (Usually) corresponds to 'm'
-    az : float
-        Azimuthal (longitudinal) spherical coordinate [0, 2*pi]. 0 is aligned
-        with x-axis.
-    pol : float
-        Polar (or colatitudinal) spherical coordinate [0, pi]. 0 is aligned
-        with z-axis.
-
-    Returns
-    -------
-    base : complex float
-        The spherical harmonic value at the specified azimuth and polar angles
-    """
-    from scipy.special import lpmv
-
-    # Error checks
-    if np.abs(order) > degree:
-        raise ValueError('Absolute value of expansion coefficient must be <= '
-                         'degree')
-    if (az < -2 * np.pi).any() or (az > 2 * np.pi).any():
-        raise ValueError('Azimuth coords must lie in [-2*pi, 2*pi]')
-    if(pol < 0).any() or (pol > np.pi).any():
-        raise ValueError('Polar coords must lie in [0, pi]')
-
-    # Ensure that polar and azimuth angles are arrays
-    azimuth = np.array(az)
-    polar = np.array(pol)
-
-    base = np.sqrt((2 * degree + 1) / (4 * np.pi) * factorial(degree - order) /
-                   factorial(degree + order)) * \
-        lpmv(order, degree, np.cos(polar)) * np.exp(1j * order * azimuth)
-    return base
-
-
 def _alegendre_deriv(degree, order, val):
     """Compute the derivative of the associated Legendre polynomial at a value.
 
@@ -282,12 +237,13 @@ def _grad_in_components(degree, order, rad, az, pol):
         Gradient of the spherical harmonic and vector specified in rectangular
         coordinates
     """
+    from scipy.special import sph_harm
     # Compute gradients for all spherical coordinates (Eq. 6)
-    g_rad = -(degree + 1) / rad ** (degree + 2) * _sph_harmonic(degree, order,
-                                                                az, pol)
+    g_rad = -(degree + 1) / rad ** (degree + 2) * sph_harm(order, degree,
+                                                           az, pol)
 
     g_az = 1 / (rad ** (degree + 2) * np.sin(pol)) * 1j * order * \
-        _sph_harmonic(degree, order, az, pol)
+        sph_harm(order, degree, az, pol)
 
     g_pol = 1 / rad ** (degree + 2) * np.sqrt((2 * degree + 1) *
                                               factorial(degree - order) /
@@ -328,11 +284,11 @@ def _grad_out_components(degree, order, rad, az, pol):
         coordinates
     """
     # Compute gradients for all spherical coordinates (Eq. 7)
-    g_rad = degree * rad ** (degree - 1) * _sph_harmonic(degree, order, az,
-                                                         pol)
+    from scipy.special import sph_harm
+    g_rad = degree * rad ** (degree - 1) * sph_harm(order, degree, az, pol)
 
     g_az = rad ** (degree - 1) / np.sin(pol) * 1j * order * \
-        _sph_harmonic(degree, order, az, pol)
+        sph_harm(order, degree, az, pol)
 
     g_pol = rad ** (degree - 1) * np.sqrt((2 * degree + 1) *
                                           factorial(degree - order) /

@@ -16,24 +16,6 @@ from mne.utils import slow_test, _TempDir
 warnings.simplefilter('always')  # Always throw warnings
 
 
-def test_spherical_harmonic():
-    """Test for spherical harmonics"""
-    from scipy.special import sph_harm as scipy_sph_harm
-
-    deg = 1
-    order = -1
-    azimuth = np.random.random_sample(size=(50, 1)) * 2 * np.pi
-    polar = np.random.random_sample(size=(50, 1)) * np.pi
-
-    # Internal calculation
-    sph_harmonic = maxwell._sph_harmonic(deg, order, azimuth, polar)
-    # Check against scipy
-    sph_harmonic_scipy = scipy_sph_harm(order, deg, azimuth, polar)
-
-    assert_array_almost_equal(sph_harmonic, sph_harmonic_scipy, decimal=15,
-                              err_msg='Spherical harmonic mismatch')
-
-
 @slow_test
 @testing.requires_testing_data
 def test_maxwell_filter():
@@ -52,15 +34,17 @@ def test_maxwell_filter():
     sss_nonStd_fname = op.join(data_path, 'SSS', file_name +
                                '_raw_simp_nonStdOrigin_sss.fif')
 
-    raw = Raw(raw_fname, preload=False, proj=False,
-              allow_maxshield=True).crop(0., 1., False)
+    with warnings.catch_warnings(record=True):  # maxshield
+        raw = Raw(raw_fname, preload=False, proj=False,
+                  allow_maxshield=True).crop(0., 1., False)
     raw.preload_data()
-    sss_std = Raw(sss_std_fname, preload=True, proj=False,
-                  allow_maxshield=True)
-    sss_nonStd = Raw(sss_nonStd_fname, preload=True, proj=False,
-                     allow_maxshield=True)
-    raw_err = Raw(raw_fname, preload=False, proj=True,
-                  allow_maxshield=True).crop(0., 0.1, False)
+    with warnings.catch_warnings(record=True):  # maxshield, naming
+        sss_std = Raw(sss_std_fname, preload=True, proj=False,
+                      allow_maxshield=True)
+        sss_nonStd = Raw(sss_nonStd_fname, preload=True, proj=False,
+                         allow_maxshield=True)
+        raw_err = Raw(raw_fname, preload=False, proj=True,
+                      allow_maxshield=True).crop(0., 0.1, False)
     assert_raises(RuntimeError, maxwell.maxwell_filter, raw_err)
 
     # Create coils
