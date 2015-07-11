@@ -1,5 +1,8 @@
 language: python
 
+# Use container-based infrastructure
+sudo: false
+
 env:
     # Enable python 2 and python 3 builds
     # DEPS=full: build optional dependencies: pandas, nitime, statsmodels,
@@ -46,8 +49,6 @@ install:
         export MNE_ROOT="${PWD}/minimal_cmds";
         export NEUROMAG2FT_ROOT="${PWD}/minimal_cmds/bin";
         source ${MNE_ROOT}/bin/mne_setup_sh;
-        sudo apt-get update -qq;
-        sudo apt-get install -qq -y libxp6;
         conda install --yes --quiet pandas$PANDAS scikit-learn$SKLEARN patsy h5py pillow numpy$NUMPY scipy$SCIPY libpng$LIBPNG matplotlib$MPL;
         pip install -q joblib nibabel;
         if [ "${PYTHON}" == "3.4" ]; then
