@@ -99,7 +99,7 @@ if __name__ == "__main__":
                     'mne.channels.tests'],
           package_data={'mne': [op.join('data', '*.sel'),
                                 op.join('data', 'icos.fif.gz'),
-                                op.join('data', 'coil_def.dat'),
+                                op.join('data', 'coil_def*.dat'),
                                 op.join('data', 'helmets', '*.fif.gz'),
                                 op.join('data', 'FreeSurferColorLUT.txt'),
                                 op.join('channels', 'data', 'layouts', '*.lout'),

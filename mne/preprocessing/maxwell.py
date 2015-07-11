@@ -461,14 +461,13 @@ def _make_coils(info, accurate=True, elekta_defs=False):
 
     Parameters
     ----------
-    info : instance of mne.io.meas_info.Info | str
-        If str, then it should be a filename to a Raw, Epochs, or Evoked
-        file with measurement information. If dict, should be an info
-        dict (such as one from Raw, Epochs, or Evoked).
+    info : instance of mne.io.meas_info.Info
+        Info dict from Raw FIF file
     accurate : bool
-        Accuracy of coil information.
-    coil_def : str | None
-        Filepath to the coil definitions file.
+        If True, use high accuracy of coil information (more integration
+        points)
+    elekta_defs : bool
+        If True, use Elekta's integration point geometry
 
     Returns
     -------

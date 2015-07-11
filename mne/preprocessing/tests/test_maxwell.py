@@ -86,9 +86,9 @@ def test_maxwell_filter():
                  'S_out has incorrect shape')
 
     # Check normalization
-    assert_allclose(np.linalg.norm(S_in, axis=0), np.ones((S_in.shape[1])),
+    assert_allclose(np.sum(S_in ** 2, axis=0), np.ones((S_in.shape[1])),
                     rtol=1e-12, err_msg='S_in normalization error')
-    assert_allclose(np.linalg.norm(S_out, axis=0), np.ones((S_out.shape[1])),
+    assert_allclose(np.sum(S_out ** 2, axis=0), np.ones((S_out.shape[1])),
                     rtol=1e-12, err_msg='S_out normalization error')
 
     # Test sss computation at the standard head origin
