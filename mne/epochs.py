@@ -1165,7 +1165,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             counts = ['%r: %i' % (k, sum(self.events[:, 2] == v))
                       for k, v in sorted(self.event_id.items())]
             s += ',\n %s' % ', '.join(counts)
-        return '<%s  |  %s>' % (self.__class__.__name__, s)
+        class_name = self.__class__.__name__
+        if class_name == '_BaseEpochs':
+            class_name = 'Epochs'
+        return '<%s  |  %s>' % (class_name, s)
 
     def _key_match(self, key):
         """Helper function for event dict use"""
