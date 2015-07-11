@@ -417,6 +417,7 @@ def test_read_write_epochs():
     # test IO
     epochs.save(temp_fname)
     epochs_read = read_epochs(temp_fname)
+    assert_true(str(epochs_read).startswith('<Epochs'))
 
     assert_array_almost_equal(epochs_read.get_data(), epochs.get_data())
     assert_array_equal(epochs_read.times, epochs.times)
@@ -1506,6 +1507,7 @@ def test_array_epochs():
                    [1, 2] * 5]
     event_id = {'a': 1, 'b': 2}
     epochs = EpochsArray(data, info, events, tmin, event_id)
+    assert_true(str(epochs).startswith('<EpochsArray'))
     # From GH#1963
     assert_raises(ValueError, EpochsArray, data[:-1], info, events, tmin,
                   event_id)
