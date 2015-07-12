@@ -380,6 +380,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    ica_find_eog_events
    read_ica
    run_ica
+   maxwell_filter
 
 EEG referencing:
 
