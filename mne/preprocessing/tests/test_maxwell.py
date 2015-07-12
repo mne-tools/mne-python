@@ -16,7 +16,6 @@ from mne.utils import slow_test, _TempDir
 warnings.simplefilter('always')  # Always throw warnings
 
 
-@slow_test
 @testing.requires_testing_data
 def test_maxwell_filter():
     """Test multipolar moment and Maxwell filter"""
