@@ -689,11 +689,19 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
         times, freqs = self.times.copy(), self.freqs.copy()
-        data = self.data[picks]
+        info = self.info
+        data = self.data
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax, mode,
                          baseline, vmin, vmax, dB)
+
+        if picks is None:
+            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
+        picks = np.atleast_1d(picks)
+
+        data = data[picks]
 
         tmin, tmax = times[0], times[-1]
         if isinstance(axes, plt.Axes):
@@ -843,9 +851,13 @@ class AverageTFR(ContainsMixin, UpdateChannelsMixin):
         data = self.data
         info = self.info
 
-        if picks is not None:
-            data = data[picks]
-            info = pick_info(info, picks)
+        if picks is None:
+            picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                               exclude='bads')
+        picks = np.atleast_1d(picks)
+
+        data = data[picks]
+        info = pick_info(info, picks)
 
         data, times, freqs, vmin, vmax = \
             _preproc_tfr(data, times, freqs, tmin, tmax, fmin, fmax,
@@ -1147,7 +1159,7 @@ def read_tfrs(fname, condition=None):
     return out
 
 
-def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
+def tfr_morlet(inst, freqs, n_cycles, picks=None, use_fft=False,
                return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
@@ -1159,6 +1171,9 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
+    picks : array-like of int | None
+        The indices of the channels to plot. If None all available
+        channels are displayed.
     use_fft : bool
         The fft based convolution or not.
     return_itc : bool
@@ -1182,9 +1197,16 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
     tfr_multitaper, tfr_stockwell
     """
     data = _get_data(inst, return_itc)
-    picks = pick_types(inst.info, meg=True, eeg=True)
-    info = pick_info(inst.info, picks)
-    data = data[:, picks, :]
+    info = inst.info
+
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+    picks = np.atleast_1d(picks)
+
+    data = data[picks]
+    info = pick_info(info, picks)
+
     power, itc = _induced_power_cwt(data, sfreq=info['sfreq'],
                                     frequencies=freqs,
                                     n_cycles=n_cycles, n_jobs=n_jobs,
@@ -1272,8 +1294,8 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     return psd, itc
 
 
-def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
-                   return_itc=True, decim=1, n_jobs=1):
+def tfr_multitaper(inst, freqs, n_cycles, picks=None, time_bandwidth=4.0,
+                   use_fft=True, return_itc=True, decim=1, n_jobs=1):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1285,6 +1307,9 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
+    picks : array-like of int | None
+        The indices of the channels to plot. If None all available
+        channels are displayed.
     time_bandwidth : float, (optional)
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
@@ -1324,9 +1349,15 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     """
 
     data = _get_data(inst, return_itc)
-    picks = pick_types(inst.info, meg=True, eeg=True)
-    info = pick_info(inst.info, picks)
-    data = data[:, picks, :]
+    info = inst.info
+
+    if picks is None:
+        picks = pick_types(info, meg=True, eeg=True, ref_meg=False,
+                           exclude='bads')
+    picks = np.atleast_1d(picks)
+
+    data = data[picks]
+    info = pick_info(info, picks)
     power, itc = _induced_power_mtm(data, sfreq=info['sfreq'],
                                     frequencies=freqs, n_cycles=n_cycles,
                                     time_bandwidth=time_bandwidth,
