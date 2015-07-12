@@ -132,10 +132,11 @@ def _sss_basis(origin, coils, int_order, ext_order):
         Internal and external basis sets ndarrays with shape
         (n_coils, n_mult_moments)
     """
-    r_int_pts, ncoils, wcoils, int_pts = _concatenate_coils(coils)
-    n_sens = len(int_pts)
+    r_int_pts, ncoils, wcoils, counts = _concatenate_coils(coils)
+    bins = np.repeat(np.arange(len(counts)), counts)
+    n_sens = len(counts)
     n_bases = get_num_moments(int_order, ext_order)
-    int_lens = np.insert(np.cumsum(int_pts), obj=0, values=0)
+    # int_lens = np.insert(np.cumsum(counts), obj=0, values=0)
 
     S_in = np.empty((n_sens, (int_order + 1) ** 2 - 1))
     S_out = np.empty((n_sens, (ext_order + 1) ** 2 - 1))
@@ -170,10 +171,12 @@ def _sss_basis(origin, coils, int_order, ext_order):
                 all_grads = wcoils * np.einsum('ij,ij->i', grads, ncoils)
 
                 # For order and degree, sum over each sensor's integration pts
-                for pt_i in range(0, len(int_lens) - 1):
-                    int_pts_sum = \
-                        np.sum(all_grads[int_lens[pt_i]:int_lens[pt_i + 1]])
-                    spc[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
+                # for pt_i in range(0, len(int_lens) - 1):
+                #    int_pts_sum = \
+                #        np.sum(all_grads[int_lens[pt_i]:int_lens[pt_i + 1]])
+                #    spc[pt_i, deg ** 2 + deg + order - 1] = int_pts_sum
+                spc[:, deg ** 2 + deg + order - 1] = \
+                    np.bincount(bins, weights=all_grads, minlength=len(counts))
 
         # Scale magnetometers and normalize basis vectors to unity magnitude
         spc *= coil_scale[:, np.newaxis]
@@ -373,19 +376,12 @@ def _sph_to_cart_partials(sph_pts, sph_grads):
     """
 
     cart_grads = np.zeros_like(sph_grads)
-
-    # TODO: needs vectorization, currently matching Jussi's code for debugging
-    for pt_i, (sph_pt, sph_grad) in enumerate(zip(sph_pts, sph_grads)):
-        # Calculate cosine and sine of azimuth and polar coord
-        c_a, s_a = np.cos(sph_pt[1]), np.sin(sph_pt[1])
-        c_p, s_p = np.cos(sph_pt[2]), np.sin(sph_pt[2])
-
-        trans = np.array([[c_a * s_p, -s_a, c_a * c_p],
-                          [s_a * s_p, c_a, c_p * s_a],
-                          [c_p, 0, -s_p]])
-
-        cart_grads[pt_i, :] = np.dot(trans, sph_grad)
-
+    c_as, s_as = np.cos(sph_pts[:, 1]), np.sin(sph_pts[:, 1])
+    c_ps, s_ps = np.cos(sph_pts[:, 2]), np.sin(sph_pts[:, 2])
+    trans = np.array([[c_as * s_ps, -s_as, c_as * c_ps],
+                      [s_as * s_ps, c_as, c_ps * s_as],
+                      [c_ps, np.zeros_like(c_as), -s_ps]])
+    cart_grads = np.einsum('ijk,kj->ki', trans, sph_grads)
     return cart_grads
 
 
