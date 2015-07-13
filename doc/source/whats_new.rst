@@ -21,6 +21,7 @@ Changelog
 
     - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
+    - Add support to hide/show all sections with a single keypress ('h') in ``mne.Report`` by `Mainak Jas`_
 
 BUG
 ~~~
