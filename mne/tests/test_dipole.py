@@ -17,7 +17,8 @@ from mne.proj import make_eeg_average_ref_proj
 
 from mne.io import Raw
 
-from mne.surface import _bem_find_surface, _compute_nearest, read_bem_solution
+from mne.surface import _compute_nearest
+from mne.bem import _bem_find_surface, read_bem_solution
 from mne.transforms import (read_trans, apply_trans, _get_mri_head_t)
 
 warnings.simplefilter('always')

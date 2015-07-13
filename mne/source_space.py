@@ -17,8 +17,9 @@ from .io.write import (start_block, end_block, write_int,
                        write_float_sparse_rcs, write_string,
                        write_float_matrix, write_int_matrix,
                        write_coord_trans, start_file, end_file, write_id)
+from .bem import read_bem_surfaces
 from .surface import (read_surface, _create_surf_spacing, _get_ico_surface,
-                      _tessellate_sphere_surf, read_bem_surfaces,
+                      _tessellate_sphere_surf,
                       _read_surface_geom, _normalize_vectors,
                       _complete_surface_info, _compute_nearest,
                       fast_cross_3d, _fast_cross_nd_sum)

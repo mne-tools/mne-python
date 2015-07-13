@@ -12,10 +12,518 @@ import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import (verbose, logger, run_subprocess, get_subjects_dir)
+from .utils import (verbose, logger, run_subprocess, deprecated,
+                    get_subjects_dir)
 from .io.constants import FIFF
+from .io.write import (start_file, start_block, write_float, write_int,
+                       write_float_matrix, write_int_matrix, end_block,
+                       end_file)
+from .io.tag import find_tag
+from .io.tree import dir_tree_find
+from .io.open import fiff_open
 from .externals.six import string_types
-from .surface import read_surface, write_bem_surface
+
+
+# ############################################################################
+# Compute BEM solution
+
+# define VEC_DIFF(from,to,diff) {\
+# (diff)[X] = (to)[X] - (from)[X];\
+
+# The following approach is based on:
+#
+# de Munck JC: "A linear discretization of the volume conductor boundary
+# integral equation using analytically integrated elements",
+# IEEE Trans Biomed Eng. 1992 39(9) : 986 - 990
+#
+
+
+def _calc_beta(rk, rk_norm, rk1, rk1_norm):
+    """These coefficients are used to calculate the magic vector omega"""
+    rkk1 = rk1[0] - rk[0]
+    size = np.sqrt(np.dot(rkk1, rkk1))
+    rkk1 /= size
+    num = rk_norm + np.dot(rk, rkk1)
+    den = rk1_norm + np.dot(rk1, rkk1)
+    res = np.log(num / den) / size
+    return res
+
+
+def _lin_pot_coeff(fros, tri_rr, tri_nn, tri_area):
+    """The linear potential matrix element computations"""
+    from .source_space import _fast_cross_nd_sum
+    omega = np.zeros((len(fros), 3))
+
+    # we replicate a little bit of the _get_solids code here for speed
+    v1 = tri_rr[np.newaxis, 0, :] - fros
+    v2 = tri_rr[np.newaxis, 1, :] - fros
+    v3 = tri_rr[np.newaxis, 2, :] - fros
+    triples = _fast_cross_nd_sum(v1, v2, v3)
+    l1 = np.sqrt(np.sum(v1 * v1, axis=1))
+    l2 = np.sqrt(np.sum(v2 * v2, axis=1))
+    l3 = np.sqrt(np.sum(v3 * v3, axis=1))
+    ss = (l1 * l2 * l3 +
+          np.sum(v1 * v2, axis=1) * l3 +
+          np.sum(v1 * v3, axis=1) * l2 +
+          np.sum(v2 * v3, axis=1) * l1)
+    solids = np.arctan2(triples, ss)
+
+    # We *could* subselect the good points from v1, v2, v3, triples, solids,
+    # l1, l2, and l3, but there are *very* few bad points. So instead we do
+    # some unnecessary calculations, and then omit them from the final
+    # solution. These three lines ensure we don't get invalid values in
+    # _calc_beta.
+    bad_mask = np.abs(solids) < np.pi / 1e6
+    l1[bad_mask] = 1.
+    l2[bad_mask] = 1.
+    l3[bad_mask] = 1.
+
+    # Calculate the magic vector vec_omega
+    beta = [_calc_beta(v1, l1, v2, l2)[:, np.newaxis],
+            _calc_beta(v2, l2, v3, l3)[:, np.newaxis],
+            _calc_beta(v3, l3, v1, l1)[:, np.newaxis]]
+    vec_omega = (beta[2] - beta[0]) * v1
+    vec_omega += (beta[0] - beta[1]) * v2
+    vec_omega += (beta[1] - beta[2]) * v3
+
+    area2 = 2.0 * tri_area
+    n2 = 1.0 / (area2 * area2)
+    # leave omega = 0 otherwise
+    # Put it all together...
+    yys = [v1, v2, v3]
+    idx = [0, 1, 2, 0, 2]
+    for k in range(3):
+        diff = yys[idx[k - 1]] - yys[idx[k + 1]]
+        zdots = _fast_cross_nd_sum(yys[idx[k + 1]], yys[idx[k - 1]], tri_nn)
+        omega[:, k] = -n2 * (area2 * zdots * 2. * solids -
+                             triples * (diff * vec_omega).sum(axis=-1))
+    # omit the bad points from the solution
+    omega[bad_mask] = 0.
+    return omega
+
+
+def _correct_auto_elements(surf, mat):
+    """Improve auto-element approximation..."""
+    pi2 = 2.0 * np.pi
+    tris_flat = surf['tris'].ravel()
+    misses = pi2 - mat.sum(axis=1)
+    for j, miss in enumerate(misses):
+        # How much is missing?
+        n_memb = len(surf['neighbor_tri'][j])
+        # The node itself receives one half
+        mat[j, j] = miss / 2.0
+        # The rest is divided evenly among the member nodes...
+        miss /= (4.0 * n_memb)
+        members = np.where(j == tris_flat)[0]
+        mods = members % 3
+        offsets = np.array([[1, 2], [-1, 1], [-1, -2]])
+        tri_1 = members + offsets[mods, 0]
+        tri_2 = members + offsets[mods, 1]
+        for t1, t2 in zip(tri_1, tri_2):
+            mat[j, tris_flat[t1]] += miss
+            mat[j, tris_flat[t2]] += miss
+    return
+
+
+def _fwd_bem_lin_pot_coeff(surfs):
+    """Calculate the coefficients for linear collocation approach"""
+    # taken from fwd_bem_linear_collocation.c
+    nps = [surf['np'] for surf in surfs]
+    np_tot = sum(nps)
+    coeff = np.zeros((np_tot, np_tot))
+    offsets = np.cumsum(np.concatenate(([0], nps)))
+    for si_1, surf1 in enumerate(surfs):
+        rr_ord = np.arange(nps[si_1])
+        for si_2, surf2 in enumerate(surfs):
+            logger.info("        %s (%d) -> %s (%d) ..." %
+                        (_bem_explain_surface(surf1['id']), nps[si_1],
+                         _bem_explain_surface(surf2['id']), nps[si_2]))
+            tri_rr = surf2['rr'][surf2['tris']]
+            tri_nn = surf2['tri_nn']
+            tri_area = surf2['tri_area']
+            submat = coeff[offsets[si_1]:offsets[si_1 + 1],
+                           offsets[si_2]:offsets[si_2 + 1]]  # view
+            for k in range(surf2['ntri']):
+                tri = surf2['tris'][k]
+                if si_1 == si_2:
+                    skip_idx = ((rr_ord == tri[0]) |
+                                (rr_ord == tri[1]) |
+                                (rr_ord == tri[2]))
+                else:
+                    skip_idx = list()
+                # No contribution from a triangle that
+                # this vertex belongs to
+                # if sidx1 == sidx2 and (tri == j).any():
+                #     continue
+                # Otherwise do the hard job
+                coeffs = _lin_pot_coeff(surf1['rr'], tri_rr[k], tri_nn[k],
+                                        tri_area[k])
+                coeffs[skip_idx] = 0.
+                submat[:, tri] -= coeffs
+            if si_1 == si_2:
+                _correct_auto_elements(surf1, submat)
+    return coeff
+
+
+def _fwd_bem_multi_solution(solids, gamma, nps):
+    """Do multi surface solution
+
+      * Invert I - solids/(2*M_PI)
+      * Take deflation into account
+      * The matrix is destroyed after inversion
+      * This is the general multilayer case
+
+    """
+    pi2 = 1.0 / (2 * np.pi)
+    n_tot = np.sum(nps)
+    assert solids.shape == (n_tot, n_tot)
+    nsurf = len(nps)
+    defl = 1.0 / n_tot
+    # Modify the matrix
+    offsets = np.cumsum(np.concatenate(([0], nps)))
+    for si_1 in range(nsurf):
+        for si_2 in range(nsurf):
+            mult = pi2 if gamma is None else pi2 * gamma[si_1, si_2]
+            slice_j = slice(offsets[si_1], offsets[si_1 + 1])
+            slice_k = slice(offsets[si_2], offsets[si_2 + 1])
+            solids[slice_j, slice_k] = defl - solids[slice_j, slice_k] * mult
+    solids += np.eye(n_tot)
+    return linalg.inv(solids, overwrite_a=True)
+
+
+def _fwd_bem_homog_solution(solids, nps):
+    """Helper to make a homogeneous solution"""
+    return _fwd_bem_multi_solution(solids, None, nps)
+
+
+def _fwd_bem_ip_modify_solution(solution, ip_solution, ip_mult, n_tri):
+    """Modify the solution according to the IP approach"""
+    n_last = n_tri[-1]
+    mult = (1.0 + ip_mult) / ip_mult
+
+    logger.info('        Combining...')
+    offsets = np.cumsum(np.concatenate(([0], n_tri)))
+    for si in range(len(n_tri)):
+        # Pick the correct submatrix (right column) and multiply
+        sub = solution[offsets[si]:offsets[si + 1], np.sum(n_tri[:-1]):]
+        # Multiply
+        sub -= 2 * np.dot(sub, ip_solution)
+
+    # The lower right corner is a special case
+    sub[-n_last:, -n_last:] += mult * ip_solution
+
+    # Final scaling
+    logger.info('        Scaling...')
+    solution *= ip_mult
+    return
+
+
+def _fwd_bem_linear_collocation_solution(m):
+    """Compute the linear collocation potential solution"""
+    # first, add surface geometries
+    from .surface import _complete_surface_info
+    for surf in m['surfs']:
+        _complete_surface_info(surf, verbose=False)
+
+    logger.info('Computing the linear collocation solution...')
+    logger.info('    Matrix coefficients...')
+    coeff = _fwd_bem_lin_pot_coeff(m['surfs'])
+    m['nsol'] = len(coeff)
+    logger.info("    Inverting the coefficient matrix...")
+    nps = [surf['np'] for surf in m['surfs']]
+    m['solution'] = _fwd_bem_multi_solution(coeff, m['gamma'], nps)
+    if len(m['surfs']) == 3:
+        ip_mult = m['sigma'][1] / m['sigma'][2]
+        if ip_mult <= FIFF.FWD_BEM_IP_APPROACH_LIMIT:
+            logger.info('IP approach required...')
+            logger.info('    Matrix coefficients (homog)...')
+            coeff = _fwd_bem_lin_pot_coeff([m['surfs'][-1]])
+            logger.info('    Inverting the coefficient matrix (homog)...')
+            ip_solution = _fwd_bem_homog_solution(coeff,
+                                                  [m['surfs'][-1]['np']])
+            logger.info('    Modify the original solution to incorporate '
+                        'IP approach...')
+            _fwd_bem_ip_modify_solution(m['solution'], ip_solution, ip_mult,
+                                        nps)
+    m['bem_method'] = FIFF.FWD_BEM_LINEAR_COLL
+    logger.info("Solution ready.")
+
+
+@verbose
+def make_bem_solution(surfs, verbose=None):
+    """Create a BEM solution using the linear collocation approach
+
+    Parameters
+    ----------
+    surfs : list of dict
+        The BEM surfaces to use.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    bem : dict
+        The BEM solution.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+
+    See Also
+    --------
+    make_bem_model
+    read_bem_surfaces
+    write_bem_surfaces
+    read_bem_solution
+    write_bem_solution
+    """
+    logger.info('Approximation method : Linear collocation\n')
+    if isinstance(surfs, string_types):
+        # Load the surfaces
+        logger.info('Loading surfaces...')
+        surfs = read_bem_surfaces(surfs)
+    bem = dict(surfs=surfs)
+    _add_gamma_multipliers(bem)
+    if len(bem['surfs']) == 3:
+        logger.info('Three-layer model surfaces loaded.')
+    elif len(bem['surfs']) == 1:
+        logger.info('Homogeneous model surface loaded.')
+    else:
+        raise RuntimeError('Only 1- or 3-layer BEM computations supported')
+    _fwd_bem_linear_collocation_solution(bem)
+    logger.info('BEM geometry computations complete.')
+    return bem
+
+
+# ############################################################################
+# Make BEM model
+
+def _ico_downsample(surf, dest_grade):
+    """Downsample the surface if isomorphic to a subdivided icosahedron"""
+    from .surface import _get_ico_surface
+    n_tri = surf['ntri']
+    found = -1
+    bad_msg = ("A surface with %d triangles cannot be isomorphic with a "
+               "subdivided icosahedron." % surf['ntri'])
+    if n_tri % 20 != 0:
+        raise RuntimeError(bad_msg)
+    n_tri = n_tri // 20
+    found = int(round(np.log(n_tri) / np.log(4)))
+    if n_tri != 4 ** found:
+        raise RuntimeError(bad_msg)
+    del n_tri
+
+    if dest_grade > found:
+        raise RuntimeError('For this surface, decimation grade should be %d '
+                           'or less, not %s.' % (found, dest_grade))
+
+    source = _get_ico_surface(found)
+    dest = _get_ico_surface(dest_grade, patch_stats=True)
+    del dest['tri_cent']
+    del dest['tri_nn']
+    del dest['neighbor_tri']
+    del dest['tri_area']
+    if not np.array_equal(source['tris'], surf['tris']):
+        raise RuntimeError('The source surface has a matching number of '
+                           'triangles but ordering is wrong')
+    logger.info('Going from %dth to %dth subdivision of an icosahedron '
+                '(n_tri: %d -> %d)' % (found, dest_grade, surf['ntri'],
+                                       dest['ntri']))
+    # Find the mapping
+    dest['rr'] = surf['rr'][_get_ico_map(source, dest)]
+    return dest
+
+
+def _get_ico_map(fro, to):
+    """Helper to get a mapping between ico surfaces"""
+    from .surface import _compute_nearest
+    nearest, dists = _compute_nearest(fro['rr'], to['rr'], return_dists=True)
+    n_bads = (dists > 5e-3).sum()
+    if n_bads > 0:
+        raise RuntimeError('No matching vertex for %d destination vertices'
+                           % (n_bads))
+    return nearest
+
+
+def _order_surfaces(surfs):
+    """Reorder the surfaces"""
+    if len(surfs) != 3:
+        return surfs
+    # we have three surfaces
+    surf_order = [FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                  FIFF.FIFFV_BEM_SURF_ID_SKULL,
+                  FIFF.FIFFV_BEM_SURF_ID_BRAIN]
+    ids = np.array([surf['id'] for surf in surfs])
+    if set(ids) != set(surf_order):
+        raise RuntimeError('bad surface ids: %s' % ids)
+    order = [np.where(ids == id_)[0][0] for id_ in surf_order]
+    surfs = [surfs[idx] for idx in order]
+    return surfs
+
+
+def _assert_complete_surface(surf):
+    """Check the sum of solid angles as seen from inside"""
+    # from surface_checks.c
+    from .source_space import _get_solids
+    tot_angle = 0.
+    # Center of mass....
+    cm = surf['rr'].mean(axis=0)
+    logger.info('%s CM is %6.2f %6.2f %6.2f mm' %
+                (_surf_name[surf['id']],
+                 1000 * cm[0], 1000 * cm[1], 1000 * cm[2]))
+    tot_angle = _get_solids(surf['rr'][surf['tris']], cm[np.newaxis, :])[0]
+    if np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5:
+        raise RuntimeError('Surface %s is not complete (sum of solid angles '
+                           '= %g * 4*PI instead).' %
+                           (_surf_name[surf['id']], tot_angle))
+
+
+_surf_name = {
+    FIFF.FIFFV_BEM_SURF_ID_HEAD: 'outer skin ',
+    FIFF.FIFFV_BEM_SURF_ID_SKULL: 'outer skull',
+    FIFF.FIFFV_BEM_SURF_ID_BRAIN: 'inner skull',
+    FIFF.FIFFV_BEM_SURF_ID_UNKNOWN: 'unknown    ',
+}
+
+
+def _assert_inside(fro, to):
+    """Helper to check one set of points is inside a surface"""
+    # this is "is_inside" in surface_checks.c
+    from .source_space import _get_solids
+    tot_angle = _get_solids(to['rr'][to['tris']], fro['rr'])
+    if (np.abs(tot_angle / (2 * np.pi) - 1.0) > 1e-5).any():
+        raise RuntimeError('Surface %s is not completely inside surface %s'
+                           % (_surf_name[fro['id']], _surf_name[to['id']]))
+
+
+def _check_surfaces(surfs):
+    """Check that the surfaces are complete and non-intersecting"""
+    for surf in surfs:
+        _assert_complete_surface(surf)
+    # Then check the topology
+    for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
+        logger.info('Checking that %s surface is inside %s surface...' %
+                    (_surf_name[surf_2['id']], _surf_name[surf_1['id']]))
+        _assert_inside(surf_2, surf_1)
+
+
+def _check_surface_size(surf):
+    """Check that the coordinate limits are reasonable"""
+    sizes = surf['rr'].max(axis=0) - surf['rr'].min(axis=0)
+    if (sizes < 0.05).any():
+        raise RuntimeError('Dimensions of the surface %s seem too small '
+                           '(%9.5f mm). Maybe the the unit of measure is '
+                           'meters instead of mm' %
+                           (_surf_name[surf['id']], 1000 * sizes.min()))
+
+
+def _check_thicknesses(surfs):
+    """How close are we?"""
+    from .surface import _compute_nearest
+    for surf_1, surf_2 in zip(surfs[:-1], surfs[1:]):
+        min_dist = _compute_nearest(surf_1['rr'], surf_2['rr'],
+                                    return_dists=True)[0]
+        min_dist = min_dist.min()
+        logger.info('Checking distance between %s and %s surfaces...' %
+                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']]))
+        logger.info('Minimum distance between the %s and %s surfaces is '
+                    'approximately %6.1f mm' %
+                    (_surf_name[surf_1['id']], _surf_name[surf_2['id']],
+                     1000 * min_dist))
+
+
+def _surfaces_to_bem(fname_surfs, ids, sigmas, ico=None):
+    """Convert surfaces to a BEM
+    """
+    from .surface import _read_surface_geom
+    # equivalent of mne_surf2bem
+    surfs = list()
+    assert len(fname_surfs) in (1, 3)
+    for fname in fname_surfs:
+        surfs.append(_read_surface_geom(fname, patch_stats=False,
+                                        verbose=False))
+        surfs[-1]['rr'] /= 1000.
+    # Downsampling if the surface is isomorphic with a subdivided icosahedron
+    if ico is not None:
+        for si, surf in enumerate(surfs):
+            surfs[si] = _ico_downsample(surf, ico)
+    for surf, id_ in zip(surfs, ids):
+        surf['id'] = id_
+
+    # Shifting surfaces is not implemented here
+
+    # Order the surfaces for the benefit of the topology checks
+    for surf, sigma in zip(surfs, sigmas):
+        surf['sigma'] = sigma
+    surfs = _order_surfaces(surfs)
+
+    # Check topology as best we can
+    _check_surfaces(surfs)
+    for surf in surfs:
+        _check_surface_size(surf)
+    _check_thicknesses(surfs)
+    logger.info('Surfaces passed the basic topology checks.')
+    return surfs
+
+
+@verbose
+def make_bem_model(subject, ico=4, conductivity=(0.3, 0.006, 0.3),
+                   subjects_dir=None, verbose=None):
+    """Create a BEM model for a subject
+
+    Parameters
+    ----------
+    subject : str
+        The subject.
+    ico : int | None
+        The surface ico downsampling to use, e.g. 5=20484, 4=5120, 3=1280.
+    conductivity : array of int, shape (3,) or (1,)
+        The conductivities to use for each shell. Should be a single element
+        for a one-layer model, or three elements for a three-layer model.
+        Defaults to ``[0.3, 0.006, 0.3]``. The MNE-C default for a
+        single-layer model would be ``[0.3]``.
+    subjects_dir : string, or None
+        Path to SUBJECTS_DIR if it is not set in the environment.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    surfaces : list of dict
+        The BEM surfaces.
+
+    Notes
+    -----
+    .. versionadded:: 0.10.0
+
+    See Also
+    --------
+    make_bem_solution
+    make_sphere_model
+    read_bem_surfaces
+    write_bem_surfaces
+    """
+    conductivity = np.array(conductivity, float)
+    if conductivity.ndim != 1 or conductivity.size not in (1, 3):
+        raise ValueError('conductivity must be 1D array-like with 1 or 3 '
+                         'elements')
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    subject_dir = op.join(subjects_dir, subject)
+    bem_dir = op.join(subject_dir, 'bem')
+    inner_skull = op.join(bem_dir, 'inner_skull.surf')
+    outer_skull = op.join(bem_dir, 'outer_skull.surf')
+    outer_skin = op.join(bem_dir, 'outer_skin.surf')
+    surfaces = [inner_skull, outer_skull, outer_skin]
+    ids = [FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+           FIFF.FIFFV_BEM_SURF_ID_SKULL,
+           FIFF.FIFFV_BEM_SURF_ID_HEAD]
+    logger.info('Creating the BEM geometry...')
+    if len(conductivity) == 1:
+        surfaces = surfaces[:1]
+        ids = ids[:1]
+    surfaces = _surfaces_to_bem(surfaces, ids, conductivity, ico)
+    logger.info('Complete.\n')
+    return surfaces
 
 
 # ############################################################################
@@ -134,7 +642,7 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
     mu_0 = np.random.RandomState(0).rand(nfit) * f
     fun = partial(_one_step, u=u)
-    cons = []
+    cons = list()
     for ii in range(nfit):
         for val in [1., -1.]:
             cons.append({'type': 'ineq',
@@ -188,6 +696,11 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
     Notes
     -----
     .. versionadded:: 0.9.0
+
+    See Also
+    --------
+    make_bem_model
+    make_bem_solution
     """
     for name in ('r0', 'head_radius'):
         param = locals()[name]
@@ -207,7 +720,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
             head_radius = head_radius_fit / 1000.
     sphere = dict(r0=np.array(r0), is_sphere=True,
                   coord_frame=FIFF.FIFFV_COORD_HEAD)
-    sphere['layers'] = []
+    sphere['layers'] = list()
     if head_radius is not None:
         # Eventually these could be configurable...
         relative_radii = np.array(relative_radii, float)
@@ -239,7 +752,7 @@ def make_sphere_model(r0=(0., 0., 0.04), head_radius=0.09, info=None,
         rv = _fwd_eeg_fit_berg_scherg(sphere, 200, 3)
         logger.info('\nEquiv. model fitting -> RV = %g %%' % (100 * rv))
         for k in range(3):
-            logger.info('mu%d = %g\tlambda%d = %g'
+            logger.info('mu%d = %g    lambda%d = %g'
                         % (k + 1, sphere['mu'][k], k + 1,
                            layers[-1]['sigma'] * sphere['lambda'][k]))
         logger.info('Set up EEG sphere model with scalp radius %7.1f mm\n'
@@ -371,6 +884,7 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
 
     .. versionadded:: 0.10
     """
+    from .surface import read_surface
     env = os.environ.copy()
 
     if not os.environ.get('FREESURFER_HOME'):
@@ -447,6 +961,358 @@ def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
     points *= 1e-3
     surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
                 ntri=len(tris), rr=points, sigma=1, tris=tris)
-    write_bem_surface(subject + '-head.fif', surf)
+    write_bem_surfaces(subject + '-head.fif', surf)
 
     logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))
+
+
+# ############################################################################
+# Read
+
+@verbose
+def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
+    """Read the BEM surfaces from a FIF file
+
+    Parameters
+    ----------
+    fname : string
+        The name of the file containing the surfaces.
+    patch_stats : bool, optional (default False)
+        Calculate and add cortical patch statistics to the surfaces.
+    s_id : int | None
+        If int, only read and return the surface with the given s_id.
+        An error will be raised if it doesn't exist. If None, all
+        surfaces are read and returned.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    surf: list | dict
+        A list of dictionaries that each contain a surface. If s_id
+        is not None, only the requested surface will be returned.
+    """
+    from .surface import _complete_surface_info
+    # Default coordinate frame
+    coord_frame = FIFF.FIFFV_COORD_MRI
+    # Open the file, create directory
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Find BEM
+        bem = dir_tree_find(tree, FIFF.FIFFB_BEM)
+        if bem is None or len(bem) == 0:
+            raise ValueError('BEM data not found')
+
+        bem = bem[0]
+        # Locate all surfaces
+        bemsurf = dir_tree_find(bem, FIFF.FIFFB_BEM_SURF)
+        if bemsurf is None:
+            raise ValueError('BEM surface data not found')
+
+        logger.info('    %d BEM surfaces found' % len(bemsurf))
+        # Coordinate frame possibly at the top level
+        tag = find_tag(fid, bem, FIFF.FIFF_BEM_COORD_FRAME)
+        if tag is not None:
+            coord_frame = tag.data
+        # Read all surfaces
+        if s_id is not None:
+            surf = [_read_bem_surface(fid, bsurf, coord_frame, s_id)
+                    for bsurf in bemsurf]
+            surf = [s for s in surf if s is not None]
+            if not len(surf) == 1:
+                raise ValueError('surface with id %d not found' % s_id)
+        else:
+            surf = list()
+            for bsurf in bemsurf:
+                logger.info('    Reading a surface...')
+                this = _read_bem_surface(fid, bsurf, coord_frame)
+                surf.append(this)
+                logger.info('[done]')
+            logger.info('    %d BEM surfaces read' % len(surf))
+        if patch_stats:
+            for this in surf:
+                _complete_surface_info(this)
+    return surf[0] if s_id is not None else surf
+
+
+def _read_bem_surface(fid, this, def_coord_frame, s_id=None):
+    """Read one bem surface
+    """
+    # fid should be open as a context manager here
+    res = dict()
+    # Read all the interesting stuff
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_ID)
+
+    if tag is None:
+        res['id'] = FIFF.FIFFV_BEM_SURF_ID_UNKNOWN
+    else:
+        res['id'] = int(tag.data)
+
+    if s_id is not None and res['id'] != s_id:
+        return None
+
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SIGMA)
+    res['sigma'] = 1.0 if tag is None else float(tag.data)
+
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NNODE)
+    if tag is None:
+        raise ValueError('Number of vertices not found')
+
+    res['np'] = int(tag.data)
+
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NTRI)
+    if tag is None:
+        raise ValueError('Number of triangles not found')
+    res['ntri'] = int(tag.data)
+
+    tag = find_tag(fid, this, FIFF.FIFF_MNE_COORD_FRAME)
+    if tag is None:
+        tag = find_tag(fid, this, FIFF.FIFF_BEM_COORD_FRAME)
+        if tag is None:
+            res['coord_frame'] = def_coord_frame
+        else:
+            res['coord_frame'] = tag.data
+    else:
+        res['coord_frame'] = tag.data
+
+    # Vertices, normals, and triangles
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NODES)
+    if tag is None:
+        raise ValueError('Vertex data not found')
+
+    res['rr'] = tag.data.astype(np.float)  # XXX : double because of mayavi bug
+    if res['rr'].shape[0] != res['np']:
+        raise ValueError('Vertex information is incorrect')
+
+    tag = find_tag(fid, this, FIFF.FIFF_MNE_SOURCE_SPACE_NORMALS)
+    if tag is None:
+        tag = tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_NORMALS)
+    if tag is None:
+        res['nn'] = list()
+    else:
+        res['nn'] = tag.data
+        if res['nn'].shape[0] != res['np']:
+            raise ValueError('Vertex normal information is incorrect')
+
+    tag = find_tag(fid, this, FIFF.FIFF_BEM_SURF_TRIANGLES)
+    if tag is None:
+        raise ValueError('Triangulation not found')
+
+    res['tris'] = tag.data - 1  # index start at 0 in Python
+    if res['tris'].shape[0] != res['ntri']:
+        raise ValueError('Triangulation information is incorrect')
+
+    return res
+
+
+@verbose
+def read_bem_solution(fname, verbose=None):
+    """Read the BEM solution from a file
+
+    Parameters
+    ----------
+    fname : string
+        The file containing the BEM solution.
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    bem : dict
+        The BEM solution.
+    """
+    # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
+    logger.info('Loading surfaces...')
+    bem_surfs = read_bem_surfaces(fname, patch_stats=True, verbose=False)
+    if len(bem_surfs) == 3:
+        logger.info('Three-layer model surfaces loaded.')
+        needed = np.array([FIFF.FIFFV_BEM_SURF_ID_HEAD,
+                           FIFF.FIFFV_BEM_SURF_ID_SKULL,
+                           FIFF.FIFFV_BEM_SURF_ID_BRAIN])
+        if not all(x['id'] in needed for x in bem_surfs):
+            raise RuntimeError('Could not find necessary BEM surfaces')
+        # reorder surfaces as necessary (shouldn't need to?)
+        reorder = [None] * 3
+        for x in bem_surfs:
+            reorder[np.where(x['id'] == needed)[0][0]] = x
+        bem_surfs = reorder
+    elif len(bem_surfs) == 1:
+        if not bem_surfs[0]['id'] == FIFF.FIFFV_BEM_SURF_ID_BRAIN:
+            raise RuntimeError('BEM Surfaces not found')
+        logger.info('Homogeneous model surface loaded.')
+
+    # convert from surfaces to solution
+    bem = dict(surfs=bem_surfs)
+    logger.info('\nLoading the solution matrix...\n')
+    f, tree, _ = fiff_open(fname)
+    with f as fid:
+        # Find the BEM data
+        nodes = dir_tree_find(tree, FIFF.FIFFB_BEM)
+        if len(nodes) == 0:
+            raise RuntimeError('No BEM data in %s' % fname)
+        bem_node = nodes[0]
+
+        # Approximation method
+        tag = find_tag(f, bem_node, FIFF.FIFF_BEM_APPROX)
+        if tag is None:
+            raise RuntimeError('No BEM solution found in %s' % fname)
+        method = tag.data[0]
+        if method not in (FIFF.FIFFV_BEM_APPROX_CONST,
+                          FIFF.FIFFV_BEM_APPROX_LINEAR):
+            raise RuntimeError('Cannot handle BEM approximation method : %d'
+                               % method)
+
+        tag = find_tag(fid, bem_node, FIFF.FIFF_BEM_POT_SOLUTION)
+        dims = tag.data.shape
+        if len(dims) != 2:
+            raise RuntimeError('Expected a two-dimensional solution matrix '
+                               'instead of a %d dimensional one' % dims[0])
+
+        dim = 0
+        for surf in bem['surfs']:
+            if method == FIFF.FIFFV_BEM_APPROX_LINEAR:
+                dim += surf['np']
+            else:  # method == FIFF.FIFFV_BEM_APPROX_CONST
+                dim += surf['ntri']
+
+        if dims[0] != dim or dims[1] != dim:
+            raise RuntimeError('Expected a %d x %d solution matrix instead of '
+                               'a %d x %d one' % (dim, dim, dims[1], dims[0]))
+        sol = tag.data
+        nsol = dims[0]
+
+    bem['solution'] = sol
+    bem['nsol'] = nsol
+    bem['bem_method'] = method
+
+    # Gamma factors and multipliers
+    _add_gamma_multipliers(bem)
+    kind = {
+        FIFF.FIFFV_BEM_APPROX_CONST: 'constant collocation',
+        FIFF.FIFFV_BEM_APPROX_LINEAR: 'linear_collocation',
+    }[bem['bem_method']]
+    logger.info('Loaded %s BEM solution from %s', kind, fname)
+    return bem
+
+
+def _add_gamma_multipliers(bem):
+    """Helper to add gamma and multipliers in-place"""
+    bem['sigma'] = np.array([surf['sigma'] for surf in bem['surfs']])
+    # Dirty trick for the zero conductivity outside
+    sigma = np.r_[0.0, bem['sigma']]
+    bem['source_mult'] = 2.0 / (sigma[1:] + sigma[:-1])
+    bem['field_mult'] = sigma[1:] - sigma[:-1]
+    # make sure subsequent "zip"s work correctly
+    assert len(bem['surfs']) == len(bem['field_mult'])
+    bem['gamma'] = ((sigma[1:] - sigma[:-1])[np.newaxis, :] /
+                    (sigma[1:] + sigma[:-1])[:, np.newaxis])
+    bem['is_sphere'] = False
+
+
+_surf_dict = {'inner_skull': FIFF.FIFFV_BEM_SURF_ID_BRAIN,
+              'outer_skull': FIFF.FIFFV_BEM_SURF_ID_SKULL,
+              'head': FIFF.FIFFV_BEM_SURF_ID_HEAD}
+
+
+def _bem_find_surface(bem, id_):
+    """Find surface from already-loaded BEM"""
+    if isinstance(id_, string_types):
+        name = id_
+        id_ = _surf_dict[id_]
+    else:
+        name = _bem_explain_surface(id_)
+    idx = np.where(np.array([s['id'] for s in bem['surfs']]) == id_)[0]
+    if len(idx) != 1:
+        raise RuntimeError('BEM model does not have the %s triangulation'
+                           % name.replace('_', ' '))
+    return bem['surfs'][idx[0]]
+
+
+def _bem_explain_surface(id_):
+    """Return a string corresponding to the given surface ID"""
+    _rev_dict = dict((val, key) for key, val in _surf_dict.items())
+    return _rev_dict[id_]
+
+
+# ############################################################################
+# Write
+
+@deprecated('write_bem_surface is deprecated and will be removed in 0.11, '
+            'use write_bem_surfaces instead')
+def write_bem_surface(fname, surf):
+    """Write one bem surface
+
+    Parameters
+    ----------
+    fname : string
+        File to write
+    surf : dict
+        A surface structured as obtained with read_bem_surfaces
+    """
+    write_bem_surfaces(fname, surf)
+
+
+def write_bem_surfaces(fname, surfs):
+    """Write BEM surfaces to a fiff file
+
+    Parameters
+    ----------
+    fname : str
+        Filename to write.
+    surfs : dict | list of dict
+        The surfaces, or a single surface.
+    """
+    if isinstance(surfs, dict):
+        surfs = [surfs]
+    with start_file(fname) as fid:
+        start_block(fid, FIFF.FIFFB_BEM)
+        write_int(fid, FIFF.FIFF_BEM_COORD_FRAME, surfs[0]['coord_frame'])
+        _write_bem_surfaces_block(fid, surfs)
+        end_block(fid, FIFF.FIFFB_BEM)
+        end_file(fid)
+
+
+def _write_bem_surfaces_block(fid, surfs):
+    """Helper to actually write bem surfaces"""
+    for surf in surfs:
+        start_block(fid, FIFF.FIFFB_BEM_SURF)
+        write_float(fid, FIFF.FIFF_BEM_SIGMA, surf['sigma'])
+        write_int(fid, FIFF.FIFF_BEM_SURF_ID, surf['id'])
+        write_int(fid, FIFF.FIFF_MNE_COORD_FRAME, surf['coord_frame'])
+        write_int(fid, FIFF.FIFF_BEM_SURF_NNODE, surf['np'])
+        write_int(fid, FIFF.FIFF_BEM_SURF_NTRI, surf['ntri'])
+        write_float_matrix(fid, FIFF.FIFF_BEM_SURF_NODES, surf['rr'])
+        # index start at 0 in Python
+        write_int_matrix(fid, FIFF.FIFF_BEM_SURF_TRIANGLES,
+                         surf['tris'] + 1)
+        if 'nn' in surf and surf['nn'] is not None and len(surf['nn']) > 0:
+            write_float_matrix(fid, FIFF.FIFF_BEM_SURF_NORMALS, surf['nn'])
+        end_block(fid, FIFF.FIFFB_BEM_SURF)
+
+
+def write_bem_solution(fname, bem):
+    """Write a BEM model with solution
+
+    Parameters
+    ----------
+    fname : str
+        The filename to use.
+    bem : dict
+        The BEM model with solution to save.
+    """
+    with start_file(fname) as fid:
+        start_block(fid, FIFF.FIFFB_BEM)
+        # Coordinate frame (mainly for backward compatibility)
+        write_int(fid, FIFF.FIFF_BEM_COORD_FRAME,
+                  bem['surfs'][0]['coord_frame'])
+        # Surfaces
+        _write_bem_surfaces_block(fid, bem['surfs'])
+        # The potential solution
+        if 'solution' in bem:
+            if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
+                raise RuntimeError('Only linear collocation supported')
+            write_int(fid, FIFF.FIFF_BEM_APPROX, FIFF.FIFFV_BEM_APPROX_LINEAR)
+            write_float_matrix(fid, FIFF.FIFF_BEM_POT_SOLUTION,
+                               bem['solution'])
+        end_block(fid, FIFF.FIFFB_BEM)
+        end_file(fid)

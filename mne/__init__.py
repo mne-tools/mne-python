@@ -31,6 +31,9 @@ from .io.base import concatenate_raws
 from .io.chpi import get_chpi_positions
 from .io.meas_info import create_info
 from .io.kit import read_epochs_kit
+from .bem import (make_sphere_model, make_bem_model, make_bem_solution,
+                  read_bem_surfaces, write_bem_surface, write_bem_surfaces,
+                  read_bem_solution, write_bem_solution)
 from .cov import (read_cov, write_cov, Covariance,
                   compute_covariance, compute_raw_data_covariance,
                   whiten_evoked, make_ad_hoc_cov)
@@ -52,10 +55,8 @@ from .source_estimate import (read_source_estimate, MixedSourceEstimate,
                               spatio_temporal_tris_connectivity,
                               spatio_temporal_dist_connectivity,
                               save_stc_as_volume, extract_label_time_course)
-from .surface import (read_bem_surfaces, read_surface, write_bem_surface,
-                      write_surface, decimate_surface, read_morph_map,
-                      read_bem_solution, get_head_surf,
-                      get_meg_helmet_surf)
+from .surface import (read_surface, write_surface, decimate_surface,
+                      read_morph_map, get_head_surf, get_meg_helmet_surf)
 from .source_space import (read_source_spaces, vertex_to_mni,
                            write_source_spaces, setup_source_space,
                            setup_volume_source_space, SourceSpaces,
@@ -78,7 +79,6 @@ from .selection import read_selection
 from .dipole import read_dipole, Dipole, fit_dipole
 from . import channels
 from .channels import equalize_channels, rename_channels, find_layout
-from .bem import make_sphere_model
 
 from . import beamformer
 from . import commands
