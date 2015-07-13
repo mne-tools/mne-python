@@ -1034,7 +1034,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
-                self.train_times_['start'], self.train_times_['stop'])
+                self.times_['start'], self.times_['stop'])
         else:
             s += 'no fit'
         if hasattr(self, 'y_pred_'):
