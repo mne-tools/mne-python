@@ -248,5 +248,3 @@ def test_DecodingTime():
     tg.score(epochs)
     tg.score()
     assert_array_equal(np.shape(tg.scores_), [15])
-    assert_raises(RuntimeError, tg.plot_times)
-    assert_raises(RuntimeError, tg.plot_diagonal)

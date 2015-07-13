@@ -59,133 +59,8 @@ class _DecodingTime(dict):
         return "<DecodingTime | %s>" % s
 
 
-class GeneralizationAcrossTime(object):
-    """Generalize across time and conditions
-
-    Creates and estimator object used to 1) fit a series of classifiers on
-    multidimensional time-resolved data, and 2) test the ability of each
-    classifier to generalize across other time samples.
-
-    Parameters
-    ----------
-    picks : array-like of int | None
-        The channels indices to include. If None the data
-        channels in info, except bad channels, are used.
-    cv : int | object
-        If an integer is passed, it is the number of folds.
-        Specific cross-validation objects can be passed, see
-        sklearn.cross_validation module for the list of possible objects.
-        Defaults to 5.
-    clf : object | None
-        An estimator compliant with the scikit-learn API (fit & predict).
-        If None the classifier will be a standard pipeline including
-        StandardScaler and LogisticRegression with default parameters.
-    train_times : dict | None
-        A dictionary to configure the training times:
-
-            ``slices`` : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``start`` : float
-                Time at which to start decoding (in seconds).
-                Defaults to min(epochs.times).
-            ``stop`` : float
-                Maximal time at which to stop decoding (in seconds).
-                Defaults to max(times).
-            ``step`` : float
-                Duration separating the start of subsequent classifiers (in
-                seconds). Defaults to one time sample.
-            ``length`` : float
-                Duration of each classifier (in seconds).
-                Defaults to one time sample.
-
-        If None, empty dict.
-    test_times : 'diagonal' | dict | None, optional
-        Configures the testing times.
-        If set to 'diagonal', predictions are made at the time at which
-        each classifier is trained.
-        If set to None, predictions are made at all time points.
-        If set to dict, the dict should contain ``slices`` or be contructed in
-        a similar way to train_times
-            ``slices`` : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-
-        If None, empty dict.
-    predict_mode : {'cross-validation', 'mean-prediction'}
-        Indicates how predictions are achieved with regards to the cross-
-        validation procedure:
-
-            ``cross-validation`` : estimates a single prediction per sample
-                based on the unique independent classifier fitted in the
-                cross-validation.
-            ``mean-prediction`` : estimates k predictions per sample, based on
-                each of the k-fold cross-validation classifiers, and average
-                these predictions into a single estimate per sample.
-
-        Default: 'cross-validation'
-    scorer : object | None
-        scikit-learn Scorer instance. If None, set to accuracy_score.
-    n_jobs : int
-        Number of jobs to run in parallel. Defaults to 1.
-
-    Attributes
-    ----------
-    picks_ : array-like of int | None
-        The channels indices to include.
-    ch_names : list, shape (n_channels,)
-        Names of the channels used for training.
-    y_train_ : list | np.ndarray, shape (n_samples,)
-        The categories used for training.
-    train_times_ : dict
-        A dictionary that configures the training times:
-
-            ``slices`` : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``times`` : np.ndarray, shape (n_clfs,)
-                The training times (in seconds).
-
-    test_times_ : dict
-        A dictionary that configures the testing times for each training time:
-
-            ``slices`` : np.ndarray, shape (n_clfs, n_testing_times)
-                Array of time slices (in indices) used for each classifier.
-            ``times`` : np.ndarray, shape (n_clfs, n_testing_times)
-                The testing times (in seconds) for each training time.
-
-    cv_ : CrossValidation object
-        The actual CrossValidation input depending on y.
-    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
-        The estimators for each time point and each fold.
-    y_pred_ : list of lists of arrays of floats,
-              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
-        The single-trial predictions estimated by self.predict() at each
-        training time and each testing time. Note that the number of testing
-        times per training time need not be regular, else
-        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
-    y_true_ : list | np.ndarray, shape (n_samples,)
-        The categories used for scoring y_pred_.
-    scorer_ : object
-        scikit-learn Scorer instance.
-    scores_ : list of lists of float
-        The scores estimated by self.scorer_ at each training time and each
-        testing time (e.g. mean accuracy of self.predict(X)). Note that the
-        number of testing times per training time need not be regular;
-        else, np.shape(scores) = [n_train_time, n_test_time].
-
-
-    Notes
-    -----
-    The function implements the method used in:
-
-        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-        detection of unexpected sounds", PLoS ONE, 2014
-        DOI: 10.1371/journal.pone.0085791
-
-
-    .. versionadded:: 0.9.0
+class _GeneralizationAcrossTime(object):
+    """ see GeneralizationAcrossTime
     """  # noqa
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_mode='cross-validation', scorer=None,
@@ -219,55 +94,8 @@ class GeneralizationAcrossTime(object):
         self.picks = picks
         self.n_jobs = n_jobs
 
-    def __repr__(self):
-        s = ''
-        if hasattr(self, "estimators_"):
-            s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
-                self.train_times_['start'], self.train_times_['stop'])
-        else:
-            s += 'no fit'
-        if hasattr(self, 'y_pred_'):
-            s += (", predicted %d epochs" % len(self.y_pred_[0][0]))
-        else:
-            s += ", no prediction"
-        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
-            s += ',\n '
-        else:
-            s += ', '
-        if hasattr(self, 'scores_'):
-            s += "scored"
-            if callable(self.scorer_):
-                s += " (%s)" % (self.scorer_.__name__)
-        else:
-            s += "no score"
-
-        return "<GAT | %s>" % s
-
     def fit(self, epochs, y=None):
-        """ Train a classifier on each specified time slice.
-
-        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
-        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs.
-        y : list or np.ndarray of int, shape (n_samples,) or None, optional
-            To-be-fitted model values. If None, y = epochs.events[:, 2].
-
-        Returns
-        -------
-        self : object
-            Returns self.
-
-        Notes
-        ------
-        If X and y are not C-ordered and contiguous arrays of np.float64 and
-        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
-
-        If X is a dense array, then the other methods will not support sparse
-        matrices as input.
+        """ see GeneralizationAcrossTime
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
@@ -316,25 +144,7 @@ class GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """ Test each classifier on each specified testing time slice.
-
-        Note. This function sets the ``y_pred_`` and ``test_times_``
-        attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See
-            predict_mode parameter.
-
-        Returns
-        -------
-        y_pred : list of lists of arrays of floats,
-                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
-            The single-trial predictions at each training time and each testing
-            time. Note that the number of testing times per training time need
-            not be regular;
-            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+        """ see GeneralizationAcrossTime
         """
 
         # Check that at least one classifier has been trained
@@ -389,34 +199,7 @@ class GeneralizationAcrossTime(object):
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
-        """Score Epochs
-
-        Estimate scores across trials by comparing the prediction estimated for
-        each trial to its true value.
-
-        Calls ``predict()`` if it has not been already.
-
-        Note. The function updates the ``scorer_``, ``scores_``, and
-        ``y_true_`` attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs | None, optional
-            The epochs. Can be similar to fitted epochs or not.
-            If None, it needs to rely on the predictions ``y_pred_``
-            generated with ``predict()``.
-        y : list | np.ndarray, shape (n_epochs,) | None, optional
-            True values to be compared with the predictions ``y_pred_``
-            generated with ``predict()`` via ``scorer_``.
-            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
-
-        Returns
-        -------
-        scores : list of lists of float
-            The scores estimated by ``scorer_`` at each training time and each
-            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
-            number of testing times per training time need not be regular;
-            else, np.shape(scores) = [n_train_time, n_test_time].
+        """ see GeneralizationAcrossTime
         """
 
         from sklearn.metrics import accuracy_score
@@ -470,152 +253,6 @@ class GeneralizationAcrossTime(object):
 
         self.scores_ = scores
         return scores
-
-    def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
-             cmap='RdBu_r', show=True, colorbar=True,
-             xlabel=True, ylabel=True):
-        """Plotting function of GeneralizationAcrossTime object
-
-        Plot the score of each classifier at each tested time window.
-
-        Parameters
-        ----------
-        title : str | None
-            Figure title.
-        vmin : float | None
-            Min color value for scores. If None, sets to min(gat.scores_).
-        vmax : float | None
-            Max color value for scores. If None, sets to max(gat.scores_).
-        tlim : np.ndarray, (train_min, test_max) | None
-            The temporal boundaries.
-        ax : object | None
-            Plot pointer. If None, generate new figure.
-        cmap : str | cmap object
-            The color map to be used. Defaults to 'RdBu_r'.
-        show : bool
-            If True, the figure will be shown. Defaults to True.
-        colorbar : bool
-            If True, the colorbar of the figure is displayed. Defaults to True.
-        xlabel : bool
-            If True, the xlabel is displayed. Defaults to True.
-        ylabel : bool
-            If True, the ylabel is displayed. Defaults to True.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            The figure.
-        """
-        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
-                               tlim=tlim, ax=ax, cmap=cmap, show=show,
-                               colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
-
-    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=None,
-                      ymax=None, ax=None, show=True, color=None,
-                      xlabel=True, ylabel=True, legend=True, chance=True,
-                      label='Classif. score'):
-        """Plotting function of GeneralizationAcrossTime object
-
-        Plot each classifier score trained and tested at identical time
-        windows.
-
-        Parameters
-        ----------
-        title : str | None
-            Figure title.
-        xmin : float | None, optional
-            Min time value.
-        xmax : float | None, optional
-            Max time value.
-        ymin : float | None, optional
-            Min score value. If None, sets to min(scores).
-        ymax : float | None, optional
-            Max score value. If None, sets to max(scores).
-        ax : object | None
-            Instance of mataplotlib.axes.Axis. If None, generate new figure.
-        show : bool
-            If True, the figure will be shown. Defaults to True.
-        color : str
-            Score line color.
-        xlabel : bool
-            If True, the xlabel is displayed. Defaults to True.
-        ylabel : bool
-            If True, the ylabel is displayed. Defaults to True.
-        legend : bool
-            If True, a legend is displayed. Defaults to True.
-        chance : bool | float. Defaults to None
-            Plot chance level. If True, chance level is estimated from the type
-            of scorer.
-        label : str
-            Score label used in the legend. Defaults to 'Classif. score'.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            The figure.
-        """
-        return plot_gat_times(self, train_time='diagonal', title=title,
-                              xmin=xmin, xmax=xmax,
-                              ymin=ymin, ymax=ymax, ax=ax, show=show,
-                              color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance, label=label)
-
-    def plot_times(self, train_time, title=None, xmin=None, xmax=None,
-                   ymin=None, ymax=None, ax=None, show=True, color=None,
-                   xlabel=True, ylabel=True, legend=True, chance=True,
-                   label='Classif. score'):
-        """Plotting function of GeneralizationAcrossTime object
-
-        Plot the scores of the classifier trained at specific training time(s).
-
-        Parameters
-        ----------
-        train_time : float | list or array of float
-            Plots scores of the classifier trained at train_time.
-        title : str | None
-            Figure title.
-        xmin : float | None, optional
-            Min time value.
-        xmax : float | None, optional
-            Max time value.
-        ymin : float | None, optional
-            Min score value. If None, sets to min(scores).
-        ymax : float | None, optional
-            Max score value. If None, sets to max(scores).
-        ax : object | None
-            Instance of mataplotlib.axes.Axis. If None, generate new figure.
-        show : bool
-            If True, the figure will be shown. Defaults to True.
-        color : str or list of str
-            Score line color(s).
-        xlabel : bool
-            If True, the xlabel is displayed. Defaults to True.
-        ylabel : bool
-            If True, the ylabel is displayed. Defaults to True.
-        legend : bool
-            If True, a legend is displayed. Defaults to True.
-        chance : bool | float.
-            Plot chance level. If True, chance level is estimated from the type
-            of scorer.
-        label : str
-            Score label used in the legend. Defaults to 'Classif. score'.
-
-        Returns
-        -------
-        fig : instance of matplotlib.figure.Figure
-            The figure.
-        """
-        if (not isinstance(train_time, float) and
-            not (isinstance(train_time, (list, np.ndarray)) and
-                 np.all([isinstance(time, float) for time in train_time]))):
-            raise ValueError('train_time must be float | list or array of '
-                             'floats. Got %s.' % type(train_time))
-
-        return plot_gat_times(self, train_time=train_time, title=title,
-                              xmin=xmin, xmax=xmax,
-                              ymin=ymin, ymax=ymax, ax=ax, show=show,
-                              color=color, xlabel=xlabel, ylabel=ylabel,
-                              legend=legend, chance=chance, label=label)
 
 
 def _predict_time_loop(X, estimators, cv, slices, predict_mode):
@@ -924,7 +561,397 @@ def _time_gen_one_fold(clf, X, y, train, test, scoring):
     return scores
 
 
-class TimeDecoding(GeneralizationAcrossTime):
+class GeneralizationAcrossTime(_GeneralizationAcrossTime):
+    """Generalize across time and conditions
+
+    Creates and estimator object used to 1) fit a series of classifiers on
+    multidimensional time-resolved data, and 2) test the ability of each
+    classifier to generalize across other time samples.
+
+    Parameters
+    ----------
+    picks : array-like of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
+    cv : int | object
+        If an integer is passed, it is the number of folds.
+        Specific cross-validation objects can be passed, see
+        sklearn.cross_validation module for the list of possible objects.
+        Defaults to 5.
+    clf : object | None
+        An estimator compliant with the scikit-learn API (fit & predict).
+        If None the classifier will be a standard pipeline including
+        StandardScaler and LogisticRegression with default parameters.
+    train_times : dict | None
+        A dictionary to configure the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``start`` : float
+                Time at which to start decoding (in seconds).
+                Defaults to min(epochs.times).
+            ``stop`` : float
+                Maximal time at which to stop decoding (in seconds).
+                Defaults to max(times).
+            ``step`` : float
+                Duration separating the start of subsequent classifiers (in
+                seconds). Defaults to one time sample.
+            ``length`` : float
+                Duration of each classifier (in seconds).
+                Defaults to one time sample.
+
+        If None, empty dict.
+    test_times : 'diagonal' | dict | None, optional
+        Configures the testing times.
+        If set to 'diagonal', predictions are made at the time at which
+        each classifier is trained.
+        If set to None, predictions are made at all time points.
+        If set to dict, the dict should contain ``slices`` or be contructed in
+        a similar way to train_times
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+
+        If None, empty dict.
+    predict_mode : {'cross-validation', 'mean-prediction'}
+        Indicates how predictions are achieved with regards to the cross-
+        validation procedure:
+
+            ``cross-validation`` : estimates a single prediction per sample
+                based on the unique independent classifier fitted in the
+                cross-validation.
+            ``mean-prediction`` : estimates k predictions per sample, based on
+                each of the k-fold cross-validation classifiers, and average
+                these predictions into a single estimate per sample.
+
+        Default: 'cross-validation'
+    scorer : object | None
+        scikit-learn Scorer instance. If None, set to accuracy_score.
+    n_jobs : int
+        Number of jobs to run in parallel. Defaults to 1.
+
+    Attributes
+    ----------
+    picks_ : array-like of int | None
+        The channels indices to include.
+    ch_names : list, shape (n_channels,)
+        Names of the channels used for training.
+    y_train_ : list | np.ndarray, shape (n_samples,)
+        The categories used for training.
+    train_times_ : dict
+        A dictionary that configures the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``times`` : np.ndarray, shape (n_clfs,)
+                The training times (in seconds).
+
+    test_times_ : dict
+        A dictionary that configures the testing times for each training time:
+
+            ``slices`` : np.ndarray, shape (n_clfs, n_testing_times)
+                Array of time slices (in indices) used for each classifier.
+            ``times`` : np.ndarray, shape (n_clfs, n_testing_times)
+                The testing times (in seconds) for each training time.
+
+    cv_ : CrossValidation object
+        The actual CrossValidation input depending on y.
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
+    y_pred_ : list of lists of arrays of floats,
+              shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
+        The single-trial predictions estimated by self.predict() at each
+        training time and each testing time. Note that the number of testing
+        times per training time need not be regular, else
+        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+    y_true_ : list | np.ndarray, shape (n_samples,)
+        The categories used for scoring y_pred_.
+    scorer_ : object
+        scikit-learn Scorer instance.
+    scores_ : list of lists of float
+        The scores estimated by self.scorer_ at each training time and each
+        testing time (e.g. mean accuracy of self.predict(X)). Note that the
+        number of testing times per training time need not be regular;
+        else, np.shape(scores) = [n_train_time, n_test_time].
+
+
+    Notes
+    -----
+    The function implements the method used in:
+
+        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
+        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
+        detection of unexpected sounds", PLoS ONE, 2014
+        DOI: 10.1371/journal.pone.0085791
+
+
+    .. versionadded:: 0.9.0
+    """
+    def __init__(self, picks=None, cv=5, clf=None, train_times=None,
+                 test_times=None, predict_mode='cross-validation', scorer=None,
+                 n_jobs=1):
+        super(GeneralizationAcrossTime, self).__init__(
+            picks=picks, cv=cv, clf=clf, train_times=train_times,
+            test_times=test_times, predict_mode=predict_mode, scorer=scorer,
+            n_jobs=n_jobs)
+
+    def __repr__(self):
+        s = ''
+        if hasattr(self, "estimators_"):
+            s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
+                self.train_times_['start'], self.train_times_['stop'])
+        else:
+            s += 'no fit'
+        if hasattr(self, 'y_pred_'):
+            s += (", predicted %d epochs" % len(self.y_pred_[0][0]))
+        else:
+            s += ", no prediction"
+        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
+            s += ',\n '
+        else:
+            s += ', '
+        if hasattr(self, 'scores_'):
+            s += "scored"
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
+        else:
+            s += "no score"
+
+        return "<GAT | %s>" % s
+
+    def fit(self, epochs, y=None):
+        """ Train a classifier on each specified time slice.
+
+        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
+        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs.
+        y : list or np.ndarray of int, shape (n_samples,) or None, optional
+            To-be-fitted model values. If None, y = epochs.events[:, 2].
+
+        Returns
+        -------
+        self : object
+            Returns self.
+
+        Notes
+        ------
+        If X and y are not C-ordered and contiguous arrays of np.float64 and
+        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
+
+        If X is a dense array, then the other methods will not support sparse
+        matrices as input.
+        """
+        return super(GeneralizationAcrossTime, self).fit(epochs, y=y)
+
+    def predict(self, epochs):
+        """ Test each classifier on each specified testing time slice.
+
+        Note. This function sets the ``y_pred_`` and ``test_times_``
+        attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+
+        Returns
+        -------
+        y_pred : list of lists of arrays of floats,
+                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial predictions at each training time and each testing
+            time. Note that the number of testing times per training time need
+            not be regular;
+            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+        """
+        return super(GeneralizationAcrossTime, self).predict(epochs)
+
+    def score(self, epochs=None, y=None):
+        """Score Epochs
+
+        Estimate scores across trials by comparing the prediction estimated for
+        each trial to its true value.
+
+        Calls ``predict()`` if it has not been already.
+
+        Note. The function updates the ``scorer_``, ``scores_``, and
+        ``y_true_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs | None, optional
+            The epochs. Can be similar to fitted epochs or not.
+            If None, it needs to rely on the predictions ``y_pred_``
+            generated with ``predict()``.
+        y : list | np.ndarray, shape (n_epochs,) | None, optional
+            True values to be compared with the predictions ``y_pred_``
+            generated with ``predict()`` via ``scorer_``.
+            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
+
+        Returns
+        -------
+        scores : list of lists of float
+            The scores estimated by ``scorer_`` at each training time and each
+            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
+            number of testing times per training time need not be regular;
+            else, np.shape(scores) = [n_train_time, n_test_time].
+        """
+        return super(GeneralizationAcrossTime, self).score(epochs=epochs, y=y)
+
+    def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
+             cmap='RdBu_r', show=True, colorbar=True,
+             xlabel=True, ylabel=True):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Plot the score of each classifier at each tested time window.
+
+        Parameters
+        ----------
+        title : str | None
+            Figure title.
+        vmin : float | None
+            Min color value for scores. If None, sets to min(gat.scores_).
+        vmax : float | None
+            Max color value for scores. If None, sets to max(gat.scores_).
+        tlim : np.ndarray, (train_min, test_max) | None
+            The temporal boundaries.
+        ax : object | None
+            Plot pointer. If None, generate new figure.
+        cmap : str | cmap object
+            The color map to be used. Defaults to 'RdBu_r'.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        colorbar : bool
+            If True, the colorbar of the figure is displayed. Defaults to True.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        return plot_gat_matrix(self, title=title, vmin=vmin, vmax=vmax,
+                               tlim=tlim, ax=ax, cmap=cmap, show=show,
+                               colorbar=colorbar, xlabel=xlabel, ylabel=ylabel)
+
+    def plot_diagonal(self, title=None, xmin=None, xmax=None, ymin=None,
+                      ymax=None, ax=None, show=True, color=None,
+                      xlabel=True, ylabel=True, legend=True, chance=True,
+                      label='Classif. score'):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Plot each classifier score trained and tested at identical time
+        windows.
+
+        Parameters
+        ----------
+        title : str | None
+            Figure title.
+        xmin : float | None, optional
+            Min time value.
+        xmax : float | None, optional
+            Max time value.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores).
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores).
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str
+            Score line color.
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+        chance : bool | float. Defaults to None
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        return plot_gat_times(self, train_time='diagonal', title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend, chance=chance, label=label)
+
+    def plot_times(self, train_time, title=None, xmin=None, xmax=None,
+                   ymin=None, ymax=None, ax=None, show=True, color=None,
+                   xlabel=True, ylabel=True, legend=True, chance=True,
+                   label='Classif. score'):
+        """Plotting function of GeneralizationAcrossTime object
+
+        Plot the scores of the classifier trained at specific training time(s).
+
+        Parameters
+        ----------
+        train_time : float | list or array of float
+            Plots scores of the classifier trained at train_time.
+        title : str | None
+            Figure title.
+        xmin : float | None, optional
+            Min time value.
+        xmax : float | None, optional
+            Max time value.
+        ymin : float | None, optional
+            Min score value. If None, sets to min(scores).
+        ymax : float | None, optional
+            Max score value. If None, sets to max(scores).
+        ax : object | None
+            Instance of mataplotlib.axes.Axis. If None, generate new figure.
+        show : bool
+            If True, the figure will be shown. Defaults to True.
+        color : str or list of str
+            Score line color(s).
+        xlabel : bool
+            If True, the xlabel is displayed. Defaults to True.
+        ylabel : bool
+            If True, the ylabel is displayed. Defaults to True.
+        legend : bool
+            If True, a legend is displayed. Defaults to True.
+        chance : bool | float.
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
+
+        Returns
+        -------
+        fig : instance of matplotlib.figure.Figure
+            The figure.
+        """
+        if (not isinstance(train_time, float) and
+            not (isinstance(train_time, (list, np.ndarray)) and
+                 np.all([isinstance(time, float) for time in train_time]))):
+            raise ValueError('train_time must be float | list or array of '
+                             'floats. Got %s.' % type(train_time))
+
+        return plot_gat_times(self, train_time=train_time, title=title,
+                              xmin=xmin, xmax=xmax,
+                              ymin=ymin, ymax=ymax, ax=ax, show=show,
+                              color=color, xlabel=xlabel, ylabel=ylabel,
+                              legend=legend, chance=chance, label=label)
+
+
+class TimeDecoding(_GeneralizationAcrossTime):
     """Train and test a series of classifiers at each time point to obtain a
     score across time.
 
@@ -1075,6 +1102,7 @@ class TimeDecoding(GeneralizationAcrossTime):
         self.train_times = self.times
         super(TimeDecoding, self).fit(epochs, y=y)
         self.times_ = self.train_times_
+        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
         delattr(self, 'train_times_')
         delattr(self, 'train_times')
         return self
@@ -1098,7 +1126,7 @@ class TimeDecoding(GeneralizationAcrossTime):
             The single-trial predictions at each time sample.
         """
 
-        # unsqueeze across testing times for compatibility with GAT
+        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
         self.test_times = 'diagonal'
         self.train_times_ = self.times_
         super(TimeDecoding, self).predict(epochs)
@@ -1143,7 +1171,7 @@ class TimeDecoding(GeneralizationAcrossTime):
             if not hasattr(self, 'y_pred_'):
                 raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
-        # unsqueeze across testing times for compatibility with GAT
+        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
         self.test_times_ = dict(slices=[[s] for s in self.times_['slices']])
         self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
         super(TimeDecoding, self).score(epochs=None, y=y)
@@ -1196,28 +1224,18 @@ class TimeDecoding(GeneralizationAcrossTime):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
-        # in heritances.
         self.train_times_ = self.times_
         self.test_times_ = _DecodingTime()
         self.test_times_['slices'] = [[s] for s in self.train_times_['slices']]
         self.test_times_['times'] = [[s] for s in self.train_times_['times']]
         self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
-        fig = super(TimeDecoding, self).plot_diagonal(
-            title=title, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, ax=ax,
-            show=show, color=color, xlabel=xlabel, ylabel=ylabel,
-            legend=legend, chance=chance, label=label)
+        fig = plot_gat_times(self, train_time='diagonal', title=title,
+                             xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, ax=ax,
+                             show=show, color=color, xlabel=xlabel,
+                             ylabel=ylabel, legend=legend, chance=chance,
+                             label=label)
+        # XXX JRK: need cleanup in viz
         delattr(self, 'train_times_')
         delattr(self, 'test_times_')
         self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         return fig
-
-    def plot_times(self):
-        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
-        # in heritances.
-        raise RuntimeError('plot_times() isn\'t adequate for TimeDecoding')
-
-    def plot_diagonal(self):
-        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
-        # in heritances.
-        raise RuntimeError('plot_diagonal() isn\'t adequate for TimeDecoding')
