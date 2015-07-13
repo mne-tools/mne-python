@@ -70,7 +70,7 @@ def simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+    evoked = generate_evoked(fwd, stc, evoked_template.info, cov, snr,
                              tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
     return evoked, stc
@@ -85,4 +85,5 @@ def test_simulation_metrics():
 
     E_rms = source_estimate_quantification(stc1, stc2, metric='rms')
     E_corr = source_estimate_quantification(stc1, stc2, metric='corr')
+
     print E_rms, E_corr[0]
