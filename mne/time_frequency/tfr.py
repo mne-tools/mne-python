@@ -605,7 +605,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
     def plot(self, picks=None, baseline=None, mode='mean', tmin=None,
              tmax=None, fmin=None, fmax=None, vmin=None, vmax=None,
              cmap='RdBu_r', dB=False, colorbar=True, show=True,
-             title=None, verbose=None):
+             title=None, verbose=None, axes=None):
         """Plot TFRs in a topography with images
 
         Parameters
@@ -649,18 +649,27 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         dB : bool
             If True, 20*log10 is applied to the data to get dB.
         colorbar : bool
-            If true, colorbar will be added to the plot
+            If true, colorbar will be added to the plot. For user defined axes,
+            the colorbar cannot be drawn. Defaults to True.
         show : bool
             Call pyplot.show() at the end.
         title : str | None
             String for title. Defaults to None (blank/no title).
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
+        axes : instance of Axes | list | None
+            The axes to plot to. If list, the list must be a list of Axes of
+            the same length as the number of channels. If instance of Axes,
+            there must be only one channel plotted.
 
         Returns
         -------
         fig : matplotlib.figure.Figure
             The figure containing the topography.
+
+        Notes
+        -----
+        .. versionadded:: 0.10.0
         """
         from ..viz.topo import _imshow_tfr
         import matplotlib.pyplot as plt
@@ -673,13 +682,32 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
 
         tmin, tmax = times[0], times[-1]
 
-        for k, p in zip(range(len(data)), picks):
-            fig = plt.figure()
-            _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
-                        tfr=data[k: k + 1], freq=freqs, x_label='Time (ms)',
-                        y_label='Frequency (Hz)', colorbar=colorbar,
-                        picker=False, cmap=cmap, title=title)
-
+        if axes is None:
+            for idx in range(len(data)):
+                fig = plt.figure()
+                _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
+                            tfr=data[idx: idx + 1], freq=freqs,
+                            x_label='Time (ms)', y_label='Frequency (Hz)',
+                            colorbar=colorbar, picker=False, cmap=cmap,
+                            title=title)
+        else:
+            if isinstance(axes, plt.Axes):
+                axes = [axes]
+            if len(axes) != len(picks):
+                raise RuntimeError('There must be an axes for each picked ' +
+                                   'channel.')
+            if colorbar:
+                logger.warning('Cannot draw colorbar for user defined axes.')
+            for idx in range(len(data)):
+                fig = axes[idx].get_figure()
+                _imshow_tfr(axes[idx], 0, tmin, tmax, vmin, vmax, ylim=None,
+                            tfr=data[idx: idx + 1], freq=freqs,
+                            x_label='Time (ms)', y_label='Frequency (Hz)',
+                            colorbar=False, picker=False, cmap=cmap,
+                            title=title)
+            fig = axes[0].get_figure()
+            if title:
+                plt.title(title)
         if show:
             fig.show()
         return fig
