@@ -231,7 +231,6 @@ def test_generalization_across_time():
                     gat.score(epochs, y=y_)
 
 
-@slow_test
 @requires_sklearn
 def test_DecodingTime():
     epochs = make_epochs()
