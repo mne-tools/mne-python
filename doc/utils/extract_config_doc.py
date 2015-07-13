@@ -16,7 +16,7 @@ fiffpath = os.path.join(os.path.split(fifffile)[0], os.pardir)
 confid = open(os.path.join(
     fiffpath, "data", "configfiles", "full_configbase.py"), "r")
 docfid = open(os.path.join(
-    fiffpath, "doc", "source", "config_doc.rst"), "w")
+    fiffpath, "doc", "config_doc.rst"), "w")
 
 docfid.write(".. _config_doc:\n\n")
 
