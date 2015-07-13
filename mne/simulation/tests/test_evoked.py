@@ -68,7 +68,7 @@ def test_simulate_evoked():
     iir_filter = [1, -0.9]
     with warnings.catch_warnings(record=True):
         warnings.simplefilter('always')  # positive semidefinite warning
-        evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
+        evoked = generate_evoked(fwd, stc, evoked_template.info, cov, snr,
                                  tmin=0.0, tmax=0.2, iir_filter=iir_filter)
     assert_array_almost_equal(evoked.times, stc.times)
     assert_true(len(evoked.data) == len(fwd['sol']['data']))
@@ -78,4 +78,4 @@ def test_simulate_evoked():
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
     assert_raises(RuntimeError, generate_evoked, fwd, stc_bad,
-                  evoked_template, cov, snr, tmin=0.0, tmax=0.2)
+                  evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)

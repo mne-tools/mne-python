@@ -13,7 +13,7 @@ from ..utils import check_random_state, verbose, _time_mask
 
 
 @verbose
-def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
+def generate_evoked(fwd, stc, info, cov, snr=3, tmin=None, tmax=None,
                     iir_filter=None, random_state=None, verbose=None):
     """Generate noisy evoked data
 
@@ -23,8 +23,8 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
         a forward solution.
     stc : SourceEstimate object
         The source time courses.
-    evoked : Evoked object
-        An instance of evoked used as template.
+    info : dict
+        Measurement info to generate the evoked.
     cov : Covariance object
         The noise covariance
     snr : float
@@ -48,7 +48,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None, tmax=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    evoked = apply_forward(fwd, stc, evoked)  # verbose
+    evoked = apply_forward(fwd, stc, info)  # verbose
     noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
     evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
     return evoked_noise
