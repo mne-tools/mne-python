@@ -14,7 +14,6 @@ def _check_stc(stc1, stc2):
         raise ValueError('Times of two stcs must match.')
 
 
-
 def source_estimate_quantification(stc1, stc2, metric='rms'):
     """Helper function to calculate matrix similarities.
 
