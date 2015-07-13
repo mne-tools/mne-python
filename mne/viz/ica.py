@@ -109,13 +109,13 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
     elif len(ica.exclude) > 0:
         exclude = np.union1d(ica.exclude, exclude)
     if isinstance(inst, _BaseRaw):
-        fig = _plot_raw_components(ica, inst, picks, exclude, start=start,
+        fig = _plot_sources_raw(ica, inst, picks, exclude, start=start,
+                                stop=stop, show=show, title=title,
+                                block=block)
+    elif isinstance(inst, _BaseEpochs):
+        fig = _plot_sources_epochs(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
                                    block=block)
-    elif isinstance(inst, _BaseEpochs):
-        fig = _plot_epoch_components(ica, inst, picks, exclude, start=start,
-                                     stop=stop, show=show, title=title,
-                                     block=block)
     elif isinstance(inst, Evoked):
         sources = ica.get_sources(inst)
         if start is not None or stop is not None:
@@ -248,7 +248,7 @@ def _plot_ica_sources_evoked(evoked, picks, exclude, title, show):
     ax.set_xlim(times[[0, -1]])
     ax.set_xlabel('Time (ms)')
     ax.set_ylabel('(NA)')
-    if exclude:
+    if len(exclude) > 0:
         plt.legend(loc='best')
     tight_layout(fig=fig)
 
@@ -329,7 +329,7 @@ def plot_ica_scores(ica, scores, exclude=None, axhline=None,
     plt.suptitle(title)
     for this_scores, ax in zip(scores, axes):
         if len(my_range) != len(this_scores):
-            raise ValueError('The length ofr `scores` must equal the '
+            raise ValueError('The length of `scores` must equal the '
                              'number of ICA components.')
         ax.bar(my_range, this_scores, color='w')
         for excl in exclude:
@@ -526,8 +526,8 @@ def _plot_ica_overlay_evoked(evoked, evoked_cln, title, show):
     return fig
 
 
-def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
-                         block):
+def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
+                      block):
     """Function for plotting the ICA components as raw array."""
     import matplotlib.pyplot as plt
     plt.ion()
@@ -535,8 +535,8 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     orig_data = ica._transform_raw(raw, 0, len(raw.times)) * 0.2
     if picks is None:
         picks = range(len(orig_data))
-    types = np.repeat('misc', len(picks))
-    picks = sorted(picks)
+    types = ['misc' for _ in picks]
+    picks = list(sorted(picks))
 
     c_names = ['ICA %03d' % x for x in range(len(orig_data))]
     if title is None:
@@ -617,8 +617,8 @@ def _close_event(events, params):
     params['ica'].exclude = exclude
 
 
-def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
-                           title, block):
+def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
+                         title, block):
     """Function for plotting the components as epochs."""
     import matplotlib.pyplot as plt
     plt.ion()  # Turn interactive mode on to avoid warnings.
