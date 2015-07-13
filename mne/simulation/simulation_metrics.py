@@ -47,7 +47,7 @@ def _calc_metric(data1, data2, metric):
     data2 : ndarray, shape(n_sources, ntimes)
         Second data matrix
     metric : str
-        Metric to calculate. 'rms', 'corr',
+        Metric to calculate. 'rms', 'rms_normed', 'corr',
 
     Returns
     -------
