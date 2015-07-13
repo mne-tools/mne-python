@@ -67,6 +67,5 @@ plt.xlabel('sensitivity')
 plt.ylabel('count')
 plt.show()
 
-args = dict(fmin=0.1, fmid=0.5, fmax=0.9, smoothing_steps=7)
-grad_map.plot(subject='sample', time_label='Gradiometer sensitivity',
-              subjects_dir=subjects_dir, **args)
+grad_map.plot(time_label='Gradiometer sensitivity', subjects_dir=subjects_dir,
+              clim=dict(lims=[0, 50, 100]))

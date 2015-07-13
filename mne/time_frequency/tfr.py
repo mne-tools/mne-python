@@ -28,11 +28,11 @@ from .._hdf5 import write_hdf5, read_hdf5
 
 def _get_data(inst, return_itc):
     """Get data from Epochs or Evoked instance as epochs x ch x time"""
-    from ..epochs import Epochs
+    from ..epochs import _BaseEpochs
     from ..evoked import Evoked
-    if not isinstance(inst, (Epochs, Evoked)):
+    if not isinstance(inst, (_BaseEpochs, Evoked)):
         raise TypeError('inst must be Epochs or Evoked')
-    if isinstance(inst, Epochs):
+    if isinstance(inst, _BaseEpochs):
         data = inst.get_data()
     else:
         if return_itc:
@@ -41,7 +41,7 @@ def _get_data(inst, return_itc):
     return data
 
 
-def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
+def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     """Compute Wavelets for the given frequency range
 
     Parameters
@@ -70,12 +70,6 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False, Fs=None):
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
-
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
 
     if (n_cycles.size != 1) and (n_cycles.size != len(freqs)):
         raise ValueError("n_cycles should be fixed or defined for "
@@ -247,8 +241,7 @@ def _cwt_convolve(X, Ws, mode='same'):
         yield tfr
 
 
-def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
-               Fs=None):
+def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     """Compute time freq decomposition with Morlet wavelets
 
     This function operates directly on numpy arrays. Consider using
@@ -274,12 +267,6 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False,
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
     """
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
-
     mode = 'same'
     # mode = "valid"
     n_signals, n_times = X.shape
@@ -364,8 +351,7 @@ def _time_frequency(X, Ws, use_fft, decim):
 @verbose
 def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
                        baseline=None, baseline_mode='ratio', times=None,
-                       decim=1, n_jobs=1, zero_mean=False, Fs=None,
-                       verbose=None):
+                       decim=1, n_jobs=1, zero_mean=False, verbose=None):
     """Compute time-frequency power on single epochs
 
     Parameters
@@ -410,12 +396,6 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
     power : 4D array
         Power estimate (Epochs x Channels x Frequencies x Timepoints).
     """
-    # deprecate Fs
-    if Fs is not None:
-        sfreq = Fs
-        warnings.warn("`Fs` is deprecated and will be removed in v0.10. "
-                      "Use `sfreq` instead", DeprecationWarning)
-
     mode = 'same'
     n_frequencies = len(frequencies)
     n_epochs, n_channels, n_times = data[:, :, ::decim].shape
@@ -452,7 +432,7 @@ def single_trial_power(data, sfreq, frequencies, use_fft=True, n_cycles=7,
 
 
 def _induced_power_cwt(data, sfreq, frequencies, use_fft=True, n_cycles=7,
-                       decim=1, n_jobs=1, zero_mean=False, Fs=None):
+                       decim=1, n_jobs=1, zero_mean=False):
     """Compute time induced power and inter-trial phase-locking factor
 
     The time frequency decomposition is done with Morlet wavelets
@@ -870,11 +850,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         self.data = rescale(self.data, self.times, baseline, mode, copy=False)
 
     def plot_topomap(self, tmin=None, tmax=None, fmin=None, fmax=None,
-                     ch_type='mag', baseline=None, mode='mean',
+                     ch_type=None, baseline=None, mode='mean',
                      layout=None, vmin=None, vmax=None, cmap='RdBu_r',
                      sensors=True, colorbar=True, unit=None, res=64, size=2,
                      cbar_fmt='%1.1e', show_names=False, title=None,
-                     axes=None, show=True, format=None, outlines='head'):
+                     axes=None, show=True, outlines='head', head_pos=None):
         """Plot topographic maps of time-frequency intervals of TFR data
 
         Parameters
@@ -891,9 +871,10 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
         fmax : None | float
             The last frequency to display. If None the last frequency
             available is used.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         baseline : tuple or list of length 2
             The time interval to apply rescaling / baseline correction.
             If None do not apply it. If baseline is (a, b)
@@ -932,8 +913,9 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
+        unit : dict | str | None
+            The unit of the channel type used for colorbar label. If
+            scale is None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : float
@@ -961,6 +943,11 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             points outside the outline. Moreover, a matplotlib patch object can
             be passed for advanced masking options, either directly or as a
             function that returns patches (required for multi-axis plots).
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
 
         Returns
         -------
@@ -975,7 +962,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                                 unit=unit, res=res, size=size,
                                 cbar_fmt=cbar_fmt, show_names=show_names,
                                 title=title, axes=axes, show=show,
-                                format=format, outlines=outlines)
+                                outlines=outlines, head_pos=head_pos)
 
     def save(self, fname, overwrite=False):
         """Save TFR object to hdf5 file

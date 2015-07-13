@@ -2,6 +2,7 @@
 #          Denis Engemann <denis.engemann@gmail.com>
 #          Martin Luessi <mluessi@nmr.mgh.harvard.edu>
 #          Eric Larson <larson.eric.d@gmail.com>
+#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
 
@@ -19,6 +20,7 @@ from mne.utils import run_tests_if_main, requires_scipy_version
 from mne.channels import read_layout
 
 from mne.viz import plot_drop_log, plot_image_epochs, _get_presser
+from mne.viz.utils import _fake_click
 
 # Set our plotters to test mode
 import matplotlib
@@ -72,21 +74,21 @@ def _get_epochs_delayed_ssp():
     return epochs_delayed_ssp
 
 
-def test_plot_epochs():
-    """ Test plotting epochs
-    """
+def test_plot_trellis():
+    """ Test plotting epochs using Trellis plot"""
     import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
     epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
-    # test clicking: should increase coverage on
-    # 3200-3226, 3235, 3237, 3239-3242, 3245-3255, 3260-3280
-    fig = plt.gcf()
-    fig.canvas.button_press_event(10, 10, 'left')
+    plt.close('all')
     # now let's add a bad channel
     epochs.info['bads'] = [epochs.ch_names[0]]  # include a bad one
     epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
     fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, title_str='%s')
+    plt.close('all')
+    fig = epochs.plot([0, 1], picks=[0, 2, 3], scalings=None, title_str='%s')
     # fake a click
     event = namedtuple('Event', 'inaxes')
     func = _get_presser(fig)
@@ -96,6 +98,54 @@ def test_plot_epochs():
     func = _get_presser(nav_fig)
     func(event(inaxes=nav_fig.axes[1]))
     plt.close('all')
+
+
+def test_plot_epochs():
+    """Test epoch plotting"""
+    import matplotlib.pyplot as plt
+    epochs = _get_epochs()
+    epochs.plot(scalings=None, title='Epochs', trellis=False)
+    plt.close('all')
+    fig = epochs[0].plot(picks=[0, 2, 3], scalings=None, trellis=False)
+    fig.canvas.key_press_event('escape')
+    plt.close('all')
+    fig = epochs.plot(trellis=False)
+    fig.canvas.key_press_event('left')
+    fig.canvas.key_press_event('right')
+    fig.canvas.key_press_event('up')
+    fig.canvas.key_press_event('down')
+    fig.canvas.key_press_event('pageup')
+    fig.canvas.key_press_event('pagedown')
+    fig.canvas.key_press_event('-')
+    fig.canvas.key_press_event('+')
+    fig.canvas.key_press_event('=')
+    fig.canvas.key_press_event('b')
+    fig.canvas.key_press_event('f11')
+    fig.canvas.key_press_event('home')
+    fig.canvas.key_press_event('?')
+    fig.canvas.key_press_event('o')
+    fig.canvas.key_press_event('end')
+    fig.canvas.resize_event()
+    fig.canvas.close_event()  # closing and epoch dropping
+    plt.close('all')
+    with warnings.catch_warnings(record=True):
+        fig = epochs.plot(trellis=False)
+        # test mouse clicks
+        x = fig.get_axes()[0].get_xlim()[1] / 2
+        y = fig.get_axes()[0].get_ylim()[0] / 2
+        data_ax = fig.get_axes()[0]
+        n_epochs = len(epochs)
+        _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
+        _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
+        _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
+        _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
+        fig.canvas.close_event()  # closing and epoch dropping
+        assert(n_epochs - 1 == len(epochs))
+        plt.close('all')
+
+        assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
+        plt.close('all')
 
 
 def test_plot_image_epochs():
@@ -128,11 +178,13 @@ def test_plot_drop_log():
 def test_plot_psd_epochs():
     """Test plotting epochs psd (+topomap)
     """
+    import matplotlib.pyplot as plt
     epochs = _get_epochs()
     epochs.plot_psd()
     assert_raises(RuntimeError, epochs.plot_psd_topomap,
                   bands=[(0, 0.01, 'foo')])  # no freqs in range
     epochs.plot_psd_topomap()
+    plt.close('all')
 
 
 run_tests_if_main()

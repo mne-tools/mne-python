@@ -110,7 +110,7 @@ Custom plots can be added to the report. Let us first generate a custom plot:
     >>> from mne import read_evokeds
     >>> fname = path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked = read_evokeds(fname, condition='Left Auditory', baseline=(None, 0), verbose=True) # doctest:+ELLIPSIS
-    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active

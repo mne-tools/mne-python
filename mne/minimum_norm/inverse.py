@@ -699,23 +699,10 @@ def _check_method(method):
     return method
 
 
-def _check_ori(pick_ori, pick_normal):
-    if pick_normal is not None:
-        warnings.warn('DEPRECATION: The pick_normal parameter has been '
-                      'changed to pick_ori. Please update your code.')
-        pick_ori = pick_normal
-    if pick_ori is True:
-        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
-                      'or "normal".')
-        pick_ori = "normal"
-    elif pick_ori is False:
-        warnings.warn('DEPRECATION: The pick_ori parameter should now be None '
-                      'or "normal".')
-        pick_ori = None
-
-    if pick_ori not in [None, "normal"]:
-        raise ValueError('The pick_ori parameter should now be None or '
-                         '"normal".')
+def _check_ori(pick_ori):
+    if pick_ori is not None and pick_ori != 'normal':
+        raise RuntimeError('pick_ori must be None or "normal", not %s'
+                           % pick_ori)
     return pick_ori
 
 
@@ -736,7 +723,7 @@ def _subject_from_inverse(inverse_operator):
 
 @verbose
 def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
-                  method="dSPM", pick_ori=None, pick_normal=None,
+                  method="dSPM", pick_ori=None,
                   prepared=False, label=None, verbose=None):
     """Apply inverse operator to evoked data
 
@@ -770,7 +757,7 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     """
     _check_reference(evoked)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
     #
     #   Set up the inverse according to the parameters
     #
@@ -816,9 +803,8 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
 @verbose
 def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
                       label=None, start=None, stop=None, nave=1,
-                      time_func=None, pick_ori=None,
-                      buffer_size=None, pick_normal=None, prepared=False,
-                      verbose=None):
+                      time_func=None, pick_ori=None, buffer_size=None,
+                      prepared=False, verbose=None):
     """Apply inverse operator to Raw data
 
     Parameters
@@ -868,7 +854,7 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     """
     _check_reference(raw)
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     _check_ch_names(inverse_operator, raw.info)
 
@@ -934,10 +920,10 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
 
 def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
                               label=None, nave=1, pick_ori=None,
-                              pick_normal=None, prepared=False, verbose=None):
+                              prepared=False, verbose=None):
     """ see apply_inverse_epochs """
     method = _check_method(method)
-    pick_ori = _check_ori(pick_ori, pick_normal)
+    pick_ori = _check_ori(pick_ori)
 
     _check_ch_names(inverse_operator, epochs.info)
 
@@ -996,7 +982,7 @@ def _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2, method='dSPM',
 @verbose
 def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
                          label=None, nave=1, pick_ori=None,
-                         return_generator=False, pick_normal=None,
+                         return_generator=False,
                          prepared=False, verbose=None):
     """Apply inverse operator to Epochs
 
@@ -1038,7 +1024,6 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,
                                      method=method, label=label, nave=nave,
                                      pick_ori=pick_ori, verbose=verbose,
-                                     pick_normal=pick_normal,
                                      prepared=prepared)
 
     if not return_generator:
@@ -1102,11 +1087,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
                      verbose=None):
     """Util function to prepare forward solution for inverse solvers
     """
-    fwd_ch_names = [c['ch_name'] for c in forward['info']['chs']]
+    # fwd['sol']['row_names'] may be different order from fwd['info']['chs']
+    fwd_sol_ch_names = forward['sol']['row_names']
     ch_names = [c['ch_name'] for c in info['chs']
                 if ((c['ch_name'] not in info['bads'] and
                      c['ch_name'] not in noise_cov['bads']) and
-                    (c['ch_name'] in fwd_ch_names and
+                    (c['ch_name'] in fwd_sol_ch_names and
                      c['ch_name'] in noise_cov.ch_names))]
 
     if not len(info['bads']) == len(noise_cov['bads']) or \
@@ -1139,8 +1125,12 @@ def _prepare_forward(forward, info, noise_cov, pca=False, rank=None,
 
     gain = forward['sol']['data']
 
-    fwd_idx = [fwd_ch_names.index(name) for name in ch_names]
+    # This actually reorders the gain matrix to conform to the info ch order
+    fwd_idx = [fwd_sol_ch_names.index(name) for name in ch_names]
     gain = gain[fwd_idx]
+    # Any function calling this helper will be using the returned fwd_info
+    # dict, so fwd['sol']['row_names'] becomes obsolete and is NOT re-ordered
+
     info_idx = [info['ch_names'].index(name) for name in ch_names]
     fwd_info = pick_info(info, info_idx)
 

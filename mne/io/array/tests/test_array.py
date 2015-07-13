@@ -29,6 +29,7 @@ fif_fname = op.join(base_dir, 'test_raw.fif')
 def test_array_raw():
     """Test creating raw from array
     """
+    import matplotlib.pyplot as plt
     tempdir = _TempDir()
     # creating
     raw = Raw(fif_fname).crop(2, 5, copy=False)
@@ -60,6 +61,7 @@ def test_array_raw():
     # Make sure concatenation works
     raw_concat = concatenate_raws([raw2.copy(), raw2])
     assert_equal(raw_concat.n_times, 2 * raw2.n_times)
+    assert_true('RawArray' in repr(raw2))
 
     # saving
     temp_fname = op.join(tempdir, 'raw.fif')
@@ -96,13 +98,17 @@ def test_array_raw():
     # plotting
     raw2.plot()
     raw2.plot_psd()
+    plt.close('all')
 
     # epoching
     events = find_events(raw2, stim_channel='STI 014')
     events[:, 2] = 1
     assert_true(len(events) > 2)
     epochs = Epochs(raw2, events, 1, -0.2, 0.4, preload=True)
-    epochs.plot_drop_log(return_fig=True)
-    epochs.plot()
+    epochs.plot_drop_log()
+    with warnings.catch_warnings(record=True):  # deprecation
+        warnings.simplefilter('always')
+        epochs.plot()
     evoked = epochs.average()
     evoked.plot()
+    plt.close('all')

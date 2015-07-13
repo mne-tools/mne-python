@@ -86,6 +86,7 @@ def test_find_events():
     raw._data[stim_channel_idx, 520:530] = 6
     raw._data[stim_channel_idx, 530:532] = 5
     raw._data[stim_channel_idx, 540] = 6
+    raw._update_times()
 
     # consecutive=False
     find_events = dict(consecutive=False)

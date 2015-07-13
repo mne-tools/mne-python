@@ -88,7 +88,8 @@ class RawBrainVision(_BaseRaw):
         last_samps = [(n_samples //
                       (dtype * self._eeg_info['n_eeg_chan'])) - 1]
         super(RawBrainVision, self).__init__(
-            info, last_samps=last_samps, verbose=verbose)
+            info, last_samps=last_samps, filenames=[vhdr_fname],
+            verbose=verbose)
         self.set_brainvision_events(events)
 
         # load data
@@ -104,13 +105,6 @@ class RawBrainVision(_BaseRaw):
                            float(self.first_samp) / self.info['sfreq'],
                            float(self.last_samp) / self.info['sfreq']))
         logger.info('Ready.')
-
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEEG  |  %s>" % ', '.join(s)
 
     def _read_segment(self, start=0, stop=None, sel=None, verbose=None,
                       projector=None):

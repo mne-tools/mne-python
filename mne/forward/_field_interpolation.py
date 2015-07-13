@@ -1,7 +1,6 @@
 import numpy as np
 from scipy import linalg
 from copy import deepcopy
-import warnings
 
 from ..io.constants import FIFF
 from ..io.pick import pick_types, pick_info
@@ -333,7 +332,7 @@ def _make_surface_mapping(info, surf, ch_type='meg', trans=None, mode='fast',
 
 def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
                    ch_type=None, mode='fast', meg_surf='helmet',
-                   n_jobs=1, trans_fname=None):
+                   n_jobs=1):
     """Compute surface maps used for field display in 3D
 
     Parameters
@@ -370,11 +369,6 @@ def make_field_map(evoked, trans='auto', subject=None, subjects_dir=None,
         The surface maps to be used for field plots. The list contains
         separate ones for MEG and EEG (if both MEG and EEG are present).
     """
-    if trans_fname is not None:
-        trans = trans_fname
-        warnings.warn('The parameter "trans_fname" is deprecated and will '
-                      'be removed in 0.10, use "trans" instead',
-                      DeprecationWarning)
     info = evoked.info
 
     if ch_type is None:

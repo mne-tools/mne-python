@@ -23,7 +23,7 @@ from mne import (read_cov, write_cov, Epochs, merge_events,
                  pick_channels_cov, pick_channels, pick_types, pick_info,
                  make_ad_hoc_cov)
 from mne.io import Raw
-from mne.utils import _TempDir, slow_test, requires_module
+from mne.utils import _TempDir, slow_test, requires_module, run_tests_if_main
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import channel_type, _picks_by_type
 from mne.fixes import partial
@@ -57,6 +57,7 @@ def test_ad_hoc_cov():
     evoked = read_evokeds(ave_fname)[0]
     cov = make_ad_hoc_cov(evoked.info)
     cov.save(out_fname)
+    assert_true('Covariance' in repr(cov))
     cov2 = read_cov(out_fname)
     assert_array_almost_equal(cov['data'], cov2['data'])
 
@@ -73,6 +74,7 @@ def test_io_cov():
     assert_array_almost_equal(cov.data, cov2.data)
     assert_equal(cov['method'], cov2['method'])
     assert_equal(cov['loglik'], cov2['loglik'])
+    assert_true('Covariance' in repr(cov))
 
     cov2 = read_cov(cov_gz_fname)
     assert_array_almost_equal(cov.data, cov2.data)
@@ -420,6 +422,7 @@ def test_auto_low_rank():
                   n_jobs=n_jobs, method_params=method_params, cv=cv)
 
 
+@slow_test
 @requires_sklearn_0_15
 def test_compute_covariance_auto_reg():
     """Test automated regularization"""
@@ -432,39 +435,34 @@ def test_compute_covariance_auto_reg():
     # cov with merged events and keep_sample_mean=True
     events_merged = merge_events(events, event_ids, 1234)
     picks = pick_types(raw.info, meg='mag', eeg=False)
-    epochs = Epochs(raw, events_merged, 1234, tmin=-0.2, tmax=0,
-                    picks=picks[:5], baseline=(-0.2, -0.1), proj=True,
-                    reject=reject, preload=True)
+    epochs = Epochs(
+        raw, events_merged, 1234, tmin=-0.2, tmax=0,
+        picks=picks[:10],  # we need a few channels for numerical reasons
+        # in PCA/FA.
+        baseline=(-0.2, -0.1), proj=True, reject=reject, preload=True)
     epochs.crop(None, 0)[:10]
 
-    method_params = dict(factor_analysis=dict(iter_n_components=[30]),
-                         pca=dict(iter_n_components=[30]))
+    method_params = dict(factor_analysis=dict(iter_n_components=[3]),
+                         pca=dict(iter_n_components=[3]))
 
-    with warnings.catch_warnings(record=True) as w:
-        covs = compute_covariance(epochs, method='auto',
-                                  method_params=method_params,
-                                  projs=True,
-                                  return_estimators=True)
-        warnings.simplefilter('always')
-        assert_equal(len(w), 1)
+    covs = compute_covariance(epochs, method='auto',
+                              method_params=method_params,
+                              projs=True,
+                              return_estimators=True)
 
     logliks = [c['loglik'] for c in covs]
     assert_true(np.diff(logliks).max() <= 0)  # descending order
 
-    with warnings.catch_warnings(record=True) as w:
-        cov3 = compute_covariance(epochs, method=['empirical',
-                                                  'factor_analysis'],
-                                  method_params=method_params, projs=False,
-                                  return_estimators=True)
-        warnings.simplefilter('always')
-        assert_equal(len(w), 1)
+    methods = ['empirical',
+               'factor_analysis',
+               'ledoit_wolf',
+               'pca']
+    cov3 = compute_covariance(epochs, method=methods,
+                              method_params=method_params, projs=None,
+                              return_estimators=True)
 
     assert_equal(set([c['method'] for c in cov3]),
-                 set(['empirical', 'factor_analysis']))
-
-    # projs not allowed with FA or PCA
-    assert_raises(ValueError, compute_covariance, epochs, method='pca',
-                  projs=True)
+                 set(methods))
 
     # invalid prespecified method
     assert_raises(ValueError, compute_covariance, epochs, method='pizza')
@@ -472,3 +470,5 @@ def test_compute_covariance_auto_reg():
     # invalid scalings
     assert_raises(ValueError, compute_covariance, epochs, method='shrunk',
                   scalings=dict(misc=123))
+
+run_tests_if_main()

@@ -10,7 +10,7 @@ import re
 import numpy as np
 
 from .constants import FIFF
-from ..utils import logger, verbose, deprecated
+from ..utils import logger, verbose
 from ..externals.six import string_types
 
 
@@ -188,6 +188,10 @@ def pick_types(info, meg=True, eeg=False, stim=False, eog=False, ecg=False,
     """
     # NOTE: Changes to this function's signature should also be changed in
     # PickChannelsMixin
+    from .meas_info import Info
+    if not isinstance(info, Info):
+        raise TypeError('info must be an instance of Info, not %s'
+                        % type(info))
     nchan = info['nchan']
     pick = np.zeros(nchan, dtype=np.bool)
 
@@ -299,6 +303,11 @@ def pick_info(info, sel=[], copy=True):
     info['chs'] = [info['chs'][k] for k in sel]
     info['ch_names'] = [info['ch_names'][k] for k in sel]
     info['nchan'] = len(sel)
+
+    # Check if bads_channels are included, otherwise
+    # remove info['bads']
+    info['bads'] = [ch for ch in info['bads'] if ch in info['ch_names']]
+
     return info
 
 
@@ -355,70 +364,6 @@ def pick_channels_evoked(orig, include=[], exclude='bads'):
     return res
 
 
-@deprecated('"pick_types_evoked" has been deprecated and will be removed '
-            'in v0.10, used evoked.pick_types instead')
-def pick_types_evoked(evoked, meg=True, eeg=False, stim=False, eog=False,
-                      ecg=False, emg=False, ref_meg=False, misc=False,
-                      resp=False, chpi=False, exci=False, ias=False,
-                      syst=False, seeg=False, include=[], exclude='bads'):
-    """Pick by channel type and names from evoked data
-
-    Parameters
-    ----------
-    evoked : instance of Evoked
-        Evoked object to operate on.
-    meg : bool or string
-        If True include all MEG channels. If False include None
-        If string it can be 'mag' or 'grad' to select only gradiometers
-        or magnetometers.
-    eeg : bool
-        If True include EEG channels
-    eog : bool
-        If True include EOG channels
-    ecg : bool
-        If True include ECG channels
-    emg : bool
-        If True include EMG channels
-    stim : bool
-        If True include stimulus channels
-    ref_meg : bool
-        If True include CTF / 4D reference channels
-    misc : bool
-        If True include miscellaneous analog channels
-    resp : bool
-        If True include response-trigger channel. For some MEG systems this
-        is separate from the stim channel.
-    chpi : bool
-        If True include continuous HPI coil channels.
-    exci : bool
-        Flux excitation channel used to be a stimulus channel.
-    ias : bool
-        Internal Active Shielding data (maybe on Triux only).
-    syst : bool
-        System status channel information (on Triux systems only).
-    seeg : bool
-        Stereotactic EEG channels
-    include : list of string
-        List of additional channels to include. If empty do not include any.
-    exclude : list of string | str
-        List of channels to exclude. If empty do not exclude any (default).
-        If 'bads', exclude channels in info['bads']. Defaults to 'bads'.
-
-    Returns
-    -------
-    res : instance of Evoked
-        Evoked data restricted to selected channels. If include and
-        exclude are None it returns orig without copy.
-    """
-    sel = pick_types(info=evoked.info, meg=meg, eeg=eeg, stim=stim, eog=eog,
-                     ecg=ecg, emg=emg, ref_meg=ref_meg, misc=misc,
-                     resp=resp, chpi=chpi, exci=exci, ias=ias, syst=syst,
-                     seeg=seeg, include=include, exclude=exclude)
-
-    include_ch_names = [evoked.ch_names[k] for k in sel]
-    return pick_channels_evoked(evoked, include_ch_names)
-
-
 @verbose
 def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     """Pick channels from forward operator
@@ -444,39 +389,49 @@ def pick_channels_forward(orig, include=[], exclude=[], verbose=None):
     if len(include) == 0 and len(exclude) == 0:
         return orig
 
-    sel = pick_channels(orig['sol']['row_names'], include=include,
-                        exclude=exclude)
+    # Allow for possibility of channel ordering in forward solution being
+    # different from that of the M/EEG file it is based on.
+    sel_sol = pick_channels(orig['sol']['row_names'], include=include,
+                            exclude=exclude)
+    sel_info = pick_channels(orig['info']['ch_names'], include=include,
+                             exclude=exclude)
 
     fwd = deepcopy(orig)
 
+    # Check that forward solution and original data file agree on #channels
+    if len(sel_sol) != len(sel_info):
+        raise ValueError('Forward solution and functional data appear to '
+                         'have different channel names, please check.')
+
     #   Do we have something?
-    nuse = len(sel)
+    nuse = len(sel_sol)
     if nuse == 0:
         raise ValueError('Nothing remains after picking')
 
     logger.info('    %d out of %d channels remain after picking'
                 % (nuse, fwd['nchan']))
 
-    #   Pick the correct rows of the forward operator
-    fwd['sol']['data'] = fwd['sol']['data'][sel, :]
-    fwd['_orig_sol'] = fwd['_orig_sol'][sel, :]
+    #   Pick the correct rows of the forward operator using sel_sol
+    fwd['sol']['data'] = fwd['sol']['data'][sel_sol, :]
+    fwd['_orig_sol'] = fwd['_orig_sol'][sel_sol, :]
     fwd['sol']['nrow'] = nuse
 
-    ch_names = [fwd['sol']['row_names'][k] for k in sel]
+    ch_names = [fwd['sol']['row_names'][k] for k in sel_sol]
     fwd['nchan'] = nuse
     fwd['sol']['row_names'] = ch_names
 
-    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel]
-    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel]
+    # Pick the appropriate channel names from the info-dict using sel_info
+    fwd['info']['ch_names'] = [fwd['info']['ch_names'][k] for k in sel_info]
+    fwd['info']['chs'] = [fwd['info']['chs'][k] for k in sel_info]
     fwd['info']['nchan'] = nuse
     fwd['info']['bads'] = [b for b in fwd['info']['bads'] if b in ch_names]
 
     if fwd['sol_grad'] is not None:
-        fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel, :]
-        fwd['_orig_sol_grad'] = fwd['_orig_sol_grad'][sel, :]
+        fwd['sol_grad']['data'] = fwd['sol_grad']['data'][sel_sol, :]
+        fwd['_orig_sol_grad'] = fwd['_orig_sol_grad'][sel_sol, :]
         fwd['sol_grad']['nrow'] = nuse
         fwd['sol_grad']['row_names'] = [fwd['sol_grad']['row_names'][k]
-                                        for k in sel]
+                                        for k in sel_sol]
 
     return fwd
 

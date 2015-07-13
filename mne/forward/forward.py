@@ -1223,6 +1223,7 @@ def apply_forward_raw(fwd, stc, raw_template, start=None, stop=None,
     raw.info = _fill_measurement_info(raw.info, fwd, sfreq)
     raw.info['projs'] = []
     raw._projector = None
+    raw._update_times()
     return raw
 
 
@@ -1373,8 +1374,12 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
     bem : str | None
         Name of the BEM to use (e.g., "sample-5120-5120-5120"). If None
         (Default), the MNE default will be used.
+    mri : str | None
+        The name of the trans file in FIF format.
+        If None, trans must not be None.
     trans : dict | str | None
-        File name of the trans file. If None, mri must not be None.
+        File name of the trans file in text format.
+        If None, mri must not be None.
     eeg : bool
         If True (Default), include EEG computations.
     meg : bool

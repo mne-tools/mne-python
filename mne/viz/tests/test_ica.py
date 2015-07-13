@@ -11,6 +11,7 @@ from numpy.testing import assert_raises
 from mne import io, read_events, Epochs, read_cov
 from mne import pick_types
 from mne.utils import run_tests_if_main, requires_sklearn
+from mne.viz.utils import _fake_click
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 
 # Set our plotters to test mode
@@ -72,7 +73,9 @@ def test_plot_ica_sources():
     """Test plotting of ICA panel
     """
     import matplotlib.pyplot as plt
-    raw = io.Raw(raw_fname, preload=True)
+    raw = io.Raw(raw_fname, preload=False)
+    raw.crop(0, 1, copy=False)
+    raw.preload_data()
     picks = _get_picks(raw)
     epochs = _get_epochs()
     raw.pick_channels([raw.ch_names[k] for k in picks])
@@ -80,10 +83,27 @@ def test_plot_ica_sources():
                            ecg=False, eog=False, exclude='bads')
     ica = ICA(n_components=2, max_pca_components=3, n_pca_components=3)
     ica.fit(raw, picks=ica_picks)
-    ica.plot_sources(raw)
+    raw.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=raw)
     ica.plot_sources(epochs)
+    epochs.info['bads'] = ['MEG 0113']
+    assert_raises(RuntimeError, ica.plot_sources, inst=epochs)
+    epochs.info['bads'] = []
     with warnings.catch_warnings(record=True):  # no labeled objects mpl
         ica.plot_sources(epochs.average())
+        evoked = epochs.average()
+        fig = ica.plot_sources(evoked)
+        # Test a click
+        ax = fig.get_axes()[0]
+        line = ax.lines[0]
+        _fake_click(fig, ax,
+                    [line.get_xdata()[0], line.get_ydata()[0]], 'data')
+        _fake_click(fig, ax,
+                    [ax.get_xlim()[0], ax.get_ylim()[1]], 'data')
+        # plot with bad channels excluded
+        ica.plot_sources(evoked, exclude=[0])
+        ica.exclude = [0]
+        ica.plot_sources(evoked)  # does the same thing
     assert_raises(ValueError, ica.plot_sources, 'meeow')
     plt.close('all')
 

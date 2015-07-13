@@ -36,7 +36,7 @@ from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
                      _check_pandas_index_arguments,
                      check_fname, _get_stim_channel, object_hash,
-                     logger, verbose, _time_mask, deprecated)
+                     logger, verbose, _time_mask)
 from ..viz import plot_raw, plot_raw_psd
 from ..defaults import _handle_default
 from ..externals.six import string_types
@@ -215,15 +215,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
     Subclasses must provide the following methods:
 
-        * _read_segment(start, stop, sel, data_buffer, projector, verbose)
+        * _read_segment_file(self, data, idx, offset, fi, start, stop,
+                             cals, mult)
           (only needed for types that support on-demand disk reads)
+
+    The `_BaseRaw._raw_extras` list can contain whatever data is necessary for
+    such on-demand reads. For `RawFIF` this means a list of variables formerly
+    known as ``_rawdirs``.
     """
     @verbose
     def __init__(self, info, preload=False,
                  first_samps=(0,), last_samps=None,
-                 filenames=(), rawdirs=(),
+                 filenames=(None,), raw_extras=(None,),
                  comp=None, orig_comp_grade=None,
-                 orig_format='double',
+                 orig_format='double', dtype=np.float64,
                  verbose=None):
         # wait until the end to preload data, but triage here
         if isinstance(preload, np.ndarray):
@@ -231,9 +236,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             if preload.dtype not in (np.float64, np.complex128):
                 raise RuntimeError('datatype must be float64 or complex128, '
                                    'not %s' % preload.dtype)
+            if preload.dtype != dtype:
+                raise ValueError('preload and dtype must match')
             self._data = preload
             self.preload = True
-            self._last_samps = np.array([self._data.shape[1] - 1])
+            last_samps = [self._data.shape[1] - 1]
             load_from_disk = False
         else:
             if last_samps is None:
@@ -246,26 +253,35 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                 raise ValueError('bad preload: %s' % preload)
             else:
                 load_from_disk = True
-            self._last_samps = np.array(last_samps)
+        self._last_samps = np.array(last_samps)
+        self._first_samps = np.array(first_samps)
         self.info = info
         cals = np.empty(info['nchan'])
         for k in range(info['nchan']):
             cals[k] = info['chs'][k]['range'] * info['chs'][k]['cal']
         self.verbose = verbose
         self._cals = cals
-        self._rawdirs = list(rawdirs)
+        self._raw_extras = list(raw_extras)
         self.comp = comp
         self._orig_comp_grade = orig_comp_grade
         self._filenames = list(filenames)
-        self._first_samps = np.array(first_samps)
         self.orig_format = orig_format
         self._projectors = list()
         self._projector = None
+        self._dtype_ = dtype
         # If we have True or a string, actually do the preloading
         if load_from_disk:
             self._preload_data(preload)
+        self._update_times()
 
-    def _read_segment(start, stop, sel, data_buffer, projector, verbose):
+    @property
+    def _dtype(self):
+        """dtype for loading data (property so subclasses can override)"""
+        # most classes only store real data, they won't need anything special
+        return self._dtype_
+
+    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
+                      projector=None, verbose=None):
         """Read a chunk of raw data
 
         Parameters
@@ -294,6 +310,114 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         times : array, [samples]
             returns the time values corresponding to the samples.
         """
+        #  Initial checks
+        start = int(start)
+        stop = self.n_times if stop is None else min([int(stop), self.n_times])
+
+        if start >= stop:
+            raise ValueError('No data in this range')
+
+        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
+                    (start, stop - 1, start / float(self.info['sfreq']),
+                     (stop - 1) / float(self.info['sfreq'])))
+
+        #  Initialize the data and calibration vector
+        n_sel_channels = self.info['nchan'] if sel is None else len(sel)
+        # convert sel to a slice if possible for efficiency
+        if sel is not None and len(sel) > 1 and np.all(np.diff(sel) == 1):
+            sel = slice(sel[0], sel[-1] + 1)
+        idx = slice(None, None, None) if sel is None else sel
+        data_shape = (n_sel_channels, stop - start)
+        dtype = self._dtype
+        if isinstance(data_buffer, np.ndarray):
+            if data_buffer.shape != data_shape:
+                raise ValueError('data_buffer has incorrect shape')
+            data = data_buffer
+        elif isinstance(data_buffer, string_types):
+            # use a memmap
+            data = np.memmap(data_buffer, mode='w+',
+                             dtype=dtype, shape=data_shape)
+        else:
+            data = np.zeros(data_shape, dtype=dtype)
+
+        # deal with having multiple files accessed by the raw object
+        cumul_lens = np.concatenate(([0], np.array(self._raw_lengths,
+                                                   dtype='int')))
+        cumul_lens = np.cumsum(cumul_lens)
+        files_used = np.logical_and(np.less(start, cumul_lens[1:]),
+                                    np.greater_equal(stop - 1,
+                                                     cumul_lens[:-1]))
+
+        # set up cals and mult (cals, compensation, and projector)
+        cals = self._cals.ravel()[np.newaxis, :]
+        if self.comp is None and projector is None:
+            mult = None
+        else:
+            mult = list()
+            for ri in range(len(self._first_samps)):
+                if self.comp is not None:
+                    if projector is not None:
+                        mul = self.comp * cals
+                        mul = np.dot(projector[idx], mul)
+                    else:
+                        mul = self.comp[idx] * cals
+                elif projector is not None:
+                    mul = projector[idx] * cals
+                else:
+                    mul = np.diag(self._cals.ravel())[idx]
+                mult.append(mul)
+        cals = cals.T[idx]
+
+        # read from necessary files
+        offset = 0
+        for fi in np.nonzero(files_used)[0]:
+            start_file = self._first_samps[fi]
+            # first iteration (only) could start in the middle somewhere
+            if offset == 0:
+                start_file += start - cumul_lens[fi]
+            stop_file = np.min([stop - 1 - cumul_lens[fi] +
+                                self._first_samps[fi], self._last_samps[fi]])
+            if start_file < self._first_samps[fi] or \
+                    stop_file > self._last_samps[fi] or \
+                    stop_file < start_file or start_file > stop_file:
+                raise ValueError('Bad array indexing, could be a bug')
+
+            self._read_segment_file(data, idx, offset, fi,
+                                    start_file, stop_file, cals, mult)
+            offset += stop_file - start_file + 1
+
+        logger.info('[done]')
+        times = np.arange(start, stop) / self.info['sfreq']
+        return data, times
+
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
+                           cals, mult):
+        """Read a segment of data from a file
+
+        Only needs to be implemented for readers that support
+        ``preload=False``.
+
+        Parameters
+        ----------
+        data : ndarray, shape (len(idx), n_samp)
+            The data array. Should be modified inplace.
+        idx : ndarray | slice
+            The requested channel indices.
+        offset : int
+            Offset. Data should be stored in something like::
+
+                data[:, offset:offset + (start - stop + 1)] = r[idx]
+        fi : int
+            The file index that must be read from.
+        start : int
+            The start sample in the given file.
+        stop : int
+            The stop sample in the given file (inclusive).
+        cals : ndarray, shape (len(idx), 1)
+            Channel calibrations (already sub-indexed).
+        mult : ndarray, shape (len(idx), len(info['chs']) | None
+            The compensation + projection + cals matrix, if applicable.
+        """
         raise NotImplementedError
 
     @verbose
@@ -305,6 +429,11 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
 
+        Returns
+        -------
+        raw : instance of Raw
+            The raw object with data.
+
         Notes
         -----
         This function will preload raw data if it was not already preloaded.
@@ -312,6 +441,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         if not self.preload:
             self._preload_data(True)
+        return self
 
     def _preload_data(self, preload):
         """This function actually preloads the data"""
@@ -320,6 +450,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         assert len(self._data) == self.info['nchan']
         self.preload = True
         self.close()
+
+    def _update_times(self):
+        """Helper to update times"""
+        self._times = np.arange(self.n_times) / float(self.info['sfreq'])
+        # make it immutable
+        self._times.flags.writeable = False
 
     @property
     def first_samp(self):
@@ -340,7 +476,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             filename = self._data.filename
             del self._data
             # Now file can be removed
-            os.remove(filename)
+            try:
+                os.remove(filename)
+            except OSError:
+                pass  # ignore file that no longer exists
 
     def __enter__(self):
         """ Entering with block """
@@ -795,12 +934,16 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         The Raw object has to be constructed using preload=True (or string).
 
-        WARNING: The intended purpose of this function is primarily to speed
-        up computations (e.g., projection calculation) when precise timing
-        of events is not required, as downsampling raw data effectively
-        jitters trigger timings. It is generally recommended not to epoch
-        downsampled data, but instead epoch and then downsample, as epoching
-        downsampled data jitters triggers.
+        .. warning:: The intended purpose of this function is primarily to
+                     speed up computations (e.g., projection calculation) when
+                     precise timing of events is not required, as downsampling
+                     raw data effectively jitters trigger timings. It is
+                     generally recommended not to epoch downsampled data,
+                     but instead epoch and then downsample, as epoching
+                     downsampled data jitters triggers. See here for an
+                     example:
+
+                         https://gist.github.com/Eric89GXL/01642cb3789992fbca59
 
         Parameters
         ----------
@@ -868,6 +1011,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # adjust affected variables
         self._data = np.concatenate(new_data, axis=1)
         self.info['sfreq'] = sfreq
+        self._update_times()
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -917,17 +1061,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         raw._first_samps[0] += smin - cumul_lens[keepers[0]]
         raw._last_samps = np.atleast_1d(raw._last_samps[keepers])
         raw._last_samps[-1] -= cumul_lens[keepers[-1] + 1] - 1 - smax
-        raw._rawdirs = [r for ri, r in enumerate(raw._rawdirs)
-                        if ri in keepers]
+        raw._raw_extras = [r for ri, r in enumerate(raw._raw_extras)
+                           if ri in keepers]
+        raw._filenames = [r for ri, r in enumerate(raw._filenames)
+                          if ri in keepers]
         if raw.preload:
             # slice and copy to avoid the reference to large array
             raw._data = raw._data[:, smin:smax + 1].copy()
+        raw._update_times()
         return raw
 
     @verbose
     def save(self, fname, picks=None, tmin=0, tmax=None, buffer_size_sec=10,
              drop_small_buffer=False, proj=False, fmt='single',
-             overwrite=False, split_size='2GB', format=None, verbose=None):
+             overwrite=False, split_size='2GB', verbose=None):
         """Save raw data to file
 
         Parameters
@@ -990,11 +1137,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         check_fname(fname, 'raw', ('raw.fif', 'raw_sss.fif', 'raw_tsss.fif',
                                    'raw.fif.gz', 'raw_sss.fif.gz',
                                    'raw_tsss.fif.gz'))
-        if format is not None:
-            fmt = format
-            warnings.warn("The format parameter is deprecated and will "
-                          "be replaced by fmt in version 0.10."
-                          "Use fmt instead.", DeprecationWarning)
 
         if isinstance(split_size, string_types):
             exp = dict(MB=20, GB=30).get(split_size[-2:], None)
@@ -1155,9 +1297,12 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         The arrow keys (up/down/left/right) can typically be used to navigate
         between channels and time ranges, but this depends on the backend
         matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
-        To mark or un-mark a channel as bad, click on the rather flat segments
-        of a channel's time series. The changes will be reflected immediately
-        in the raw object's ``raw.info['bads']`` entry.
+        The scaling can be adjusted with - and + (or =) keys. The viewport
+        dimensions can be adjusted with page up/page down and home/end keys.
+        Full screen mode can be to toggled with f11 key. To mark or un-mark a
+        channel as bad, click on the rather flat segments of a channel's time
+        series. The changes will be reflected immediately in the raw object's
+        ``raw.info['bads']`` entry.
         """
         return plot_raw(self, events, duration, start, n_channels, bgcolor,
                         color, bad_color, event_color, scalings, remove_dc,
@@ -1222,12 +1367,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                             color=color, area_mode=area_mode,
                             area_alpha=area_alpha, n_overlap=n_overlap,
                             dB=dB, show=show, n_jobs=n_jobs)
-
-    @deprecated("'plot_psds' will be removed in v0.10, please use 'plot_psd' "
-                "instead")
-    def plot_psds(self, *args, **kwargs):
-        self.plot_psd(*args, **kwargs)
-    plot_psds.__doc__ = plot_psd.__doc__
 
     def time_as_index(self, times, use_first_samp=False):
         """Convert time to indices
@@ -1355,7 +1494,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
     @property
     def times(self):
         """Time points"""
-        return np.arange(self.n_times) / float(self.info['sfreq'])
+        return self._times
 
     @property
     def n_times(self):
@@ -1421,6 +1560,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             None, preload=True or False is inferred using the preload status
             of the raw files passed in.
         """
+        from .fiff.raw import RawFIF
+        from .kit.kit import RawKIT
+        from .edf.edf import RawEDF
+
         if not isinstance(raws, list):
             raws = [raws]
 
@@ -1437,6 +1580,9 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             else:
                 preload = False
 
+        if not preload and not isinstance(self, (RawFIF, RawKIT, RawEDF)):
+            raise RuntimeError('preload must be True to concatenate '
+                               'files unless they are FIF, KIT, or EDF')
         if preload is False:
             if self.preload:
                 self._data = None
@@ -1475,8 +1621,13 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         for r in raws:
             self._first_samps = np.r_[self._first_samps, r._first_samps]
             self._last_samps = np.r_[self._last_samps, r._last_samps]
-            self._rawdirs += r._rawdirs
+            self._raw_extras += r._raw_extras
             self._filenames += r._filenames
+        self._update_times()
+
+        if not (len(self._first_samps) == len(self._last_samps) ==
+                len(self._raw_extras) == len(self._filenames)):
+            raise RuntimeError('Append error')  # should never happen
 
     def close(self):
         """Clean up the object.
@@ -1491,133 +1642,14 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return deepcopy(self)
 
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, picks=None, start=None, stop=None, scale_time=1e3,
-                      scalings=None, use_time_index=True, copy=True):
-        """Get the epochs as Pandas DataFrame
-
-        Export raw data in tabular structure with MEG channels.
-
-        Caveat! To save memory, depending on selected data size consider
-        setting copy to False.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            If None only MEG and EEG channels are kept
-            otherwise the channels indices in picks are kept.
-        start : int | None
-            Data-extraction start index. If None, data will be exported from
-            the first sample.
-        stop : int | None
-            Data-extraction stop index. If None, data will be exported to the
-            last index.
-        scale_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)``.
-        use_time_index : bool
-            If False, times will be included as in the data table, else it will
-            be used as index object.
-        copy : bool
-            If true, data will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of pandas.core.DataFrame
-            Raw data exported into tabular data structure.
-        """
-
-        pd = _check_pandas_installed()
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-
-        data, times = self[picks, start:stop]
-
-        if copy:
-            data = data.copy()
-
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _handle_default('scalings', scalings)
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[idx] *= scaling
-
-        assert times.shape[0] == data.shape[1]
-        col_names = [self.ch_names[k] for k in picks]
-
-        df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times * scale_time)
-
-        if use_time_index is True:
-            if 'time' in df:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index('time', inplace=True)
-
-        return df
-
-    @deprecated('to_nitime will be removed in v0.10')
-    def to_nitime(self, picks=None, start=None, stop=None,
-                  use_first_samp=False, copy=True):
-        """ Raw data as nitime TimeSeries
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Indices of channels to apply. If None, all channels will be
-            exported.
-        start : int | None
-            Data-extraction start index. If None, data will be exported from
-            the first sample.
-        stop : int | None
-            Data-extraction stop index. If None, data will be exported to the
-            last index.
-        use_first_samp: bool
-            If True, the time returned is relative to the session onset, else
-            relative to the recording onset.
-        copy : bool
-            Whether to copy the raw data or not.
-
-        Returns
-        -------
-        raw_ts : instance of nitime.TimeSeries
-        """
-        try:
-            from nitime import TimeSeries  # to avoid strong dependency
-        except ImportError:
-            raise Exception('the nitime package is missing')
-
-        data, _ = self[picks, start:stop]
-        if copy:
-            data = data.copy()
-        if picks is None:
-            picks = np.arange(len(self.info['ch_names']))
-
-        start_time = self.index_as_time(start if start else 0, use_first_samp)
-        raw_ts = TimeSeries(data, sampling_rate=self.info['sfreq'],
-                            t0=start_time)
-
-        raw_ts.ch_names = [self.ch_names[k] for k in picks]
-
-        return raw_ts
-
     def __repr__(self):
+        name = self._filenames[0]
+        name = 'None' if name is None else op.basename(name)
+        s = ', '.join(('%r' % name, "n_channels x n_times : %s x %s"
+                       % (len(self.ch_names), self.n_times)))
         s = "n_channels x n_times : %s x %s" % (len(self.info['ch_names']),
                                                 self.n_times)
-        return "<Raw  |  %s>" % s
+        return "<%s  |  %s>" % (self.__class__.__name__, s)
 
     def add_events(self, events, stim_channel=None):
         """Add events to stim channel
@@ -1967,6 +1999,8 @@ def _check_raw_compatibility(raw):
     """Check to make sure all instances of Raw
     in the input list raw have compatible parameters"""
     for ri in range(1, len(raw)):
+        if not isinstance(raw[ri], type(raw[0])):
+            raise ValueError('raw[%d] type must match' % ri)
         if not raw[ri].info['nchan'] == raw[0].info['nchan']:
             raise ValueError('raw[%d][\'info\'][\'nchan\'] must match' % ri)
         if not raw[ri].info['bads'] == raw[0].info['bads']:

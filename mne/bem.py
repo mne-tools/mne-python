@@ -4,13 +4,18 @@
 #
 # License: BSD (3-clause)
 
+import sys
+import os
+import os.path as op
+import shutil
 import numpy as np
 from scipy import linalg
 
 from .fixes import partial
-from .utils import verbose, logger
+from .utils import (verbose, logger, run_subprocess, get_subjects_dir)
 from .io.constants import FIFF
 from .externals.six import string_types
+from .surface import read_surface, write_bem_surface
 
 
 # ############################################################################
@@ -332,3 +337,116 @@ def _fit_sphere(points, disp='auto'):
     origin = x_opt[:3]
     radius = x_opt[3]
     return radius, origin
+
+
+# ############################################################################
+# Create BEM surfaces
+
+@verbose
+def make_watershed_bem(subject, subjects_dir=None, overwrite=False,
+                       volume='T1', atlas=False, gcaatlas=False, preflood=None,
+                       verbose=None):
+    """
+    Create BEM surfaces using the watershed algorithm included with FreeSurfer
+
+    Parameters
+    ----------
+    subject : str
+        Subject name (required)
+    subjects_dir : str
+        Directory containing subjects data. If None use
+        the Freesurfer SUBJECTS_DIR environment variable.
+    overwrite : bool
+        Write over existing files
+    volume : str
+        Defaults to T1
+    atlas : bool
+        Specify the --atlas option for mri_watershed
+    gcaatlas : bool
+        Use the subcortical atlas
+    preflood : int
+        Change the preflood height
+    verbose : bool, str or None
+        If not None, override default verbose level
+
+    .. versionadded:: 0.10
+    """
+    env = os.environ.copy()
+
+    if not os.environ.get('FREESURFER_HOME'):
+        raise RuntimeError('FREESURFER_HOME environment variable not set')
+
+    env['SUBJECT'] = subject
+
+    subjects_dir = get_subjects_dir(subjects_dir, raise_error=True)
+    env['SUBJECTS_DIR'] = subjects_dir
+
+    subject_dir = op.join(subjects_dir, subject)
+    mri_dir = op.join(subject_dir, 'mri')
+    T1_dir = op.join(mri_dir, volume)
+    T1_mgz = op.join(mri_dir, volume + '.mgz')
+    bem_dir = op.join(subject_dir, 'bem')
+    ws_dir = op.join(subject_dir, 'bem', 'watershed')
+
+    if not op.isdir(subject_dir):
+        raise RuntimeError('Could not find the MRI data directory "%s"'
+                           % subject_dir)
+    if not op.isdir(bem_dir):
+        os.makedirs(bem_dir)
+    if not op.isdir(T1_dir) and not op.isfile(T1_mgz):
+        raise RuntimeError('Could not find the MRI data')
+    if op.isdir(ws_dir):
+        if not overwrite:
+            raise RuntimeError('%s already exists. Use the --overwrite option'
+                               'to recreate it.' % ws_dir)
+        else:
+            shutil.rmtree(ws_dir)
+    # put together the command
+    cmd = ['mri_watershed']
+    if preflood:
+        cmd += ["-h",  "%s" % int(preflood)]
+
+    if gcaatlas:
+        cmd += ['-atlas', '-T1', '-brain_atlas', env['FREESURFER_HOME'] +
+                '/average/RB_all_withskull_2007-08-08.gca',
+                subject_dir + '/mri/transforms/talairach_with_skull.lta']
+    elif atlas:
+        cmd += ['-atlas']
+    if op.exists(T1_mgz):
+        cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_mgz,
+                op.join(ws_dir, 'ws')]
+    else:
+        cmd += ['-useSRAS', '-surf', op.join(ws_dir, subject), T1_dir,
+                op.join(ws_dir, 'ws')]
+    # report and run
+    logger.info('\nRunning mri_watershed for BEM segmentation with the '
+                'following parameters:\n\n'
+                'SUBJECTS_DIR = %s\n'
+                'SUBJECT = %s\n'
+                'Results dir = %s\n' % (subjects_dir, subject, ws_dir))
+    os.makedirs(op.join(ws_dir, 'ws'))
+    run_subprocess(cmd, env=env, stdout=sys.stdout)
+    #
+    os.chdir(ws_dir)
+    if op.isfile(T1_mgz):
+        # XXX : do this with python code
+        surfaces = [subject + '_brain_surface', subject +
+                    '_inner_skull_surface', subject + '_outer_skull_surface',
+                    subject + '_outer_skin_surface']
+        for s in surfaces:
+            cmd = ['mne_convert_surface', '--surf', s, '--mghmri', T1_mgz,
+                   '--surfout', s, "--replacegeom"]
+            run_subprocess(cmd, env=env, stdout=sys.stdout)
+    os.chdir(bem_dir)
+    if op.isfile(subject + '-head.fif'):
+        os.remove(subject + '-head.fif')
+
+    # run the equivalent of mne_surf2bem
+    points, tris = read_surface(op.join(ws_dir,
+                                        subject + '_outer_skin_surface'))
+    points *= 1e-3
+    surf = dict(coord_frame=5, id=4, nn=None, np=len(points),
+                ntri=len(tris), rr=points, sigma=1, tris=tris)
+    write_bem_surface(subject + '-head.fif', surf)
+
+    logger.info('Created %s/%s-head.fif\n\nComplete.' % (bem_dir, subject))

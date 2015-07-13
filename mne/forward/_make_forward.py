@@ -8,11 +8,11 @@
 import os
 from os import path as op
 import numpy as np
-import warnings
 
 from .. import pick_types, pick_info
 from ..io.pick import _has_kit_refs
 from ..io import read_info
+from ..io.meas_info import Info
 from ..io.constants import FIFF
 from .forward import Forward, write_forward_solution, _merge_meg_eeg_fwds
 from ._compute_forward import _compute_forwards
@@ -303,7 +303,7 @@ def _prep_channels(info, meg=True, eeg=True, ignore_ref=False, exclude=(),
 @verbose
 def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
                           eeg=True, mindist=0.0, ignore_ref=False,
-                          overwrite=False, n_jobs=1, verbose=None, mri=None):
+                          overwrite=False, n_jobs=1, verbose=None):
     """Calculate a forward solution for a subject
 
     Parameters
@@ -362,12 +362,6 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
     # 1. --grad option (gradients of the field, not used much)
     # 2. --fixed option (can be computed post-hoc)
     # 3. --mricoord option (probably not necessary)
-
-    if mri is not None:
-        trans = mri
-        warnings.warn('The "mri" parameter has been deprecated and will be'
-                      'removed in 0.10, please use "trans" instead.',
-                      DeprecationWarning)
 
     # read the transformation from MRI to HEAD coordinates
     # (could also be HEAD to MRI)
@@ -443,7 +437,7 @@ def make_forward_solution(info, trans, src, bem, fname=None, meg=True,
 
     # make a new dict with the relevant information
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
-    info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
+    info = Info(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
                 ch_names=info['ch_names'], dev_head_t=info['dev_head_t'],
                 mri_file=trans, mri_id=mri_id, meas_file=info_extra_long,
                 meas_id=None, working_dir=os.getcwd(),

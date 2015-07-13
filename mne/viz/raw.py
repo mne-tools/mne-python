@@ -3,6 +3,7 @@
 from __future__ import print_function
 
 # Authors: Eric Larson <larson.eric.d@gmail.com>
+#          Jaakko Leppakangas <jaeilepp@student.jyu.fi>
 #
 # License: Simplified BSD
 
@@ -14,9 +15,10 @@ import numpy as np
 from ..externals.six import string_types
 from ..io.pick import pick_types
 from ..io.proj import setup_proj
-from ..utils import set_config, get_config, verbose, deprecated
+from ..utils import set_config, get_config, verbose
 from ..time_frequency import compute_raw_psd
 from .utils import figure_nobar, _toggle_options, _toggle_proj, tight_layout
+from .utils import _layout_figure
 from ..defaults import _handle_default
 
 
@@ -64,54 +66,11 @@ def _update_raw_data(params):
     params['times'] = times
 
 
-def _layout_raw(params):
-    """Set raw figure layout"""
-    s = params['fig'].get_size_inches()
-    scroll_width = 0.33
-    hscroll_dist = 0.33
-    vscroll_dist = 0.1
-    l_border = 1.2
-    r_border = 0.1
-    t_border = 0.33
-    b_border = 0.5
-
-    # only bother trying to reset layout if it's reasonable to do so
-    if s[0] < 2 * scroll_width or s[1] < 2 * scroll_width + hscroll_dist:
-        return
-
-    # convert to relative units
-    scroll_width_x = scroll_width / s[0]
-    scroll_width_y = scroll_width / s[1]
-    vscroll_dist /= s[0]
-    hscroll_dist /= s[1]
-    l_border /= s[0]
-    r_border /= s[0]
-    t_border /= s[1]
-    b_border /= s[1]
-    # main axis (traces)
-    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
-    ax_y = hscroll_dist + scroll_width_y + b_border
-    ax_height = 1.0 - ax_y - t_border
-    params['ax'].set_position([l_border, ax_y, ax_width, ax_height])
-    # vscroll (channels)
-    pos = [ax_width + l_border + vscroll_dist, ax_y,
-           scroll_width_x, ax_height]
-    params['ax_vscroll'].set_position(pos)
-    # hscroll (time)
-    pos = [l_border, b_border, ax_width, scroll_width_y]
-    params['ax_hscroll'].set_position(pos)
-    # options button
-    pos = [l_border + ax_width + vscroll_dist, b_border,
-           scroll_width_x, scroll_width_y]
-    params['ax_button'].set_position(pos)
-    params['fig'].canvas.draw()
-
-
 def _helper_resize(event, params):
     """Helper for resizing"""
     size = ','.join([str(s) for s in params['fig'].get_size_inches()])
     set_config('MNE_BROWSE_RAW_SIZE', size)
-    _layout_raw(params)
+    _layout_figure(params)
 
 
 def _pick_bad_channels(event, params):
@@ -152,13 +111,12 @@ def _mouse_click(event, params):
     """Vertical select callback"""
     if event.inaxes is None or event.button != 1:
         return
-    plot_fun = params['plot_fun']
     # vertical scrollbar changed
     if event.inaxes == params['ax_vscroll']:
         ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
         if params['ch_start'] != ch_start:
             params['ch_start'] = ch_start
-            plot_fun()
+            params['plot_fun']()
     # horizontal scrollbar changed
     elif event.inaxes == params['ax_hscroll']:
         _plot_raw_time(event.xdata - params['duration'] / 2, params)
@@ -212,20 +170,66 @@ def _plot_raw_onkey(event, params):
     elif event.key in ['o', 'p']:
         _toggle_options(None, params)
         return
-
+    elif event.key in ['+', '=']:
+        params['scale_factor'] *= 1.1
+        params['plot_fun']()
+        return
+    elif event.key == '-':
+        params['scale_factor'] /= 1.1
+        params['plot_fun']()
+        return
+    elif event.key == 'pageup':
+        n_channels = params['n_channels'] + 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        ch_changed = True
+    elif event.key == 'pagedown':
+        n_channels = params['n_channels'] - 1
+        if n_channels == 0:
+            return
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        if len(params['lines']) > n_channels:  # remove line from view
+            params['lines'][n_channels].set_xdata([])
+            params['lines'][n_channels].set_ydata([])
+        ch_changed = True
+    elif event.key == 'home':
+        duration = params['duration'] - 1.0
+        if duration <= 0:
+            return
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        _update_raw_data(params)
+        params['plot_fun']()
+    elif event.key == 'end':
+        duration = params['duration'] + 1.0
+        if duration > params['raw'].times[-1]:
+            duration = params['raw'].times[-1]
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        _update_raw_data(params)
+        params['plot_fun']()
+    elif event.key == 'f11':
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+        return
     # deal with plotting changes
     if ch_changed:
         _channels_changed(params)
 
 
 def _channels_changed(params):
-    if params['ch_start'] >= len(params['info']['ch_names']):
+    len_channels = len(params['info']['ch_names'])
+    if params['ch_start'] + params['n_channels'] >= len_channels:
+        params['ch_start'] = len_channels - params['n_channels']
+    if params['ch_start'] < 0:
         params['ch_start'] = 0
-    elif params['ch_start'] < 0:
-        # wrap to end
-        rem = len(params['info']['ch_names']) % params['n_channels']
-        params['ch_start'] = len(params['info']['ch_names'])
-        params['ch_start'] -= rem if rem != 0 else params['n_channels']
     params['plot_fun']()
 
 
@@ -242,10 +246,9 @@ def _plot_raw_onscroll(event, params):
         _channels_changed(params)
 
 
-def _plot_traces(params, inds, color, bad_color, lines, event_lines,
-                 event_color, offsets):
+def _plot_traces(params, inds, color, bad_color, event_lines, event_color):
     """Helper for plotting raw"""
-
+    lines = params['lines']
     info = params['info']
     n_channels = params['n_channels']
     params['bad_color'] = bad_color
@@ -261,10 +264,10 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
             # scale to fit
             ch_name = info['ch_names'][inds[ch_ind]]
             tick_list += [ch_name]
-            offset = offsets[ii]
+            offset = params['offsets'][ii]
 
             # do NOT operate in-place lest this get screwed up
-            this_data = params['data'][inds[ch_ind]]
+            this_data = params['data'][inds[ch_ind]] * params['scale_factor']
             this_color = bad_color if ch_name in info['bads'] else color
             this_z = -1 if ch_name in info['bads'] else 0
             if isinstance(this_color, dict):
@@ -292,6 +295,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
         # plot them with appropriate colors
         # go through the list backward so we end with -1, the catchall
         used = np.zeros(len(event_times), bool)
+        ylim = params['ax'].get_ylim()
         for ev_num, line in zip(sorted(event_color.keys())[::-1],
                                 event_lines[::-1]):
             mask = (event_nums == ev_num) if ev_num >= 0 else ~used
@@ -303,7 +307,7 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
                 ys = list()
                 for tt in t:
                     xs += [tt, tt, np.nan]
-                    ys += [0, 2 * n_channels + 1, np.nan]
+                    ys += [0, ylim[0], np.nan]
                 line.set_xdata(xs)
                 line.set_ydata(ys)
             else:
@@ -315,6 +319,11 @@ def _plot_traces(params, inds, color, bad_color, lines, event_lines,
     params['ax'].set_yticklabels(tick_list)
     params['vsel_patch'].set_y(params['ch_start'])
     params['fig'].canvas.draw()
+    # XXX This is a hack to make sure this figure gets drawn last
+    # so that when matplotlib goes to calculate bounds we don't get a
+    # CGContextRef error on the MacOSX backend :(
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
 
 
 def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
@@ -341,7 +350,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     color : dict | color object | None
         Color for the data traces. If None, defaults to::
 
-            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+            dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
                  emg='k', ref_meg='steelblue', misc='k', stim='k',
                  resp='k', chpi='k')
 
@@ -401,10 +410,12 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     -----
     The arrow keys (up/down/left/right) can typically be used to navigate
     between channels and time ranges, but this depends on the backend
-    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work).
-    To mark or un-mark a channel as bad, click on the rather flat segments
-    of a channel's time series. The changes will be reflected immediately
-    in the raw object's ``raw.info['bads']`` entry.
+    matplotlib is configured to use (e.g., mpl.use('TkAgg') should work). The
+    scaling can be adjusted with - and + (or =) keys. The viewport dimensions
+    can be adjusted with page up/page down and home/end keys. Full screen mode
+    can be to toggled with f11 key. To mark or un-mark a channel as bad, click
+    on the rather flat segments of a channel's time series. The changes will be
+    reflected immediately in the raw object's ``raw.info['bads']`` entry.
     """
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -516,7 +527,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                   info=info, projs=projs, remove_dc=remove_dc, ba=ba,
                   n_channels=n_channels, scalings=scalings, types=types,
                   n_times=n_times, event_times=event_times,
-                  event_nums=event_nums, clipping=clipping)
+                  event_nums=event_nums, clipping=clipping, fig_proj=None)
 
     # set up plotting
     size = get_config('MNE_BROWSE_RAW_SIZE')
@@ -524,7 +535,7 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
         size = size.split(',')
         size = tuple([float(s) for s in size])
         # have to try/catch when there's no toolbar
-    fig = figure_nobar(facecolor=bgcolor, figsize=size)
+    fig = figure_nobar(facecolor=bgcolor, figsize=size, dpi=80)
     fig.canvas.set_window_title('mne_browse_raw')
     ax = plt.subplot2grid((10, 10), (0, 0), colspan=9, rowspan=9)
     ax.set_title(title, fontsize=12)
@@ -533,13 +544,11 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax_hscroll.set_xlabel('Time (s)')
     ax_vscroll = plt.subplot2grid((10, 10), (0, 9), rowspan=9)
     ax_vscroll.set_axis_off()
-    ax_button = plt.subplot2grid((10, 10), (9, 9))
     # store these so they can be fixed on resize
     params['fig'] = fig
     params['ax'] = ax
     params['ax_hscroll'] = ax_hscroll
     params['ax_vscroll'] = ax_vscroll
-    params['ax_button'] = ax_button
 
     # populate vertical and horizontal scrollbars
     for ci in range(len(info['ch_names'])):
@@ -565,22 +574,23 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
     ax_vscroll.set_title('Ch.')
 
     # make shells for plotting traces
-    offsets = np.arange(n_channels) * 2 + 1
     ylim = [n_channels * 2 + 1, 0]
+    offset = ylim[0] / n_channels
+    offsets = np.arange(n_channels) * offset + (offset / 2.)
     ax.set_yticks(offsets)
     ax.set_ylim(ylim)
     # plot event_line first so it's in the back
     event_lines = [ax.plot([np.nan], color=event_color[ev_num])[0]
                    for ev_num in sorted(event_color.keys())]
-    lines = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
-             for _ in range(n_ch)]
+    params['offsets'] = offsets
+    params['lines'] = [ax.plot([np.nan], antialiased=False, linewidth=0.5)[0]
+                       for _ in range(n_ch)]
     ax.set_yticklabels(['X' * max([len(ch) for ch in info['ch_names']])])
     vertline_color = (0., 0.75, 0.)
     params['ax_vertline'] = ax.plot([0, 0], ylim, color=vertline_color,
                                     zorder=-1)[0]
     params['ax_vertline'].ch_name = ''
-    params['vertline_t'] = ax_hscroll.text(0, 0.5, '0.000',
-                                           color=vertline_color,
+    params['vertline_t'] = ax_hscroll.text(0, 0.5, '', color=vertline_color,
                                            verticalalignment='center',
                                            horizontalalignment='right')
     params['ax_hscroll_vertline'] = ax_hscroll.plot([0, 0], [0, 1],
@@ -588,13 +598,16 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
                                                     zorder=1)[0]
 
     params['plot_fun'] = partial(_plot_traces, params=params, inds=inds,
-                                 color=color, bad_color=bad_color, lines=lines,
+                                 color=color, bad_color=bad_color,
                                  event_lines=event_lines,
-                                 event_color=event_color, offsets=offsets)
+                                 event_color=event_color)
+    params['scale_factor'] = 1.0
 
     # set up callbacks
     opt_button = None
-    if len(raw.info['projs']) > 0:
+    if len(raw.info['projs']) > 0 and not raw.proj:
+        ax_button = plt.subplot2grid((10, 10), (9, 9))
+        params['ax_button'] = ax_button
         opt_button = mpl.widgets.Button(ax_button, 'Proj')
         callback_option = partial(_toggle_options, params=params)
         opt_button.on_clicked(callback_option)
@@ -620,10 +633,9 @@ def plot_raw(raw, events=None, duration=10.0, start=0.0, n_channels=None,
 
     # do initial plots
     callback_proj('none')
-    _layout_raw(params)
+    _layout_figure(params)
 
     # deal with projectors
-    params['fig_opts'] = None
     if show_options is True:
         _toggle_options(None, params)
 
@@ -778,10 +790,3 @@ def plot_raw_psd(raw, tmin=0., tmax=np.inf, fmin=0, fmax=np.inf, proj=False,
     if show is True:
         plt.show()
     return fig
-
-
-@deprecated("'plot_raw_psds' is deprecated and will be removed in v0.10, "
-            "please use 'plot_raw_psd' instead")
-def plot_raw_psds(*args, **kwargs):
-    plot_raw_psd(*args, **kwargs)
-plot_raw_psds.__doc__ = plot_raw_psd.__doc__

@@ -47,7 +47,7 @@ src = inverse_operator['src']  # get the source space
 
 # Compute inverse solution
 stc = apply_inverse(evoked, inverse_operator, lambda2, method,
-                    pick_normal=True)
+                    pick_ori='normal')
 
 # Make an STC in the time interval of interest and take the mean
 stc_mean = stc.copy().crop(tmin, tmax).mean()
@@ -96,7 +96,7 @@ plt.show()
 
 ###############################################################################
 # plot brain in 3D with PySurfer if available
-brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir, clim='auto')
+brain = stc_mean.plot(hemi='lh', subjects_dir=subjects_dir)
 brain.show_view('lateral')
 
 # show both labels

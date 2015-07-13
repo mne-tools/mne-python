@@ -16,9 +16,7 @@ from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
 from .fixes import in1d
-from .utils import (_check_pandas_installed, check_fname, logger, verbose,
-                    object_hash, deprecated, _time_mask)
-from .defaults import _handle_default
+from .utils import check_fname, logger, verbose, object_hash, _time_mask
 from .viz import (plot_evoked, plot_evoked_topomap, plot_evoked_field,
                   plot_evoked_image)
 from .viz.evoked import _plot_evoked_white
@@ -36,10 +34,10 @@ from .io.write import (start_file, start_block, end_file, end_block,
                        write_id)
 from .io.base import ToDataFrameMixin
 
-aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
-               'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
-aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
-              str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
+_aspect_dict = {'average': FIFF.FIFFV_ASPECT_AVERAGE,
+                'standard_error': FIFF.FIFFV_ASPECT_STD_ERR}
+_aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
+               str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
 class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
@@ -123,13 +121,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
             # find string-based entry
             if isinstance(condition, string_types):
-                if kind not in aspect_dict.keys():
+                if kind not in _aspect_dict.keys():
                     raise ValueError('kind must be "average" or '
                                      '"standard_error"')
 
                 comments, aspect_kinds, t = _get_entries(fid, evoked_node)
                 goods = np.logical_and(in1d(comments, [condition]),
-                                       in1d(aspect_kinds, [aspect_dict[kind]]))
+                                       in1d(aspect_kinds,
+                                            [_aspect_dict[kind]]))
                 found_cond = np.where(goods)[0]
                 if len(found_cond) != 1:
                     raise ValueError('condition "%s" (%s) not found, out of '
@@ -260,7 +259,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # Put the rest together all together
         self.nave = nave
         self._aspect_kind = aspect_kind
-        self.kind = aspect_rev.get(str(self._aspect_kind), 'Unknown')
+        self.kind = _aspect_rev.get(str(self._aspect_kind), 'Unknown')
         self.first = first
         self.last = last
         self.comment = comment
@@ -438,13 +437,13 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                  units=units, scalings=scalings,
                                  titles=titles, axes=axes, cmap=cmap)
 
-    def plot_topomap(self, times=None, ch_type='mag', layout=None, vmin=None,
+    def plot_topomap(self, times=None, ch_type=None, layout=None, vmin=None,
                      vmax=None, cmap='RdBu_r', sensors=True, colorbar=True,
                      scale=None, scale_time=1e3, unit=None, res=64, size=1,
                      cbar_fmt="%3.1f", time_format='%01d ms', proj=False,
                      show=True, show_names=False, title=None, mask=None,
                      mask_params=None, outlines='head', contours=6,
-                     image_interp='bilinear', average=None, format=None):
+                     image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic maps of specific time points
 
         Parameters
@@ -453,9 +452,10 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The time point(s) to plot. If None, 10 topographies will be shown
             will a regular time spacing between the first and last time
             instant.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are collec-
             ted in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
             be specified for Neuromag data). If possible, the correct
@@ -479,13 +479,14 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
-        scale : float | None
+        scale : dict | float | None
             Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
             for grad and 1e15 for mag.
         scale_time : float | None
             Scale the time labels. Defaults to 1e3 (ms).
-        unit : str | None
-            The unit of the channel type used for colorbar labels.
+        unit : dict | str | None
+            The unit of the channel type used for colorbar label. If
+            scale is None the unit is automatically determined.
         res : int
             The resolution of the topomap image (n pixels along each side).
         size : scalar
@@ -538,6 +539,11 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             (seconds). For example, 0.01 would translate into window that
             starts 5 ms before and ends 5 ms after a given time point.
             Defaults to None, which means no averaging.
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
         """
         return plot_evoked_topomap(self, times=times, ch_type=ch_type,
                                    layout=layout, vmin=vmin,
@@ -551,7 +557,7 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                    mask_params=mask_params,
                                    outlines=outlines, contours=contours,
                                    image_interp=image_interp,
-                                   average=average, format=format)
+                                   average=average, head_pos=head_pos)
 
     def plot_field(self, surf_maps, time=None, time_label='t = %0.0f ms',
                    n_jobs=1):
@@ -616,106 +622,6 @@ class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         return _plot_evoked_white(self, noise_cov=noise_cov, scalings=None,
                                   rank=None, show=show)
-
-    @deprecated('to_nitime will be removed in v0.10')
-    def to_nitime(self, picks=None):
-        """Export Evoked object to NiTime
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            Indices of channels to apply. If None, all channels will be
-            exported.
-
-        Returns
-        -------
-        evoked_ts : instance of nitime.TimeSeries
-            The TimeSeries instance
-        """
-        try:
-            from nitime import TimeSeries  # to avoid strong dependency
-        except ImportError:
-            raise Exception('the nitime package is missing')
-
-        evoked_ts = TimeSeries(self.data if picks is None
-                               else self.data[picks],
-                               sampling_rate=self.info['sfreq'])
-        return evoked_ts
-
-    @deprecated("'as_data_frame' will be removed in v0.10. Use"
-                " 'to_data_frame' instead.")
-    def as_data_frame(self, picks=None, scale_time=1e3, scalings=None,
-                      use_time_index=True, copy=True):
-        """Get the Evoked object as a Pandas DataFrame
-
-        Export data in tabular structure: each row corresponds to a time point,
-        and each column to a channel.
-
-        Parameters
-        ----------
-        picks : array-like of int | None
-            If None all channels are kept, otherwise the channels indices in
-            picks are kept.
-        scale_time : float
-            Scaling to be applied to time units.
-        scalings : dict | None
-            Scaling to be applied to the channels picked. If None, defaults to
-            ``scalings=dict(eeg=1e6, grad=1e13, mag=1e15, misc=1.0)`.
-        use_time_index : bool
-            If False, times will be included as in the data table, else it will
-            be used as index object.
-        copy : bool
-            If true, evoked will be copied. Else data may be modified in place.
-
-        Returns
-        -------
-        df : instance of pandas.core.DataFrame
-            Evoked data exported into tabular data structure.
-        """
-
-        pd = _check_pandas_installed()
-
-        if picks is None:
-            picks = list(range(self.info['nchan']))
-        else:
-            if not in1d(picks, np.arange(len(self.ch_names))).all():
-                raise ValueError('At least one picked channel is not present '
-                                 'in this Evoked instance.')
-
-        data, times = self.data, self.times
-
-        if copy is True:
-            data = data.copy()
-
-        types = [channel_type(self.info, idx) for idx in picks]
-        n_channel_types = 0
-        ch_types_used = []
-
-        scalings = _handle_default('scalings', scalings)
-        for t in scalings.keys():
-            if t in types:
-                n_channel_types += 1
-                ch_types_used.append(t)
-
-        for t in ch_types_used:
-            scaling = scalings[t]
-            idx = [picks[i] for i in range(len(picks)) if types[i] == t]
-            if len(idx) > 0:
-                data[idx] *= scaling
-
-        assert times.shape[0] == data.shape[1]
-        col_names = [self.ch_names[k] for k in picks]
-
-        df = pd.DataFrame(data.T, columns=col_names)
-        df.insert(0, 'time', times * scale_time)
-
-        if use_time_index is True:
-            if 'time' in df:
-                df['time'] = df['time'].astype(np.int64)
-            with warnings.catch_warnings(record=True):
-                df.set_index('time', inplace=True)
-
-        return df
 
     def as_type(self, ch_type='grad', mode='fast'):
         """Compute virtual evoked using interpolated fields in mag/grad channels.
@@ -936,9 +842,8 @@ class EvokedArray(Evoked):
         # XXX: this should use round and be tested
         self.first = int(tmin * info['sfreq'])
         self.last = self.first + np.shape(data)[-1] - 1
-        self.times = np.arange(self.first, self.last + 1, dtype=np.float)
-        self.times /= info['sfreq']
-
+        self.times = np.arange(self.first, self.last + 1,
+                               dtype=np.float) / info['sfreq']
         self.info = info
         self.nave = nave
         self.kind = kind
@@ -947,9 +852,9 @@ class EvokedArray(Evoked):
         self.verbose = verbose
         self._projector = None
         if self.kind == 'average':
-            self._aspect_kind = aspect_dict['average']
+            self._aspect_kind = _aspect_dict['average']
         else:
-            self._aspect_kind = aspect_dict['standard_error']
+            self._aspect_kind = _aspect_dict['standard_error']
 
 
 def _get_entries(fid, evoked_node):
@@ -976,7 +881,7 @@ def _get_entries(fid, evoked_node):
         fid.close()
         raise ValueError('Dataset names in FIF file '
                          'could not be found.')
-    t = [aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
+    t = [_aspect_rev.get(str(a), 'Unknown') for a in aspect_kinds]
     t = ['"' + c + '" (' + tt + ')' for tt, c in zip(t, comments)]
     t = '  ' + '\n  '.join(t)
     return comments, aspect_kinds, t
@@ -1040,26 +945,6 @@ def grand_average(all_evoked, interpolate_bads=True):
     # change comment field
     grand_average.comment = "Grand average (n = %d)" % grand_average.nave
     return grand_average
-
-
-@deprecated('merge_evoked is deprecated and will be removed in 0.10. Please '
-            'use combine_evoked instead')
-def merge_evoked(all_evoked):
-    """Merge/concat evoked data
-
-    Data should have the same channels and the same time instants.
-
-    Parameters
-    ----------
-    all_evoked : list of Evoked
-        The evoked datasets.
-
-    Returns
-    -------
-    evoked : Evoked
-        The merged evoked data.
-    """
-    return combine_evoked(all_evoked)
 
 
 def combine_evoked(all_evoked, weights='nave'):

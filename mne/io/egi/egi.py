@@ -4,7 +4,6 @@
 #          simplified BSD-3 license
 
 import datetime
-import os
 import time
 import warnings
 
@@ -174,10 +173,10 @@ def read_raw_egi(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    return _RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
+    return RawEGI(input_fname, montage, eog, misc, include, exclude, verbose)
 
 
-class _RawEGI(_BaseRaw):
+class RawEGI(_BaseRaw):
     """Raw object from EGI simple binary file
     """
     @verbose
@@ -320,18 +319,12 @@ class _RawEGI(_BaseRaw):
         _check_update_montage(info, montage)
         orig_format = {'>f4': 'single', '>f4': 'double',
                        '>i2': 'int'}[egi_info['dtype']]
-        super(_RawEGI, self).__init__(
-            info, data, orig_format=orig_format, verbose=verbose)
+        super(RawEGI, self).__init__(
+            info, data, filenames=[input_fname], orig_format=orig_format,
+            verbose=verbose)
         logger.info('    Range : %d ... %d =  %9.3f ... %9.3f secs'
                     % (self.first_samp, self.last_samp,
                        float(self.first_samp) / self.info['sfreq'],
                        float(self.last_samp) / self.info['sfreq']))
         # use information from egi
         logger.info('Ready.')
-
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEGI  |  %s>" % ', '.join(s)

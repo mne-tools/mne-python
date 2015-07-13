@@ -156,8 +156,11 @@ def _fromstring_rows(fid, tag_size, dtype=None, shape=None, rlims=None):
         item_size = np.dtype(dtype).itemsize
         if not len(shape) == 2:
             raise ValueError('Only implemented for 2D matrices')
-        if not np.prod(shape) == tag_size / item_size:
-            raise ValueError('Wrong shape specified')
+        want_shape = np.prod(shape)
+        have_shape = tag_size // item_size
+        if want_shape != have_shape:
+            raise ValueError('Wrong shape specified, requested %s have %s'
+                             % (want_shape, have_shape))
         if not len(rlims) == 2:
             raise ValueError('rlims must have two elements')
         n_row_out = rlims[1] - rlims[0]

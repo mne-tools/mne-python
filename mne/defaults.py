@@ -7,10 +7,11 @@
 from copy import deepcopy
 
 DEFAULTS = dict(
-    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='r',
+    color=dict(mag='darkblue', grad='b', eeg='k', eog='k', ecg='m',
                emg='k', ref_meg='steelblue', misc='k', stim='k',
                resp='k', chpi='k', exci='k', ias='k', syst='k',
                seeg='k'),
+    config_opts=dict(),
     units=dict(eeg='uV', grad='fT/cm', mag='fT', misc='AU',
                seeg='uV'),
     scalings=dict(mag=1e15, grad=1e13, eeg=1e6,
@@ -45,5 +46,9 @@ def _handle_default(k, v=None):
     """
     this_mapping = deepcopy(DEFAULTS[k])
     if v is not None:
-        this_mapping.update(v)
+        if isinstance(v, dict):
+            this_mapping.update(v)
+        else:
+            for key in this_mapping.keys():
+                this_mapping[key] = v
     return this_mapping

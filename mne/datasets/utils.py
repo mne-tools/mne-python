@@ -25,12 +25,12 @@ _data_path_doc = """Get path to local copy of {name} dataset
         Location of where to look for the {name} dataset.
         If None, the environment variable or config parameter
         {conf} is used. If it doesn't exist, the
-        "mne-python/examples" directory is used. If the sample dataset
+        "mne-python/examples" directory is used. If the {name} dataset
         is not found under the given path (e.g., as
         "mne-python/examples/MNE-{name}-data"), the data
         will be automatically downloaded to the specified folder.
     force_update : bool
-        Force update of the sample dataset even if a local copy exists.
+        Force update of the {name} dataset even if a local copy exists.
     update_path : bool | None
         If True, set the {conf} in mne-python
         config to the given path. If None, the user is prompted.
@@ -73,6 +73,60 @@ def _dataset_version(path, name):
     return version
 
 
+def _get_path(path, key, name):
+    """Helper to get a dataset path"""
+    if path is None:
+            # use an intelligent guess if it's not defined
+            def_path = op.realpath(op.join(op.dirname(__file__), '..', '..',
+                                           '..', 'examples'))
+            if get_config(key) is None:
+                key = 'MNE_DATA'
+            path = get_config(key, def_path)
+
+            # use the same for all datasets
+            if not op.exists(path) or not os.access(path, os.W_OK):
+                try:
+                    os.mkdir(path)
+                except OSError:
+                    try:
+                        logger.info('Checking for %s data in '
+                                    '"~/mne_data"...' % name)
+                        path = op.join(op.expanduser("~"), "mne_data")
+                        if not op.exists(path):
+                            logger.info("Trying to create "
+                                        "'~/mne_data' in home directory")
+                            os.mkdir(path)
+                    except OSError:
+                        raise OSError("User does not have write permissions "
+                                      "at '%s', try giving the path as an "
+                                      "argument to data_path() where user has "
+                                      "write permissions, for ex:data_path"
+                                      "('/home/xyz/me2/')" % (path))
+    if not isinstance(path, string_types):
+        raise ValueError('path must be a string or None')
+    return path
+
+
+def _do_path_update(path, update_path, key, name):
+    """Helper to update path"""
+    path = op.abspath(path)
+    if update_path is None:
+        if get_config(key, '') != path:
+            update_path = True
+            msg = ('Do you want to set the path:\n    %s\nas the default '
+                   '%s dataset path in the mne-python config [y]/n? '
+                   % (path, name))
+            answer = input(msg)
+            if answer.lower() == 'n':
+                update_path = False
+        else:
+            update_path = False
+
+    if update_path is True:
+        set_config(key, path)
+    return path
+
+
 def _data_path(path=None, force_update=False, update_path=True, download=True,
                name=None, check_version=False, return_version=False):
     """Aux function
@@ -81,67 +135,51 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
            'spm': 'MNE_DATASETS_SPM_FACE_PATH',
            'somato': 'MNE_DATASETS_SOMATO_PATH',
            'testing': 'MNE_DATASETS_TESTING_PATH',
+           'fake': 'MNE_DATASETS_FAKE_PATH',
            }[name]
 
-    if path is None:
-        # use an intelligent guess if it's not defined
-        def_path = op.realpath(op.join(op.dirname(__file__),
-                                       '..', '..', 'examples'))
+    path = _get_path(path, key, name)
+    archive_names = dict(
+        sample='MNE-sample-data-processed.tar.gz',
+        spm='MNE-spm-face.tar.bz2',
+        somato='MNE-somato-data.tar.gz',
+        testing='mne-testing-data-master.tar.gz',
+        fake='foo.tgz',
+    )
+    folder_names = dict(
+        sample='MNE-sample-data',
+        spm='MNE-spm-face',
+        somato='MNE-somato-data',
+        testing='MNE-testing-data',
+        fake='foo',
+    )
+    urls = dict(
+        sample="https://s3.amazonaws.com/mne-python/datasets/%s",
+        spm='https://s3.amazonaws.com/mne-python/datasets/%s',
+        somato='https://s3.amazonaws.com/mne-python/datasets/%s',
+        testing='https://github.com/mne-tools/mne-testing-data/archive/'
+                'master.tar.gz',
+        fake='https://github.com/mne-tools/mne-testing-data/raw/master/'
+             'datasets/%s',
+    )
+    hashes = dict(
+        sample='f73186795af820428e5e8e779ce5bfcf',
+        spm='3e9e83c642136e5b720e2ecc5dcc3244',
+        somato='f3e3a8441477bb5bacae1d0c6e0964fb',
+        testing=None,
+        fake='3194e9f7b46039bb050a74f3e1ae9908',
+    )
+    folder_origs = dict(  # not listed means None
+        testing='mne-testing-data-master',
+    )
+    folder_name = folder_names[name]
+    archive_name = archive_names[name]
+    hash_ = hashes[name]
+    url = urls[name]
+    folder_orig = folder_origs.get(name, None)
+    if '%s' in url:
+        url = url % archive_name
 
-        # backward compatibility
-        if get_config(key) is None:
-            key = 'MNE_DATA'
-
-        path = get_config(key, def_path)
-
-        # use the same for all datasets
-        if not op.exists(path) or not os.access(path, os.W_OK):
-            try:
-                os.mkdir(path)
-            except OSError:
-                try:
-                    logger.info("Checking for dataset in '~/mne_data'...")
-                    path = op.join(op.expanduser("~"), "mne_data")
-                    if not op.exists(path):
-                        logger.info("Trying to create "
-                                    "'~/mne_data' in home directory")
-                        os.mkdir(path)
-                except OSError:
-                    raise OSError("User does not have write permissions "
-                                  "at '%s', try giving the path as an argument"
-                                  " to data_path() where user has write "
-                                  "permissions, for ex:data_path"
-                                  "('/home/xyz/me2/')" % (path))
-
-    if not isinstance(path, string_types):
-        raise ValueError('path must be a string or None')
-    folder_orig = None
-    if name == 'sample':
-        archive_name = "MNE-sample-data-processed.tar.gz"
-        folder_name = "MNE-sample-data"
-        url = "ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/" + archive_name
-        hash_ = '1bb9f993bfba2057e0039c306a717109'
-    elif name == 'spm':
-        archive_name = 'MNE-spm-face.tar.bz2'
-        folder_name = "MNE-spm-face"
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
-        hash_ = '3e9e83c642136e5b720e2ecc5dcc3244'
-    elif name == 'somato':
-        archive_name = 'MNE-somato-data.tar.gz'
-        folder_name = "MNE-somato-data"
-        url = 'ftp://surfer.nmr.mgh.harvard.edu/pub/data/MNE/' + archive_name
-        hash_ = 'f3e3a8441477bb5bacae1d0c6e0964fb'
-    elif name == 'testing':
-        archive_name = 'mne-testing-data-master.tar.gz'
-        folder_orig = 'mne-testing-data-master'  # comes out of archive as this
-        folder_name = 'MNE-testing-data'
-        url = ('https://github.com/mne-tools/mne-testing-data/archive/'
-               'master.tar.gz')
-        # github changes the hash on us :(
-        # but this is https so hopefully it's okay
-        hash_ = None
-    else:
-        raise ValueError('Sorry, the dataset "%s" is not known.' % name)
     folder_path = op.join(path, folder_name)
 
     rm_archive = False
@@ -207,31 +245,17 @@ def _data_path(path=None, force_update=False, update_path=True, download=True,
         if rm_archive:
             os.remove(archive_name)
 
-    path = op.abspath(path)
-    if update_path is None:
-        if get_config(key, '') != path:
-            update_path = True
-            msg = ('Do you want to set the path:\n    %s\nas the default '
-                   'sample dataset path in the mne-python config [y]/n? '
-                   % path)
-            answer = input(msg)
-            if answer.lower() == 'n':
-                update_path = False
-        else:
-            update_path = False
-
-    if update_path is True:
-        set_config(key, path)
-
+    path = _do_path_update(path, update_path, key, name)
     path = op.join(path, folder_name)
 
-    # compare the version of the Sample dataset and mne
+    # compare the version of the dataset and mne
     data_version = _dataset_version(path, name)
     try:
         from distutils.version import LooseVersion as LV
     except:
-        warn('Could not determine sample dataset version; dataset could\n'
-             'be out of date. Please install the "distutils" package.')
+        warn('Could not determine %s dataset version; dataset could\n'
+             'be out of date. Please install the "distutils" package.'
+             % name)
     else:  # 0.7 < 0.7.git shoud be False, therefore strip
         if check_version and LV(data_version) < LV(mne_version.strip('.git')):
             warn('The {name} dataset (version {current}) is older than '
@@ -250,11 +274,12 @@ def _get_version(name):
 
 
 def has_dataset(name):
-    """Helper for sample dataset presence"""
+    """Helper for dataset presence"""
     endswith = {'sample': 'MNE-sample-data',
                 'spm': 'MNE-spm-face',
                 'somato': 'MNE-somato-data',
                 'testing': 'MNE-testing-data',
+                'fake': 'foo',
                 }[name]
     dp = _data_path(download=False, name=name, check_version=False)
     return dp.endswith(endswith)

@@ -63,21 +63,19 @@ def tight_layout(pad=1.2, h_pad=None, w_pad=None, fig=None):
         Figure to apply changes to.
     """
     import matplotlib.pyplot as plt
-    if fig is None:
-        fig = plt.gcf()
+    fig = plt.gcf() if fig is None else fig
 
+    fig.canvas.draw()
     try:  # see https://github.com/matplotlib/matplotlib/issues/2654
-        fig.canvas.draw()
         fig.tight_layout(pad=pad, h_pad=h_pad, w_pad=w_pad)
-    except:
-        msg = ('Matplotlib function \'tight_layout\'%s.'
-               ' Skipping subpplot adjusment.')
-        if not hasattr(plt, 'tight_layout'):
-            case = ' is not available'
-        else:
-            case = (' is not supported by your backend: `%s`'
-                    % plt.get_backend())
-        warn(msg % case)
+    except Exception:
+        warn('Matplotlib function \'tight_layout\' is not supported.'
+             ' Skipping subplot adjusment.')
+    else:
+        try:
+            fig.set_tight_layout(dict(pad=pad, h_pad=h_pad, w_pad=w_pad))
+        except Exception:
+            pass
 
 
 def _check_delayed_ssp(container):
@@ -183,13 +181,13 @@ def _toggle_options(event, params):
     """Toggle options (projectors) dialog"""
     import matplotlib.pyplot as plt
     if len(params['projs']) > 0:
-        if params['fig_opts'] is None:
+        if params['fig_proj'] is None:
             _draw_proj_checkbox(event, params, draw_current_state=False)
         else:
             # turn off options dialog
-            plt.close(params['fig_opts'])
+            plt.close(params['fig_proj'])
             del params['proj_checks']
-            params['fig_opts'] = None
+            params['fig_proj'] = None
 
 
 def _toggle_proj(event, params):
@@ -235,8 +233,7 @@ def _prepare_trellis(n_cells, max_col):
 
 def _draw_proj_checkbox(event, params, draw_current_state=True):
     """Toggle options (projectors) dialog"""
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
+    from matplotlib import widgets
     projs = params['projs']
     # turn on options dialog
 
@@ -248,13 +245,10 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
     height = len(projs) / 6.0 + 0.5
     fig_proj = figure_nobar(figsize=(width, height))
     fig_proj.canvas.set_window_title('SSP projection vectors')
-    ax_temp = plt.axes((0, 0, 1, 1))
-    ax_temp.get_yaxis().set_visible(False)
-    ax_temp.get_xaxis().set_visible(False)
-    fig_proj.add_axes(ax_temp)
+    params['fig_proj'] = fig_proj  # necessary for proper toggling
+    ax_temp = fig_proj.add_axes((0, 0, 1, 1), frameon=False)
 
-    proj_checks = mpl.widgets.CheckButtons(ax_temp, labels=labels,
-                                           actives=actives)
+    proj_checks = widgets.CheckButtons(ax_temp, labels=labels, actives=actives)
     # change already-applied projectors to red
     for ii, p in enumerate(projs):
         if p['active'] is True:
@@ -272,6 +266,60 @@ def _draw_proj_checkbox(event, params, draw_current_state=True):
         fig_proj.show()
     except Exception:
         pass
+
+
+def _layout_figure(params):
+    """Function for setting figure layout. Shared with raw and epoch plots"""
+    size = params['fig'].get_size_inches() * params['fig'].dpi
+    scroll_width = 25
+    hscroll_dist = 25
+    vscroll_dist = 10
+    l_border = 100
+    r_border = 10
+    t_border = 35
+    b_border = 40
+
+    # only bother trying to reset layout if it's reasonable to do so
+    if size[0] < 2 * scroll_width or size[1] < 2 * scroll_width + hscroll_dist:
+        return
+
+    # convert to relative units
+    scroll_width_x = scroll_width / size[0]
+    scroll_width_y = scroll_width / size[1]
+    vscroll_dist /= size[0]
+    hscroll_dist /= size[1]
+    l_border /= size[0]
+    r_border /= size[0]
+    t_border /= size[1]
+    b_border /= size[1]
+    # main axis (traces)
+    ax_width = 1.0 - scroll_width_x - l_border - r_border - vscroll_dist
+    ax_y = hscroll_dist + scroll_width_y + b_border
+    ax_height = 1.0 - ax_y - t_border
+
+    pos = [l_border, ax_y, ax_width, ax_height]
+
+    params['ax'].set_position(pos)
+    if 'ax2' in params:
+        params['ax2'].set_position(pos)
+    params['ax'].set_position(pos)
+    # vscroll (channels)
+    pos = [ax_width + l_border + vscroll_dist, ax_y,
+           scroll_width_x, ax_height]
+    params['ax_vscroll'].set_position(pos)
+    # hscroll (time)
+    pos = [l_border, b_border, ax_width, scroll_width_y]
+    params['ax_hscroll'].set_position(pos)
+    if 'ax_button' in params:
+        # options button
+        pos = [l_border + ax_width + vscroll_dist, b_border,
+               scroll_width_x, scroll_width_y]
+        params['ax_button'].set_position(pos)
+    if 'ax_help_button' in params:
+        pos = [l_border - vscroll_dist - scroll_width_x * 2, b_border,
+               scroll_width_x * 2, scroll_width_y]
+        params['ax_help_button'].set_position(pos)
+    params['fig'].canvas.draw()
 
 
 @verbose
@@ -326,11 +374,10 @@ def compare_fiff(fname_1, fname_2, fname_out=None, show=True, indent='    ',
 
 def figure_nobar(*args, **kwargs):
     """Make matplotlib figure with no toolbar"""
-    import matplotlib.pyplot as plt
-    import matplotlib as mpl
-    old_val = mpl.rcParams['toolbar']
+    from matplotlib import rcParams, pyplot as plt
+    old_val = rcParams['toolbar']
     try:
-        mpl.rcParams['toolbar'] = 'none'
+        rcParams['toolbar'] = 'none'
         fig = plt.figure(*args, **kwargs)
         # remove button press catchers (for toolbar)
         cbs = list(fig.canvas.callbacks.callbacks['key_press_event'].keys())
@@ -339,7 +386,7 @@ def figure_nobar(*args, **kwargs):
     except Exception as ex:
         raise ex
     finally:
-        mpl.rcParams['toolbar'] = old_val
+        rcParams['toolbar'] = old_val
     return fig
 
 

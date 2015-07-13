@@ -9,14 +9,15 @@ import os.path as op
 import inspect
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 import scipy.io
 
 from mne import pick_types, concatenate_raws, Epochs, read_events
-from mne.utils import _TempDir
+from mne.utils import _TempDir, run_tests_if_main
 from mne.io import Raw
 from mne.io import read_raw_kit, read_epochs_kit
 from mne.io.kit.coreg import read_sns
+from mne.io.tests.test_raw import _test_concat
 
 FILE = inspect.getfile(inspect.currentframe())
 parent_dir = op.dirname(op.abspath(FILE))
@@ -29,6 +30,12 @@ mrk2_path = op.join(data_dir, 'test_mrk_pre.sqd')
 mrk3_path = op.join(data_dir, 'test_mrk_post.sqd')
 elp_path = op.join(data_dir, 'test_elp.txt')
 hsp_path = op.join(data_dir, 'test_hsp.txt')
+
+
+def test_concat():
+    """Test EDF concatenation
+    """
+    _test_concat(read_raw_kit, sqd_path)
 
 
 def test_data():
@@ -47,7 +54,7 @@ def test_data():
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path,
                           stim=list(range(167, 159, -1)), slope='+',
                           stimthresh=1, preload=True)
-    print(repr(raw_py))
+    assert_true('RawKIT' in repr(raw_py))
 
     # Binary file only stores the sensor channels
     py_picks = pick_types(raw_py.info, exclude='bads')
@@ -123,7 +130,7 @@ def test_ch_loc():
     raw_py = read_raw_kit(sqd_path, mrk_path, elp_path, hsp_path, stim='<')
     raw_bin = Raw(op.join(data_dir, 'test_bin_raw.fif'))
 
-    ch_py = raw_py._kit_info['sensor_locs'][:, :5]
+    ch_py = raw_py._raw_extras[0]['sensor_locs'][:, :5]
     # ch locs stored as m, not mm
     ch_py[:, :3] *= 1e3
     ch_sns = read_sns(op.join(data_dir, 'sns.txt'))
@@ -154,3 +161,6 @@ def test_stim_ch():
     stim1, _ = raw[stim_pick]
     stim2 = np.array(raw.read_stim_ch(), ndmin=2)
     assert_array_equal(stim1, stim2)
+
+
+run_tests_if_main()

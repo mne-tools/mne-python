@@ -8,7 +8,7 @@ from __future__ import print_function
 import os.path as op
 import inspect
 
-from nose.tools import assert_equal, assert_raises
+from nose.tools import assert_equal, assert_raises, assert_true
 import numpy as np
 from numpy.testing import assert_array_almost_equal, assert_array_equal
 
@@ -48,6 +48,7 @@ def test_brainvision_data():
                   preload=True, scale="0")
     raw_py = read_raw_brainvision(vhdr_path, montage, eog=eog, preload=True)
     raw_py.preload_data()  # currently does nothing
+    assert_true('RawBrainVision' in repr(raw_py))
 
     assert_equal(raw_py.info['highpass'], 0.)
     assert_equal(raw_py.info['lowpass'], 250.)

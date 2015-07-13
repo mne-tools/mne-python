@@ -4,10 +4,9 @@
 Tutorial: MEG and EEG data processing with MNE and Python
 =========================================================
 
-Python offers transparent scripting on top of MNE.
-It was designed to be an alternative to the MNE matlab toolbox
-but now it can do much more (customize events, compute
-contrasts, statistics, time-frequency analysis etc.)
+MNE-Python reimplements most of MNE-C's (the original MNE command line utils) functionality and offers transparent scripting.
+On top of that it extends MNE-C's functionality considerably (customize events, compute
+contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses, etc.)
 It uses the same files as standard MNE unix commands:
 no need to convert your files to a new system or database.
 
@@ -26,6 +25,9 @@ What you can do with MNE Python
     - **Visualization of sensor and source space data**
     - **Time-frequency** analysis with Morlet wavelets (induced power, intertrial coherence, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
+    - **Mixed Source Models** combining cortical and subcortical structures
+    - **Dipole Fitting**
+    - **Decoding** multivariate pattern analyis of M/EEG topographies
     - **Compute contrasts** between conditions, between sensors, across subjects etc.
     - **Non-parametric statistics** in time, space and frequency (including cluster-level)
     - **Scripting** (batch and parallel computing)
@@ -33,11 +35,10 @@ What you can do with MNE Python
 What you're not supposed to do with MNE Python
 ----------------------------------------------
 
-	- **Dipole fitting** use MNE or other designated software instead.
-	- **Boundary Element Modeling** use MNE and Freesurfer.
+    - **Boundary Element Modeling** use MNE and Freesurfer.
 
 
-.. note:: Package based on the FIF file format from Neuromag but can work with CTF and 4D after conversion to FIF.
+.. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D, KIT and various EEG formats to FIF.
 
 
 Installation of the required materials
@@ -65,7 +66,7 @@ From raw data to evoked data
 
 Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
 
-  $ ipython -pylab -qt
+  $ ipython --pylab -qt
 
 First, load the mne package:
 
@@ -109,7 +110,7 @@ Read data from file:
     Opening raw data ...
     Ready.
     >>> print(raw)
-    <Raw  |  n_channels x n_times : 376 x 41700>
+    <RawFIF  |  n_channels x n_times : 376 x 41700>
     >>> print(raw.info) # doctest:+ELLIPSIS
     <Info | 20 non-empty ...
 
@@ -200,9 +201,9 @@ Define peak-to-peak rejection parameters for gradiometers, magnetometers and EOG
 Read epochs:
 
     >>> epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
+    145 matching events found
     Created an SSP operator (subspace dimension = 4)
     4 projection items activated
-    145 matching events found
     >>> print(epochs)
     <Epochs  |  n_events : 145 (good & bad), tmin : -0.2 (s), tmax : 0.5 (s), baseline : (None, 0),
      'aud_l': 72, 'aud_r': 73>
@@ -256,7 +257,7 @@ It is also possible to read evoked data stored in a fif file:
 
     >>> evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
     >>> evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True) # doctest: +ELLIPSIS
-    Reading .../MNE-sample-data/MEG/sample/sample_audvis-ave.fif ...
+    Reading ...
         Read a total of 4 projection items:
             PCA-v1 (1 x 102) active
             PCA-v2 (1 x 102) active
@@ -290,7 +291,7 @@ Define parameters:
     >>> n_cycles = 2  # number of cycles in Morlet wavelet
     >>> freqs = np.arange(7, 30, 3)  # frequencies of interest
 
-Compute induced power and phase-locking values:
+Compute induced power and phase-locking values and plot gradiometers:
 
     >>> from mne.time_frequency import tfr_morlet
     >>> power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=True, decim=3, n_jobs=1) # doctest: +ELLIPSIS
@@ -387,7 +388,8 @@ What else can you do?
     - morph stc from one brain to another for group studies
     - compute mass univariate statistics base on custom contrasts
     - visualize source estimates
-    - export raw, epochs, and evoked data to other python data analysis libraries i.e. pandas and nitime
+    - export raw, epochs, and evoked data to other python data analysis libraries e.g. pandas
+    - and many more things ...
 
 
 Want to know more ?

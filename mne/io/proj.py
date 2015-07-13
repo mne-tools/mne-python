@@ -134,9 +134,9 @@ class ProjMixin(object):
             return self
 
         # Exit delayed mode if you apply proj
-        if hasattr(self, '_delayed_proj'):
+        if getattr(self, '_delayed_proj', False):
             logger.info('Leaving delayed SSP mode.')
-            del self._delayed_proj
+            self._delayed_proj = False
 
         if all(p['active'] for p in self.info['projs']):
             logger.info('Projections have already been applied. '

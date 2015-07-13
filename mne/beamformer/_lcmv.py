@@ -708,7 +708,7 @@ def tf_lcmv(epochs, forward, noise_covs, tmin, tmax, tstep, win_lengths,
                          'window lengths')
 
     # Extract raw object from the epochs object
-    raw = epochs.raw
+    raw = epochs._raw
     if raw is None:
         raise ValueError('The provided epochs object does not contain the '
                          'underlying raw object. Please use preload=False '

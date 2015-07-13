@@ -54,12 +54,6 @@ class RawEDF(_BaseRaw):
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-    tal_channel : int | None
-        The channel index (starting at 0).
-        Index of the channel containing EDF+ annotations.
-        -1 corresponds to the last channel.
-        If None, the annotation channel is not used.
-        Note: this is overruled by the annotation file if specified.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -75,13 +69,13 @@ class RawEDF(_BaseRaw):
     """
     @verbose
     def __init__(self, input_fname, montage, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
+                 stim_channel=-1, annot=None, annotmap=None,
                  preload=False, verbose=None):
         logger.info('Extracting edf Parameters from %s...' % input_fname)
         input_fname = os.path.abspath(input_fname)
-        info, self._edf_info = _get_edf_info(input_fname, stim_channel,
-                                             annot, annotmap, tal_channel,
-                                             eog, misc, preload)
+        info, edf_info = _get_edf_info(input_fname, stim_channel,
+                                       annot, annotmap,
+                                       eog, misc, preload)
         logger.info('Creating Raw.info structure...')
         _check_update_montage(info, montage)
 
@@ -90,86 +84,63 @@ class RawEDF(_BaseRaw):
                            "Both 'annot' and 'annotmap' must be specified."))
 
         # Raw attributes
-        last_samps = [self._edf_info['nsamples'] - 1]
+        last_samps = [edf_info['nsamples'] - 1]
         super(RawEDF, self).__init__(
-            info, preload, last_samps=last_samps, orig_format='int',
+            info, preload, filenames=[input_fname], raw_extras=[edf_info],
+            last_samps=last_samps, orig_format='int',
             verbose=verbose)
 
         logger.info('Ready.')
 
-    def __repr__(self):
-        n_chan = self.info['nchan']
-        data_range = self.last_samp - self.first_samp + 1
-        s = ('%r' % os.path.basename(self.info['filename']),
-             "n_channels x n_times : %s x %s" % (n_chan, data_range))
-        return "<RawEDF  |  %s>" % ', '.join(s)
-
     @verbose
-    def _read_segment(self, start=0, stop=None, sel=None, data_buffer=None,
-                      projector=None, verbose=None):
+    def _read_segment_file(self, data, idx, offset, fi, start, stop,
+                           cals, mult):
         """Read a chunk of raw data"""
         from scipy.interpolate import interp1d
-        if sel is None:
-            sel = np.arange(self.info['nchan'])
-        if projector is not None:
-            raise NotImplementedError('Currently does not handle projections.')
-        if stop is None:
-            stop = self.last_samp + 1
-        elif stop > self.last_samp + 1:
-            stop = self.last_samp + 1
-        sel = np.array(sel)
+        if mult is not None:
+            # XXX "cals" here does not function the same way as in RawFIF,
+            # and for efficiency we want to be able to combine mult and cals
+            # so proj support will have to wait until this is resolved
+            raise NotImplementedError('mult is not supported yet')
+        # RawFIF and RawEDF think of "stop" differently, easiest to increment
+        # here and refactor later
+        stop += 1
+        sel = np.arange(self.info['nchan'])[idx]
 
-        #  Initial checks
-        start = int(start)
-        stop = int(stop)
-
-        n_samps = self._edf_info['n_samps']
-        buf_len = self._edf_info['max_samp']
+        n_samps = self._raw_extras[fi]['n_samps']
+        buf_len = self._raw_extras[fi]['max_samp']
         sfreq = self.info['sfreq']
         n_chan = self.info['nchan']
-        data_size = self._edf_info['data_size']
-        data_offset = self._edf_info['data_offset']
-        stim_channel = self._edf_info['stim_channel']
-        tal_channel = self._edf_info['tal_channel']
-        annot = self._edf_info['annot']
-        annotmap = self._edf_info['annotmap']
-        subtype = self._edf_info['subtype']
+        data_size = self._raw_extras[fi]['data_size']
+        data_offset = self._raw_extras[fi]['data_offset']
+        stim_channel = self._raw_extras[fi]['stim_channel']
+        tal_channel = self._raw_extras[fi]['tal_channel']
+        annot = self._raw_extras[fi]['annot']
+        annotmap = self._raw_extras[fi]['annotmap']
+        subtype = self._raw_extras[fi]['subtype']
 
         # this is used to deal with indexing in the middle of a sampling period
         blockstart = int(floor(float(start) / buf_len) * buf_len)
         blockstop = int(ceil(float(stop) / buf_len) * buf_len)
-        if blockstop > self.last_samp:
-            blockstop = self.last_samp + 1
-
-        if start >= stop:
-            raise ValueError('No data in this range')
-
-        logger.info('Reading %d ... %d  =  %9.3f ... %9.3f secs...' %
-                    (start, stop - 1, start / float(sfreq),
-                     (stop - 1) / float(sfreq)))
 
         # gain constructor
         physical_range = np.array([ch['range'] for ch in self.info['chs']])
         cal = np.array([ch['cal'] for ch in self.info['chs']])
-        gains = np.atleast_2d(self._edf_info['units'] * (physical_range / cal))
-        # physical dimension in uV
-        physical_min = self._edf_info['physical_min'] * 1e-6
-        digital_min = self._edf_info['digital_min']
-        offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
-        picks = [stim_channel, tal_channel]
-        offsets[picks] = 0
+        gains = np.atleast_2d(self._raw_extras[fi]['units'] *
+                              (physical_range / cal))
 
-        # set up output array
-        data_shape = (len(sel), stop - start)
-        if isinstance(data_buffer, np.ndarray):
-            if data_buffer.shape != data_shape:
-                raise ValueError('data_buffer has incorrect shape')
-            data = data_buffer
-        else:
-            data = np.empty(data_shape, dtype=float)
+        # physical dimension in uV
+        physical_min = np.atleast_2d(self._raw_extras[fi]['units'] *
+                                     self._raw_extras[fi]['physical_min'])
+        digital_min = self._raw_extras[fi]['digital_min']
+
+        offsets = np.atleast_2d(physical_min - (digital_min * gains)).T
+        if tal_channel is not None:
+            offsets[tal_channel] = 0
 
         read_size = blockstop - blockstart
         this_data = np.empty((len(sel), buf_len))
+        data = data[:, offset:offset + (stop - start)]
         """
         Consider this example:
 
@@ -213,7 +184,7 @@ class RawEDF(_BaseRaw):
             >>> data[2*buf_len-2:3*buf_len-2-3] = this_data[0:buf_len-3]
 
         """
-        with open(self.info['filename'], 'rb', buffering=0) as fid:
+        with open(self._filenames[fi], 'rb', buffering=0) as fid:
             # extract data
             fid.seek(data_offset + blockstart * n_chan * data_size)
             n_blk = int(ceil(float(read_size) / buf_len))
@@ -229,7 +200,7 @@ class RawEDF(_BaseRaw):
                     d_sidx = bi * buf_len - start_offset
                     r_sidx = 0
                 if bi == n_blk - 1:
-                    d_eidx = data_shape[1]
+                    d_eidx = data.shape[1]
                     r_eidx = buf_len - end_offset
                 else:
                     d_eidx = (bi + 1) * buf_len - start_offset
@@ -281,15 +252,18 @@ class RawEDF(_BaseRaw):
         data *= gains.T[sel]
         data += offsets[sel]
 
-        if stim_channel is not None:
-            stim_channel_idx = np.where(sel == stim_channel)[0][0]
+        # only try to read the stim channel if it's not None and it's
+        # actually one of the requested channels
+        if stim_channel is not None and (sel == stim_channel).sum() > 0:
+            stim_channel_idx = np.where(sel == stim_channel)[0]
             if annot and annotmap:
-                evts = _read_annot(annot, annotmap, sfreq, self.last_samp)
-                stim = evts[start:stop]
+                evts = _read_annot(annot, annotmap, sfreq,
+                                   self._last_samps[fi])
+                data[stim_channel_idx, :] = evts[start:stop]
             elif tal_channel is not None:
                 tal_channel_idx = np.where(sel == tal_channel)[0][0]
                 evts = _parse_tal_channel(data[tal_channel_idx])
-                self._edf_info['events'] = evts
+                self._raw_extras[fi]['events'] = evts
 
                 unique_annots = sorted(set([e[2] for e in evts]))
                 mapping = dict((a, n + 1) for n, a in enumerate(unique_annots))
@@ -305,16 +279,12 @@ class RawEDF(_BaseRaw):
                         raise NotImplementedError('EDF+ with overlapping '
                                                   'events not supported.')
                     stim[n_start:n_stop] = evid
+                data[stim_channel_idx, :] = stim[start:stop]
             else:
                 # Allows support for up to 16-bit trigger values (2 ** 16 - 1)
                 stim = np.bitwise_and(data[stim_channel_idx].astype(int),
                                       65535)
-            data[stim_channel_idx, :] = \
-                stim[start - blockstart:stop - blockstart]
-
-        logger.info('[done]')
-        times = np.arange(start, stop, dtype=float) / self.info['sfreq']
-        return data, times
+                data[stim_channel_idx, :] = stim
 
 
 def _read_ch(fid, subtype, samp, data_size):
@@ -372,8 +342,7 @@ def _parse_tal_channel(tal_channel_data):
     return events
 
 
-def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
-                  eog, misc, preload):
+def _get_edf_info(fname, stim_channel, annot, annotmap, eog, misc, preload):
     """Extracts all the information from the EDF+,BDF file"""
 
     if eog is None:
@@ -494,11 +463,10 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
     info['chs'] = []
     info['ch_names'] = ch_names
     tal_ch_name = 'EDF Annotations'
-    # TODO: keyword argument for TAL is deprecated
-    if tal_channel == -1:
-        tal_channel = info['nchan'] - 1
-    elif tal_ch_name in ch_names:
+    if tal_ch_name in ch_names:
         tal_channel = ch_names.index(tal_ch_name)
+    else:
+        tal_channel = None
     edf_info['tal_channel'] = tal_channel
     if tal_channel is not None and stim_channel is not None and not preload:
         raise RuntimeError('%s' % ('EDF+ Annotations (TAL) channel needs to be'
@@ -532,8 +500,6 @@ def _get_edf_info(fname, stim_channel, annot, annotmap, tal_channel,
         check3 = info['nchan'] > 1
         stim_check = np.logical_and(np.logical_or(check1, check2), check3)
         if stim_check:
-            chan_info['range'] = 1
-            chan_info['cal'] = 1
             chan_info['coil_type'] = FIFF.FIFFV_COIL_NONE
             chan_info['unit'] = FIFF.FIFF_UNIT_NONE
             chan_info['kind'] = FIFF.FIFFV_STIM_CH
@@ -607,7 +573,7 @@ def _read_annot(annot, annotmap, sfreq, data_length):
 
 
 def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
-                 stim_channel=-1, annot=None, annotmap=None, tal_channel=None,
+                 stim_channel=-1, annot=None, annotmap=None,
                  preload=False, verbose=None):
     """Reader function for EDF+, BDF conversion to FIF
 
@@ -637,12 +603,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     annotmap : str | None
         Path to annotation map file containing mapping from label to trigger.
         Must be specified if annot is not None.
-    tal_channel : int | None
-        The channel index (starting at 0).
-        Index of the channel containing EDF+ annotations.
-        -1 corresponds to the last channel.
-        If None, the annotation channel is not used.
-        Note: this is overruled by the annotation file if specified.
     preload : bool or str (default False)
         Preload data into memory for data manipulation and faster indexing.
         If True, the data will be preloaded into memory (fast, requires
@@ -661,10 +621,6 @@ def read_raw_edf(input_fname, montage=None, eog=None, misc=None,
     --------
     mne.io.Raw : Documentation of attribute and methods.
     """
-    if tal_channel is not None:
-        warnings.warn("`tal_channel` arg is deprecated and will be removed in "
-                      "0.10. This channel will be automatically detected.",
-                      category=DeprecationWarning)
     return RawEDF(input_fname=input_fname, montage=montage, eog=eog, misc=misc,
                   stim_channel=stim_channel, annot=annot, annotmap=annotmap,
-                  tal_channel=tal_channel, preload=preload, verbose=verbose)
+                  preload=preload, verbose=verbose)

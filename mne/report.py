@@ -22,7 +22,7 @@ import numpy as np
 
 from . import read_evokeds, read_events, pick_types, read_cov
 from .io import Raw, read_info
-from .utils import _TempDir, logger, verbose, get_subjects_dir, deprecated
+from .utils import _TempDir, logger, verbose, get_subjects_dir
 from .viz import plot_events, plot_trans, plot_cov
 from .viz._3d import _plot_mri_contours
 from .forward import read_forward_solution
@@ -546,6 +546,13 @@ footer_template = HTMLTemplate(u"""
 </html>
 """)
 
+html_template = Template(u"""
+<li class="{{div_klass}}" id="{{id}}">
+    <h4>{{caption}}</h4>
+    <div class="thumbnail">{{html}}</div>
+</li>
+""")
+
 image_template = Template(u"""
 
 {{default interactive = False}}
@@ -819,26 +826,6 @@ class Report(object):
             self._sectionlabels.append(sectionvar)
             self.html.append(html)
 
-    @deprecated("'add_section' will be removed in v0.10. Use"
-                " 'add_figs_to_section' and 'add_images_to_section' instead.")
-    def add_section(self, figs, captions, section='custom'):
-        """Append custom user-defined figures.
-
-        Parameters
-        ----------
-        figs : list of figures.
-            Each figure in the list can be an instance of
-            matplotlib.pyplot.Figure, mayavi.core.scene.Scene,
-            or np.ndarray (images read in using scipy.imread).
-        captions : list of str
-            A list of captions to the figures.
-        section : str
-            Name of the section. If section already exists, the figures
-            will be appended to the end of the section
-        """
-        return self._add_figs_to_section(figs=figs, captions=captions,
-                                         section=section)
-
     def add_figs_to_section(self, figs, captions, section='custom',
                             scale=None, image_format='png', comments=None):
         """Append custom user-defined figures.
@@ -943,10 +930,14 @@ class Report(object):
         for html, caption in zip(htmls, captions):
             caption = 'custom plot' if caption == '' else caption
             sectionvar = self._sectionvars[section]
+            global_id = self._get_id()
+            div_klass = self._sectionvars[section]
 
             self.fnames.append('%s-#-%s-#-custom' % (caption, sectionvar))
             self._sectionlabels.append(sectionvar)
-            self.html.append(html)
+            self.html.append(
+                html_template.substitute(div_klass=div_klass, id=global_id,
+                                         caption=caption, html=html))
 
     def add_bem_to_section(self, subject, caption='BEM', section='bem',
                            decim=2, n_jobs=1, subjects_dir=None):
@@ -978,7 +969,7 @@ class Report(object):
         html = self._render_bem(subject=subject, subjects_dir=subjects_dir,
                                 decim=decim, n_jobs=n_jobs, section=section,
                                 caption=caption)
-        html, caption = self._validate_input(html, caption, section)
+        html, caption, _ = self._validate_input(html, caption, section)
         sectionvar = self._sectionvars[section]
 
         self.fnames.append('%s-#-%s-#-custom' % (caption[0], sectionvar))
@@ -1155,7 +1146,7 @@ class Report(object):
         else:
             fname = op.realpath(fname)
 
-        self._render_toc(verbose=self.verbose)
+        self._render_toc()
 
         html = footer_template.substitute(date=time.strftime("%B %d, %Y"))
         self.html.append(html)
@@ -1494,7 +1485,7 @@ class Report(object):
         global_id = self._get_id()
 
         epochs = read_epochs(epo_fname)
-        kwargs = dict(subject=self.subject, show=False, return_fig=True)
+        kwargs = dict(subject=self.subject, show=False)
         img = _fig_to_img(epochs.plot_drop_log, **kwargs)
         caption = 'Epochs : ' + epo_fname
         div_klass = 'epochs'
@@ -1544,8 +1535,8 @@ class Report(object):
             img = _fig_to_img(ev.plot_white, **kwargs)
 
             caption = u'Whitened evoked : %s (%s)' % (evoked_fname, ev.comment)
-            div_klass = 'whitened-evoked'
-            img_klass = 'whitened-evoked'
+            div_klass = 'evoked'
+            img_klass = 'evoked'
             show = True
             html.append(image_template.substitute(img=img, id=global_id,
                                                   div_klass=div_klass,

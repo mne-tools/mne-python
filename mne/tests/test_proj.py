@@ -160,7 +160,8 @@ def test_compute_proj_raw():
     tempdir = _TempDir()
     # Test that the raw projectors work
     raw_time = 2.5  # Do shorter amount for speed
-    raw = Raw(raw_fname, preload=True).crop(0, raw_time, False)
+    raw = Raw(raw_fname).crop(0, raw_time, False)
+    raw.preload_data()
     for ii in (0.25, 0.5, 1, 2):
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('always')

@@ -11,7 +11,7 @@ import warnings
 from mne.datasets import testing
 from mne import (read_source_spaces, vertex_to_mni, write_source_spaces,
                  setup_source_space, setup_volume_source_space,
-                 add_source_space_distances)
+                 add_source_space_distances, read_bem_surfaces)
 from mne.utils import (_TempDir, requires_fs_or_nibabel, requires_nibabel,
                        requires_freesurfer, run_subprocess,
                        requires_mne, requires_scipy_version,
@@ -212,14 +212,21 @@ def test_volume_source_space():
     tempdir = _TempDir()
     src = read_source_spaces(fname_vol)
     temp_name = op.join(tempdir, 'temp-src.fif')
-    # The one in the sample dataset (uses bem as bounds)
-    src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
-                                        bem=fname_bem, mri=fname_mri,
-                                        subjects_dir=subjects_dir)
-    _compare_source_spaces(src, src_new, mode='approx')
-    del src_new
-    src_new = read_source_spaces(temp_name)
-    _compare_source_spaces(src, src_new, mode='approx')
+    surf = read_bem_surfaces(fname_bem, s_id=FIFF.FIFFV_BEM_SURF_ID_BRAIN)
+    surf['rr'] *= 1e3  # convert to mm
+    # The one in the testing dataset (uses bem as bounds)
+    for bem, surf in zip((fname_bem, None), (None, surf)):
+        src_new = setup_volume_source_space('sample', temp_name, pos=7.0,
+                                            bem=bem, surface=surf,
+                                            mri=fname_mri,
+                                            subjects_dir=subjects_dir)
+        _compare_source_spaces(src, src_new, mode='approx')
+        del src_new
+        src_new = read_source_spaces(temp_name)
+        _compare_source_spaces(src, src_new, mode='approx')
+    assert_raises(IOError, setup_volume_source_space, 'sample', temp_name,
+                  pos=7.0, bem=None, surface='foo',  # bad surf
+                  mri=fname_mri, subjects_dir=subjects_dir)
 
 
 @testing.requires_testing_data
@@ -243,6 +250,9 @@ def test_other_volume_source_spaces():
     _compare_source_spaces(src, src_new, mode='approx')
     del src
     del src_new
+    assert_raises(ValueError, setup_volume_source_space, 'sample', temp_name,
+                  pos=7.0, sphere=[1., 1.], mri=fname_mri,  # bad sphere
+                  subjects_dir=subjects_dir)
 
     # now without MRI argument, it should give an error when we try
     # to read it

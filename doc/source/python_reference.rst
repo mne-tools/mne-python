@@ -289,6 +289,7 @@ Functions:
    plot_dipole_amplitudes
    plot_dipole_locations
    plot_drop_log
+   plot_epochs
    plot_events
    plot_evoked
    plot_evoked_image
@@ -379,6 +380,7 @@ Manipulate channels and set sensors locations for processing and plotting:
    ica_find_eog_events
    read_ica
    run_ica
+   maxwell_filter
 
 EEG referencing:
 
@@ -555,6 +557,14 @@ Functions:
    setup_volume_source_space
    write_bem_surface
    write_trans
+
+.. currentmodule:: mne.bem
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   make_watershed_bem
 
 .. currentmodule:: mne.forward
 
@@ -787,6 +797,7 @@ Statistics
    spatio_temporal_cluster_1samp_test
    ttest_1samp_no_p
    linear_regression
+   f_mway_rm
 
 Functions to compute connectivity (adjacency) matrices for cluster-level statistics
 

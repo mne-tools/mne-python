@@ -213,8 +213,10 @@ def test_add_reference():
     assert_equal(raw_ref._data.shape[0], raw._data.shape[0] + 1)
     assert_array_equal(raw._data[picks_eeg, :], raw_ref._data[picks_eeg, :])
 
+    orig_nchan = raw.info['nchan']
     raw = add_reference_channels(raw, 'Ref', copy=False)
     assert_array_equal(raw._data, raw_ref._data)
+    assert_equal(raw.info['nchan'], orig_nchan + 1)
 
     ref_idx = raw.ch_names.index('Ref')
     ref_data, _ = raw[ref_idx]

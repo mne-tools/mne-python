@@ -5,7 +5,7 @@ Compute coherence in source space using a MNE inverse solution
 
 This examples computes the coherence between a seed in the left
 auditory cortex and the rest of the brain based on single-trial
-MNE-dSPM inverse soltions.
+MNE-dSPM inverse solutions.
 
 """
 # Author: Martin Luessi <mluessi@nmr.mgh.harvard.edu>

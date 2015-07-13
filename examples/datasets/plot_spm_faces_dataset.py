@@ -1,3 +1,4 @@
+# doc:slow-example
 """
 ==========================================
 From raw data to dSPM on SPM Faces dataset
@@ -9,12 +10,15 @@ Runs a full pipeline using MNE-Python:
 - forward model computation
 - source reconstruction using dSPM on the contrast : "faces - scrambled"
 
+Note that this example does quite a bit of processing, so even on a
+fast machine it can take about 10 minutes to complete.
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #          Denis Engemann <denis.engemann@gmail.com>
 #
 # License: BSD (3-clause)
 
+import os.path as op
 import matplotlib.pyplot as plt
 
 import mne
@@ -94,8 +98,12 @@ evoked[0].plot_field(maps, time=0.170)
 # Compute forward model
 
 # Make source space
-src = mne.setup_source_space('spm', spacing='oct6', subjects_dir=subjects_dir,
-                             overwrite=True)
+src_fname = data_path + '/subjects/spm/bem/spm-oct-6-src.fif'
+if not op.isfile(src_fname):
+    src = mne.setup_source_space('spm', src_fname, spacing='oct6',
+                                 subjects_dir=subjects_dir, overwrite=True)
+else:
+    src = mne.read_source_spaces(src_fname)
 
 bem = data_path + '/subjects/spm/bem/spm-5120-5120-5120-bem-sol.fif'
 forward = mne.make_forward_solution(contrast.info, trans_fname, src, bem)
@@ -112,12 +120,11 @@ inverse_operator = make_inverse_operator(contrast.info, forward, noise_cov,
                                          loose=0.2, depth=0.8)
 
 # Compute inverse solution on contrast
-stc = apply_inverse(contrast, inverse_operator, lambda2, method,
-                    pick_normal=False)
+stc = apply_inverse(contrast, inverse_operator, lambda2, method, pick_ori=None)
 # stc.save('spm_%s_dSPM_inverse' % constrast.comment)
 
 # Plot contrast in 3D with PySurfer if available
-brain = stc.plot(hemi='both', subjects_dir=subjects_dir, clim='auto')
+brain = stc.plot(hemi='both', subjects_dir=subjects_dir)
 brain.set_time(170.0)  # milliseconds
 brain.show_view('ventral')
 # brain.save_image('dSPM_map.png')

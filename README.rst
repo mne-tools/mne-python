@@ -12,9 +12,8 @@
 .. |Coveralls| image:: https://coveralls.io/repos/mne-tools/mne-python/badge.png?branch=master
 .. _Coveralls: https://coveralls.io/r/mne-tools/mne-python?branch=master
 
-.. |Zenodo| image:: https://zenodo.org/badge/doi/10.5281/zenodo.11556.png
-.. _Zenodo: http://dx.doi.org/10.5281/zenodo.11556
-
+.. |Zenodo| image:: https://zenodo.org/badge/5822/mne-tools/mne-python.svg
+.. _Zenodo: http://dx.doi.org/10.5281/zenodo.17856
 
 `mne-python <http://martinos.org/mne/mne-python.html>`_
 =======================================================
@@ -82,7 +81,7 @@ Dependencies
 The required dependencies to build the software are python >= 2.6,
 NumPy >= 1.6, SciPy >= 0.7.2 and matplotlib >= 0.98.4.
 
-Some isolated functions require pandas >= 0.7.3 and nitime (multitaper analysis).
+Some isolated functions require pandas >= 0.7.3.
 
 To run the tests you will also need nose >= 0.10.
 and the MNE sample dataset (will be downloaded automatically

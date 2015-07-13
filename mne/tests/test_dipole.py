@@ -1,18 +1,24 @@
 import os.path as op
 import numpy as np
-from nose.tools import assert_true, assert_equal
+from nose.tools import assert_true, assert_equal, assert_raises
 from numpy.testing import assert_allclose
 import warnings
 
-from mne import (read_dip, read_dipole, Dipole, read_forward_solution,
+from mne import (read_dipole, read_forward_solution,
                  convert_forward_solution, read_evokeds, read_cov,
                  SourceEstimate, write_evokeds, fit_dipole,
-                 transform_surface_to, make_sphere_model, pick_types)
+                 transform_surface_to, make_sphere_model, pick_types,
+                 pick_info, EvokedArray)
 from mne.simulation import generate_evoked
 from mne.datasets import testing
 from mne.utils import (run_tests_if_main, _TempDir, slow_test, requires_mne,
-                       run_subprocess)
+                       run_subprocess, requires_sklearn)
 from mne.proj import make_eeg_average_ref_proj
+
+from mne.io import Raw
+
+from mne.surface import _bem_find_surface, _compute_nearest, read_bem_solution
+from mne.transforms import (read_trans, apply_trans, _get_mri_head_t)
 
 warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
@@ -35,25 +41,22 @@ def _compare_dipoles(orig, new):
     assert_equal(orig.name, new.name)
 
 
+def _check_dipole(dip, n_dipoles):
+    assert_equal(len(dip), n_dipoles)
+    assert_equal(dip.pos.shape, (n_dipoles, 3))
+    assert_equal(dip.ori.shape, (n_dipoles, 3))
+    assert_equal(dip.gof.shape, (n_dipoles,))
+    assert_equal(dip.amplitude.shape, (n_dipoles,))
+
+
 @testing.requires_testing_data
 def test_io_dipoles():
     """Test IO for .dip files
     """
     tempdir = _TempDir()
-    out_fname = op.join(tempdir, 'temp.dip')
-    with warnings.catch_warnings(record=True) as w:
-        warnings.simplefilter('always')
-        times, pos, amplitude, ori, gof = read_dip(fname_dip)
-    assert_true(len(w) >= 1)
-
-    assert_true(pos.shape[1] == 3)
-    assert_true(ori.shape[1] == 3)
-    assert_true(len(times) == len(pos))
-    assert_true(len(times) == gof.size)
-    assert_true(len(times) == amplitude.size)
-
-    dipole = Dipole(times, pos, amplitude, ori, gof, 'ALL')
+    dipole = read_dipole(fname_dip)
     print(dipole)  # test repr
+    out_fname = op.join(tempdir, 'temp.dip')
     dipole.save(out_fname)
     dipole_new = read_dipole(out_fname)
     _compare_dipoles(dipole, dipole_new)
@@ -134,5 +137,82 @@ def test_dipole_fitting():
     assert_true(gc_dists[0] >= gc_dists[1], 'gc-dists (ori): %s' % gc_dists)
     assert_true(amp_errs[0] >= amp_errs[1], 'amplitude errors: %s' % amp_errs)
     # assert_true(gofs[0] <= gofs[1], 'gof: %s' % gofs)
+
+
+@testing.requires_testing_data
+def test_len_index_dipoles():
+    """Test len and indexing of Dipole objects
+    """
+    dipole = read_dipole(fname_dip)
+    d0 = dipole[0]
+    d1 = dipole[:1]
+    _check_dipole(d0, 1)
+    _check_dipole(d1, 1)
+    _compare_dipoles(d0, d1)
+    mask = dipole.gof > 15
+    idx = np.where(mask)[0]
+    d_mask = dipole[mask]
+    _check_dipole(d_mask, 4)
+    _compare_dipoles(d_mask, dipole[idx])
+
+
+@requires_sklearn
+@testing.requires_testing_data
+def test_min_distance_fit_dipole():
+    """Test dipole min_dist to inner_skull"""
+    data_path = testing.data_path()
+    raw_fname = data_path + '/MEG/sample/sample_audvis_trunc_raw.fif'
+
+    subjects_dir = op.join(data_path, 'subjects')
+    fname_cov = op.join(data_path, 'MEG', 'sample', 'sample_audvis-cov.fif')
+    fname_trans = op.join(data_path, 'MEG', 'sample',
+                          'sample_audvis_trunc-trans.fif')
+    fname_bem = op.join(subjects_dir, 'sample', 'bem',
+                        'sample-1280-1280-1280-bem-sol.fif')
+
+    subject = 'sample'
+
+    raw = Raw(raw_fname, preload=True)
+
+    # select eeg data
+    picks = pick_types(raw.info, meg=False, eeg=True, exclude='bads')
+    info = pick_info(raw.info, picks)
+
+    # Let's use cov = Identity
+    cov = read_cov(fname_cov)
+    cov['data'] = np.eye(cov['data'].shape[0])
+
+    # Simulated scal map
+    simulated_scalp_map = np.zeros(picks.shape[0])
+    simulated_scalp_map[27:34] = 1
+
+    simulated_scalp_map = simulated_scalp_map[:, None]
+
+    evoked = EvokedArray(simulated_scalp_map, info, tmin=0)
+
+    min_dist = 5.  # distance in mm
+
+    dip, residual = fit_dipole(evoked, cov, fname_bem, fname_trans,
+                               min_dist=min_dist)
+
+    dist = _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir)
+
+    assert_true(min_dist < (dist[0] * 1000.) < (min_dist + 1.))
+
+    assert_raises(ValueError, fit_dipole, evoked, cov, fname_bem, fname_trans,
+                  -1.)
+
+
+def _compute_depth(dip, fname_bem, fname_trans, subject, subjects_dir):
+    """Compute dipole depth"""
+    trans = read_trans(fname_trans)
+    trans = _get_mri_head_t(trans)[0]
+    bem = read_bem_solution(fname_bem)
+    surf = _bem_find_surface(bem, 'inner_skull')
+    points = surf['rr']
+    points = apply_trans(trans['trans'], points)
+    depth = _compute_nearest(points, dip.pos, return_dists=True)[1][0]
+    return np.ravel(depth)
+
 
 run_tests_if_main(False)

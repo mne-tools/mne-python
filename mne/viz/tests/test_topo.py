@@ -19,7 +19,9 @@ from mne.channels import read_layout
 from mne.time_frequency.tfr import AverageTFR
 from mne.utils import run_tests_if_main
 
-from mne.viz import plot_topo, plot_topo_image_epochs, _get_presser
+from mne.viz import (plot_topo, plot_topo_image_epochs, _get_presser,
+                     mne_analyze_colormap)
+from mne.viz.topo import _plot_update_evoked_topo
 
 # Set our plotters to test mode
 import matplotlib
@@ -45,7 +47,7 @@ def _get_events():
 
 
 def _get_picks(raw):
-    return [0, 1, 2, 6, 7, 8, 12, 13, 14]  # take a only few channels
+    return [0, 1, 2, 6, 7, 8, 340, 341, 342]  # take a only few channels
 
 
 def _get_epochs():
@@ -71,11 +73,14 @@ def _get_epochs_delayed_ssp():
 def test_plot_topo():
     """Test plotting of ERP topography
     """
+    import matplotlib.pyplot as plt
     # Show topography
     evoked = _get_epochs().average()
-    plot_topo(evoked, layout)
+    plot_topo(evoked)  # should auto-find layout
     warnings.simplefilter('always', UserWarning)
-    picked_evoked = pick_channels_evoked(evoked, evoked.ch_names[:3])
+    picked_evoked = evoked.pick_channels(evoked.ch_names[:3], copy=True)
+    picked_evoked_eeg = evoked.pick_types(meg=False, eeg=True, copy=True)
+    picked_evoked_eeg.pick_channels(picked_evoked_eeg.ch_names[:3])
 
     # test scaling
     with warnings.catch_warnings(record=True):
@@ -93,6 +98,15 @@ def test_plot_topo():
         func = _get_presser(fig)
         event = namedtuple('Event', 'inaxes')
         func(event(inaxes=fig.axes[0]))
+        params = dict(evokeds=[picked_evoked_delayed_ssp],
+                      times=picked_evoked_delayed_ssp.times,
+                      fig=fig, projs=picked_evoked_delayed_ssp.info['projs'])
+        bools = [True] * len(params['projs'])
+        _plot_update_evoked_topo(params, bools)
+    # should auto-generate layout
+    plot_topo(picked_evoked_eeg.copy(),
+              fig_background=np.zeros((4, 3, 3)), proj=True)
+    plt.close('all')
 
 
 def test_plot_topo_image_epochs():
@@ -101,8 +115,9 @@ def test_plot_topo_image_epochs():
     import matplotlib.pyplot as plt
     title = 'ERF images - MNE sample data'
     epochs = _get_epochs()
-    plot_topo_image_epochs(epochs, layout, sigma=0.5, vmin=-200, vmax=200,
-                           colorbar=True, title=title)
+    cmap = mne_analyze_colormap(format='matplotlib')
+    plot_topo_image_epochs(epochs, sigma=0.5, vmin=-200, vmax=200,
+                           colorbar=True, title=title, cmap=cmap)
     plt.close('all')
 
 
@@ -117,6 +132,6 @@ def test_plot_tfr_topo():
     tfr = AverageTFR(epochs.info, data, epochs.times, np.arange(n_freqs), nave)
     tfr.plot_topo(baseline=(None, 0), mode='ratio', title='Average power',
                   vmin=0., vmax=14., show=False)
-    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False)
+    tfr.plot([4], baseline=(None, 0), mode='ratio', show=False, title='foo')
 
 run_tests_if_main()

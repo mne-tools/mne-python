@@ -3,8 +3,6 @@
 #
 # License: BSD (3-clause)
 
-import warnings
-from .externals.six import string_types
 import numpy as np
 import os
 import os.path as op
@@ -33,6 +31,7 @@ from .parallel import parallel_func, check_n_jobs
 from .transforms import (invert_transform, apply_trans, _print_coord_trans,
                          combine_transforms, _get_mri_head_t,
                          _coord_frame_name)
+from .externals.six import string_types
 
 
 def _get_lut():
@@ -494,7 +493,7 @@ def _read_source_spaces_from_tree(fid, tree, patch_stats=False,
 
 
 @verbose
-def read_source_spaces(fname, patch_stats=False, verbose=None, add_geom=None):
+def read_source_spaces(fname, patch_stats=False, verbose=None):
     """Read the source spaces from a FIF file
 
     Parameters
@@ -512,10 +511,6 @@ def read_source_spaces(fname, patch_stats=False, verbose=None, add_geom=None):
     src : SourceSpaces
         The source spaces.
     """
-    if add_geom is not None:
-        patch_stats = add_geom
-        warnings.warn("`add_geom` is deprecated and will be removed in v1.0. "
-                      "Use `patch_stats` instead.", DeprecationWarning)
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
                                         '-fwd.fif', '-fwd.fif.gz',
@@ -2200,13 +2195,13 @@ def add_source_space_distances(src, dist_limit=np.inf, n_jobs=1, verbose=None):
         min_dists.append(min_dist)
         min_idxs.append(min_idx)
         # now actually deal with distances, convert to sparse representation
-        d = np.concatenate([dd[0] for dd in d], axis=0)
-        i, j = np.meshgrid(s['vertno'], s['vertno'])
-        d = d.ravel()
-        i = i.ravel()
-        j = j.ravel()
+        d = np.array([dd[0] for dd in d]).ravel()  # already float32
         idx = d > 0
-        d = sparse.csr_matrix((d[idx], (i[idx], j[idx])),
+        d = d[idx]
+        i, j = np.meshgrid(s['vertno'], s['vertno'])
+        i = i.ravel()[idx]
+        j = j.ravel()[idx]
+        d = sparse.csr_matrix((d, (i, j)),
                               shape=(s['np'], s['np']), dtype=np.float32)
         s['dist'] = d
         s['dist_limit'] = np.array([dist_limit], np.float32)
@@ -2229,10 +2224,11 @@ def _do_src_distances(con, vertno, run_inds, limit):
         func = partial(sparse.csgraph.dijkstra, limit=limit)
     else:
         func = sparse.csgraph.dijkstra
-    chunk_size = 100  # save memory by chunking (only a little slower)
+    chunk_size = 20  # save memory by chunking (only a little slower)
     lims = np.r_[np.arange(0, len(run_inds), chunk_size), len(run_inds)]
     n_chunks = len(lims) - 1
-    d = np.empty((len(run_inds), len(vertno)))
+    # eventually we want this in float32, so save memory by only storing 32-bit
+    d = np.empty((len(run_inds), len(vertno)), np.float32)
     min_dist = np.empty((n_chunks, con.shape[0]))
     min_idx = np.empty((n_chunks, con.shape[0]), np.int32)
     range_idx = np.arange(con.shape[0])

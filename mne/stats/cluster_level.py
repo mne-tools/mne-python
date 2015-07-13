@@ -1497,7 +1497,7 @@ def _reshape_clusters(clusters, sample_shape):
 
 
 def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
-                           subject='fsaverage', vertices=None, vertno=None):
+                           subject='fsaverage', vertices=None):
     """ Assemble summary SourceEstimate from spatiotemporal cluster results
 
     This helps visualizing results from spatio-temporal-clustering
@@ -1523,12 +1523,6 @@ def summarize_clusters_stc(clu, p_thresh=0.05, tstep=1e-3, tmin=0,
     -------
     out : instance of SourceEstimate
     """
-    if vertno is not None:
-        warnings.warn("The vertno parameter is deprecated and will be removed "
-                      "in version 0.11. Use vertices instead.",
-                      DeprecationWarning)
-        vertices = vertno
-
     if vertices is None:
         vertices = [np.arange(10242), np.arange(10242)]
 

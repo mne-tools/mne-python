@@ -58,7 +58,7 @@ def _apply_reference(inst, ref_from, ref_to=None, copy=True):
 
     4. The data must be preloaded.
 
-    See also
+    See Also
     --------
     set_eeg_reference : Convenience function for creating an EEG reference.
     set_bipolar_reference : Convenience function for creating a bipolar
@@ -200,6 +200,7 @@ def add_reference_channels(inst, ref_channels, copy=True):
                      'loc': np.zeros(12)}
         inst.info['chs'].append(chan_info)
     inst.info['ch_names'].extend(ref_channels)
+    inst.info['nchan'] = len(inst.info['ch_names'])
     if isinstance(inst, _BaseRaw):
         inst._cals = np.hstack((inst._cals, [1] * len(ref_channels)))
 
@@ -246,7 +247,7 @@ def set_eeg_reference(inst, ref_channels=None, copy=True):
 
     .. versionadded:: 0.9.0
 
-    See also
+    See Also
     --------
     set_bipolar_reference : Convenience function for creating bipolar
                             references.
@@ -320,7 +321,7 @@ def set_bipolar_reference(inst, anode, cathode, ch_name=None, ch_info=None,
 
     .. versionadded:: 0.9.0
 
-    See also
+    See Also
     --------
     set_eeg_reference : Convenience function for creating an EEG reference.
     """

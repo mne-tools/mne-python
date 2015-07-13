@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 """Some utility functions"""
 from __future__ import print_function
@@ -548,6 +547,14 @@ def slow_test(f):
     return f
 
 
+@nottest
+def ultra_slow_test(f):
+    """Decorator for ultra slow tests"""
+    f.ultra_slow_test = True
+    f.slow_test = True
+    return f
+
+
 def has_nibabel(vox2ras_tkr=False):
     """Determine if nibabel is installed
 
@@ -778,7 +785,7 @@ def run_subprocess(command, verbose=None, *args, **kwargs):
                "that you use '$HOME' instead of '~'.")
         warnings.warn(msg)
 
-    logger.info("Running subprocess: %s" % str(command))
+    logger.info("Running subprocess: %s" % ' '.join(command))
     try:
         p = subprocess.Popen(command, *args, **kwargs)
     except Exception:
@@ -1015,6 +1022,7 @@ known_config_types = [
     'MNE_DATA',
     'MNE_DATASETS_MEGSIM_PATH',
     'MNE_DATASETS_SAMPLE_PATH',
+    'MNE_DATASETS_SOMATO_PATH',
     'MNE_DATASETS_SPM_FACE_PATH',
     'MNE_DATASETS_EEGBCI_PATH',
     'MNE_DATASETS_TESTING_PATH',
@@ -1252,8 +1260,7 @@ class ProgressBar(object):
         self.update(self.cur_value, mesg)
 
 
-def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
-                verbose_bool=True):
+def _chunk_read(response, local_file, initial_size=0, verbose_bool=True):
     """Download a file chunk by chunk and show advancement
 
     Can also be used when resuming downloads over http.
@@ -1264,10 +1271,13 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
         Response to the download request in order to get file size.
     local_file: file
         Hard disk file where data should be written.
-    chunk_size: integer, optional
-        Size of downloaded chunks. Default: 8192
     initial_size: int, optional
         If resuming, indicate the initial size of the file.
+
+    Notes
+    -----
+    The chunk size will be automatically adapted based on the connection
+    speed.
     """
     # Adapted from NISL:
     # https://github.com/nisl/tutorial/blob/master/nisl/datasets.py
@@ -1280,8 +1290,15 @@ def _chunk_read(response, local_file, chunk_size=65536, initial_size=0,
     progress = ProgressBar(total_size, initial_value=initial_size,
                            max_chars=40, spinner=True, mesg='downloading',
                            verbose_bool=verbose_bool)
+    chunk_size = 8192  # 2 ** 13
     while True:
+        t0 = time.time()
         chunk = response.read(chunk_size)
+        dt = time.time() - t0
+        if dt < 0.001:
+            chunk_size *= 2
+        elif dt > 0.5 and chunk_size > 8192:
+            chunk_size = chunk_size // 2
         if not chunk:
             if verbose_bool:
                 sys.stdout.write('\n')
@@ -1607,7 +1624,7 @@ def _check_type_picks(picks):
 
 
 @nottest
-def run_tests_if_main(measure_mem=True):
+def run_tests_if_main(measure_mem=False):
     """Run tests in a given file if it is run as a script"""
     local_vars = inspect.currentframe().f_back.f_locals
     if not local_vars.get('__name__', '') == '__main__':
@@ -1618,7 +1635,8 @@ def run_tests_if_main(measure_mem=True):
         faulthandler.enable()
     except Exception:
         pass
-    mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
+    with warnings.catch_warnings(record=True):  # memory_usage internal dep.
+        mem = int(round(max(memory_usage(-1)))) if measure_mem else -1
     if mem >= 0:
         print('Memory consumption after import: %s' % mem)
     t0 = time.time()
@@ -1637,7 +1655,8 @@ def run_tests_if_main(measure_mem=True):
             try:
                 t1 = time.time()
                 if measure_mem:
-                    mem = int(round(max(memory_usage((val, (), {})))))
+                    with warnings.catch_warnings(record=True):  # dep warn
+                        mem = int(round(max(memory_usage((val, (), {})))))
                 else:
                     val()
                     mem = -1

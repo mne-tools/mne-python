@@ -13,7 +13,7 @@ from __future__ import print_function
 
 from ..externals.six import string_types, advance_iterator
 
-import os
+import os.path as op
 import inspect
 import warnings
 from itertools import cycle
@@ -29,6 +29,7 @@ from ..surface import (get_head_surf, get_meg_helmet_surf, read_surface,
 from ..transforms import (read_trans, _find_trans, apply_trans,
                           combine_transforms, _get_mri_head_t)
 from ..utils import get_subjects_dir, logger, _check_subject
+from ..defaults import _handle_default
 from .utils import mne_analyze_colormap, _prepare_trellis, COLORS
 from ..externals.six import BytesIO
 
@@ -266,8 +267,7 @@ def _plot_mri_contours(mri_fname, surf_fnames, orientation='coronal',
 
 
 def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
-               ch_type=None, source=('bem', 'head'), coord_frame='head',
-               trans_fname=None):
+               ch_type=None, source=('bem', 'head'), coord_frame='head'):
     """Plot MEG/EEG head surface and helmet in 3D.
 
     Parameters
@@ -292,17 +292,14 @@ def plot_trans(info, trans='auto', subject=None, subjects_dir=None,
         try loading `'$SUBJECTS_DIR/$SUBJECT/bem/$SUBJECT-$SOURCE.fif'`, and
         then look for `'$SUBJECT*$SOURCE.fif'` in the same directory. Defaults
         to 'bem'. Note. For single layer bems it is recommended to use 'head'.
+    coord_frame : str
+        Coordinate frame to use.
 
     Returns
     -------
     fig : instance of mlab.Figure
         The mayavi figure.
     """
-    if trans_fname is not None:
-        trans = trans_fname
-        warnings.warn('The parameter "fname_trans" is deprecated and will '
-                      'be removed in 0.10, use "trans" instead',
-                      DeprecationWarning)
     if coord_frame not in ['head', 'meg']:
         raise ValueError('coord_frame must be "head" or "meg"')
     if ch_type not in [None, 'eeg', 'meg']:
@@ -392,16 +389,15 @@ def _limits_to_control_points(clim, stc_data, colormap):
     # Based on type of limits specified, get cmap control points
     if colormap == 'auto':
         if clim == 'auto':
-            colormap = 'hot'
+            colormap = 'mne' if (stc_data < 0).any() else 'hot'
         else:
             if 'lims' in clim:
                 colormap = 'hot'
-            else:
+            else:  # 'pos_lims' in clim
                 colormap = 'mne'
     if clim == 'auto':
         # Set upper and lower bound based on percent, and get average between
-        ctrl_pts = np.percentile(np.abs(stc_data), [96, 99.95])
-        ctrl_pts = np.insert(ctrl_pts, 1, np.average(ctrl_pts))
+        ctrl_pts = np.percentile(np.abs(stc_data), [96, 97.5, 99.95])
     elif isinstance(clim, dict):
         # Get appropriate key for clim if it's a dict
         limit_key = ['lims', 'pos_lims'][colormap in ('mne', 'mne_analyze')]
@@ -412,7 +408,10 @@ def _limits_to_control_points(clim, stc_data, colormap):
             ctrl_pts = np.percentile(np.abs(stc_data),
                                      list(np.abs(clim[limit_key])))
         elif clim['kind'] == 'value':
-            ctrl_pts = list(clim[limit_key])
+            ctrl_pts = np.array(clim[limit_key])
+            if (np.diff(ctrl_pts) < 0).any():
+                raise ValueError('value colormap limits must be strictly '
+                                 'nondecreasing')
         else:
             raise ValueError('If clim is a dict, clim[kind] must be '
                              ' "value" or "percent"')
@@ -421,20 +420,30 @@ def _limits_to_control_points(clim, stc_data, colormap):
     if len(ctrl_pts) != 3:
         raise ValueError('"lims" or "pos_lims" is length %i. It must be length'
                          ' 3' % len(ctrl_pts))
-    elif len(set(ctrl_pts)) != 3:
-        raise ValueError('Too few unique control points (need 3, got %s). '
-                         'Is there enough data to create three unique control '
-                         'point values?' % (ctrl_pts,))
+    ctrl_pts = np.array(ctrl_pts, float)
+    if len(set(ctrl_pts)) != 3:
+        if len(set(ctrl_pts)) == 1:  # three points match
+            if ctrl_pts[0] == 0:  # all are zero
+                warnings.warn('All data were zero')
+                ctrl_pts = np.arange(3, dtype=float)
+            else:
+                ctrl_pts *= [0., 0.5, 1]  # all nonzero pts == max
+        else:  # two points match
+            # if points one and two are identical, add a tiny bit to the
+            # control point two; if points two and three are identical,
+            # subtract a tiny bit from point two.
+            bump = 1e-5 if ctrl_pts[0] == ctrl_pts[1] else -1e-5
+            ctrl_pts[1] = ctrl_pts[0] + bump * (ctrl_pts[2] - ctrl_pts[0])
 
     return ctrl_pts, colormap
 
 
 def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                           colormap='auto', time_label='time=%0.2f ms',
-                          smoothing_steps=10, fmin=None, fmid=None, fmax=None,
-                          transparent=None, alpha=1.0, time_viewer=False,
-                          config_opts={}, subjects_dir=None, figure=None,
-                          views='lat', colorbar=True, clim=None):
+                          smoothing_steps=10, transparent=None, alpha=1.0,
+                          time_viewer=False, config_opts=None,
+                          subjects_dir=None, figure=None, views='lat',
+                          colorbar=True, clim='auto'):
     """Plot SourceEstimates with PySurfer
 
     Note: PySurfer currently needs the SUBJECTS_DIR environment variable,
@@ -510,6 +519,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         A instance of surfer.viz.Brain from PySurfer.
     """
     from surfer import Brain, TimeViewer
+    config_opts = _handle_default('config_opts', config_opts)
 
     import mayavi
     from mayavi import mlab
@@ -542,23 +552,7 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
                                'number of elements as PySurfer plots that '
                                'will be created (%s)' % n_split * n_views)
 
-    if all(f is None for f in [clim, fmin, fmid, fmax]):
-        raise ValueError('clim must be provided')
-
-    # Check if using old fmin/fmid/fmax cmap behavior
-    if clim is None:
-        # Throw deprecation warning
-        warnings.warn('Using fmin, fmid, fmax is deprecated and will be'
-                      ' removed in v0.10. Use "clim" instead.',
-                      DeprecationWarning)
-        # Fill in any missing flim values
-        ctrl_pts = [v or c for v, c in zip([fmin, fmid, fmax], [5., 10., 15.])]
-        clim = dict(kind='value', lims=ctrl_pts)
-    else:
-        if any(f is not None for f in [fmin, fmid, fmax]):
-            raise ValueError('"clim" overrides fmin, fmid, fmax')
-
-    # convert control points to locations
+    # convert control points to locations in colormap
     ctrl_pts, colormap = _limits_to_control_points(clim, stc.data, colormap)
 
     # Construct cmap manually if 'mne' and get cmap bounds
@@ -571,14 +565,9 @@ def plot_source_estimates(stc, subject=None, surface='inflated', hemi='lh',
         scale_pts = ctrl_pts
         transparent = True if transparent is None else transparent
 
-    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir)
-    subject = _check_subject(stc.subject, subject, False)
-    if subject is None:
-        if 'SUBJECT' in os.environ:
-            subject = os.environ['SUBJECT']
-        else:
-            raise ValueError('SUBJECT environment variable not set')
-
+    subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
+                                    raise_error=True)
+    subject = _check_subject(stc.subject, subject, True)
     if hemi in ['both', 'split']:
         hemis = ['lh', 'rh']
     else:
@@ -843,8 +832,7 @@ def plot_dipole_locations(dipoles, trans, subject, subjects_dir=None,
     trans = _get_mri_head_t(trans)[0]
     subjects_dir = get_subjects_dir(subjects_dir=subjects_dir,
                                     raise_error=True)
-    fname = os.path.join(subjects_dir, subject, 'bem',
-                         'inner_skull.surf')
+    fname = op.join(subjects_dir, subject, 'bem', 'inner_skull.surf')
     points, faces = read_surface(fname)
     points = apply_trans(trans['trans'], points * 1e-3)
 

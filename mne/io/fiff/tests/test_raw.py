@@ -20,11 +20,11 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 from mne.datasets import testing
 from mne.io.constants import FIFF
 from mne.io import Raw, concatenate_raws, read_raw_fif
+from mne.io.tests.test_raw import _test_concat
 from mne import (concatenate_events, find_events, equalize_channels,
                  compute_proj_raw, pick_types, pick_channels)
-from mne.utils import (_TempDir, requires_nitime, requires_pandas,
-                       requires_mne, run_subprocess, run_tests_if_main,
-                       slow_test)
+from mne.utils import (_TempDir, requires_pandas, slow_test,
+                       requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
 from mne.io.proc_history import _get_sss_rank
 from mne.io.pick import _picks_by_type
@@ -46,14 +46,28 @@ hp_fname = op.join(base_dir, 'test_chpi_raw_hp.txt')
 hp_fif_fname = op.join(base_dir, 'test_chpi_raw_sss.fif')
 
 
+def test_concat():
+    """Test RawFIF concatenation"""
+    # we trim the file to save lots of memory and some time
+    tempdir = _TempDir()
+    raw = read_raw_fif(test_fif_fname)
+    raw.crop(0, 2., copy=False)
+    test_name = op.join(tempdir, 'test_raw.fif')
+    raw.save(test_name)
+    # now run the standard test
+    _test_concat(read_raw_fif, test_name)
+
+
 @testing.requires_testing_data
 def test_hash_raw():
     """Test hashing raw objects
     """
     raw = read_raw_fif(fif_fname)
     assert_raises(RuntimeError, raw.__hash__)
-    raw = Raw(fif_fname, preload=True).crop(0, 0.5)
-    raw_2 = Raw(fif_fname, preload=True).crop(0, 0.5)
+    raw = Raw(fif_fname).crop(0, 0.5, False)
+    raw.preload_data()
+    raw_2 = Raw(fif_fname).crop(0, 0.5, False)
+    raw_2.preload_data()
     assert_equal(hash(raw), hash(raw_2))
     # do NOT use assert_equal here, failing output is terrible
     assert_equal(pickle.dumps(raw), pickle.dumps(raw_2))
@@ -67,8 +81,7 @@ def test_subject_info():
     """Test reading subject information
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname)
-    raw.crop(0, 1, False)
+    raw = Raw(fif_fname).crop(0, 1, False)
     assert_true(raw.info['subject_info'] is None)
     # fake some subject data
     keys = ['id', 'his_id', 'last_name', 'first_name', 'birthday', 'sex',
@@ -155,8 +168,7 @@ def test_output_formats():
     tols = [1e-4, 1e-7, 1e-7, 1e-15]
 
     # let's fake a raw file with different formats
-    raw = Raw(test_fif_fname, preload=False)
-    raw.crop(0, 1, copy=False)
+    raw = Raw(test_fif_fname).crop(0, 1, copy=False)
 
     temp_file = op.join(tempdir, 'raw.fif')
     for ii, (fmt, tol) in enumerate(zip(formats, tols)):
@@ -184,10 +196,9 @@ def test_multiple_files():
     """
     # split file
     tempdir = _TempDir()
-    raw = Raw(fif_fname)
+    raw = Raw(fif_fname).crop(0, 10, False)
     raw.preload_data()
     raw.preload_data()  # test no operation
-    raw = raw.crop(0, 10)
     split_size = 3.  # in seconds
     sfreq = raw.info['sfreq']
     nsamp = (raw.last_samp - raw.first_samp)
@@ -374,6 +385,7 @@ def test_io_raw():
     # test unicode io
     for chars in [b'\xc3\xa4\xc3\xb6\xc3\xa9', b'a']:
         with Raw(fif_fname) as r:
+            assert_true('Raw' in repr(r))
             desc1 = r.info['description'] = chars.decode('utf-8')
             temp_file = op.join(tempdir, 'raw.fif')
             r.save(temp_file, overwrite=True)
@@ -382,8 +394,8 @@ def test_io_raw():
             assert_equal(desc1, desc2)
 
     # Let's construct a simple test for IO first
-    raw = Raw(fif_fname, preload=True)
-    raw.crop(0, 3.5)
+    raw = Raw(fif_fname).crop(0, 3.5, False)
+    raw.preload_data()
     # put in some data that we know the values of
     data = np.random.randn(raw._data.shape[0], raw._data.shape[1])
     raw._data[:, :] = data
@@ -595,6 +607,17 @@ def test_proj():
         assert_allclose(data_proj_1, data_proj_2)
         assert_allclose(data_proj_2, np.dot(raw._projector, data_proj_2))
 
+    tempdir = _TempDir()
+    out_fname = op.join(tempdir, 'test_raw.fif')
+    raw = read_raw_fif(test_fif_fname, preload=True).crop(0, 0.002, copy=False)
+    raw.pick_types(meg=False, eeg=True)
+    raw.info['projs'] = [raw.info['projs'][-1]]
+    raw._data.fill(0)
+    raw._data[-1] = 1.
+    raw.save(out_fname)
+    raw = read_raw_fif(out_fname, proj=True, preload=False)
+    assert_allclose(raw[:, :][0][:1], raw[0, :][0])
+
 
 @testing.requires_testing_data
 def test_preload_modify():
@@ -631,7 +654,8 @@ def test_preload_modify():
 def test_filter():
     """Test filtering (FIR and IIR) and Raw.apply_function interface
     """
-    raw = Raw(fif_fname, preload=True).crop(0, 7, False)
+    raw = Raw(fif_fname).crop(0, 7, False)
+    raw.preload_data()
     sig_dec = 11
     sig_dec_notch = 12
     sig_dec_notch_fit = 12
@@ -748,7 +772,8 @@ def test_resample():
     """Test resample (with I/O and multiple files)
     """
     tempdir = _TempDir()
-    raw = Raw(fif_fname, preload=True).crop(0, 3, False)
+    raw = Raw(fif_fname).crop(0, 3, False)
+    raw.preload_data()
     raw_resamp = raw.copy()
     sfreq = raw.info['sfreq']
     # test parallel on upsample
@@ -832,39 +857,6 @@ def test_raw_copy():
     assert_array_equal(data, copied_data)
     assert_equal(sorted(raw.__dict__.keys()),
                  sorted(copied.__dict__.keys()))
-
-
-@testing.requires_testing_data
-@requires_nitime
-def test_raw_to_nitime():
-    """ Test nitime export """
-    raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=True)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_equal(raw_ts.data.shape[0], len(picks))
-
-    raw = Raw(fif_fname, preload=False)
-    picks_meg = pick_types(raw.info, meg=True, exclude='bads')
-    picks = picks_meg[:4]
-    with warnings.catch_warnings(record=True):
-        raw_ts = raw.to_nitime(picks=picks, copy=False)
-    assert_equal(raw_ts.data.shape[0], len(picks))
 
 
 @requires_pandas

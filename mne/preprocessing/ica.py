@@ -37,7 +37,7 @@ from ..viz import (plot_ica_components, plot_ica_scores,
 from ..channels.channels import _contains_ch_type, ContainsMixin
 from ..io.write import start_file, end_file, write_id
 from ..utils import (check_sklearn_version, logger, check_fname, verbose,
-                     _reject_data_segments)
+                     _reject_data_segments, check_random_state)
 from ..filter import band_pass_filter
 from .bads import find_outliers
 from .ctps_ import ctps
@@ -134,7 +134,7 @@ class ICA(ContainsMixin):
     random_state : None | int | instance of np.random.RandomState
         np.random.RandomState to initialize the FastICA estimation.
         As the estimation is non-deterministic it can be useful to
-        fix the seed to have reproducible results.
+        fix the seed to have reproducible results. Defaults to None.
     method : {'fastica', 'infomax', 'extended-infomax'}
         The ICA method to use. Defaults to 'fastica'.
     fit_params : dict | None.
@@ -214,7 +214,7 @@ class ICA(ContainsMixin):
         self.max_pca_components = max_pca_components
         self.n_pca_components = n_pca_components
         self.ch_names = None
-        self.random_state = random_state if random_state is not None else 42
+        self.random_state = random_state
 
         if fit_params is None:
             fit_params = {}
@@ -330,6 +330,9 @@ class ICA(ContainsMixin):
         del self.mixing_matrix_
         del self.n_components_
         del self.n_samples_
+        del self.pca_components_
+        del self.pca_explained_variance_
+        del self.pca_mean_
         if hasattr(self, 'drop_inds_'):
             del self.drop_inds_
 
@@ -445,9 +448,11 @@ class ICA(ContainsMixin):
         """Aux function """
         from sklearn.decomposition import RandomizedPCA
 
+        random_state = check_random_state(self.random_state)
+
         # XXX fix copy==True later. Bug in sklearn, see PR #2273
         pca = RandomizedPCA(n_components=max_pca_components, whiten=True,
-                            copy=True, random_state=self.random_state)
+                            copy=True, random_state=random_state)
 
         if isinstance(self.n_components, float):
             # compute full feature variance before doing PCA
@@ -496,13 +501,15 @@ class ICA(ContainsMixin):
         if self.method == 'fastica':
             from sklearn.decomposition import FastICA  # to avoid strong dep.
             ica = FastICA(whiten=False,
-                          random_state=self.random_state, **self.fit_params)
+                          random_state=random_state, **self.fit_params)
             ica.fit(data[:, sel])
             # get unmixing and add scaling
             self.unmixing_matrix_ = getattr(ica, 'components_',
                                             'unmixing_matrix_')
         elif self.method in ('infomax', 'extended-infomax'):
-            self.unmixing_matrix_ = infomax(data[:, sel], **self.fit_params)
+            self.unmixing_matrix_ = infomax(data[:, sel],
+                                            random_state=random_state,
+                                            **self.fit_params)
         self.unmixing_matrix_ /= np.sqrt(exp_var[sel])[None, :]
         self.mixing_matrix_ = linalg.pinv(self.unmixing_matrix_)
         self.current_fit = fit_type
@@ -524,11 +531,12 @@ class ICA(ContainsMixin):
             raise RuntimeError('No fit available. Please fit ICA.')
         start, stop = _check_start_stop(raw, start, stop)
 
-        picks = [raw.ch_names.index(k) for k in self.ch_names]
+        picks = pick_types(raw.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
+            raise RuntimeError('Raw doesn\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
+                               'provide Raw compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
@@ -541,9 +549,8 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please fit ICA')
 
-        picks = pick_types(epochs.info, include=self.ch_names, exclude=[],
-                           ref_meg=False)
-
+        picks = pick_types(epochs.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
         # special case where epochs come picked but fit was 'unpicked'.
         if len(picks) != len(self.ch_names):
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
@@ -568,13 +575,13 @@ class ICA(ContainsMixin):
         if not hasattr(self, 'mixing_matrix_'):
             raise RuntimeError('No fit available. Please first fit ICA')
 
-        picks = pick_types(evoked.info, include=self.ch_names, exclude=[],
-                           ref_meg=False)
+        picks = pick_types(evoked.info, include=self.ch_names, exclude='bads',
+                           meg=False, ref_meg=False)
 
         if len(picks) != len(self.ch_names):
-            raise RuntimeError('Epochs don\'t match fitted data: %i channels '
-                               'fitted but %i channels supplied. \nPlease '
-                               'provide Epochs compatible with '
+            raise RuntimeError('Evoked doesn\'t match fitted data: %i channels'
+                               ' fitted but %i channels supplied. \nPlease '
+                               'provide Evoked compatible with '
                                'ica.ch_names' % (len(self.ch_names),
                                                  len(picks)))
 
@@ -659,6 +666,7 @@ class ICA(ContainsMixin):
 
         out._projector = None
         self._export_info(out.info, raw, add_channels)
+        out._update_times()
 
         return out
 
@@ -675,7 +683,7 @@ class ICA(ContainsMixin):
 
         self._export_info(out.info, epochs, add_channels)
         out.preload = True
-        out.raw = None
+        out._raw = None
         out._projector = None
 
         return out
@@ -1178,8 +1186,7 @@ class ICA(ContainsMixin):
         else:
             exclude = list(set(self.exclude + list(exclude)))
 
-        _n_pca_comp = _check_n_pca_components(self, self.n_pca_components,
-                                              self.verbose)
+        _n_pca_comp = self._check_n_pca_components(self.n_pca_components)
 
         if not(self.n_components_ <= _n_pca_comp <= self.max_pca_components):
             raise ValueError('n_pca_components must be >= '
@@ -1253,10 +1260,10 @@ class ICA(ContainsMixin):
 
         return self
 
-    def plot_components(self, picks=None, ch_type='mag', res=64, layout=None,
+    def plot_components(self, picks=None, ch_type=None, res=64, layout=None,
                         vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                         colorbar=False, title=None, show=True, outlines='head',
-                        contours=6, image_interp='bilinear'):
+                        contours=6, image_interp='bilinear', head_pos=None):
         """Project unmixing matrix on interpolated sensor topography.
 
         Parameters
@@ -1264,9 +1271,10 @@ class ICA(ContainsMixin):
         picks : int | array-like | None
             The indices of the sources to be plotted.
             If None all are plotted in batches of 20.
-        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg'
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
             The channel type to plot. For 'grad', the gradiometers are
             collected in pairs and the RMS for each pair is plotted.
+            If None, then channels are chosen in the order given above.
         res : int
             The resolution of the topomap image (n pixels along each side).
         layout : None | Layout
@@ -1305,6 +1313,11 @@ class ICA(ContainsMixin):
         image_interp : str
             The image interpolation to be used. All matplotlib options are
             accepted.
+        head_pos : dict | None
+            If None (default), the sensors are positioned such that they span
+            the head circle. If dict, can have entries 'center' (tuple) and
+            'scale' (tuple) for what the center and scale of the head should be
+            relative to the electrode locations.
 
         Returns
         -------
@@ -1318,7 +1331,8 @@ class ICA(ContainsMixin):
                                    sensors=sensors, colorbar=colorbar,
                                    title=title, show=show,
                                    outlines=outlines, contours=contours,
-                                   image_interp=image_interp)
+                                   image_interp=image_interp,
+                                   head_pos=head_pos)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
                      stop=None, title=None, show=True):
@@ -1542,22 +1556,21 @@ class ICA(ContainsMixin):
 
         return self
 
+    @verbose
+    def _check_n_pca_components(self, _n_pca_comp, verbose=None):
+        """Aux function"""
+        if isinstance(_n_pca_comp, float):
+            _n_pca_comp = ((self.pca_explained_variance_ /
+                           self.pca_explained_variance_.sum()).cumsum() <=
+                           _n_pca_comp).sum()
+            logger.info('Selected %i PCA components by explained '
+                        'variance' % _n_pca_comp)
+        elif _n_pca_comp is None:
+            _n_pca_comp = self.max_pca_components
+        elif _n_pca_comp < self.n_components_:
+            _n_pca_comp = self.n_components_
 
-@verbose
-def _check_n_pca_components(ica, _n_pca_comp, verbose=None):
-    """Aux function"""
-    if isinstance(_n_pca_comp, float):
-        _n_pca_comp = ((ica.pca_explained_variance_ /
-                       ica.pca_explained_variance_.sum()).cumsum() <=
-                       _n_pca_comp).sum()
-        logger.info('Selected %i PCA components by explained '
-                    'variance' % _n_pca_comp)
-    elif _n_pca_comp is None:
-        _n_pca_comp = ica.max_pca_components
-    elif _n_pca_comp < ica.n_components_:
-        _n_pca_comp = ica.n_components_
-
-    return _n_pca_comp
+        return _n_pca_comp
 
 
 def _check_start_stop(raw, start, stop):

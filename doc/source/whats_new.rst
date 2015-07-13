@@ -1,9 +1,41 @@
 What's new
 ==========
+..
+    Note, we are now using links to highlight new functions and classes.
+    Please be sure to follow the examples below like :func:`mne.stats.f_mway_rm`, so the whats_new page will have a link to the function/class documentation.
+
+
+Current
+-----------
+
+Changelog
+~~~~~~~~~
+
+    - Add support for generalized M-way repeated measures ANOVA for fully balanced designs with :func:`mne.stats.f_mway_rm` by `Denis Engemann`_
+
+    - Add epochs browser to interactively view and manipulate epochs with :func:`mne.viz.plot_epochs` by `Jaakko Leppakangas`_
+
+    - Speed up TF-MxNE inverse solver with block coordinate descent by `Daniel Strohmeier`_ and `Yousra Bekhti`_
+
+    - Speed up zero-phase overlap-add (default) filtering by a factor of up to 2 using linearity by `Ross Maddox`_ and `Eric Larson`_
+
+    - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
+
+
+BUG
+~~~
+
+    - Fix ``mne.io.add_reference_channels`` not setting ``info[nchan]`` correctly by `Federico Raimondo`_
+
+    - Fix ``mne.stats.bonferroni_correction`` reject mask output to use corrected p-values by `Denis Engemann`_
+
+    - Fix FFT filter artifacts when using short windows in overlap-add by `Eric Larson`_
+
+    - Fix picking channels from forward operator could return a channel ordering different from ``info['chs']`` by `Chris Bailey`_
 
 .. _changes_0_9:
 
-Current
+Version 0.9
 -----------
 
 Changelog
@@ -100,7 +132,7 @@ Changelog
 
    - Add ``DigMontage`` class and reader to interface with digitization info by `Teon Brooks`_ and `Christian Brodbeck`_
 
-   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks` and `Denis Engemann`_
+   - Add ``set_montage`` method to the ``Raw``, ``Epochs``, and ``Evoked`` objects by `Teon Brooks`_ and `Denis Engemann`_
 
    - Add support for capturing sensor positions when clicking on an image by `Chris Holdgraf`_
 
@@ -116,8 +148,7 @@ BUG
 
    - Fix channel names in topomaps by `Alex Gramfort`_
 
-   - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and
-    ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
+   - Fix mapping of ``l_trans_bandwidth`` (to low frequency) and ``h_trans_bandwidth`` (to high frequency) in ``_BaseRaw.filter`` by `Denis Engemann`_
 
    - Fix scaling source spaces when distances have to be recomputed by `Christian Brodbeck`_
 
@@ -153,6 +184,8 @@ BUG
 
    - Decouple section ordering in command-line from python interface for mne-report by `Mainak Jas`_
 
+   - Fix bug with ICA resetting by `Denis Engemann`_
+
 API
 ~~~
 
@@ -160,8 +193,7 @@ API
 
    - find_events and read_events functions have a new parameter ``mask`` to set some bits to a don't care state by `Teon Brooks`_
 
-   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates
-    `mne.layouts` by `Denis Engemann`_
+   - New channels module including layouts, electrode montages, and neighbor definitions of sensors which deprecates ``mne.layouts`` by `Denis Engemann`_
 
    - ``read_raw_brainvision``, ``read_raw_edf``, ``read_raw_egi`` all use a standard montage import by `Teon Brooks`_
 
@@ -185,8 +217,7 @@ API
 
    - Deprecated ``fmin, fmid, fmax`` in stc.plot and added ``clim`` by `Mark Wronkiewicz`_
 
-   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_
-    `Eric Larson`_ and `Denis Engemann`_. As a consquence, `Raw.plot_raw_psds` has been deprecated.
+   - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_ `Eric Larson`_ and `Denis Engemann`_. As a consquence, ``Raw.plot_raw_psds`` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
@@ -1031,3 +1062,7 @@ of commits):
 .. _Mark Wronkiewicz: http://ilabs.washington.edu/graduate-students/bio/i-labs-mark-wronkiewicz
 
 .. _Sébastien Marti: http://www.researchgate.net/profile/Sebastien_Marti
+
+.. _Chris Bailey: https://github.com/cjayb
+
+.. _Ross Maddox: http://faculty.washington.edu/rkmaddox/

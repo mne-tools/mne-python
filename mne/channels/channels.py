@@ -69,15 +69,33 @@ def _contains_ch_type(info, ch_type):
         raise ValueError('`ch_type` is of class {actual_class}. It must be '
                          '`str`'.format(actual_class=type(ch_type)))
 
-    valid_channel_types = ('grad mag eeg stim eog emg ecg ref_meg resp '
-                           'exci ias syst seeg misc').split()
+    valid_channel_types = ['grad', 'mag', 'planar1', 'planar2', 'eeg', 'stim',
+                           'eog', 'emg', 'ecg', 'ref_meg', 'resp', 'exci',
+                           'ias', 'syst', 'seeg', 'misc']
 
     if ch_type not in valid_channel_types:
-        msg = ('The ch_type passed ({passed}) is not valid. '
-               'it must be {valid}')
-        raise ValueError(msg.format(passed=ch_type,
-                                    valid=' or '.join(valid_channel_types)))
+        raise ValueError('ch_type must be one of %s, not "%s"'
+                         % (valid_channel_types, ch_type))
+    if info is None:
+        raise ValueError('Cannot check for channels of type "%s" because info '
+                         'is None' % (ch_type,))
     return ch_type in [channel_type(info, ii) for ii in range(info['nchan'])]
+
+
+def _get_ch_type(inst, ch_type):
+    """Helper to choose a single channel type (usually for plotting)
+
+    Usually used in plotting to plot a single datatype, e.g. look for mags,
+    then grads, then ... to plot.
+    """
+    if ch_type is None:
+        for type_ in ['mag', 'grad', 'planar1', 'planar2', 'eeg']:
+            if type_ in inst:
+                ch_type = type_
+                break
+        else:
+            raise RuntimeError('No plottable channel types found')
+    return ch_type
 
 
 @verbose
@@ -96,11 +114,11 @@ def equalize_channels(candidates, verbose=None):
     This function operates inplace.
     """
     from ..io.base import _BaseRaw
-    from ..epochs import Epochs
+    from ..epochs import _BaseEpochs
     from ..evoked import Evoked
     from ..time_frequency import AverageTFR
 
-    if not all(isinstance(c, (_BaseRaw, Epochs, Evoked, AverageTFR))
+    if not all(isinstance(c, (_BaseRaw, _BaseEpochs, Evoked, AverageTFR))
                for c in candidates):
         valid = ['Raw', 'Epochs', 'Evoked', 'AverageTFR']
         raise ValueError('candidates must be ' + ' or '.join(valid))
@@ -227,7 +245,7 @@ class SetChannelsMixin(object):
                       'eog': FIFF.FIFF_UNIT_V,
                       'exci': FIFF.FIFF_UNIT_NONE,
                       'ias': FIFF.FIFF_UNIT_NONE,
-                      'misc': FIFF.FIFF_UNIT_NONE,
+                      'misc': FIFF.FIFF_UNIT_V,
                       'resp': FIFF.FIFF_UNIT_NONE,
                       'seeg': FIFF.FIFF_UNIT_V,
                       'stim': FIFF.FIFF_UNIT_NONE,
@@ -266,11 +284,6 @@ class SetChannelsMixin(object):
 
     def rename_channels(self, mapping):
         """Rename channels.
-
-        Note : The ability to change sensor types has been deprecated in favor
-        of `set_channel_types`. Please use this function if you would changing
-        or defining sensor type.
-
 
         Parameters
         ----------
@@ -420,14 +433,14 @@ class PickDropChannelsMixin(object):
     def _pick_drop_channels(self, idx):
         # avoid circular imports
         from ..io.base import _BaseRaw
-        from ..epochs import Epochs
+        from ..epochs import _BaseEpochs
         from ..evoked import Evoked
         from ..time_frequency import AverageTFR
 
-        if isinstance(self, (_BaseRaw, Epochs)):
+        if isinstance(self, (_BaseRaw, _BaseEpochs)):
             if not self.preload:
-                raise RuntimeError('Raw data must be preloaded to drop or pick'
-                                   ' channels')
+                raise RuntimeError('If Raw or Epochs, data must be preloaded '
+                                   'to drop or pick channels')
 
         def inst_has(attr):
             return getattr(self, attr, None) is not None
@@ -445,7 +458,7 @@ class PickDropChannelsMixin(object):
 
         if isinstance(self, _BaseRaw) and inst_has('_data'):
             self._data = self._data.take(idx, axis=0)
-        elif isinstance(self, Epochs) and inst_has('_data'):
+        elif isinstance(self, _BaseEpochs) and inst_has('_data'):
             self._data = self._data.take(idx, axis=1)
         elif isinstance(self, AverageTFR) and inst_has('data'):
             self.data = self.data.take(idx, axis=0)
@@ -497,11 +510,6 @@ class InterpolationMixin(object):
 def rename_channels(info, mapping):
     """Rename channels.
 
-    Note : The ability to change sensor types has been deprecated in favor of
-    `set_channel_types` method for Raw, Epochs, Evoked . Please use this
-    method if you would changing or defining sensor type.
-
-
     Parameters
     ----------
     info : dict
@@ -510,12 +518,6 @@ def rename_channels(info, mapping):
         a dictionary mapping the old channel to a new channel name
         e.g. {'EEG061' : 'EEG161'}.
     """
-    human2fiff = {'eog': FIFF.FIFFV_EOG_CH,
-                  'emg': FIFF.FIFFV_EMG_CH,
-                  'ecg': FIFF.FIFFV_ECG_CH,
-                  'seeg': FIFF.FIFFV_SEEG_CH,
-                  'misc': FIFF.FIFFV_MISC_CH}
-
     bads, chs = info['bads'], info['chs']
     ch_names = info['ch_names']
     new_names, new_kinds, new_bads = list(), list(), list()
@@ -527,19 +529,9 @@ def rename_channels(info, mapping):
                              % ch_name)
 
         c_ind = ch_names.index(ch_name)
-        if not isinstance(new_name, (string_types, tuple)):
+        if not isinstance(new_name, string_types):
             raise ValueError('Your mapping is not configured properly. '
                              'Please see the help: mne.rename_channels?')
-
-        elif isinstance(new_name, tuple):  # name and type change
-            warnings.warn("Changing sensor type is now deprecated. Please use "
-                          "'set_channel_types' instead.", DeprecationWarning)
-            new_name, new_type = new_name  # unpack
-            if new_type not in human2fiff:
-                raise ValueError('This function cannot change to this '
-                                 'channel type: %s.' % new_type)
-            new_kinds.append((c_ind, human2fiff[new_type]))
-
         new_names.append((c_ind, new_name))
         if ch_name in bads:  # check bads
             new_bads.append((bads.index(ch_name), new_name))

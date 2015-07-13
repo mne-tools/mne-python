@@ -191,6 +191,15 @@ def test_label_addition():
 
     assert_equal(len(l0), len(idx0))
 
+    l_good = l0.copy()
+    l_good.subject = 'sample'
+    l_bad = l1.copy()
+    l_bad.subject = 'foo'
+    assert_raises(ValueError, l_good.__add__, l_bad)
+    assert_raises(TypeError, l_good.__add__, 'foo')
+    assert_raises(ValueError, l_good.__sub__, l_bad)
+    assert_raises(TypeError, l_good.__sub__, 'foo')
+
     # adding non-overlapping labels
     l01 = l0 + l1
     assert_equal(len(l01), len(l0) + len(l1))
@@ -217,6 +226,7 @@ def test_label_addition():
     assert_equal(bhl.hemi, 'both')
     assert_equal(len(bhl), len(l0) + len(l2))
     assert_equal(bhl.color, l.color)
+    assert_true('BiHemiLabel' in repr(bhl))
     # subtraction
     assert_labels_equal(bhl - l0, l2)
     assert_labels_equal(bhl - l2, l0)
@@ -224,12 +234,18 @@ def test_label_addition():
     bhl2 = l1 + bhl
     assert_labels_equal(bhl2.lh, l01)
     assert_equal(bhl2.color, _blend_colors(l1.color, bhl.color))
+    assert_array_equal((l2 + bhl).rh.vertices, bhl.rh.vertices)  # rh label
+    assert_array_equal((bhl + bhl).lh.vertices, bhl.lh.vertices)
+    assert_raises(TypeError, bhl.__add__, 5)
+
     # subtraction
     bhl_ = bhl2 - l1
     assert_labels_equal(bhl_.lh, bhl.lh, comment=False, color=False)
     assert_labels_equal(bhl_.rh, bhl.rh)
     assert_labels_equal(bhl2 - l2, l0 + l1)
     assert_labels_equal(bhl2 - l1 - l0, l2)
+    bhl_ = bhl2 - bhl2
+    assert_array_equal(bhl_.vertices, [])
 
 
 @testing.requires_testing_data
@@ -328,6 +344,8 @@ def test_annot_io():
     shutil.copy(os.path.join(surf_src, 'rh.white'), surf_dir)
 
     # read original labels
+    assert_raises(IOError, read_labels_from_annot, subject, 'PALS_B12_Lobesey',
+                  subjects_dir=tempdir)
     labels = read_labels_from_annot(subject, 'PALS_B12_Lobes',
                                     subjects_dir=tempdir)
 
@@ -435,9 +453,39 @@ def test_write_labels_to_annot():
 
     labels = read_labels_from_annot('sample', subjects_dir=subjects_dir)
 
-    # write left and right hemi labels:
-    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
+    # create temporary subjects-dir skeleton
+    surf_dir = op.join(subjects_dir, 'sample', 'surf')
+    temp_surf_dir = op.join(tempdir, 'sample', 'surf')
+    os.makedirs(temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'lh.white'), temp_surf_dir)
+    shutil.copy(op.join(surf_dir, 'rh.white'), temp_surf_dir)
+    os.makedirs(op.join(tempdir, 'sample', 'label'))
 
+    # test automatic filenames
+    dst = op.join(tempdir, 'sample', 'label', '%s.%s.annot')
+    write_labels_to_annot(labels, 'sample', 'test1', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test1')))
+    assert_true(op.exists(dst % ('rh', 'test1')))
+    # lh only
+    for label in labels:
+        if label.hemi == 'lh':
+            break
+    write_labels_to_annot([label], 'sample', 'test2', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test2')))
+    assert_true(op.exists(dst % ('rh', 'test2')))
+    # rh only
+    for label in labels:
+        if label.hemi == 'rh':
+            break
+    write_labels_to_annot([label], 'sample', 'test3', subjects_dir=tempdir)
+    assert_true(op.exists(dst % ('lh', 'test3')))
+    assert_true(op.exists(dst % ('rh', 'test3')))
+    # label alone
+    assert_raises(TypeError, write_labels_to_annot, labels[0], 'sample',
+                  'test4', subjects_dir=tempdir)
+
+    # write left and right hemi labels with filenames:
+    fnames = ['%s/%s-myparc' % (tempdir, hemi) for hemi in ['lh', 'rh']]
     for fname in fnames:
         write_labels_to_annot(labels, annot_fname=fname)
 
@@ -509,6 +557,12 @@ def test_write_labels_to_annot():
     label1 = labels_reloaded[-1]
     assert_equal(label1.name, "unknown-lh")
     assert_true(np.all(in1d(label0.vertices, label1.vertices)))
+
+    # unnamed labels
+    labels4 = labels[:]
+    labels4[0].name = None
+    assert_raises(ValueError, write_labels_to_annot, labels4,
+                  annot_fname=fnames[0])
 
 
 @testing.requires_testing_data
@@ -639,9 +693,15 @@ def test_morph():
     assert_array_equal(vals[0], vals[1])
     # make sure label smoothing can run
     assert_equal(label.subject, 'sample')
-    label.morph(label.subject, 'fsaverage', 5,
-                [np.arange(10242), np.arange(10242)], subjects_dir, 2,
-                copy=False)
+    verts = [np.arange(10242), np.arange(10242)]
+    for hemi in ['lh', 'rh']:
+        label.hemi = hemi
+        label.morph(None, 'fsaverage', 5, verts, subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 1, 5, verts,
+                  subjects_dir, 2)
+    assert_raises(TypeError, label.morph, None, 'fsaverage', 5.5, verts,
+                  subjects_dir, 2)
+    label.smooth(subjects_dir=subjects_dir)  # make sure this runs
 
 
 @testing.requires_testing_data

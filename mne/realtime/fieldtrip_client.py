@@ -10,7 +10,8 @@ import warnings
 import numpy as np
 
 from ..io.constants import FIFF
-from ..io.meas_info import Info
+from ..io.meas_info import _empty_info
+from ..io.pick import pick_info
 from ..epochs import EpochsArray
 from ..utils import logger
 from ..externals.FieldTrip import Client as FtClient
@@ -138,7 +139,7 @@ class FieldTripClient(object):
             warnings.warn('Info dictionary not provided. Trying to guess it '
                           'from FieldTrip Header object')
 
-            info = Info()  # create info dictionary
+            info = _empty_info()  # create info dictionary
 
             # modify info attributes according to the FieldTrip Header object
             info['nchan'] = self.ft_header.nChannels
@@ -255,16 +256,12 @@ class FieldTripClient(object):
 
         # get the data
         data = self.ft_client.getData([start, stop]).transpose()
-        data = np.expand_dims(data, axis=0)
 
         # create epoch from data
-        epoch = EpochsArray(data, info=self.info,
-                            events=events, tmin=0)
-
-        # pick channels
+        info = self.info
         if picks is not None:
-            ch_names = [self.info['ch_names'][k] for k in picks]
-            epoch = epoch.pick_channels(ch_names=ch_names, copy=True)
+            info = pick_info(info, picks, copy=True)
+        epoch = EpochsArray(data[picks][np.newaxis], info, events)
 
         return epoch
 
