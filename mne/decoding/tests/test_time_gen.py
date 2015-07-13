@@ -235,15 +235,24 @@ def test_generalization_across_time():
 def test_DecodingTime():
     epochs = make_epochs()
     tg = TimeDecoding()
+    assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
     assert_true(hasattr(tg, 'times'))
     assert_true(not hasattr(tg, 'train_times'))
     assert_true(not hasattr(tg, 'test_times'))
     tg.fit(epochs)
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), no prediction, no score>", '%s' % tg)
     assert_true(not hasattr(tg, 'train_times_'))
     assert_true(not hasattr(tg, 'test_times_'))
     assert_raises(RuntimeError, tg.score, epochs=None)
     tg.predict(epochs)
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), predicted 14 epochs, no score>",
+                 '%s' % tg)
     assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
     tg.score(epochs)
     tg.score()
     assert_array_equal(np.shape(tg.scores_), [15])
+    assert_equal("<TimeDecoding | fitted, start : -0.200 (s), stop : 0.499 "
+                 "(s), predicted 14 epochs,\n scored (accuracy_score)>",
+                 '%s' % tg)
