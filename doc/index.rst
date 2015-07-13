@@ -36,22 +36,32 @@ NSF awards 0958669 and 1042134.
 The Matlab and Python components of MNE are provided under the
 simplified BSD license.
 
-
-
-
-  * `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
-  * Read the :ref:`manual`.
-  * Get started with :ref:`mne_python`
-  * :ref:`command_line_tutorial`
   * Join the MNE `mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
   * `Help/Feature Request/Bug Report <mailto:mne_support@nmr.mgh.harvard.edu>`_
   * :ref:`ch_reading`
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
+   getting_started.rst
+   tutorials
+   examples
    manual
-   mne-python
+   faq.rst
+   contributing.rst
+   whats_new.rst
+   python_reference.rst
+   advanced_setup.rst
    mne-cpp
    cite
 
+.. raw:: html
+
+    <div>
+    <div style="width: 40%; float: left; padding: 20px;">
+        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+    </div>
+    <div style="width: 40%; float: left; padding: 20px;">
+        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+    </div>
+    </div>

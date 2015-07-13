@@ -3,6 +3,11 @@
 Getting Started
 ===============
 
+.. XXX do a Getting for both C and Python
+
+* `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
+
+
 This page will help you get started with mne-python. If you are at the
 Martinos Center, please see this section :ref:`inside_martinos`. If you
 would like to use a custom installation of python (or have specific
