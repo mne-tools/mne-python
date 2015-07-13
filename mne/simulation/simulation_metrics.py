@@ -47,7 +47,7 @@ def _calc_metric(data1, data2, metric):
     data2 : ndarray, shape(n_sources, ntimes)
         Second data matrix
     metric : str
-        Metric to calculate. 'rms', 'rms_normed', 'corr',
+        Metric to calculate. 'rms', 'corr',
 
     Returns
     -------
@@ -67,4 +67,4 @@ def _calc_metric(data1, data2, metric):
 
     # Calculate correlation coefficient between matrix elements
     elif metric == 'corr':
-        return np.correlate(data1.flatten(), data2.flatten())
+        return np.correlate(stc1.data.flatten(), stc2.data.flatten())
