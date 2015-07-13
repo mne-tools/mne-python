@@ -266,3 +266,18 @@ trim_doctests_flags = True
 def setup(app):
     # app.add_javascript('copybutton.js')
     app.add_stylesheet('style.css')
+
+
+# Example configuration for intersphinx: refer to the Python standard library.
+intersphinx_mapping = {'http://docs.python.org/': None}
+
+sphinxgallery_conf = {
+    'doc_module': ('sphinxgallery', 'numpy'),
+    'reference_url': {
+        'sphinxgallery': None,
+        'matplotlib': 'http://matplotlib.org',
+        'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
+        'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
+        'mayavi': 'http://docs.enthought.com/mayavi/mayavi'},
+    'use_mayavi': True,
+    }
