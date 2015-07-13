@@ -1129,3 +1129,13 @@ class TimeDecoding(GeneralizationAcrossTime):
                                                 color=color, xlabel=xlabel,
                                                 ylabel=ylabel, legend=legend,
                                                 chance=chance, label=label)
+
+    def plot_times():
+        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
+        # in heritances.
+        raise RuntimeError('plot_times() isn\'t adequate for TimeDecoding')
+
+    def plot_diagonal():
+        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
+        # in heritances.
+        raise RuntimeError('plot_diagonal() isn\'t adequate for TimeDecoding')
