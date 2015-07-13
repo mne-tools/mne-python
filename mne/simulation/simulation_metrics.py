@@ -43,3 +43,4 @@ def _calc_metric(data1, data2, metric):
     # Calculate correlation coefficient between matrix elements
     elif metric == 'avg_corrcoef':
         return np.mean(np.corrcoeff(stc1.data, stc2.data))
+
