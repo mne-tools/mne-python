@@ -537,7 +537,7 @@ def _plot_raw_components(ica, raw, picks, exclude, start, stop, show, title,
     types = np.repeat('misc', len(picks))
     picks = sorted(picks)
 
-    c_names = ['ICA ' + str(x) for x in range(len(orig_data))]
+    c_names = ['ICA %03d' % x for x in range(len(orig_data))]
     if title is None:
         title = 'ICA components'
     info = create_info([c_names[x] for x in picks], raw.info['sfreq'])
@@ -622,7 +622,7 @@ def _plot_epoch_components(ica, epochs, picks, exclude, start, stop, show,
     import matplotlib.pyplot as plt
     plt.ion()  # Turn interactive mode on to avoid warnings.
     data = ica._transform_epochs(epochs, concatenate=True)
-    c_names = ['ICA ' + str(x) for x in range(ica.n_components_)]
+    c_names = ['ICA %03d' % x for x in range(ica.n_components_)]
     scalings = {'misc': 5.0}
     info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'])
     info['projs'] = list()
