@@ -106,7 +106,7 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     if exclude is None:
         exclude = ica.exclude
-    else:
+    elif len(ica.exclude) > 0:
         exclude = np.union1d(ica.exclude, exclude)
     if isinstance(inst, _BaseRaw):
         fig = _plot_raw_components(ica, inst, picks, exclude, start=start,
