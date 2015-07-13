@@ -1025,6 +1025,30 @@ class TimeDecoding(GeneralizationAcrossTime):
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
 
+    def __repr__(self):
+        s = ''
+        if hasattr(self, "estimators_"):
+            s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
+                self.train_times_['start'], self.train_times_['stop'])
+        else:
+            s += 'no fit'
+        if hasattr(self, 'y_pred_'):
+            s += (", predicted %d epochs" % len(self.y_pred_[0]))
+        else:
+            s += ", no prediction"
+        if hasattr(self, "estimators_") and hasattr(self, 'scores_'):
+            s += ',\n '
+        else:
+            s += ', '
+        if hasattr(self, 'scores_'):
+            s += "scored"
+            if callable(self.scorer_):
+                s += " (%s)" % (self.scorer_.__name__)
+        else:
+            s += "no score"
+
+        return "<TimeDecoding | %s>" % s
+
     def predict(self, X, test_times='diagonal', **kwargs):
         """ Test each classifier at each time point.
 
