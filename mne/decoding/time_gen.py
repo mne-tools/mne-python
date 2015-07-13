@@ -1056,51 +1056,11 @@ class TimeDecoding(GeneralizationAcrossTime):
         super(TimeDecoding, self).fit(epochs, y=y)
         # squeeze testing times
         self.estimators_ = [clf[0] for clf in self.estimators_]
+        self.times_ = self.train_times_
+        delattr(self, 'test_times_')
+        delattr(self, 'train_times_')
         return self
 
-    def predict(self, X, test_times='diagonal', **kwargs):
-        """ Test each classifier at each time point.
-
-        Note. This function sets and updates the ``y_pred_`` and the
-        ``test_times`` attribute.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See independent
-            parameter.
-        test_times : str | dict | None
-            A dict to configure the testing times.
-            If test_times = 'diagonal', test_times = train_times: decode at
-            each time point but does not generalize.
-
-            'slices' : np.ndarray, shape (n_clfs,)
-                Array of time slices (in indices) used for each classifier.
-                If not given, computed from 'start', 'stop', 'length', 'step'.
-            'start' : float
-                Time at which to start decoding (in seconds). By default,
-                min(epochs.times).
-            'stop' : float
-                Maximal time at which to stop decoding (in seconds). By
-                default, max(times).
-            'step' : float
-                Duration separating the start of to subsequent classifiers (in
-                seconds). By default, equals one time sample.
-            'length' : float
-                Duration of each classifier (in seconds). By default, equals
-                one time sample.
-
-            If None, empty dict. Defaults to None.
-        picks : np.ndarray (n_selected_chans,) | None
-            Channels to be included.
-
-        Returns
-        -------
-        y_pred_ : np.ndarray, shape (n_train_time, n_test_time, n_epochs,
-                               n_prediction_dim)
-            Class labels for samples in X.
-        """
-        super(TimeDecoding, self).predict(X, test_times, **kwargs)
 
     def plot(self, **kwargs):
         """Plotting function of GeneralizationAcrossTime object
