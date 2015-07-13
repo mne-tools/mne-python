@@ -106,7 +106,8 @@ def plot_ica_sources(ica, inst, picks=None, exclude=None, start=None,
 
     if exclude is None:
         exclude = ica.exclude
-
+    else:
+        exclude = np.union1d(ica.exclude, exclude)
     if isinstance(inst, _BaseRaw):
         fig = _plot_raw_components(ica, inst, picks, exclude, start=start,
                                    stop=stop, show=show, title=title,
@@ -611,8 +612,8 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    picks = params['picks']
-    exclude = [picks[info['ch_names'].index(x)] for x in info['bads']]
+    c_names = ['ICA %03d' % x for x in range(len(params['orig_data']))]
+    exclude = [c_names.index(x) for x in info['bads']]
     params['ica'].exclude = exclude
 
 
