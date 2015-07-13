@@ -669,6 +669,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         detection of unexpected sounds", PLoS ONE, 2014
         DOI: 10.1371/journal.pone.0085791
 
+    .. versionadded:: 0.9.0
     """
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_mode='cross-validation', scorer=None,
@@ -717,8 +718,8 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
         Returns
         -------
-        self : object
-            Returns self.
+        self : GeneralizationAcrossTime
+            Returns fitted GeneralizationAcrossTime object.
 
         Notes
         ------
@@ -1017,6 +1018,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
     Notes
     -----
     The function is equivalent to the diagonal of GeneralizationAcrossTime()
+
+    .. versionadded:: 0.10
     """
 
     def __init__(self, picks=None, cv=5, clf=None, times=None,
@@ -1067,8 +1070,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         Returns
         -------
-        self : object
-            Returns self.
+        self : TimeDecoding
+            Returns fitted TimeDecoding object.
 
         Notes
         ------
