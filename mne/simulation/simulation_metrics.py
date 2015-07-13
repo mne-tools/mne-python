@@ -67,4 +67,4 @@ def _calc_metric(data1, data2, metric):
 
     # Calculate correlation coefficient between matrix elements
     elif metric == 'corr':
-        return np.correlate(stc1.data.flatten(), stc2.data.flatten())
+        return np.correlate(data1.flatten(), data2.flatten())

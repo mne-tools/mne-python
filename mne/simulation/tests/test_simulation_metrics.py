@@ -83,5 +83,6 @@ def test_simulation_metrics():
     stc1 = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
     stc2 = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
 
-    E = source_estimate_quantification(stc1, stc2)
-    print E
+    E_rms = source_estimate_quantification(stc1, stc2, metric='rms')
+    E_corr = source_estimate_quantification(stc1, stc2, metric='corr')
+    print E_rms, E_corr[0]
