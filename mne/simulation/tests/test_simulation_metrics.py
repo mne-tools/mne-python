@@ -85,4 +85,5 @@ def test_simulation_metrics():
 
     E_rms = source_estimate_quantification(stc1, stc2, metric='rms')
     E_corr = source_estimate_quantification(stc1, stc2, metric='corr')
+
     print E_rms, E_corr[0]
