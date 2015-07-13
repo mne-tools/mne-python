@@ -29,6 +29,7 @@ Changelog
 
     - Add ICA plotters for raw and epoch components by `Jaakko Leppakangas`_
 
+    - Add support for decoding sensors' evoked response across time by `Jean-Remi King`_
 
 BUG
 ~~~
