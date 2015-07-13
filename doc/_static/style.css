@@ -1,5 +1,14 @@
 body {
-    font-family: 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
+    font-family: 'Open Sans', 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
+}
+
+a {
+    color: #330033;
+    text-decoration: none;
+}
+
+a:hover {
+    color: #99CCFF;
 }
 
 blockquote p {
