@@ -1028,9 +1028,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
                                            test_times='diagonal',
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
-        self.times = self.train_times
-        delattr(self, 'test_times')
-        delattr(self, 'train_times')
+        self._clean_times()
 
     def __repr__(self):
         s = ''
@@ -1082,12 +1080,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
         If X is a dense array, then the other methods will not support sparse
         matrices as input.
         """
-        self.train_times = self.times
+        self._prep_times()
         super(TimeDecoding, self).fit(epochs, y=y)
-        self.times_ = self.train_times_
-        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
-        delattr(self, 'train_times_')
-        delattr(self, 'train_times')
+        self._clean_times()
         return self
 
     def predict(self, epochs):
@@ -1108,16 +1103,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
                  shape (n_times, n_epochs, n_prediction_dims)
             The single-trial predictions at each time sample.
         """
-
-        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
-        self.test_times = 'diagonal'
-        self.train_times_ = self.times_
+        self._prep_times()
         super(TimeDecoding, self).predict(epochs)
-        # squeeze testing times
-        self.y_pred_ = [y[0] for y in self.y_pred_]
-        delattr(self, 'test_times')
-        delattr(self, 'test_times_')
-        delattr(self, 'train_times_')
+        self._clean_times()
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -1154,13 +1142,9 @@ class TimeDecoding(_GeneralizationAcrossTime):
             if not hasattr(self, 'y_pred_'):
                 raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
-        # GAT compatibility unsqueeze testing times # XXX JRK: need cleanup
-        self.test_times_ = dict(slices=[[s] for s in self.times_['slices']])
-        self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
+        self._prep_times()
         super(TimeDecoding, self).score(epochs=None, y=y)
-        self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
-        self.scores_ = [score[0] for score in self.scores_]
-        delattr(self, 'test_times_')
+        self._clean_times()
         return self.scores_
 
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
@@ -1207,18 +1191,42 @@ class TimeDecoding(_GeneralizationAcrossTime):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        self.train_times_ = self.times_
-        self.test_times_ = _DecodingTime()
-        self.test_times_['slices'] = [[s] for s in self.train_times_['slices']]
-        self.test_times_['times'] = [[s] for s in self.train_times_['times']]
-        self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
+        # XXX JRK: need cleanup in viz
+        self._prep_times()
         fig = plot_gat_times(self, train_time='diagonal', title=title,
                              xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, ax=ax,
                              show=show, color=color, xlabel=xlabel,
                              ylabel=ylabel, legend=legend, chance=chance,
                              label=label)
-        # XXX JRK: need cleanup in viz
-        delattr(self, 'train_times_')
-        delattr(self, 'test_times_')
-        self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
+        self._clean_times()
         return fig
+
+    def _prep_times(self):
+        """Auxiliary function to allow compability with GAT"""
+        self.test_times = 'diagonal'
+        if hasattr(self, 'times'):
+            self.train_times = self.times
+        if hasattr(self, 'times_'):
+            self.train_times_ = self.times_
+            self.test_times_ = _DecodingTime()
+            self.test_times_['slices'] = [[slic] for slic in
+                                          self.train_times_['slices']]
+            self.test_times_['times'] = [[tim] for tim in
+                                         self.train_times_['times']]
+        if hasattr(self, 'y_pred_'):
+            self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
+
+    def _clean_times(self):
+        """Auxiliary function to allow compability with GAT"""
+        if hasattr(self, 'train_times'):
+            self.times = self.train_times
+        if hasattr(self, 'train_times_'):
+            self.times_ = self.train_times_
+        for attr in ['test_times', 'train_times',
+                     'test_times_', 'train_times_']:
+            if hasattr(self, attr):
+                delattr(self, attr)
+        if hasattr(self, 'y_pred_'):
+            self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
+        if hasattr(self, 'scores_'):
+            self.scores_ = [score[0] for score in self.scores_]
