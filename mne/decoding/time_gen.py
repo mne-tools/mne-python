@@ -155,10 +155,10 @@ class GeneralizationAcrossTime(object):
             ``times`` : np.ndarray, shape (n_clfs, n_testing_times)
                 The testing times (in seconds) for each training time.
 
-    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
-        The estimators for each time point and each fold.
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
     y_pred_ : list of lists of arrays of floats,
               shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
         The single-trial predictions estimated by self.predict() at each
@@ -946,7 +946,7 @@ class TimeDecoding(GeneralizationAcrossTime):
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
         StandardScaler and a linear SVM with default parameters.
-    train_times : dict | None
+    times : dict | None
         A dictionary to configure the training times:
 
             ``slices`` : np.ndarray, shape (n_clfs,)
@@ -977,39 +977,44 @@ class TimeDecoding(GeneralizationAcrossTime):
                 these predictions into a single estimate per sample.
 
         Default: 'cross-validation'
+    scorer : object | None
+        scikit-learn Scorer instance. If None, set to accuracy_score.
+        Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
     Attributes
     ----------
+    picks_ : array-like of int
+        Channels to be included.
+    ch_names : list, shape (n_channels,)
+        Names of the channels used for training.
     y_train_ : np.ndarray, shape (n_samples,)
         The categories used for training.
-    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
-        The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape (n_train_times, n_test_times, n_epochs,
-                                 n_prediction_dims)
-        Class labels for samples in X.
-    scores_ : list of lists of float
-        The scores (mean accuracy of self.predict(X) wrt. y.).
-        It's not an array as the testing times per training time
-        need not be regular.
-    test_times_ : dict
-        The same structure as ``train_times``.
+    times_ : dict
+        A dictionary that configures the training times:
+
+            ``slices`` : np.ndarray, shape (n_clfs,)
+                Array of time slices (in indices) used for each classifier.
+                If not given, computed from 'start', 'stop', 'length', 'step'.
+            ``times`` : np.ndarray, shape (n_clfs,)
+                The training times (in seconds).
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
+    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+        The estimators for each time point and each fold.
+    y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+        Class labels for samples in X.
+    y_true_ : list | np.ndarray, shape (n_samples,)
+        The categories used for scoring y_pred_.
+    scorer_ : object
+        scikit-learn Scorer instance.
+    scores_ : list of float, shape (n_times)
+        The scores (mean accuracy of self.predict(X) wrt. y.).
 
     Notes
     -----
-    The function implements the method used in:
-
-        Jean-Remi King, Alexandre Gramfort, Aaron Schurger, Lionel Naccache
-        and Stanislas Dehaene, "Two distinct dynamic modes subtend the
-        detection of unexpected sounds", PLOS ONE, 2013
-
-    .. versionadded:: 0.9.0
-
-    Returns
-    -------
+    The function is equivalent to the diagonal of GeneralizationAcrossTime()
     """
 
     def predict(self, X, test_times='diagonal', **kwargs):
