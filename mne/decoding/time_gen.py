@@ -648,7 +648,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         The single-trial predictions estimated by self.predict() at each
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else
-        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+        np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
     y_true_ : list | ndarray, shape (n_samples,)
         The categories used for scoring y_pred_.
     scorer_ : object
@@ -657,7 +657,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         The scores estimated by self.scorer_ at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
-        else, np.shape(scores) = [n_train_time, n_test_time].
+        else, np.shape(scores) = (n_train_time, n_test_time).
 
 
     Notes
@@ -750,7 +750,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             The single-trial predictions at each training time and each testing
             time. Note that the number of testing times per training time need
             not be regular;
-            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+            else, np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
         """
         return super(GeneralizationAcrossTime, self).predict(epochs)
 
@@ -782,7 +782,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             The scores estimated by ``scorer_`` at each training time and each
             testing time (e.g. mean accuracy of ``predict(X)``). Note that the
             number of testing times per training time need not be regular;
-            else, np.shape(scores) = [n_train_time, n_test_time].
+            else, np.shape(scores) = (n_train_time, n_test_time).
         """
         return super(GeneralizationAcrossTime, self).score(epochs=epochs, y=y)
 
@@ -802,7 +802,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         vmax : float | None
             Max color value for scores. If None, sets to max(gat.scores_).
         tlim : ndarray, (train_min, test_max) | None
-            The temporal boundaries.
+            The time limits used for plotting.
         ax : object | None
             Plot pointer. If None, generate new figure.
         cmap : str | cmap object
