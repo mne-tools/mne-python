@@ -30,7 +30,7 @@ class _DecodingTime(dict):
         seconds). Defaults to one time sample.
     'length' : float
         Duration of each classifier (in seconds). Defaults to one time sample.
-    If None, empty dict. Defaults to None."""
+    If None, empty dict. """
 
     def __repr__(self):
         s = ""
@@ -68,9 +68,9 @@ class GeneralizationAcrossTime(object):
 
     Parameters
     ----------
-    picks : array-like of int | None, optional
-        Channels to be included. If None only good data channels are used.
-        Defaults to None.
+    picks : array-like of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
@@ -99,7 +99,7 @@ class GeneralizationAcrossTime(object):
                 Duration of each classifier (in seconds).
                 Defaults to one time sample.
 
-        If None, empty dict. Defaults to None.
+        If None, empty dict.
     test_times : 'diagonal' | dict | None, optional
         Configures the testing times.
         If set to 'diagonal', predictions are made at the time at which
@@ -111,7 +111,7 @@ class GeneralizationAcrossTime(object):
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
 
-        If None, empty dict. Defaults to None.
+        If None, empty dict.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -126,14 +126,13 @@ class GeneralizationAcrossTime(object):
         Default: 'cross-validation'
     scorer : object | None
         scikit-learn Scorer instance. If None, set to accuracy_score.
-        Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
     Attributes
     ----------
-    picks_ : array-like of int
-        Channels to be included.
+    picks_ : array-like of int | None
+        The channels indices to include.
     ch_names : list, shape (n_channels,)
         Names of the channels used for training.
     y_train_ : list | np.ndarray, shape (n_samples,)
@@ -256,7 +255,6 @@ class GeneralizationAcrossTime(object):
             The epochs.
         y : list or np.ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
-            Defaults to None.
 
         Returns
         -------
@@ -411,7 +409,6 @@ class GeneralizationAcrossTime(object):
             True values to be compared with the predictions ``y_pred_``
             generated with ``predict()`` via ``scorer_``.
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
-            Defaults to None.
 
         Returns
         -------
@@ -484,17 +481,15 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         title : str | None
-            Figure title. Defaults to None.
+            Figure title.
         vmin : float | None
             Min color value for scores. If None, sets to min(gat.scores_).
-            Defaults to None.
         vmax : float | None
             Max color value for scores. If None, sets to max(gat.scores_).
-            Defaults to None.
         tlim : np.ndarray, (train_min, test_max) | None
-            The temporal boundaries. Defaults to None.
+            The temporal boundaries.
         ax : object | None
-            Plot pointer. If None, generate new figure. Defaults to None.
+            Plot pointer. If None, generate new figure.
         cmap : str | cmap object
             The color map to be used. Defaults to 'RdBu_r'.
         show : bool
@@ -527,18 +522,17 @@ class GeneralizationAcrossTime(object):
         Parameters
         ----------
         title : str | None
-            Figure title. Defaults to None.
+            Figure title.
         xmin : float | None, optional
-            Min time value. Defaults to None.
+            Min time value.
         xmax : float | None, optional
-            Max time value. Defaults to None.
+            Max time value.
         ymin : float | None, optional
-            Min score value. If None, sets to min(scores). Defaults to None.
+            Min score value. If None, sets to min(scores).
         ymax : float | None, optional
-            Max score value. If None, sets to max(scores). Defaults to None.
+            Max score value. If None, sets to max(scores).
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
-            Defaults to None.
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str
@@ -579,18 +573,17 @@ class GeneralizationAcrossTime(object):
         train_time : float | list or array of float
             Plots scores of the classifier trained at train_time.
         title : str | None
-            Figure title. Defaults to None.
+            Figure title.
         xmin : float | None, optional
-            Min time value. Defaults to None.
+            Min time value.
         xmax : float | None, optional
-            Max time value. Defaults to None.
+            Max time value.
         ymin : float | None, optional
-            Min score value. If None, sets to min(scores). Defaults to None.
+            Min score value. If None, sets to min(scores).
         ymax : float | None, optional
-            Max score value. If None, sets to max(scores). Defaults to None.
+            Max score value. If None, sets to max(scores).
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
-            Defaults to None.
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str or list of str
@@ -603,7 +596,7 @@ class GeneralizationAcrossTime(object):
             If True, a legend is displayed. Defaults to True.
         chance : bool | float.
             Plot chance level. If True, chance level is estimated from the type
-            of scorer. Defaults to None.
+            of scorer.
         label : str
             Score label used in the legend. Defaults to 'Classif. score'.
 
@@ -710,10 +703,9 @@ def _check_epochs_input(epochs, y, picks=None):
             The epochs.
     y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
         To-be-fitted model. If y is None, y == epochs.events.
-        Defaults to None.
     picks : array-like of int | None
-        Channels to be included. If None only good data channels are used.
-        Defaults to None.
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
 
     Returns
     -------
@@ -721,8 +713,9 @@ def _check_epochs_input(epochs, y, picks=None):
         To-be-fitted data.
     y : np.ndarray, shape (n_epochs,)
         To-be-fitted model.
-    picks : np.ndarray, shape (n_selected_chans,)
-        The channels to be used.
+    picks : array-like of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
     """
     if y is None:
         y = epochs.events[:, 2]
@@ -932,14 +925,14 @@ def _time_gen_one_fold(clf, X, y, train, test, scoring):
 
 
 class TimeDecoding(GeneralizationAcrossTime):
-    """Train and test a classifier at each time point to obtain a score across
-    time.
+    """Train and test a series of classifiers at each time point to obtain a
+    score across time.
 
     Parameters
     ----------
-    picks : array-like of int | None, optional
-        Channels to be included. If None only good data channels are used.
-        Defaults to None.
+    picks : array-like of int | None
+        The channels indices to include. If None the data
+        channels in info, except bad channels, are used.
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
@@ -967,8 +960,7 @@ class TimeDecoding(GeneralizationAcrossTime):
             ``length`` : float
                 Duration of each classifier (in seconds). By default, equals
                 one time sample.
-
-        If None, empty dict. Defaults to None.
+        If None, empty dict.
     predict_mode : {'cross-validation', 'mean-prediction'}
         Indicates how predictions are achieved with regards to the cross-
         validation procedure:
@@ -982,14 +974,13 @@ class TimeDecoding(GeneralizationAcrossTime):
         Default: 'cross-validation'
     scorer : object | None
         scikit-learn Scorer instance. If None, set to accuracy_score.
-        Defaults to None.
     n_jobs : int
         Number of jobs to run in parallel. Defaults to 1.
 
     Attributes
     ----------
-    picks_ : array-like of int
-        Channels to be included.
+    picks_ : array-like of int | None
+        The channels indices to include.
     ch_names : list, shape (n_channels,)
         Names of the channels used for training.
     y_train_ : np.ndarray, shape (n_samples,)
@@ -1067,7 +1058,6 @@ class TimeDecoding(GeneralizationAcrossTime):
             The epochs.
         y : list or np.ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
-            Defaults to None.
 
         Returns
         -------
@@ -1140,7 +1130,6 @@ class TimeDecoding(GeneralizationAcrossTime):
             True values to be compared with the predictions ``y_pred_``
             generated with ``predict()`` via ``scorer_``.
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
-            Defaults to None.
 
         Returns
         -------
@@ -1175,10 +1164,10 @@ class TimeDecoding(GeneralizationAcrossTime):
         Parameters
         ----------
         title : str | None
-            Figure title. Defaults to None.
-        xmin : float | None, optional, defaults to None.
+            Figure title.
+        xmin : float | None, optional,
             Min time value.
-        xmax : float | None, optional, defaults to None.
+        xmax : float | None, optional,
             Max time value.
         ymin : float
             Min score value. Defaults to 0.
@@ -1186,7 +1175,6 @@ class TimeDecoding(GeneralizationAcrossTime):
             Max score value. Defaults to 1.
         ax : object | None
             Instance of mataplotlib.axes.Axis. If None, generate new figure.
-            Defaults to None.
         show : bool
             If True, the figure will be shown. Defaults to True.
         color : str
