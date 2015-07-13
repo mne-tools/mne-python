@@ -3,6 +3,11 @@
 Getting Started
 ===============
 
+.. XXX do a Getting for both C and Python
+
+* `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
+
+
 This page will help you get started with mne-python. If you are at the
 Martinos Center, please see this section :ref:`inside_martinos`. If you
 would like to use a custom installation of python (or have specific
@@ -42,7 +47,7 @@ the development version by:
     pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
 
 If you plan to contribute to the project, please follow the git instructions: 
-:ref:`using-git`
+:ref:`contributing`
 
 Checking your installation
 --------------------------

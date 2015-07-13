@@ -24,5 +24,3 @@ Manual
    manual/AppInstall
    manual/AppReleaseNotes
    manual/AppEULA
-   command_line_tutorial
-

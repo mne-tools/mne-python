@@ -1,6 +1,12 @@
-========
-MNE Home
-========
+MNE: MEG & EEG data analysis package
+====================================
+
+.. raw:: html
+
+   <div class="container-fluid">
+   <div class="row">
+   <div class="col-md-8">
+   <br>
 
 MNE is a software package for processing magnetoencephalography
 (MEG) and electroencephalography (EEG) data. 
@@ -36,22 +42,57 @@ NSF awards 0958669 and 1042134.
 The Matlab and Python components of MNE are provided under the
 simplified BSD license.
 
+.. raw:: html
 
-
-
-  * `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
-  * Read the :ref:`manual`.
-  * Get started with :ref:`mne_python`
-  * :ref:`command_line_tutorial`
-  * Join the MNE `mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
-  * `Help/Feature Request/Bug Report <mailto:mne_support@nmr.mgh.harvard.edu>`_
-  * :ref:`ch_reading`
+   </div>
+   <div class="col-md-4">
+   <h2>Documentation</h2>
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
+   getting_started.rst
+   tutorials
+   examples
    manual
-   mne-python
+   faq.rst
+   whats_new.rst
+   python_reference.rst
+   advanced_setup.rst
    mne-cpp
    cite
+   :ref:`ch_reading`
 
+.. raw:: html
+
+   <h2>Community</h2>
+
+* Join the MNE `mailing list <http://mail.nmr.mgh.harvard.edu/mailman/listinfo/mne_analysis>`_
+* `Help/Feature Request/Bug Report <mailto:mne_support@nmr.mgh.harvard.edu>`_
+* :ref:`contributing`
+
+.. raw:: html
+
+   <h2>Versions</h2>
+
+   <ul>
+      <li><a href=http://martinos.org/mne/stable>Stable</a></li>
+      <li><a href=http://martinos.org/mne/dev>Development</a></li>
+   </ul>
+
+.. raw:: html
+
+   </div>
+   </div>
+   </div>
+
+.. raw:: html
+
+    <div>
+    <div style="width: 40%; float: left; padding: 20px;">
+        <a class="twitter-timeline" href="https://twitter.com/mne_python" data-widget-id="317730454184804352">Tweets by @mne_python</a>
+    </div>
+    <div style="width: 40%; float: left; padding: 20px;">
+        <script type="text/javascript" src="http://www.ohloh.net/p/586838/widgets/project_basic_stats.js"></script>
+    </div>
+    </div>
