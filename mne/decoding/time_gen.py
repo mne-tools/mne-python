@@ -544,23 +544,6 @@ def _predict(X, estimators):
     return y_pred
 
 
-def _time_gen_one_fold(clf, X, y, train, test, scoring):
-    """Aux function of time_generalization"""
-    from sklearn.metrics import SCORERS
-    n_times = X.shape[2]
-    scores = np.zeros((n_times, n_times))
-    scorer = SCORERS[scoring]
-
-    for t_train in range(n_times):
-        X_train = X[train, :, t_train]
-        clf.fit(X_train, y[train])
-        for t_test in range(n_times):
-            X_test = X[test, :, t_test]
-            scores[t_test, t_train] += scorer(clf, X_test, y[test])
-
-    return scores
-
-
 class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     """Generalize across time and conditions
 
