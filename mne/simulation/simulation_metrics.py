@@ -1,3 +1,7 @@
+# Authors: Yousra Bekhti
+#          Mark Wronkiewicz <wronk.mark@gmail.com>
+#
+# License: BSD (3-clause)
 
 import numpy as np
 
@@ -34,12 +38,27 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     score = _calc_metric(stc1.data, stc2.data, metric)
 
 def _calc_metric(data1, data2, metric):
-    """Calculate metric of choice"""
+    """Helper to calculate metric of choice.
+
+    Parameters
+    ----------
+    data1 : ndarray, shape(n_sources, ntimes)
+        Second data matrix
+    data2 : ndarray, shape(n_sources, ntimes)
+        Second data matrix
+    metric : str
+        Metric to calculate. 'rms', 'corr',
+
+    Returns
+    -------
+    score : float
+        Calculated metric
+    """
 
     # Calculate root mean square difference between two matrices
     if metric == 'rms':
         return np.mean((stc1.data - stc2.data) ** 2)
 
     # Calculate correlation coefficient between matrix elements
-    elif metric == 'avg_corrcoef':
-        return np.mean(np.corrcoeff(stc1.data, stc2.data))
+    elif metric == 'corr':
+        return np.correlate(stc1.data.flatten(), stc2.data.flatten())
