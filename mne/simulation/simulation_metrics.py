@@ -13,4 +13,4 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
     _check_stc(stc1, stc2)
 
     if metric == 'rms':
-        return np.sum((stc1.data - stc2.data) ** 2)
+        return np.mean((stc1.data - stc2.data) ** 2)
