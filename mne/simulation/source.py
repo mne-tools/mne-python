@@ -7,7 +7,7 @@
 import numpy as np
 
 from ..source_estimate import SourceEstimate
-from ..utils import check_random_state
+from ..utils import check_random_state, deprecated
 from ..externals.six.moves import zip
 
 
@@ -47,6 +47,8 @@ def select_source_in_label(src, label, random_state=None):
     return lh_vertno, rh_vertno
 
 
+@deprecated('"generate_sparse_stc" is deprecated and will be removed in'
+            'MNE-0.11. Please use simulate_sparse_stc instead')
 def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     """Generate sparse sources time courses from waveforms and labels
 
@@ -73,7 +75,6 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     stc : SourceEstimate
         The generated source time courses.
     """
-    # XXX should be deprecated after fixing simulate_sparse_stc
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
 
