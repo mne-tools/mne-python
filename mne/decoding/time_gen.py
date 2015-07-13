@@ -1025,7 +1025,6 @@ class TimeDecoding(GeneralizationAcrossTime):
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
         delattr(self, 'test_times')
-        return self
 
     def __repr__(self):
         s = ''
@@ -1052,22 +1051,20 @@ class TimeDecoding(GeneralizationAcrossTime):
         return "<TimeDecoding | %s>" % s
 
     def fit(self, epochs, y=None):
-        self.test_times = 'diagonal'
         super(TimeDecoding, self).fit(epochs, y=y)
-        # squeeze testing times
-        self.estimators_ = [clf[0] for clf in self.estimators_]
         self.times_ = self.train_times_
         delattr(self, 'train_times_')
         return self
 
     def predict(self, epochs):
         # unsqueeze across testing times for compatibility with GAT
-        self.estimators_ = [[clf] for clf in self.estimators_]
-        self.y_pred_ = super(TimeDecoding, self).predict(epochs)
+        self.test_times = 'diagonal'
+        self.train_times_ = self.times_
+        super(TimeDecoding, self).predict(epochs)
         # squeeze testing times
         self.y_pred_ = [y[0] for y in self.y_pred_]
-        self.estimators_ = [clf[0] for clf in self.estimators_]
         delattr(self, 'test_times_')
+        delattr(self, 'train_times_')
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
@@ -1078,9 +1075,11 @@ class TimeDecoding(GeneralizationAcrossTime):
                 raise RuntimeError('Please predict() epochs first or pass '
                                    'epochs to score()')
         # unsqueeze across testing times for compatibility with GAT
+        self.test_times_ = dict(slices=[[s] for s in self.times_['slices']])
         self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
-        self.scores_ = super(TimeDecoding, self).score(epochs=None, y=y)
+        super(TimeDecoding, self).score(epochs=None, y=y)
         self.scores_ = [score[0] for score in self.scores_]
+        delattr(self, 'test_times_')
         return self.scores_
 
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
@@ -1123,12 +1122,21 @@ class TimeDecoding(GeneralizationAcrossTime):
         fig : instance of matplotlib.figure.Figure
             The figure.
         """
-        super(TimeDecoding, self).plot_diagonal(title=title, xmin=xmin,
-                                                xmax=xmax, ymin=ymin,
-                                                ymax=ymax, ax=ax, show=show,
-                                                color=color, xlabel=xlabel,
-                                                ylabel=ylabel, legend=legend,
-                                                chance=chance, label=label)
+        # XXX JRK: This is pretty ugly, we'd need to re organize the classes
+        # in heritances.
+        self.train_times_ = self.times_
+        self.test_times_ = _DecodingTime()
+        self.test_times_['slices'] = [[s] for s in self.train_times_['slices']]
+        self.test_times_['times'] = [[s] for s in self.train_times_['times']]
+        self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
+        fig = super(TimeDecoding, self).plot_diagonal(
+            title=title, xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, ax=ax,
+            show=show, color=color, xlabel=xlabel, ylabel=ylabel,
+            legend=legend, chance=chance, label=label)
+        delattr(self, 'train_times_')
+        delattr(self, 'test_times_')
+        self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
+        return fig
 
     def plot_times():
         # XXX JRK: This is pretty ugly, we'd need to re organize the classes

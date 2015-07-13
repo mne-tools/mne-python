@@ -54,7 +54,7 @@ data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
 
 ###############################################################################
 # Setup decoding: default is linear SVC
-tg = TimeDecoding(predict_mode='cross-validation', n_jobs=-1)
+tg = TimeDecoding(predict_mode='cross-validation', n_jobs=1)
 # Fit
 tg.fit(epochs)
 # Compute accuracy
