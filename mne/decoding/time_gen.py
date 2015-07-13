@@ -1017,6 +1017,14 @@ class TimeDecoding(GeneralizationAcrossTime):
     The function is equivalent to the diagonal of GeneralizationAcrossTime()
     """
 
+    def __init__(self, picks=None, cv=5, clf=None, times=None,
+                 predict_mode='cross-validation', scorer=None, n_jobs=1):
+        super(TimeDecoding, self).__init__(picks=picks, cv=cv, clf=None,
+                                           train_times=times,
+                                           test_times='diagonal',
+                                           predict_mode=predict_mode,
+                                           scorer=scorer, n_jobs=n_jobs)
+
     def predict(self, X, test_times='diagonal', **kwargs):
         """ Test each classifier at each time point.
 
