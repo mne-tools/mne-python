@@ -1,8 +1,8 @@
-.. _using-git:
+.. _contributing:
 
 
-Contributing to *mne-python* source code
-========================================
+Contributing to MNE project
+===========================
 
 We are open to all types of contributions, from bugfixes to functionality
 enhancements. mne-python_ is meant to be maintained by a community of labs,

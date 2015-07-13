@@ -47,7 +47,7 @@ the development version by:
     pip install -e git+https://github.com/mne-tools/mne-python#egg=mne-dev
 
 If you plan to contribute to the project, please follow the git instructions: 
-:ref:`using-git`
+:ref:`contributing`
 
 Checking your installation
 --------------------------
