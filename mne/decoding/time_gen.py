@@ -1057,10 +1057,18 @@ class TimeDecoding(GeneralizationAcrossTime):
         # squeeze testing times
         self.estimators_ = [clf[0] for clf in self.estimators_]
         self.times_ = self.train_times_
-        delattr(self, 'test_times_')
         delattr(self, 'train_times_')
         return self
 
+    def predict(self, epochs):
+        # unsqueeze testing time
+        self.estimators_ = [[clf] for clf in self.estimators_]
+        self.y_pred_ = super(TimeDecoding, self).predict(epochs)
+        # squeeze testing times
+        self.y_pred_ = [y[0] for y in self.y_pred_]
+        self.estimators_ = [clf[0] for clf in self.estimators_]
+        delattr(self, 'test_times_')
+        return self.y_pred_
 
     def plot(self, **kwargs):
         """Plotting function of GeneralizationAcrossTime object
