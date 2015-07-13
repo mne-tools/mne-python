@@ -1061,7 +1061,7 @@ class TimeDecoding(GeneralizationAcrossTime):
         return self
 
     def predict(self, epochs):
-        # unsqueeze testing time
+        # unsqueeze across testing times for compatibility with GAT
         self.estimators_ = [[clf] for clf in self.estimators_]
         self.y_pred_ = super(TimeDecoding, self).predict(epochs)
         # squeeze testing times
@@ -1069,6 +1069,19 @@ class TimeDecoding(GeneralizationAcrossTime):
         self.estimators_ = [clf[0] for clf in self.estimators_]
         delattr(self, 'test_times_')
         return self.y_pred_
+
+    def score(self, epochs=None, y=None):
+        if epochs is not None:
+            self.predict(epochs)
+        else:
+            if not hasattr(self, 'y_pred_'):
+                raise RuntimeError('Please predict() epochs first or pass '
+                                   'epochs to score()')
+        # unsqueeze across testing times for compatibility with GAT
+        self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
+        self.scores_ = super(TimeDecoding, self).score(epochs=None, y=y)
+        self.scores_ = [score[0] for score in self.scores_]
+        return self.scores_
 
     def plot(self, **kwargs):
         """Plotting function of GeneralizationAcrossTime object
