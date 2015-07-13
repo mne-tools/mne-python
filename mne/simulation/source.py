@@ -73,6 +73,7 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
     stc : SourceEstimate
         The generated source time courses.
     """
+    # XXX should be deprecated after fixing simulate_sparse_stc
     if len(labels) != len(stc_data):
         raise ValueError('labels and stc_data must have the same length')
 
@@ -107,6 +108,70 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
 
     data = np.concatenate(data)
 
+    stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
+
+    return stc
+
+
+def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
+                        labels=None, random_state=None):
+    """
+    XXX
+
+    Returns
+    -------
+    stc : SourceEstimate
+       The generated source time courses.
+    """
+    rng = check_random_state(random_state)
+
+    data = np.zeros((n_dipoles, len(times)))
+    for i_dip in range(n_dipoles):
+        rnd = rng.randint(5)  # XXX
+        data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd, np.pi * rnd,
+                                              len(times)))
+
+    if labels is None:
+        n_dipoles_lh = n_dipoles // 2
+        n_dipoles_rh = n_dipoles - n_dipoles_lh
+
+        vertno_lh = rng.randint(len(src[0]['vertno']), size=n_dipoles_lh)
+        vertno_rh = rng.randint(len(src[1]['vertno']), size=n_dipoles_rh)
+        vertno = [src[0]['vertno'][[vertno_lh]], src[1]['vertno'][[vertno_rh]]]
+
+        lh_data = list(data[:n_dipoles_lh])
+        rh_data = list(data[n_dipoles_lh:])
+    else:
+        vertno = [[], []]
+        lh_data = list()
+        rh_data = list()
+        for i, label in enumerate(labels):
+            lh_vertno, rh_vertno = select_source_in_label(src, label, rng)
+            vertno[0] += lh_vertno
+            vertno[1] += rh_vertno
+            if len(lh_vertno) != 0:
+                lh_data.append(np.atleast_2d(data[i]))
+            elif len(rh_vertno) != 0:
+                rh_data.append(np.atleast_2d(data[i]))
+            else:
+                raise ValueError('No vertno found.')
+        vertno = [np.array(v) for v in vertno]
+
+    # the data is in the order left, right
+    data = list()
+    if len(vertno[0]) != 0:
+        idx = np.argsort(vertno[0])
+        vertno[0] = vertno[0][idx]
+        data.append(lh_data[idx])
+
+    if len(vertno[1]) != 0:
+        idx = np.argsort(vertno[1])
+        vertno[1] = vertno[1][idx]
+        data.append(rh_data[idx])
+
+    data = np.array(data) if labels is None else np.array(np.concatenate(data))
+
+    tmin, tstep = times[0], np.diff(times)[0]
     stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
 
     return stc
