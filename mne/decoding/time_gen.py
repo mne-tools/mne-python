@@ -16,7 +16,7 @@ from ..parallel import parallel_func, check_n_jobs
 class _DecodingTime(dict):
     """A dictionary to configure the training times that has the following keys:
 
-    'slices' : np.ndarray, shape (n_clfs,)
+    'slices' : ndarray, shape (n_clfs,)
         Array of time slices (in indices) used for each classifier.
         If not given, computed from 'start', 'stop', 'length', 'step'.
     'start' : float
@@ -262,7 +262,7 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
 
     Parameters
     ----------
-    X : np.ndarray, shape (n_epochs, n_features, n_times)
+    X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-fitted data.
     estimators : arraylike, shape (n_times, n_folds)
         Array of Sklearn classifiers fitted in cross-validation.
@@ -338,7 +338,7 @@ def _check_epochs_input(epochs, y, picks=None):
     ----------
     epochs : instance of Epochs
             The epochs.
-    y : np.ndarray shape (n_epochs) | list shape (n_epochs) | None
+    y : ndarray shape (n_epochs) | list shape (n_epochs) | None
         To-be-fitted model. If y is None, y == epochs.events.
     picks : array-like of int | None
         The channels indices to include. If None the data
@@ -346,9 +346,9 @@ def _check_epochs_input(epochs, y, picks=None):
 
     Returns
     -------
-    X : np.ndarray, shape (n_epochs, n_selected_chans, n_times)
+    X : ndarray, shape (n_epochs, n_selected_chans, n_times)
         To-be-fitted data.
-    y : np.ndarray, shape (n_epochs,)
+    y : ndarray, shape (n_epochs,)
         To-be-fitted model.
     picks : array-like of int | None
         The channels indices to include. If None the data
@@ -387,7 +387,7 @@ def _fit_slices(clf, x_chunk, y, slices, cv):
     ----------
     clf : scikit-learn classifier
         The classifier object.
-    x_chunk : np.ndarray, shape (n_epochs, n_features, n_times)
+    x_chunk : ndarray, shape (n_epochs, n_features, n_times)
         To-be-fitted data.
     y : list | array, shape (n_epochs,)
         To-be-fitted model.
@@ -438,7 +438,7 @@ def _sliding_window(times, window_params):
 
     Parameters
     ----------
-    times : np.ndarray, shape (n_times,)
+    times : ndarray, shape (n_times,)
         Array of times from MNE epochs.
     window_params : dict keys: ('start', 'stop', 'step', 'length')
         Either train or test times. See GAT documentation.
@@ -503,13 +503,13 @@ def _predict(X, estimators):
 
     Parameters
     ----------
-    estimators : np.ndarray, shape (n_folds,) | shape (1,)
+    estimators : ndarray, shape (n_folds,) | shape (1,)
         Array of scikit-learn classifiers to predict data.
-    X : np.ndarray, shape (n_epochs, n_features, n_times)
+    X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-predicted data
     Returns
     -------
-    y_pred : np.ndarray, shape (n_epochs, m_prediction_dimensions)
+    y_pred : ndarray, shape (n_epochs, m_prediction_dimensions)
         Classifier's prediction for each trial.
     """
     from scipy import stats
@@ -568,7 +568,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     train_times : dict | None
         A dictionary to configure the training times:
 
-            ``slices`` : np.ndarray, shape (n_clfs,)
+            ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             ``start`` : float
@@ -592,7 +592,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         If set to None, predictions are made at all time points.
         If set to dict, the dict should contain ``slices`` or be contructed in
         a similar way to train_times
-            ``slices`` : np.ndarray, shape (n_clfs,)
+            ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
 
@@ -620,23 +620,23 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         The channels indices to include.
     ch_names : list, shape (n_channels,)
         Names of the channels used for training.
-    y_train_ : list | np.ndarray, shape (n_samples,)
+    y_train_ : list | ndarray, shape (n_samples,)
         The categories used for training.
     train_times_ : dict
         A dictionary that configures the training times:
 
-            ``slices`` : np.ndarray, shape (n_clfs,)
+            ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``times`` : np.ndarray, shape (n_clfs,)
+            ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
 
     test_times_ : dict
         A dictionary that configures the testing times for each training time:
 
-            ``slices`` : np.ndarray, shape (n_clfs, n_testing_times)
+            ``slices`` : ndarray, shape (n_clfs, n_testing_times)
                 Array of time slices (in indices) used for each classifier.
-            ``times`` : np.ndarray, shape (n_clfs, n_testing_times)
+            ``times`` : ndarray, shape (n_clfs, n_testing_times)
                 The testing times (in seconds) for each training time.
 
     cv_ : CrossValidation object
@@ -649,7 +649,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else
         np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
-    y_true_ : list | np.ndarray, shape (n_samples,)
+    y_true_ : list | ndarray, shape (n_samples,)
         The categories used for scoring y_pred_.
     scorer_ : object
         scikit-learn Scorer instance.
@@ -669,8 +669,6 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         detection of unexpected sounds", PLoS ONE, 2014
         DOI: 10.1371/journal.pone.0085791
 
-
-    .. versionadded:: 0.9.0
     """
     def __init__(self, picks=None, cv=5, clf=None, train_times=None,
                  test_times=None, predict_mode='cross-validation', scorer=None,
@@ -714,7 +712,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : list or np.ndarray of int, shape (n_samples,) or None, optional
+        y : list or ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
 
         Returns
@@ -772,7 +770,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             The epochs. Can be similar to fitted epochs or not.
             If None, it needs to rely on the predictions ``y_pred_``
             generated with ``predict()``.
-        y : list | np.ndarray, shape (n_epochs,) | None, optional
+        y : list | ndarray, shape (n_epochs,) | None, optional
             True values to be compared with the predictions ``y_pred_``
             generated with ``predict()`` via ``scorer_``.
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
@@ -802,7 +800,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             Min color value for scores. If None, sets to min(gat.scores_).
         vmax : float | None
             Max color value for scores. If None, sets to max(gat.scores_).
-        tlim : np.ndarray, (train_min, test_max) | None
+        tlim : ndarray, (train_min, test_max) | None
             The temporal boundaries.
         ax : object | None
             Plot pointer. If None, generate new figure.
@@ -955,7 +953,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     times : dict | None
         A dictionary to configure the training times:
 
-            ``slices`` : np.ndarray, shape (n_clfs,)
+            ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
             ``start`` : float
@@ -993,23 +991,23 @@ class TimeDecoding(_GeneralizationAcrossTime):
         The channels indices to include.
     ch_names : list, shape (n_channels,)
         Names of the channels used for training.
-    y_train_ : np.ndarray, shape (n_samples,)
+    y_train_ : ndarray, shape (n_samples,)
         The categories used for training.
     times_ : dict
         A dictionary that configures the training times:
 
-            ``slices`` : np.ndarray, shape (n_clfs,)
+            ``slices`` : ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
-            ``times`` : np.ndarray, shape (n_clfs,)
+            ``times`` : ndarray, shape (n_clfs,)
                 The training times (in seconds).
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
     estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
-    y_pred_ : np.ndarray, shape (n_times, n_epochs, n_prediction_dims)
+    y_pred_ : ndarray, shape (n_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
-    y_true_ : list | np.ndarray, shape (n_samples,)
+    y_true_ : list | ndarray, shape (n_samples,)
         The categories used for scoring y_pred_.
     scorer_ : object
         scikit-learn Scorer instance.
@@ -1064,7 +1062,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         ----------
         epochs : instance of Epochs
             The epochs.
-        y : list or np.ndarray of int, shape (n_samples,) or None, optional
+        y : list or ndarray of int, shape (n_samples,) or None, optional
             To-be-fitted model values. If None, y = epochs.events[:, 2].
 
         Returns
@@ -1125,7 +1123,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
             The epochs. Can be similar to fitted epochs or not.
             If None, it needs to rely on the predictions ``y_pred_``
             generated with ``predict()``.
-        y : list | np.ndarray, shape (n_epochs,) | None, optional
+        y : list | ndarray, shape (n_epochs,) | None, optional
             True values to be compared with the predictions ``y_pred_``
             generated with ``predict()`` via ``scorer_``.
             If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
