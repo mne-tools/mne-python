@@ -732,6 +732,8 @@ class Report(object):
     Notes
     -----
     To hide/show all sections in the html report, press 'h'
+
+    .. versionadded:: 0.8.0
     """
 
     def __init__(self, info_fname=None, subjects_dir=None,
