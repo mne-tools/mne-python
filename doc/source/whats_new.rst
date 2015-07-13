@@ -23,6 +23,10 @@ Changelog
 
     - Add support to hide/show all sections with a single keypress ('h') in :class:`mne.report.Report` by `Mainak Jas`_
 
+    - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
+
+    - Add support for BEM solution computation :func:`mne.make_bem_solution` by `Eric Larson`_
+
 BUG
 ~~~
 
