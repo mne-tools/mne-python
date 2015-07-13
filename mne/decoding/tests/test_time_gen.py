@@ -13,7 +13,7 @@ from numpy.testing import assert_array_equal
 
 from mne import io, Epochs, read_events, pick_types
 from mne.utils import requires_sklearn, slow_test
-from mne.decoding import GeneralizationAcrossTime
+from mne.decoding import GeneralizationAcrossTime, TimeDecoding
 
 
 data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
@@ -25,15 +25,7 @@ event_id = dict(aud_l=1, vis_l=3)
 event_id_gen = dict(aud_l=2, vis_l=4)
 
 
-@slow_test
-@requires_sklearn
-def test_generalization_across_time():
-    """Test time generalization decoding
-    """
-    from sklearn.svm import SVC
-    from sklearn.preprocessing import LabelEncoder
-    from sklearn.metrics import mean_squared_error
-
+def make_epochs():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg='mag', stim=False, ecg=False,
@@ -45,6 +37,20 @@ def test_generalization_across_time():
     with warnings.catch_warnings(record=True):
         epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                         baseline=(None, 0), preload=True, decim=decim)
+    return epochs
+
+
+@slow_test
+@requires_sklearn
+def test_generalization_across_time():
+    """Test time generalization decoding
+    """
+    from sklearn.svm import SVC
+    from sklearn.preprocessing import LabelEncoder
+    from sklearn.metrics import mean_squared_error
+
+    epochs = make_epochs()
+
     # Test default running
     gat = GeneralizationAcrossTime(picks='foo')
     assert_equal("<GAT | no fit, no prediction, no score>", "%s" % gat)
@@ -223,3 +229,22 @@ def test_generalization_across_time():
                                                    scorer=scorer)
                     gat.fit(epochs, y=y_)
                     gat.score(epochs, y=y_)
+
+
+def test_DecodingTime():
+    epochs = make_epochs()
+    tg = TimeDecoding()
+    assert_true(hasattr(tg, 'times'))
+    assert_true(not hasattr(tg, 'train_times'))
+    assert_true(not hasattr(tg, 'test_times'))
+    tg.fit(epochs)
+    assert_true(not hasattr(tg, 'train_times_'))
+    assert_true(not hasattr(tg, 'test_times_'))
+    assert_raises(RuntimeError, tg.score, epochs=None)
+    tg.predict(epochs)
+    assert_array_equal(np.shape(tg.y_pred_), [15, 14, 1])
+    tg.score(epochs)
+    tg.score()
+    assert_array_equal(np.shape(tg.scores_), [15])
+    assert_raises(RuntimeError, tg.plot_times)
+    assert_raises(RuntimeError, tg.plot_diagonal)

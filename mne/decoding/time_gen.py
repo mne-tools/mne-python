@@ -1024,7 +1024,9 @@ class TimeDecoding(GeneralizationAcrossTime):
                                            test_times='diagonal',
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
+        self.times = self.train_times
         delattr(self, 'test_times')
+        delattr(self, 'train_times')
 
     def __repr__(self):
         s = ''
@@ -1051,9 +1053,11 @@ class TimeDecoding(GeneralizationAcrossTime):
         return "<TimeDecoding | %s>" % s
 
     def fit(self, epochs, y=None):
+        self.train_times = self.times
         super(TimeDecoding, self).fit(epochs, y=y)
         self.times_ = self.train_times_
         delattr(self, 'train_times_')
+        delattr(self, 'train_times')
         return self
 
     def predict(self, epochs):
@@ -1078,6 +1082,7 @@ class TimeDecoding(GeneralizationAcrossTime):
         self.test_times_ = dict(slices=[[s] for s in self.times_['slices']])
         self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
         super(TimeDecoding, self).score(epochs=None, y=y)
+        self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         self.scores_ = [score[0] for score in self.scores_]
         delattr(self, 'test_times_')
         return self.scores_
@@ -1138,12 +1143,12 @@ class TimeDecoding(GeneralizationAcrossTime):
         self.y_pred_ = [y_pred[0] for y_pred in self.y_pred_]
         return fig
 
-    def plot_times():
+    def plot_times(self):
         # XXX JRK: This is pretty ugly, we'd need to re organize the classes
         # in heritances.
         raise RuntimeError('plot_times() isn\'t adequate for TimeDecoding')
 
-    def plot_diagonal():
+    def plot_diagonal(self):
         # XXX JRK: This is pretty ugly, we'd need to re organize the classes
         # in heritances.
         raise RuntimeError('plot_diagonal() isn\'t adequate for TimeDecoding')
