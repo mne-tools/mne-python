@@ -937,6 +937,9 @@ class TimeDecoding(GeneralizationAcrossTime):
 
     Parameters
     ----------
+    picks : array-like of int | None, optional
+        Channels to be included. If None only good data channels are used.
+        Defaults to None.
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
@@ -1053,6 +1056,32 @@ class TimeDecoding(GeneralizationAcrossTime):
         return "<TimeDecoding | %s>" % s
 
     def fit(self, epochs, y=None):
+        """ Train a classifier on each specified time slice.
+
+        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
+        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs.
+        y : list or np.ndarray of int, shape (n_samples,) or None, optional
+            To-be-fitted model values. If None, y = epochs.events[:, 2].
+            Defaults to None.
+
+        Returns
+        -------
+        self : object
+            Returns self.
+
+        Notes
+        ------
+        If X and y are not C-ordered and contiguous arrays of np.float64 and
+        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
+
+        If X is a dense array, then the other methods will not support sparse
+        matrices as input.
+        """
         self.train_times = self.times
         super(TimeDecoding, self).fit(epochs, y=y)
         self.times_ = self.train_times_
@@ -1061,17 +1090,64 @@ class TimeDecoding(GeneralizationAcrossTime):
         return self
 
     def predict(self, epochs):
+        """ Test each classifier on each specified testing time slice.
+
+        Note. This function sets the ``y_pred_`` and ``test_times_``
+        attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+
+        Returns
+        -------
+        y_pred : list of lists of arrays of floats,
+                 shape (n_times, n_epochs, n_prediction_dims)
+            The single-trial predictions at each time sample.
+        """
+
         # unsqueeze across testing times for compatibility with GAT
         self.test_times = 'diagonal'
         self.train_times_ = self.times_
         super(TimeDecoding, self).predict(epochs)
         # squeeze testing times
         self.y_pred_ = [y[0] for y in self.y_pred_]
+        delattr(self, 'test_times')
         delattr(self, 'test_times_')
         delattr(self, 'train_times_')
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
+        """Score Epochs
+
+        Estimate scores across trials by comparing the prediction estimated for
+        each trial to its true value.
+
+        Calls ``predict()`` if it has not been already.
+
+        Note. The function updates the ``scorer_``, ``scores_``, and
+        ``y_true_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs | None, optional
+            The epochs. Can be similar to fitted epochs or not.
+            If None, it needs to rely on the predictions ``y_pred_``
+            generated with ``predict()``.
+        y : list | np.ndarray, shape (n_epochs,) | None, optional
+            True values to be compared with the predictions ``y_pred_``
+            generated with ``predict()`` via ``scorer_``.
+            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
+            Defaults to None.
+
+        Returns
+        -------
+        scores : list of float, shape (n_times)
+            The scores estimated by ``scorer_`` at each time sample (e.g. mean
+            accuracy of ``predict(X)``).
+        """
         if epochs is not None:
             self.predict(epochs)
         else:
@@ -1121,6 +1197,11 @@ class TimeDecoding(GeneralizationAcrossTime):
             If True, the ylabel is displayed. Defaults to True.
         legend : bool
             If True, a legend is displayed. Defaults to True.
+        chance : bool | float. Defaults to None
+            Plot chance level. If True, chance level is estimated from the type
+            of scorer.
+        label : str
+            Score label used in the legend. Defaults to 'Classif. score'.
 
         Returns
         -------
