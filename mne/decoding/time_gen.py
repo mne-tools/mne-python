@@ -1024,6 +1024,8 @@ class TimeDecoding(GeneralizationAcrossTime):
                                            test_times='diagonal',
                                            predict_mode=predict_mode,
                                            scorer=scorer, n_jobs=n_jobs)
+        delattr(self, 'test_times')
+        return self
 
     def __repr__(self):
         s = ''
@@ -1048,6 +1050,13 @@ class TimeDecoding(GeneralizationAcrossTime):
             s += "no score"
 
         return "<TimeDecoding | %s>" % s
+
+    def fit(self, epochs, y=None):
+        self.test_times = 'diagonal'
+        super(TimeDecoding, self).fit(epochs, y=y)
+        # squeeze testing times
+        self.estimators_ = [clf[0] for clf in self.estimators_]
+        return self
 
     def predict(self, X, test_times='diagonal', **kwargs):
         """ Test each classifier at each time point.
