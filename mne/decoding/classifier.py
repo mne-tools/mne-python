@@ -473,3 +473,4 @@ def compute_patterns(epochs, linear_model):
                                          len(epochs.times))
     evoked.data = patterns
     return evoked
+
