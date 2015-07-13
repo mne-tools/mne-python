@@ -70,7 +70,7 @@ def simulate_evoked():
 
     # Generate noisy evoked data
     iir_filter = [1, -0.9]
-    evoked = generate_evoked(fwd, stc, evoked_template.info, cov, snr,
+    evoked = generate_evoked(fwd, stc, evoked_template, cov, snr,
                              tmin=0.0, tmax=0.2, iir_filter=iir_filter)
 
     return evoked, stc
