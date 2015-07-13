@@ -453,3 +453,23 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
+
+
+def compute_patterns(epochs, linear_model):
+    from sklearn.preprocessing import StandardScaler
+    labels = epochs.events[:, -1]
+    evoked = epochs.average()
+    # concatenate channel x time data
+    X = epochs.get_data().reshape(len(epochs), -1)
+    # normalize the data
+    sc = StandardScaler()
+    X = sc.fit_transform(X)
+    # fit the linear model
+    linear_model.fit(X, labels)
+    # predict the train data
+    y_pred = linear_model.predict(X)
+    # computes the patterns and reshape it
+    patterns = np.dot(y_pred, X).reshape(len(epochs.ch_names), 
+                                         len(epochs.times))
+    evoked.data = patterns
+    return evoked
