@@ -29,7 +29,8 @@ def source_estimate_quantification(stc1, stc2, metric='rms'):
 
     Returns
     -------
-
+    score : float
+        Calculated metric
     """
 
     # TODO Add checks for source space
@@ -47,7 +48,7 @@ def _calc_metric(data1, data2, metric):
     data2 : ndarray, shape(n_sources, ntimes)
         Second data matrix
     metric : str
-        Metric to calculate. 'rms', 'corr',
+        Metric to calculate. 'rms', 'rms_normed', 'corr',
 
     Returns
     -------
@@ -57,7 +58,13 @@ def _calc_metric(data1, data2, metric):
 
     # Calculate root mean square difference between two matrices
     if metric == 'rms':
-        return np.mean((stc1.data - stc2.data) ** 2)
+        return np.sqrt(np.mean((data1 - data2) ** 2))
+
+    # Calculate root mean square difference between two normalized matrices
+    if metric == 'rms_normed':
+        data1 = data1 / np.max(data1)
+        data2 = data2 / np.max(data2)
+        return np.sqrt(np.mean((data1 - data2) ** 2))
 
     # Calculate correlation coefficient between matrix elements
     elif metric == 'corr':
