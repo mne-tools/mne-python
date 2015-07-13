@@ -269,7 +269,6 @@ class PSDEstimator(TransformerMixin):
 
         _, n_freqs = psd.shape
         psd = psd.reshape(n_epochs, n_channels, n_freqs)
-
         return psd
 
 
@@ -453,3 +452,5 @@ class FilterEstimator(TransformerMixin):
                                      picks=self.picks, n_jobs=self.n_jobs,
                                      copy=False, verbose=False)
         return epochs_data
+
+    

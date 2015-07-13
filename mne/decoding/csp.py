@@ -1,4 +1,4 @@
-# Authors: Romain Trachel <romain.trachel@inria.fr>
+# Authors: Romain Trachel <trachelr@gmail.com>
 #          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 #
 # License: BSD (3-clause)
@@ -8,7 +8,6 @@ from scipy import linalg
 from distutils.version import LooseVersion
 
 from .mixin import TransformerMixin
-
 
 class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
@@ -215,3 +214,4 @@ class CSP(TransformerMixin):
             X -= self.mean_
             X /= self.std_
         return X
+    
