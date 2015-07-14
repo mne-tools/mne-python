@@ -7,7 +7,7 @@
 import numpy as np
 
 from ..source_estimate import SourceEstimate
-from ..utils import check_random_state, deprecated
+from ..utils import check_random_state, deprecated, logger
 from ..externals.six.moves import zip
 
 
@@ -116,21 +116,39 @@ def generate_sparse_stc(src, labels, stc_data, tmin, tstep, random_state=None):
 
 def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
                         labels=None, random_state=None):
-    """
-    XXX
+    """Generate sparse (n_dipoles) sources time courses from data_fun
+
+    This function randomly selects n_dipoles vertices in the whole cortex
+    or one single vertex in each label if labels isnot None. It uses data_fun
+    to generate waveforms for each vertex.
+
+    Parameters
+    ----------
+    src : list of dict
+        The source space.
+    n_dipoles : int
+        Number of dipoles to simulate.
+    times : array
+        Time array
+    data_fun :  function
+        Function to generate the waveforms. The default is `np.sin`
+    labels : None | list of Labels
+        The labels. The default is None, otherwise its size must be n_dipoles.
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state.
 
     Returns
     -------
     stc : SourceEstimate
-       The generated source time courses.
+        The generated source time courses.
     """
     rng = check_random_state(random_state)
 
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
-        rnd = rng.randint(5)  # XXX
+        rnd = rng.randint(n_dipoles) / 2.  # XXX
         data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd, np.pi * rnd,
-                                              len(times)))
+                                              len(times)))  # XXX
 
     if labels is None:
         n_dipoles_lh = n_dipoles // 2
@@ -143,6 +161,10 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
         lh_data = list(data[:n_dipoles_lh])
         rh_data = list(data[n_dipoles_lh:])
     else:
+        if n_dipoles != len(labels):
+            logger.warning('The number of labels is different from the number '
+                           'of dipoles. %s dipoles will be generated.'
+                           % len(labels))
         vertno = [[], []]
         lh_data = list()
         rh_data = list()
@@ -157,20 +179,21 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
             else:
                 raise ValueError('No vertno found.')
         vertno = [np.array(v) for v in vertno]
+        lh_data, rh_data = [np.concatenate(dd) for dd in [lh_data, rh_data]]
 
     # the data is in the order left, right
     data = list()
     if len(vertno[0]) != 0:
         idx = np.argsort(vertno[0])
         vertno[0] = vertno[0][idx]
-        data.append(lh_data[idx])
+        data.append(np.array(lh_data)[idx])
 
     if len(vertno[1]) != 0:
         idx = np.argsort(vertno[1])
         vertno[1] = vertno[1][idx]
-        data.append(rh_data[idx])
+        data.append(np.array(rh_data)[idx])
 
-    data = np.array(data) if labels is None else np.array(np.concatenate(data))
+    data = np.array(np.concatenate(data))
 
     tmin, tstep = times[0], np.diff(times)[0]
     stc = SourceEstimate(data, vertices=vertno, tmin=tmin, tstep=tstep)
@@ -178,6 +201,8 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     return stc
 
 
+@deprecated('"generate_stc" is deprecated and will be removed in'
+            'MNE-0.11. Please use simulate_sparse_stc instead')
 def generate_stc(src, labels, stc_data, tmin, tstep, value_fun=None):
     """Generate sources time courses from waveforms and labels
 
