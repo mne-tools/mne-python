@@ -46,9 +46,11 @@ SECTION_ORDER = ['raw', 'events', 'epochs', 'evoked', 'covariance', 'trans',
 # PLOTTING FUNCTIONS
 
 
-def _scene_to_fig(fig, mayavi):
+def _scene_to_fig(fig):
     from scipy.misc import imread
     import matplotlib.pyplot as plt
+    from mayavi import mlab  # noqa, mlab imported
+    import mayavi
 
     tempdir = _TempDir()
     temp_fname = op.join(tempdir, 'test')
@@ -844,7 +846,7 @@ class Report(object):
             img_klass = self._sectionvars[section]
 
             if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                fig = _scene_to_fig(fig, mayavi)
+                fig = _scene_to_fig(fig)
             img = _fig_to_img(fig=fig, scale=scale,
                               image_format=image_format)
             html = image_template.substitute(img=img, id=global_id,
@@ -1099,7 +1101,7 @@ class Report(object):
                               '`mayavi.core.scene.Scene` figure instances'
                               ' will throw an error.')
             if mayavi is not None and isinstance(fig, mayavi.core.scene.Scene):
-                fig = _scene_to_fig(fig, mayavi)
+                fig = _scene_to_fig(fig)
             img = _fig_to_img(fig=fig, scale=scale, image_format=image_format)
             slice_id = '%s-%s-%s' % (name, global_id, sl[ii])
             first = True if ii == 0 else False
