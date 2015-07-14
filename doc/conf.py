@@ -265,9 +265,11 @@ trim_doctests_flags = True
 intersphinx_mapping = {'http://docs.python.org/': None}
 
 sphinxgallery_conf = {
+    'examples_dir'   : ['../examples', '../tutorials'],
+    'gallery_dir'    : ['auto_examples', 'auto_tutorials'],
     'doc_module': ('sphinxgallery', 'numpy'),
     'reference_url': {
-        'sphinxgallery': None,
+        'mne': None,
         'matplotlib': 'http://matplotlib.org',
         'numpy': 'http://docs.scipy.org/doc/numpy-1.9.1',
         'scipy': 'http://docs.scipy.org/doc/scipy-0.11.0/reference',
