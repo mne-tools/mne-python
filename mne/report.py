@@ -415,7 +415,7 @@ header_template = Template(u"""
 
         var toggle_state = false;
         $(document).on('keydown', function (event) {
-            if (event.which == 72){
+            if (event.which == 84){
                 if (!toggle_state)
                     $('.has_toggle').trigger('click');
                 else if (toggle_state)
@@ -731,7 +731,7 @@ class Report(object):
 
     Notes
     -----
-    To hide/show all sections in the html report, press 'h'
+    To toggle the show/hide state of all sections in the html report, press 't'
 
     .. versionadded:: 0.8.0
     """
