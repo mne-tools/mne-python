@@ -5,18 +5,18 @@
 
 import numpy as np
 
-class LinearClassifier():
+class LinearRegressor():
     """
-    This object clones a Linear Classifier from sklearn
+    This object clones a Linear Model from sklearn
     and updates the attribute for each fit. The model coefficient
     can be interpreted using the attribute patterns [1].
 
     Parameters
     ----------
-    clf : object | None
-        A linear classifier from sklearn with a fit method 
+    reg : object | None
+        A linear regressor from sklearn with a fit method 
         that updates a coef_ attribute.
-        If None the classifier will be a LogisticRegression
+        If None the classifier will be a LinearRegressor
 
     Attributes
     ----------
@@ -28,15 +28,15 @@ class LinearClassifier():
     References
     ----------
     """
-    def __init__(self, clf=None):
-        if clf is None:
-            from sklearn.linear_model import LogisticRegression
-            clf = LogisticRegression()
+    def __init__(self, reg):
+        if reg is None:
+            from sklearn.linear_model import LinearRegression
+            reg = LinearRegression()
         
-        self.clf = clf
+        self.reg = reg
     
     def fit(self, X, y):
-        """Estimate the coeffiscient of the linear classifier.
+        """Estimate the coeffiscient of the linear regressor.
         Save the coeffiscient in the attribute filters_ and 
         computes the attribute patterns_ using [1].
 
@@ -44,12 +44,12 @@ class LinearClassifier():
         ----------
         X : array, shape=(n_epochs, n_features)
             The data to estimate the coeffiscient.
-        y : array, shape=(n_epochs)
-            The class for each epoch.
+        y : array, shape=(n_epochs, n_target)
+            The target for each epoch.
 
         Returns
         -------
-        self : instance of LinearClassifier
+        self : instance of LinearRegressor
             Returns the modified instance.
         
         References
@@ -58,37 +58,38 @@ class LinearClassifier():
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)."
                              % type(X))
+        
+        if not isinstance(y, np.ndarray):
+            raise ValueError("y should be of type ndarray (got %s)."
+                             % type(y))
+        
         # check for features dimension
         X = np.atleast_2d(X)
         if len(X.shape) != 2:
             raise ValueError("X dimension should be 2 (n_epochs x n_features)"
                              " instead of ", X.shape)
-        # check for number of classes
-        classes = np.unique(y)
-        if len(classes) < 2:
-            raise ValueError("Need at least two different classes in the data.")
-        
-        # fit the classifier
-        self.clf.fit(X, y)
+        # fit the regressor
+        self.reg.fit(X, y)
         # computes the patterns
-        if hasattr(self.clf, 'coef_'):
-            self.patterns_ = np.dot(X.T, np.dot(X, self.clf.coef_.T))
-            self.filters_ = self.clf.coef_
+        if hasattr(self.reg, 'coef_'):
+            self.patterns_ = np.dot(X.T, np.dot(X, self.reg.coef_.T))
+            self.filters_ = self.reg.coef_
         
         return self
     
     
     def predict(self, X):
-        """Predict class labels for each trial in X.
+        """Predict target variable for each trial in X.
         
         Parameters
         ----------
         X : array, shape=(n_epochs, n_features)
-            The features of each trial to predict class label.
+            The features for each epochs.
+        
         Returns
         -------
-        y_pred : array, shape=(n_epochs)
-            Predicted class label per epoch.
+        C : array, shape=(n_epochs, n_target)
+            Predicted target variables per epochs.
         """
         if not isinstance(X, np.ndarray):
             raise ValueError("X should be of type ndarray (got %s)."
