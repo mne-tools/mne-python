@@ -7,9 +7,9 @@ import warnings
 from scipy.signal import resample as sp_resample
 
 from mne.filter import (band_pass_filter, high_pass_filter, low_pass_filter,
-                        band_stop_filter, resample, construct_iir_filter,
-                        notch_filter, detrend, _overlap_add_filter,
-                        _smart_pad)
+                        band_stop_filter, resample, _resample_stim_channels,
+                        construct_iir_filter, notch_filter, detrend,
+                        _overlap_add_filter, _smart_pad)
 
 from mne import set_log_file
 from mne.utils import _TempDir, sum_squared, run_tests_if_main, slow_test
@@ -154,6 +154,52 @@ def test_resample():
     x_3 = x.swapaxes(0, 2)
     x_3_rs = resample(x_3, 1, 2, 10, 0)
     assert_array_equal(x_3_rs.swapaxes(0, 2), x_rs)
+
+
+def test_resample_stim_channel():
+    """Test resampling of stim channels"""
+
+    # Normal resampling without any issues
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 2),
+        [[1, 0, 2, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 0, 0, 0, 2, 0, 0, 0], 1, 1.5),
+        [[1, 0, 2, 0, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 1, 1, 2, 2, 2], 1, 3), [[1, 2]])
+    assert_array_equal(
+        _resample_stim_channels([0, 0, 1, 1, 1, 2], 1, 2), [[0, 1, 2]])
+    assert_array_equal(
+        _resample_stim_channels([0, 0, 0, 0, 0, 0], 1, 3), [[0, 0]])
+    assert_array_equal(
+        _resample_stim_channels([1, 1, 1, 1, 1, 2], 1, 3), [[1, 2]])
+    assert_array_equal(
+        _resample_stim_channels([0, 0, 1, 1, 1, 2], 1, 2), [[0, 1, 2]])
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 2, 2], 1, 2, max_delay=1), [[1, 2]])
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3, 3, 3, 3], 1, 2, max_delay=1),
+        [[1, 2, 3]])
+
+    # Resampling with overlap that causes too much delay
+    assert_raises(RuntimeError, _resample_stim_channels,
+                  [1, 2, 3, 4, 0, 0, 0, 0], 1, 2, max_delay=1)
+
+    # Resampling with overlap that causes boundary issues
+    assert_raises(RuntimeError, _resample_stim_channels,
+                  [1, 2, 3, 4, 0, 0, 0, 0], 1, 4, max_delay=1)
+    assert_raises(RuntimeError, _resample_stim_channels,
+                  [1, 2, 3, 0], 1, 2, max_delay=2)
+    assert_raises(RuntimeError, _resample_stim_channels, [1, 2, 3, 4], 1, 2)
+    assert_raises(RuntimeError, _resample_stim_channels, [0, 0, 3, 4], 1, 2)
+    assert_raises(RuntimeError, _resample_stim_channels, [1, 2, 0, 0], 1, 2)
+
+    # Upsampling
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2, 1), [[1, 1, 2, 2, 3, 3]])
+    assert_array_equal(
+        _resample_stim_channels([1, 2, 3], 2.5, 1), [[1, 1, 2, 2, 2, 3, 3]])
 
 
 @slow_test

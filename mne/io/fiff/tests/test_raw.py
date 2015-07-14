@@ -19,10 +19,10 @@ from nose.tools import assert_true, assert_raises, assert_not_equal
 
 from mne.datasets import testing
 from mne.io.constants import FIFF
-from mne.io import Raw, concatenate_raws, read_raw_fif
+from mne.io import Raw, RawArray, concatenate_raws, read_raw_fif
 from mne.io.tests.test_raw import _test_concat
 from mne import (concatenate_events, find_events, equalize_channels,
-                 compute_proj_raw, pick_types, pick_channels)
+                 compute_proj_raw, pick_types, pick_channels, create_info)
 from mne.utils import (_TempDir, requires_pandas, slow_test,
                        requires_mne, run_subprocess, run_tests_if_main)
 from mne.externals.six.moves import zip, cPickle as pickle
@@ -820,6 +820,50 @@ def test_resample():
     assert_equal(raw1.first_samp, raw3.first_samp)
     assert_equal(raw1.last_samp, raw3.last_samp)
     assert_equal(raw1.info['sfreq'], raw3.info['sfreq'])
+
+    # test resampling of stim channel
+
+    # basic decimation
+    stim = [1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    assert_allclose(raw.resample(8)._data,
+                    [[1, 1, 0, 0, 1, 1, 0, 0]])
+
+    # decimation of multiple stim channels
+    raw = RawArray(2*[stim], create_info(2, len(stim), 2*['stim']))
+    assert_allclose(raw.resample(8)._data,
+                    [[1, 1, 0, 0, 1, 1, 0, 0],
+                     [1, 1, 0, 0, 1, 1, 0, 0]])
+
+    # decimation that could potentially drop events if the decimation is
+    # done naively
+    stim = [0, 0, 0, 1, 1, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    assert_allclose(raw.resample(4)._data,
+                    [[0, 1, 1, 0]])
+
+    # two events are merged in this case (warning)
+    stim = [0, 0, 1, 1, 1, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw.resample(8)
+        assert_true(len(w) == 1)
+
+    # events are dropped in this case (warning)
+    stim = [0, 1, 1, 0, 0, 1, 1, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        raw.resample(4)
+        assert_true(len(w) == 1)
+
+    # test resampling events: this should no longer give a warning
+    stim = [0, 1, 1, 0, 0, 1, 1, 0]
+    raw = RawArray([stim], create_info(1, len(stim), ['stim']))
+    events = find_events(raw)
+    raw, events = raw.resample(4, events=events)
+    assert_equal(events, np.array([[0, 0, 1], [2, 0, 1]]))
 
 
 @testing.requires_testing_data

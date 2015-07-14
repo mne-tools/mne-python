@@ -30,7 +30,8 @@ from .write import (start_file, end_file, start_block, end_block,
                     write_id, write_string, _get_split_size)
 
 from ..filter import (low_pass_filter, high_pass_filter, band_pass_filter,
-                      notch_filter, band_stop_filter, resample)
+                      notch_filter, band_stop_filter, resample,
+                      _resample_stim_channels)
 from ..fixes import in1d
 from ..parallel import parallel_func
 from ..utils import (_check_fname, _check_pandas_installed,
@@ -40,7 +41,7 @@ from ..utils import (_check_fname, _check_pandas_installed,
 from ..viz import plot_raw, plot_raw_psd
 from ..defaults import _handle_default
 from ..externals.six import string_types
-from ..event import concatenate_events
+from ..event import find_events, concatenate_events
 
 
 class ToDataFrameMixin(object):
@@ -926,8 +927,8 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                                   picks=picks, n_jobs=n_jobs, copy=False)
 
     @verbose
-    def resample(self, sfreq, npad=100, window='boxcar',
-                 stim_picks=None, n_jobs=1, verbose=None):
+    def resample(self, sfreq, npad=100, window='boxcar', stim_picks=None,
+                 n_jobs=1, events=None, copy=False, verbose=None):
         """Resample data channels.
 
         Resamples all channels. The data of the Raw object is modified inplace.
@@ -938,9 +939,10 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                      speed up computations (e.g., projection calculation) when
                      precise timing of events is not required, as downsampling
                      raw data effectively jitters trigger timings. It is
-                     generally recommended not to epoch downsampled data,
-                     but instead epoch and then downsample, as epoching
-                     downsampled data jitters triggers. See here for an
+                     generally recommended to find events using the original
+                     data and jointly resample the raw and events using the
+                     'events' parameter. Alternatively, resampling can be
+                     performed on the epochs instead. See here for an
                      example:
 
                          https://gist.github.com/Eric89GXL/01642cb3789992fbca59
@@ -962,9 +964,20 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_jobs : int | str
             Number of jobs to run in parallel. Can be 'cuda' if scikits.cuda
             is installed properly and CUDA is initialized.
+        events : 2D array, shape (n_events, 3) | None
+            An optional event matrix. When specified, the onsets of the events
+            are resampled jointly with the data.
+        copy : bool
+            Whether to operate on a copy of the data (True) or modify data
+            in-place (False). Defaults to False.
         verbose : bool, str, int, or None
             If not None, override default verbose level (see mne.verbose).
             Defaults to self.verbose.
+
+        Returns
+        -------
+        raw : instance of Raw
+            The resampled version of the raw object.
 
         Notes
         -----
@@ -973,45 +986,72 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         """
         if not self.preload:
             raise RuntimeError('Can only resample preloaded data')
-        sfreq = float(sfreq)
-        o_sfreq = float(self.info['sfreq'])
 
-        offsets = np.concatenate(([0], np.cumsum(self._raw_lengths)))
+        inst = self.copy() if copy else self
+
+        if events is None:
+            # No event object supplied. Perform some basic detection of
+            # dropped events anyway
+            original_events = find_events(inst)
+
+        sfreq = float(sfreq)
+        o_sfreq = float(inst.info['sfreq'])
+
+        offsets = np.concatenate(([0], np.cumsum(inst._raw_lengths)))
         new_data = list()
+
+        ratio = sfreq / o_sfreq
+
         # set up stim channel processing
         if stim_picks is None:
-            stim_picks = pick_types(self.info, meg=False, ref_meg=False,
+            stim_picks = pick_types(inst.info, meg=False, ref_meg=False,
                                     stim=True, exclude=[])
         stim_picks = np.asanyarray(stim_picks)
-        ratio = sfreq / o_sfreq
-        for ri in range(len(self._raw_lengths)):
-            data_chunk = self._data[:, offsets[ri]:offsets[ri + 1]]
+
+        for ri in range(len(inst._raw_lengths)):
+            data_chunk = inst._data[:, offsets[ri]:offsets[ri + 1]]
             new_data.append(resample(data_chunk, sfreq, o_sfreq, npad,
                                      n_jobs=n_jobs))
             new_ntimes = new_data[ri].shape[1]
 
-            # Now deal with the stim channels. In empirical testing, it was
-            # faster to resample all channels (above) and then replace the
-            # stim channels than it was to only resample the proper subset
-            # of channels and then use np.insert() to restore the stims
+            # In empirical testing, it was faster to resample all channels
+            # (above) and then replace the stim channels than it was to only
+            # resample the proper subset of channels and then use np.insert()
+            # to restore the stims.
+            stim_resampled = _resample_stim_channels(
+                data_chunk[stim_picks], new_data[ri].shape[1],
+                data_chunk.shape[1])
+            new_data[ri][stim_picks] = stim_resampled
 
-            # figure out which points in old data to subsample
-            # protect against out-of-bounds, which can happen (having
-            # one sample more than expected) due to padding
-            stim_inds = np.minimum(np.floor(np.arange(new_ntimes) /
-                                            ratio).astype(int),
-                                   data_chunk.shape[1] - 1)
-            for sp in stim_picks:
-                new_data[ri][sp] = data_chunk[[sp]][:, stim_inds]
+            inst._first_samps[ri] = int(inst._first_samps[ri] * ratio)
+            inst._last_samps[ri] = inst._first_samps[ri] + new_ntimes - 1
+            inst._raw_lengths[ri] = new_ntimes
 
-            self._first_samps[ri] = int(self._first_samps[ri] * ratio)
-            self._last_samps[ri] = self._first_samps[ri] + new_ntimes - 1
-            self._raw_lengths[ri] = new_ntimes
+        inst._data = np.concatenate(new_data, axis=1)
+        inst.info['sfreq'] = sfreq
+        inst._update_times()
 
-        # adjust affected variables
-        self._data = np.concatenate(new_data, axis=1)
-        self.info['sfreq'] = sfreq
-        self._update_times()
+        if events is None:
+            # Did we loose events?
+            resampled_events = find_events(inst)
+            if len(resampled_events) != len(original_events):
+                warnings.warn(
+                    'Resampling of the stim channels caused event '
+                    'information to become unreliable. Consider finding '
+                    'events on the original data and passing the event '
+                    'matrix as a parameter.'
+                )
+
+            return inst
+        else:
+            if copy:
+                events = events.copy()
+
+            events[:, 0] = np.minimum(
+                np.round(events[:, 0] * ratio).astype(int),
+                inst._data.shape[1]
+            )
+            return inst, events
 
     def crop(self, tmin=0.0, tmax=None, copy=True):
         """Crop raw data file.
@@ -1180,7 +1220,6 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # set the correct compensation grade and make inverse compensator
         inv_comp = None
         if self.comp is not None:
-            print(self.comp)
             inv_comp = linalg.inv(self.comp)
             set_current_comp(info, self._orig_comp_grade)
 
@@ -1668,7 +1707,7 @@ class _BaseRaw(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         events = np.asarray(events)
         if events.ndim != 2 or events.shape[1] != 3:
             raise ValueError('events must be shape (n_events, 3)')
-        stim_channel = _get_stim_channel(stim_channel)
+        stim_channel = _get_stim_channel(stim_channel, self.info)
         pick = pick_channels(self.ch_names, stim_channel)
         if len(pick) == 0:
             raise ValueError('Channel %s not found' % stim_channel)
