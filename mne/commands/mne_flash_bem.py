@@ -29,7 +29,7 @@ from mne.utils import (logger, get_subjects_dir, run_subprocess)
 
 
 def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
-                   show=False):
+                   unwarp=False, show=False):
     """
     Create 3-Layers BEM model from Flash MRI images
 
@@ -153,6 +153,10 @@ def run():
                       action="store_true", default=False,
                       help=("Assume that the images have already been "
                             "converted"))
+    parser.add_option("-u", "--unwarp", dest="unwarp",
+                      action="store_true", default=False,
+                      help=("Run grad_unwarp with -unwarp <type> option on "
+                            "each of the converted data sets"))
     parser.add_option("-v", "--view", dest="show", action="store_true",
                       help="Show BEM model in 3D for visual inspection",
                       default=False)
@@ -172,10 +176,12 @@ def run():
     flash05 = options.flash05
     flash30 = options.flash30
     noconvert = options.noconvert
+    unwarp = options.unwarp
     show = options.show
 
     make_flash_bem(subject=subject, subjects_dir=subjects_dir, flash05=flash05,
-                   flash30=flash30, noconvert=noconvert, show=show)
+                   flash30=flash30, noconvert=noconvert, unwarp=unwarp,
+                   show=show)
 
 is_main = (__name__ == '__main__')
 if is_main:
