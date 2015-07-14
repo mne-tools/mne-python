@@ -121,7 +121,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
 
 class Xdawn():
 
-    u"""Implementation of the Xdawn Algorithm.
+    """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
     to signal + Noise ratio (SSNR) of the ERP responses. Xdawn was originaly
@@ -153,7 +153,7 @@ class Xdawn():
     References
     ----------
     [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
-    algorithm to enhance evoked potentials: application to brain–computer
+    algorithm to enhance evoked potentials: application to brain-computer
     interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
 
     [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
