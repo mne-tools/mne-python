@@ -677,33 +677,26 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          baseline, vmin, vmax, dB)
 
         tmin, tmax = times[0], times[-1]
-
-        if axes is None:
-            for idx in range(len(data)):
-                fig = plt.figure()
-                _imshow_tfr(plt, 0, tmin, tmax, vmin, vmax, ylim=None,
-                            tfr=data[idx: idx + 1], freq=freqs,
-                            x_label='Time (ms)', y_label='Frequency (Hz)',
-                            colorbar=colorbar, picker=False, cmap=cmap,
-                            title=title)
-        else:
-            if isinstance(axes, plt.Axes):
-                axes = [axes]
-            if len(axes) != len(picks):
-                raise RuntimeError('There must be an axes for each picked ' +
-                                   'channel.')
+        if isinstance(axes, plt.Axes):
+            axes = [axes]
+        if isinstance(axes, list) and len(axes) != len(picks):
+            raise RuntimeError('There must be an axes for each picked ' +
+                               'channel.')
             if colorbar:
                 logger.warning('Cannot draw colorbar for user defined axes.')
-            for idx in range(len(data)):
-                fig = axes[idx].get_figure()
-                _imshow_tfr(axes[idx], 0, tmin, tmax, vmin, vmax, ylim=None,
-                            tfr=data[idx: idx + 1], freq=freqs,
-                            x_label='Time (ms)', y_label='Frequency (Hz)',
-                            colorbar=False, picker=False, cmap=cmap,
-                            title=title)
-            fig = axes[0].get_figure()
+        for idx in range(len(data)):
+            if axes is None:
+                fig = plt.figure()
+                ax = fig.add_subplot(111)
+            else:
+                ax = axes[idx]
+                fig = ax.get_figure()
+            _imshow_tfr(ax, 0, tmin, tmax, vmin, vmax, ylim=None,
+                        tfr=data[idx: idx + 1], freq=freqs,
+                        x_label='Time (ms)', y_label='Frequency (Hz)',
+                        colorbar=False, picker=False, cmap=cmap)
             if title:
-                plt.title(title)
+                fig.suptitle(title)
         if show:
             fig.show()
         return fig

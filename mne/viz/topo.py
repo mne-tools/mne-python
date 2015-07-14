@@ -200,10 +200,10 @@ def _imshow_tfr(ax, ch_idx, tmin, tmax, vmin, vmax, ylim=None, tfr=None,
             plt.xlabel(x_label)
         if y_label is not None:
             plt.ylabel(y_label)
-        if colorbar:
-            plt.colorbar()
-        if title:
-            plt.title(title)
+    if colorbar:
+        plt.colorbar()
+    if title:
+        plt.title(title)
 
 
 def _plot_timeseries(ax, ch_idx, tmin, tmax, vmin, vmax, ylim, data, color,
