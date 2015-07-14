@@ -67,6 +67,7 @@ evoked.plot_topomap(title='t-values for aud_l vs aud_r')
 # now start decoding using a cross validation
 from sklearn.cross_validation import ShuffleSplit, cross_val_score
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
+labels = events[:, -1]
 epochs_data = epochs.get_data().reshape(len(labels), -1)
 scores = cross_val_score(ridge, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
