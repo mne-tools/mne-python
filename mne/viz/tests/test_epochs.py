@@ -112,6 +112,8 @@ def test_plot_epochs():
     fig = epochs.plot(trellis=False)
     fig.canvas.key_press_event('left')
     fig.canvas.key_press_event('right')
+    fig.canvas.scroll_event(0.5, 0.5, -0.5)  # scroll down
+    fig.canvas.scroll_event(0.5, 0.5, 0.5)  # scroll up
     fig.canvas.key_press_event('up')
     fig.canvas.key_press_event('down')
     fig.canvas.key_press_event('pageup')
@@ -128,6 +130,8 @@ def test_plot_epochs():
     fig.canvas.resize_event()
     fig.canvas.close_event()  # closing and epoch dropping
     plt.close('all')
+    assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
+    plt.close('all')
     with warnings.catch_warnings(record=True):
         fig = epochs.plot(trellis=False)
         # test mouse clicks
@@ -138,13 +142,11 @@ def test_plot_epochs():
         _fake_click(fig, data_ax, [x, y], xform='data')  # mark a bad epoch
         _fake_click(fig, data_ax, [x, y], xform='data')  # unmark a bad epoch
         _fake_click(fig, data_ax, [0.5, 0.999])  # click elsewhere in 1st axes
+        _fake_click(fig, data_ax, [-0.1, 0.9])  # click on y-label
         _fake_click(fig, fig.get_axes()[2], [0.5, 0.5])  # change epochs
         _fake_click(fig, fig.get_axes()[3], [0.5, 0.5])  # change channels
         fig.canvas.close_event()  # closing and epoch dropping
         assert(n_epochs - 1 == len(epochs))
-        plt.close('all')
-
-        assert_raises(RuntimeError, epochs.plot, picks=[], trellis=False)
         plt.close('all')
 
 

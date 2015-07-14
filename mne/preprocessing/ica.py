@@ -1335,7 +1335,7 @@ class ICA(ContainsMixin):
                                    head_pos=head_pos)
 
     def plot_sources(self, inst, picks=None, exclude=None, start=None,
-                     stop=None, title=None, show=True):
+                     stop=None, title=None, show=True, block=False):
         """Plot estimated latent sources given the unmixing matrix.
 
         Typical usecases:
@@ -1363,15 +1363,32 @@ class ICA(ContainsMixin):
             The figure title. If None a default is provided.
         show : bool
             If True, all open plots will be shown.
+        block : bool
+            Whether to halt program execution until the figure is closed.
+            Useful for interactive selection of components in raw and epoch
+            plotter. For evoked, this parameter has no effect. Defaults to
+            False.
 
         Returns
         -------
         fig : instance of pyplot.Figure
             The figure.
+
+        Notes
+        -----
+        For raw and epoch instances, it is possible to select components for
+        exclusion by clicking on the line. The selected components are added to
+        ``ica.exclude`` on close. The independent components can be viewed as
+        topographies by clicking on the component name on the left of of the
+        main axes. The topography view tries to infer the correct electrode
+        layout from the data. This should work at least for Neuromag data.
+
+        .. versionadded:: 0.10.0
         """
 
         return plot_ica_sources(self, inst=inst, picks=picks, exclude=exclude,
-                                title=title, start=start, stop=stop, show=show)
+                                title=title, start=start, stop=stop, show=show,
+                                block=block)
 
     def plot_scores(self, scores, exclude=None, axhline=None,
                     title='ICA component scores', figsize=(12, 6),
