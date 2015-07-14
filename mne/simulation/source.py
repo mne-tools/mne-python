@@ -146,7 +146,7 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
 
     data = np.zeros((n_dipoles, len(times)))
     for i_dip in range(n_dipoles):
-        rnd = rng.randint(n_dipoles) / 2.  # XXX
+        rnd = rng.randint(n_dipoles) / 2. + .5  # XXX
         data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd, np.pi * rnd,
                                               len(times)))  # XXX
 
