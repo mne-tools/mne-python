@@ -63,6 +63,8 @@ Changelog
 
     - Add ``preload`` argument to :func:`mne.read_epochs` to enable on-demand reads from disk by `Eric Larson`_
 
+    - Add :func:`mne.preprocessing.eog_regression` function to remove the influence of EOG on the EEG signal using RAAA by `Marijn van Vliet`_
+
 BUG
 ~~~
 
