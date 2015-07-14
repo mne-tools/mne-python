@@ -22,6 +22,7 @@ import sys
 import math
 import os
 import os.path as op
+import glob
 
 import mne
 from mne.utils import (logger, get_subjects_dir, run_subprocess)
@@ -97,6 +98,15 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         cmd = ['mri_convert', '-flip_angle', (30 * math.pi / 180), '-tr 25',
                flash30, 'mef30.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
+    #
+    os.chdir(op.join(mri_dir, "flash"))
+    if unwarp:
+        files=glob.glob("mef*.mgz")
+        for infile in files:
+            outfile=infile.replace(".mgz", "u.mgz")
+            cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
+                   unwarp]
+            run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
     print("--- Running mne_flash_bem")
     os.system('mne_flash_bem --noconvert')
