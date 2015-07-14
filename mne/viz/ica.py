@@ -537,7 +537,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
         picks = range(len(orig_data))
     types = ['misc' for _ in picks]
     picks = list(sorted(picks))
-
+    data = [orig_data[pick] for pick in picks]
     c_names = ['ICA %03d' % x for x in range(len(orig_data))]
     if title is None:
         title = 'ICA components'
@@ -556,7 +556,8 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     times = raw.times[0:t_end]
     bad_color = (1., 0., 0.)
     inds = range(len(picks))
-    params = dict(raw=raw, orig_data=orig_data, data=orig_data[:, 0:t_end],
+    data = np.array(data)
+    params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end],
                   ch_start=0, t_start=start, info=info, duration=duration,
                   ica=ica, n_channels=20, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks)
@@ -612,7 +613,7 @@ def _pick_bads(event, params):
 def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    c_names = ['ICA %03d' % x for x in range(len(params['orig_data']))]
+    c_names = ['ICA %03d' % x for x in range(params['ica'].n_components_)]
     exclude = [c_names.index(x) for x in info['bads']]
     params['ica'].exclude = exclude
 
