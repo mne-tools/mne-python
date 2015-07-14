@@ -110,7 +110,7 @@ class LinearClassifier():
                       time_format='%01d ms', proj=False, show=True,
                       show_names=False, title=None, mask=None,
                       mask_params=None, outlines='head', contours=6,
-                      simage_interp='bilinear', average=None, head_pos=None):
+                      image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic patterns of the linear classifier
         Parameters
         ----------
