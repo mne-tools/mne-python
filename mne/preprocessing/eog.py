@@ -223,17 +223,17 @@ def eog_regression(raw, blink_epochs, saccade_epochs=None, reog=None,
     blink_epochs : Instance of Epochs
         Epochs cut around blink events. We recommend cutting a window from -0.5
         to 0.5 seconds relative to the onset of the blink.
-    saccade_epochs : Instance of Epochs
+    saccade_epochs : Instance of Epochs | None
         Epochs cut around saccade events. We recommend cutting a window from -1
         to 1.5 seconds relative to the onset of the saccades, and providing
         separate events for "up", "down", "left" and "right" saccades.
         By default, no saccade information is taken into account.
-    reog : str
+    reog : str | None
         The name of the rEOG channel, if present. If an rEOG channel is
         available as well as saccade data, the accuracy of the estimation of
         the weights can be improved. By default, no rEOG channel is assumed to
         be present.
-    picks : list of int
+    picks : list of int | None
         Indices of the channels in the Raw instance for which to apply the EOG
         correction procedure. By default, the correction is applied to EEG
         channels only.
