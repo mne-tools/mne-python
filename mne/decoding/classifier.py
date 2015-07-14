@@ -466,6 +466,7 @@ def compute_patterns(epochs, linear_model):
     # check the model has been fit
     if not hasattr(linear_model, 'coef_'):
         # if not, fit it
+        labels = epochs.events[:, -1]
         linear_model.fit(X, labels)
     # computes the patterns and reshape it
     patterns = np.dot(X.T, np.dot(X, linear_model.coef_.T))

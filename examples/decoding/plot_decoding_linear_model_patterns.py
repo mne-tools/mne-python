@@ -44,6 +44,8 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True)
+# get class labels
+labels = epochs.events[:, -1]
 
 import sklearn.linear_model as lm
 from mne.decoding.classifier import compute_patterns
@@ -67,7 +69,6 @@ evoked.plot_topomap(title='t-values for aud_l vs aud_r')
 # now start decoding using a cross validation
 from sklearn.cross_validation import ShuffleSplit, cross_val_score
 cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
-labels = events[:, -1]
 epochs_data = epochs.get_data().reshape(len(labels), -1)
 scores = cross_val_score(ridge, epochs_data, labels, cv=cv, n_jobs=1)
 print(scores.mean())  # should match results above
