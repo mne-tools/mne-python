@@ -82,6 +82,12 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     mri_dir = op.join(subjects_dir, subject, 'mri')
     bem_dir = op.join(subjects_dir, subject, 'bem')
 
+    logger.info('\nProcessing the flash MRI data to produce BEM meshes with '
+                'the following parameters:\n'
+                'SUBJECTS_DIR = %s\n'
+                'SUBJECT = %s\n'
+                'Result dir = %s\n' % (subjects_dir, subject,
+                                       op.join(bem_dir, 'flash')))
     # Step 1 : Data conversion to mgz format
     os.chdir(mri_dir)
     if not noconvert:
@@ -101,9 +107,10 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
     #
     os.chdir(op.join(mri_dir, "flash"))
     if unwarp:
-        files=glob.glob("mef*.mgz")
+        logger.info("--- Unwarp mgz data sets")
+        files = glob.glob("mef*.mgz")
         for infile in files:
-            outfile=infile.replace(".mgz", "u.mgz")
+            outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
                    unwarp]
             run_subprocess(cmd, env=env, stdout=sys.stdout)
