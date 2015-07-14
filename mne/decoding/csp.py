@@ -338,6 +338,7 @@ class CSP(TransformerMixin):
                                      time_format=time_format, size=size, 
                                      show_names=show_names, mask_params=mask_params, 
                                      mask=mask, outlines=outlines, contours=contours, 
-                                     image_interp=image_interp, show=False)
+                                     image_interp=image_interp, show=False, 
+                                     head_pos=head_pos)
         
 
