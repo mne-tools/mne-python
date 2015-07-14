@@ -33,6 +33,7 @@ class _DecodingTime(dict):
     If None, empty dict. """
 
     def __repr__(self):
+        """Human readable representation"""
         s = ""
         if "start" in self:
             s += "start: %0.3f (s)" % (self["start"])
@@ -618,7 +619,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     ----------
     picks_ : array-like of int | None
         The channels indices to include.
-    ch_names : list, shape (n_channels,)
+    ch_names : list, array-like, shape (n_channels,)
         Names of the channels used for training.
     y_train_ : list | ndarray, shape (n_samples,)
         The categories used for training.
@@ -680,6 +681,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             n_jobs=n_jobs)
 
     def __repr__(self):
+        """Human readable representation"""
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
@@ -950,7 +952,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
         If None the classifier will be a standard pipeline including
-        StandardScaler and a linear SVM with default parameters.
+        StandardScaler and a Logistic Regression with default parameters.
     times : dict | None
         A dictionary to configure the training times:
 
@@ -990,7 +992,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     ----------
     picks_ : array-like of int | None
         The channels indices to include.
-    ch_names : list, shape (n_channels,)
+    ch_names : list, array-like, shape (n_channels,)
         Names of the channels used for training.
     y_train_ : ndarray, shape (n_samples,)
         The categories used for training.
@@ -1032,6 +1034,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         self._clean_times()
 
     def __repr__(self):
+        """Human readable representation"""
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
