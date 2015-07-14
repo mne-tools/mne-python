@@ -1040,6 +1040,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         same length as ``times`` (unless ``times`` is None). If instance of
         Axes, ``times`` must be a float or a list of one float.
         Defaults to None.
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+       The figure.
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
