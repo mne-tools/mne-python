@@ -16,9 +16,10 @@ from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
 
+
 def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
-    """
-    Least square estimation of evoked response from data.
+    """Least square estimation of evoked response from data.
+
     return evoked data and toeplitz matrices.
     """
     nmin = int(tmin * sfreq / decim)
@@ -53,15 +54,16 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
     return evoked_data, to
 
+
 def _check_overlapp(epochs):
     """check if events are overllaped."""
     isi = np.diff(epochs.events[:, 0])
     window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
     return isi.min() < window
 
+
 def _construct_signal_from_epochs(epochs):
     """Reconstruct pseudo continuous signal from epochs."""
-
     start_ix = (np.min(epochs.events[:, 0])
                 + int(epochs.tmin * epochs.info['sfreq']))
     end_ix = (np.max(epochs.events[:, 0])
@@ -78,9 +80,9 @@ def _construct_signal_from_epochs(epochs):
 
     return data
 
+
 def least_square_evoked(epochs, return_toeplitz=False):
     """Least square estimation of evoked response from a epoch instance.
-
 
     Parameters
     ----------
@@ -116,9 +118,17 @@ def least_square_evoked(epochs, return_toeplitz=False):
 
     return evokeds
 
+
 class Xdawn():
 
-    """
+    u"""Implementation of the Xdawn Algorithm.
+
+    Xdawn is a spatial filtering method designed to improve the signal
+    to signal + Noise ratio (SSNR) of the ERP responses. Xdawn was originaly
+    designed for P300 evoked potential by enhancing the target responce with
+    respect to the non-target responce. This implementation is a generalization
+    to any type of ERP.
+
     Parameters
     ----------
     n_components : int, default 2
@@ -139,6 +149,17 @@ class Xdawn():
         type, else empty.
     evokeds_ : dict of evoked instance
         If fit, the evoked response for each event type.
+
+    References
+    ----------
+    [1] Rivet, B., Souloumiac, A., Attina, V., & Gibert, G. (2009). xDAWN
+    algorithm to enhance evoked potentials: application to brain–computer
+    interface. Biomedical Engineering, IEEE Transactions on, 56(8), 2035-2043.
+
+    [2] Rivet, B., Cecotti, H., Souloumiac, A., Maby, E., & Mattout, J. (2011,
+    August). Theoretical analysis of xDAWN algorithm: application to an
+    efficient sensor selection in a P300 BCI. In Signal Processing Conference,
+    2011 19th European (pp. 1382-1386). IEEE.
     """
 
     def __init__(self, n_components=2, reg=None):
