@@ -468,11 +468,10 @@ def compute_patterns(epochs, linear_model):
     if not hasattr(linear_model, 'coef_'):
         # if not, fit it
         linear_model.fit(X, labels)
-    # predict the train data
-    y_pred = linear_model.predict(X)
     # computes the patterns and reshape it
-    patterns = np.dot(y_pred, X).reshape(len(epochs.ch_names), 
-                                         len(epochs.times))
+    patterns = np.dot(X.T, np.dot(X, linear_model.coef_.T))
+    patterns = patterns.reshape(len(epochs.ch_names), 
+                                len(epochs.times))
     # return an Evoked object
     return EvokedArray(patterns, epochs.info, tmin=epochs.tmin)
 
