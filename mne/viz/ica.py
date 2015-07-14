@@ -555,7 +555,7 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     t_end = int(duration * raw.info['sfreq'])
     times = raw.times[0:t_end]
     bad_color = (1., 0., 0.)
-    inds = range(len(picks))
+    inds = list(range(len(picks)))
     data = np.array(data)
     n_channels = min([20, len(picks)])
     params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end],
@@ -634,7 +634,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     if title is None:
         title = 'ICA components'
     if picks is None:
-        picks = range(len(c_names))
+        picks = list(range(len(c_names)))
     if start is None:
         start = 0
     if stop is None:

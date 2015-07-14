@@ -592,7 +592,7 @@ def _plot_raw_traces(params, inds, color, bad_color, event_lines=None,
     n_channels = params['n_channels']
     params['bad_color'] = bad_color
     # do the plotting
-    tick_list = []
+    tick_list = list()
     for ii in range(n_channels):
         ch_ind = ii + params['ch_start']
         # let's be generous here and allow users to pass
