@@ -335,4 +335,4 @@ def eog_regression(raw, blink_epochs, saccade_epochs=None, reog=None,
     raw._data[picks, :] -= np.dot(weights[:, weight_ch_ind].T,
                                   raw._data[raw_eog_ind, :])
 
-    return raw, weights
+    return raw, weights[:, weight_ch_ind]
