@@ -458,7 +458,6 @@ class FilterEstimator(TransformerMixin):
 def compute_patterns(epochs, linear_model):
     from sklearn.preprocessing import StandardScaler
     from mne import EvokedArray
-    labels = epochs.events[:, -1]
     # concatenate channel x time data
     X = epochs.get_data().reshape(len(epochs), -1)
     # normalize the data
