@@ -96,7 +96,30 @@ class _GeneralizationAcrossTime(object):
         self.n_jobs = n_jobs
 
     def fit(self, epochs, y=None):
-        """ see GeneralizationAcrossTime
+        """ Train a classifier on each specified time slice.
+
+        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
+        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs.
+        y : list or ndarray of int, shape (n_samples,) or None, optional
+            To-be-fitted model values. If None, y = epochs.events[:, 2].
+
+        Returns
+        -------
+        self : GeneralizationAcrossTime
+            Returns fitted GeneralizationAcrossTime object.
+
+        Notes
+        ------
+        If X and y are not C-ordered and contiguous arrays of np.float64 and
+        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
+
+        If X is a dense array, then the other methods will not support sparse
+        matrices as input.
         """
         from sklearn.base import clone
         from sklearn.cross_validation import check_cv, StratifiedKFold
@@ -145,7 +168,25 @@ class _GeneralizationAcrossTime(object):
         return self
 
     def predict(self, epochs):
-        """ see GeneralizationAcrossTime
+        """ Test each classifier on each specified testing time slice.
+
+        Note. This function sets the ``y_pred_`` and ``test_times_``
+        attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs
+            The epochs. Can be similar to fitted epochs or not. See
+            predict_mode parameter.
+
+        Returns
+        -------
+        y_pred : list of lists of arrays of floats,
+                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+            The single-trial predictions at each training time and each testing
+            time. Note that the number of testing times per training time need
+            not be regular;
+            else, np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
         """
 
         # Check that at least one classifier has been trained
@@ -200,9 +241,35 @@ class _GeneralizationAcrossTime(object):
         return self.y_pred_
 
     def score(self, epochs=None, y=None):
-        """ see GeneralizationAcrossTime
-        """
+        """Score Epochs
 
+        Estimate scores across trials by comparing the prediction estimated for
+        each trial to its true value.
+
+        Calls ``predict()`` if it has not been already.
+
+        Note. The function updates the ``scorer_``, ``scores_``, and
+        ``y_true_`` attributes.
+
+        Parameters
+        ----------
+        epochs : instance of Epochs | None, optional
+            The epochs. Can be similar to fitted epochs or not.
+            If None, it needs to rely on the predictions ``y_pred_``
+            generated with ``predict()``.
+        y : list | ndarray, shape (n_epochs,) | None, optional
+            True values to be compared with the predictions ``y_pred_``
+            generated with ``predict()`` via ``scorer_``.
+            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
+
+        Returns
+        -------
+        scores : list of lists of float
+            The scores estimated by ``scorer_`` at each training time and each
+            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
+            number of testing times per training time need not be regular;
+            else, np.shape(scores) = (n_train_time, n_test_time).
+        """
         from sklearn.metrics import accuracy_score
 
         # Run predictions if not already done
@@ -265,8 +332,8 @@ def _predict_time_loop(X, estimators, cv, slices, predict_mode):
     ----------
     X : ndarray, shape (n_epochs, n_features, n_times)
         To-be-fitted data.
-    estimators : arraylike, shape (n_times, n_folds)
-        Array of Sklearn classifiers fitted in cross-validation.
+    estimators : array-like, shape (n_times, n_folds)
+        Array of scikit-learn classifiers fitted in cross-validation.
     slices : list
         List of slices selecting data from X from which is prediction is
         generated.
@@ -560,7 +627,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        sklearn.cross_validation module for the list of possible objects.
+        scikit-learn.cross_validation module for the list of possible objects.
         Defaults to 5.
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
@@ -642,7 +709,7 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
 
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+    estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
     y_pred_ : list of lists of arrays of floats,
               shape (n_train_times, n_test_times, n_epochs, n_prediction_dims)
@@ -704,89 +771,6 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             s += "no score"
 
         return "<GAT | %s>" % s
-
-    def fit(self, epochs, y=None):
-        """ Train a classifier on each specified time slice.
-
-        Note. This function sets the ``picks_``, ``ch_names``, ``cv_``,
-        ``y_train``, ``train_times_`` and ``estimators_`` attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs.
-        y : list or ndarray of int, shape (n_samples,) or None, optional
-            To-be-fitted model values. If None, y = epochs.events[:, 2].
-
-        Returns
-        -------
-        self : GeneralizationAcrossTime
-            Returns fitted GeneralizationAcrossTime object.
-
-        Notes
-        ------
-        If X and y are not C-ordered and contiguous arrays of np.float64 and
-        X is not a scipy.sparse.csr_matrix, X and/or y may be copied.
-
-        If X is a dense array, then the other methods will not support sparse
-        matrices as input.
-        """
-        return super(GeneralizationAcrossTime, self).fit(epochs, y=y)
-
-    def predict(self, epochs):
-        """ Test each classifier on each specified testing time slice.
-
-        Note. This function sets the ``y_pred_`` and ``test_times_``
-        attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs
-            The epochs. Can be similar to fitted epochs or not. See
-            predict_mode parameter.
-
-        Returns
-        -------
-        y_pred : list of lists of arrays of floats,
-                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
-            The single-trial predictions at each training time and each testing
-            time. Note that the number of testing times per training time need
-            not be regular;
-            else, np.shape(y_pred_) = (n_train_time, n_test_time, n_epochs).
-        """
-        return super(GeneralizationAcrossTime, self).predict(epochs)
-
-    def score(self, epochs=None, y=None):
-        """Score Epochs
-
-        Estimate scores across trials by comparing the prediction estimated for
-        each trial to its true value.
-
-        Calls ``predict()`` if it has not been already.
-
-        Note. The function updates the ``scorer_``, ``scores_``, and
-        ``y_true_`` attributes.
-
-        Parameters
-        ----------
-        epochs : instance of Epochs | None, optional
-            The epochs. Can be similar to fitted epochs or not.
-            If None, it needs to rely on the predictions ``y_pred_``
-            generated with ``predict()``.
-        y : list | ndarray, shape (n_epochs,) | None, optional
-            True values to be compared with the predictions ``y_pred_``
-            generated with ``predict()`` via ``scorer_``.
-            If None and ``predict_mode``=='cross-validation' y = ``y_train_``.
-
-        Returns
-        -------
-        scores : list of lists of float
-            The scores estimated by ``scorer_`` at each training time and each
-            testing time (e.g. mean accuracy of ``predict(X)``). Note that the
-            number of testing times per training time need not be regular;
-            else, np.shape(scores) = (n_train_time, n_test_time).
-        """
-        return super(GeneralizationAcrossTime, self).score(epochs=epochs, y=y)
 
     def plot(self, title=None, vmin=None, vmax=None, tlim=None, ax=None,
              cmap='RdBu_r', show=True, colorbar=True,
@@ -947,7 +931,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     cv : int | object
         If an integer is passed, it is the number of folds.
         Specific cross-validation objects can be passed, see
-        sklearn.cross_validation module for the list of possible objects.
+        scikit-learn.cross_validation module for the list of possible objects.
         Defaults to 5.
     clf : object | None
         An estimator compliant with the scikit-learn API (fit & predict).
@@ -1006,7 +990,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
                 The training times (in seconds).
     cv_ : CrossValidation object
         The actual CrossValidation input depending on y.
-    estimators_ : list of list of sklearn.base.BaseEstimator subclasses.
+    estimators_ : list of list of scikit-learn.base.BaseEstimator subclasses.
         The estimators for each time point and each fold.
     y_pred_ : ndarray, shape (n_times, n_epochs, n_prediction_dims)
         Class labels for samples in X.
