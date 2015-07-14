@@ -53,10 +53,10 @@ data_picks = mne.pick_types(epochs.info, meg=True, exclude='bads')
 
 ###############################################################################
 # Setup decoding: default is linear SVC
-tg = TimeDecoding(predict_mode='cross-validation', n_jobs=1)
+td = TimeDecoding(predict_mode='cross-validation', n_jobs=1)
 # Fit
-tg.fit(epochs)
+td.fit(epochs)
 # Compute accuracy
-tg.score(epochs)
+td.score(epochs)
 # Plot scores across time
-tg.plot(title='Sensor space decoding')
+td.plot(title='Sensor space decoding')

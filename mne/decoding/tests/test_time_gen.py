@@ -232,7 +232,7 @@ def test_generalization_across_time():
 
 
 @requires_sklearn
-def test_DecodingTime():
+def test_decoding_time():
     epochs = make_epochs()
     tg = TimeDecoding()
     assert_equal("<TimeDecoding | no fit, no prediction, no score>", '%s' % tg)
