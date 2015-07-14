@@ -1,7 +1,7 @@
-.. _mne_python_tutorial:
+.. _intro_tutorial:
 
 =========================================================
-Tutorial: MEG and EEG data processing with MNE and Python
+MEG and EEG data processing with MNE and Python
 =========================================================
 
 MNE-Python reimplements most of MNE-C's (the original MNE command line utils) functionality and offers transparent scripting.
