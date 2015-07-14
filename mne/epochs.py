@@ -8,10 +8,12 @@
 #
 # License: BSD (3-clause)
 
+import sys
 import copy as cp
 import warnings
 import json
 
+import os.path as op
 import numpy as np
 
 from .io.write import (start_file, start_block, end_file, end_block,
@@ -1316,19 +1318,30 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new._raw = raw
         return new
 
-    def save(self, fname):
-        """Save epochs in a fif file
+    def _save_split(self, fname, prev_fname, part_idx, epoch_idx):
+        """Split epochs"""
 
-        Parameters
-        ----------
-        fname : str
-            The name of the file, which should end with -epo.fif or
-            -epo.fif.gz.
-        """
-        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+        if part_idx > 0:
+            # insert index in filename
+            path, base = op.split(fname)
+            idx = base.find('.')
+            use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
+                                                    base[idx + 1:]))
+        else:
+            use_fname = fname
 
-        # Create the file and save the essentials
-        fid = start_file(fname)
+        fid = start_file(use_fname)
+
+        meas_id = self.info['meas_id']
+        # previous file name and id
+        if part_idx > 0 and prev_fname is not None:
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
+            if meas_id is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
+            end_block(fid, FIFF.FIFFB_REF)
 
         start_block(fid, FIFF.FIFFB_MEAS)
         write_id(fid, FIFF.FIFF_BLOCK_ID)
@@ -1343,11 +1356,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         start_block(fid, FIFF.FIFFB_EPOCHS)
 
         # write events out after getting data to ensure bad events are dropped
-        data = self.get_data()
+        data = self[epoch_idx].get_data()
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self.events.T)
+        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self[epoch_idx].events.T)
         mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                             self.event_id.items()])
+                             self[epoch_idx].event_id.items()])
         write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
@@ -1389,6 +1402,42 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
+        return use_fname
+
+    def save(self, fname, split_size='2GB'):
+        """Save epochs in a fif file
+
+        Parameters
+        ----------
+        fname : str
+            The name of the file, which should end with -epo.fif or
+            -epo.fif.gz.
+        split_size : string | int
+            Large raw files are automatically split into multiple pieces. This
+            parameter specifies the maximum size of each piece. If the
+            parameter is an integer, it specifies the size in Bytes. It is
+            also possible to pass a human-readable string, e.g., 100MB.
+            Note: Due to FIFF file limitations, the maximum split size is 2GB.
+        """
+        check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+
+        if isinstance(split_size, string_types):
+            exp = dict(MB=20, GB=30).get(split_size[-2:], None)
+            if exp is None:
+                raise ValueError('split_size has to end with either'
+                                 '"MB" or "GB"')
+            split_size = int(float(split_size[:-2]) * 2 ** exp)
+
+        if split_size > 2147483648:
+            raise ValueError('split_size cannot be larger than 2GB')
+
+        # Create the file and save the essentials
+        n_parts = np.ceil(self[0].get_data().nbytes * len(self) / split_size)
+        epoch_idxs = np.array_split(range(len(self)), n_parts)
+
+        prev_fname = None
+        for part_idx, epoch_idx in enumerate(epoch_idxs):
+            prev_fname = self._save_split(fname, prev_fname, part_idx, epoch_idx)
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
