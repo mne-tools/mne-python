@@ -4,7 +4,7 @@ Decoding in sensor space data using the linear models
 ====================================================================
 
 Decoding applied to MEG data in sensor space using a linear classifier
-Here the model coefiscient are interpreted using [1].
+Here the model coefficient are interpreted using [1].
 
 
 [1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D., 
@@ -13,11 +13,9 @@ weight vectors of linear models in multivariate neuroimaging.
 NeuroImage, 87, 96–110. doi:10.1016/j.neuroimage.2013.10.067
 """
 # Authors: Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
-#          Romain Trachel <romain.trachel@inria.fr>
+#          Romain Trachel <trachelr@gmail.com>
 #
 # License: BSD (3-clause)
-
-import numpy as np
 
 import mne
 from mne import io
@@ -32,7 +30,7 @@ data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 event_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw-eve.fif'
 tmin, tmax = -0.2, 0.5
-event_id = dict(aud_l=1, vis_l=3)
+event_id = dict(aud_l=1, aud_r=3)
 
 # Setup for reading the raw data
 raw = io.Raw(raw_fname, preload=True)
@@ -46,8 +44,6 @@ picks = mne.pick_types(raw.info, meg='grad', eeg=False, stim=False, eog=False,
 # Read epochs
 epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True)
-
-labels = epochs.events[:, -1]
 
 import sklearn.linear_model as lm
 import sklearn.svm as svm
@@ -64,7 +60,7 @@ linsvc_patterns = compute_patterns(epochs, linsvc)
 linsvc_patterns.plot_topomap()
 
 # computes patterns estimated with a logistic regression classifier
-logreg = lm.LogisticRegression()
+logreg = lm.LogisticRegression(penalty='l1')
 logreg_patterns = compute_patterns(epochs, logreg)
 logreg_patterns.plot_topomap()
 
