@@ -46,21 +46,27 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
                     picks=picks, baseline=None, preload=True)
 
 import sklearn.linear_model as lm
-import sklearn.svm as svm
 from mne.decoding.classifier import compute_patterns
 
 # computes patterns estimated with a ridge classifier
-ridge  = lm.RidgeClassifier()
+ridge = lm.RidgeClassifier()
 ridge_patterns = compute_patterns(epochs, ridge)
-ridge_patterns.plot_topomap()
+ridge_patterns.plot_topomap(title='classifier patterns for aud_l vs aud_r')
 
-# computes patterns estimated with a linear SVM classifier
-linsvc = svm.LinearSVC()
-linsvc_patterns = compute_patterns(epochs, linsvc)
-linsvc_patterns.plot_topomap()
+# compare patterns topography with a simple t-test
+import scipy.stats as scistats
+l_label = epochs.events[:, -1] == event_id['aud_l']
+r_label = epochs.events[:, -1] == event_id['aud_r']
+# computes ttest
+t_val, _ = scistats.ttest_ind(epochs.get_data()[l_label],
+                              epochs.get_data()[r_label], axis=0)
 
-# computes patterns estimated with a logistic regression classifier
-logreg = lm.LogisticRegression(penalty='l1')
-logreg_patterns = compute_patterns(epochs, logreg)
-logreg_patterns.plot_topomap()
+evoked = mne.EvokedArray(t_val, epochs.info, tmin=epochs.tmin)
+evoked.plot_topomap(title='t-values for aud_l vs aud_r')
 
+# now start decoding using a cross validation
+from sklearn.cross_validation import ShuffleSplit, cross_val_score
+cv = ShuffleSplit(len(labels), 10, test_size=0.2, random_state=42)
+epochs_data = epochs.get_data().reshape(len(labels), -1)
+scores = cross_val_score(ridge, epochs_data, labels, cv=cv, n_jobs=1)
+print(scores.mean())  # should match results above
