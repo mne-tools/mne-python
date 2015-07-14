@@ -8,7 +8,7 @@ from scipy import stats
 from scipy.signal import hilbert
 from nose.tools import assert_true, assert_raises
 from mne.utils import check_random_state, run_tests_if_main
-from mne.connectivity.cfc import (modulation_index, make_surrogate_data,
+from mne.connectivity.cfc import (modulation_index, shuffle_data,
                                   cross_frequency_coupling,
                                   generate_pac_signal)
 
@@ -57,12 +57,12 @@ def test_modulation_index():
     assert_true(0. <= mi <= 1.)
 
 
-def test_make_surrogate_data():
+def test_shuffle_data():
     """ Test generation of surrogate data. """
 
     times = np.linspace(0, 1, 100. * 1 * 10)
     data = np.reshape(times, (10, 100))
-    surr_data = make_surrogate_data(data)
+    surr_data = shuffle_data(data)
     assert_true(data.shape == surr_data.shape)
 
 
