@@ -642,8 +642,9 @@ def _fwd_eeg_fit_berg_scherg(m, nterms, nfit):
     # Do the nonlinear minimization, constraining mu to the interval [-1, +1]
     mu_0 = np.random.RandomState(0).rand(nfit) * f
     fun = partial(_one_step, u=u)
-    cons = [(lambda x: 1. - np.abs(x[ii])) for ii in range(nfit)]
-    mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=5e-3, disp=0, catol=0)
+    max_ = 1. - 2e-4  # adjust for fmin_cobyla "catol" that not all scipy have
+    cons = [(lambda x: max_ - np.abs(x[ii])) for ii in range(nfit)]
+    mu = fmin_cobyla(fun, mu_0, cons, rhobeg=0.5, rhoend=5e-3, disp=0)
 
     # (6) Do the final step: calculation of the linear parameters
     rv, lambda_ = _compute_linear_parameters(mu, u)
