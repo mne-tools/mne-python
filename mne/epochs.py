@@ -1318,17 +1318,22 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new._raw = raw
         return new
 
-    def _save_split(self, fname, prev_fname, part_idx, epoch_idx):
+    def _save_split(self, fname, prev_fname, part_idx, total_idx, epoch_idx):
         """Split epochs"""
 
+        # insert index in filename
+        path, base = op.split(fname)
+        idx = base.find('.')
         if part_idx > 0:
-            # insert index in filename
-            path, base = op.split(fname)
-            idx = base.find('.')
             use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
                                                     base[idx + 1:]))
         else:
             use_fname = fname
+
+        if part_idx < total_idx - 1:
+            next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
+                                                     base[idx + 1:]))
+            next_idx = part_idx + 1
 
         fid = start_file(use_fname)
 
@@ -1392,13 +1397,21 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         data /= decal[np.newaxis, :, np.newaxis]
 
         write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
-                     json.dumps(self.drop_log))
+                     json.dumps(self[epoch_idx].drop_log))
 
         write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
-                  self.selection)
+                  self[epoch_idx].selection)
+
+        if part_idx < total_idx - 1 and next_fname is not None:
+            start_block(fid, FIFF.FIFFB_REF)
+            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+            if meas_id is not None:
+                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+            write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+            end_block(fid, FIFF.FIFFB_REF)
 
         end_block(fid, FIFF.FIFFB_EPOCHS)
-
         end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
         end_block(fid, FIFF.FIFFB_MEAS)
         end_file(fid)
@@ -1432,12 +1445,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise ValueError('split_size cannot be larger than 2GB')
 
         # Create the file and save the essentials
-        n_parts = np.ceil(self[0].get_data().nbytes * len(self) / split_size)
+        n_parts = np.ceil(self[0].get_data().nbytes * len(self) / float(split_size))
         epoch_idxs = np.array_split(range(len(self)), n_parts)
 
         prev_fname = None
         for part_idx, epoch_idx in enumerate(epoch_idxs):
-            prev_fname = self._save_split(fname, prev_fname, part_idx, epoch_idx)
+            prev_fname = self._save_split(fname, prev_fname, part_idx, n_parts - 1, epoch_idx)
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
