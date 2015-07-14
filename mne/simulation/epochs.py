@@ -1,5 +1,5 @@
 # Authors: Mark Wronkiewicz <wronk.mark@gmail.com>
-#          Yousra Bekhti <>
+#          Yousra Bekhti <yousra.bekhti@gmail.com>
 #
 # License: BSD (3-clause)
 from __future__ import division
@@ -9,11 +9,12 @@ import numpy as np
 from .. import EpochsArray
 from ..io.pick import pick_channels_cov
 from ..forward import _apply_forward
-from ..utils import check_random_state, verbose, _time_mask
+from ..utils import check_random_state, _time_mask
 from .. import SourceEstimate
 
-#TODO: Add back in linear filter for both epoch and noise generation (like
-#      in simulate evoked)
+# TODO: Add back in linear filter for both epoch and noise generation (like
+# in simulate evoked)
+
 
 def generate_epochs(fwd, stcs, info, cov, events, snr=3, tmin=None, tmax=None,
                     random_state=None):
@@ -59,20 +60,22 @@ def generate_epochs(fwd, stcs, info, cov, events, snr=3, tmin=None, tmax=None,
     if type(stcs) is not list:
         raise RuntimeError('`stcs` must be SourceEstimate or list of '
                            'SourceEstimate')
-    tmask = _time_mask(stcs[0].times, tmin, tmax)
-
+    # tmask = _time_mask(stcs[0].times, tmin, tmax)
     for stc in stcs:
         stc.crop(tmin, tmax)
 
     tmin, tmax = stcs[0].times[0], stcs[0].times[-1]
     sens_data_list = [_apply_forward(fwd, stc, 0, len(stc.times))
                       for stc in stcs]
-    import pdb; pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
     sens_data = np.array([stc_info[0] for stc_info in sens_data_list])
 
     # TODO: check if other default params should be included
+    # info['sfreq'] = 1. / np.diff(stc.times)[0]
     epochs = EpochsArray(sens_data, info, events, tmin=tmin)
-    import pdb; pdb.set_trace()
+    # import pdb
+    # pdb.set_trace()
 
     # Generate and add in noise for epochs objects
     noise = generate_noise_epochs(epochs, cov, random_state)
@@ -142,7 +145,7 @@ def add_noise_epochs(epochs, epo_noise, snr, tmin=None, tmax=None):
 
     tmask = _time_mask(epochs.times, tmin, tmax)
     for ei, (trial_dat, trial_noise) in enumerate(zip(epochs_tmp, noise_tmp)):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         tmp = 10 * np.log10(np.mean((trial_dat[:, tmask] ** 2).ravel()) /
                             np.mean((trial_noise ** 2).ravel()))
         trial_noise = 10 ** ((tmp - snr) / 20) * trial_noise
