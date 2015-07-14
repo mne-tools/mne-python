@@ -1292,6 +1292,8 @@ def _plot_onkey(event, params):
     elif event.key == 'o':
         if not params['butterfly']:
             _open_options(params)
+    elif event.key == 'h':
+        _plot_histogram(params)
     elif event.key == '?':
         _onclick_help(event, params)
     elif event.key == 'escape':
@@ -1523,3 +1525,36 @@ def _open_options(params):
 def _settings_closed(events, params):
     """Function to handle close event from settings dialog."""
     params['fig_options'] = None
+
+
+def _plot_histogram(params):
+    """Function for plotting histogram of peak-to-peak values."""
+    import matplotlib.pyplot as plt
+    p2p = np.ptp(params['epochs'].get_data(), axis=2)
+    types = list()
+    data = list()
+    if 'eeg' in params['types']:
+        eegs = np.array([p2p.T[i] for i,
+                         x in enumerate(params['types']) if x == 'eeg'])
+        data.append(eegs.ravel())
+        types.append('eeg')
+    if 'mag' in params['types']:
+        mags = np.array([p2p.T[i] for i,
+                         x in enumerate(params['types']) if x == 'mag'])
+        data.append(mags.ravel())
+        types.append('mag')
+    if 'grad' in params['types']:
+        grads = np.array([p2p.T[i] for i,
+                          x in enumerate(params['types']) if x == 'grad'])
+        data.append(grads.ravel())
+        types.append('grad')
+    fig = plt.figure(len(types))
+    for idx in range(len(types)):
+        plt.subplot(len(types), 1, idx + 1)
+        plt.hist(data[idx], bins=20)
+        plt.title(types[idx])
+    fig.suptitle('Peak-to-peak histogram', y=0.99)
+    tight_layout(fig=fig)
+    fig.show()
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
