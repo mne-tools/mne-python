@@ -217,7 +217,7 @@ class CSP(TransformerMixin):
         return X
     
     
-    def plot_patterns(self, info, ch_type=None, layout=None,
+    def plot_patterns(self, info, components=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scale=None, scale_time=1e3, unit=None,
                       res=64, size=1, cbar_fmt='%3.1f',
