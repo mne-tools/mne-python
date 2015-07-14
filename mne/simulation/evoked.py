@@ -34,7 +34,7 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
     tmin : float | None
         start of time interval to estimate SNR. If None first time point
         is used.
-    tmax : float
+    tmax : float | None
         start of time interval to estimate SNR. If None last time point
         is used.
     iir_filter : None | array
