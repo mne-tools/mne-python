@@ -11,109 +11,93 @@ from __future__ import print_function
 import numpy as np
 import warnings
 
-def plot_topopatterns(csp, layout=None, vmin=None, vmax=None, sensors=True,
-                    colorbar=True, scale=None, scale_time=1e3, unit=None,
-                    res=64, size=1, cbar_fmt='%3.1f', cmap='RdBu_r',
-                    csp_name='CSP%01d', proj=False, show=True,
-                    show_names=False, title=None, mask=None, names=None,
-                    mask_params=None, outlines='head', contours=6,
-                    image_interp='bilinear'):
+def plot_patterns(csp, layout=None, vmin=None, vmax=None, sensors=True,
+                  colorbar=True, res=64, size=1, cmap='RdBu_r',
+                  csp_name='CSP%01d', proj=False, show=True,
+                  show_names=False, title=None, names=None,
+                  outlines='head', contours=6, image_interp='bilinear'):
     """Plot topographic patterns of CSP components
-       Parameters
-       ----------
-       csp : CSP
-           CSP instance, patterns_ must exist (i.e. fit have been called)
-       layout : None | Layout
-           Layout instance specifying sensor positions (does not need to
-           be specified for Neuromag data). If possible, the correct layout file
-           is inferred from the data; if no appropriate layout file was found, the
-           layout is automatically generated from the sensor locations.
-       vmin : float | callable
-           The value specfying the lower bound of the color range.
-           If None, and vmax is None, -vmax is used. Else np.min(data).
-           If callable, the output equals vmin(data).
-       vmax : float | callable
-           The value specfying the upper bound of the color range.
-           If None, the maximum absolute value is used. If vmin is None,
-           but vmax is not, defaults to np.min(data).
-           If callable, the output equals vmax(data).
-       cmap : matplotlib colormap
-           Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
-           'Reds'.
-       sensors : bool | str
-           Add markers for sensor locations to the plot. Accepts matplotlib plot
-           format string (e.g., 'r+' for red plusses). If True, a circle will be
-           used (via .add_artist). Defaults to True.
-       colorbar : bool
-           Plot a colorbar.
-       scale : dict | float | None
-           Scale the data for plotting. If None, defaults to 1e6 for eeg, 1e13
-           for grad and 1e15 for mag.
-       scale_time : float | None
-           Scale the time labels. Defaults to 1e3 (ms).
-       unit : dict | str | None
-           The unit of the channel type used for colorbar label. If
-           scale is None the unit is automatically determined.
-       res : int
-           The resolution of the topomap image (n pixels along each side).
-       size : float
-           Side length per topomap in inches.
-       cbar_fmt : str
-           String format for colorbar values.
-       csp_name : str
-           String format for CSP topomap names. Defaults to "CSP%01d"
-       proj : bool | 'interactive'
-           If true SSP projections are applied before display. If 'interactive',
-           a check box for reversible selection of SSP projection vectors will
-           be show.
-       show : bool
-           Show figure if True.
-       names : list | None
-           List of channel names. If None, channel names are not plotted.
-       show_names : bool | callable
-           If True, show channel names on top of the map. If a callable is
-           passed, channel names will be formatted using the callable; e.g., to
-           delete the prefix 'MEG ' from all channel names, pass the function
-           lambda x: x.replace('MEG ', ''). If `mask` is not None, only
-           significant sensors will be shown.
-       title : str | None
-           Title. If None (default), no title is displayed.
-       mask : ndarray of bool, shape (n_channels, n_times) | None
-           The channels to be marked as significant at a given time point.
-           Indicies set to `True` will be considered. Defaults to None.
-       mask_params : dict | None
-           Additional plotting parameters for plotting significant sensors.
-           Default (None) equals::
-               dict(marker='o', markerfacecolor='w', markeredgecolor='k',
-                    linewidth=0, markersize=4)
-       outlines : 'head' | dict | None
-           The outlines to be drawn. If 'head', a head scheme will be drawn. If
-           dict, each key refers to a tuple of x and y positions. The values in
-           'mask_pos' will serve as image mask. If None, nothing will be drawn.
-           Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-           trigger automated shrinking of the positions due to points outside the
-           outline. Moreover, a matplotlib patch object can be passed for
-           advanced masking options, either directly or as a function that returns
-           patches (required for multi-axis plots).
-       contours : int | False | None
-           The number of contour lines to draw. If 0, no contours will be drawn.
-       image_interp : str
-           The image interpolation to be used. All matplotlib options are
-           accepted.
-       average : float | None
-           The time window around a given time to be used for averaging (seconds).
-           For example, 0.01 would translate into window that starts 5 ms before
-           and ends 5 ms after a given time point. Defaults to None, which means
-           no averaging.
-       head_pos : dict | None
-           If None (default), the sensors are positioned such that they span
-           the head circle. If dict, can have entries 'center' (tuple) and
-           'scale' (tuple) for what the center and scale of the head should be
-           relative to the electrode locations.
-       """
+    Parameters
+    ----------
+    csp : instance of CSP
+       CSP instance, patterns_ must exist (i.e. fit have been called)
+    layout : None | Layout
+       Layout instance specifying sensor positions (does not need to
+       be specified for Neuromag data). If possible, the correct layout file
+       is inferred from the data; if no appropriate layout file was found, the
+       layout is automatically generated from the sensor locations.
+    vmin : float | callable
+       The value specfying the lower bound of the color range.
+       If None, and vmax is None, -vmax is used. Else np.min(data).
+       If callable, the output equals vmin(data).
+    vmax : float | callable
+       The value specfying the upper bound of the color range.
+       If None, the maximum absolute value is used. If vmin is None,
+       but vmax is not, defaults to np.min(data).
+       If callable, the output equals vmax(data).
+    cmap : matplotlib colormap
+       Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
+       'Reds'.
+    sensors : bool | str
+       Add markers for sensor locations to the plot. Accepts matplotlib plot
+       format string (e.g., 'r+' for red plusses). If True, a circle will be
+       used (via .add_artist). Defaults to True.
+    colorbar : bool
+       Plot a colorbar.
+    res : int
+       The resolution of the topomap image (n pixels along each side).
+    size : float
+       Side length per topomap in inches.
+    csp_name : str
+       String format for CSP topomap names. Defaults to "CSP%01d"
+    proj : bool | 'interactive'
+       If true SSP projections are applied before display. If 'interactive',
+       a check box for reversible selection of SSP projection vectors will
+       be show.
+    show : bool
+       Show figure if True.
+    names : list | None
+       List of channel names. If None, channel names are not plotted.
+    show_names : bool | callable
+       If True, show channel names on top of the map. If a callable is
+       passed, channel names will be formatted using the callable; e.g., to
+       delete the prefix 'MEG ' from all channel names, pass the function
+       lambda x: x.replace('MEG ', ''). If `mask` is not None, only
+       significant sensors will be shown.
+    title : str | None
+       Title. If None (default), no title is displayed.
+    outlines : 'head' | dict | None
+       The outlines to be drawn. If 'head', a head scheme will be drawn. If
+       dict, each key refers to a tuple of x and y positions. The values in
+       'mask_pos' will serve as image mask. If None, nothing will be drawn.
+       Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
+       trigger automated shrinking of the positions due to points outside the
+       outline. Moreover, a matplotlib patch object can be passed for
+       advanced masking options, either directly or as a function that returns
+       patches (required for multi-axis plots).
+    contours : int | False | None
+       The number of contour lines to draw. If 0, no contours will be drawn.
+    image_interp : str
+       The image interpolation to be used. All matplotlib options are
+       accepted.
+    average : float | None
+       The time window around a given time to be used for averaging (seconds).
+       For example, 0.01 would translate into window that starts 5 ms before
+       and ends 5 ms after a given time point. Defaults to None, which means
+       no averaging.
+    head_pos : dict | None
+       If None (default), the sensors are positioned such that they span
+       the head circle. If dict, can have entries 'center' (tuple) and
+       'scale' (tuple) for what the center and scale of the head should be
+       relative to the electrode locations
+
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+       The figure.
+    """
     
-    from ..viz.topomap import plot_topomap
-    from ..channels import make_grid_layout
+    from mne.viz.topomap import plot_topomap
     import matplotlib.pyplot as plt
     
     fig = plt.figure()
