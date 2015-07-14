@@ -85,6 +85,7 @@ class LinearClassifier():
         ----------
         X : array, shape=(n_epochs, n_features)
             The features of each trial to predict class label.
+        
         Returns
         -------
         y_pred : array, shape=(n_epochs)

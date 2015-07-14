@@ -88,7 +88,7 @@ class LinearRegressor():
         
         Returns
         -------
-        C : array, shape=(n_epochs, n_target)
+        y_pred : array, shape=(n_epochs, n_targets)
             Predicted target variables per epochs.
         """
         if not isinstance(X, np.ndarray):
