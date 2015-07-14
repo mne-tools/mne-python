@@ -75,6 +75,42 @@ class LinearRegressor():
             self.filters_ = self.reg.coef_
         return self
     
+    def transform(self, X, y=None):
+        """Transform the data using the linear regressor.
+
+        Parameters
+        ----------
+        X : array, shape=(n_epochs, n_features)
+            The data to transform.
+        y : array, shape=(n_epochs)
+            The class for each epoch.
+
+        Returns
+        -------
+        y_pred : array, shape=(n_epochs)
+            Predicted target per epoch.
+        
+        """
+        return self.predict(X)
+    
+    def fit_transform(self, X, y):
+        """fit the data and transform it using the linear regressor.
+
+        Parameters
+        ----------
+        X : array, shape=(n_epochs, n_features)
+            The data to transform.
+        y : array, shape=(n_epochs)
+            The class for each epoch.
+
+        Returns
+        -------
+        y_pred : array, shape=(n_epochs)
+            Predicted target per epoch.
+        
+        """
+        return self.fit(X, y).predict(X)
+    
     def predict(self, X):
         """Predict target variable for each trial in X.
         

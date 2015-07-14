@@ -78,6 +78,43 @@ class LinearClassifier():
         
         return self
     
+    def transform(self, X, y=None):
+        """Transform the data using the linear classifier.
+
+        Parameters
+        ----------
+        X : array, shape=(n_epochs, n_features)
+            The data to transform.
+        y : array, shape=(n_epochs)
+            The class for each epoch.
+
+        Returns
+        -------
+        y_pred : array, shape=(n_epochs)
+            Predicted class label per epoch.
+        
+        """
+        return self.predict(X)
+    
+    
+    def fit_transform(self, X, y):
+        """fit the data and transform it using the linear classifier.
+
+        Parameters
+        ----------
+        X : array, shape=(n_epochs, n_features)
+            The data to transform.
+        y : array, shape=(n_epochs)
+            The class for each epoch.
+
+        Returns
+        -------
+        y_pred : array, shape=(n_epochs)
+            Predicted class label per epoch.
+        
+        """
+        return self.fit(X, y).predict(X)
+    
     def predict(self, X):
         """Predict class labels for each trial in X.
         
@@ -114,6 +151,8 @@ class LinearClassifier():
         """Plot topographic patterns of the linear classifier
         Parameters
         ----------
+        self : instance of self
+            a linear classifier 
         info : instance of Info
             Info dictionary of the epochs used to fit the linear classifier.
             If not possible, consider using ``create_info``.
@@ -211,7 +250,6 @@ class LinearClassifier():
             the head circle. If dict, can have entries 'center' (tuple) and
             'scale' (tuple) for what the center and scale of the head should be
             relative to the electrode locations.
-
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
