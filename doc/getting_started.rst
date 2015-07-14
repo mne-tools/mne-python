@@ -102,6 +102,6 @@ file :code:`sample_audvis_raw-trans.fif`:
     >>> stc = mne.minimum_norm.apply_inverse(evoked, inverse,  # doctest: +SKIP
                                              lambda2=1. / 9.)  # Source estimates # doctest: +SKIP
 
-Check out :ref:`mne_python_tutorial` for a more complete explanation
+Check out :ref:`intro_tutorial` for a more complete explanation
 of these steps. Also check out the :ref:`examples-index` for many more
 examples showing some of the more advanced features of mne-python.
