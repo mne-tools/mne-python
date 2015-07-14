@@ -92,7 +92,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
     Returns
     -------
     evokeds : dict of evoked instance
-        An dict of evoked instance for each event type in event_id.
+        An dict of evoked instance for each event type in epochs.event_id.
     """
     if not isinstance(epochs, _BaseEpochs):
         raise ValueError('epochs must be an instance of `mne.Epochs`')
@@ -151,9 +151,29 @@ class Xdawn():
         self.projs_ = {}
 
     def fit(self, epochs, signal_cov=None, correct_overlap='auto'):
-        """Fit Xdawn from epochs."""
+        """Fit Xdawn from epochs.
+
+        Parameters
+        ----------
+        epochs : Epoch object
+            An instance of Epoch on which Xdawn filters will be trained.
+        signal_cov : None, Covariance instance or ndarray
+            The signal covariance used for whitening of the data. if None, the
+            covariance is estimated from the epochs signal.
+        correct_overlap : 'auto' or bool
+            Apply correction for overlaped ERP for the estimation of evokeds
+            responses. if 'auto', the overlapp correction is chosen in function
+            of the events in epochs.events.
+
+        Returns
+        -------
+        self : Xdawn instance
+            The Xdawn instance.
+        """
         if correct_overlap is 'auto':
             correct_overlap = _check_overlapp(epochs)
+        elif not isinstance(correct_overlap, bool):
+            raise ValueError('correct_overlap must be a bool or "auto"')
 
         # Extract signal covariance
         if signal_cov is None:
@@ -232,18 +252,15 @@ class Xdawn():
         ----------
         inst : instance of Raw, Epochs or Evoked
             The data to be processed.
+        event_id : dict or None
+            The kind of event to apply. if none, a dict of inst will be return
+            one for each type of event xdawn has been fitted.
         include : array_like of int.
             The indices refering to columns in the ummixing matrix. The
             components to be kept.
         exclude : array_like of int.
             The indices refering to columns in the ummixing matrix. The
             components to be zeroed out.
-        event_id : dict or None
-            The kind of event to appy. if none, an array of inst will be return
-            one for each type of event xdawn has been fitted.
-        copy : bool
-            Whether to return a copy or whether to apply the solution in place.
-            Defaults to False.
         """
         if event_id is None:
             event_id = self.event_id
