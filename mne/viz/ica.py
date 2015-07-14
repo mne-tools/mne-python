@@ -557,11 +557,13 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
     bad_color = (1., 0., 0.)
     inds = range(len(picks))
     data = np.array(data)
+    n_channels = min([20, len(picks)])
     params = dict(raw=raw, orig_data=data, data=data[:, 0:t_end],
                   ch_start=0, t_start=start, info=info, duration=duration,
-                  ica=ica, n_channels=20, times=times, types=types,
+                  ica=ica, n_channels=n_channels, times=times, types=types,
                   n_times=raw.n_times, bad_color=bad_color, picks=picks)
-    _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds, 20)
+    _prepare_mne_browse_raw(params, title, 'w', color, bad_color, inds,
+                            n_channels)
     params['scale_factor'] = 1.0
     params['plot_fun'] = partial(_plot_raw_traces, params=params, inds=inds,
                                  color=color, bad_color=bad_color)
