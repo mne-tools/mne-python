@@ -2,13 +2,17 @@ body {
     font-family: 'Open Sans', 'Lucida Grande', 'Lucida Sans Unicode', 'Geneva', 'Verdana', sans-serif;
 }
 
+.navbar-version {
+    display: none;
+}
+
 a {
-    color: #330033;
+    color: rgb(255,2,16);
     text-decoration: none;
 }
 
 a:hover {
-    color: #99CCFF;
+    color: rgb(255,2,16);
 }
 
 blockquote p {
@@ -24,18 +28,6 @@ code {
     background-color: #f3f5f9 !important;
 }
 
-.alert-info {
-    background-color: #adb8cb !important;
-    border-color: #adb8cb !important;
-    color: #2c3e50 !important;
-}
-
-.headerlink:before {
-
-  display: block;
-  context: " ";
-  height: 200px; /*same height as header*/
-  margin-top: -200px; /*same height as header*/
-  visibility: hidden;
-
+#navbar a:hover {
+    color: rgb(255,2,16);
 }

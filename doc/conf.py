@@ -129,6 +129,7 @@ html_theme = 'bootstrap'
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
+    'navbar_title': 'MNE',
     'source_link_position': "footer",
     'bootswatch_theme': "flatly",
     'navbar_sidebarrel': False,
@@ -259,14 +260,6 @@ latex_use_parts = True
 latex_use_modindex = True
 
 trim_doctests_flags = True
-
-
-# Add the 'copybutton' javascript, to hide/show the prompt in code
-# examples, originally taken from scikit-learn's doc/conf.py
-def setup(app):
-    # app.add_javascript('copybutton.js')
-    app.add_stylesheet('style.css')
-
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}

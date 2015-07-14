@@ -1,5 +1,5 @@
-MNE: MEG & EEG data analysis package
-====================================
+MEG & EEG data analysis package
+-------------------------------
 
 .. raw:: html
 
@@ -9,38 +9,50 @@ MNE: MEG & EEG data analysis package
    <br>
 
 MNE is a software package for processing magnetoencephalography
-(MEG) and electroencephalography (EEG) data. 
+(MEG) and electroencephalography (EEG) data that
+provides comprehensive analysis tools and workflows including preprocessing,
+source estimation, time–frequency analysis, statistical analysis, and several
+methods to estimate functional connectivity between distributed brain regions.
 
-The MNE software computes cortically-constrained L2 minimum-norm
-current estimates and associated dynamic statistical parametric maps
-from MEG and EEG data, optionally constrained by fMRI. 
+MNE includes tools compiled from C code for the LINUX and Mac OSX
+operating systems, as well as a matlab toolbox and a comprehensive
+Python package (provided under the simplified BSD license).
 
-This software includes MEG and EEG preprocessing tools, interactive
-and batch-mode modules for the forward and inverse calculations, as
-well as various data conditioning and data conversion utilities. These
-tools are provided as compiled C code for the LINUX and Mac OSX
-operating systems.
+.. raw:: html
 
-In addition to the compiled C code tools, MNE Software includes a
-Matlab toolbox which facilitates access to the fif (functional image
-file) format data files employed in our software and enables
-development of custom analysis tools based on the intermediate results
-computed with the MNE tools. 
+   <h4>From raw data to dSPM source estimates in 30 lines of code:</h4>
 
-The third and newest component of MNE is MNE-Python which implements
-all the functionality of the MNE Matlab tools in Python and extends
-the capabilities of the MNE Matlab tools to, e.g., frequency-domain
-and time-frequency analyses and non-parametric statistics. This
-component of MNE is presently evolving quickly and thanks to the
-adopted open development environment user contributions can be easily
-incorporated.
+>>> import mne
+>>> raw = mne.io.Raw('raw.fif', preload=True)  # load data
+>>> raw.info['bads'] = ['MEG 2443', 'EEG 053']  # mark bad channels
+>>> raw.filter(l_freq=None, h_freq=40.0)  # low-pass filter data
+>>> # Extract epochs and save them:
+>>> picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True,
+>>>                        exclude='bads')
+>>> events = mne.find_events(raw)
+>>> reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
+>>> epochs = mne.Epochs(raw, events, event_id=1, tmin=-0.2, tmax=0.5,
+>>>                     proj=True, picks=picks, baseline=(None, 0),
+>>>                     preload=True, reject=reject)
+>>> # Compute evoked response and noise covariance
+>>> evoked = epochs.average()
+>>> cov = mne.compute_covariance(epochs, tmax=0)
+>>> evoked.plot()  # plot evoked
+>>> # Compute inverse operator:
+>>> fwd_fname = 'sample audvis−meg−eeg−oct−6−fwd.fif'
+>>> fwd = mne.read forward solution(fwd fname, surf ori=True)
+>>> inv = mne.minimum_norm.make_inverse_operator(raw.info, fwd,
+>>>                                              cov, loose=0.2)
+>>> # Compute inverse solution:
+>>> stc = mne.minimum_norm.apply_inverse(evoked, inv, lambda2=1./9.,
+>>>                                      method='dSPM')
+>>> # Morph it to average brain for group study and plot it
+>>> stc_avg = mne.morph_data('sample', 'fsaverage', stc, 5, smooth=5)
+>>> stc_avg.plot()
 
 The MNE development is supported by National Institute of Biomedical Imaging and Bioengineering 
 grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technologies) as well as 
 NSF awards 0958669 and 1042134.
-
-The Matlab and Python components of MNE are provided under the
-simplified BSD license.
 
 .. raw:: html
 
