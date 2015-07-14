@@ -8,7 +8,7 @@ from scipy import linalg
 from distutils.version import LooseVersion
 
 from .mixin import TransformerMixin
-from ..viz.decoding import plot_patterns
+from mne import EvokedArray
 
 class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
@@ -217,16 +217,25 @@ class CSP(TransformerMixin):
         return X
     
     
-    def plot_patterns(self, layout=None, vmin=None, vmax=None, sensors=True,
-                      colorbar=True, res=64, size=1, cmap='RdBu_r', 
-                      csp_name='CSP%01d', proj=False, show=True,
-                      show_names=False, title=None, names=None,
-                      outlines='head', contours=6, image_interp='bilinear'):
+    def plot_patterns(self, info, components=None, ch_type=None, layout=None,
+                      vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
+                      colorbar=True, res=64, size=1, cbar_fmt='%.3f', 
+                      time_format='CSP%01d', proj=False, show=True,
+                      show_names=False, title=None, mask=None,
+                      mask_params=None, outlines='head', contours=6,
+                      image_interp='bilinear', average=None, head_pos=None):
         """Plot topographic patterns of CSP components
         Parameters
         ----------
-        csp : instance of CSP
-           CSP instance, patterns_ must exist (i.e. fit have been called)
+        info : instance of Info
+            Info dictionary of the epochs used to fit CSP.
+            If not possible, consider using ``create_info``.
+        components : float | array of floats | None.
+           The CSP patterns to plot. If None, n_components will be shown.
+        ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
+           The channel type to plot. For 'grad', the gradiometers are collected in
+           pairs and the RMS for each pair is plotted.
+           If None, then channels are chosen in the order given above.
         layout : None | Layout
            Layout instance specifying sensor positions (does not need to
            be specified for Neuromag data). If possible, the correct layout file
@@ -254,16 +263,16 @@ class CSP(TransformerMixin):
            The resolution of the topomap image (n pixels along each side).
         size : float
            Side length per topomap in inches.
-        csp_name : str
-           String format for CSP topomap names. Defaults to "CSP%01d"
+        cbar_fmt : str
+           String format for colorbar values.
+        time_format : str
+           String format for topomap values. Defaults to "CSP%01d"
         proj : bool | 'interactive'
            If true SSP projections are applied before display. If 'interactive',
            a check box for reversible selection of SSP projection vectors will
            be show.
         show : bool
            Show figure if True.
-        names : list | None
-           List of channel names. If None, channel names are not plotted.
         show_names : bool | callable
            If True, show channel names on top of the map. If a callable is
            passed, channel names will be formatted using the callable; e.g., to
@@ -272,6 +281,16 @@ class CSP(TransformerMixin):
            significant sensors will be shown.
         title : str | None
            Title. If None (default), no title is displayed.
+        mask : ndarray of bool, shape (n_channels, n_times) | None
+           The channels to be marked as significant at a given time point.
+           Indicies set to `True` will be considered. Defaults to None.
+        mask_params : dict | None
+           Additional plotting parameters for plotting significant sensors.
+           Default (None) equals::
+
+               dict(marker='o', markerfacecolor='w', markeredgecolor='k',
+                    linewidth=0, markersize=4)
+
         outlines : 'head' | dict | None
            The outlines to be drawn. If 'head', a head scheme will be drawn. If
            dict, each key refers to a tuple of x and y positions. The values in
@@ -296,16 +315,29 @@ class CSP(TransformerMixin):
            the head circle. If dict, can have entries 'center' (tuple) and
            'scale' (tuple) for what the center and scale of the head should be
            relative to the electrode locations.
-        
+
         Returns
         -------
         fig : instance of matplotlib.figure.Figure
            The figure.
         """
-        return plot_patterns(self, layout=layout, vmin=vmin, vmax=vmax, 
-                             sensors=sensors, colorbar=colorbar, res=res,
-                             csp_name=csp_name, size=size, names=names,
-                             show_names=show_names, cmap=cmap, 
-                             outlines=outlines, contours=contours, 
-                             image_interp=image_interp, show=False)
-           
+        
+        if components is None:
+            components = range(self.n_components)
+        
+        # set sampling frequency to have 1 component per time point
+        info['sfreq'] = 1
+        # create an evoked 
+        patterns = EvokedArray(self.patterns_.T, info, tmin=0)
+        # the call plot_topomap
+        return patterns.plot_topomap(times=components, ch_type=ch_type,
+                                     layout=layout, vmin=vmin, vmax=vmax,
+                                     cmap=cmap, colorbar=colorbar, res=res, 
+                                     cbar_fmt=cbar_fmt, sensors=sensors, 
+                                     scale=1, scale_time=1, unit='a.u.',
+                                     time_format=time_format, size=size, 
+                                     show_names=show_names, mask_params=mask_params, 
+                                     mask=mask, outlines=outlines, contours=contours, 
+                                     image_interp=image_interp, show=False)
+        
+

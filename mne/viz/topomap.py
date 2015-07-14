@@ -1020,6 +1020,11 @@ def plot_evoked_topomap(evoked, times=None, ch_type=None, layout=None,
         the head circle. If dict, can have entries 'center' (tuple) and
         'scale' (tuple) for what the center and scale of the head should be
         relative to the electrode locations.
+    
+    Returns
+    -------
+    fig : instance of matplotlib.figure.Figure
+       The figure.
     """
     from ..channels import _get_ch_type
     ch_type = _get_ch_type(evoked, ch_type)
