@@ -2371,14 +2371,18 @@ def concatenate_epochs(epochs_list):
         if not np.array_equal(epochs.times, epochs_list[0].times):
             raise ValueError('Epochs must have same times')
 
+        if epochs.baseline != epochs_list[0].baseline:
+            raise ValueError('Baseline must be same for all epochs')
+
         data.append(epochs.get_data())
         events.append(epochs.events)
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
     events = np.concatenate(events, axis=0)
     events[:, 0] = np.arange(len(events))  # arbitrary after concat
+    baseline = epochs_list[0].baseline
     out = _BaseEpochs(out.info, np.concatenate(data, axis=0), events, event_id,
-                      out.tmin, out.tmax, baseline=None, add_eeg_ref=False,
+                      out.tmin, out.tmax, baseline=baseline, add_eeg_ref=False,
                       proj=False, verbose=out.verbose)
     # We previously only set the drop log here, but we also need to set the
     # selection, too

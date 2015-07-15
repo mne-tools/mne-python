@@ -1590,5 +1590,8 @@ def test_concatenate_epochs():
 
     assert_equal(epochs_conc._raw, None)
 
+    # check if baseline is same for all epochs
+    epochs2.baseline = (-0.1, None)
+    assert_raises(ValueError, concatenate_epochs, [epochs, epochs2])
 
 run_tests_if_main()
