@@ -26,6 +26,5 @@ Manual
    manual/appendix/overview
    manual/appendix/AppA
    manual/appendix/AppB
-   manual/appendix/AppInstall
    manual/appendix/AppReleaseNotes
    manual/appendix/AppEULA
