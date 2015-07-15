@@ -11,24 +11,24 @@ of external disturbances in software. This part presents some
 relevant details of this method.
 
 In MNE-Python SSS projection vectors can be computed using general
-purpose functions :py:func:` mne.compute_proj_epochs`,
-:py:func:`ne.compute_proj_evoked`, and :py:func:`mne.compute_proj_raw`.
+purpose functions :func:` mne.compute_proj_epochs`,
+:func:`ne.compute_proj_evoked`, and :func:`mne.compute_proj_raw`.
 The general assumption these functions make is that the data passed contains
 raw, epochs or averages of the artifact. Typically this involves continues raw
 data of empty room recordings or averaged ECG or EOG artefacts.
 
 A second set of highlevel convenience functions is provided to compute
 projection vector for typical usecases. This includes
-:py:func:`mne.preprocessing.compute_proj_ecg` and
-:py:func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG
+:func:`mne.preprocessing.compute_proj_ecg` and
+:func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG
 related artifact components, respectively.
 
-The underlying implementation can be found in :py:mod:`mne.preprocessing.ssp`.
+The underlying implementation can be found in :mod:`mne.preprocessing.ssp`.
 
 The following examples demonstrate how to use the SSP code:
-In :ref:`example_visualization_plot_evoked_delayed_ssp.py` and  :ref:`example_visualization_plot_evoked_topomap_delayed_ssp.py`
+In :ref:`example_auto_examples_visualization_plot_evoked_delayed_ssp.py` and  :ref:`example_visualization_plot_evoked_topomap_delayed_ssp.py`
 SSPs are illustrated by toggling them in realtime.
-In :ref:`example_visualization_plot_ssp_projs_topomaps.py` and :ref:`example_visualization_plot_ssp_projs_sensitivity_map.py`
+In :ref:`example_auto_examples_visualization_plot_ssp_projs_topomaps.py` and :ref:`example_visualization_plot_ssp_projs_sensitivity_map.py`
 the SSP sensitivities are visualized in sensor and source space, respectively.
 
 Background
