@@ -477,7 +477,9 @@ def pick_types_forward(orig, meg=True, eeg=False, ref_meg=True, seeg=False,
 def channel_indices_by_type(info):
     """Get indices of channels by type
     """
-    idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[])
+    idx = dict(grad=[], mag=[], eeg=[], seeg=[], eog=[], ecg=[], stim=[],
+               emg=[], ref_meg=[], misc=[], resp=[], chpi=[], exci=[], ias=[],
+               syst=[])
     for k, ch in enumerate(info['chs']):
         for key in idx.keys():
             if channel_type(info, k) == key:
