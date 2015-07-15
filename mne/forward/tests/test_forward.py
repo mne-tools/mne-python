@@ -165,7 +165,8 @@ def test_apply_forward():
     # Evoked
     with warnings.catch_warnings(record=True) as w:
         evoked = read_evokeds(fname_evoked, condition=0)
-        evoked = apply_forward(fwd, stc, evoked, start=start, stop=stop)
+        evoked.pick_types(meg=True)
+        evoked = apply_forward(fwd, stc, evoked.info, start=start, stop=stop)
         assert_equal(len(w), 2)
         data = evoked.data
         times = evoked.times
