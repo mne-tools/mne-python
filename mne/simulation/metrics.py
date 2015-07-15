@@ -4,7 +4,6 @@
 # License: BSD (3-clause)
 
 import numpy as np
-from scipy.spatial.distance import cdist
 
 
 def _check_stc(stc1, stc2):
@@ -116,6 +115,7 @@ def closest_dipole_pos(point, src):
     """Find the closest dipole position to a point in space."""
     # TODO: Is this function general enough to go somewhere else?
     # Variant used in mne.label.split_label
+    from scipy.spatial.distance import cdist
     if src['dist'] is None:
         raise RuntimeError('Source space distances must exist to calculate '
                            'nearest dipole to a point in space')

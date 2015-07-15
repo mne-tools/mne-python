@@ -67,15 +67,12 @@ def generate_epochs(fwd, stcs, info, cov, events, snr=3, tmin=None, tmax=None,
     tmin, tmax = stcs[0].times[0], stcs[0].times[-1]
     sens_data_list = [_apply_forward(fwd, stc, 0, len(stc.times))
                       for stc in stcs]
-    # import pdb
-    # pdb.set_trace()
+
     sens_data = np.array([stc_info[0] for stc_info in sens_data_list])
 
     # TODO: check if other default params should be included
     # info['sfreq'] = 1. / np.diff(stc.times)[0]
     epochs = EpochsArray(sens_data, info, events, tmin=tmin)
-    # import pdb
-    # pdb.set_trace()
 
     # Generate and add in noise for epochs objects
     noise = generate_noise_epochs(epochs, cov, random_state)
@@ -94,6 +91,8 @@ def generate_noise_epochs(epochs, cov, iir_filter=None, random_state=None):
         Epochs object to be used as template
     cov : Covariance object
         The noise covariance
+    iir_filter : None | array
+        IIR filter coefficients (denominator)
     random_state : None | int | np.random.RandomState
         Random generator state
 
@@ -125,7 +124,7 @@ def add_noise_epochs(epochs, epo_noise, snr, tmin=None, tmax=None):
     ----------
     epochs : Epochs object
         An instance of epochs signal
-    noise : Epochs object
+    epo_noise : Epochs object
         An instance of epochs object filled purely with noise
     snr : float | len()
         signal to noise ratio in dB. It corresponds to
@@ -145,7 +144,6 @@ def add_noise_epochs(epochs, epo_noise, snr, tmin=None, tmax=None):
 
     tmask = _time_mask(epochs.times, tmin, tmax)
     for ei, (trial_dat, trial_noise) in enumerate(zip(epochs_tmp, noise_tmp)):
-        # import pdb; pdb.set_trace()
         tmp = 10 * np.log10(np.mean((trial_dat[:, tmask] ** 2).ravel()) /
                             np.mean((trial_noise ** 2).ravel()))
         trial_noise = 10 ** ((tmp - snr) / 20) * trial_noise
