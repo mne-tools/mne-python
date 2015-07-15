@@ -24,6 +24,19 @@ code {
     background-color: #f3f5f9 !important;
 }
 
+.devbar {
+    background-color: red;
+    color: white;
+    font-weight:bold;
+    text-align: center;
+    padding: 10px;
+    min-width: 910px;
+}
+
+.devbar a {
+    color: #b8bec4;
+}
+
 #navbar a:hover {
     color: rgb(255,2,16);
 }

@@ -6,6 +6,9 @@ The Signal-Space Projection (SSP) method
    :depth: 2
 
 
+Overview
+========
+
 The Signal-Space Projection (SSP) is one approach to rejection
 of external disturbances in software. This part presents some
 relevant details of this method.
@@ -31,11 +34,9 @@ SSPs are illustrated by toggling them in realtime.
 In :ref:`example_auto_examples_visualization_plot_ssp_projs_topomaps.py` and :ref:`example_visualization_plot_ssp_projs_sensitivity_map.py`
 the SSP sensitivities are visualized in sensor and source space, respectively.
 
-Background
-==========
 
 Concepts
---------
+========
 
 Unlike many other noise-cancellation approaches, SSP does
 not require additional reference sensors to record the disturbance
@@ -117,8 +118,9 @@ please consult the references listed in :ref:`CEGIEEBB`.
 
 .. _BABFFCHF:
 
+
 Estimation of the noise subspace
---------------------------------
+================================
 
 As described above, application of SSP requires the estimation
 of the signal vectors :math:`b_1 \dotso b_m` constituting
