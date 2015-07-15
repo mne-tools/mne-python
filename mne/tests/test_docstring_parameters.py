@@ -59,7 +59,8 @@ def get_name(func):
 _deprecation_ignores = [
     'mne.io.write',  # always ignore these
     'mne.fixes._in1d',  # fix function
-    'mne.utils.plot_epochs_trellis'
+    'mne.utils.plot_epochs_trellis',  # deprecated
+    'mne.utils.write_bem_surface',  # deprecated
 ]
 
 

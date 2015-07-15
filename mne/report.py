@@ -413,6 +413,17 @@ header_template = Template(u"""
 {{include}}
 <script type="text/javascript">
 
+        var toggle_state = false;
+        $(document).on('keydown', function (event) {
+            if (event.which == 84){
+                if (!toggle_state)
+                    $('.has_toggle').trigger('click');
+                else if (toggle_state)
+                    $('.has_toggle').trigger('click');
+            toggle_state = !toggle_state;
+            }
+        });
+
         function togglebutton(class_name){
             $(class_name).toggle();
 
@@ -524,7 +535,8 @@ div.footer {
 
         <li class="active {{sectionvars[section]}}-btn">
            <a href="javascript:void(0)"
-           onclick="togglebutton('.{{sectionvars[section]}}')">
+           onclick="togglebutton('.{{sectionvars[section]}}')"
+           class="has_toggle">
     {{section if section != 'mri' else 'MRI'}}
            </a>
         </li>
@@ -716,6 +728,12 @@ class Report(object):
         timepoints t such that a <= t <= b.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    Notes
+    -----
+    To toggle the show/hide state of all sections in the html report, press 't'
+
+    .. versionadded:: 0.8.0
     """
 
     def __init__(self, info_fname=None, subjects_dir=None,

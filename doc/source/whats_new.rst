@@ -21,6 +21,14 @@ Changelog
 
     - Add support for scaling and adjusting the number of channels/time per view by `Jaakko Leppakangas`_
 
+    - Add support to toggle the show/hide state of all sections with a single keypress ('t') in :class:`mne.report.Report` by `Mainak Jas`_
+
+    - Add support for BEM model creation :func:`mne.make_bem_model` by `Eric Larson`_
+
+    - Add support for BEM solution computation :func:`mne.make_bem_solution` by `Eric Larson`_
+
+    - Add ICA plotters for raw and epoch components by `Jaakko Leppakangas`_
+
 
 BUG
 ~~~

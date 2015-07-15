@@ -18,6 +18,7 @@ What you can do with MNE Python
     - **Averaging** to get Evoked data
     - **Compute SSP pojectors** to remove ECG and EOG artifacts
     - **Compute ICA** to remove artifacts or select latent sources.
+    - **Boundary Element Modeling**: single and three-layer BEM model creation and solution computation.
     - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
     - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
     - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
@@ -35,8 +36,7 @@ What you can do with MNE Python
 What you're not supposed to do with MNE Python
 ----------------------------------------------
 
-    - **Boundary Element Modeling** use MNE and Freesurfer.
-
+    - **Brain and head surface segmentation** for use with BEM models -- use Freesurfer.
 
 .. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D, KIT and various EEG formats to FIF.
 

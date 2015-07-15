@@ -75,7 +75,7 @@ ica.plot_scores(scores, exclude=eog_inds, title=title % 'eog')
 
 show_picks = np.abs(scores).argsort()[::-1][:5]
 
-ica.plot_sources(raw, show_picks, exclude=ecg_inds, title=title % 'eog')
+ica.plot_sources(raw, show_picks, exclude=eog_inds, title=title % 'eog')
 ica.plot_components(eog_inds, title=title % 'eog', colorbar=True)
 
 eog_inds = eog_inds[:n_max_eog]

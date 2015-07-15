@@ -22,9 +22,9 @@ from .forward._compute_forward import (_compute_forwards_meeg,
                                        _prep_field_computation)
 
 from .externals.six import string_types
-from .surface import (_bem_find_surface, transform_surface_to,
-                      _normalize_vectors, _get_ico_surface,
-                      _bem_explain_surface, _compute_nearest)
+from .surface import (transform_surface_to, _normalize_vectors,
+                      _get_ico_surface, _compute_nearest)
+from .bem import _bem_find_surface, _bem_explain_surface
 from .source_space import (_make_volume_source_space, SourceSpaces,
                            _points_outside_surface)
 from .parallel import parallel_func

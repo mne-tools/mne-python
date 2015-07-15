@@ -19,7 +19,7 @@ import tempfile
 import numpy as np
 
 from ..io import show_fiff
-from ..utils import verbose
+from ..utils import verbose, set_config
 
 
 COLORS = ['b', 'g', 'r', 'c', 'm', 'y', 'k', '#473C8B', '#458B74',
@@ -213,6 +213,91 @@ def _toggle_proj(event, params):
         params['plot_update_proj_callback'](params, bools)
 
 
+def _get_help_text(params):
+    """Aux function for customizing help dialogs text."""
+    text, text2 = list(), list()
+
+    text.append(u'\u2190 : \n')
+    text.append(u'\u2192 : \n')
+    text.append(u'\u2193 : \n')
+    text.append(u'\u2191 : \n')
+    text.append(u'- : \n')
+    text.append(u'+ or = : \n')
+    text.append(u'Home : \n')
+    text.append(u'End : \n')
+    text.append(u'Page down : \n')
+    text.append(u'Page up : \n')
+
+    text.append(u'F11 : \n')
+    text.append(u'? : \n')
+    text.append(u'Esc : \n\n')
+    text.append(u'Mouse controls\n')
+    text.append(u'click on data :\n')
+
+    text2.append('Navigate left\n')
+    text2.append('Navigate right\n')
+
+    text2.append('Scale down\n')
+    text2.append('Scale up\n')
+
+    text2.append('Toggle full screen mode\n')
+    text2.append('Open help box\n')
+    text2.append('Quit\n\n\n')
+    if 'raw' in params:
+        text2.insert(4, 'Reduce the time shown per view\n')
+        text2.insert(5, 'Increase the time shown per view\n')
+        text.append(u'click elsewhere in the plot :\n')
+        if 'ica' in params:
+            text.append(u'click component name :\n')
+            text2.insert(2, 'Navigate components down\n')
+            text2.insert(3, 'Navigate components up\n')
+            text2.insert(8, 'Reduce the number of components per view\n')
+            text2.insert(9, 'Increase the number of components per view\n')
+            text2.append('Mark bad channel\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Show topography for the component\n')
+        else:
+            text.append(u'click channel name :\n')
+            text2.insert(2, 'Navigate channels down\n')
+            text2.insert(3, 'Navigate channels up\n')
+            text2.insert(8, 'Reduce the number of channels per view\n')
+            text2.insert(9, 'Increase the number of channels per view\n')
+            text2.append('Mark bad channel\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Mark bad channel\n')
+
+    elif 'epochs' in params:
+        text.append(u'right click :\n')
+        text2.insert(4, 'Reduce the number of epochs per view\n')
+        text2.insert(5, 'Increase the number of epochs per view\n')
+        if 'ica' in params:
+            text.append(u'click component name :\n')
+            text2.insert(2, 'Navigate components down\n')
+            text2.insert(3, 'Navigate components up\n')
+            text2.insert(8, 'Reduce the number of components per view\n')
+            text2.insert(9, 'Increase the number of components per view\n')
+            text2.append('Mark component for exclusion\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Show topography for the component\n')
+        else:
+            text.append(u'click channel name :\n')
+            text2.insert(2, 'Navigate channels down\n')
+            text2.insert(3, 'Navigate channels up\n')
+            text2.insert(8, 'Reduce the number of channels per view\n')
+            text2.insert(9, 'Increase the number of channels per view\n')
+            text.insert(10, u'b : \n')
+            text2.insert(10, 'Toggle butterfly plot on/off\n')
+            text2.append('Mark bad epoch\n')
+            text2.append('Vertical line at a time instant\n')
+            text2.append('Mark bad channel\n')
+            text.append(u'middle click :\n')
+            text2.append('Show channel name (butterfly plot)\n')
+        text.insert(11, u'o : \n')
+        text2.insert(11, 'View settings (orig. view only)\n')
+
+    return ''.join(text), ''.join(text2)
+
+
 def _prepare_trellis(n_cells, max_col):
     """Aux function
     """
@@ -388,6 +473,217 @@ def figure_nobar(*args, **kwargs):
     finally:
         rcParams['toolbar'] = old_val
     return fig
+
+
+def _helper_raw_resize(event, params):
+    """Helper for resizing"""
+    size = ','.join([str(s) for s in params['fig'].get_size_inches()])
+    set_config('MNE_BROWSE_RAW_SIZE', size)
+    _layout_figure(params)
+
+
+def _plot_raw_onscroll(event, params, len_channels=None):
+    """Interpret scroll events"""
+    if len_channels is None:
+        len_channels = len(params['info']['ch_names'])
+    orig_start = params['ch_start']
+    if event.step < 0:
+        params['ch_start'] = min(params['ch_start'] + params['n_channels'],
+                                 len_channels - params['n_channels'])
+    else:  # event.key == 'up':
+        params['ch_start'] = max(params['ch_start'] - params['n_channels'], 0)
+    if orig_start != params['ch_start']:
+        _channels_changed(params, len_channels)
+
+
+def _channels_changed(params, len_channels):
+    """Helper function for dealing with the vertical shift of the viewport."""
+    if params['ch_start'] + params['n_channels'] > len_channels:
+        params['ch_start'] = len_channels - params['n_channels']
+    if params['ch_start'] < 0:
+        params['ch_start'] = 0
+    params['plot_fun']()
+
+
+def _plot_raw_time(value, params):
+    """Deal with changed time value"""
+    info = params['info']
+    max_times = params['n_times'] / float(info['sfreq']) - params['duration']
+    if value > max_times:
+        value = params['n_times'] / info['sfreq'] - params['duration']
+    if value < 0:
+        value = 0
+    if params['t_start'] != value:
+        params['t_start'] = value
+        params['hsel_patch'].set_x(value)
+
+
+def _plot_raw_onkey(event, params):
+    """Interpret key presses"""
+    import matplotlib.pyplot as plt
+    if event.key == 'escape':
+        plt.close(params['fig'])
+    elif event.key == 'down':
+        params['ch_start'] += params['n_channels']
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'up':
+        params['ch_start'] -= params['n_channels']
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'right':
+        value = params['t_start'] + params['duration']
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'left':
+        value = params['t_start'] - params['duration']
+        _plot_raw_time(value, params)
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key in ['+', '=']:
+        params['scale_factor'] *= 1.1
+        params['plot_fun']()
+    elif event.key == '-':
+        params['scale_factor'] /= 1.1
+        params['plot_fun']()
+    elif event.key == 'pageup':
+        n_channels = params['n_channels'] + 1
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'pagedown':
+        n_channels = params['n_channels'] - 1
+        if n_channels == 0:
+            return
+        offset = params['ax'].get_ylim()[0] / n_channels
+        params['offsets'] = np.arange(n_channels) * offset + (offset / 2.)
+        params['n_channels'] = n_channels
+        params['ax'].set_yticks(params['offsets'])
+        params['vsel_patch'].set_height(n_channels)
+        if len(params['lines']) > n_channels:  # remove line from view
+            params['lines'][n_channels].set_xdata([])
+            params['lines'][n_channels].set_ydata([])
+        _channels_changed(params, len(params['info']['ch_names']))
+    elif event.key == 'home':
+        duration = params['duration'] - 1.0
+        if duration <= 0:
+            return
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == 'end':
+        duration = params['duration'] + 1.0
+        if duration > params['raw'].times[-1]:
+            duration = params['raw'].times[-1]
+        params['duration'] = duration
+        params['hsel_patch'].set_width(params['duration'])
+        params['update_fun']()
+        params['plot_fun']()
+    elif event.key == '?':
+        _onclick_help(event, params)
+    elif event.key == 'f11':
+        mng = plt.get_current_fig_manager()
+        mng.full_screen_toggle()
+
+
+def _mouse_click(event, params):
+    """Vertical select callback"""
+    if event.button != 1:
+        return
+    if event.inaxes is None:
+        if params['n_channels'] > 100:
+            return
+        ax = params['ax']
+        ylim = ax.get_ylim()
+        pos = ax.transData.inverted().transform((event.x, event.y))
+        if pos[0] > params['t_start'] or pos[1] < 0 or pos[1] > ylim[0]:
+            return
+        params['label_click_fun'](pos)
+    # vertical scrollbar changed
+    if event.inaxes == params['ax_vscroll']:
+        ch_start = max(int(event.ydata) - params['n_channels'] // 2, 0)
+        if params['ch_start'] != ch_start:
+            params['ch_start'] = ch_start
+            params['plot_fun']()
+    # horizontal scrollbar changed
+    elif event.inaxes == params['ax_hscroll']:
+        _plot_raw_time(event.xdata - params['duration'] / 2, params)
+        params['update_fun']()
+        params['plot_fun']()
+
+    elif event.inaxes == params['ax']:
+        params['pick_bads_fun'](event)
+
+
+def _select_bads(event, params, bads):
+    """Helper for selecting bad channels onpick. Returns updated bads list."""
+    # trade-off, avoid selecting more than one channel when drifts are present
+    # however for clean data don't click on peaks but on flat segments
+    def f(x, y):
+        return y(np.mean(x), x.std() * 2)
+    lines = event.inaxes.lines
+    for line in lines:
+        ydata = line.get_ydata()
+        if not isinstance(ydata, list) and not np.isnan(ydata).any():
+            ymin, ymax = f(ydata, np.subtract), f(ydata, np.add)
+            if ymin <= event.ydata <= ymax:
+                this_chan = vars(line)['ch_name']
+                if this_chan in params['info']['ch_names']:
+                    ch_idx = params['ch_start'] + lines.index(line)
+                    if this_chan not in bads:
+                        bads.append(this_chan)
+                        color = params['bad_color']
+                        line.set_zorder(-1)
+                    else:
+                        while this_chan in bads:
+                            bads.remove(this_chan)
+                        color = vars(line)['def_color']
+                        line.set_zorder(0)
+                    line.set_color(color)
+                    params['ax_vscroll'].patches[ch_idx].set_color(color)
+                    break
+    else:
+        x = np.array([event.xdata] * 2)
+        params['ax_vertline'].set_data(x, np.array(params['ax'].get_ylim()))
+        params['ax_hscroll_vertline'].set_data(x, np.array([0., 1.]))
+        params['vertline_t'].set_text('%0.3f' % x[0])
+    return bads
+
+
+def _onclick_help(event, params):
+    """Function for drawing help window"""
+    import matplotlib.pyplot as plt
+    text, text2 = _get_help_text(params)
+
+    width = 6
+    height = 5
+
+    fig_help = figure_nobar(figsize=(width, height), dpi=80)
+    fig_help.canvas.set_window_title('Help')
+    ax = plt.subplot2grid((8, 5), (0, 0), colspan=5)
+    ax.set_title('Keyboard shortcuts')
+    plt.axis('off')
+    ax1 = plt.subplot2grid((8, 5), (1, 0), rowspan=7, colspan=2)
+    ax1.set_yticklabels(list())
+    plt.text(0.99, 1, text, fontname='STIXGeneral', va='top', weight='bold',
+             ha='right')
+    plt.axis('off')
+
+    ax2 = plt.subplot2grid((8, 5), (1, 2), rowspan=7, colspan=3)
+    ax2.set_yticklabels(list())
+    plt.text(0, 1, text2, fontname='STIXGeneral', va='top')
+    plt.axis('off')
+
+    tight_layout(fig=fig_help)
+    # this should work for non-test cases
+    try:
+        fig_help.canvas.draw()
+        fig_help.show()
+    except Exception:
+        pass
 
 
 class ClickableImage(object):

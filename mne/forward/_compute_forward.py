@@ -687,7 +687,7 @@ def _prep_field_computation(rr, bem, fwd_data, n_jobs, verbose=None):
 
     bem_rr = mults = mri_Q = head_mri_t = None
     if not bem['is_sphere']:
-        if bem['bem_method'] != 'linear collocation':
+        if bem['bem_method'] != FIFF.FWD_BEM_LINEAR_COLL:
             raise RuntimeError('only linear collocation supported')
         # Store (and apply soon) μ_0/(4π) factor before source computations
         mults = np.repeat(bem['source_mult'] / (4.0 * np.pi),
