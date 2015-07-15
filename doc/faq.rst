@@ -43,7 +43,7 @@ freedom, e.g. ``ddof=3`` with 2 active SSP vectors)::
 This plot displays both, the whitened evoked signals for each channels and
 the whitened GFP. The numbers in the GFP panel represent the estimated rank of
 the data, which amounts to the effective degrees of freedom by which the
-squared sum across sensors is divided when computing the whitened GFP [1]_.
+squared sum across sensors is divided when computing the whitened GFP.
 The whitened GFP also helps detecting spurious late evoked components which
 can be the consequence of over- or under-regularization.
 
@@ -66,8 +66,10 @@ for all estimators as separate lines in the related panel.
 
 References
 ----------
+
 .. [1] Engemann D. and Gramfort A. (2015) Automated model selection in
     covariance estimation and spatial whitening of MEG and EEG signals,
     vol. 108, 328-342, NeuroImage.
+
 .. [2] Taulu, S., Simola, J., Kajola, M., 2005. Applications of the signal space
     separation method. IEEE Trans. Signal Proc. 53, 3359–3372.
