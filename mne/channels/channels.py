@@ -314,7 +314,7 @@ class SetChannelsMixin(object):
         _set_montage(self.info, montage)
 
 
-class PickDropChannelsMixin(object):
+class UpdateChannelsMixin(object):
     """Mixin class for Raw, Evoked, Epochs, AverageTFR
     """
     def pick_types(self, meg=True, eeg=False, stim=False, eog=False,
@@ -472,6 +472,71 @@ class PickDropChannelsMixin(object):
             self.data = self.data.take(idx, axis=0)
         elif isinstance(self, Evoked):
             self.data = self.data.take(idx, axis=0)
+
+    def add_channels(self, add_list, copy=False):
+        """Append new channels to the instance.
+
+        Parameters
+        ----------
+        add_list : list
+            A list of objects to append to self. Must contain all the same
+            type as the current object
+        copy : bool
+            Whether to return a new instance or modify in place
+
+        Returns
+        -------
+        out : MNE object of type(self)
+            An object with new channels appended (will be the same
+            object if copy==False)
+        """
+        # avoid circular imports
+        from ..io.base import _BaseRaw
+        from ..epochs import _BaseEpochs
+        from ..io.meas_info import _merge_info
+
+        if not isinstance(add_list, (list, tuple)):
+            raise AssertionError('Input must be a list or tuple of objs')
+
+        # Object-specific checks
+        if isinstance(self, (_BaseRaw, _BaseEpochs)):
+            if not all([inst.preload for inst in add_list] + [self.preload]):
+                raise AssertionError('All data must be preloaded')
+            data_name = '_data'
+            if isinstance(self, _BaseRaw):
+                con_axis = 0
+                comp_class = _BaseRaw
+            elif isinstance(self, _BaseEpochs):
+                con_axis = 1
+                comp_class = _BaseEpochs
+        else:
+            data_name = 'data'
+            con_axis = 0
+            comp_class = type(self)
+        if not all(isinstance(inst, comp_class) for inst in add_list):
+            raise AssertionError('All input data must be of same type')
+        data = [getattr(self, data_name)] + [getattr(inst, data_name)
+                                             for inst in add_list]
+
+        # Make sure that all dimensions other than channel axis are the same
+        compare_axes = [i for i in range(data[0].ndim) if i != con_axis]
+        shapes = np.array([dat.shape for dat in data])[:, compare_axes]
+        if not ((shapes[0] - shapes) == 0).all():
+            raise AssertionError('All dimensions except channels must match')
+
+        # Create final data / info objects
+        data = np.concatenate(data, axis=con_axis)
+        infos = [self.info] + [inst.info for inst in add_list]
+        new_info = _merge_info(infos)
+
+        # Now update the attributes
+        if copy is True:
+            out = self.copy()
+        else:
+            out = self
+        setattr(out, data_name, data)
+        out.info = new_info
+        return out
 
 
 class InterpolationMixin(object):

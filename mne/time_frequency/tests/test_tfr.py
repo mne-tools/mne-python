@@ -261,4 +261,41 @@ def test_plot():
     tfr.plot_topo()
     plt.close('all')
 
+
+def test_add_channels():
+    """Test tfr splitting / re-appending channel types
+    """
+    data = np.zeros((6, 2, 3))
+    times = np.array([.1, .2, .3])
+    freqs = np.array([.10, .20])
+    info = mne.create_info(
+        ['MEG 001', 'MEG 002', 'MEG 003', 'EEG 001', 'EEG 002', 'STIM 001'],
+        1000., ['mag', 'mag', 'mag', 'eeg', 'eeg', 'stim'])
+    tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
+                     nave=20, comment='test', method='crazy-tfr')
+    tfr_eeg = tfr.pick_types(meg=False, eeg=True, copy=True)
+    tfr_meg = tfr.pick_types(meg=True, copy=True)
+    tfr_stim = tfr.pick_types(meg=False, stim=True, copy=True)
+    tfr_eeg_meg = tfr.pick_types(meg=True, eeg=True, copy=True)
+    tfr_new = tfr_meg.add_channels([tfr_eeg, tfr_stim], copy=True)
+    assert_true(all(ch in tfr_new.ch_names
+                    for ch in tfr_stim.ch_names + tfr_meg.ch_names))
+    tfr_new = tfr_meg.add_channels([tfr_eeg], copy=True)
+
+    assert_true(ch in tfr_new.ch_names for ch in tfr.ch_names)
+    assert_array_equal(tfr_new.data, tfr_eeg_meg.data)
+    assert_true(all(ch not in tfr_new.ch_names
+                    for ch in tfr_stim.ch_names))
+
+    # Now test errors
+    tfr_badsf = tfr_eeg.copy()
+    tfr_badsf.info['sfreq'] = 3.1415927
+    tfr_eeg = tfr_eeg.crop(-.1, .1)
+
+    assert_raises(RuntimeError, tfr_meg.add_channels, [tfr_badsf])
+    assert_raises(AssertionError, tfr_meg.add_channels, [tfr_eeg])
+    assert_raises(ValueError, tfr_meg.add_channels, [tfr_meg])
+    assert_raises(AssertionError, tfr_meg.add_channels, tfr_badsf)
+
+
 run_tests_if_main()

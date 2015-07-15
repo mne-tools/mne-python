@@ -11,7 +11,7 @@ import numpy as np
 import warnings
 
 from .baseline import rescale
-from .channels.channels import (ContainsMixin, PickDropChannelsMixin,
+from .channels.channels import (ContainsMixin, UpdateChannelsMixin,
                                 SetChannelsMixin, InterpolationMixin,
                                 equalize_channels)
 from .filter import resample, detrend, FilterMixin
@@ -40,7 +40,7 @@ _aspect_rev = {str(FIFF.FIFFV_ASPECT_AVERAGE): 'average',
                str(FIFF.FIFFV_ASPECT_STD_ERR): 'standard_error'}
 
 
-class Evoked(ProjMixin, ContainsMixin, PickDropChannelsMixin,
+class Evoked(ProjMixin, ContainsMixin, UpdateChannelsMixin,
              SetChannelsMixin, InterpolationMixin, FilterMixin,
              ToDataFrameMixin):
     """Evoked data

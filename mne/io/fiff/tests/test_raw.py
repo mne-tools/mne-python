@@ -954,6 +954,37 @@ def test_raw_index_as_time():
     assert_equal(i1[0], 100)
 
 
+def test_add_channels():
+    """Test raw splitting / re-appending channel types
+    """
+    raw = Raw(test_fif_fname).crop(0, 1).preload_data()
+    raw_nopre = Raw(test_fif_fname, preload=False)
+    raw_eeg_meg = raw.pick_types(meg=True, eeg=True, copy=True)
+    raw_eeg = raw.pick_types(meg=False, eeg=True, copy=True)
+    raw_meg = raw.pick_types(meg=True, eeg=False, copy=True)
+    raw_stim = raw.pick_types(meg=False, eeg=False, stim=True, copy=True)
+    raw_new = raw_meg.add_channels([raw_eeg, raw_stim], copy=True)
+    assert_true(all(ch in raw_new.ch_names
+                    for ch in raw_stim.ch_names + raw_meg.ch_names))
+    raw_new = raw_meg.add_channels([raw_eeg], copy=True)
+
+    assert_true(ch in raw_new.ch_names for ch in raw.ch_names)
+    assert_array_equal(raw_new[:, :][0], raw_eeg_meg[:, :][0])
+    assert_array_equal(raw_new[:, :][1], raw[:, :][1])
+    assert_true(all(ch not in raw_new.ch_names for ch in raw_stim.ch_names))
+
+    # Now test errors
+    raw_badsf = raw_eeg.copy()
+    raw_badsf.info['sfreq'] = 3.1415927
+    raw_eeg = raw_eeg.crop(.5)
+
+    assert_raises(AssertionError, raw_meg.add_channels, [raw_nopre])
+    assert_raises(RuntimeError, raw_meg.add_channels, [raw_badsf])
+    assert_raises(AssertionError, raw_meg.add_channels, [raw_eeg])
+    assert_raises(ValueError, raw_meg.add_channels, [raw_meg])
+    assert_raises(AssertionError, raw_meg.add_channels, raw_badsf)
+
+
 @testing.requires_testing_data
 def test_raw_time_as_index():
     """ Test time as index conversion"""

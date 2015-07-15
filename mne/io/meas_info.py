@@ -1343,8 +1343,8 @@ def create_info(ch_names, sfreq, ch_types=None, montage=None):
 
 
 RAW_INFO_FIELDS = (
-    'acq_pars', 'acq_stim', 'bads', 'ch_names', 'chs', 'comps',
-    'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
+    'acq_pars', 'acq_stim', 'bads', 'buffer_size_sec', 'ch_names', 'chs',
+    'comps', 'ctf_head_t', 'custom_ref_applied', 'description', 'dev_ctf_t',
     'dev_head_t', 'dig', 'experimenter', 'events',
     'file_id', 'filename', 'highpass', 'hpi_meas', 'hpi_results',
     'hpi_subsystem', 'line_freq', 'lowpass', 'meas_date', 'meas_id', 'nchan',
@@ -1355,7 +1355,7 @@ RAW_INFO_FIELDS = (
 def _empty_info():
     """Create an empty info dictionary"""
     _none_keys = (
-        'acq_pars', 'acq_stim', 'ctf_head_t', 'description',
+        'acq_pars', 'acq_stim', 'buffer_size_sec', 'ctf_head_t', 'description',
         'dev_ctf_t', 'dig', 'experimenter',
         'file_id', 'filename', 'highpass', 'hpi_subsystem', 'line_freq',
         'lowpass', 'meas_date', 'meas_id', 'proj_id', 'proj_name',
