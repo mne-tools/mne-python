@@ -15,6 +15,8 @@ from .. import Covariance, EvokedArray, Evoked
 from ..io.pick import pick_types
 from .ica import _get_fast_dot
 from ..utils import logger
+from ..decoding.mixin import TransformerMixin
+from ..channels.channels import ContainsMixin
 
 
 def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
@@ -146,7 +148,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
     return evokeds
 
 
-class Xdawn(object):
+class Xdawn(TransformerMixin, ContainsMixin):
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
@@ -199,6 +201,7 @@ class Xdawn(object):
                  reg=None):
         """init xdawn."""
         self.n_components = n_components
+        self.signal_cov = signal_cov
         self.reg = reg
         self.filters_ = dict()
         self.patterns_ = dict()
@@ -220,14 +223,15 @@ class Xdawn(object):
             raise ValueError('signal_cov must be None, a covariance instance '
                              'or a ndarray')
 
-    def fit(self, epochs):
+    def fit(self, epochs, y=None):
         """Fit Xdawn from epochs.
 
         Parameters
         ----------
         epochs : Epoch object
             An instance of Epoch on which Xdawn filters will be trained.
-
+        y : None
+            Compatibility with decoding.
         Returns
         -------
         self : Xdawn instance
@@ -237,7 +241,7 @@ class Xdawn(object):
             self.correct_overlap = _check_overlapp(epochs)
 
         # Extract signal covariance
-        if self.signal_cov is None:
+        if self.signal_cov_ is None:
             if self.correct_overlap:
                 sig_data = _construct_signal_from_epochs(epochs)
             else:
@@ -253,6 +257,8 @@ class Xdawn(object):
                                  'correction activated')
             evo, to = least_square_evoked(epochs, return_toeplitz=True)
         else:
+            evo = dict()
+            to = dict()
             for eid in epochs.event_id:
                 evo[eid] = epochs[eid].average()
                 to[eid] = 1.0 / len(epochs[eid])
@@ -294,6 +300,38 @@ class Xdawn(object):
         self.exclude = range(self.n_components, len(self.ch_names))
         self.event_id = epochs.event_id
         return self
+
+    def transform(self, epochs):
+        """Apply Xdawn dim reduction.
+
+        Parameters
+        ----------
+        epochs : Epoch or array, shape=(n_trial x n_channels x n_times)
+            Data on which Xdawn filters will be applied.
+
+        Returns
+        -------
+        X : array, shape(n_trials x n_components * event_types x n_times)
+            Spatially filtered signals.
+        """
+        if isinstance(epochs, _BaseEpochs):
+            data = epochs.get_data()
+        elif isinstance(epochs, np.ndarray):
+            data = epochs
+        else:
+            raise ValueError('Data input must be of Epoch '
+                             'type or numpy array')
+
+        # create full matrix of spatial filter
+        V = []
+        for f in self.filters_.values():
+            V.append(f[:, 0:self.n_components])
+        V = np.concatenate(V, axis=1)
+
+        # Apply spatial filters
+        X = np.dot(V.T, data)
+        X = X.transpose((1, 0, 2))
+        return X
 
     def apply(self, inst, event_id=None, include=None, exclude=None):
         """Remove selected components from the signal.
@@ -359,7 +397,7 @@ class Xdawn(object):
         return raws
 
     def _apply_epochs(self, epochs, include, exclude, event_id):
-
+        """Aux method."""
         if not epochs.preload:
             raise ValueError('Epochs must be preloaded to apply ICA')
 
@@ -391,7 +429,7 @@ class Xdawn(object):
         return epochs_dict
 
     def _apply_evoked(self, evoked, include, exclude, event_id):
-
+        """Aux method."""
         picks = pick_types(evoked.info, meg=False, ref_meg=False,
                            include=self.ch_names,
                            exclude='bads')
@@ -419,7 +457,7 @@ class Xdawn(object):
         return evokeds
 
     def _pick_sources(self, data, include, exclude, eid):
-        """Aux function."""
+        """Aux method."""
         fast_dot = _get_fast_dot()
         if exclude is None:
             exclude = self.exclude
