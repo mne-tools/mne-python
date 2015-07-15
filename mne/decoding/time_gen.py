@@ -33,7 +33,6 @@ class _DecodingTime(dict):
     If None, empty dict. """
 
     def __repr__(self):
-        """Human readable representation"""
         s = ""
         if "start" in self:
             s += "start: %0.3f (s)" % (self["start"])
@@ -748,7 +747,6 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
             n_jobs=n_jobs)
 
     def __repr__(self):
-        """Human readable representation"""
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
@@ -1018,7 +1016,6 @@ class TimeDecoding(_GeneralizationAcrossTime):
         self._clean_times()
 
     def __repr__(self):
-        """Human readable representation"""
         s = ''
         if hasattr(self, "estimators_"):
             s += "fitted, start : %0.3f (s), stop : %0.3f (s)" % (
