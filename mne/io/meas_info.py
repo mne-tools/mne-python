@@ -1096,8 +1096,29 @@ def _merge_dict_values(dicts, key, verbose=None):
 
 @verbose
 def _merge_info(infos, verbose=None):
-    """Merge two measurement info dictionaries"""
+    """Merge multiple measurement info dictionaries.
 
+     - Fields that are present in only one info object will be used in the
+       merged info.
+     - Fields that are present in multiple info objects and are the same
+       will be used in the merged info.
+     - Fields that are present in multiple info objects and are different
+       will result in a None value in the merged info.
+     - Channels will be concatenated. If multiple info objects contain
+       channels with the same name, an exception is raised.
+
+    Parameters
+    ----------
+    infos | list of instance of Info
+        Other info objects to merge into this info object.
+    verbose : bool, str, int, or NonIe
+        If not None, override default verbose level (see mne.verbose).
+
+    Returns
+    -------
+    info : instance of Info
+        The merged info object.
+    """
     info = Info()
     ch_names = _merge_dict_values(infos, 'ch_names')
     duplicates = set([ch for ch in ch_names if ch_names.count(ch) > 1])
