@@ -1099,8 +1099,8 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
-                  verbose=None, info=None):
+def apply_forward(fwd, stc, info, start=None, stop=None,
+                  verbose=None, evoked_template=None):
     """
     Project source space currents to sensor space using a forward operator.
 
@@ -1120,16 +1120,16 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
         Forward operator to use. Has to be fixed-orientation.
     stc : SourceEstimate
         The source estimate from which the sensor space data is computed.
-    evoked_template : Evoked object
-        Evoked object used as template to generate the output argument.
+    info : dict
+        Measurement info to generate the evoked.
     start : int, optional
         Index of first time sample (index not time is seconds).
     stop : int, optional
         Index of first time sample not to include (index not time is seconds).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    info : dict
-        Measurement info to generate the evoked.
+    evoked_template : Evoked object
+        Evoked object used as template to generate the output argument.
 
     Returns
     -------
@@ -1140,11 +1140,11 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-    if evoked_template is not None or not isinstance(evoked_template, Info):
+    if evoked_template is not None or not isinstance(info, Info):
         warnings.warn('"evoked" is deprecated and will be removed in '
                       'MNE-0.11. Please give evoked.info instead',
                       DeprecationWarning)
-        info = evoked_template.info
+        info = info.info
 
     # make sure evoked_template contains all channels in fwd
     for ch_name in fwd['sol']['row_names']:
