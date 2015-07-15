@@ -1198,6 +1198,8 @@ class TimeDecoding(_GeneralizationAcrossTime):
                                           self.train_times_['slices']]
             self.test_times_['times'] = [[tim] for tim in
                                          self.train_times_['times']]
+        if hasattr(self, 'scores_'):
+            self.scores_ = [[score] for score in self.scores_]
         if hasattr(self, 'y_pred_'):
             self.y_pred_ = [[y_pred] for y_pred in self.y_pred_]
 
