@@ -242,7 +242,7 @@ def regress_continuous(raw, events, event_id=None,
 
         # this is the magical part (thanks to Marijn van Vliet):
         # use toeplitz to construct series of diagonals
-        pred_arrays.append(scipy.linalg.toeplitz(samples, lags))
+        pred_arrays.append(linalg.toeplitz(samples, lags))
 
     big_arr = np.hstack(pred_arrays).T
     # find only those positions where at least one predictor isn't 0
