@@ -39,7 +39,7 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.pngmath',
               'sphinx.ext.mathjax',
               'numpy_ext.numpydoc',
-              'flow_diagram',
+              # 'flow_diagram',
               'sphinxgallery.gen_gallery']
 autosummary_generate = True
 
