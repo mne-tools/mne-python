@@ -1549,12 +1549,20 @@ def _plot_histogram(params):
         data.append(grads.ravel())
         types.append('grad')
     fig = plt.figure(len(types))
+    scalings = _handle_default('scalings')
+    units = _handle_default('units')
+    titles = _handle_default('titles')
     for idx in range(len(types)):
         plt.subplot(len(types), 1, idx + 1)
-        plt.hist(data[idx], bins=20)
-        plt.title(types[idx])
+        plt.xlabel(units[types[idx]])
+        plt.ylabel('count')
+        plt.hist(data[idx] * scalings[types[idx]], bins=100)
+        plt.title(titles[types[idx]])
     fig.suptitle('Peak-to-peak histogram', y=0.99)
     tight_layout(fig=fig)
-    fig.show()
+    try:
+        fig.show()
+    except:
+        pass
     if params['fig_proj'] is not None:
         params['fig_proj'].canvas.draw()
