@@ -1,8 +1,8 @@
 """
 .. _intro_tutorial:
 
-MEG and EEG data processing with MNE and Python
-=========================================================
+Basic MEG and EEG data processing
+=================================
 
 MNE-Python reimplements most of MNE-C's (the original MNE command line utils) functionality and offers transparent scripting.
 On top of that it extends MNE-C's functionality considerably (customize events, compute
@@ -56,19 +56,18 @@ See :ref:`getting_started` with Python.
 
 
     %run plot_find_ecg_artifacts.py
-"""
 
-##############################################################################
-# From raw data to evoked data
-# ----------------------------
-#
-# .. _ipython: http://ipython.scipy.org/
-#
-# Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
-#
-#   $ ipython --pylab -qt
-#
-# First, load the mne package:
+From raw data to evoked data
+----------------------------
+
+.. _ipython: http://ipython.scipy.org/
+
+Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
+
+  $ ipython --pylab -qt
+
+First, load the mne package:
+"""
 
 import mne
 
@@ -86,19 +85,18 @@ mne.set_log_level('INFO')
 # You can set the default level by setting the environment variable
 # "MNE_LOGGING_LEVEL", or by having mne-python write preferences to a file:
 
-mne.set_config('MNE_LOGGING_LEVEL','WARNING') # doctest: +SKIP
+mne.set_config('MNE_LOGGING_LEVEL','WARNING')
 
 ##############################################################################
 # Note that the location of the mne-python preferences file (for easier manual
 # editing) can be found using:
 
-mne.get_config_path() # doctest: +SKIP
+mne.get_config_path()
 
 ##############################################################################
 # By default logging messages print to the console, but look at
 # mne.set_log_file() to save output to a file.
-
-##############################################################################
+#
 # Access raw data
 # ^^^^^^^^^^^^^^^
 
@@ -109,8 +107,7 @@ print(raw_fname)
 
 ##############################################################################
 # .. note:: The MNE sample dataset should be downloaded automatically but be patient (approx. 2GB)
-
-##############################################################################
+#
 # Read data from file:
 
 raw = mne.io.Raw(raw_fname)
@@ -135,8 +132,10 @@ raw.plot()
 ##############################################################################
 # Save a segment of 150s of raw data (MEG only):
 
-picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True, exclude='bads')
-raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks, overwrite=True)
+picks = mne.pick_types(raw.info, meg=True, eeg=False, stim=True,
+                       exclude='bads')
+raw.save('sample_audvis_meg_raw.fif', tmin=0, tmax=150, picks=picks,
+         overwrite=True)
 
 ##############################################################################
 # Define and read epochs
@@ -269,8 +268,9 @@ freqs = np.arange(7, 30, 3)  # frequencies of interest
 # Compute induced power and phase-locking values and plot gradiometers:
 
 from mne.time_frequency import tfr_morlet
-power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles, return_itc=True, decim=3, n_jobs=1)
-power.plot()
+power, itc = tfr_morlet(epochs, freqs=freqs, n_cycles=n_cycles,
+                        return_itc=True, decim=3, n_jobs=1)
+# power.plot()
 
 ##############################################################################
 # Inverse modeling: MNE and dSPM on evoked and raw data
@@ -314,7 +314,8 @@ label = mne.read_label(fname_label)
 
 from mne.minimum_norm import apply_inverse_raw
 start, stop = raw.time_as_index([0, 15])  # read the first 15s of data
-stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label, start, stop)
+stc = apply_inverse_raw(raw, inverse_operator, lambda2, method, label,
+                        start, stop)
 
 ##############################################################################
 # Save result in stc files:
@@ -344,3 +345,5 @@ stc.save('mne_dSPM_raw_inverse_Aud')
 # ^^^^^^^^^^^^^^^^^^^
 #
 # Browse :ref:`examples-index` gallery.
+
+print("Done!")
