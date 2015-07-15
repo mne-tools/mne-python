@@ -2,14 +2,14 @@
 
 .. _ch_convert:
 
-===============
-Data conversion
-===============
+===========================
+Data reading and conversion
+===========================
 
 Overview
 ########
 
-This Chapter describes the data conversion utilities included
+Here we describe the data reading and conversion utilities included
 with the MNE software.
 
 .. _BEHIAADG:
@@ -17,13 +17,25 @@ with the MNE software.
 Importing data from other MEG/EEG systems
 #########################################
 
-This section describes the utilities to convert data from
+This part describes the utilities to convert data from
 other MEG/EEG systems into the fif format.
 
-Importing 4-D Neuroimaging data
-===============================
 
-The newest version of 4-D Magnes software includes the possibility
+Importing MEG data
+==================
+
+This section describes reading and converting of various MEG data formats.
+
+Importing 4-D Neuroimaging / BTI data
+-------------------------------------
+
+The python toolbox includes a function to read and convert 4D / BTI data.
+
+
+Background
+^^^^^^^^^^
+
+The newest version of 4-D Magnes software included the possibility
 to export data in fif. Please consult the documentation of the Magnes
 system for details of this export utility. However, the exported
 fif file does not include information about the compensation channels
@@ -32,43 +44,18 @@ To augment the Magnes fif files with the necessary information,
 the MNE software includes the utilities mne_insert_4D_comp , mne_create_comp_data ,
 and mne_add_to_meas_info.
 
-As a result, the complete 4D Magnes data conversion process
-involves the following steps:
 
-- Export the raw data fif file from the
-  Magnes system.
-
-- If the data comes from a Magnes system where the primary (helmet) sensors
-  are gradiometers instead of magnetometers, run mne_fix_mag_coil_types with
-  the ``--magnes`` option to correct the channel information
-  in the file, see :ref:`CHDGAAJC`.
-
-- Export a text file containing the Magnes compensation sensor
-  data.
-
-- Create a text file containing the appropriate compensation
-  channel weights.
-
-- Run mne_insert_4D_comp with
-  the files created in the first two steps to merge compensation channel
-  data with the original Magnes fif file.
-
-- Run mne_create_comp_data on
-  the file created in step 3. to make a fif file containing the compensation
-  weights.
-
-- Run mne_add_to_meas_info with
-  the fif files created in steps 4. and 5. as input to result in a
-  complete fif file containing all the necessary data.
-
-.. note:: Including the compensation channel data is recommended    but not mandatory. If the data are saved in the Magnes system are    already compensated, there will be a small error in the forward    calculations whose significance has not been evaluated carefully    at this time.
+.. note:: Including the compensation channel data is recommended but not mandatory.
+If the data are saved in the Magnes system are already compensated,
+there will be a small error in the forward calculations whose significance
+has not been evaluated carefully at this time.
 
 .. _BEHDEBCH:
 
 Importing CTF data
-==================
+------------------
 
-The MNE software includes a utility mne_ctf2fiff ,
+The C command line tools include a utility mne_ctf2fiff ,
 based on the BrainStorm Matlab code by Richard Leahy, John Mosher,
 and Sylvain Baillet, to convert data in CTF ds directory to fif
 format.
