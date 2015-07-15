@@ -12,7 +12,7 @@ from nose.tools import assert_true  # , assert_raises
 import warnings
 
 from mne.datasets import testing
-from mne import read_forward_solution  # , read_label
+from mne import read_forward_solution, read_label
 # from mne.time_frequency import morlet
 from mne.simulation import simulate_sparse_stc, generate_epochs
 from mne.forward import restrict_forward_to_stc
@@ -46,9 +46,9 @@ def test_simulate_epochs():
     fwd = pick_types_forward(fwd, meg=True, eeg=True, exclude=raw.info['bads'])
     cov = read_cov(cov_fname)
     eve = read_events(eve_name)
-    # label_names = ['Aud-lh', 'Aud-rh']
-    # labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
-    #                      '%s.label' % label)) for label in label_names]
+    label_names = ['Aud-lh', 'Aud-rh']
+    labels = [read_label(op.join(data_path, 'MEG', 'sample', 'labels',
+                         '%s.label' % label)) for label in label_names]
 
     n_epochs = 3
     snr = 5  # dB
@@ -62,10 +62,21 @@ def test_simulate_epochs():
 
     stc = simulate_sparse_stc(fwd['src'], n_dipoles=1, times=times)
 
-    fwd = restrict_forward_to_stc(fwd, stc)
-    epochs = generate_epochs(fwd, [stc] * n_epochs, raw.info, cov, eve, snr)
+    fwd_r = restrict_forward_to_stc(fwd, stc)
+    epochs = generate_epochs(fwd_r, [stc] * n_epochs, raw.info, cov, eve, snr)
 
-    # TODO: Figure out why timing gets slightly off
+    assert_array_almost_equal(epochs.times, stc.times)
+    assert_true(len(epochs) == n_epochs)
+    assert_true(epochs[0].get_data().shape[1] == len(fwd['sol']['data']))
+    assert_true(epochs[0].get_data().shape[2] == len(stc.times))
+
+    # Test stc with labels
+    stc = simulate_sparse_stc(fwd['src'], n_dipoles=1, times=times,
+                              labels=labels)
+
+    fwd_r = restrict_forward_to_stc(fwd, stc)
+    epochs = generate_epochs(fwd_r, [stc] * n_epochs, raw.info, cov, eve, snr)
+
     assert_array_almost_equal(epochs.times, stc.times)
     assert_true(len(epochs) == n_epochs)
     assert_true(epochs[0].get_data().shape[1] == len(fwd['sol']['data']))

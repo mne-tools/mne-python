@@ -145,9 +145,10 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     rng = check_random_state(random_state)
 
     data = np.zeros((n_dipoles, len(times)))
+    rnd = rng.randint(n_dipoles * 3, size=n_dipoles) / 2 + .5  # XXX
     for i_dip in range(n_dipoles):
-        rnd = rng.randint(n_dipoles) / 2. + .5  # XXX
-        data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd, np.pi * rnd,
+        data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd[i_dip],
+                                              np.pi * rnd[i_dip],
                                               len(times)))  # XXX
 
     if labels is None:
@@ -163,8 +164,10 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
     else:
         if n_dipoles != len(labels):
             logger.warning('The number of labels is different from the number '
-                           'of dipoles. %s dipoles will be generated.'
-                           % len(labels))
+                           'of dipoles. %s dipole(s) will be generated.'
+                           % min(n_dipoles, len(labels)))
+        labels = labels[:n_dipoles] if n_dipoles < len(labels) else labels
+
         vertno = [[], []]
         lh_data = list()
         rh_data = list()
@@ -178,8 +181,9 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
                 rh_data.append(np.atleast_2d(data[i]))
             else:
                 raise ValueError('No vertno found.')
-        vertno = [np.array(v) for v in vertno]
-        lh_data, rh_data = [np.concatenate(dd) for dd in [lh_data, rh_data]]
+        vertno = [np.array(v, dtype='int64') for v in vertno]
+        lh_data, rh_data = [np.concatenate(dd) if len(dd) != 0 else []
+                            for dd in [lh_data, rh_data]]
 
     # the data is in the order left, right
     data = list()

@@ -16,9 +16,9 @@ from mne import (read_proj, read_forward_solution, read_cov, read_label,
                  pick_types_forward, pick_types, read_evokeds)
 from mne.io import Raw
 from mne.datasets import sample
-from mne.time_frequency import fit_iir_model_raw, morlet
+from mne.time_frequency import fit_iir_model_raw
 from mne.viz import plot_sparse_source_estimates
-from mne.simulation import generate_sparse_stc, generate_evoked
+from mne.simulation import simulate_sparse_stc, generate_evoked
 
 print(__doc__)
 
@@ -57,17 +57,9 @@ tstep = 1. / sfreq
 n_samples = 600
 times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
 
-# Generate times series from 2 Morlet wavelets
-stc_data = np.zeros((len(labels), len(times)))
-Ws = morlet(sfreq, [3, 10], n_cycles=[1, 1.5])
-stc_data[0][:len(Ws[0])] = np.real(Ws[0])
-stc_data[1][:len(Ws[1])] = np.real(Ws[1])
-stc_data *= 100 * 1e-9  # use nAm as unit
-
-# time translation
-stc_data[1] = np.roll(stc_data[1], 80)
-stc = generate_sparse_stc(fwd['src'], labels, stc_data, tmin, tstep,
-                          random_state=0)
+# Generate times series for 2 dipoles
+stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
+                          random_state=42)
 
 ###############################################################################
 # Generate noisy evoked data

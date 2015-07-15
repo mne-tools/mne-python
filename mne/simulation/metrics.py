@@ -25,8 +25,13 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     stc2 : SourceEstimate
         First source estimate for comparison
     metric : str
+<<<<<<< HEAD:mne/simulation/simulation_metrics.py
         Metric to calculate. 'rms', 'rms_normed', 'corr', 'distance_err', or
         'weighted_distance_err'.
+=======
+        Metric to calculate. 'rms', 'rms_normed', 'corr', 'distance_err',
+        'weighted_distance_err', ...
+>>>>>>> Fix tests + Eric's comments: 1st pass:mne/simulation/metrics.py
     src : None | list of dict
         The source space. The default value is None. It must be provided when
         using those metrics: "distance_err", "weighted_distance_err"
@@ -47,9 +52,16 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
         weighted_distance_err: Distance between most active dipoles weighted by
             difference in activity
     """
-    _check_stc(stc1, stc2)
+    known_metrics = ['rms', 'rms_normed', 'corr', 'distance_err',
+                     'weighted_distance_err']
+    if metric not in known_metrics:
+        raise ValueError('metric must be a str from the known metrics: '
+                         '"rms", "rms_normed", "corr", "distance_err", '
+                         '"weighted_distance_err" or "..."')
+
     # This is checking that the datas are having the same size meaning
     # no comparison between distributed and sparse can be done so far.
+    _check_stc(stc1, stc2)
     data1, data2 = stc1.data, stc2.data
 
     # Calculate root mean square difference between two matrices
@@ -68,8 +80,8 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
 
     # Calculate distance error between the vertices.
     # Will not have anysense in case where the vertices of the whole cortex
-    # are present. That case, use the weighted distance error.
-    # Usefull to check how far dipoles are different.
+    # or a full label are present. That case, use the weighted distance error.
+    # Usefull to check how far dipoles are from each other.
     elif metric == 'distance_err':
 
         pos_concat = np.c_[src[0]['rr'], src[1]['rr']]
