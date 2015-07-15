@@ -9,11 +9,8 @@ Independent Component Analysis (ICA)
 MNE-Python supports identifying artifacts and latent components
 using temporal ICA.
 
-Background
-==========
-
 Concepts
---------
+========
 
 The assumption behind ICA is that the measured data are the result of a
 linear combination of
