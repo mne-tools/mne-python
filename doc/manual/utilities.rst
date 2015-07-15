@@ -6,6 +6,10 @@
 Miscellaneous utilities
 =======================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
 Overview
 ########
 

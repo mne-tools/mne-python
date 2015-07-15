@@ -6,6 +6,10 @@
 Matlab toolbox
 ==============
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
 Overview
 ########
 

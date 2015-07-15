@@ -6,6 +6,10 @@
 The sample data set
 ===================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
 Purpose
 #######
 

@@ -8,7 +8,7 @@ Manual
 
    manual/cookbook
    manual/io
-   manual/preprocessing/
+   manual/preprocessing/ssp
    manual/source_localization/anatomy
    manual/source_localization/forward
    manual/source_localization/inverse

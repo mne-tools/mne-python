@@ -1,6 +1,11 @@
 The Signal-Space Projection (SSP) method
 ########################################
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 The Signal-Space Projection (SSP) is one approach to rejection
 of external disturbances in software. This part presents some
 relevant details of this method.

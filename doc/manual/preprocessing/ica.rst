@@ -1,6 +1,11 @@
 Independent Component Analysis (ICA)
 ####################################
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 MNE-Python supports identifying artifacts and latent components
 using temporal ICA.
 

@@ -6,6 +6,11 @@
 The forward solution
 ====================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 Overview
 ########
 

@@ -5,6 +5,11 @@
 Interactive analysis
 ====================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 Overview
 ########
 

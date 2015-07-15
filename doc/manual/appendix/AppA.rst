@@ -6,6 +6,11 @@
 Creating the BEM meshes
 =======================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 .. _BABBDHAG:
 
 Using the watershed algorithm
