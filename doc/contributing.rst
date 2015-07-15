@@ -4,6 +4,11 @@
 Contributing to MNE project
 ===========================
 
+.. We want to thank all MNE Software users at the Martinos Center and
+.. in other institutions for their collaboration during the creation
+.. of this software as well as for useful comments on the software
+.. and its documentation.
+
 We are open to all types of contributions, from bugfixes to functionality
 enhancements. mne-python_ is meant to be maintained by a community of labs,
 and as such, we seek enhancements that will likely benefit a large proportion
