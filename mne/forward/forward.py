@@ -1140,9 +1140,10 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-    if info is None:
-        logger.warning('"evoked" is deprecated and will be removed in '
-                       'MNE-0.11. Please give evoked.info instead')
+    if evoked_template is not None or not isinstance(evoked_template, Info):
+        warnings.warn('"evoked" is deprecated and will be removed in '
+                      'MNE-0.11. Please give evoked.info instead',
+                      DeprecationWarning)
         info = evoked_template.info
 
     # make sure evoked_template contains all channels in fwd
@@ -1154,7 +1155,8 @@ def apply_forward(fwd, stc, evoked_template, start=None, stop=None,
     # project the source estimate to the sensor space
     data, times = _apply_forward(fwd, stc, start, stop)
 
-    evoked = EvokedArray(data, info, times[0], nave=1)
+    info_out = deepcopy(info)
+    evoked = EvokedArray(data, info_out, times[0], nave=1)
     evoked.times = times
 
     sfreq = float(1.0 / stc.tstep)

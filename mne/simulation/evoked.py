@@ -6,10 +6,12 @@
 import copy
 
 import numpy as np
+import warnings
 
 from ..io.pick import pick_channels_cov
+from ..io.meas_info import Info
 from ..forward import apply_forward
-from ..utils import check_random_state, verbose, _time_mask, logger
+from ..utils import check_random_state, verbose, _time_mask
 
 
 @verbose
@@ -51,9 +53,10 @@ def generate_evoked(fwd, stc, evoked, cov, snr=3, tmin=None,
     evoked : Evoked object
         The simulated evoked data
     """
-    if info is None:
-        logger.warning('"evoked" is deprecated and will be removed in '
-                       'MNE-0.11. Please give evoked.info instead')
+    if evoked is not None or not isinstance(evoked, Info):
+        warnings.warn('"evoked" is deprecated and will be removed in '
+                      'MNE-0.11. Please give evoked.info instead',
+                      DeprecationWarning)
         info = evoked.info
 
     evoked = apply_forward(fwd, stc, evoked, info=info)  # verbose
