@@ -1364,7 +1364,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         start_block(fid, FIFF.FIFFB_MNE_EVENTS)
         write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self[epoch_idx].events.T)
         mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                             self[epoch_idx].event_id.items()])
+                             self.event_id.items()])
         write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
         end_block(fid, FIFF.FIFFB_MNE_EVENTS)
 
@@ -1444,11 +1444,12 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise ValueError('split_size cannot be larger than 2GB')
 
         # Create the file and save the essentials
-        total_size = self[0].get_data().nbytes * len(self)
-        n_parts = int(np.ceil(total_size / float(split_size)))
+
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
         self.drop_bad_epochs()
+        total_size = self[0].get_data().nbytes * len(self)
+        n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(range(len(self)), n_parts)
 
         prev_fname = None
@@ -2197,7 +2198,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         if next_fname is not None:
             fnames.append(next_fname)
 
-    epochs = concatenate_epochs(epochs)
+    epochs = _concatenate_epochs(epochs, read_file=True)
     return epochs
 
 
@@ -2344,23 +2345,8 @@ def _compare_epochs_infos(info1, info2, ind):
         raise ValueError('SSP projectors in epochs files must be the same')
 
 
-def concatenate_epochs(epochs_list):
-    """Concatenate a list of epochs into one epochs object
-
-    Parameters
-    ----------
-    epochs_list : list
-        list of Epochs instances to concatenate (in order).
-
-    Returns
-    -------
-    epochs : instance of Epochs
-        The result of the concatenation (first Epochs instance passed in).
-
-    Notes
-    -----
-    .. versionadded:: 0.9.0
-    """
+def _concatenate_epochs(epochs_list, read_file=False):
+    """Auxiliary function for concatenating epochs."""
     out = epochs_list[0]
     data = [out.get_data()]
     events = [out.events]
@@ -2379,11 +2365,14 @@ def concatenate_epochs(epochs_list):
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
     events = np.concatenate(events, axis=0)
-    events[:, 0] = np.arange(len(events))  # arbitrary after concat
+    # do this only if events are not monotonically increasing
+    if read_file is False:
+        events[:, 0] = np.arange(len(events))  # arbitrary after concat
+
     baseline = epochs_list[0].baseline
     out = _BaseEpochs(out.info, np.concatenate(data, axis=0), events, event_id,
                       out.tmin, out.tmax, baseline=baseline, add_eeg_ref=False,
-                      proj=False, verbose=out.verbose)
+                      proj=False, verbose=out.verbose, on_missing='ignore')
     # We previously only set the drop log here, but we also need to set the
     # selection, too
     selection = np.where([len(d) == 0 for d in drop_log])[0]
@@ -2391,3 +2380,23 @@ def concatenate_epochs(epochs_list):
     out.selection = selection
     out.drop_log = drop_log
     return out
+
+
+def concatenate_epochs(epochs_list):
+    """Concatenate a list of epochs into one epochs object
+
+    Parameters
+    ----------
+    epochs_list : list
+        list of Epochs instances to concatenate (in order).
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The result of the concatenation (first Epochs instance passed in).
+
+    Notes
+    -----
+    .. versionadded:: 0.9.0
+    """
+    return _concatenate_epochs(epochs_list)
