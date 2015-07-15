@@ -20,6 +20,9 @@ Importing data from other MEG/EEG systems
 This part describes the utilities to convert data from
 other MEG/EEG systems into the fif format.
 
+.. note::
+    All IO functions in MNE-Python performing conversion can be found in :py:modul`mne.io`
+    and start with `read_raw_`.
 
 Importing MEG data
 ==================
@@ -29,26 +32,83 @@ This section describes reading and converting of various MEG data formats.
 Importing 4-D Neuroimaging / BTI data
 -------------------------------------
 
-The python toolbox includes a function to read and convert 4D / BTI data.
+MNE-Python includes the :py:func:`mne.io.read_raw` to read and convert 4D / BTI data.
+This reader function will by default replace the original channel names,
+typcially composed of the letter `A` and the channel number with Neuromag.
+To import the data, the following input files are mandatory:
 
+- A data file (typically c,rfDC)
+  containing the recorded MEG timeseries.
 
-Background
-^^^^^^^^^^
+- A hs_file
+  containing the digitizer data.
 
-The newest version of 4-D Magnes software included the possibility
-to export data in fif. Please consult the documentation of the Magnes
-system for details of this export utility. However, the exported
-fif file does not include information about the compensation channels
+- A config file
+  containing acquisition information and metadata.
+
+By default :py:func:`mne.io.read_raw` assumes these three files to be located
+in the same folder.
+
+.. note:: While reading the reference or compensation channels,
+currently, the compensation weights are not processed.
+As a result, the :py:class:`mne.io.Raw` object and the corresponding fif file
+does not include information about the compensation channels
 and the weights to be applied to realize software gradient compensation.
 To augment the Magnes fif files with the necessary information,
-the MNE software includes the utilities mne_insert_4D_comp , mne_create_comp_data ,
+the command line tools include the utilities mne_create_comp_data ,
 and mne_add_to_meas_info.
-
-
-.. note:: Including the compensation channel data is recommended but not mandatory.
+Including the compensation channel data is recommended but not mandatory.
 If the data are saved in the Magnes system are already compensated,
 there will be a small error in the forward calculations whose significance
 has not been evaluated carefully at this time.
+
+
+Creating software gradient compensation data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The utility mne_create_comp_data was
+written to create software gradient compensation weight data for
+4D Magnes fif files. This utility takes a text file containing the
+compensation data as input and writes the corresponding fif file
+as output. This file can be merged into the fif file containing
+4D Magnes data with the utility mne_add_to_meas_info .
+
+The command line options of mne_create_comp_data are:
+
+**\---version**
+
+    Show the program version and compilation date.
+
+**\---help**
+
+    List the command-line options.
+
+**\---in <*name*>**
+
+    Specifies the input text file containing the compensation data.
+
+**\---kind <*value*>**
+
+    The compensation type to be stored in the output file with the data. This
+    value defaults to 101 for the Magnes compensation and does not need
+    to be changed.
+
+**\---out <*name*>**
+
+    Specifies the output fif file containing the compensation channel weight
+    matrix :math:`C_{(k)}`, see :ref:`BEHDDFBI`.
+
+The format of the text-format compensation data file is:
+
+ <*number of MEG helmet channels*> <*number of compensation channels included*>
+ <*cname_1*> <*cname_2*> ...
+ <*name_1*> <*weights*>
+ <*name_2*> <*weights*> ...
+
+In the above <*name_k*> denote
+names of MEG helmet channels and <*cname_k*>
+those of the compensation channels, respectively. If the channel
+names contain spaces, they must be surrounded by quotes, for example, ``"MEG 0111"`` .
 
 .. _BEHDEBCH:
 
@@ -157,7 +217,7 @@ of the ``eeg`` file.
 .. _BEHBABFA:
 
 Importing CTF Polhemus data
-===========================
+---------------------------
 
 The CTF MEG systems store the Polhemus digitization data
 in text files. The utility mne_ctf_dig2fiff was
@@ -209,7 +269,7 @@ The command-line options for mne_ctf_dig2fiff are:
 .. _BEHDDFBI:
 
 Applying software gradient compensation
-=======================================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since the software gradient compensation employed in CTF
 systems is a reversible operation, it is possible to change the
@@ -299,123 +359,10 @@ which has the following command-line options:
 
 .. _BEHGDDBH:
 
-Importing Magnes compensation channel data
-==========================================
-
-At present, it is not possible to include reference channel
-data to fif files containing 4D Magnes data directly using the conversion
-utilities available for the Magnes systems. However, it is possible
-to export the compensation channel signals in text format and merge
-them with the MEG helmet channel data using mne_insert_4D_comp .
-This utility has the following command-line options:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---in <*name*>**
-
-    Specifies the input fif file containing the helmet sensor data.
-
-**\---out <*name*>**
-
-    Specifies the output fif file which will contain both the helmet
-    sensor data and the compensation channel data.
-
-**\---ref <*name*>**
-
-    Specifies a text file containing the reference sensor data.
-
-Each line of the reference sensor data file contains the
-following information:
-
-**epoch #**
-
-    is
-    always one,
-
-**time/s**
-
-    time point of this sample,
-
-**data/T**
-
-    the reference channel data
-    values.
-
-The standard locations of the MEG (helmet) and compensation
-sensors in a Magnes WH3600 system are listed in ``$MNE_ROOT/share/mne/Magnes_WH3600.pos`` . mne_insert_4D_comp matches
-the helmet sensor positions in this file with those present in the
-input data file and transforms the standard compensation channel
-locations accordingly to be included in the output. Since a standard
-position file is only provided for Magnes WH600, mne_insert_4D_comp only
-works for that type of a system.
-
-The fif files exported from the Magnes systems may contain
-slightly smaller number of samples than originally acquired because
-the total number of samples may not be evenly divisible with a reasonable
-number of samples which will be used as the fif raw data file buffer
-size. Therefore, the reference channel data may contain more samples
-than the fif file. The superfluous samples will be omitted from
-the end.
-
-.. _BEHBIIFF:
-
-Creating software gradient compensation data
-============================================
-
-The utility mne_create_comp_data was
-written to create software gradient compensation weight data for
-4D Magnes fif files. This utility takes a text file containing the
-compensation data as input and writes the corresponding fif file
-as output. This file can be merged into the fif file containing
-4D Magnes data with the utility mne_add_to_meas_info .
-
-The command line options of mne_create_comp_data are:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---in <*name*>**
-
-    Specifies the input text file containing the compensation data.
-
-**\---kind <*value*>**
-
-    The compensation type to be stored in the output file with the data. This
-    value defaults to 101 for the Magnes compensation and does not need
-    to be changed.
-
-**\---out <*name*>**
-
-    Specifies the output fif file containing the compensation channel weight
-    matrix :math:`C_{(k)}`, see :ref:`BEHDDFBI`.
-
-The format of the text-format compensation data file is:
-
- <*number of MEG helmet channels*> <*number of compensation channels included*>
- <*cname_1*> <*cname_2*> ...
- <*name_1*> <*weights*>
- <*name_2*> <*weights*> ...
-
-In the above <*name_k*> denote
-names of MEG helmet channels and <*cname_k*>
-those of the compensation channels, respectively. If the channel
-names contain spaces, they must be surrounded by quotes, for example, ``"MEG 0111"`` .
-
 .. _BEHBJGGF:
 
 Importing KIT MEG system data
-=============================
+-----------------------------
 
 The utility mne_kit2fiff was
 created in collaboration with Alec Maranz and Asaf Bachrach to import
@@ -565,8 +512,8 @@ the following command-line options:
 
 .. _BABHDBBD:
 
-Importing EEG data saved in the EDF, EDF+, or BDF format
-========================================================
+Importing EEG data
+==================
 
 Overview
 --------
@@ -722,7 +669,7 @@ the EDF/EDF+/BDF file is converted to the fif format in MNE:
 .. _BEHDGAIJ:
 
 Importing EEG data saved in the Tufts University format
-=======================================================
+-------------------------------------------------------
 
 The utility mne_tufts2fiff was
 created in collaboration with Phillip Holcomb and Annette Schmid
@@ -783,7 +730,7 @@ the following command-line options:
 .. _BEHCCCDC:
 
 Importing BrainVision EEG data
-==============================
+------------------------------
 
 The utility mne_brain_vision2fiff was
 created to import BrainVision EEG data. This utility also helps
@@ -857,7 +804,7 @@ The command-line options of mne_brain_vision2fiff are:
 .. _BEHGCEHH:
 
 Converting eXimia EEG data
-==========================
+--------------------------
 
 EEG data from the Nexstim eXimia system can be converted
 to the fif format with help of the mne_eximia2fiff script.
