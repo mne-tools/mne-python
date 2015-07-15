@@ -77,7 +77,7 @@ def simu_data(evoked, forward, noise_cov, n_dipoles, times):
     tmin, tstep = times.min(), 1 / evoked.info['sfreq']
     stc = mne.SourceEstimate(data, vertices=vertices, tmin=tmin, tstep=tstep)
 
-    sim_evoked = mne.simulation.generate_evoked(forward, stc, evoked,
+    sim_evoked = mne.simulation.generate_evoked(forward, stc, evoked.info,
                                                 noise_cov, snr=20,
                                                 random_state=rng)
 

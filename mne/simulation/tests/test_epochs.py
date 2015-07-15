@@ -7,13 +7,13 @@ from __future__ import division
 import os.path as op
 
 import numpy as np
+import warnings
+
 from numpy.testing import assert_array_almost_equal
 from nose.tools import assert_true  # , assert_raises
-import warnings
 
 from mne.datasets import testing
 from mne import read_forward_solution, read_label
-# from mne.time_frequency import morlet
 from mne.simulation import simulate_sparse_stc, generate_epochs
 from mne.forward import restrict_forward_to_stc
 from mne import read_cov
