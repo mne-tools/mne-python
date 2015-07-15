@@ -136,7 +136,6 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
-
 def regress_continuous(raw, events, event_id=None,
                        tmin=-.1, tmax=1,
                        covariates=None,
