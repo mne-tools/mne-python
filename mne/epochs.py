@@ -1446,6 +1446,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         # Create the file and save the essentials
         total_size = self[0].get_data().nbytes * len(self)
         n_parts = int(np.ceil(total_size / float(split_size)))
+        # to know the length accurately. The get_data() call would drop
+        # bad epochs anyway
+        self.drop_bad_epochs()
         epoch_idxs = np.array_split(range(len(self)), n_parts)
 
         prev_fname = None
