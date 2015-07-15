@@ -1552,11 +1552,13 @@ def _plot_histogram(params):
     scalings = _handle_default('scalings')
     units = _handle_default('units')
     titles = _handle_default('titles')
+    colors = _handle_default('color')
     for idx in range(len(types)):
         plt.subplot(len(types), 1, idx + 1)
         plt.xlabel(units[types[idx]])
         plt.ylabel('count')
-        plt.hist(data[idx] * scalings[types[idx]], bins=100)
+        color = colors[types[idx]]
+        plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color)
         plt.title(titles[types[idx]])
     fig.suptitle('Peak-to-peak histogram', y=0.99)
     tight_layout(fig=fig)
