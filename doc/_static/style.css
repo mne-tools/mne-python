@@ -15,6 +15,10 @@ a:hover {
     color: rgb(255,2,16);
 }
 
+blockquote {
+    font-size: 100% !important;
+}
+
 code {
     color: #49759c !important;
     background-color: #f3f5f9 !important;
