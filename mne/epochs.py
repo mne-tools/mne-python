@@ -8,7 +8,6 @@
 #
 # License: BSD (3-clause)
 
-import sys
 import copy as cp
 import warnings
 import json
@@ -1318,7 +1317,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new._raw = raw
         return new
 
-    def _save_split(self, fname, prev_fname, part_idx, total_idx, epoch_idx):
+    def _save_split(self, fname, prev_fname, part_idx, n_parts, epoch_idx):
         """Split epochs"""
 
         # insert index in filename
@@ -1330,7 +1329,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         else:
             use_fname = fname
 
-        if part_idx < total_idx - 1:
+        if part_idx < n_parts - 1:
             next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
                                                      base[idx + 1:]))
             next_idx = part_idx + 1
@@ -1402,7 +1401,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
                   self[epoch_idx].selection)
 
-        if part_idx < total_idx - 1 and next_fname is not None:
+        if (part_idx < n_parts - 1 and next_fname is not None) and n_parts > 1:
             start_block(fid, FIFF.FIFFB_REF)
             write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
             write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
@@ -1445,12 +1444,14 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             raise ValueError('split_size cannot be larger than 2GB')
 
         # Create the file and save the essentials
-        n_parts = np.ceil(self[0].get_data().nbytes * len(self) / float(split_size))
+        total_size = self[0].get_data().nbytes * len(self)
+        n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(range(len(self)), n_parts)
 
         prev_fname = None
         for part_idx, epoch_idx in enumerate(epoch_idxs):
-            prev_fname = self._save_split(fname, prev_fname, part_idx, n_parts - 1, epoch_idx)
+            prev_fname = self._save_split(fname, prev_fname, part_idx, n_parts,
+                                          epoch_idx)
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
@@ -1997,44 +1998,54 @@ def _is_good(e, ch_names, channel_type_idx, reject, flat, full_report=False,
             return False, bad_list
 
 
+def _get_next_fname(fid, fname, tree):
+
+    # Try to get the next filename tag for split files
+    nodes_list = dir_tree_find(tree, FIFF.FIFFB_REF)
+    next_fname = None
+    for nodes in nodes_list:
+        next_fname = None
+        for ent in nodes['directory']:
+            if ent.kind == FIFF.FIFF_REF_ROLE:
+                tag = read_tag(fid, ent.pos)
+                role = int(tag.data)
+                if role != FIFF.FIFFV_ROLE_NEXT_FILE:
+                    next_fname = None
+                    break
+            if ent.kind == FIFF.FIFF_REF_FILE_NAME:
+                tag = read_tag(fid, ent.pos)
+                next_fname = op.join(op.dirname(fname), tag.data)
+            if ent.kind == FIFF.FIFF_REF_FILE_NUM:
+                # Some files don't have the name, just the number. So
+                # we construct the name from the current name.
+                if next_fname is not None:
+                    continue
+                next_num = read_tag(fid, ent.pos).data
+                path, base = op.split(fname)
+                idx = base.find('.')
+                idx2 = base.rfind('-')
+                if idx2 < 0 and next_num == 1:
+                    # this is the first file, which may not be numbered
+                    next_fname = op.join(
+                        path, '%s-%d.%s' % (base[:idx], next_num,
+                                            base[idx + 1:]))
+                    continue
+                num_str = base[idx2 + 1:idx]
+                if not num_str.isdigit():
+                    continue
+                next_fname = op.join(path, '%s-%d.%s' % (base[:idx2],
+                                     next_num, base[idx + 1:]))
+        if next_fname is not None:
+            break
+    return next_fname
+
+
 @verbose
-def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
-    """Read epochs from a fif file
+def _read_one_epoch_file(f, tree, fname, proj, add_eeg_ref, verbose):
 
-    Parameters
-    ----------
-    fname : str
-        The name of the file, which should end with -epo.fif or -epo.fif.gz.
-    proj : bool | 'delayed'
-        Apply SSP projection vectors. If proj is 'delayed' and reject is not
-        None the single epochs will be projected before the rejection
-        decision, but used in unprojected state if they are kept.
-        This way deciding which projection vectors are good can be postponed
-        to the evoked stage without resulting in lower epoch counts and
-        without producing results different from early SSP application
-        given comparable parameters. Note that in this case baselining,
-        detrending and temporal decimation will be postponed.
-        If proj is False no projections will be applied which is the
-        recommended value if SSPs are not used for cleaning the data.
-    add_eeg_ref : bool
-        If True, an EEG average reference will be added (unless one
-        already exists).
-    verbose : bool, str, int, or None
-        If not None, override default verbose level (see mne.verbose).
-        Defaults to raw.verbose.
-
-    Returns
-    -------
-    epochs : instance of Epochs
-        The epochs
-    """
-    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
-
-    logger.info('Reading %s ...' % fname)
-    f, tree, _ = fiff_open(fname)
     with f as fid:
         #   Read the measurement info
-        info, meas = read_meas_info(fid, tree)
+        info, meas  = read_meas_info(fid, tree)
         info['filename'] = fname
 
         events, mappings = _read_events_fif(fid, tree)
@@ -2134,7 +2145,56 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
         epochs.selection = selection
         epochs.drop_log = drop_log
         epochs._bad_dropped = True
+    return epochs
 
+
+@verbose
+def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
+    """Read epochs from a fif file
+
+    Parameters
+    ----------
+    fname : str
+        The name of the file, which should end with -epo.fif or -epo.fif.gz.
+    proj : bool | 'delayed'
+        Apply SSP projection vectors. If proj is 'delayed' and reject is not
+        None the single epochs will be projected before the rejection
+        decision, but used in unprojected state if they are kept.
+        This way deciding which projection vectors are good can be postponed
+        to the evoked stage without resulting in lower epoch counts and
+        without producing results different from early SSP application
+        given comparable parameters. Note that in this case baselining,
+        detrending and temporal decimation will be postponed.
+        If proj is False no projections will be applied which is the
+        recommended value if SSPs are not used for cleaning the data.
+    add_eeg_ref : bool
+        If True, an EEG average reference will be added (unless one
+        already exists).
+    verbose : bool, str, int, or None
+        If not None, override default verbose level (see mne.verbose).
+        Defaults to raw.verbose.
+
+    Returns
+    -------
+    epochs : instance of Epochs
+        The epochs
+    """
+    check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
+
+    fnames = [fname]
+    epochs = list()
+    for fname in fnames:
+        logger.info('Reading %s ...' % fname)
+        f, tree, _ = fiff_open(fname)
+        next_fname = _get_next_fname(f, fname, tree)
+        epoch = _read_one_epoch_file(f, tree, fname, proj, add_eeg_ref,
+                                     verbose)
+        epochs.append(epoch)
+
+        if next_fname is not None:
+            fnames.append(next_fname)
+
+    epochs = concatenate_epochs(epochs)
     return epochs
 
 
