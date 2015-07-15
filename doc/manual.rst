@@ -13,6 +13,7 @@ Manual
    manual/source_localization/forward
    manual/source_localization/inverse
    manual/source_localization/morph
+   manual/time_frequency
    manual/statistics
    manual/visualization
    manual/performance
