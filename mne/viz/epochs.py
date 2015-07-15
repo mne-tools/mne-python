@@ -620,7 +620,7 @@ def plot_epochs_psd(epochs, fmin=0, fmax=np.inf, proj=False, n_fft=256,
 
 
 def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
-                               title, picks):
+                               title, picks, order=None):
     """Helper for setting up the mne_browse_epochs window."""
     import matplotlib.pyplot as plt
     import matplotlib as mpl
@@ -645,8 +645,10 @@ def _prepare_mne_browse_epochs(params, projs, n_channels, n_epochs, scalings,
         inds.append(idxs[mask])
         types += [t] * len(inds[-1])
     pick_kwargs = dict(meg=False, ref_meg=False, exclude=[])
-    for ch_type in ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp',
-                    'misc', 'chpi', 'syst', 'ias', 'exci']:
+    if order is None:
+        order = ['eeg', 'eog', 'ecg', 'emg', 'ref_meg', 'stim', 'resp', 'misc',
+                 'chpi', 'syst', 'ias', 'exci']
+    for ch_type in order:
         pick_kwargs[ch_type] = True
         idxs = pick_types(params['info'], **pick_kwargs)
         if len(idxs) < 1:

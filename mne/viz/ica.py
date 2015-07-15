@@ -537,8 +537,28 @@ def _plot_sources_raw(ica, raw, picks, exclude, start, stop, show, title,
         picks = range(len(orig_data))
     types = ['misc' for _ in picks]
     picks = list(sorted(picks))
+    eog_chs = pick_types(raw.info, meg=False, eog=True)
+    ecg_chs = pick_types(raw.info, meg=False, ecg=True)
     data = [orig_data[pick] for pick in picks]
     c_names = ['ICA %03d' % x for x in range(len(orig_data))]
+    for eog_idx in eog_chs:
+        c_names.append(raw.ch_names[eog_idx])
+        types.append('eog')
+    for ecg_idx in ecg_chs:
+        c_names.append(raw.ch_names[ecg_idx])
+        types.append('ecg')
+    extra_picks = np.append(eog_chs, ecg_chs).astype(int)
+    if len(extra_picks) > 0:
+        eog_ecg_data, _ = raw[extra_picks, :]
+        for idx in range(len(eog_ecg_data)):
+            if idx < len(eog_chs):
+                eog_ecg_data[idx] /= 150e-6  # scaling for eog
+            else:
+                eog_ecg_data[idx] /= 5e-4  # scaling for ecg
+        data = np.append(data, eog_ecg_data, axis=0)
+
+    for idx in range(len(extra_picks)):
+        picks = np.append(picks, ica.n_components_ + idx)
     if title is None:
         title = 'ICA components'
     info = create_info([c_names[x] for x in picks], raw.info['sfreq'])
@@ -616,7 +636,7 @@ def _close_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
     c_names = ['ICA %03d' % x for x in range(params['ica'].n_components_)]
-    exclude = [c_names.index(x) for x in info['bads']]
+    exclude = [c_names.index(x) for x in info['bads'] if x.startswith('ICA')]
     params['ica'].exclude = exclude
 
 
@@ -626,9 +646,24 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     import matplotlib.pyplot as plt
     plt.ion()  # Turn interactive mode on to avoid warnings.
     data = ica._transform_epochs(epochs, concatenate=True)
+    eog_chs = pick_types(epochs.info, meg=False, eog=True)
+    ecg_chs = pick_types(epochs.info, meg=False, ecg=True)
     c_names = ['ICA %03d' % x for x in range(ica.n_components_)]
-    scalings = {'misc': 5.0}
-    info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'])
+    ch_types = np.repeat('misc', ica.n_components_)
+    for eog_idx in eog_chs:
+        c_names.append(epochs.ch_names[eog_idx])
+        ch_types = np.append(ch_types, 'eog')
+    for ecg_idx in ecg_chs:
+        c_names.append(epochs.ch_names[ecg_idx])
+        ch_types = np.append(ch_types, 'ecg')
+    extra_picks = np.append(eog_chs, ecg_chs).astype(int)
+    if len(extra_picks) > 0:
+        eog_ecg_data = np.concatenate(epochs.get_data()[:, extra_picks],
+                                      axis=1)
+        data = np.append(data, eog_ecg_data, axis=0)
+    scalings = {'misc': 5.0, 'eog': 150e-6, 'ecg': 5e-4}
+    info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'],
+                       ch_types=ch_types)
     info['projs'] = list()
     info['bads'] = [c_names[x] for x in exclude]
     if title is None:
@@ -640,6 +675,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     if stop is None:
         stop = start + 20
         stop = min(stop, len(epochs.events))
+    for idx in range(len(extra_picks)):
+        picks = np.append(picks, ica.n_components_ + idx)
     n_epochs = stop - start
     if n_epochs <= 0:
         raise RuntimeError('Stop must be larger than start.')
@@ -653,7 +690,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     params['label_click_fun'] = partial(_label_clicked, params=params)
     _prepare_mne_browse_epochs(params, projs=list(), n_channels=20,
                                n_epochs=n_epochs, scalings=scalings,
-                               title=title, picks=picks)
+                               title=title, picks=picks,
+                               order=['misc', 'eog', 'ecg'])
     params['hsel_patch'].set_x(params['t_start'])
     callback_close = partial(_close_epochs_event, params=params)
     params['fig'].canvas.mpl_connect('close_event', callback_close)
@@ -669,7 +707,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
 def _close_epochs_event(events, params):
     """Function for excluding the selected components on close."""
     info = params['info']
-    exclude = [info['ch_names'].index(x) for x in info['bads']]
+    exclude = [info['ch_names'].index(x) for x in info['bads']
+               if x.startswith('ICA')]
     params['ica'].exclude = exclude
 
 
