@@ -21,7 +21,7 @@ This part describes the utilities to convert data from
 other MEG/EEG systems into the fif format.
 
 .. note::
-    All IO functions in MNE-Python performing conversion can be found in :py:modul`mne.io`
+    All IO functions in MNE-Python performing conversion can be found in :py:mod:`mne.io`
     and start with `read_raw_`.
 
 Importing MEG data

@@ -13,19 +13,24 @@ raw, epochs or averages of the artifact. Typically this involves continues raw
 data of empty room recordings or averaged ECG or EOG artefacts.
 
 A second set of highlevel convenience functions is provided to compute
-projection vector for those typical usecases. This includes
+projection vector for typical usecases. This includes
 :py:func:`mne.preprocessing.compute_proj_ecg` and
-:py:func:`mne.preprocessing.compute_proj_eog`.
+:py:func:`mne.preprocessing.compute_proj_eog` for computing the ECG and EOG
+related artifact components, respectively.
 
 The underlying implementation can be found in :py:mod:`mne.preprocessing.ssp`.
 
-
+The following examples demonstrate how to use the SSP code:
+In :ref:`plot_evoked_delayed_ssp.py` and  :ref:`plot_evoked_topomap_delayed_ssp.py`
+SSPs are illustrated by toggling them in realtime.
+In :ref:`plot_ssp_projs_topomaps.py` and :ref:`plot_ssp_projs_sensitivity_map.py`
+the SSP sensitivities are visualized in sensor and source space, respectively.
 
 Background
 ==========
 
 Concepts
-^^^^^^^^
+--------
 
 Unlike many other noise-cancellation approaches, SSP does
 not require additional reference sensors to record the disturbance
@@ -108,7 +113,7 @@ please consult the references listed in :ref:`CEGIEEBB`.
 .. _BABFFCHF:
 
 Estimation of the noise subspace
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------
 
 As described above, application of SSP requires the estimation
 of the signal vectors :math:`b_1 \dotso b_m` constituting
