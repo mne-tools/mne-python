@@ -1,4 +1,4 @@
-Introductory examples
----------------------
+Examples
+========
 
 Introductory examples to MNE.

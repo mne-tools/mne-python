@@ -6,7 +6,6 @@ Tutorials
 .. toctree::
    :maxdepth: 1
 
-   tutorials/introduction.rst
+   auto_tutorials/plot_introduction.rst
    tutorials/command_line.rst
    tutorials/report.rst
-   auto_tutorials/index
