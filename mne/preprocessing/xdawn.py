@@ -7,6 +7,7 @@
 import numpy as np
 from scipy import linalg
 import copy as cp
+from distutils.version import LooseVersion
 
 from ..io.proj import Projection
 from ..io.base import _BaseRaw
@@ -79,6 +80,80 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
         evoked_data[eid] = np.array(evo[(i * window):(i + 1) * window, :]).T
 
     return evoked_data, to
+
+
+def _regularized_covariance(data, reg=None):
+    """Compute a regularized covariance from data.
+
+    Parameters
+    ----------
+    data : array, shape=(n_channels x n_times)
+        Data for covariance estimation.
+    reg : float, str, None
+        If not None, allow regularization for covariance estimation
+        if float, shrinkage covariance is used (0 <= shrinkage <= 1).
+        if str, optimal shrinkage using Ledoit-Wolf Shrinkage ('lws') or
+        Oracle Approximating Shrinkage ('oas').
+
+    Returns
+    -------
+    cov : array, shape=(n_channels x n_channels)
+        The covariance matrix.
+    """
+    if reg is None:
+        # compute empirical covariance
+        covar = np.cov(data)
+    else:
+        # use sklearn covariance estimators
+        if isinstance(reg, float):
+            if (reg < 0) or (reg > 1):
+                raise ValueError('0 <= shrinkage <= 1 for '
+                                 'covariance regularization.')
+            try:
+                import sklearn
+                sklearn_version = LooseVersion(sklearn.__version__)
+                from sklearn.covariance import ShrunkCovariance
+            except ImportError:
+                raise Exception('the scikit-learn package is missing and '
+                                'required for covariance regularization.')
+            if sklearn_version < '0.12':
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False)
+            else:
+                # init sklearn.covariance.ShrunkCovariance estimator
+                skl_cov = ShrunkCovariance(shrinkage=reg,
+                                           store_precision=False,
+                                           assume_centered=True)
+        elif isinstance(reg, str):
+            if reg == 'lws':
+                try:
+                    from sklearn.covariance import LedoitWolf
+                except ImportError:
+                    raise Exception('the scikit-learn package is missing '
+                                    'and required for regularization.')
+                # init sklearn.covariance.LedoitWolf estimator
+                skl_cov = LedoitWolf(store_precision=False,
+                                     assume_centered=True)
+            elif reg == 'oas':
+                try:
+                    from sklearn.covariance import OAS
+                except ImportError:
+                    raise Exception('the scikit-learn package is missing '
+                                    'and required for regularization.')
+                # init sklearn.covariance.OAS estimator
+                skl_cov = OAS(store_precision=False,
+                              assume_centered=True)
+            else:
+                raise ValueError("regularization parameter should be "
+                                 "of type str (got %s)." % type(reg))
+        else:
+            raise ValueError("regularization parameter should be "
+                             "of type str (got %s)." % type(reg))
+
+        # compute regularized covariance using sklearn
+        covar = skl_cov.fit(data.T).covariance_
+
+    return covar
 
 
 def _check_overlapp(epochs):
@@ -246,8 +321,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
                 sig_data = _construct_signal_from_epochs(epochs)
             else:
                 sig_data = np.hstack(epochs.get_data())
-            # FIXME use MNE cov estimator
-            self.signal_cov_ = np.cov(sig_data)
+            self.signal_cov_ = _regularized_covariance(sig_data, self.reg)
 
         # estimates evoked covariance
         self.evokeds_cov_ = {}
@@ -261,12 +335,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
             to = dict()
             for eid in epochs.event_id:
                 evo[eid] = epochs[eid].average()
-                to[eid] = 1.0 / len(epochs[eid])
+                to[eid] = 1.0
         self.evokeds_ = evo
 
         for eid in epochs.event_id:
-            # FIXME use mne covariance estimator
-            self.evokeds_cov_[eid] = np.cov(np.dot(evo[eid].data, to[eid]))
+            data = np.dot(evo[eid].data, to[eid])
+            self.evokeds_cov_[eid] = _regularized_covariance(data, self.reg)
 
         # estimates spatial filters
         for eid in epochs.event_id:
