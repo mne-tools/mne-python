@@ -20,7 +20,31 @@ from ..utils import logger
 def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     """Least square estimation of evoked response from data.
 
-    return evoked data and toeplitz matrices.
+    Parameters
+    ----------
+    data : array, shape=(n_channels, n_times)
+        The data to estimates evoked
+    events : array, shape (n_events, 3)
+        The events typically returned by the read_events function.
+        If some events don't match the events of interest as specified
+        by event_id, they will be ignored.
+    event_id : dict
+        The id of the event to consider
+    tmin : float
+        Start time before event.
+    tmax : float
+        End time after event.
+    sfreq : float
+        Sampling frequency.
+    decim : int
+        The decimation factor.
+
+    Returns
+    -------
+    evokeds : dict of evoked instance
+        A dict of evoked instance for each event type in event_id.
+    toeplitz : dict of array
+        A dict of toeplitz matrix for each event type in event_id.
     """
     nmin = int(tmin * sfreq / decim)
     nmax = int(tmax * sfreq / decim)
@@ -28,7 +52,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
     window = nmax - nmin
     ne, ns = data.shape
-    to = {}
+    to = dict()
 
     for eid in event_id:
         # select events by type
@@ -48,7 +72,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
     evo = np.dot(np.dot(linalg.pinv(np.dot(to_tot, to_tot.T)), to_tot), data.T)
 
     # parse evoked response
-    evoked_data = {}
+    evoked_data = dict()
     for i, eid in enumerate(event_id):
         evoked_data[eid] = np.array(evo[(i * window):(i + 1) * window, :]).T
 
@@ -56,7 +80,7 @@ def _least_square_evoked(data, events, event_id, tmin, tmax, sfreq, decim):
 
 
 def _check_overlapp(epochs):
-    """check if events are overllaped."""
+    """check if events are overlapped."""
     isi = np.diff(epochs.events[:, 0])
     window = int((epochs.tmax - epochs.tmin) * epochs.info['sfreq'])
     return isi.min() < window
@@ -89,12 +113,15 @@ def least_square_evoked(epochs, return_toeplitz=False):
     epochs : Epoch object
         An instance of Epoch.
     return_toeplitz : bool
-        if true, compute the toeplitz matrix
+        If true, compute the toeplitz matrix.
 
     Returns
     -------
     evokeds : dict of evoked instance
         An dict of evoked instance for each event type in epochs.event_id.
+    toeplitz : dict of array
+        If return_toeplitz is true, return the toeplitz matrix for each event
+        type in epochs.event_id.
     """
     if not isinstance(epochs, _BaseEpochs):
         raise ValueError('epochs must be an instance of `mne.Epochs`')
@@ -105,7 +132,7 @@ def least_square_evoked(epochs, return_toeplitz=False):
     evo, to = _least_square_evoked(data, evs, epochs.event_id,
                                    tmin=epochs.tmin, tmax=epochs.tmax,
                                    sfreq=epochs.info['sfreq'], decim=1)
-    evokeds = {}
+    evokeds = dict()
     info = cp.deepcopy(epochs.info)
     for name, data in evo.items():
         n_events = len(evs[evs[:, 2] == epochs.event_id[name]])
@@ -119,20 +146,26 @@ def least_square_evoked(epochs, return_toeplitz=False):
     return evokeds
 
 
-class Xdawn():
-
+class Xdawn(object):
     """Implementation of the Xdawn Algorithm.
 
     Xdawn is a spatial filtering method designed to improve the signal
-    to signal + Noise ratio (SSNR) of the ERP responses. Xdawn was originaly
-    designed for P300 evoked potential by enhancing the target responce with
-    respect to the non-target responce. This implementation is a generalization
+    to signal + noise ratio (SSNR) of the ERP responses. Xdawn was originaly
+    designed for P300 evoked potential by enhancing the target response with
+    respect to the non-target response. This implementation is a generalization
     to any type of ERP.
 
     Parameters
     ----------
     n_components : int, default 2
         The number of components to decompose M/EEG signals.
+    signal_cov : None, Covariance instance or ndarray
+        The signal covariance used for whitening of the data. if None, the
+        covariance is estimated from the epochs signal.
+    correct_overlap : 'auto' or bool
+        Apply correction for overlaped ERP for the estimation of evokeds
+        responses. if 'auto', the overlapp correction is chosen in function
+        of the events in epochs.events.
     reg : float, str, None
         if not None, allow regularization for covariance estimation
         if float, shrinkage covariance is used (0 <= shrinkage <= 1).
@@ -162,48 +195,23 @@ class Xdawn():
     2011 19th European (pp. 1382-1386). IEEE.
     """
 
-    def __init__(self, n_components=2, reg=None):
+    def __init__(self, n_components=2, correct_overlap='auto', signal_cov=None,
+                 reg=None):
         """init xdawn."""
         self.n_components = n_components
         self.reg = reg
-        self.filters_ = {}
-        self.patterns_ = {}
-        self.evokeds_ = {}
-        self.projs_ = {}
+        self.filters_ = dict()
+        self.patterns_ = dict()
+        self.evokeds_ = dict()
+        self.projs_ = dict()
 
-    def fit(self, epochs, signal_cov=None, correct_overlap='auto'):
-        """Fit Xdawn from epochs.
-
-        Parameters
-        ----------
-        epochs : Epoch object
-            An instance of Epoch on which Xdawn filters will be trained.
-        signal_cov : None, Covariance instance or ndarray
-            The signal covariance used for whitening of the data. if None, the
-            covariance is estimated from the epochs signal.
-        correct_overlap : 'auto' or bool
-            Apply correction for overlaped ERP for the estimation of evokeds
-            responses. if 'auto', the overlapp correction is chosen in function
-            of the events in epochs.events.
-
-        Returns
-        -------
-        self : Xdawn instance
-            The Xdawn instance.
-        """
-        if correct_overlap is 'auto':
-            correct_overlap = _check_overlapp(epochs)
-        elif not isinstance(correct_overlap, bool):
+        if correct_overlap not in ['auto', True, False]:
             raise ValueError('correct_overlap must be a bool or "auto"')
+        self.correct_overlap = correct_overlap
 
         # Extract signal covariance
         if signal_cov is None:
-            if correct_overlap:
-                sig_data = _construct_signal_from_epochs(epochs)
-            else:
-                sig_data = np.hstack(epochs.get_data())
-            # FIXME use MNE cov estimator
-            self.signal_cov_ = np.cov(sig_data)
+            self.signal_cov_ = None
         elif isinstance(signal_cov, Covariance):
             self.signal_cov_ = signal_cov.data
         elif isinstance(signal_cov, np.ndarray):
@@ -212,16 +220,42 @@ class Xdawn():
             raise ValueError('signal_cov must be None, a covariance instance '
                              'or a ndarray')
 
+    def fit(self, epochs):
+        """Fit Xdawn from epochs.
+
+        Parameters
+        ----------
+        epochs : Epoch object
+            An instance of Epoch on which Xdawn filters will be trained.
+
+        Returns
+        -------
+        self : Xdawn instance
+            The Xdawn instance.
+        """
+        if self.correct_overlap == 'auto':
+            self.correct_overlap = _check_overlapp(epochs)
+
+        # Extract signal covariance
+        if self.signal_cov is None:
+            if self.correct_overlap:
+                sig_data = _construct_signal_from_epochs(epochs)
+            else:
+                sig_data = np.hstack(epochs.get_data())
+            # FIXME use MNE cov estimator
+            self.signal_cov_ = np.cov(sig_data)
+
         # estimates evoked covariance
         self.evokeds_cov_ = {}
-        if correct_overlap:
+        if self.correct_overlap:
             if epochs.baseline is not None:
                 raise ValueError('Baseline correction must be None if overlap '
                                  'correction activated')
             evo, to = least_square_evoked(epochs, return_toeplitz=True)
         else:
-            evo = {eid: epochs[eid].average() for eid in epochs.event_id}
-            to = {eid: 1.0 / len(epochs[eid]) for eid in epochs.event_id}
+            for eid in epochs.event_id:
+                evo[eid] = epochs[eid].average()
+                to[eid] = 1.0 / len(epochs[eid])
         self.evokeds_ = evo
 
         for eid in epochs.event_id:
