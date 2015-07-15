@@ -1673,6 +1673,7 @@ The Matlab output provided by mne_convert_mne_data is
 organized in structures, listed in :ref:`BEHCICCA`. The fields
 occurring in these structures are listed in :ref:`BABCBIGF`.
 
+
 The symbols employed in variable size descriptions are:
 
 **nloc**
@@ -1814,6 +1815,8 @@ The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHC
     +-----------------------+-----------------+------------------------------------------------------------+
     | meas_times            | ntime           | The time points in seconds.                                |
     +-----------------------+-----------------+------------------------------------------------------------+
+
+.. note:: The Matlab files can also be read in Python using :py:func:`scipy.io.loadmat`
 
 .. _convert_to_matlab:
 
