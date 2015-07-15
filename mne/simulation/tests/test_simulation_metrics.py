@@ -79,6 +79,8 @@ def simulate_evoked():
 def test_simulation_metrics():
     evoked, stc = simulate_evoked()
     inverse_operator = read_inverse_operator(inv_fname)
+    fwd = read_forward_solution(fwd_fname, force_fixed=True)
+    src = fwd['src']
 
     stc1 = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
     stc2 = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
