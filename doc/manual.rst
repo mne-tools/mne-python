@@ -19,8 +19,8 @@ Manual
    manual/datasets
    manual/command_line_tools/overview
    manual/command_line_tools/list
-   manual/command_line_tools/analyze
-   manual/command_line_tools/browse
+   manual/gui/analyze
+   manual/gui/browse
    manual/utilities
    manual/matlab
    manual/appendix/overview
