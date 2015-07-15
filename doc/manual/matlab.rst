@@ -2,9 +2,9 @@
 
 .. _ch_matlab:
 
-==================
-The Matlab toolbox
-==================
+==============
+Matlab toolbox
+==============
 
 Overview
 ########

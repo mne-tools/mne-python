@@ -6,6 +6,40 @@
 The Cookbook
 ============
 
+.. mne-python basics
+.. -----------------
+.. mne-python uses its own custom objects to store M/EEG data. A full description
+.. of these objects is available in the :ref:`api_reference` section.
+.. A typical mne-python workflow is as follows:
+
+.. .. image:: _static/mne-python_flow.svg
+
+.. Check out :ref:`intro_tutorial` for a more complete explanation
+.. of these steps. Also check out the :ref:`examples-index` for many more
+.. examples showing some of the more advanced features of mne-python.
+
+.. .. XXXX
+
+..  :ref:`ch_cookbook` is a concise cookbook
+.. describing a typical workflow for a novice user employing the convenience
+.. scripts as far as possible. :ref:`ch_browse` to :ref:`ch_misc` give more detailed
+.. information about the software modules. :ref:`ch_sample_data` discusses
+.. processing of the sample data set included with the MNE software. :ref:`ch_reading` lists
+.. some useful background material for the methods employed in the
+.. MNE software.
+
+.. :ref:`create_bem_model` is an overview of the BEM model mesh
+.. generation methods, :ref:`setup_martinos` contains information specific
+.. to the setup at Martinos Center of Biomedical Imaging, :ref:`install_config` is
+.. a software installation and configuration guide, :ref:`release_notes` summarizes
+.. the software history, and :ref:`licence` contains the End-User
+.. License Agreement.
+
+.. .. note:: The most recent version of this manual is available    at ``$MNE_ROOT/share/doc/MNE-manual-`` <*version*> ``.pdf`` . For    the present manual, <*version*> = ``2.7`` .    For definition of the ``MNE_ROOT`` environment variable,    see :ref:`user_environment`.
+
+
+
+
 Overview
 ########
 

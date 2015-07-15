@@ -161,7 +161,7 @@ is to look at the manual:
 
 Chapters of interest for a novice user include:
 
-- :ref:`CHDDEFAB` and :ref:`CHDBAFGJ` contain introduction
+- :ref:`getting_started` contains introduction
   to the software and setup instructions.
 
 - :ref:`ch_cookbook` is an overview of the necessary steps to

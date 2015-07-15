@@ -1,6 +1,6 @@
 
 
-.. _CHDBAFGJ:
+.. _commands_list:
 
 ========
 Overview
@@ -356,84 +356,3 @@ information:
 **\---version**
 
     Prints the program module name, version number, and compilation date.
-
-.. _user_environment:
-
-User environment
-################
-
-The system-dependent location of the MNE Software will be
-here referred to by the environment variable MNE_ROOT. There are
-two scripts for setting up user environment so that the software
-can be used conveniently:
-
-``$MNE_ROOT/bin/mne_setup_sh``
-
-and
-
-``$MNE_ROOT/bin/mne_setup``
-
-compatible with the POSIX and csh/tcsh shells, respectively. Since
-the scripts set environment variables they should be 'sourced' to
-the present shell. You can find which type of a shell you are using
-by saying
-
-``echo $SHELL``
-
-If the output indicates a POSIX shell (bash or sh) you should issue
-the three commands:
-
-``export MNE_ROOT=`` <*MNE*> ``export MATLAB_ROOT=`` <*Matlab*> ``. $MNE_ROOT/bin/mne_setup_sh``
-
-with <*MNE*> replaced
-by the directory where you have installed the MNE software and <*Matlab*> is
-the directory where Matlab is installed. If you do not have Matlab,
-leave MATLAB_ROOT undefined. If Matlab is not available, the utilities
-mne_convert_mne_data , mne_epochs2mat , mne_raw2mat ,
-and mne_simu will not work.
-
-For csh/tcsh the corresponding commands are:
-
-``setenv MNE_ROOT`` <*MNE*> ``setenv MATLAB_ROOT`` <*Matlab*> ``source $MNE_ROOT/bin/mne_setup``
-
-For BEM mesh generation using the watershed algorithm or
-on the basis of multi-echo FLASH MRI data (see :ref:`create_bem_model`) and
-for accessing the tkmedit program
-from mne_analyze, see :ref:`CACCHCBF`,
-the MNE software needs access to a FreeSurfer license
-and software. Therefore, to use these features it is mandatory that
-you set up the FreeSurfer environment
-as described in the FreeSurfer documentation.
-
-The environment variables relevant to the MNE software are
-listed in :ref:`CIHDGFAA`.
-
-.. tabularcolumns:: |p{0.3\linewidth}|p{0.55\linewidth}|
-.. _CIHDGFAA:
-.. table:: Environment variables
-
-    +-------------------------+--------------------------------------------+
-    | Name of the variable    |   Description                              |
-    +=========================+============================================+
-    | MNE_ROOT                | Location of the MNE software, see above.   |
-    +-------------------------+--------------------------------------------+
-    | FREESURFER_HOME         | Location of the FreeSurfer software.       |
-    |                         | Needed during FreeSurfer reconstruction    |
-    |                         | and if the FreeSurfer MRI viewer is used   |
-    |                         | with mne_analyze, see :ref:`CACCHCBF`.     |
-    +-------------------------+--------------------------------------------+
-    | SUBJECTS_DIR            | Location of the MRI data.                  |
-    +-------------------------+--------------------------------------------+
-    | SUBJECT                 | Name of the current subject.               |
-    +-------------------------+--------------------------------------------+
-    | MNE_TRIGGER_CH_NAME     | Name of the trigger channel in raw data,   |
-    |                         | see :ref:`BABBGJEA`.                       |
-    +-------------------------+--------------------------------------------+
-    | MNE_TRIGGER_CH_MASK     | Mask to be applied to the trigger channel  |
-    |                         | values, see :ref:`BABBGJEA`.               |
-    +-------------------------+--------------------------------------------+
-
-.. note::
-
-    Section :ref:`setup_martinos` contains information specific to the setup at
-    the Martinos Center including instructions to access the Neuromag software.
