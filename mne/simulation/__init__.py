@@ -8,4 +8,4 @@ from .epochs import generate_epochs, generate_noise_epochs, add_noise_epochs
 from .source import (select_source_in_label, generate_sparse_stc, generate_stc,
                      simulate_sparse_stc)
 
-from .simulation_metrics import source_estimate_quantification
+from .metrics import source_estimate_quantification
