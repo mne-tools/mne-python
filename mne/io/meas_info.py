@@ -1110,7 +1110,7 @@ def _merge_info(infos, verbose=None):
     Parameters
     ----------
     infos | list of instance of Info
-        Other info objects to merge into this info object.
+        Info objects to merge into one info object.
     verbose : bool, str, int, or NonIe
         If not None, override default verbose level (see mne.verbose).
 
