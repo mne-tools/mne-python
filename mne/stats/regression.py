@@ -134,3 +134,157 @@ def _fit_lm(data, design_matrix, names):
         mlog10_p_val[predictor] = -np.log10(p_val[predictor])
 
     return beta, stderr, t_val, p_val, mlog10_p_val
+
+
+
+def regress_continuous(raw, events, event_id=None,
+                       tmin=-.1, tmax=1,
+                       covariates=None,
+                       reject=True, tstep=None):
+    """Estimate regression-based evoked potentials/fields by linear modelling
+    of the full M/EEG time course, including correction for overlapping
+    potentials and allowing for continuous/scalar predictors. Internally, this
+    constructs a predictor matrix X of size n_samples * (n_conds * window
+    length), solving the linear system Y = bX and returning b as evoked-like
+    time series split by condition.
+
+    See Smith & Kutas [2015b], Psychophysiology.
+
+    Parameters
+    ----------
+    raw : instance of Raw
+        A raw object. Warning: be very careful about data that is not
+        downsampled, as the resulting matrices can be enormous and easily
+        overload your computer. Typically, 100 hz sampling rate is appropriate.
+    events : instance of Events
+        An n x 3 matrix, where the first column corresponds to samples in raw.
+    event_id : dict
+        As in Epochs; a dictionary where the values may be integers or
+        list-like collections of integers, corresponding to the 3rd column of
+        events, and the keys are condition names.
+    tmin : int | dict | None
+        If int, gives the lower limit (in seconds) for the time window for
+        which all event types' effects are estimated. If a dict, can be used to
+        specify time windows for specific event types; for missing values or
+        None, the default (-.1) is used.
+    tmax : int | dict
+        If int, gives the upper limit (in seconds) for the time window for
+        which all event types' effects are estimated. If a dict, can be used to
+        specify time windows for specific event types; for missing values or
+        None, the default (-.1) is used.
+    covariates : dict-like | None
+        If dict-like, values have to be array-like and of the same length as
+        the columns in ```events```. Keys correspond to additional event
+        types/conditions to be estimated and are matched with the time points
+        given by the first column of ```events```. If None, only binary events
+        (from event_id) are used.
+    reject : bool | dict
+        Activate rejection parameters based on peak-to-peak amplitude in
+        continuously selected subwindows. If reject is None, no rejection is
+        done. If True, the following default is employed:
+            reject = dict(grad=4000e-12, # T / m (gradiometers)
+                          mag=4e-11, # T (magnetometers)
+                          eeg=40e-5, # uV (EEG channels)
+                          eog=250e-5 # uV (EOG channels)
+                         )
+        If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg') and
+        values are the maximal peak-to-peak values to select rejected epochs.
+    tstep : None | float
+        If reject is not None, length of windows for peak-to-peak detection.
+
+    Returns
+    -------
+    ev_dict : dictionary
+        A dictionary where the keys correspond to conditions and the values are
+        Evoked objects with the rE[R/F]Ps. These can be used exactly like any
+        other Evoked object, including e.g. plotting or statistics.
+    """
+    sfreq = raw.info["sfreq"]
+    data, times = raw[:]
+    conds = list(event_id.keys())
+    if covariates is not None:
+        conds += list(covariates.keys())
+
+    if isinstance(tmin, (float, int)):
+        tmin = {cond: int(tmin * sfreq) for cond in conds}
+    else:
+        tmin = {cond: int(tmin.get(cond, -.1) * sfreq) for cond in conds}
+    if isinstance(tmax, (float, int)):
+        tmax = {cond: int(tmax * sfreq) for cond in event_id.keys()}
+    else:
+        tmax = {cond: int(tmax.get(cond, 1) * sfreq) for cond in conds}
+
+    cond_length = {}
+    # construct predictor matrix
+    # !!! this should probably be improved (including making it more robust to
+    # high frequency data) by operating on sparse matrices. As-is, high
+    # sampling rates plus long windows blow up the system due to the inversion
+    # of massive matrices
+    pred_arrays = []
+    for cond in conds:
+        tmin_, tmax_ = tmin[cond], tmax[cond]
+        n_lags = tmax_ - tmin_
+        # create the first row and column to be later used by toeplitz to build
+        # the full predictor matrix
+        samples, lags = np.zeros(len(times)), np.zeros(n_lags)
+        if cond in event_id.keys():  # for binary predictors
+            ids = ([event_id[cond]] if isinstance(event_id[cond], int)
+                   else event_id[cond])
+            samples[np.asarray([t for t, _, e in events
+                                if e in ids]) + tmin_] = 1
+        else:  # for predictors from covariates, e.g. continuous ones
+            if len(covariates[cond]) != len(events):
+                error = """Condition {} from ```covariates``` is
+                        not the same length as ```events```""".format(cond)
+                raise ValueError(error)
+            for tx, v in zip(events[:, 0], covariates[cond]):
+                samples[tx + tmin_] = np.float(v)
+        cond_length[cond] = len(np.nonzero(samples))
+
+        # this is the magical part (thanks to Marijn van Vliet):
+        # use toeplitz to construct series of diagonals
+        pred_arrays.append(scipy.linalg.toeplitz(samples, lags))
+
+    big_arr = np.hstack(pred_arrays).T
+    # find only those positions where at least one predictor isn't 0
+    has_val = np.asarray([len(np.nonzero(line)[0]) > 0
+                          for line in big_arr.T])
+
+    # additionally, reject positions based on extreme steps in the data
+    if reject is not None:
+        from mne.utils import _reject_data_segments
+        if not isinstance(reject, dict):
+            reject = dict(grad=4000e-12,  # T / m (gradiometers)
+                          mag=4e-11,  # T (magnetometers)
+                          eeg=40e-5,  # uV (EEG channels)
+                          eog=250e-5  # uV (EOG channels)
+                          )
+        if tstep is None:
+            tstep = 1.0
+
+    _, inds = _reject_data_segments(data, reject, None, None,
+                                    raw.info, tstep)
+    for t0, t1 in inds:
+        has_val[t0:t1] = False
+
+    X = big_arr[:, has_val]
+    X = np.vstack((X, np.ones(X.shape[1]))).T
+
+    Y = data[:, has_val]
+
+    # solve linear system
+    coefs = np.dot(scipy.linalg.inv(np.dot(X.T, X)),
+                   np.dot(X.T, Y.T)).T
+
+    # construct Evoked objects to be returned from output
+    ev_dict = {}
+    cum = 0
+    for cond in conds:
+        tmin_, tmax_ = tmin[cond], tmax[cond]
+        ev_dict[cond] = mne.EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+                                        raw.info, tmin_ / raw.info["sfreq"],
+                                        comment=cond, nave=cond_length[cond],
+                                        kind='mean')
+        cum += tmax_ - tmin_
+
+    return ev_dict
