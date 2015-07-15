@@ -29,7 +29,7 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 raw = mne.io.Raw(raw_fname, preload=True)
 events = mne.find_events(raw, 'STI 014')
 
-# Bandpass filter the EEG and EOG 
+# Bandpass filter the EEG and EOG
 picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True)
 raw.filter(0.3, 30, method='iir', picks=picks)
 
@@ -56,13 +56,13 @@ raw_clean, weights = mne.preprocessing.eog_regression(raw, blink_epochs)
 picks = mne.pick_types(raw_clean.info, meg=False, eeg=True)
 tmin, tmax = -0.2, 0.5
 event_ids = {'AudL': 1, 'AudR': 2, 'VisL': 3, 'VisR': 4}
-epochs_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax, picks=picks,
-                          preload=True)
+epochs_after = mne.Epochs(raw_clean, events, event_ids, tmin, tmax,
+                          picks=picks, preload=True)
 evoked_after = epochs_after.average()
 
 # Show the filter weights in a topomap
 l = mne.channels.make_eeg_layout(raw.info)
-mne.viz.plot_topomap(weights[0], l.pos[:, :2]);
+mne.viz.plot_topomap(weights[0], l.pos[:, :2])
 plt.title('Regression weights')
 
 # Plot the evoked before and after EOG regression
