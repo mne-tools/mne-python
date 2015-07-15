@@ -31,3 +31,7 @@ code {
 #navbar a:hover {
     color: rgb(255,2,16);
 }
+
+.note a {
+    color: rgb(255,236,0);
+}

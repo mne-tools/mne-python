@@ -1,7 +1,7 @@
 .. _cite:
 
-Cite MNE and MNE-Python
------------------------
+Cite MNE
+--------
 
 If you use in your research the implementations provided by the MNE software you should cite:
 
@@ -13,7 +13,5 @@ If you use the Python code you should cite as well:
 
 To cite specific versions of the software, you can use the DOIs provided by
 `Zenodo <https://zenodo.org/search?ln=en&p=mne-python>`_.
-
-
 
 You should as well cite the related method papers, some of which are listed in :ref:`ch_reading`.

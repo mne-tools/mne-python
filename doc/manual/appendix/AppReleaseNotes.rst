@@ -711,7 +711,7 @@ MNE software and setup for individual users:
 - The setup scripts have changed.
 
 The installation and user-level effects of the new software
-organization are discussed in :ref:`CHDBAFGJ` and :ref:`setup_martinos`.
+organization are discussed in :ref:`getting_started`.
 
 In addition, several minor bugs have been fixed in the source
 code. Most relevant changes visible to the user are listed below.

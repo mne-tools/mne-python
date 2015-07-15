@@ -6,12 +6,12 @@ Manual
 .. toctree::
    :maxdepth: 2
 
-   manual/intro
+   manual/cookbook
    manual/io
    manual/preprocessing/
    manual/source_localization/anatomy
    manual/source_localization/forward
-   manual/source_localization/mne
+   manual/source_localization/inverse
    manual/source_localization/morph
    manual/statistics
    manual/visualization

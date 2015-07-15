@@ -52,7 +52,11 @@ Python package (provided under the simplified BSD license).
 
 The MNE development is supported by National Institute of Biomedical Imaging and Bioengineering 
 grants 5R01EB009048 and P41EB015896 (Center for Functional Neuroimaging Technologies) as well as 
-NSF awards 0958669 and 1042134.
+NSF awards 0958669 and 1042134. It has been supported by the
+NCRR *Center for Functional Neuroimaging Technologies* P41RR14075-06, the
+NIH grants 1R01EB009048-01, R01 EB006385-A101, 1R01 HD40712-A1, 1R01
+NS44319-01, and 2R01 NS37462-05, ell as by Department of Energy
+under Award Number DE-FG02-99ER62764 to The MIND Institute.
 
 .. raw:: html
 
@@ -64,16 +68,16 @@ NSF awards 0958669 and 1042134.
    :maxdepth: 1
 
    getting_started.rst
+   whats_new.rst
+   cite
+   references
    tutorials
    examples
    manual
    faq.rst
-   whats_new.rst
    python_reference.rst
    advanced_setup.rst
    mne-cpp
-   cite
-   :ref:`ch_reading`
 
 .. raw:: html
 
