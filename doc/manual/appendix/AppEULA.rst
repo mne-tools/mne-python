@@ -6,6 +6,11 @@
 Licence agreement
 =================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 This appendix includes the terms of the MNE software End-User
 License Agreement (EULA).
 

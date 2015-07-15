@@ -6,6 +6,11 @@
 Release notes
 =============
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 This appendix contains a brief description of the changes
 in MNE software in each major release.
 

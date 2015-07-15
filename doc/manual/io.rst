@@ -6,6 +6,10 @@
 Data reading and conversion
 ===========================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
 Overview
 ########
 
@@ -21,7 +25,7 @@ This part describes the utilities to convert data from
 other MEG/EEG systems into the fif format.
 
 .. note::
-    All IO functions in MNE-Python performing conversion can be found in :py:mod:`mne.io`
+    All IO functions in MNE-Python performing conversion can be found in :mod:`mne.io`
     and start with `read_raw_`.
 
 Importing MEG data
@@ -32,7 +36,7 @@ This section describes reading and converting of various MEG data formats.
 Importing 4-D Neuroimaging / BTI data
 -------------------------------------
 
-MNE-Python includes the :py:func:`mne.io.read_raw` to read and convert 4D / BTI data.
+MNE-Python includes the :func:`mne.io.read_raw_bti` to read and convert 4D / BTI data.
 This reader function will by default replace the original channel names,
 typcially composed of the letter `A` and the channel number with Neuromag.
 To import the data, the following input files are mandatory:
@@ -46,12 +50,12 @@ To import the data, the following input files are mandatory:
 - A config file
   containing acquisition information and metadata.
 
-By default :py:func:`mne.io.read_raw` assumes these three files to be located
+By default :func:`mne.io.read_raw_bti` assumes these three files to be located
 in the same folder.
 
 .. note:: While reading the reference or compensation channels,
 currently, the compensation weights are not processed.
-As a result, the :py:class:`mne.io.Raw` object and the corresponding fif file
+As a result, the :class:`mne.io.Raw` object and the corresponding fif file
 does not include information about the compensation channels
 and the weights to be applied to realize software gradient compensation.
 To augment the Magnes fif files with the necessary information,

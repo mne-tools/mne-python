@@ -6,6 +6,11 @@
 Setup at the Martinos Center
 ============================
 
+.. contents:: Contents
+   :local:
+   :depth: 2
+
+
 This Appendix contains information specific to the Martinos
 Center setup.
 

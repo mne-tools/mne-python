@@ -5,6 +5,7 @@ Getting Started
 
 .. contents:: Contents
    :local:
+   :depth: 2
 
 .. XXX do a Getting for both C and Python
 
