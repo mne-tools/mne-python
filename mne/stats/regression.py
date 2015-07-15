@@ -205,21 +205,21 @@ def regress_continuous(raw, events, event_id=None,
         conds += list(covariates.keys())
 
     if isinstance(tmin, (float, int)):
-        tmin = {cond: int(tmin * sfreq) for cond in conds}
+        tmin = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
-        tmin = {cond: int(tmin.get(cond, -.1) * sfreq) for cond in conds}
+        tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq)) for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = {cond: int(tmax * sfreq) for cond in event_id.keys()}
+        tmax = dict((cond, int(tmax * sfreq)) for cond in conds)
     else:
-        tmax = {cond: int(tmax.get(cond, 1) * sfreq) for cond in conds}
-
-    cond_length = {}
+        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq)) for cond in conds)
+    
+    cond_length = dict()
     # construct predictor matrix
     # !!! this should probably be improved (including making it more robust to
     # high frequency data) by operating on sparse matrices. As-is, high
     # sampling rates plus long windows blow up the system due to the inversion
     # of massive matrices
-    pred_arrays = []
+    pred_arrays = list()
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
         n_lags = tmax_ - tmin_
