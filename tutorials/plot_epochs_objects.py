@@ -13,16 +13,17 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# :class:`Epochs <mne.Epochs>` objects are a way of representing continuous data as a
-# collection of time-locked trials, stored in an array of `shape(n_events,
-# n_channels, n_times)`. They are useful for many statistical methods in
-# neuroscience, and make it easy to quickly overview what occurs during a
-# trial.
+# :class:`Epochs <mne.Epochs>` objects are a way of representing continuous
+# data as a collection of time-locked trials, stored in an array of
+# `shape(n_events, n_channels, n_times)`. They are useful for many statistical
+# methods in neuroscience, and make it easy to quickly overview what occurs
+# during a trial.
 #
 # :class:`Epochs <mne.Epochs>` objects can be created in three ways:
 #  1. From a :class:`Raw <mne.io.RawFIF>` object, along with event times
-#  2. From an :class:`mne.Epochs` object that has been saved as a `.fif` file
-#  3. From scratch using :class:`mne.EpochsArray`
+#  2. From an :class:`Epochs <mne.Epochs>` object that has been saved as a
+#     `.fif` file
+#  3. From scratch using :class:`EpochsArray <mne.EpochsArray>`
 
 # Load a dataset that contains events
 raw = mne.io.RawFIF(
@@ -31,7 +32,7 @@ raw = mne.io.RawFIF(
 
 # If your raw object has a stim channel, you can construct an event array
 # easily
-events = mne.find_events(raw)
+events = mne.find_events(raw, stim_channel='STI 014') 
 
 # Show the number of events (number of rows)
 print('Number of events:', len(events))
@@ -46,7 +47,8 @@ event_id = dict(left=1, right=2)
 # Now, we can create an :class:`mne.Epochs` object with the events we've
 # extracted. Note that epochs constructed in this manner will not have their
 # data available until explicitly read into memory, which you can do with
-# :func:`mne.Epochs.get_data`.  Alternatively, you can use `preload=True`.
+# :func:`get_data <mne.Epochs.get_data>`. Alternatively, you can use
+# `preload=True`.
 #
 # Note that there are many options available when loading an
 # :class:`mne.Epochs` object.  For more detailed information, see (**LINK TO
