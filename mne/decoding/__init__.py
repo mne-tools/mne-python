@@ -3,4 +3,4 @@ from .classifier import PSDEstimator, ConcatenateChannels
 from .mixin import TransformerMixin
 from .csp import CSP
 from .ems import compute_ems
-from .time_gen import GeneralizationAcrossTime
+from .time_gen import GeneralizationAcrossTime, TimeDecoding
