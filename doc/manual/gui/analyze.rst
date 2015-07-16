@@ -56,86 +56,10 @@ Its features include:
 
 .. _CHDJECCG:
 
-Command line options
-####################
+See :ref:`mne_analyze` for command line options.
 
-Since mne_analyze is
-primarily an interactive analysis tool, there are only a few command-line
-options:
+.. note:: Before starting mne_analyze the ``SUBJECTS_DIR`` environment variable has to be set.
 
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---cd <*dir*>**
-
-    Change to this directory before starting.
-
-**\---subject <*name*>**
-
-    Specify the default subject name for surface loading.
-
-**\---digtrig <*name*>**
-
-    Name of the digital trigger channel. The default value is 'STI
-    014'. Underscores in the channel name will be replaced
-    by spaces.
-
-**\---digtrigmask <*number*>**
-
-    Mask to be applied to the raw data trigger channel values before considering
-    them. This option is useful if one wants to set some bits in a don't
-    care state. For example, some finger response pads keep the trigger
-    lines high if not in use, *i.e.*, a finger is
-    not in place. Yet, it is convenient to keep these devices permanently
-    connected to the acquisition system. The number can be given in
-    decimal or hexadecimal format (beginning with 0x or 0X). For example,
-    the value 255 (0xFF) means that only the lowest order byte (usually
-    trigger lines 1 - 8 or bits 0 - 7) will be considered.
-
-**\---visualizehpi**
-
-    Start mne_analyze in the restricted *head
-    position visualization* mode. For details, see :ref:`CHDEDFAE`.
-
-**\---dig <*filename*>**
-
-    Specify a file containing the head shape digitization data. This option
-    is only usable if the *head position visualization* position
-    visualization mode has been first invoked with the --visualizehpi
-    option.
-
-**\---hpi <*filename*>**
-
-    Specify a file containing the transformation between the MEG device
-    and head coordinate frames. This option is only usable if the *head
-    position visualization* position visualization mode has
-    been first invoked with the ``--visualizehpi`` option.
-
-**\---scalehead**
-
-    In *head position visualization* mode, scale
-    the average scalp surface according to the head surface digitization
-    data before aligning  them to the scalp surface. This option is
-    recommended.
-
-**\---rthelmet**
-
-    Use the room-temperature helmet surface instead of the MEG sensor
-    surface when showing the relative position of the MEG sensors and
-    the head in the *head position visualization* mode.
-
-.. note:: Before starting mne_analyze the ``SUBJECTS_DIR`` environment variable    has to be set.
-
-.. note:: Strictly speaking, trigger mask value zero would    mean that all trigger inputs are ignored. However, for convenience,    setting the mask to zero or not setting it at all has the same effect    as 0xFFFFFFFF, *i.e.*, all bits set.
-
-.. note:: The digital trigger channel can also be set with    the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_analyze .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
-
-.. note:: The digital trigger channel mask can also be    set with the MNE_TRIGGER_CH_MASK environment variable. Using the ``--digtrigmask`` option    supersedes the MNE_TRIGGER_CH_MASK environment variable.
 
 The main window
 ###############

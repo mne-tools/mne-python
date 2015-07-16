@@ -84,7 +84,7 @@ C tools
    manual/c_cookbook
    manual/c_io
    manual/command_line_tools/overview
-   manual/command_line_tools/list
+   manual/c_reference
    manual/gui/analyze
    manual/gui/browse
    manual/c_utilities
