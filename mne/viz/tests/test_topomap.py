@@ -132,6 +132,9 @@ def test_plot_topomap():
     projs = [pp for pp in projs if pp['desc'].lower().find('eeg') < 0]
     plot_projs_topomap(projs, res=res)
     plt.close('all')
+    ax = plt.subplot(111)
+    plot_projs_topomap(projs[0], res=res, axes=ax)  # test axes param
+    plt.close('all')
     for ch in evoked.info['chs']:
         if ch['coil_type'] == FIFF.FIFFV_COIL_EEG:
             if ch['eeg_loc'] is not None:
