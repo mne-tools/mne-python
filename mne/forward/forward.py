@@ -1099,7 +1099,7 @@ def _apply_forward(fwd, stc, start=None, stop=None, verbose=None):
 
 
 @verbose
-def apply_forward(fwd, stc, info, start=None, stop=None,
+def apply_forward(fwd, stc, info=None, start=None, stop=None,
                   verbose=None, evoked_template=None):
     """
     Project source space currents to sensor space using a forward operator.
@@ -1140,9 +1140,20 @@ def apply_forward(fwd, stc, info, start=None, stop=None,
     --------
     apply_forward_raw: Compute sensor space data and return a Raw object.
     """
-    if evoked_template is not None or not isinstance(info, Info):
-        warnings.warn('"evoked" is deprecated and will be removed in '
-                      'MNE-0.11. Please give evoked.info instead',
+    if evoked_template is None and info is None:
+        raise ValueError('You have to provide an info dictionary.')
+
+    if evoked_template is not None and not isinstance(evoked_template, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide evoked.info instead',
+                      DeprecationWarning)
+        info = evoked_template.info
+
+    if info is not None and not isinstance(info, Info):
+        warnings.warn('The "evoked_template" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide evoked.info instead',
                       DeprecationWarning)
         info = info.info
 
