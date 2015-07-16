@@ -409,6 +409,10 @@ def read_surface(fname, verbose=None):
     tris : int array, shape=(n_faces, 3)
         Triangulation (each line contains indexes for three points which
         together form a face).
+
+    See Also
+    --------
+    write_surface
     """
     TRIANGLE_MAGIC = 16777214
     QUAD_MAGIC = 16777215
@@ -670,6 +674,10 @@ def write_surface(fname, coords, faces, create_stamp=''):
     create_stamp : str
         Comment that is written to the beginning of the file. Can not contain
         line breaks.
+
+    See Also
+    --------
+    write_surface
     """
     if len(create_stamp.splitlines()) > 1:
         raise ValueError("create_stamp can only contain one line")

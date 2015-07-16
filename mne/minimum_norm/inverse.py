@@ -103,6 +103,10 @@ def read_inverse_operator(fname, verbose=None):
     -------
     inv : instance of InverseOperator
         The inverse operator.
+
+    See Also
+    --------
+    write_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -323,6 +327,10 @@ def write_inverse_operator(fname, inv, verbose=None):
         The inverse operator.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_inverse_operator
     """
     check_fname(fname, 'inverse operator', ('-inv.fif', '-inv.fif.gz'))
 
@@ -754,6 +762,11 @@ def apply_inverse(evoked, inverse_operator, lambda2=1. / 9.,
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse_epochs : Apply inverse operator to epochs object
     """
     _check_reference(evoked)
     method = _check_method(method)
@@ -851,6 +864,11 @@ def apply_inverse_raw(raw, inverse_operator, lambda2, method="dSPM",
     -------
     stc : SourceEstimate | VolSourceEstimate
         The source estimates.
+
+    See Also
+    --------
+    apply_inverse_epochs : Apply inverse operator to epochs object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(raw)
     method = _check_method(method)
@@ -1019,6 +1037,11 @@ def apply_inverse_epochs(epochs, inverse_operator, lambda2, method="dSPM",
     -------
     stc : list of SourceEstimate or VolSourceEstimate
         The source estimates for all epochs.
+
+    See Also
+    --------
+    apply_inverse_raw : Apply inverse operator to raw object
+    apply_inverse : Apply inverse operator to evoked object
     """
     _check_reference(epochs)
     stcs = _apply_inverse_epochs_gen(epochs, inverse_operator, lambda2,

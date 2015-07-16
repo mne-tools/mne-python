@@ -986,6 +986,10 @@ def read_bem_surfaces(fname, patch_stats=False, s_id=None, verbose=None):
     surf: list | dict
         A list of dictionaries that each contain a surface. If s_id
         is not None, only the requested surface will be returned.
+
+    See Also
+    --------
+    write_bem_surfaces, read_bem_solution, make_bem_solution
     """
     from .surface import _complete_surface_info
     # Default coordinate frame
@@ -1115,6 +1119,10 @@ def read_bem_solution(fname, verbose=None):
     -------
     bem : dict
         The BEM solution.
+
+    See Also
+    --------
+    write_bem_solution
     """
     # mirrors fwd_bem_load_surfaces from fwd_bem_model.c
     logger.info('Loading surfaces...')
@@ -1243,6 +1251,10 @@ def write_bem_surface(fname, surf):
         File to write
     surf : dict
         A surface structured as obtained with read_bem_surfaces
+
+    See Also
+    --------
+    read_bem_surfaces
     """
     write_bem_surfaces(fname, surf)
 
@@ -1294,6 +1306,10 @@ def write_bem_solution(fname, bem):
         The filename to use.
     bem : dict
         The BEM model with solution to save.
+
+    See Also
+    --------
+    read_bem_solution
     """
     with start_file(fname) as fid:
         start_block(fid, FIFF.FIFFB_BEM)

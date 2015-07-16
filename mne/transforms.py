@@ -308,6 +308,10 @@ def read_trans(fname):
     trans : dict
         The transformation dictionary from the fif file.
 
+    See Also
+    --------
+    write_trans
+
     Notes
     -----
     The trans dictionary has the following structure:
@@ -336,6 +340,10 @@ def write_trans(fname, trans):
         The name of the file, which should end in '-trans.fif'.
     trans : dict
         Trans file data, as returned by read_trans.
+
+    See Also
+    --------
+    read_trans
     """
     check_fname(fname, 'trans', ('-trans.fif', '-trans.fif.gz'))
     fid = start_file(fname)

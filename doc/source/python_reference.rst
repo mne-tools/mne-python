@@ -757,6 +757,22 @@ Functions that operate on ``np.ndarray`` objects:
    stftfreq
 
 
+:py:mod:`mne.time_frequency.tfr`:
+
+.. automodule:: mne.time_frequency.tfr
+ :no-members:
+ :no-inherited-members:
+
+.. currentmodule:: mne.time_frequency.tfr
+
+.. autosummary::
+   :toctree: generated/
+   :template: function.rst
+
+   cwt
+   morlet
+
+
 Connectivity Estimation
 =======================
 

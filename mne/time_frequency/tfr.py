@@ -1,12 +1,11 @@
 """A module which implements the time frequency estimation.
 
-Authors : Alexandre Gramfort, alexandre.gramfort@telecom-paristech.fr
-          Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
-
-License : BSD 3-clause
-
 Morlet code inspired by Matlab code from Sheraz Khan & Brainstorm & SPM
 """
+# Authors : Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+#           Hari Bharadwaj <hari@nmr.mgh.harvard.edu>
+#
+# License : BSD (3-clause)
 
 import warnings
 from math import sqrt
@@ -67,6 +66,10 @@ def morlet(sfreq, freqs, n_cycles=7, sigma=None, zero_mean=False):
     -------
     Ws : list of array
         Wavelets time series
+
+    See Also
+    --------
+    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition with Morlet wavelets
     """
     Ws = list()
     n_cycles = np.atleast_1d(n_cycles)
@@ -266,6 +269,10 @@ def cwt_morlet(X, sfreq, freqs, use_fft=True, n_cycles=7.0, zero_mean=False):
     -------
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
+
+    See Also
+    --------
+    tfr.cwt : Compute time-frequency decomposition with user-provided wavelets
     """
     mode = 'same'
     # mode = "valid"
@@ -307,6 +314,10 @@ def cwt(X, Ws, use_fft=True, mode='same', decim=1):
     -------
     tfr : 3D array
         Time Frequency Decompositions (n_signals x n_frequencies x n_times)
+
+    See Also
+    --------
+    mne.time_frequency.cwt_morlet : Compute time-frequency decomposition with Morlet wavelets
     """
     n_signals, n_times = X[:, ::decim].shape
     n_frequencies = len(Ws)
@@ -1016,6 +1027,10 @@ def write_tfrs(fname, tfr, overwrite=False):
     overwrite : bool
         If True, overwrite file (if it exists). Defaults to False.
 
+    See Also
+    --------
+    read_tfrs
+
     Notes
     -----
     .. versionadded:: 0.9.0
@@ -1040,6 +1055,10 @@ def read_tfrs(fname, condition=None):
     condition : int or str | list of int or str | None
         The condition to load. If None, all conditions will be returned.
         Defaults to None.
+
+    See Also
+    --------
+    write_tfrs
 
     Returns
     -------
@@ -1093,11 +1112,15 @@ def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
 
     Returns
     -------
-    power : AverageTFR
+    power : instance of AverageTFR
         The averaged power.
-    itc : AverageTFR
+    itc : instance of AverageTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
+
+    See Also
+    --------
+    tfr_multitaper, tfr_stockwell
     """
     data = _get_data(inst, return_itc)
     picks = pick_types(inst.info, meg=True, eeg=True)
@@ -1231,6 +1254,10 @@ def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0, use_fft=True,
     itc : AverageTFR
         The intertrial coherence (ITC). Only returned if return_itc
         is True.
+
+    See Also
+    --------
+    tfr_multitaper, tfr_stockwell
 
     Notes
     -----

@@ -463,6 +463,10 @@ def fit_dipole(evoked, cov, bem, trans=None, min_dist=5.,
         The good M-EEG data channels with the fitted dipolar activity
         removed.
 
+    See Also
+    --------
+    mne.beamformer.rap_music
+
     Notes
     -----
     .. versionadded:: 0.9.0

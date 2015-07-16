@@ -747,6 +747,9 @@ class GeneralizationAcrossTime(_GeneralizationAcrossTime):
         number of testing times per training time need not be regular;
         else, np.shape(scores) = (n_train_time, n_test_time).
 
+    See Also
+    --------
+    TimeDecoding
 
     Notes
     -----
@@ -1019,6 +1022,10 @@ class TimeDecoding(_GeneralizationAcrossTime):
         scikit-learn Scorer instance.
     scores_ : list of float, shape (n_times,)
         The scores (mean accuracy of self.predict(X) wrt. y.).
+
+    See Also
+    --------
+    GeneralizationAcrossTime
 
     Notes
     -----
