@@ -45,7 +45,7 @@ def generate_evoked(fwd, stc, info, cov, snr=3, tmin=None,
         To specify the random generator state.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
-    evoked : Evoked object
+    evoked : None | Evoked object
         An instance of evoked used as template.
 
     Returns
@@ -54,12 +54,12 @@ def generate_evoked(fwd, stc, info, cov, snr=3, tmin=None,
         The simulated evoked data
     """
     if evoked is not None or not isinstance(info, Info):
-        warnings.warn('"evoked" is deprecated and will be removed in '
-                      'MNE-0.11. Please give evoked.info instead',
+        warnings.warn('The "evoked" parameter is being deprecated '
+                      'and will be removed in MNE-0.11. '
+                      'Please provide evoked.info instead',
                       DeprecationWarning)
-        info = info.info
 
-    evoked = apply_forward(fwd, stc, info)  # verbose
+    evoked = apply_forward(fwd, stc, info, evoked_template=evoked)  # verbose
     noise = generate_noise_evoked(evoked, cov, iir_filter, random_state)
     evoked_noise = add_noise_evoked(evoked, noise, snr, tmin=tmin, tmax=tmax)
     return evoked_noise
