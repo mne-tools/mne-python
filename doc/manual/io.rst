@@ -10,8 +10,10 @@ Here we describe the data reading and conversion utilities included
 with the MNE software.
 
 .. note::
-    All IO functions in MNE-Python performing conversion of MEG and EEG data
-    can be found in :mod:`mne.io` and start with `read_raw_`.
+    All IO functions in MNE-Python performing reading/conversion of MEG and
+    EEG data can be found in :mod:`mne.io` and start with `read_raw_`. All
+    supported data formats can be read in MNE-Python directly without first
+    saving it to fif.
 
 Importing MEG data
 ##################
@@ -39,11 +41,11 @@ Importing 4-D Neuroimaging / BTI data
 
 MNE-Python includes the :func:`mne.io.read_raw_bti` to read and convert 4D / BTI data.
 This reader function will by default replace the original channel names,
-typcially composed of the letter `A` and the channel number with Neuromag.
+typically composed of the letter `A` and the channel number with Neuromag.
 To import the data, the following input files are mandatory:
 
 - A data file (typically c,rfDC)
-  containing the recorded MEG timeseries.
+  containing the recorded MEG time-series.
 
 - A hs_file
   containing the digitizer data.
@@ -213,11 +215,11 @@ does not contain the fiducial locations. If desired, they can be
 manually copied from the ``pos`` file which was the source
 of the ``eeg`` file.
 
-.. note:: In newer CTF data the EEG position information    maybe present in the ``res4`` file. If the ``eeg`` file    is present, the positions given there take precedence over the information    in the ``res4`` file.
+.. note:: In newer CTF data the EEG position information maybe present in the ``res4`` file. If the ``eeg`` file    is present, the positions given there take precedence over the information in the ``res4`` file.
 
-.. note:: mne_ctf2fiff converts    both epoch mode and continuous raw data file into raw data fif files.    It is not advisable to use epoch mode files with time gaps between    the epochs because the data will be discontinuous in the resulting    fif file with jumps at the junctions between epochs. These discontinuities    produce artefacts if the raw data is filtered in mne_browse_raw , mne_process_raw ,    or graph .
+.. note:: mne_ctf2fiff converts both epoch mode and continuous raw data file into raw data fif files. It is not advisable to use epoch mode files with time gaps between the epochs because the data will be discontinuous in the resulting fif file with jumps at the junctions between epochs. These discontinuities    produce artefacts if the raw data is filtered in mne_browse_raw , mne_process_raw ,    or graph .
 
-.. note:: The conversion process includes a transformation    from the CTF head coordinate system convention to that used in the    Neuromag systems.
+.. note:: The conversion process includes a transformation from the CTF head coordinate system convention to that used in the Neuromag systems.
 
 .. _BEHBABFA:
 
@@ -242,7 +244,7 @@ Otherwise, the input file must end with three lines beginning with ``left`` , ``
 or ``nasion`` to indicate the locations of the fiducial
 landmarks, respectively.
 
-.. note:: The sequential numbers should be unique within    a file. I particular, the numbers 1, 2, and 3 must not be appear    more than once if the ``--numfids`` options is used.
+.. note:: The sequential numbers should be unique within a file. I particular, the numbers 1, 2, and 3 must not be appear more than once if the ``--numfids`` options is used.
 
 The command-line options for mne_ctf_dig2fiff are:
 
@@ -358,9 +360,9 @@ which has the following command-line options:
     can be 1, 2, 3, or 101. The values starting from 101 will be used
     for 4D Magnes compensation matrices.
 
-.. note:: Only average data is included in the output.    Evoked-response data files produced with mne_browse_raw or mne_process_raw may    include standard errors of mean, which can not be re-compensated    using the above method and are thus omitted.
+.. note:: Only average data is included in the output. Evoked-response data files produced with mne_browse_raw or mne_process_raw may    include standard errors of mean, which can not be re-compensated    using the above method and are thus omitted.
 
-.. note:: Raw data cannot be compensated using mne_compensate_data .    For this purpose, load the data to mne_browse_raw or mne_process_raw , specify    the desired compensation grade, and save a new raw data file.
+.. note:: Raw data cannot be compensated using mne_compensate_data . For this purpose, load the data to mne_browse_raw or mne_process_raw , specify    the desired compensation grade, and save a new raw data file.
 
 .. _BEHGDDBH:
 
@@ -369,54 +371,62 @@ which has the following command-line options:
 Importing KIT MEG system data
 =============================
 
-The utility mne_kit2fiff was
-created in collaboration with Alec Maranz and Asaf Bachrach to import
-their MEG data acquired with the 160-channel KIT MEG system to MNE
-software.
+MNE-Python includes the :func:`mne.io.read_raw_kit` and
+:func:`mne.io.read_epochs_kit` to read and convert KIT MEG data.
+This reader function will by default replace the original channel names,
+typically with index starting with zero to an index starting with one.
 
-To import the data, the following input files are mandatory:
-
-- The Polhemus data file (elp file)
-  containing the locations of the fiducials and the head-position
-  indicator (HPI) coils. These data are usually given in the CTF/4D
-  head coordinate system. However, mne_kit2fiff does
-  not rely on this assumption. This file can be exported directly from
-  the KIT system.
-
-- A file containing the locations of the HPI coils in the MEG
-  device coordinate system. These data are used together with the elp file
-  to establish the coordinate transformation between the head and
-  device coordinate systems. This file can be produced easily by manually
-  editing one of the files exported by the KIT system.
-
-- A sensor data file (sns file)
-  containing the locations and orientations of the sensors. This file
-  can be exported directly from the KIT system.
-
-.. note:: The output fif file will use the Neuromag head    coordinate system convention, see :ref:`BJEBIBAI`. A coordinate    transformation between the CTF/4D head coordinates and the Neuromag    head coordinates is included. This transformation can be read with    MNE Matlab Toolbox routines, see :ref:`ch_matlab`.
+To import continuous data, only the input .sqd or .con file is needed. For epochs,
+an Nx3 matrix containing the event number/corresponding trigger value in the
+third column is needed.
 
 The following input files are optional:
 
-- A head shape data file (hsp file)
+- A KIT marker file (mrk file) or an array-like
+  containing the locations of the HPI coils in the MEG device coordinate system.
+  These data are used together with the elp file to establish the coordinate
+  transformation between the head and device coordinate systems.
+
+- A Polhemus points file (elp file) or an array-like
+  containing the locations of the fiducials and the head-position
+  indicator (HPI) coils. These data are usually given in the Polhemus
+  head coordinate system.
+
+- A Polhemus head shape data file (hsp file) or an array-like
   containing locations of additional points from the head surface.
   These points must be given in the same coordinate system as that
-  used for the elp file and the
-  fiducial locations must be within 1 mm from those in the elp file.
+  used for the elp file.
 
-- A raw data file containing the raw data values, sample by
-  sample, as text. If this file is not specified, the output fif file
-  will only contain the measurement info block.
 
-By default mne_kit2fiff includes
-the first 157 channels, assumed to be the MEG channels, in the output
-file. The compensation channel data are not converted by default
-but can be added, together with other channels, with the ``--type`` .
-The channels from 160 onwards are designated as miscellaneous input
-channels (MISC 001, MISC 002, etc.). The channel names and types
-of these channels can be afterwards changed with the mne_rename_channels utility,
-see :ref:`CHDCFEAJ`. In addition, it is possible to synthesize
-the digital trigger channel (STI 014) from available analog
-trigger channel data, see the ``--stim`` option, below.
+.. note:: The output fif file will use the Neuromag head coordinate system convention, see :ref:`BJEBIBAI`. A coordinate transformation between the Polhemus head coordinates and the Neuromag head coordinates is included.
+
+
+By default, KIT-157 systems assume the first 157 channels are the MEG channels,
+the next 3 channels are the reference compensation channels, and channels 160
+onwards are designated as miscellaneous input channels (MISC 001, MISC 002, etc.).
+By default, KIT-208 systems assume the first 208 channels are the MEG channels,
+the next 16 channels are the reference compensation channels, and channels 224
+onwards are designated as miscellaneous input channels (MISC 001, MISC 002, etc.).
+
+In addition, it is possible to synthesize the digital trigger channel (STI 014)
+from available analog trigger channel data by specifying the following parameters:
+
+- A list of trigger channels (stim) or default triggers with order: '<' | '>'
+  Channel-value correspondence when converting KIT trigger channels to a
+  Neuromag-style stim channel. By default, we assume the first eight miscellanous
+  channels are trigger channels. For '<', the largest values are assigned
+  to the first channel (little endian; default). For '>', the largest values are
+  assigned to the last channel (big endian). Can also be specified as a list of
+  trigger channel indexes.
+- The trigger channel slope (slope) : '+' | '-'
+  How to interpret values on KIT trigger channels when synthesizing a
+  Neuromag-style stim channel. With '+', a positive slope (low-to-high)
+  is interpreted as an event. With '-', a negative slope (high-to-low)
+  is interpreted as an event.
+A stimulus threshold (stimthresh) : float
+    The threshold level for accepting voltage changes in KIT trigger
+    channels as a trigger event.
+
 The synthesized trigger channel data value at sample :math:`k` will
 be:
 
@@ -431,89 +441,8 @@ from the input channel data d_p(k):
 	     \end{array}\ .
 
 The threshold value :math:`t` can
-be adjusted with the ``--stimthresh`` option, see below.
+be adjusted with the ``stimthresh`` parameter, see below.
 
-mne_kit2fiff accepts
-the following command-line options:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---elp <*filename*>**
-
-    The name of the file containing the locations of the fiducials and
-    the HPI coils. This option is mandatory.
-
-**\---hsp <*filename*>**
-
-    The name of the file containing the locations of the fiducials and additional
-    points on the head surface. This file is optional.
-
-**\---sns <*filename*>**
-
-    The name of file containing the sensor locations and orientations. This
-    option is mandatory.
-
-**\---hpi <*filename*>**
-
-    The name of a text file containing the locations of the HPI coils
-    in the MEG device coordinate frame, given in millimeters. The order of
-    the coils in this file does not have to be the same as that in the elp file.
-    This option is mandatory.
-
-**\---raw <*filename*>**
-
-    Specifies the name of the raw data file. If this file is not specified, the
-    output fif file will only contain the measurement info block.
-
-**\---sfreq <*value/Hz*>**
-
-    The sampling frequency of the data. If this option is not specified, the
-    sampling frequency defaults to 1000 Hz.
-
-**\---lowpass <*value/Hz*>**
-
-    The lowpass filter corner frequency used in the data acquisition.
-    If not specified, this value defaults to 200 Hz.
-
-**\---highpass <*value/Hz*>**
-
-    The highpass filter corner frequency used in the data acquisition.
-    If not specified, this value defaults to 0 Hz (DC recording).
-
-**\---out <*filename*>**
-
-    Specifies the name of the output fif format data file. If this file
-    is not specified, no output is produced but the elp , hpi ,
-    and hsp files are processed normally.
-
-**\---stim <*chs*>**
-
-    Specifies a colon-separated list of numbers of channels to be used
-    to synthesize a digital trigger channel. These numbers refer to
-    the scanning order channels as listed in the sns file,
-    starting from one. The digital trigger channel will be the last
-    channel in the file. If this option is absent, the output file will
-    not contain a trigger channel.
-
-**\---stimthresh <*value*>**
-
-    The threshold value used when synthesizing the digital trigger channel,
-    see above. Defaults to 1.0.
-
-**\---add <*chs*>**
-
-    Specifies a colon-separated list of numbers of channels to include between
-    the 157 default MEG channels and the digital trigger channel. These
-    numbers refer to the scanning order channels as listed in the sns file,
-    starting from one.
-
-.. note:: The mne_kit2fiff utility    has not been extensively tested yet.
 
 .. _BABHDBBD:
 
@@ -544,20 +473,17 @@ The EDF+ files may contain an annotation channel which can
 be used to store trigger information. The Time-stamped Annotation
 Lists (TALs) on the annotation  data can be converted to a trigger
 channel (STI 014) using an annotation map file which associates
-an annotation label with a number on the trigger channel. The TALs
-can be listed with the ``--listtal`` option,
-see below.
+an annotation label with a number on the trigger channel.
 
 
 Biosemi data format (.bdf)
 ==========================
 
-The BDF format (http://www.biosemi.com/faq/file_format.htm
-) is a 24-bit variant of the EDF format used by the EEG systems manufactured
-by a company called BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
+The BDF format (http://www.biosemi.com/faq/file_format.htm) is a 24-bit variant
+of the EDF format used by the EEG systems manufactured by a company called
+BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
 
-
-.. warning:: The data samples in a BDF file    are represented in a 3-byte (24-bit) format. Since 3-byte raw data    buffers are not presently supported in the fif format    these data will be changed to 4-byte integers in the conversion.    Since the maximum size of a fif file is 2 GBytes, the maximum size of    a BDF file to be converted is approximately 1.5 GBytes
+.. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format these data will be changed to 4-byte integers in the conversion.
 
 
 EGI simple binary (.egi)
@@ -676,7 +602,7 @@ are converted to the MEG head coordinate system employed in the
 MNE software, see :ref:`BJEBIBAI`.
 
 
-Creating MNE data structures from arbitraty data (from memory)
+Creating MNE data structures from arbitrary data (from memory)
 #############################################################
 
 Arbitrary (e.g., simulated or manually read in) raw data can be constructed
@@ -688,7 +614,7 @@ Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combina
 with these functions abundant electrophysiological file formats can be easily loaded
 into MNE.
 
-Additional IO Uitlities
+Additional IO Utilities
 #######################
 
 Converting digitization data
