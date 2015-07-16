@@ -1568,7 +1568,7 @@ def _plot_histogram(params):
         plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color,
                  range=rng)
         if rej is not None:
-            ax.plot((rej, rej), (0, ax.get_ylim()[1]))
+            ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
         plt.title(titles[types[idx]])
     fig.suptitle('Peak-to-peak histogram', y=0.99)
     tight_layout(fig=fig)
