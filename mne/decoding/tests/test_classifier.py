@@ -15,6 +15,8 @@ from mne.decoding import LinearClassifier
 
 from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -60,4 +62,10 @@ def test_linear_classifier():
     # test set_params
     clf.set_params(clf__C=100)
     assert_equal(clf.get_params()['clf__C'], 100)
-
+    
+    # test it goes through a scikit-learn pipeline
+    clf = LinearClassifier()
+    test_pipe = Pipeline((('scaler', sc), ('clf', clf)))
+    test_pipe.fit(X, labels)
+    test_pipe.predict(X)
+    test_pipe.score(X, labels)

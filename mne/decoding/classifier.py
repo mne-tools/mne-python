@@ -104,7 +104,7 @@ class LinearClassifier(BaseEstimator):
         """
         return self.fit(X, y).transform(X)
     
-    def predict(self, X, y=None):
+    def predict(self, X):
         """Predict class labels for each trial in X.
         
         Parameters

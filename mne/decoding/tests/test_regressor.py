@@ -15,6 +15,8 @@ from mne.decoding import LinearRegressor
 
 from sklearn.linear_model import Ridge
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -66,3 +68,10 @@ def test_linear_regressor():
     # test set_params
     reg.set_params(reg__alpha=100)
     assert_equal(reg.get_params()['reg__alpha'], 100)
+    
+    # test it goes through a scikit-learn pipeline
+    reg = LinearRegressor()
+    test_pipe = Pipeline((('scaler', sc), ('reg', reg)))
+    test_pipe.fit(X, labels)
+    test_pipe.predict(X)
+    test_pipe.score(X, labels)
