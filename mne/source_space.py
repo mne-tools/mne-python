@@ -511,6 +511,10 @@ def read_source_spaces(fname, patch_stats=False, verbose=None):
     -------
     src : SourceSpaces
         The source spaces.
+
+    See Also
+    --------
+    write_source_spaces
     """
     # be more permissive on read than write (fwd/inv can contain src)
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz',
@@ -897,6 +901,10 @@ def write_source_spaces(fname, src, verbose=None):
         The source spaces (as returned by read_source_spaces).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_source_spaces
     """
     check_fname(fname, 'source space', ('-src.fif', '-src.fif.gz'))
 

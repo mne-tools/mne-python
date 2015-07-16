@@ -1063,6 +1063,10 @@ def get_config(key=None, default=None, raise_error=False, home_dir=None):
     -------
     value : dict | str | None
         The preference key value.
+
+    See Also
+    --------
+    set_config
     """
 
     if key is not None and not isinstance(key, string_types):
@@ -1112,6 +1116,10 @@ def set_config(key, value, home_dir=None):
     home_dir : str | None
         The folder that contains the .mne config folder.
         If None, it is found automatically.
+
+    See Also
+    --------
+    get_config
     """
     if not isinstance(key, string_types):
         raise TypeError('key must be a string')

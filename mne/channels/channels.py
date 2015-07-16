@@ -395,6 +395,10 @@ class PickDropChannelsMixin(object):
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
 
+        See Also
+        --------
+        drop_channels
+
         Notes
         -----
         .. versionadded:: 0.9.0
@@ -416,6 +420,10 @@ class PickDropChannelsMixin(object):
         copy : bool
             If True, returns new instance. Else, modifies in place. Defaults to
             False.
+
+        See Also
+        --------
+        pick_channels
 
         Notes
         -----

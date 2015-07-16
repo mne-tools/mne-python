@@ -423,6 +423,10 @@ def read_forward_solution(fname, force_fixed=False, surf_ori=False,
     -------
     fwd : instance of Forward
         The forward solution.
+
+    See Also
+    --------
+    write_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -689,6 +693,10 @@ def write_forward_solution(fname, fwd, overwrite=False, verbose=None):
         If True, overwrite destination file (if it exists).
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    read_forward_solution
     """
     check_fname(fname, 'forward', ('-fwd.fif', '-fwd.fif.gz'))
 
@@ -1244,6 +1252,10 @@ def restrict_forward_to_stc(fwd, stc):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_label
     """
 
     fwd_out = deepcopy(fwd)
@@ -1287,6 +1299,10 @@ def restrict_forward_to_label(fwd, labels):
     -------
     fwd_out : dict
         Restricted forward operator.
+
+    See Also
+    --------
+    restrict_forward_to_stc
     """
 
     if not isinstance(labels, list):
@@ -1403,6 +1419,10 @@ def do_forward_solution(subject, meas, fname=None, src=None, spacing=None,
         Override the SUBJECTS_DIR environment variable.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
+
+    See Also
+    --------
+    forward.make_forward_solution
 
     Returns
     -------

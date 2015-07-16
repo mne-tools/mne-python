@@ -626,6 +626,10 @@ def band_pass_filter(x, Fs, Fp1, Fp2, filter_length='10s',
     xf : array
         x filtered.
 
+    See Also
+    --------
+    low_pass_filter, high_pass_filter
+
     Notes
     -----
     The frequency response is (approximately) given by::
@@ -841,6 +845,10 @@ def low_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     xf : array
         x filtered.
 
+    See Also
+    --------
+    band_pass_filter, high_pass_filter
+
     Notes
     -----
     The frequency response is (approximately) given by::
@@ -926,6 +934,10 @@ def high_pass_filter(x, Fs, Fp, filter_length='10s', trans_bandwidth=0.5,
     -------
     xf : array
         x filtered.
+
+    See Also
+    --------
+    low_pass_filter, band_pass_filter
 
     Notes
     -----
@@ -1443,6 +1455,10 @@ class FilterMixin(object):
             done using polynomial fits instead of FIR/IIR filtering.
             This parameter is thus used to determine the length of the
             window over which a 5th-order polynomial smoothing is used.
+
+        See Also
+        --------
+        mne.io.Raw.filter
 
         Notes
         -----

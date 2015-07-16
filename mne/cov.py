@@ -236,6 +236,10 @@ def read_cov(fname, verbose=None):
     -------
     cov : Covariance
         The noise covariance matrix.
+
+    See Also
+    --------
+    write_cov
     """
     check_fname(fname, 'covariance', ('-cov.fif', '-cov.fif.gz'))
 
@@ -348,6 +352,10 @@ def compute_raw_data_covariance(raw, tmin=None, tmax=None, tstep=0.2,
     -------
     cov : instance of Covariance
         Noise covariance matrix.
+
+    See Also
+    --------
+    compute_covariance : Estimate noise covariance matrix from epochs
     """
     sfreq = raw.info['sfreq']
 
@@ -524,6 +532,10 @@ def compute_covariance(epochs, keep_sample_mean=True, tmin=None, tmax=None,
         and return_estimators equals True, a list of covariance estimators is
         returned (sorted by log-likelihood, from high to low, i.e. from best
         to worst).
+
+    See Also
+    --------
+    compute_raw_data_covariance : Estimate noise covariance from raw data
 
     References
     ----------
@@ -1059,6 +1071,10 @@ def write_cov(fname, cov):
         The name of the file. It should end with -cov.fif or -cov.fif.gz.
     cov : Covariance
         The noise covariance matrix
+
+    See Also
+    --------
+    read_cov
     """
     cov.save(fname)
 
@@ -1242,6 +1258,10 @@ def regularize(cov, info, mag=0.1, grad=0.1, eeg=0.1, exclude='bads',
     -------
     reg_cov : Covariance
         The regularized covariance matrix.
+
+    See Also
+    --------
+    compute_covariance
     """  # noqa
     cov = cp.deepcopy(cov)
 

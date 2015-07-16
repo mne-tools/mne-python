@@ -819,6 +819,10 @@ class EvokedArray(Evoked):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
+
+    See Also
+    --------
+    epochs.EpochsArray, io.RawArray
     """
 
     @verbose
@@ -1036,6 +1040,10 @@ def read_evokeds(fname, condition=None, baseline=None, kind='average',
     evoked : Evoked (if condition is int or str) or list of Evoked (if
         condition is None or list)
         The evoked dataset(s).
+
+    See Also
+    --------
+    write_evokeds
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 
@@ -1064,6 +1072,10 @@ def write_evokeds(fname, evoked):
         The evoked dataset, or list of evoked datasets, to save in one file.
         Note that the measurement info from the first evoked instance is used,
         so be sure that information matches.
+
+    See Also
+    --------
+    read_evokeds
     """
     check_fname(fname, 'evoked', ('-ave.fif', '-ave.fif.gz'))
 

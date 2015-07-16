@@ -84,6 +84,10 @@ def pick_channels(ch_names, include, exclude=[]):
         List of channels to exclude (if empty do not exclude any channel).
         Defaults to [].
 
+    See Also
+    --------
+    pick_channels_regexp
+
     Returns
     -------
     sel : array of int
@@ -118,6 +122,10 @@ def pick_channels_regexp(ch_names, regexp):
     -------
     sel : array of int
         Indices of good channels.
+
+    See Also
+    --------
+    pick_channels
 
     Examples
     --------

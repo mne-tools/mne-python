@@ -879,6 +879,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         -------
         perc : float
             Total percentage of epochs dropped.
+
+        See Also
+        --------
+        plot_drop_log
         """
         return _drop_log_stats(self.drop_log, ignore)
 
@@ -1427,7 +1431,7 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             Indices from the original events list that were dropped.
 
         Notes
-        ----
+        -----
         For example (if epochs.event_id was {'Left': 1, 'Right': 2,
         'Nonspatial':3}:
 
@@ -1720,6 +1724,10 @@ class EpochsArray(_BaseEpochs):
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
         Defaults to raw.verbose.
+
+    See Also
+    --------
+    io.RawArray, mne.EvokedArray
     """
 
     @verbose
