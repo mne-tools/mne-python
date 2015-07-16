@@ -456,7 +456,9 @@ class FilterEstimator(TransformerMixin):
 
 
 def compute_patterns(epochs, linear_model):
-    """Compute patterns 
+    """ 
+    This function computes the patterns of a linear model
+    based on a set of epochs.
 
     Parameters
     ----------
