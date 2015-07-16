@@ -2,39 +2,25 @@
 
 .. _ch_convert:
 
-===========================
-Data reading and conversion
-===========================
-
 .. contents:: Contents
    :local:
    :depth: 2
 
-Overview
-########
-
 Here we describe the data reading and conversion utilities included
 with the MNE software.
 
-.. _BEHIAADG:
-
-Importing data from other MEG/EEG systems
-#########################################
-
-This part describes the utilities to convert data from
-other MEG/EEG systems into the fif format.
-
 .. note::
-    All IO functions in MNE-Python performing conversion can be found in :mod:`mne.io`
-    and start with `read_raw_`.
+    All IO functions in MNE-Python performing conversion of MEG and EEG data
+    can be found in :mod:`mne.io` and start with `read_raw_`.
 
 Importing MEG data
-==================
+##################
 
 This section describes reading and converting of various MEG data formats.
 
+
 Elekta NeuroMag (.fif)
----------------------------
+======================
 
 Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
 
@@ -44,11 +30,12 @@ Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
     ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
 .. note::
     This file format also supports EEG data. An average reference will be added
-    by default on reading EEG data.
+    by default on reading EEG data. To change this behavior call the readers
+    like this: ``mne.io.read_raw_fif(..., add_eeg_ref=False)``
 
 
 Importing 4-D Neuroimaging / BTI data
--------------------------------------
+=====================================
 
 MNE-Python includes the :func:`mne.io.read_raw_bti` to read and convert 4D / BTI data.
 This reader function will by default replace the original channel names,
@@ -82,7 +69,7 @@ has not been evaluated carefully at this time.
 
 
 Creating software gradient compensation data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+--------------------------------------------
 
 The utility mne_create_comp_data was
 written to create software gradient compensation weight data for
@@ -131,7 +118,7 @@ names contain spaces, they must be surrounded by quotes, for example, ``"MEG 011
 .. _BEHDEBCH:
 
 Importing CTF data
-------------------
+==================
 
 The C command line tools include a utility mne_ctf2fiff ,
 based on the BrainStorm Matlab code by Richard Leahy, John Mosher,
@@ -235,7 +222,7 @@ of the ``eeg`` file.
 .. _BEHBABFA:
 
 Importing CTF Polhemus data
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
+===========================
 
 The CTF MEG systems store the Polhemus digitization data
 in text files. The utility mne_ctf_dig2fiff was
@@ -287,7 +274,7 @@ The command-line options for mne_ctf_dig2fiff are:
 .. _BEHDDFBI:
 
 Applying software gradient compensation
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+---------------------------------------
 
 Since the software gradient compensation employed in CTF
 systems is a reversible operation, it is possible to change the
@@ -380,7 +367,7 @@ which has the following command-line options:
 .. _BEHBJGGF:
 
 Importing KIT MEG system data
------------------------------
+=============================
 
 The utility mne_kit2fiff was
 created in collaboration with Alec Maranz and Asaf Bachrach to import
@@ -532,16 +519,19 @@ the following command-line options:
 
 
 Importing EEG data
-==================
+##################
 
+The MNE package includes various functions and utilities for reading EEG
+data and electrode templates.
 
 Brainvision (.vhdr)
--------------------
+===================
+
 Brainvision EEG files can be read in using :func:`mne.io.read_raw_brainvision`.
 
 
 European data format (.edf)
----------------------------
+===========================
 
 EDF and EDF+ files can be read in using :func:`mne.io.read_raw_edf`.
 
@@ -560,7 +550,7 @@ see below.
 
 
 Biosemi data format (.bdf)
---------------------------
+==========================
 
 The BDF format (http://www.biosemi.com/faq/file_format.htm
 ) is a 24-bit variant of the EDF format used by the EEG systems manufactured
@@ -571,36 +561,19 @@ by a company called BioSemi. It can also be read in using :func:`mne.io.read_raw
 
 
 EGI simple binary (.egi)
-------------------------
+========================
 
 EGI simple binary files can be read in using :func:`mne.io.read_raw_egi`.
 The EGI raw files are simple binary files with a header and can be exported
 from using the EGI Netstation acquisition software.
 
-
-Reading Electrode locations and Headshapes
-------------------------------------------
-None of these EEG formats contain electrode location information
-nor head shape digitization information. Therefore, this information
-has to be provided separately. For that purpose all readers have a montage
-parameter to read locations from standard electrode templates or a polhemus
-digitizer file. This can also be done post-hoc.
-
-
-When using the locations of the fiducial points the digitization data
-are converted to the MEG head coordinate system employed in the
-MNE software, see :ref:`BJEBIBAI`. In the comparison of the
-channel names only the initial segment up to the first '-' (dash)
-in the EDF/EDF+/BDF channel name is significant.
-
 .. _BEHDGAIJ:
 
 
-
 Importing EEG data saved in the Tufts University format
--------------------------------------------------------
+=======================================================
 
-The utility mne_tufts2fiff was
+The command line utility mne_tufts2fiff was
 created in collaboration with Phillip Holcomb and Annette Schmid
 from Tufts University to import their EEG data to the MNE software.
 
@@ -658,82 +631,9 @@ the following command-line options:
 
 .. _BEHCCCDC:
 
-Importing BrainVision EEG data
-------------------------------
-
-The utility mne_brain_vision2fiff was
-created to import BrainVision EEG data. This utility also helps
-to import the eXimia (Nexstim) TMS-compatible EEG system data to
-the MNE software. The utility uses an optional fif file containing
-the head digitization data to allow source modeling. The MNE Matlab
-toolbox contains the function fiff_write_dig_file to
-write a digitization file based on digitization data available in
-another format, see :ref:`ch_matlab`.
-
-.. note::
-
-    mne_brain_vision2fiff reads events from the ``vmrk`` file referenced in the
-    ``vhdr`` file, but it only includes events whose "Type" is ``Stimulus`` and
-    whose "description" is given by ``S<number>``. All other events are ignored.
-
-
-The command-line options of mne_brain_vision2fiff are:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---header <*name*>**
-
-    The name of the BrainVision header file. The extension of this file
-    is ``vhdr`` . The header file typically refers to a marker
-    file (``vmrk`` ) which is automatically processed and a
-    digital trigger channel (STI 014) is formed from the marker information.
-    The ``vmrk`` file is ignored if the ``--eximia`` option
-    is present.
-
-**\---dig <*name*>**
-
-    The name of the fif file containing the digitization data.
-
-**\---orignames**
-
-    Use the original EEG channel labels. If this option is absent the EEG
-    channels will be automatically renamed to EEG 001, EEG 002, *etc.*
-
-**\---eximia**
-
-    Interpret this as an eXimia data file. The first three channels
-    will be thresholded and interpreted as trigger channels. The composite
-    digital trigger channel will be composed in the same way as in the mne_kit2fiff utility,
-    see :ref:`BEHBJGGF`, above. In addition, the fourth channel
-    will be assigned as an EOG channel. This option is normally used
-    by the mne_eximia2fiff script,
-    see :ref:`BEHGCEHH`.
-
-**\---split <*size/MB*>**
-
-    Split the output data into several files which are no more than <*size*> MB.
-    By default, the output is split into files which are just below
-    2 GB so that the fif file maximum size is not exceeded.
-
-**\---out <*filename*>**
-
-    Specifies the name of the output fif format data file. If <*filename*> ends
-    with ``.fif`` or ``_raw.fif`` , these endings are
-    deleted. After these modifications, ``_raw.fif`` is inserted
-    after the remaining part of the file name. If the file is split
-    into multiple parts, the additional parts will be called
-    <*name*> ``-`` <*number*> ``_raw.fif`` .
-
-.. _BEHGCEHH:
 
 Converting eXimia EEG data
---------------------------
+==========================
 
 EEG data from the Nexstim eXimia system can be converted
 to the fif format with help of the mne_eximia2fiff script.
@@ -759,8 +659,40 @@ the eXimia digitizer and MNE head coordinate systems.
 
 .. _BABCJEAD:
 
+
+Reading Electrode locations and Headshapes for EEG recordings
+#############################################################
+
+Some EEG formats (EGI, EDF/EDF+, BDF) neither contain electrode location
+information nor head shape digitization information. Therefore, this information
+has to be provided separately. For that purpose all readers have a montage
+parameter to read locations from standard electrode templates or a polhemus
+digitizer file. This can also be done post-hoc using the
+:method:`mne.io.RafFiff.set_montage` method of the Raw object in memory.
+
+
+When using the locations of the fiducial points the digitization data
+are converted to the MEG head coordinate system employed in the
+MNE software, see :ref:`BJEBIBAI`.
+
+
+Creating MNE data structures from arbitraty data (from memory)
+#############################################################
+
+Arbitrary (e.g., simulated or manually read in) raw data can be constructed
+from memory by making use of :class:`mne.io.RawArray`, :class:`mne.EpochsArray`
+or :class:`mne.EvokedArray` in combination with :func:`mne.io.create_info`.
+
+This functionality is illustrated in :ref:`example_io_plot_objects_from_arrays.py` .
+Using 3rd party libraries such as NEO (https://pythonhosted.org/neo/) in combination
+with these functions abundant electrophysiological file formats can be easily loaded
+into MNE.
+
+Additional IO Uitlities
+#######################
+
 Converting digitization data
-############################
+============================
 
 The mne_convert_dig_data utility
 converts Polhemus digitization data between different file formats.
@@ -837,7 +769,7 @@ The command-line options of mne_convert_dig_data are:
 .. _CJADJEBH:
 
 The hpts format
-===============
+---------------
 
 The hpts format digitzer
 data file may contain comment lines starting with the pound sign
@@ -874,7 +806,7 @@ where
 .. _BEHDEJEC:
 
 Converting volumetric data into an MRI overlay
-##############################################
+==============================================
 
 With help of the mne_volume_source_space utility
 (:ref:`BJEFEHJI`) it is possible to create a source space which
@@ -938,7 +870,7 @@ the following command-line options:
 .. _BEHBHIDH:
 
 Listing source space data
-#########################
+=========================
 
 The utility mne_list_source_space outputs
 the source space information into text files suitable for loading
@@ -1010,7 +942,7 @@ The command-line options are:
 .. _BEHBBEHJ:
 
 Listing BEM mesh data
-#####################
+=====================
 
 The utility mne_list_bem outputs
 the BEM meshes in text format. The default output data contains
@@ -1063,7 +995,7 @@ The command-line options are:
 .. _BEHDIAJG:
 
 Converting surface data between different formats
-#################################################
+=================================================
 
 The utility mne_convert_surface converts
 surface data files between different formats.
@@ -1073,7 +1005,7 @@ surface data files between different formats.
 .. _BABEABAA:
 
 command-line options
-====================
+--------------------
 
 mne_convert_surface accepts
 the following command-line options:
@@ -1223,7 +1155,7 @@ respectively,
 .. _BABBHHHE:
 
 Converting MRI data into the fif format
-#######################################
+=======================================
 
 The utility mne_make_cor_set creates
 a fif format MRI description
@@ -1273,7 +1205,7 @@ data as input. The command-line options are:
 .. _BABBIFIJ:
 
 Collecting coordinate transformations into one file
-###################################################
+===================================================
 
 The utility mne_collect_transforms collects
 coordinate transform information from various sources and saves
@@ -1323,7 +1255,7 @@ The command-line options are:
 .. _BEHCHGHD:
 
 Converting an ncov covariance matrix file to fiff
-#################################################
+=================================================
 
 The ncov file format was used to store the noise-covariance
 matrix file. The MNE software requires that the covariance matrix
@@ -1355,7 +1287,7 @@ The command-line options are:
 .. _BEHCDBHG:
 
 Converting a lisp covariance matrix to fiff
-###########################################
+===========================================
 
 The utility mne_convert_lspcov converts a LISP-format noise-covariance file,
 produced by the Neuromag signal processor, graph into fif format.
@@ -1396,7 +1328,7 @@ The command-line options are:
 .. _BEHCCEBJ:
 
 The MNE data file conversion tool
-#################################
+=================================
 
 This utility, called mne_convert_mne_data ,
 allows the conversion of various fif files related to the MNE computations
@@ -1411,7 +1343,7 @@ and displayed with the Neuromag source modelling software.
 .. _BEHCICCF:
 
 Command-line options
-====================
+--------------------
 
 The command-line options recognize
 by mne_convert_mne_data are:
@@ -1539,7 +1471,7 @@ by mne_convert_mne_data are:
 .. note:: The ``--tmin`` and ``--tmax`` options    which existed in previous versions of mne_converted_mne_data have    been removed. If output of measurement data is requested, the entire    averaged epoch is now included.
 
 Guide to combining options
-==========================
+--------------------------
 
 The combination of options is quite complicated. The :ref:`BEHDCIII` should be
 helpful to determine the combination of options appropriate for your needs.
@@ -1596,7 +1528,7 @@ helpful to determine the combination of options appropriate for your needs.
     +-------------------------------------+---------+--------------------------+-----------------------+
 
 Matlab data structures
-======================
+----------------------
 
 The Matlab output provided by mne_convert_mne_data is
 organized in structures, listed in :ref:`BEHCICCA`. The fields
@@ -1750,7 +1682,7 @@ The prefix given with the ``--tag`` option is indicated <*tag*> , see :ref:`BEHC
 .. _convert_to_matlab:
 
 Converting raw data to Matlab format
-####################################
+====================================
 
 The utility mne_raw2mat converts
 all or selected channels from a raw data file to a Matlab mat file.
@@ -1761,7 +1693,7 @@ fif file using Matlab file I/O routines.
 .. note:: The MNE Matlab toolbox described in :ref:`ch_matlab` provides    direct access to raw fif files without a need for conversion to    mat file format first. Therefore, it is recommended that you use    the Matlab toolbox rather than  mne_raw2mat which    creates large files occupying disk space unnecessarily.
 
 Command-line options
-====================
+--------------------
 
 mne_raw2mat accepts the
 following command-line options:
@@ -1799,7 +1731,7 @@ following command-line options:
     with ``mne\_``. This option changes the prefix to <*tag*> _.
 
 Matlab data structures
-======================
+----------------------
 
 The Matlab files output by mne_raw2mat can
 contain two data structures, <*tag*>_raw and <*tag*>_raw_info .
@@ -1902,7 +1834,7 @@ is provided in :ref:`BEHJEIHJ`.
 .. _BEHFIDCB:
 
 Converting epochs to Matlab format
-##################################
+==================================
 
 The utility mne_epochs2mat converts
 epoch data including all or selected channels from a raw data file
@@ -1915,7 +1847,7 @@ to the raw data prior to saving the epochs.
 .. note:: The MNE Matlab toolbox described in :ref:`ch_matlab` provides direct    access to raw fif files without conversion with mne_epochs2mat first.    Therefore, it is recommended that you use the Matlab toolbox rather than mne_epochs2mat which    creates large files occupying disk space unnecessarily. An exception    to this is the case where you apply a filter to the data and save    the band-pass filtered epochs.
 
 Command-line options
-====================
+--------------------
 
 mne_epochs2mat accepts
 the following command-line options are:
@@ -2062,7 +1994,7 @@ the following command-line options are:
 .. note:: The digital trigger channel mask can also be    set with the MNE_TRIGGER_CH_MASK environment variable. Using the ``--digtrigmask`` option    supersedes the MNE_TRIGGER_CH_MASK environment variable.
 
 The binary epoch data file
-==========================
+--------------------------
 
 mne_epochs2mat saves the
 epoch data extracted from the raw data file is a simple binary file.
@@ -2083,7 +2015,7 @@ units as described below.
 .. note:: The maximum size of an epoch data file is 2 Gbytes, *i.e.*, 0.5 Gsamples.
 
 Matlab data structures
-======================
+----------------------
 
 The Matlab description files output by mne_epochs2mat contain
 a data structure <*tag*>_epoch_info .
