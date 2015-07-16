@@ -12,16 +12,17 @@ import numpy as np
 
 
 ###############################################################################
-# Creating `Info` objects
-# -----------------------
+# ------------------------------------------------------
+# Creating :class:`Info <mne.io.meas_info.Info>` objects
+# ------------------------------------------------------
 #
-# Note - for full documentation on the `Info` object, see (**LINK TO INFO
-# TUTORIAL**)
+# .. note:: for full documentation on the `Info` object, see
+#           :ref:`tut_info_objects`.
 #
-# Normally, `Info` objects are created by the various
+# Normally, :class:`mne.io.meas_info.Info` objects are created by the various
 # :ref:`data import functions` <ch_raw>`.
 # However, if you wish to create one from scratch, you can use the
-# :py:func:`mne.create_info` function to initialize the minimally required
+# :func:`mne.create_info` function to initialize the minimally required
 # fields. Further fields can be assigned later as one would with a regular
 # dictionary.
 #
@@ -60,20 +61,24 @@ info['bads'] = ['Pz']  # Names of bad channels
 print(info)
 
 ###############################################################################
-# **NOTE:** When assigning new values to the fields of an `Info` object, it is
-# important that the fields are consistent:
+# .. note:: When assigning new values to the fields of an
+#           :class:`mne.io.meas_info.Info` object, it is important that the
+#           fields are consistent:
 #
-#  - The length of the channel information field `chs` must be `nchan`.
-#  - The length of the `ch_names` field must be `nchan`.
-#  - The `ch_names` field should be consistent with the `name` field of the
-#    channel information contained in `chs`.
+#           - The length of the channel information field `chs` must be
+#             `nchan`.
+#           - The length of the `ch_names` field must be `nchan`.
+#           - The `ch_names` field should be consistent with the `name` field
+#             of the channel information contained in `chs`.
 #
-# Creating :class:`mne.io.Raw` objects
-# ---------------------------------------
+# ---------------------------------------------
+# Creating :class:`Raw <mne.io.RawFIF>` objects
+# ---------------------------------------------
 #
 # To create a :class:`mne.io.Raw` object from scratch, you can use the
-# `RawArray` class, which implements raw data that is backed by a numpy array.
-# Its constructor simply takes the data matrix and `Info` object:
+# :class:`mne.RawArray` class, which implements raw data that is backed by a
+# numpy array.  Its constructor simply takes the data matrix and
+# :class:`mne.io.meas_info.Info` object:
 
 # Generate some random data
 data = np.random.randn(5, 1000)
@@ -89,12 +94,14 @@ custom_raw = mne.io.RawArray(data, info)
 print(custom_raw)
 
 ###############################################################################
-# Creating `Epochs` objects
-# -------------------------
+# ---------------------------------------------
+# Creating :class:`Epochs <mne.Epochs>` objects
+# ---------------------------------------------
 #
-# To create an `Epochs` object from scratch, you can use the `EpochsArray`
-# class, which uses a numpy array directly without wrapping a raw object. The
-# array must be of `shape(n_epochs, n_chans, n_times)`
+# To create an :class:`mne.Epochs` object from scratch, you can use the
+# :class:`mne.EpochsArray` class, which uses a numpy array directly without
+# wrapping a raw object. The array must be of `shape(n_epochs, n_chans,
+# n_times)`
 
 # Generate some random data: 10 epochs, 5 channels, 2 seconds per epoch
 sfreq = 100
@@ -141,7 +148,7 @@ event_id = dict(smiling=1, frowning=2)
 tmin = -0.1
 
 ###############################################################################
-# Now we can create the `Epochs` object
+# Now we can create the :class:`mne.EpochsArray` object
 custom_epochs = mne.EpochsArray(data, info, events, tmin, event_id)
 
 print(custom_epochs)
@@ -150,8 +157,9 @@ print(custom_epochs)
 _ = custom_epochs['smiling'].average().plot()
 
 ###############################################################################
-# Creating Evoked Objects
-# -----------------------
+# ---------------------------------------------
+# Creating :class:`Evoked <mne.Evoked>` Objects
+# ---------------------------------------------
 # If you already have data that is collapsed across trials, you may also
 # directly create an evoked array.  Its constructor accepts an array of
 # `shape(n_chans, n_times)` in addition to some bookkeeping parameters.
