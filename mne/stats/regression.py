@@ -165,23 +165,27 @@ def linear_regression_raw(raw, events, event_id=None,
     raw : instance of Raw
         A raw object. Warning: be very careful about data that is not
         downsampled, as the resulting matrices can be enormous and easily
-        overload your computer. Typically, 100 hz sampling rate is appropriate.
-    events : ndarray
-        An n x 3 array, where the first column corresponds to samples in raw.
+        overload your computer. Typically, 100 hz sampling rate is 
+        appropriate - or using the decim keyword (see below).
+    events : array
+        An n x 3 array, where the first column corresponds to samples in raw
+        and the last to integer codes in event_id.
     event_id : dict
         As in Epochs; a dictionary where the values may be integers or
         list-like collections of integers, corresponding to the 3rd column of
         events, and the keys are condition names.
-    tmin : float | dict | None
+    tmin : float | dict
         If float, gives the lower limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
-        specify time windows for specific event types; for missing values or
-        for tmin=None, the default (-.1) is used.
-    tmax : float | dict | None
+        specify time windows for specific event types: keys correspond to keys
+        in event_id and/or covariates; for missing values, the default (-.1) is 
+        used.
+    tmax : float | dict
         If float, gives the upper limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
-        specify time windows for specific event types; for missing values or
-        for tmax=None, the default (1.) is used.
+        specify time windows for specific event types: keys correspond to keys
+        in event_id and/or covariates; for missing values, the default (1.) is 
+        used.
     covariates : dict-like | None
         If dict-like, values have to be array-like and of the same length as
         the columns in ```events```. Keys correspond to additional event
@@ -275,8 +279,7 @@ def linear_regression_raw(raw, events, event_id=None,
         if cond in event_id.keys():  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
-            samples[np.asarray([t for t, _, e in events
-                                if e in ids]) + int(tmin_)] = 1  # np.in1d
+            samples[events[np.in1d(events[:,2], ids),0] + int(tmin_)] = 1
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
