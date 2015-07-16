@@ -51,8 +51,8 @@ tmin, tmax = -.1, .5
 raw.pick_types(meg=True)
 
 # regular epoching
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
-                    baseline=(-.1, .2), preload=True, verbose=False)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
+                    baseline=None, preload=True, verbose=False)
 
 # rERF
 evoked_dict = regress_continuous(raw, events=events, event_id=event_id,
