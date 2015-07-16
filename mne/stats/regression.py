@@ -165,7 +165,7 @@ def linear_regression_raw(raw, events, event_id=None,
     raw : instance of Raw
         A raw object. Warning: be very careful about data that is not
         downsampled, as the resulting matrices can be enormous and easily
-        overload your computer. Typically, 100 hz sampling rate is 
+        overload your computer. Typically, 100 hz sampling rate is
         appropriate - or using the decim keyword (see below).
     events : array
         An n x 3 array, where the first column corresponds to samples in raw
@@ -178,13 +178,13 @@ def linear_regression_raw(raw, events, event_id=None,
         If float, gives the lower limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
         specify time windows for specific event types: keys correspond to keys
-        in event_id and/or covariates; for missing values, the default (-.1) is 
+        in event_id and/or covariates; for missing values, the default (-.1) is
         used.
     tmax : float | dict
         If float, gives the upper limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
         specify time windows for specific event types: keys correspond to keys
-        in event_id and/or covariates; for missing values, the default (1.) is 
+        in event_id and/or covariates; for missing values, the default (1.) is
         used.
     covariates : dict-like | None
         If dict-like, values have to be array-like and of the same length as
@@ -279,7 +279,7 @@ def linear_regression_raw(raw, events, event_id=None,
         if cond in event_id.keys():  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
-            samples[events[np.in1d(events[:,2], ids),0] + int(tmin_)] = 1
+            samples[events[np.in1d(events[:, 2], ids), 0] + int(tmin_)] = 1
 
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
