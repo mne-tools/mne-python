@@ -239,7 +239,10 @@ def test_io():
 
 def test_plot():
     """Test TFR plotting."""
+    import matplotlib
+    matplotlib.use('Agg')  # for testing don't use X server
     import matplotlib.pyplot as plt
+
     data = np.zeros((3, 2, 3))
     times = np.array([.1, .2, .3])
     freqs = np.array([.10, .20])
@@ -248,6 +251,7 @@ def test_plot():
     tfr = AverageTFR(info, data=data, times=times, freqs=freqs,
                      nave=20, comment='test', method='crazy-tfr')
     tfr.plot([1, 2], title='title')
+    plt.close('all')
     ax = plt.subplot2grid((2, 2), (0, 0))
     ax2 = plt.subplot2grid((2, 2), (1, 1))
     ax3 = plt.subplot2grid((2, 2), (0, 1))

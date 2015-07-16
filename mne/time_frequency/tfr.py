@@ -698,7 +698,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             if title:
                 fig.suptitle(title)
         if show:
-            fig.show()
+            plt.show()
         return fig
 
     def plot_topo(self, picks=None, baseline=None, mode='mean', tmin=None,
