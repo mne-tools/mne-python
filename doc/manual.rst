@@ -11,8 +11,8 @@ Cookbook
 
    manual/cookbook
 
-Reading raw data
-----------------
+Reading your data with MNE
+--------------------------
 
 .. toctree::
    :maxdepth: 2
