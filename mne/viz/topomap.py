@@ -109,7 +109,8 @@ def _plot_update_evoked_topomap(params, bools):
 
 def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
                        colorbar=False, res=64, size=1, show=True,
-                       outlines='head', contours=6, image_interp='bilinear'):
+                       outlines='head', contours=6, image_interp='bilinear',
+                       axes=None):
     """Plot topographic maps of SSP projections
 
     Parameters
@@ -149,6 +150,10 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     image_interp : str
         The image interpolation to be used. All matplotlib options are
         accepted.
+    axes : instance of Axes | list | None
+        The axes to plot to. If list, the list must be a list of Axes of
+        the same length as the number of projectors. If instance of Axes,
+        there must be only one projector. Defaults to None.
 
     Returns
     -------
@@ -172,9 +177,18 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
     nrows = math.floor(math.sqrt(n_projs))
     ncols = math.ceil(n_projs / nrows)
 
-    fig = plt.figure()
-    for k, proj in enumerate(projs):
-
+    if axes is None:
+        plt.figure()
+        axes = list()
+        for idx in range(len(projs)):
+            ax = plt.subplot(nrows, ncols, idx + 1)
+            axes.append(ax)
+    elif isinstance(axes, plt.Axes):
+        axes = [axes]
+    if len(axes) != len(projs):
+        raise RuntimeError('There must be an axes for each picked projector.')
+    for proj_idx, proj in enumerate(projs):
+        axes[proj_idx].set_title(proj['desc'][:10] + '...')
         ch_names = _clean_names(proj['data']['col_names'])
         data = proj['data']['data'].ravel()
 
@@ -200,23 +214,21 @@ def plot_projs_topomap(projs, layout=None, cmap='RdBu_r', sensors=True,
 
             break
 
-        ax = plt.subplot(nrows, ncols, k + 1)
-        ax.set_title(proj['desc'][:10] + '...')
         if len(idx):
             plot_topomap(data, pos, vmax=None, cmap=cmap,
-                         sensors=sensors, res=res, outlines=outlines,
-                         contours=contours, image_interp=image_interp,
-                         show=False)
+                         sensors=sensors, res=res, axis=axes[proj_idx],
+                         outlines=outlines, contours=contours,
+                         image_interp=image_interp, show=False)
             if colorbar:
                 plt.colorbar()
         else:
             raise RuntimeError('Cannot find a proper layout for projection %s'
                                % proj['desc'])
-    tight_layout(fig=ax.get_figure())
+    tight_layout(fig=axes[0].get_figure())
     if show and plt.get_backend() != 'agg':
         plt.show()
 
-    return fig
+    return axes[0].get_figure()
 
 
 def _check_outlines(pos, outlines, head_pos=None):
