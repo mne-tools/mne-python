@@ -42,6 +42,97 @@ from .externals.six import iteritems, string_types
 from .externals.six.moves import zip
 
 
+def _save_split(epochs, fname, part_idx, n_parts):
+    """Split epochs"""
+
+    # insert index in filename
+    path, base = op.split(fname)
+    idx = base.find('.')
+    if part_idx > 0:
+        fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
+                                            base[idx + 1:]))
+
+    next_fname = None
+    if part_idx < n_parts - 1:
+        next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
+                                                 base[idx + 1:]))
+        next_idx = part_idx + 1
+
+    fid = start_file(fname)
+
+    info = epochs.info
+    meas_id = info['meas_id']
+
+    start_block(fid, FIFF.FIFFB_MEAS)
+    write_id(fid, FIFF.FIFF_BLOCK_ID)
+    if info['meas_id'] is not None:
+        write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, info['meas_id'])
+
+    # Write measurement info
+    write_meas_info(fid, info)
+
+    # One or more evoked data sets
+    start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    start_block(fid, FIFF.FIFFB_EPOCHS)
+
+    # write events out after getting data to ensure bad events are dropped
+    data = epochs.get_data()
+    start_block(fid, FIFF.FIFFB_MNE_EVENTS)
+    write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, epochs.events.T)
+    mapping_ = ';'.join([k + ':' + str(v) for k, v in
+                         epochs.event_id.items()])
+    write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
+    end_block(fid, FIFF.FIFFB_MNE_EVENTS)
+
+    # First and last sample
+    first = int(epochs.times[0] * info['sfreq'])
+    last = first + len(epochs.times) - 1
+    write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
+    write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
+
+    # save baseline
+    if epochs.baseline is not None:
+        bmin, bmax = epochs.baseline
+        bmin = epochs.times[0] if bmin is None else bmin
+        bmax = epochs.times[-1] if bmax is None else bmax
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
+        write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
+
+    # The epochs itself
+    decal = np.empty(info['nchan'])
+    for k in range(info['nchan']):
+        decal[k] = 1.0 / (info['chs'][k]['cal'] *
+                          info['chs'][k].get('scale', 1.0))
+
+    data *= decal[np.newaxis, :, np.newaxis]
+
+    write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
+
+    # undo modifications to data
+    data /= decal[np.newaxis, :, np.newaxis]
+
+    write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
+                 json.dumps(epochs.drop_log))
+
+    write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
+              epochs.selection)
+
+    # And now write the next file info in case epochs are split on disk
+    if next_fname is not None and n_parts > 1:
+        start_block(fid, FIFF.FIFFB_REF)
+        write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
+        write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
+        if meas_id is not None:
+            write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
+        write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
+        end_block(fid, FIFF.FIFFB_REF)
+
+    end_block(fid, FIFF.FIFFB_EPOCHS)
+    end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
+    end_block(fid, FIFF.FIFFB_MEAS)
+    end_file(fid)
+
+
 class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
                   SetChannelsMixin, InterpolationMixin, FilterMixin,
                   ToDataFrameMixin):
@@ -1317,105 +1408,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         new._raw = raw
         return new
 
-    def _save_split(self, fname, prev_fname, part_idx, n_parts, epoch_idx):
-        """Split epochs"""
-
-        # insert index in filename
-        path, base = op.split(fname)
-        idx = base.find('.')
-        if part_idx > 0:
-            use_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx,
-                                                    base[idx + 1:]))
-        else:
-            use_fname = fname
-
-        if part_idx < n_parts - 1:
-            next_fname = op.join(path, '%s-%d.%s' % (base[:idx], part_idx + 1,
-                                                     base[idx + 1:]))
-            next_idx = part_idx + 1
-
-        fid = start_file(use_fname)
-
-        meas_id = self.info['meas_id']
-        # previous file name and id
-        if part_idx > 0 and prev_fname is not None:
-            start_block(fid, FIFF.FIFFB_REF)
-            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_PREV_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, prev_fname)
-            if meas_id is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
-            write_int(fid, FIFF.FIFF_REF_FILE_NUM, part_idx - 1)
-            end_block(fid, FIFF.FIFFB_REF)
-
-        start_block(fid, FIFF.FIFFB_MEAS)
-        write_id(fid, FIFF.FIFF_BLOCK_ID)
-        if self.info['meas_id'] is not None:
-            write_id(fid, FIFF.FIFF_PARENT_BLOCK_ID, self.info['meas_id'])
-
-        # Write measurement info
-        write_meas_info(fid, self.info)
-
-        # One or more evoked data sets
-        start_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        start_block(fid, FIFF.FIFFB_EPOCHS)
-
-        # write events out after getting data to ensure bad events are dropped
-        data = self[epoch_idx].get_data()
-        start_block(fid, FIFF.FIFFB_MNE_EVENTS)
-        write_int(fid, FIFF.FIFF_MNE_EVENT_LIST, self[epoch_idx].events.T)
-        mapping_ = ';'.join([k + ':' + str(v) for k, v in
-                             self.event_id.items()])
-        write_string(fid, FIFF.FIFF_DESCRIPTION, mapping_)
-        end_block(fid, FIFF.FIFFB_MNE_EVENTS)
-
-        # First and last sample
-        first = int(self.times[0] * self.info['sfreq'])
-        last = first + len(self.times) - 1
-        write_int(fid, FIFF.FIFF_FIRST_SAMPLE, first)
-        write_int(fid, FIFF.FIFF_LAST_SAMPLE, last)
-
-        # save baseline
-        if self.baseline is not None:
-            bmin, bmax = self.baseline
-            bmin = self.times[0] if bmin is None else bmin
-            bmax = self.times[-1] if bmax is None else bmax
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MIN, bmin)
-            write_float(fid, FIFF.FIFF_MNE_BASELINE_MAX, bmax)
-
-        # The epochs itself
-        decal = np.empty(self.info['nchan'])
-        for k in range(self.info['nchan']):
-            decal[k] = 1.0 / (self.info['chs'][k]['cal'] *
-                              self.info['chs'][k].get('scale', 1.0))
-
-        data *= decal[np.newaxis, :, np.newaxis]
-
-        write_float_matrix(fid, FIFF.FIFF_EPOCH, data)
-
-        # undo modifications to data
-        data /= decal[np.newaxis, :, np.newaxis]
-
-        write_string(fid, FIFF.FIFFB_MNE_EPOCHS_DROP_LOG,
-                     json.dumps(self[epoch_idx].drop_log))
-
-        write_int(fid, FIFF.FIFFB_MNE_EPOCHS_SELECTION,
-                  self[epoch_idx].selection)
-
-        if (part_idx < n_parts - 1 and next_fname is not None) and n_parts > 1:
-            start_block(fid, FIFF.FIFFB_REF)
-            write_int(fid, FIFF.FIFF_REF_ROLE, FIFF.FIFFV_ROLE_NEXT_FILE)
-            write_string(fid, FIFF.FIFF_REF_FILE_NAME, op.basename(next_fname))
-            if meas_id is not None:
-                write_id(fid, FIFF.FIFF_REF_FILE_ID, meas_id)
-            write_int(fid, FIFF.FIFF_REF_FILE_NUM, next_idx)
-            end_block(fid, FIFF.FIFFB_REF)
-
-        end_block(fid, FIFF.FIFFB_EPOCHS)
-        end_block(fid, FIFF.FIFFB_PROCESSED_DATA)
-        end_block(fid, FIFF.FIFFB_MEAS)
-        end_file(fid)
-        return use_fname
-
     def save(self, fname, split_size='2GB'):
         """Save epochs in a fif file
 
@@ -1454,10 +1446,11 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
         n_parts = int(np.ceil(total_size / float(split_size)))
         epoch_idxs = np.array_split(range(len(self)), n_parts)
 
-        prev_fname = None
         for part_idx, epoch_idx in enumerate(epoch_idxs):
-            prev_fname = self._save_split(fname, prev_fname, part_idx, n_parts,
-                                          epoch_idx)
+            this_epochs = self[epoch_idx]
+            # avoid missing event_ids in splits
+            this_epochs.event_id = self.event_id
+            _save_split(this_epochs, fname, part_idx, n_parts)
 
     def equalize_event_counts(self, event_ids, method='mintime', copy=True):
         """Equalize the number of trials in each condition
@@ -2149,9 +2142,9 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
     epochs = list()
     for fname in fnames:
         logger.info('Reading %s ...' % fname)
-        f, tree, _ = fiff_open(fname)
-        next_fname = _get_next_fname(f, fname, tree)
-        epoch = _read_one_epoch_file(f, tree, fname, proj, add_eeg_ref,
+        fid, tree, _ = fiff_open(fname)
+        next_fname = _get_next_fname(fid, fname, tree)
+        epoch = _read_one_epoch_file(fid, tree, fname, proj, add_eeg_ref,
                                      verbose)
         epochs.append(epoch)
 
@@ -2324,7 +2317,12 @@ def _concatenate_epochs(epochs_list, read_file=False):
         data.append(epochs.get_data())
         events.append(epochs.events)
         selection = np.concatenate((selection, epochs.selection))
-        drop_log.extend(epochs.drop_log)
+        if read_file:
+            for k, (a, b) in enumerate(zip(drop_log, epochs.drop_log)):
+                if a == ['IGNORED'] and b != ['IGNORED']:
+                    drop_log[k] = b
+        else:
+            drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
     events = np.concatenate(events, axis=0)
     # do not do this if epochs read from disk are being concatenated
