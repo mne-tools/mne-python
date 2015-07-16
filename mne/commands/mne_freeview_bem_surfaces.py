@@ -4,7 +4,7 @@
 """
 from __future__ import print_function
 
-# Authors:  Alexandre Gramfort, <alexandre.gramfort@telecom-paristech.fr>
+# Authors:  Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 
 import sys
 import os
@@ -30,6 +30,9 @@ def freeview_bem_surfaces(subject, subjects_dir, method):
     env = os.environ.copy()
     env['SUBJECT'] = subject
     env['SUBJECTS_DIR'] = subjects_dir
+
+    if 'FREESURFER_HOME' not in env:
+        raise RuntimeError('The FreeSurfer environment needs to be set up.')
 
     mri_dir = op.join(subjects_dir, subject, 'mri')
     bem_dir = op.join(subjects_dir, subject, 'bem')
