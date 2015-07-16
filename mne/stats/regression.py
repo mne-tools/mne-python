@@ -17,6 +17,12 @@ from ..evoked import Evoked, EvokedArray
 from ..utils import logger
 from ..io.pick import pick_types
 
+def get_fast_dot():
+    try:
+        from sklearn.utils.extmath import fast_dot
+    except ImportError:
+        fast_dot = np.dot
+    return fast_dot
 
 def linear_regression(inst, design_matrix, names=None):
     """Fit Ordinary Least Squares regression (OLS)
@@ -136,10 +142,11 @@ def _fit_lm(data, design_matrix, names):
     return beta, stderr, t_val, p_val, mlog10_p_val
 
 
-def regress_continuous(raw, events, event_id=None,
-                       tmin=-.1, tmax=1,
-                       covariates=None,
-                       reject=True, tstep=None):
+def linear_regression_raw(raw, events, event_id=None,
+                          tmin=-.1, tmax=1,
+                          covariates=None,
+                          reject=True, tstep=1.,
+                          decim=1, picks=None):
     """Estimate regression-based evoked potentials/fields by linear modelling
     of the full M/EEG time course, including correction for overlapping
     potentials and allowing for continuous/scalar predictors. Internally, this
@@ -163,16 +170,16 @@ def regress_continuous(raw, events, event_id=None,
         As in Epochs; a dictionary where the values may be integers or
         list-like collections of integers, corresponding to the 3rd column of
         events, and the keys are condition names.
-    tmin : int | dict | None
-        If int, gives the lower limit (in seconds) for the time window for
+    tmin : float | dict | None
+        If float, gives the lower limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
         specify time windows for specific event types; for missing values or
-        None, the default (-.1) is used.
-    tmax : int | dict
-        If int, gives the upper limit (in seconds) for the time window for
+        for tmin=None, the default (-.1) is used.
+    tmax : float | dict | None
+        If float, gives the upper limit (in seconds) for the time window for
         which all event types' effects are estimated. If a dict, can be used to
         specify time windows for specific event types; for missing values or
-        None, the default (-.1) is used.
+        for tmax=None, the default (1.) is used.
     covariates : dict-like | None
         If dict-like, values have to be array-like and of the same length as
         the columns in ```events```. Keys correspond to additional event
@@ -190,8 +197,15 @@ def regress_continuous(raw, events, event_id=None,
                          )
         If dict, keys are types ('grad' | 'mag' | 'eeg' | 'eog' | 'ecg') and
         values are the maximal peak-to-peak values to select rejected epochs.
-    tstep : None | float
-        If reject is not None, length of windows for peak-to-peak detection.
+    tstep : float
+        Length of windows for peak-to-peak detection.
+    decim : int
+        Decimate by choosing only a subsample of data points. Highly
+        recommended for data recorded at high sampling frequencies, as
+        otherwise huge intermediate matrices have to be created and inverted.
+    picks : None | list
+        List of indices of channels to be included. If None, defaults to all
+        MEG and EEG channels.
 
     Returns
     -------
@@ -200,51 +214,76 @@ def regress_continuous(raw, events, event_id=None,
         Evoked objects with the rE[R/F]Ps. These can be used exactly like any
         other Evoked object, including e.g. plotting or statistics.
     """
-    sfreq = raw.info["sfreq"]
+
+    fast_dot = get_fast_dot()
+
+    # prepare raw and events
+    if picks is None:
+        picks = pick_types(raw.info, meg=True, eeg=True, ref_meg=True,
+                           stim=False, eog=False, ecg=False,
+                           emg=False, exclude=['bads'])
+    raw = raw.pick_channels([raw.ch_names[ii] for ii in picks], copy=True)
+    sfreq = raw.info["sfreq"] = raw.info["sfreq"] / decim
     data, times = raw[:]
+    data = data[:, ::decim]
+    times = times[::decim]
     events = events.copy()
     events[:, 0] -= raw.first_samp
+    events[:, 0] /= decim
+
     conds = list(event_id.keys())
     if covariates is not None:
         conds += list(covariates.keys())
 
+    # time windows (per event type)
     if isinstance(tmin, (float, int)):
         tmin = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
         tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq))
                     for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = dict((cond, int(tmax * sfreq) + 1) for cond in conds)
+        tmax = dict((cond, int((tmax * sfreq) + 1.)) for cond in conds)
     else:
-        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq) + 1)
+        tmax = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
                     for cond in conds)
 
-    cond_length = dict()
-    # construct predictor matrix
-    # !!! this should probably be improved (including making it more robust to
+    ### Construct predictor matrix ###
+    # We do this by creating one array per event type, shape lags * samples
+    # (where lags depends on tmin/tmax and can be different for different
+    # event types). Columns correspond to predictors, predictors correspond to
+    # time lags. Thus, each array is mostly sparse, with one diagonal of 1s
+    # per event (for binary predictors).
+
+    # This should probably be improved (including making it more robust to
     # high frequency data) by operating on sparse matrices. As-is, high
     # sampling rates plus long windows blow up the system due to the inversion
     # of massive matrices.
     # Furthermore, assigning to a preallocated array would be faster.
+
+    cond_length = dict()
     pred_arrays = list()
     for cond in conds:
-        tmin_, tmax_ = tmin[cond], tmax[cond]
-        n_lags = tmax_ - tmin_
+
         # create the first row and column to be later used by toeplitz to build
         # the full predictor matrix
+        tmin_, tmax_ = tmin[cond], tmax[cond]
+        n_lags = int(tmax_ - tmin_)
         samples, lags = np.zeros(len(times)), np.zeros(n_lags)
+
         if cond in event_id.keys():  # for binary predictors
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
             samples[np.asarray([t for t, _, e in events
-                                if e in ids]) + tmin_] = 1  # np.in1d
+                                if e in ids]) + int(tmin_)] = 1  # np.in1d
+
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
                 error = """Condition {} from ```covariates``` is
                         not the same length as ```events```""".format(cond)
                 raise ValueError(error)
             for tx, v in zip(events[:, 0], covariates[cond]):
-                samples[tx + tmin_] = np.float(v)
+                samples[tx + int(tmin_ )] = np.float(v)
+
         cond_length[cond] = len(np.nonzero(samples))
 
         # this is the magical part (thanks to Marijn van Vliet):
@@ -265,13 +304,11 @@ def regress_continuous(raw, events, event_id=None,
                           eeg=40e-5,  # uV (EEG channels)
                           eog=250e-5  # uV (EOG channels)
                           )
-        if tstep is None:
-            tstep = 1.0
 
         _, inds = _reject_data_segments(data, reject, None, None,
                                         raw.info, tstep)
-    for t0, t1 in inds:
-        has_val[t0:t1] = False
+        for t0, t1 in inds:
+            has_val[t0:t1] = False
 
     X = big_arr[:, has_val].T
 #    X = np.vstack((X, np.ones(X.shape[1]))).T  # currently no intercept
@@ -279,8 +316,8 @@ def regress_continuous(raw, events, event_id=None,
     Y = data[:, has_val]
 
     # solve linear system
-    coefs = np.dot(linalg.inv(np.dot(X.T, X)),
-                   np.dot(X.T, Y.T)).T
+    # note: inv is slightly (~10%) faster, but pinv seemingly more stable
+    coefs = fast_dot(linalg.pinv(fast_dot(X.T, X)), fast_dot(X.T, Y.T)).T
 
     # construct Evoked objects to be returned from output
     ev_dict = {}
@@ -288,9 +325,9 @@ def regress_continuous(raw, events, event_id=None,
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
         ev_dict[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                    raw.info, tmin_ / raw.info["sfreq"],
+                                    raw.info, tmin_ / sfreq,
                                     comment=cond, nave=cond_length[cond],
-                                    kind='mean')
-        cum += tmax_ - tmin_
+                                    kind='mean')  # note that nave and kind are
+        cum += tmax_ - tmin_                      # technically not correct
 
     return ev_dict
