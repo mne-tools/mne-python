@@ -4,7 +4,7 @@
 """
 from __future__ import print_function
 
-# Authors:  Alexandre Gramfort, Ph.D.
+# Authors:  Alexandre Gramfort, <alexandre.gramfort@telecom-paristech.fr>
 
 import sys
 import os
