@@ -20,17 +20,29 @@ Preprocessing
 
 Statistics
 ----------
+
+Sensor space statistics
+^^^^^^^^^^^^^^^^^^^^^^^
+
 .. toctree::
    :maxdepth: 1
 
-   auto_examples/plot_cluster_methods_tutorial.rst
-   auto_examples/plot_spatio_temporal_cluster_stats_sensor.rst
-   auto_examples/plot_cluster_1samp_test_time_frequency.rst
-   auto_examples/plot_cluster_stats_time_frequency.rst
-   auto_examples/plot_cluster_stats_time_frequency_repeated_measures_anova.rst
-   auto_examples/plot_cluster_stats_spatio_temporal_2samp.rst
-   auto_examples/plot_cluster_stats_spatio_temporal_repeated_measures_anova.rst
-   auto_examples/plot_cluster_stats_spatio_temporal.rst
+   auto_tutorials/plot_cluster_methods_tutorial.rst
+   auto_tutorials/plot_spatio_temporal_cluster_stats_sensor.rst
+   auto_tutorials/plot_cluster_1samp_test_time_frequency.rst
+   auto_tutorials/plot_cluster_stats_time_frequency.rst
+
+
+Source space statistics
+^^^^^^^^^^^^^^^^^^^^^^^
+
+.. toctree::
+   :maxdepth: 1
+
+   auto_tutorials/plot_cluster_stats_time_frequency_repeated_measures_anova.rst
+   auto_tutorials/plot_cluster_stats_spatio_temporal_2samp.rst
+   auto_tutorials/plot_cluster_stats_spatio_temporal_repeated_measures_anova.rst
+   auto_tutorials/plot_cluster_stats_spatio_temporal.rst
 
 Visualization and Reporting
 ---------------------------
