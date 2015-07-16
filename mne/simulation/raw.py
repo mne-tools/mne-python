@@ -33,7 +33,7 @@ from mne.simulation import generate_noise_evoked
 
 @verbose
 def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
-                 blink=False, cHPI=False, mindist=1.0, interp='linear',
+                 blink=False, chpi=False, mindist=1.0, interp='linear',
                  random_state=None, n_jobs=1, verbose=None):
     """Simulate raw data with head movements
 
@@ -71,7 +71,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         be the time points and entries should be 4x3 ``dev_head_t``
         matrices. If None, the original head position (from
         ``raw.info['dev_head_t']``) will be used.
-    cHPI : bool
+    chpi : bool
         If true, use continuous head position indicator information.
     mindist : float
         Minimum distance between sources and the inner skull boundary
@@ -112,7 +112,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         raise TypeError('stc must be a SourceEstimate')
     if not np.allclose(raw.info['sfreq'], 1. / stc.tstep):
         raise ValueError('stc and raw must have same sample rate')
-    if cHPI and np.all(['custom_ref' in x.keys()
+    # Only use cHPI if custom frequency is in HPI information
+    if chpi and np.all(['custom_ref' in x.keys()
                         for x in raw.info['hpi_meas'][0]['hpi_coils']]):
         raise ValueError("`custom_ref` must be in "
                          "raw.info['hpi_meas'][0]['hpi_coils'] to use cHPI")
@@ -170,8 +171,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
     logger.info('Provided parameters will provide approximately %s event%s'
                 % (approx_events, '' if approx_events == 1 else 's'))
 
-    # Get cHPI freqs and reorder
-    if cHPI:
+    # Get chpi freqs and reorder
+    if chpi:
         hpi_freqs = np.array([x['custom_ref'][0]
                             for x in raw.info['hpi_meas'][0]['hpi_coils']])
         n_freqs = len(hpi_freqs)
@@ -198,11 +199,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         verts = stc.vertices
     src = _restrict_source_space_to(src, verts)
 
-    # Simulate Blink artifact and ECG artifacts
-    # Let's oscillate between resting (17 bpm) and reading (4.5 bpm) rate
-    # http://www.ncbi.nlm.nih.gov/pubmed/9399231
-
     blink_bem = blink_rr = ecg_rr = chpi_rrs = None
+
+    # Simulate Blink, ECG, and head-movement artifacts
+    # Oscillate blink artifact between resting (17 bpm) and reading (4.5 bpm)
+    # http://www.ncbi.nlm.nih.gov/pubmed/9399231
 
     # Create blink_bem (used for eog and blink artifact) if necessary
     if ecg or blink:
@@ -231,11 +232,12 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         blink_rate *= 12.5 / 60.
         blink_rate += 4.5 / 60.
         blink_times = rng.rand(raw.n_times) < blink_rate / raw.info['sfreq']
-        blink_times = blink_times * (rng.rand(raw.n_times) + 0.5)  # vary amplitudes
-
+        # vary amplitudes
+        blink_times = blink_times * (rng.rand(raw.n_times) + 0.5)
         # Convolve blink times with kernel to get blink traces
         blink_kernel = np.hanning(int(0.25 * raw.info['sfreq']))
-        blink_data = np.convolve(blink_times, blink_kernel, 'same')[np.newaxis, :]
+        blink_data = np.convolve(blink_times, blink_kernel,
+                                 'same')[np.newaxis, :]
         blink_data += rng.randn(blink_data.shape[1]) * 0.05
         blink_data *= 100e-6  # Scale to blink EMG scale
         del blink_times,
@@ -259,9 +261,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         ecg_data *= 3e-4
         del cardiac_data
 
-    # TODO: Check below; what exactly does this do?
+    # TODO: This is just scaling to correct physiological scale, correct?
     #       Can we just roll the scaling into above funcs if statements
-    #       and handle the data assignemnt there?
+    #       and handle the data assignment there?
+    #       We should also check that the correct channels exist
 
     # Add to data file, then rescale for simulation
     '''
@@ -301,6 +304,14 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         fwd = convert_forward_solution(fwd, surf_ori=True, force_fixed=True,
                                        verbose=False)
 
+        # Just use one arbitrary direction for each
+        if fwd_ecg is not None:
+            fwd_ecg = fwd_ecg['sol']['data'][:, ::3]
+        if fwd_blink is not None:
+            fwd_blink = fwd_blink['sol']['data'][:, ::3]
+        if fwd_chpi is not None:
+            fwd_chpi = fwd_chpi[:, ::3]
+
         if src_sel is None:
             src_sel = _stc_src_sel(fwd['src'], stc)
             if isinstance(stc, VolSourceEstimate):
@@ -311,13 +322,13 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
             if diff_ != 0:
                 warnings.warn('%s STC vertices omitted due to fwd calculation'
                               % (diff_,))
+
+        # Skip to next iteration if this is first pass in loop
         if last_fwd is None:
-            '''
             last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
                 fwd, fwd_blink, fwd_ecg, fwd_chpi
-            '''
-            last_fwd = fwd
             continue
+
         n_time = offsets[fi] - offsets[fi-1]
 
         time_slice = slice(offsets[fi-1], offsets[fi])
@@ -342,25 +353,19 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         raw._data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
-        if fwd_ecg is not None:
-            # Just use one arbitrary direction
-            fwd_ecg = fwd_ecg['sol']['data'][:, ::3]
-            import pdb; pdb.set_trace()
+        # TODO: Should conditionals depend on fwds or param bool flags?
+        if ecg:
             raw._data[meg_picks, time_slice] += \
                 _interp(last_fwd_ecg, fwd_ecg, ecg_data[:, time_slice], interp)
             last_fwd_ecg = fwd_ecg
 
-        if fwd_blink is not None:
-            # Just use one arbitrary direction
-            fwd_blink = fwd_blink['sol']['data'][:, ::3]
+        if blink:
             raw._data[picks, time_slice] += \
                 _interp(last_fwd_blink, fwd_blink, blink_data[:, time_slice],
                         interp)
             last_fwd_blink = fwd_blink
 
-        if fwd_blink is not None:
-            # Just use one arbitrary direction
-            fwd_chpi = fwd_chpi[:, ::3]
+        if chpi:
             this_t = np.arange(offsets[fi-1], offsets[fi]) / raw.info['sfreq']
             sinusoids = np.zeros((n_freqs, n_time))
             for fi, freq in enumerate(hpi_freqs):
@@ -374,11 +379,11 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         raw._data[event_ch, event_idxs] = fi
 
         # Prepare for next iteration
-        last_fwd = fwd
+        last_fwd, last_fwd_blink, last_fwd_ecg, last_fwd_chpi = \
+            fwd, fwd_blink, fwd_ecg, fwd_chpi
 
     assert used.all()
     logger.info('Done')
-
     return raw
 
 
@@ -474,7 +479,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     logger.info('Read %d source spaces a total of %d active source locations'
                 % (len(src), nsource))
 
-    # make a new dict with the relevant information
+    # Make a new dict with the relevant information
     mri_id = dict(machid=np.zeros(2, np.int32), version=0, secs=0, usecs=0)
     info = dict(nchan=info['nchan'], chs=info['chs'], comps=info['comps'],
                 ch_names=info['ch_names'],
@@ -487,8 +492,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
     _, _, eegels, _, eegnames, _ = \
         _prep_channels(info, False, True, True, verbose=False)
 
-    # Transform the source spaces into the appropriate coordinates
-    # (will either be HEAD or MRI)
+    # Transform source spaces into the appropriate coordinates (HEAD or MRI)
     for s in src:
         transform_surface_to(s, coord_frame, mri_head_t)
 
@@ -557,26 +561,27 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
         fwd['info']['mri_head_t'] = mri_head_t
         fwd['info']['dev_head_t'] = dev_head_t
 
+        # Compute forward solutions for each type of artifact
         fwd_blink = fwd_ecg = fwd_chpi = None
         if blink_rrs is not None:
-            megblink = _compute_forwards(blink_rrs, bem_blink, [megcoils], [compcoils],
-                                    [meg_info], ['meg'], n_jobs,
-                                    verbose=False)[0]
+            megblink = _compute_forwards(blink_rrs, bem_blink, [megcoils],
+                                         [compcoils], [meg_info], ['meg'],
+                                         n_jobs, verbose=False)[0]
             megblink = _to_forward_dict(megblink, None, megnames, coord_frame,
                                     FIFF.FIFFV_MNE_FREE_ORI)
             fwd_blink = _merge_meg_eeg_fwds(megblink, eegblink, verbose=False)
 
         if ecg_rrs is not None:
-            megecg = _compute_forwards(ecg_rrs, bem_blink, [megcoils], [compcoils],
-                                    [meg_info], ['meg'], n_jobs,
-                                    verbose=False)[0]
+            megecg = _compute_forwards(ecg_rrs, bem_blink, [megcoils],
+                                       [compcoils], [meg_info], ['meg'],
+                                       n_jobs, verbose=False)[0]
             fwd_ecg = _to_forward_dict(megecg, None, megnames, coord_frame,
                                     FIFF.FIFFV_MNE_FREE_ORI)
         if chpi_rrs is not None:
             fwd_chpi = _magnetic_dipole_field_vec(chpi_rrs, megcoils).T
 
-        out = fwd, fwd_blink, fwd_ecg, fwd_chpi
-        yield out
+        yield fwd, fwd_blink, fwd_ecg, fwd_chpi
+
 
 def _restrict_source_space_to(src, vertices):
     """Helper to trim down a source space"""
@@ -596,6 +601,7 @@ def _restrict_source_space_to(src, vertices):
 
 def _interp(data_1, data_2, stc_data, interp):
     """Helper to interpolate"""
+
     n_time = stc_data.shape[1]
     lin_interp_1 = np.linspace(1, 0, n_time, endpoint=False)
     lin_interp_2 = 1 - lin_interp_1
