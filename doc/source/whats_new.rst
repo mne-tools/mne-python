@@ -31,6 +31,9 @@ Changelog
 
     - Add new object :class:`mne.decoding.TimeDecoding` for decoding sensors' evoked response across time by `Jean-Remi King`_
 
+     - Add command ``mne freeview_bem_surfaces`` to quickly check BEM surfaces with Freeview by `Alex Gramfort`_.
+
+
 BUG
 ~~~
 
