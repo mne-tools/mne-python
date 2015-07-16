@@ -17,7 +17,7 @@ Reading raw data
 .. toctree::
    :maxdepth: 2
 
-   manual/raw
+   manual/io
 
 Preprocessing
 -------------

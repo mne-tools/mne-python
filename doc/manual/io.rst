@@ -33,6 +33,20 @@ Importing MEG data
 
 This section describes reading and converting of various MEG data formats.
 
+Elekta NeuroMag (.fif)
+---------------------------
+
+Neuromag Raw FIF files can be loaded using :func:`mne.io.read_raw_fif`.
+
+.. note::
+    If the data were recorded with MaxShield on and have not been processed
+    with MaxFilter, they may need to be loaded with
+    ``mne.io.read_raw_fif(..., allow_maxshield=True)``.
+.. note::
+    This file format also supports EEG data. An average reference will be added
+    by default on reading EEG data.
+
+
 Importing 4-D Neuroimaging / BTI data
 -------------------------------------
 
@@ -221,7 +235,7 @@ of the ``eeg`` file.
 .. _BEHBABFA:
 
 Importing CTF Polhemus data
----------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The CTF MEG systems store the Polhemus digitization data
 in text files. The utility mne_ctf_dig2fiff was
@@ -516,45 +530,25 @@ the following command-line options:
 
 .. _BABHDBBD:
 
+
 Importing EEG data
 ==================
 
-Overview
---------
 
-The mne_edf2fiff allows
-conversion of EEG data from EDF, EDF+, and BDF formats to the fif
-format. Documentation for these three input formats can be found
-at:
+Brainvision (.vhdr)
+-------------------
+Brainvision EEG files can be read in using :func:`mne.io.read_raw_brainvision`.
 
-**EDF:**
 
-    http://www.edfplus.info/specs/edf.html
+European data format (.edf)
+---------------------------
 
-**EDF+:**
+EDF and EDF+ files can be read in using :func:`mne.io.read_raw_edf`.
 
-    http://www.edfplus.info/specs/edfplus.html
+http://www.edfplus.info/specs/edf.html
 
-**BDF:**
-
-    http://www.biosemi.com/faq/file_format.htm
-
-EDF (European Data Format) and EDF+ are 16-bit formats while
-BDF is a 24-bit variant of this format used by the EEG systems manufactured
-by a company called BioSemi.
-
-None of these formats support electrode location information
-and  head shape digitization information. Therefore, this information
-has to be provided separately. Presently hpts and elp file formats
-are supported to include digitization data. For information on these
-formats, see :ref:`CJADJEBH` and http://www.sourcesignal.com/formats_probe.html.
-Note that it is mandatory to have the three fiducial locations (nasion
-and the two auricular points) included in the digitization data.
-Using the locations of the fiducial points the digitization data
-are converted to the MEG head coordinate system employed in the
-MNE software, see :ref:`BJEBIBAI`. In the comparison of the
-channel names only the initial segment up to the first '-' (dash)
-in the EDF/EDF+/BDF channel name is significant.
+EDF (European Data Format) and EDF+ are 16-bit formats
+http://www.edfplus.info/specs/edfplus.html
 
 The EDF+ files may contain an annotation channel which can
 be used to store trigger information. The Time-stamped Annotation
@@ -564,113 +558,44 @@ an annotation label with a number on the trigger channel. The TALs
 can be listed with the ``--listtal`` option,
 see below.
 
+
+Biosemi data format (.bdf)
+--------------------------
+
+The BDF format (http://www.biosemi.com/faq/file_format.htm
+) is a 24-bit variant of the EDF format used by the EEG systems manufactured
+by a company called BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
+
+
 .. warning:: The data samples in a BDF file    are represented in a 3-byte (24-bit) format. Since 3-byte raw data    buffers are not presently supported in the fif format    these data will be changed to 4-byte integers in the conversion.    Since the maximum size of a fif file is 2 GBytes, the maximum size of    a BDF file to be converted is approximately 1.5 GBytes
 
-.. warning:: The EDF/EDF+/BDF formats support channel    dependent sampling rates. This feature is not supported by mne_edf2fiff .    However, the annotation channel in the EDF+ format can have a different    sampling rate. The annotation channel data is not included in the    fif files output.
 
-Using mne_edf2fiff
-------------------
+EGI simple binary (.egi)
+------------------------
 
-The command-line options of mne_edf2fiff are:
+EGI simple binary files can be read in using :func:`mne.io.read_raw_egi`.
+The EGI raw files are simple binary files with a header and can be exported
+from using the EGI Netstation acquisition software.
 
-**\---version**
 
-    Show the program version and compilation date.
+Reading Electrode locations and Headshapes
+------------------------------------------
+None of these EEG formats contain electrode location information
+nor head shape digitization information. Therefore, this information
+has to be provided separately. For that purpose all readers have a montage
+parameter to read locations from standard electrode templates or a polhemus
+digitizer file. This can also be done post-hoc.
 
-**\---help**
 
-    List the command-line options.
-
-**\---edf <*filename*>**
-
-    Specifies the name of the raw data file to process.
-
-**\---tal <*filename*>**
-
-    List the time-stamped annotation list (TAL) data from an EDF+ file here.
-    This output is useful to assist in creating the annotation map file,
-    see the ``--annotmap`` option, below.
-    This output file is an event file compatible with mne_browse_raw and mne_process_raw ,
-    see :ref:`ch_browse`. In addition, in the mapping between TAL
-    labels and trigger numbers provided by the ``--annotmap`` option is
-    employed to assign trigger numbers in the event file produced. In
-    the absence of the ``--annotmap`` option default trigger number 1024
-    is used.
-
-**\---annotmap <*filename*>**
-
-    Specify a file which maps the labels of the TALs to numbers on a trigger
-    channel (STI 014) which will be added to the output file if this
-    option is present. This annotation map file
-    may contain comment lines starting with the '%' or '#' characters.
-    The data lines contain a label-number pair, separated by a colon.
-    For example, a line 'Trigger-1:9' means that each
-    annotation labeled with the text 'Trigger-1' will
-    be translated to the number 9 on the trigger channel.
-
-**\---elp <*filename*>**
-
-    Specifies the name of the an electrode location file. This file
-    is in the "probe" file format used by the *Source
-    Signal Imaging, Inc.* software. For description of the
-    format, see http://www.sourcesignal.com/formats_probe.html. Note
-    that some other software packages may produce electrode-position
-    files with the elp ending not
-    conforming to the above specification. As discussed above, the fiducial
-    marker locations, optional in the "probe" file
-    format specification are mandatory for mne_edf2fiff .
-    When this option is encountered on the command line any previously
-    specified hpts file will be ignored.
-
-**\---hpts <*filename*>**
-
-    Specifies the name of an electrode position file in  the hpts format discussed
-    in :ref:`CJADJEBH`. The mandatory entries are the fiducial marker
-    locations and the EEG electrode locations. It is recommended that
-    electrode (channel) names instead of numbers are used to label the
-    EEG electrode locations. When this option is encountered on the
-    command line any previously specified elp file
-    will be ignored.
-
-**\---meters**
-
-    Assumes that the digitization data in an hpts file
-    is given in meters instead of millimeters.
-
-**\---fif <*filename*>**
-
-    Specifies the name of the fif file to be output.
-
-Post-conversion tasks
----------------------
-
-This section outlines additional steps to be taken to use
-the EDF/EDF+/BDF file is converted to the fif format in MNE:
-
-- Some of the channels may not have a
-  digitized electrode location associated with them. If these channels
-  are used for EOG or EMG measurements, their channel types should
-  be changed to the correct ones using the mne_rename_channels utility,
-  see :ref:`CHDCFEAJ`. EEG channels which do not have a location
-  associated with them should be assigned to be MISC channels.
-
-- After the channel types are correctly defined, a topographical
-  layout file can be created for mne_browse_raw and mne_analyze using
-  the mne_make_eeg_layout utility,
-  see :ref:`CHDDGDJA`.
-
-- The trigger channel name in BDF files is "Status".
-  This must be specified with the ``--digtrig`` option or with help of
-  the MNE_TRIGGER_CH_NAME environment variable when mne_browse_raw or mne_process_raw is
-  invoked, see :ref:`BABBGJEA`.
-
-- Only the two least significant bytes on the "Status" channel
-  of BDF files are significant as trigger information the ``--digtrigmask``
-  0xff option MNE_TRIGGER_CH_MASK environment variable should be used
-  to specify this to mne_browse_raw and mne_process_raw ,
-  see :ref:`BABBGJEA`.
+When using the locations of the fiducial points the digitization data
+are converted to the MEG head coordinate system employed in the
+MNE software, see :ref:`BJEBIBAI`. In the comparison of the
+channel names only the initial segment up to the first '-' (dash)
+in the EDF/EDF+/BDF channel name is significant.
 
 .. _BEHDGAIJ:
+
+
 
 Importing EEG data saved in the Tufts University format
 -------------------------------------------------------
