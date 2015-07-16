@@ -44,7 +44,7 @@ def test_linear_classifier():
     epochs_data = epochs.get_data().reshape(len(labels), -1)
     
     clf = LinearClassifier()
-    X = clf.fit_transform(epochs_data, labels)
+    clf.fit(epochs_data, labels)
     
     # test patterns have been computed
     assert_is_not_none(clf.patterns_)
@@ -67,6 +67,6 @@ def test_linear_classifier():
     clf = LinearClassifier()
     sc = StandardScaler()
     test_pipe = Pipeline((('scaler', sc), ('clf', clf)))
-    test_pipe.fit(X, labels)
-    test_pipe.predict(X)
-    test_pipe.score(X, labels)
+    test_pipe.fit(epochs_data, labels)
+    test_pipe.predict(epochs_data)
+    test_pipe.score(epochs_data, labels)
