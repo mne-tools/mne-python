@@ -774,6 +774,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
             The figure containing the topography.
         """
         from ..viz.topo import _imshow_tfr, _plot_topo
+        import matplotlib.pyplot as plt
         times = self.times.copy()
         freqs = self.freqs
         data = self.data
@@ -802,7 +803,7 @@ class AverageTFR(ContainsMixin, PickDropChannelsMixin):
                          font_color=font_color)
 
         if show:
-            fig.show()
+            plt.show()
 
         return fig
 
