@@ -1,11 +1,10 @@
 """
 ====================================================================
-Decoding in sensor space data using the linear models 
+Decoding in sensor space data using the linear models
 ====================================================================
 
 Decoding applied to MEG data in sensor space using a linear classifier
 Here the model coefficient are interpreted using [1].
-
 
 [1] Haufe, S., Meinecke, F., Görgen, K., Dähne, S., Haynes, J.-D., 
 Blankertz, B., & Bießmann, F. (2014). On the interpretation of 
@@ -48,7 +47,7 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True,
 labels = epochs.events[:, -1]
 
 import sklearn.linear_model as lm
-from mne.decoding.classifier import compute_patterns
+from mne.decoding import compute_patterns
 
 # computes patterns estimated with a ridge classifier
 ridge = lm.RidgeClassifier()
