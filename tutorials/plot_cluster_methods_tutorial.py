@@ -1,5 +1,7 @@
 # doc:slow-example
 """
+.. _tut_stats_cluster_methods:
+
 ======================================================
 Permutation t-test on toy data with spatial clustering
 ======================================================

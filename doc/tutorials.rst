@@ -34,8 +34,8 @@ Preprocessing
 Statistics
 ----------
 
-Sensor space statistics
-^^^^^^^^^^^^^^^^^^^^^^^
+Sensor space
+^^^^^^^^^^^^
 
 .. toctree::
    :maxdepth: 1
@@ -46,8 +46,8 @@ Sensor space statistics
    auto_tutorials/plot_cluster_stats_time_frequency.rst
 
 
-Source space statistics
-^^^^^^^^^^^^^^^^^^^^^^^
+Source space
+^^^^^^^^^^^^
 
 .. toctree::
    :maxdepth: 1
@@ -65,18 +65,6 @@ Visualization and Reporting
 
    tutorials/report.rst
 
-
-Working with the MNE data structures
-------------------------------------
-
-.. toctree::
-   :maxdepth: 1
-
-   auto_tutorials/plot_info.rst
-   auto_tutorials/plot_raw_objects.rst
-   auto_tutorials/plot_epochs_objects.rst
-   auto_tutorials/plot_modifying_data_inplace.rst
-   auto_tutorials/plot_creating_data_structures.rst
 
 Command line tools
 ------------------

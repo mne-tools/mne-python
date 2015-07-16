@@ -1,4 +1,6 @@
 """
+.. _tut_stats_cluster_source_rANOVA:
+
 ======================================================================
 Repeated measures ANOVA on source data with spatio-temporal clustering
 ======================================================================
