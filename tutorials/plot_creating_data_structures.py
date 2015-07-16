@@ -1,13 +1,15 @@
-###############################################################################
-# .. _tut_creating_data_structures:
-#
-# Creating MNE-Python's data structures from scratch
-# ==================================================
+"""
+.. _tut_creating_data_structures:
+
+Creating MNE-Python's data structures from scratch
+==================================================
+"""
+
+from __future__ import print_function
 
 import mne
 import numpy as np
 
-from __future__ import print_function
 
 ###############################################################################
 # Creating `Info` objects
@@ -65,14 +67,13 @@ print(info)
 #  - The length of the `ch_names` field must be `nchan`.
 #  - The `ch_names` field should be consistent with the `name` field of the
 #    channel information contained in `chs`.
-
-###############################################################################
-# Creating `Raw` objects
-# ----------------------
 #
-# To create a `Raw` object from scratch, you can use the `RawArray` class,
-# which implements raw data that is backed by a numpy array. Its constructor
-# simply takes the data matrix and `Info` object:
+# Creating :class:`mne.io.Raw` objects
+# ---------------------------------------
+#
+# To create a :class:`mne.io.Raw` object from scratch, you can use the
+# `RawArray` class, which implements raw data that is backed by a numpy array.
+# Its constructor simply takes the data matrix and `Info` object:
 
 # Generate some random data
 data = np.random.randn(5, 1000)

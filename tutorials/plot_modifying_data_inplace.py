@@ -1,8 +1,9 @@
-###############################################################################
-# .. _tut_modifying_data_inplace:
-#
-# Modifying data in-place
-# =======================
+"""
+.. _tut_modifying_data_inplace:
+
+Modifying data in-place
+=======================
+"""
 
 from __future__ import print_function
 

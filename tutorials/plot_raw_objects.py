@@ -1,8 +1,9 @@
-###############################################################################
-# .. _tut_raw_objects
-#
-# The `Raw` data structure: continuous data
-# =========================================
+"""
+.. _tut_raw_objects
+
+The `Raw` data structure: continuous data
+=========================================
+"""
 
 from __future__ import print_function
 
@@ -11,16 +12,16 @@ import os.path as op
 from matplotlib import pyplot as plt
 
 ###############################################################################
-# Continuous data is stored in objects of type :py:class:`mne.io.Raw`. The core
+# Continuous data is stored in objects of type class:`mne.io.Raw`. The core
 # data structure is simply a 2D numpy array (channels × samples, `._data`)
-# combined with an :py:class:`mne.io.meas_info.Info` object (`.info`)
+# combined with an :class:`mne.io.meas_info.Info` object (`.info`)
 # (:ref:`tut_info_objects`.
 #
 # The most common way to load continuous data is from a .fif file. For more
 # information on :ref:`loading data from other formats <ch_raw>`, or creating
 # it :ref:`from scratch <tut_creating_data_objects>`.
-
-###############################################################################
+#
+#
 # Loading continuous data
 # -----------------------
 

@@ -1,8 +1,9 @@
-###############################################################################
-# .. _tut_info_objects:
-#
-# The `Info` data structure
-# =========================
+"""
+.. _tut_info_objects:
+
+The `Info` data structure
+=========================
+"""
 
 from __future__ import print_function
 
