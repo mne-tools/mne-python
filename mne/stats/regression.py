@@ -147,7 +147,9 @@ def regress_continuous(raw, events, event_id=None,
     length), solving the linear system Y = bX and returning b as evoked-like
     time series split by condition.
 
-    See Smith & Kutas [2015b], Psychophysiology.
+    See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP 
+    waveforms: II. Non-linear effects, overlap correction, and practical 
+    considerations. Psychophysiology, 52(2), 169-189.
 
     Parameters
     ----------
@@ -155,8 +157,8 @@ def regress_continuous(raw, events, event_id=None,
         A raw object. Warning: be very careful about data that is not
         downsampled, as the resulting matrices can be enormous and easily
         overload your computer. Typically, 100 hz sampling rate is appropriate.
-    events : instance of Events
-        An n x 3 matrix, where the first column corresponds to samples in raw.
+    events : ndarray
+        An n x 3 array, where the first column corresponds to samples in raw.
     event_id : dict
         As in Epochs; a dictionary where the values may be integers or
         list-like collections of integers, corresponding to the 3rd column of
@@ -209,10 +211,10 @@ def regress_continuous(raw, events, event_id=None,
     else:
         tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq)) for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = dict((cond, int(tmax * sfreq)) for cond in conds)
+        tmax = dict((cond, int(tmax * sfreq)+1) for cond in conds)
     else:
-        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq)) for cond in conds)
-    
+        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq)+1) for cond in conds)
+
     cond_length = dict()
     # construct predictor matrix
     # !!! this should probably be improved (including making it more robust to
@@ -251,7 +253,7 @@ def regress_continuous(raw, events, event_id=None,
 
     # additionally, reject positions based on extreme steps in the data
     if reject is not None:
-        from mne.utils import _reject_data_segments
+        from ..utils import _reject_data_segments
         if not isinstance(reject, dict):
             reject = dict(grad=4000e-12,  # T / m (gradiometers)
                           mag=4e-11,  # T (magnetometers)
@@ -261,18 +263,18 @@ def regress_continuous(raw, events, event_id=None,
         if tstep is None:
             tstep = 1.0
 
-    _, inds = _reject_data_segments(data, reject, None, None,
-                                    raw.info, tstep)
+        _, inds = _reject_data_segments(data, reject, None, None,
+                                        raw.info, tstep)
     for t0, t1 in inds:
         has_val[t0:t1] = False
 
-    X = big_arr[:, has_val]
-    X = np.vstack((X, np.ones(X.shape[1]))).T
+    X = big_arr[:, has_val].T
+#    X = np.vstack((X, np.ones(X.shape[1]))).T
 
     Y = data[:, has_val]
 
     # solve linear system
-    coefs = np.dot(scipy.linalg.inv(np.dot(X.T, X)),
+    coefs = np.dot(linalg.inv(np.dot(X.T, X)),
                    np.dot(X.T, Y.T)).T
 
     # construct Evoked objects to be returned from output
@@ -280,10 +282,10 @@ def regress_continuous(raw, events, event_id=None,
     cum = 0
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
-        ev_dict[cond] = mne.EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
-                                        raw.info, tmin_ / raw.info["sfreq"],
-                                        comment=cond, nave=cond_length[cond],
-                                        kind='mean')
+        ev_dict[cond] = EvokedArray(coefs[:, cum:cum + tmax_ - tmin_],
+                                    raw.info, tmin_ / raw.info["sfreq"],
+                                    comment=cond, nave=cond_length[cond],
+                                    kind='mean')
         cum += tmax_ - tmin_
 
     return ev_dict
