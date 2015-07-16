@@ -53,6 +53,18 @@ Visualization and Reporting
    tutorials/report.rst
 
 
+Working with the MNE data structures
+------------------------------------
+
+.. toctree::
+   :maxdepth: 1
+
+   auto_tutorials/plot_info.rst
+   auto_tutorials/plot_raw_objects.rst
+   auto_tutorials/plot_epochs_objects.rst
+   auto_tutorials/plot_modifying_data_inplace.rst
+   auto_tutorials/plot_creating_data_structures.rst
+
 Command line tools
 ------------------
 
