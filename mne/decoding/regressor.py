@@ -81,4 +81,25 @@ class LinearRegressor(BaseEstimator):
         """
         return self.reg.predict(X)
     
+    def score(self, X, y):
+        """
+        Returns the score of the linear regressor computed
+        on the given test data and classes.
+        
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_features)
+            The data to transform.
+        y : array, shape (n_epochs)
+            The predictions for each epoch.
+
+        Returns
+        -------
+        score : float
+            Score of the linear regressor
+        
+        """
+        return self.reg.score(X, y)
+    
+    
         

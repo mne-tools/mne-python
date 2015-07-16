@@ -119,5 +119,23 @@ class LinearClassifier(BaseEstimator):
         """
         return self.clf.predict(X)
         
-    
+    def score(self, X, y):
+        """
+        Returns the score of the linear classifier computed
+        on the given test data and classes.
         
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_features)
+            The data to transform.
+        y : array, shape (n_epochs)
+            The class for each epoch.
+
+        Returns
+        -------
+        score : float
+            Score of the linear classifier
+        
+        """
+        return self.clf.score(X, y)
+    
