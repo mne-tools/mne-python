@@ -58,7 +58,7 @@ print(raw_hilb._data.dtype)
 # Finally, it is possible to apply arbitrary to your data to do what you want.
 # Here we will use this to take the amplitude and phase of the hilbert
 # transformed data. (note that you can use `amplitude=True` in the call to
-# `apply_hilbert` to do this automatically).
+# :func:`mne.io.Raw.apply_hilbert` to do this automatically).
 
 # Take the amplitude and phase
 raw_amp = raw_hilb.copy()

@@ -1,8 +1,8 @@
 """
 .. _tut_info_objects:
 
-The `Info` data structure
-=========================
+The :class:`Info <mne.io.meas_info.Info>` data structure
+========================================================
 """
 
 from __future__ import print_function
@@ -11,8 +11,8 @@ import mne
 import os.path as op
 
 ###############################################################################
-# The `Info` data object is typically created when data is imported into
-# MNE-Python and contains details such as:
+# The :class:`Info <mne.io.meas_info.Info>` data object is typically created
+# when data is imported into MNE-Python and contains details such as:
 #
 #  - date, subject information, and other recording details
 #  - the samping rate
@@ -20,7 +20,7 @@ import os.path as op
 #  - digitized points
 #  - sensor–head coordinate transformation matrices
 #
-# and so forth. See the :py:class:`the API reference <mne.io.meas_info.Info>`
+# and so forth. See the :class:`the API reference <mne.io.meas_info.Info>`
 # for a complete list of all data fields. Once created, this object is passed
 # around throughout the data analysis pipeline.
 #
@@ -45,7 +45,7 @@ print(info['chs'][0])
 # -----------------------------
 #
 # There are a number of convenience functions to obtain channel indices, given
-# an `Info` object.
+# an :class:`mne.io.meas_info.Info` object.
 
 # Get channel indices by name
 channel_indices = mne.pick_channels(info['ch_names'], ['MEG 0312', 'EEG 005'])
@@ -81,7 +81,7 @@ print('First 10 MEG channels are of type:\n', channel_types)
 # ----------------------------------------
 #
 # It is possible to limit the info structure to only include a subset of
-# channels with the :py:func:`mne.pick_info` function:
+# channels with the :func:`mne.pick_info` function:
 
 # Only keep EEG channels
 eeg_indices = mne.pick_types(info, meg=False, eeg=True)
