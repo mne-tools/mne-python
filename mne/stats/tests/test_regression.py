@@ -1,6 +1,6 @@
 # Authors: Teon Brooks <teon.brooks@gmail.com>
 #          Denis A. Engemann <denis.engemann@gmail.com>
-#
+#          Jona Sassenhagen <jona.sassenhagen@gmail.com>
 # License: BSD (3-clause)
 
 import os.path as op
@@ -14,7 +14,7 @@ from nose.tools import assert_raises, assert_true, assert_equal
 import mne
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.stats.regression import linear_regression
+from mne.stats.regression import linear_regression, regress_continuous
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -64,3 +64,24 @@ def test_regression():
     for k in lm1:
         for v1, v2 in zip(lm1[k], lm2[k]):
             assert_array_equal(v1.data, v2.data)
+
+
+@testing.requires_testing_data
+def test_continuous_regression():
+    tmin, tmax = -.1, .5
+
+    raw = Raw(raw_fname, preload=True)
+    events = mne.read_events(event_fname)
+    event_id = dict(audio_l=1, audio_r=2)
+
+    raw = raw.pick_channels(raw.ch_names[:2])
+
+    epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
+                        baseline=None, reject=None)
+
+    revokeds = regress_continuous(raw, events, event_id,
+                                  tmin=tmin, tmax=tmax, reject=False)
+
+    for cond in event_id.keys():
+        assert_array_almost_equal(revokeds[cond].data*1e+15,
+                                  epochs[cond].average().data*1e+15)
