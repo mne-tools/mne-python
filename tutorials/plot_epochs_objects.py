@@ -1,8 +1,9 @@
-###############################################################################
-# .. _tut_epochs_objects
+"""
+.. _tut_epochs_objects:
 
-# The `Epochs` data structure: epoched data
-# =========================================
+The `Epochs` data structure: epoched data
+=========================================
+"""
 
 from __future__ import print_function
 
