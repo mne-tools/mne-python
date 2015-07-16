@@ -1292,6 +1292,8 @@ def _plot_onkey(event, params):
     elif event.key == 'o':
         if not params['butterfly']:
             _open_options(params)
+    elif event.key == 'h':
+        _plot_histogram(params)
     elif event.key == '?':
         _onclick_help(event, params)
     elif event.key == 'escape':
@@ -1523,3 +1525,56 @@ def _open_options(params):
 def _settings_closed(events, params):
     """Function to handle close event from settings dialog."""
     params['fig_options'] = None
+
+
+def _plot_histogram(params):
+    """Function for plotting histogram of peak-to-peak values."""
+    import matplotlib.pyplot as plt
+    epochs = params['epochs']
+    p2p = np.ptp(epochs.get_data(), axis=2)
+    types = list()
+    data = list()
+    if 'eeg' in params['types']:
+        eegs = np.array([p2p.T[i] for i,
+                         x in enumerate(params['types']) if x == 'eeg'])
+        data.append(eegs.ravel())
+        types.append('eeg')
+    if 'mag' in params['types']:
+        mags = np.array([p2p.T[i] for i,
+                         x in enumerate(params['types']) if x == 'mag'])
+        data.append(mags.ravel())
+        types.append('mag')
+    if 'grad' in params['types']:
+        grads = np.array([p2p.T[i] for i,
+                          x in enumerate(params['types']) if x == 'grad'])
+        data.append(grads.ravel())
+        types.append('grad')
+    fig = plt.figure(len(types))
+    scalings = _handle_default('scalings')
+    units = _handle_default('units')
+    titles = _handle_default('titles')
+    colors = _handle_default('color')
+    for idx in range(len(types)):
+        ax = plt.subplot(len(types), 1, idx + 1)
+        plt.xlabel(units[types[idx]])
+        plt.ylabel('count')
+        color = colors[types[idx]]
+        rej = None
+        if epochs.reject is not None and types[idx] in epochs.reject.keys():
+                rej = epochs.reject[types[idx]] * scalings[types[idx]]
+                rng = [0., rej * 1.1]
+        else:
+            rng = None
+        plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color,
+                 range=rng)
+        if rej is not None:
+            ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
+        plt.title(titles[types[idx]])
+    fig.suptitle('Peak-to-peak histogram', y=0.99)
+    tight_layout(fig=fig)
+    try:
+        fig.show()
+    except:
+        pass
+    if params['fig_proj'] is not None:
+        params['fig_proj'].canvas.draw()
