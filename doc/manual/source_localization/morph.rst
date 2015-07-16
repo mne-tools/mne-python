@@ -183,7 +183,7 @@ involves three straightforward steps:
 
 .. _CHDDJBDH:
 
-.. figure:: pics/Averaging-flowchart.png
+.. figure:: ../pics/Averaging-flowchart.png
     :alt: Workflow of the cross-subject averaging process in MNE
 
     Workflow of the cross-subject averaging process

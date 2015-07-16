@@ -519,8 +519,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                           mt_low_bias=True, cwt_frequencies=None,
                           cwt_n_cycles=7, block_size=1000, n_jobs=1,
                           verbose=None):
-    """Compute various frequency-domain and time-frequency domain connectivity
-    measures.
+    """Compute frequency-domain and time-frequency domain connectivity measures
 
     The connectivity method(s) are specified using the "method" parameter.
     All methods are based on estimates of the cross- and power spectral
@@ -593,6 +592,7 @@ def spectral_connectivity(data, method='coh', indices=None, sfreq=2 * np.pi,
                       E[|Im(Sxy)|]
 
         'wpli2_debiased' : Debiased estimator of squared WPLI [5].
+
 
     References
     ----------

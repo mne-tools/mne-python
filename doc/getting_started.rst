@@ -32,7 +32,7 @@ The MNE Unix commands can be downloaded at:
 
 * `Download <http://www.nmr.mgh.harvard.edu/martinos/userInfo/data/MNE_register/index.php>`_ MNE
 
-:ref:`commands_list` gives an overview of the command line
+:ref:`c_reference` gives an overview of the command line
 tools provided with MNE.
 
 System requirements
@@ -174,10 +174,10 @@ listed in :ref:`CIHDGFAA`.
     | SUBJECT                 | Name of the current subject.               |
     +-------------------------+--------------------------------------------+
     | MNE_TRIGGER_CH_NAME     | Name of the trigger channel in raw data,   |
-    |                         | see :ref:`BABBGJEA`.                       |
+    |                         | see :ref:`mne_process_raw`.                |
     +-------------------------+--------------------------------------------+
     | MNE_TRIGGER_CH_MASK     | Mask to be applied to the trigger channel  |
-    |                         | values, see :ref:`BABBGJEA`.               |
+    |                         | values, see :ref:`mne_process_raw`.        |
     +-------------------------+--------------------------------------------+
 
 .. _BABDBCJE:

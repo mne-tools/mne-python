@@ -106,7 +106,8 @@ class GeneralizationAcrossTime(object):
         each classifier is trained.
         If set to None, predictions are made at all time points.
         If set to dict, the dict should contain ``slices`` or be contructed in
-        a similar way to train_times
+        a similar way to train_times:
+
             ``slices`` : np.ndarray, shape (n_clfs,)
                 Array of time slices (in indices) used for each classifier.
                 If not given, computed from 'start', 'stop', 'length', 'step'.
@@ -164,13 +165,13 @@ class GeneralizationAcrossTime(object):
         The single-trial predictions estimated by self.predict() at each
         training time and each testing time. Note that the number of testing
         times per training time need not be regular, else
-        np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
+        ``np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs]``.
     y_true_ : list | np.ndarray, shape (n_samples,)
-        The categories used for scoring y_pred_.
+        The categories used for scoring ``y_pred_``.
     scorer_ : object
         scikit-learn Scorer instance.
     scores_ : list of lists of float
-        The scores estimated by self.scorer_ at each training time and each
+        The scores estimated by ``self.scorer_`` at each training time and each
         testing time (e.g. mean accuracy of self.predict(X)). Note that the
         number of testing times per training time need not be regular;
         else, np.shape(scores) = [n_train_time, n_test_time].
@@ -320,8 +321,8 @@ class GeneralizationAcrossTime(object):
     def predict(self, epochs):
         """ Test each classifier on each specified testing time slice.
 
-        Note. This function sets the ``y_pred_`` and ``test_times_``
-        attributes.
+        .. note:: This function sets the ``y_pred_`` and ``test_times_``
+                  attributes.
 
         Parameters
         ----------
@@ -331,13 +332,12 @@ class GeneralizationAcrossTime(object):
 
         Returns
         -------
-        y_pred : list of lists of arrays of floats,
-                 shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
+        y_pred : list of lists of arrays of floats, shape (n_train_t, n_test_t, n_epochs, n_prediction_dims)
             The single-trial predictions at each training time and each testing
             time. Note that the number of testing times per training time need
-            not be regular;
-            else, np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].
-        """
+            not be regular; else
+            ``np.shape(y_pred_) = [n_train_time, n_test_time, n_epochs].``
+        """  # noqa
 
         # Check that at least one classifier has been trained
         if not hasattr(self, 'estimators_'):
@@ -486,10 +486,10 @@ class GeneralizationAcrossTime(object):
         title : str | None
             Figure title. Defaults to None.
         vmin : float | None
-            Min color value for scores. If None, sets to min(gat.scores_).
+            Min color value for scores. If None, sets to ``min(gat.scores_)``.
             Defaults to None.
         vmax : float | None
-            Max color value for scores. If None, sets to max(gat.scores_).
+            Max color value for scores. If None, sets to ``max(gat.scores_)``.
             Defaults to None.
         tlim : np.ndarray, (train_min, test_max) | None
             The temporal boundaries. Defaults to None.

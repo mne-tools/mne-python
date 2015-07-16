@@ -4,20 +4,14 @@
 API Reference
 =============
 
-.. automodule:: mne
-   :no-members:
-   :no-inherited-members:
-
 This is the classes and functions reference of mne-python. Functions are
-grouped thematically by analysis stage. In addition, all File I/O functions
-are collected in a separate section. Functions and classes that are not below
-a module heading are found in the :py:mod:`mne` namespace.
+grouped thematically by analysis stage. Functions and classes that are not
+below a module heading are found in the :py:mod:`mne` namespace.
 
 
-.. toctree::
-   :maxdepth: 2
-
-   python_reference
+.. contents::
+   :local:
+   :depth: 2
 
 
 Classes

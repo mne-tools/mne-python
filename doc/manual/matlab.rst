@@ -418,7 +418,8 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
     | mne_transform_coordinates      | Transform locations between different coordinate systems.    |
     |                                | This function uses the output file from                      |
-    |                                | mne_collect_transforms described in :ref:`BABBIFIJ` as input.|
+    |                                | mne_collect_transforms described in                          |
+    |                                | :ref:`mne_collect_transforms` as input.                      |
     +--------------------------------+--------------------------------------------------------------+
     | mne_transpose_named_matrix     | Create a transpose of a named matrix.                        |
     +--------------------------------+--------------------------------------------------------------+
@@ -434,7 +435,7 @@ they are listed in :ref:`BGBEFADJ`.
     | Function                       | Purpose                                                      |
     +================================+==============================================================+
     | mne_ex_average_epochs          | Example of averaging epoch data produced by mne_epochs2mat,  |
-    |                                | see :ref:`BEHFIDCB`.                                         |
+    |                                | see :ref:`mne_epochs2mat`.                                   |
     +--------------------------------+--------------------------------------------------------------+
     | mne_ex_cancel_noise            | Example of noise cancellation procedures.                    |
     +--------------------------------+--------------------------------------------------------------+
@@ -456,7 +457,7 @@ they are listed in :ref:`BGBEFADJ`.
     +--------------------------------+--------------------------------------------------------------+
 
 
-.. note:: In order for the inverse operator calculation to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software, the so-called *processing history* block must be included in data files. Previous versions of the MNE Matlab functions did not copy processing history to files saved. As of March 30, 2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have been enhanced to include these data to the output file as appropriate. If you have older raw data files created in Matlab from input which has been processed Maxfilter, it is necessary to copy the *processing history* block from the original to modified raw data file using the mne_copy_processing_history utility described in :ref:`CJACECAH`. The raw data processing programs mne_browse_raw and mne_process_raw have handled copying of the processing history since revision 2.5 of the MNE software.
+.. note:: In order for the inverse operator calculation to work correctly with data processed with the Elekta-Neuromag Maxfilter (TM) software, the so-called *processing history* block must be included in data files. Previous versions of the MNE Matlab functions did not copy processing history to files saved. As of March 30, 2009, the Matlab toolbox routines fiff_start_writing_raw and fiff_write_evoked have been enhanced to include these data to the output file as appropriate. If you have older raw data files created in Matlab from input which has been processed Maxfilter, it is necessary to copy the *processing history* block from the original to modified raw data file using the :ref:`mne_copy_processing_history` utility. The raw data processing programs mne_browse_raw and mne_process_raw have handled copying of the processing history since revision 2.5 of the MNE software.
 
 Some data structures
 ####################

@@ -143,10 +143,11 @@ class Label(object):
 
     Labels can be combined with the ``+`` operator:
 
-         - Duplicate vertices are removed.
-         - If duplicate vertices have conflicting position values, an error
-           is raised.
-         - Values of duplicate vertices are summed.
+        * Duplicate vertices are removed.
+        * If duplicate vertices have conflicting position values, an error
+          is raised.
+        * Values of duplicate vertices are summed.
+
 
     Parameters
     ----------

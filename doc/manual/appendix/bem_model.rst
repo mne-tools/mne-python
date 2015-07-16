@@ -284,7 +284,7 @@ For further information, see http://brainsuite.usc.edu/.
 
 The conversion of BrainSuite tessellation
 files to MNE software compatible formats is accomplished with the mne_convert_surface utility,
-covered in :ref:`BEHDIAJG`.
+covered in :ref:`mne_convert_surface`.
 
 The workflow needed to employ the BrainSuite tessellations
 is:

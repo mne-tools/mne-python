@@ -33,8 +33,8 @@ To integrate data from different channel types that can have
 signal amplitudes which are orders of magnitude different, a noise
 covariance matrix can be included.
 The ICA in MNE can be computed on either raw or epoched data.
-The set of functions included allows one
- to interactively select noise-free sources or to perform a fully automated
+The set of functions included allows one to interactively select
+noise-free sources or to perform a fully automated
 artifact removal. ICA sources can be visualized using MNE functions for generating
 trellis plots~\cite{becker1996tour} (cf. Fig \ref{fig:img_ica}) and sensitivity maps projected on
 topographic channel layouts.} % DE maybe add figure

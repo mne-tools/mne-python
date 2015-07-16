@@ -220,8 +220,8 @@ API
    - Use ``scipy.signal.welch`` instead of matplotlib.psd inside ``compute_raw_psd`` and ``compute_epochs_psd`` by `Yousra Bekhti`_ `Eric Larson`_ and `Denis Engemann`_. As a consquence, ``Raw.plot_raw_psds`` has been deprecated.
 
    - ``Raw`` instances returned by ``mne.forward.apply_forward_raw`` now always have times starting from
-    zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
-    use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
+     zero to be consistent with all other ``Raw`` instances. To get the former ``start`` and ``stop`` times,
+     use ``raw.first_samp / raw.info['sfreq']`` and ``raw.last_samp / raw.info['sfreq']``.
 
    - ``pick_types_evoked`` has been deprecated in favor of ``evoked.pick_types``.
 
@@ -757,7 +757,7 @@ Changelog
    - ICA computation on Raw and Epochs with automatic component selection by `Denis Engemann`_ and `Alex Gramfort`_
 
    - Saving ICA sources to fif files and creating ICA topography layouts by
-    `Denis Engemann`_
+     `Denis Engemann`_
 
    - Save and restore ICA session to and from fif by `Denis Engemann`_
 

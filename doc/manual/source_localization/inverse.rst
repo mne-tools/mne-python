@@ -471,7 +471,7 @@ data at specified ROIs (labels) and to save the results in a fif
 file which can be viewed with :ref:`mne_browse_raw`,
 read to Matlab directly using the MNE Matlab Toolbox, see :ref:`ch_matlab`,
 or converted to Matlab format using either :ref:`mne_convert_mne_data`,
-:ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`, see :ref:`ch_convert`. See
+:ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`. See
 :ref:`mne_compute_raw_inverse` for command-line options.
 
 .. _CBBHJDAI:
@@ -517,4 +517,4 @@ the sign of the estimates at this vertex are inverted. The inversion
 is reflected in the current direction vector listed in the channel
 information, see above.
 
-.. note:: The raw data files output by :ref:`mne_compute_raw_inverse` can be converted to mat files with :ref:`mne_raw2mat`, see :ref:`convert_to_matlab`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into :ref:`mne_browse_raw`, see :ref:`ch_browse`.
+.. note:: The raw data files output by :ref:`mne_compute_raw_inverse` can be converted to mat files with :ref:`mne_raw2mat`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into :ref:`mne_browse_raw`, see :ref:`ch_browse`.

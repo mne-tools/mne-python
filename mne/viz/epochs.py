@@ -448,7 +448,7 @@ def plot_epochs_trellis(epochs, epoch_idx=None, picks=None, scalings=None,
 
 def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
                 n_channels=20, title=None, show=True, block=False):
-    """ Visualize epochs.
+    """ Visualize epochs
 
     Bad epochs can be marked with a left click on top of the epoch. Bad
     channels can be selected by clicking the channel name on the left side of
@@ -464,9 +464,11 @@ def plot_epochs(epochs, picks=None, scalings=None, n_epochs=20,
         Channels to be included. If None only good data channels are used.
         Defaults to None
     scalings : dict | None
-        Scale factors for the traces. If None, defaults to:
-        `dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4, emg=1e-3,
-             ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)`
+        Scale factors for the traces. If None, defaults to::
+
+            dict(mag=1e-12, grad=4e-11, eeg=20e-6, eog=150e-6, ecg=5e-4,
+                 emg=1e-3, ref_meg=1e-12, misc=1e-3, stim=1, resp=1, chpi=1e-4)
+
     n_epochs : int
         The number of epochs per view. Defaults to 20.
     n_channels : int
