@@ -28,7 +28,7 @@ from mne.datasets import sample
 print(__doc__)
 
 ###############################################################################
-# Setup paths and prepare epochs data
+# Fit ICA model using the FastICA algorithm, detect and inspect components
 
 data_path = sample.data_path()
 raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
@@ -41,12 +41,9 @@ raw.pick_types(meg=True, eeg=False, exclude='bads', stim=True)
 events = mne.find_events(raw, stim_channel='STI 014')
 epochs = mne.Epochs(raw, events, event_id=None, tmin=-0.2, tmax=0.5)
 
-###############################################################################
-# Fit ICA model using the FastICA algorithm, detect and inspect components
-
 ica = ICA(n_components=0.95, method='fastica').fit(epochs)
 
 ecg_epochs = create_ecg_epochs(raw, tmin=-.5, tmax=.5)
 ecg_inds, scores = ica.find_bads_ecg(ecg_epochs)
-ica.plot_sources(epochs, exclude=ecg_inds, title='Sources related to %s '
-                 'artifacts (red)' % 'ecg')
+
+ica.plot_components(ecg_inds)
