@@ -1550,6 +1550,7 @@ def _plot_histogram(params):
         data.append(grads.ravel())
         types.append('grad')
     fig = plt.figure(len(types))
+    fig.clf()
     scalings = _handle_default('scalings')
     units = _handle_default('units')
     titles = _handle_default('titles')
