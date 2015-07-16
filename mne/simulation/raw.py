@@ -12,7 +12,7 @@ from copy import deepcopy
 
 from mne import (pick_types, pick_info, pick_channels, VolSourceEstimate,
                  convert_forward_solution, get_chpi_positions, EvokedArray,
-                 make_ad_hoc_cov)
+                 make_ad_hoc_cov, read_bem_solution)
 from mne.bem import fit_sphere_to_headshape, make_sphere_model
 from mne.io import read_info, Raw
 from mne.externals.six import string_types
@@ -32,16 +32,18 @@ from mne.simulation import generate_noise_evoked
 
 
 @verbose
-def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
-                 blink=False, chpi=False, mindist=1.0, interp='linear',
-                 random_state=None, n_jobs=1, verbose=None):
+def simulate_raw(raw, stc, trans, src, bem, cov='simple', blink=False,
+                 ecg=False, chpi=False, head_pos=None, mindist=1.0,
+                 interp='linear', n_jobs=1, random_state=None, verbose=None):
     """Simulate raw data with head movements
 
     Parameters
     ----------
-    raw : instance of Raw
-        The raw instance to use. The measurement info, including the
-        head positions, will be used to simulate data.
+    # TODO: Change to info eventually
+    raw : instance of Raw | str
+        The raw instance to use. If string, should be a raw object filename.
+        The measurement info, including the head positions, will be used to
+        simulate data.
     stc : instance of SourceEstimate
         The source estimate to use to simulate data. Must have the same
         sample rate as the raw data.
@@ -53,36 +55,38 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         file with a 4x4 transformation matrix (like the `--trans` MNE-C
         option).
     src : str | instance of SourceSpaces
-        If string, should be a source space filename. Can also be an
-        instance of loaded or generated SourceSpaces.
-    bem : str
-        Filename of BEM solution (e.g., "sample-5120-5120-5120-bem-sol.fif").
+        Source space corresponding to the stc. If string, should be a source
+        space filename. Can also be an instance of loaded or generated
+        SourceSpaces.
+    bem : str | dict
+        BEM solution  corresponding to the stc. If string, should be a BEM
+        solution filename (e.g., "sample-5120-5120-5120-bem-sol.fif").
     cov : instance of Covariance | 'simple' | None
         The sensor covariance matrix used to generate noise. If None,
         no noise will be added. If 'simple', a basic (diagonal) ad-hoc
         noise covariance will be used.
     blink : bool
-        Add simulated blink artifacts
+        If true, add simulated blink artifacts.
     ecg : bool
-        Add simulated ECG artifacts
-    pos : None | str | dict
+        If true, add simulated ECG artifacts.
+    chpi : bool
+        If true, use continuous head position indicator information.
+    head_pos : None | str | dict
         Name of the position estimates file. Should be in the format of
         the files produced by maxfilter-produced. If dict, keys should
         be the time points and entries should be 4x3 ``dev_head_t``
         matrices. If None, the original head position (from
         ``raw.info['dev_head_t']``) will be used.
-    chpi : bool
-        If true, use continuous head position indicator information.
     mindist : float
         Minimum distance between sources and the inner skull boundary
         to use during forward calculation.
     interp : str
         Either 'linear' or 'zero', the type of forward-solution
         interpolation to use between provided time points.
-    random_state : None | int | np.random.RandomState
-        To specify the random generator state.
     n_jobs : int
         Number of jobs to use.
+    random_state : None | int | np.random.RandomState
+        To specify the random generator state.
     verbose : bool, str, int, or None
         If not None, override default verbose level (see mne.verbose).
 
@@ -101,7 +105,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
     covariance, and the amplitudes of the SourceEstimate. Note that this
     will vary as a function of position.
     """
-    # Check for common flag errors and override
+    # Check for common flag errors and try to override
     if isinstance(raw, string_types):
         with warnings.catch_warnings(record=True):
             raw = Raw(raw, allow_maxshield=True, preload=True, verbose=False)
@@ -122,26 +126,26 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         raise ValueError('interp must be "linear" or "zero"')
 
     # Use stationary head
-    if pos is None:
+    if head_pos is None:
         dev_head_ts = [raw.info['dev_head_t']] * 2
         offsets = np.array([0, raw.n_times])
         interp = 'zero'
-    # Use pos data to simulate head movement
+    # Use position data to simulate head movement
     else:
-        if isinstance(pos, string_types):
-            pos = get_chpi_positions(pos, verbose=False)
-        if isinstance(pos, tuple):  # can be an already-loaded pos file
-            transs, rots, ts = pos
+        if isinstance(head_pos, string_types):
+            head_pos = get_chpi_positions(head_pos, verbose=False)
+        if isinstance(head_pos, tuple):  # can be an already-loaded pos file
+            transs, rots, ts = head_pos
             ts -= raw.first_samp / raw.info['sfreq']  # MF files need reref
             dev_head_ts = [np.r_[np.c_[r, t[:, np.newaxis]], [[0, 0, 0, 1]]]
                            for r, t in zip(rots, transs)]
             del transs, rots
-        elif isinstance(pos, dict):
-            ts = np.array(list(pos.keys()), float)
+        elif isinstance(head_pos, dict):
+            ts = np.array(list(head_pos.keys()), float)
             ts.sort()
-            dev_head_ts = [pos[float(tt)] for tt in ts]
+            dev_head_ts = [head_pos[float(tt)] for tt in ts]
         else:
-            raise TypeError('unknown pos type %s' % type(pos))
+            raise TypeError('unknown head_pos type %s' % type(head_pos))
         if not (ts >= 0).all():  # pathological if not
             raise RuntimeError('Cannot have t < 0 in transform file')
         tend = raw.times[-1]
@@ -161,6 +165,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         assert offsets[-2] != offsets[-1]
         del ts
 
+    if isinstance(bem, string_types):
+        bem = read_bem_solution(bem, verbose)
     if isinstance(cov, string_types):
         assert cov == 'simple'
         cov = make_ad_hoc_cov(raw.info, verbose=False)
@@ -601,7 +607,6 @@ def _restrict_source_space_to(src, vertices):
 
 def _interp(data_1, data_2, stc_data, interp):
     """Helper to interpolate"""
-
     n_time = stc_data.shape[1]
     lin_interp_1 = np.linspace(1, 0, n_time, endpoint=False)
     lin_interp_2 = 1 - lin_interp_1
