@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from scipy.linalg import norm
 
 
 def _check_stc(stc1, stc2):
@@ -44,19 +45,21 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     -----
     Metric calculation has multiple options:
         rms: Root mean square of difference between stc data matrices
-        rms_normed: Root mean square of difference between (activity
-            normalized) stc data matrices
-        corr: Correlation of all elements in stc data matrices
+    cosine: Normalized correlation of all elements in stc data matrices
         distance_err: Distance between most active dipoles
         weighted_distance_err: Distance between most active dipoles weighted by
             difference in activity
     """
-    known_metrics = ['rms', 'rms_normed', 'corr', 'distance_err',
+    known_metrics = ['rms', 'cosine', 'distance_err',
                      'weighted_distance_err']
     if metric not in known_metrics:
         raise ValueError('metric must be a str from the known metrics: '
-                         '"rms", "rms_normed", "corr", "distance_err", '
+                         '"rms", "cosine", "distance_err", '
                          '"weighted_distance_err" or "..."')
+
+    if metric in ['distance_err', 'weighted_distance_err'] and src is None:
+        raise ValueError('The source space src is needed when using '
+                         '"distance_err" or "weighted_distance_err"')
 
     # This is checking that the datas are having the same size meaning
     # no comparison between distributed and sparse can be done so far.
@@ -67,15 +70,11 @@ def source_estimate_quantification(stc1, stc2, metric='rms', src=None):
     if metric == 'rms':
         return np.sqrt(np.mean((data1 - data2) ** 2))
 
-    # Calculate root mean square difference between two normalized matrices
-    elif metric == 'rms_normed':
-        data1 = data1 / np.max(data1)
-        data2 = data2 / np.max(data2)
-        return np.sqrt(np.mean((data1 - data2) ** 2))
-
     # Calculate correlation coefficient between matrix elements
-    elif metric == 'corr':
-        return np.correlate(data1.flatten(), data2.flatten())
+    elif metric == 'cosine':
+        score = (np.correlate(data1.flatten(), data2.flatten()) /
+                 (norm(data1) * norm(data2)))
+        return 1 - score
 
     # Calculate distance error between the vertices.
     # Will not have anysense in case where the vertices of the whole cortex

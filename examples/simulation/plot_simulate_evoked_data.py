@@ -59,7 +59,7 @@ times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
 
 # Generate times series for 2 dipoles
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
-                          random_state=42)
+                          random_state=42, labels=labels)
 
 ###############################################################################
 # Generate noisy evoked data

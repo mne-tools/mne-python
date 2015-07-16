@@ -62,8 +62,8 @@ _deprecation_ignores = [
     'mne.utils.plot_epochs_trellis',  # deprecated
     'mne.utils.write_bem_surface',  # deprecated
     'mne.gui.coregistration'  # deprecated
-    'mne.simulation.generate_sparse_stc',  # deprecated
-    'mne.simulation.generate_stc',  # deprecated
+    'generate_sparse_stc',  # deprecated
+    'generate_stc',  # deprecated
 ]
 
 

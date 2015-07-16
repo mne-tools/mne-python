@@ -7,8 +7,8 @@
 import os.path as op
 
 import numpy as np
-# from numpy.testing import assert_array_almost_equal
-# from nose.tools import assert_true, assert_raises
+from numpy.testing import assert_almost_equal
+from nose.tools import assert_true  # , assert_raises
 import warnings
 
 from mne.datasets import testing
@@ -78,8 +78,13 @@ def test_simulation_metrics():
     stc1 = apply_inverse(evoked, inverse_operator, lambda2, "dSPM")
     stc2 = apply_inverse(evoked, inverse_operator, lambda2, "MNE")
 
-    E_rms = source_estimate_quantification(stc1, stc2, metric='rms')
-    E_corr = source_estimate_quantification(stc1, stc2, metric='corr')
+    E1_rms = source_estimate_quantification(stc1, stc1, metric='rms')
+    E2_rms = source_estimate_quantification(stc2, stc2, metric='rms')
+    E1_cos = source_estimate_quantification(stc1, stc1, metric='cosine')
+    E2_cos = source_estimate_quantification(stc2, stc2, metric='cosine')
 
     # ### Tests to add
-    print E_rms, E_corr[0]
+    assert_true(E1_rms == 0.)
+    assert_true(E2_rms == 0.)
+    assert_almost_equal(E1_cos, 0.)
+    assert_almost_equal(E2_cos, 0.)

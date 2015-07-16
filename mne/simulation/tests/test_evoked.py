@@ -65,4 +65,4 @@ def test_simulate_evoked():
     mv = np.max(fwd['src'][0]['vertno'][fwd['src'][0]['inuse']])
     stc_bad.vertices[0][0] = mv + 1
     assert_raises(RuntimeError, generate_evoked, fwd, stc_bad,
-                  evoked_template, cov, snr, tmin=0.0, tmax=0.2)
+                  evoked_template.info, cov, snr, tmin=0.0, tmax=0.2)
