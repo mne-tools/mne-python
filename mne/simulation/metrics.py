@@ -1,5 +1,5 @@
 # Authors: Yousra Bekhti <yousra.bekhti@gmail.com>
-#          Mark Wronkiewicz <wronk.mark@gmail.com>
+#          Mark Wronkiewicz <wronk@uw.edu>
 #
 # License: BSD (3-clause)
 
