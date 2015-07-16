@@ -1574,7 +1574,7 @@ def _plot_histogram(params):
             ax.plot((rej, rej), (0, ax.get_ylim()[1]), color='r')
         plt.title(titles[types[idx]])
     fig.suptitle('Peak-to-peak histogram', y=0.99)
-    tight_layout(fig=fig)
+    fig.subplots_adjust(hspace=0.6)
     try:
         fig.show()
     except:
