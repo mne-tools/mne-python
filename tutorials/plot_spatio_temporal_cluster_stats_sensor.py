@@ -1,4 +1,6 @@
 """
+.. _stats_cluster_sensors_2samp_spatial:
+
 =====================================================
 Spatiotemporal permutation F-test on full sensor data
 =====================================================

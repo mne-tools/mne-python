@@ -1,4 +1,6 @@
 """
+.. _tut_stats_cluster_source_2samp:
+
 =========================================================================
 2 samples permutation test on source data with spatio-temporal clustering
 =========================================================================

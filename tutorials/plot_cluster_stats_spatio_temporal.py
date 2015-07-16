@@ -1,4 +1,6 @@
 """
+.. _tut_stats_cluster_source_1samp:
+
 =================================================================
 Permutation t-test on source data with spatio-temporal clustering
 =================================================================
