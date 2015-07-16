@@ -1,5 +1,4 @@
 
-
 .. _create_bem_model:
 
 =======================
@@ -19,22 +18,7 @@ Using the watershed algorithm
 The watershed algorithm\egonne *et al.*,
 2004] is part of the FreeSurfer software.
 The name of the program is mri_watershed .
-Its use in the MNE environment is facilitated by the script mne_watershed_bem ,
-which assumes the following options:
-
-**\---subject  <*subject*>**
-
-    Defines the name of the subject. This can be also accomplished
-    by setting the SUBJECT environment variable.
-
-**\---overwrite**
-
-    Overwrite the results of previous run of mne_watershed_bem .
-
-**\---atlas**
-
-    Makes mri_watershed to employ
-    atlas information to correct the segmentation.
+Its use in the MNE environment is facilitated by the script `mne_watershed_bem`.
 
 After mne_watershed_bem has
 completed, the following files appear in the subject's ``bem/watershed`` directory:
@@ -143,35 +127,11 @@ Creating the surface tessellations
 ==================================
 
 The BEM surface segmentation and tessellation is automated
-with the script mne_flash_bem .
+with the script :ref:`mne_flash_bem`.
 It assumes that a FreeSurfer reconstruction for this subject is
-already in place. The following options can be specified:
+already in place.
 
-**\---help**
-
-    Prints the usage information.
-
-**\---usage**
-
-    Prints the usage information.
-
-**\---noconvert**
-
-    Skip conversion of the original MRI data. The original data are
-    not needed and the preparatory steps 1.-3. listed below
-    are thus not needed.
-
-**\---noflash30**
-
-    The 30-degree flip angle data are not used.
-
-**\---unwarp  <*type*>**
-
-    Run grad_unwarp with ``--unwarp``  <*type*> option on each of the converted
-    data sets.
-
-Before running mne_flash_bem do
-the following:
+Before running mne_flash_bem do the following:
 
 - Run mne_organize_dicom as
   described above.

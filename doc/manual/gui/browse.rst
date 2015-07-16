@@ -1,5 +1,4 @@
 
-
 .. _ch_browse:
 
 ===================
@@ -14,401 +13,24 @@ Processing raw data
 Overview
 ########
 
-The raw data processor mne_browse_raw is
+The raw data processor :ref:`mne_browse_raw` is
 designed for simple raw data viewing and processing operations. In
 addition, the program is capable of off-line averaging and estimation
-of covariance matrices. mne_browse_raw can
+of covariance matrices. :ref:`mne_browse_raw` can
 be also used to view averaged data in the topographical layout.
-Finally, mne_browse_raw can communicate
-with mne_analyze described in :ref:`ch_interactive_analysis` to
+Finally, :ref:`mne_browse_raw` can communicate
+with :ref:`mne_analyze` described in :ref:`ch_interactive_analysis` to
 calculate current estimates from raw data interactively.
 
-mne_browse_raw has also
-an alias, mne_process_raw . If mne_process_raw is
+:ref:`mne_browse_raw` has also
+an alias, :ref:`mne_process_raw`. If :ref:`mne_process_raw` is
 invoked, no user interface appears. Instead, command line options
 are used to specify the filtering parameters as well as averaging
 and covariance-matrix estimation command files for batch processing. This
-chapter discusses both mne_browse_raw and mne_process_raw .
+chapter discusses both :ref:`mne_browse_raw` and :ref:`mne_process_raw`.
 
-.. _CACHCFEG:
+See command-line documentation of :ref:`mne_browse_raw` and `mne_process_raw`.
 
-Command-line options
-####################
-
-This section first describes the options common to mne_browse_raw and mne_process_raw .
-Thereafter, options unique to the interactive (mne_browse_raw)
-and batch (mne_process_raw) modes are
-listed.
-
-.. _BABBGJEA:
-
-Common options
-==============
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---cd <*dir*>**
-
-    Change to this directory before starting.
-
-**\---raw <*name*>**
-
-    Specifies the raw data file to be opened. This option is required
-    for batch version, mne_process_raw. If
-    a raw data file is not specified for the interactive version, mne_browse_raw ,
-    and empty interactive browser will open.
-
-**\---grad <*number*>**
-
-    Apply software gradient compensation of the given order to the data loaded
-    with the ``--raw`` option. This option is effective only
-    for data acquired with the CTF and 4D Magnes MEG systems. If orders
-    different from zero are requested for Neuromag data, an error message appears
-    and data are not loaded. Any compensation already existing in the
-    file can be undone or changed to another order by using an appropriate ``--grad`` options.
-    Possible orders are 0 (No compensation), 1 - 3 (CTF data), and 101
-    (Magnes data). The same compensation will be applied to all data
-    files loaded by mne_process_raw . For mne_browse_raw ,
-    this applies only to the data file loaded by specifying the ``--raw`` option.
-    For interactive data loading, the software gradient compensation
-    is specified in the corresponding file selection dialog, see :ref:`CACDCHAJ`.
-
-**\---filtersize <*size*>**
-
-    Adjust the length of the FFT to be applied in filtering. The number will
-    be rounded up to the next power of two. If the size is :math:`N`,
-    the corresponding length of time is :math:`N/f_s`,
-    where :math:`f_s` is the sampling frequency
-    of your data. The filtering procedure includes overlapping tapers
-    of length :math:`N/2` so that the total FFT
-    length will actually be :math:`2N`. This
-    value cannot be changed after the program has been started.
-
-**\---highpass <*value/Hz*>**
-
-    Highpass filter frequency limit. If this is too low with respect
-    to the selected FFT length and, the data will not be highpass filtered. It
-    is best to experiment with the interactive version to find the lowest applicable
-    filter for your data. This value can be adjusted in the interactive
-    version of the program. The default is 0, *i.e.*,
-    no highpass filter apart from that used during the acquisition will
-    be in effect.
-
-**\---highpassw <*value/Hz*>**
-
-    The width of the transition band of the highpass filter. The default
-    is 6 frequency bins, where one bin is :math:`f_s / (2N)`. This
-    value cannot be adjusted in the interactive version of the program.
-
-**\---lowpass <*value/Hz*>**
-
-    Lowpass filter frequency limit. This value can be adjusted in the interactive
-    version of the program. The default is 40 Hz.
-
-**\---lowpassw <*value/Hz*>**
-
-    The width of the transition band of the lowpass filter. This value
-    can be adjusted in the interactive version of the program. The default
-    is 5 Hz.
-
-**\---eoghighpass <*value/Hz*>**
-
-    Highpass filter frequency limit for EOG. If this is too low with respect
-    to the selected FFT length and, the data will not be highpass filtered.
-    It is best to experiment with the interactive version to find the
-    lowest applicable filter for your data. This value can be adjusted in
-    the interactive version of the program. The default is 0, *i.e.*,
-    no highpass filter apart from that used during the acquisition will
-    be in effect.
-
-**\---eoghighpassw <*value/Hz*>**
-
-    The width of the transition band of the EOG highpass filter. The default
-    is 6 frequency bins, where one bin is :math:`f_s / (2N)`.
-    This value cannot be adjusted in the interactive version of the
-    program.
-
-**\---eoglowpass <*value/Hz*>**
-
-    Lowpass filter frequency limit for EOG. This value can be adjusted in
-    the interactive version of the program. The default is 40 Hz.
-
-**\---eoglowpassw <*value/Hz*>**
-
-    The width of the transition band of the EOG lowpass filter. This value
-    can be adjusted in the interactive version of the program. The default
-    is 5 Hz.
-
-**\---filteroff**
-
-    Do not filter the data. This initial value can be changed in the
-    interactive version of the program.
-
-**\---digtrig <*name*>**
-
-    Name of the composite digital trigger channel. The default value
-    is 'STI 014'. Underscores in the channel name
-    will be replaced by spaces.
-
-**\---digtrigmask <*number*>**
-
-    Mask to be applied to the trigger channel values before considering them.
-    This option is useful if one wants to set some bits in a don't care
-    state. For example, some finger response pads keep the trigger lines
-    high if not in use, *i.e.*, a finger is not in
-    place. Yet, it is convenient to keep these devices permanently connected
-    to the acquisition system. The number can be given in decimal or
-    hexadecimal format (beginning with 0x or 0X). For example, the value
-    255 (0xFF) means that only the lowest order byte (usually trigger
-    lines 1 - 8 or bits 0 - 7) will be considered.
-
-.. note:: Multiple raw data files can be specified for mne_process_raw .
-
-.. note:: Strictly speaking, trigger mask value zero would    mean that all trigger inputs are ignored. However, for convenience,    setting the mask to zero or not setting it at all has the same effect    as 0xFFFFFFFF, *i.e.*, all bits set.
-
-.. note:: The digital trigger channel can also be set with    the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_browse_raw or mne_process_raw .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
-
-.. note:: The digital trigger channel mask can also be    set with the MNE_TRIGGER_CH_MASK environment variable. Using the ``--digtrigmask`` option    supersedes the MNE_TRIGGER_CH_MASK environment variable.
-
-.. _CACCHAGA:
-
-Interactive mode options
-========================
-
-These options apply to the interactive (mne_browse_raw)
-version only.
-
-**\---allowmaxshield**
-
-    Allow loading of unprocessed Elekta-Neuromag data with MaxShield
-    on. These kind of data should never be used for source localization
-    without further processing with Elekta-Neuromag software.
-
-**\---deriv <*name*>**
-
-    Specifies the name of a derivation file. This overrides the use
-    of a standard derivation file, see :ref:`CACFHAFH`.
-
-**\---sel <*name*>**
-
-    Specifies the channel selection file to be used. This overrides
-    the use of the standard channel selection files, see :ref:`CACCJEJD`.
-
-.. _CACFAAAJ:
-
-Batch-mode options
-==================
-
-These options apply to the batch-mode version, mne_process_raw only.
-
-**\---proj <*name*>**
-
-    Specify the name of the file of the file containing a signal-space
-    projection (SSP) operator. If ``--proj`` options are present
-    the data file is not consulted for an SSP operator. The operator
-    corresponding to average EEG reference is always added if EEG data
-    are present.
-
-**\---projon**
-
-    Activate the projections loaded. One of the options ``--projon`` or ``--projoff`` must
-    be present on the mne_processs_raw command line.
-
-**\---projoff**
-
-    Deactivate the projections loaded. One of the options ``--projon`` or ``--projoff`` must
-    be present on the mne_processs_raw command line.
-
-**\---makeproj**
-
-    Estimate the noise subspace from the data and create a new signal-space
-    projection operator instead of using one attached to the data file
-    or those specified with the ``--proj`` option. The following
-    eight options define the parameters of the noise subspace estimation. More
-    information on the signal-space projection can be found in :ref:`CACCHABI`.
-
-**\---projevent <*no*>**
-
-    Specifies the events which identify the time points of interest
-    for projector calculation. When this option is present, ``--projtmin`` and ``--projtmax`` are
-    relative to the time point of the event rather than the whole raw
-    data file.
-
-**\---projtmin <*time/s*>**
-
-    Specify the beginning time for the calculation of the covariance matrix
-    which serves as the basis for the new SSP operator. This option
-    is required with ``--projevent`` and defaults to the beginning
-    of the raw data file otherwise. This option is effective only if ``--makeproj`` or ``--saveprojtag`` options
-    are present.
-
-**\---projtmax <*time/s*>**
-
-    Specify the ending time for the calculation of the covariance matrix which
-    serves as the basis for the new SSP operator. This option is required
-    with ``--projevent`` and defaults to the end of the raw data
-    file otherwise. This option is effective only if ``--makeproj`` or ``--saveprojtag`` options
-    are present.
-
-**\---projngrad <*number*>**
-
-    Number of SSP components to include for planar gradiometers (default
-    = 5). This value is system dependent. For example, in a well-shielded
-    quiet environment, no planar gradiometer projections are usually
-    needed.
-
-**\---projnmag <*number*>**
-
-    Number of SSP components to include for magnetometers / axial gradiometers
-    (default = 8). This value is system dependent. For example, in a
-    well-shielded quiet environment, 3 - 4 components are need
-    while in a noisy environment with light shielding even more than
-    8 components may be necessary.
-
-**\---projgradrej <*value/ fT/cm*>**
-
-    Rejection limit for planar gradiometers in the estimation of the covariance
-    matrix frfixom which the new SSP operator is derived. The default
-    value is 2000 fT/cm. Again, this value is system dependent.
-
-**\---projmagrej <*value/ fT*>**
-
-    Rejection limit for planar gradiometers in the estimation of the covariance
-    matrix from which the new SSP operator is derived. The default value
-    is 3000 fT. Again, this value is system dependent.
-
-**\---saveprojtag <*tag*>**
-
-    This option defines the names of files to hold the SSP operator.
-    If this option is present the ``--makeproj`` option is
-    implied. The SSP operator file name is formed by removing the trailing ``.fif`` or ``_raw.fif`` from
-    the raw data file name by appending  <*tag*> .fif
-    to this stem. Recommended value for <*tag*> is ``-proj`` .
-
-**\---saveprojaug**
-
-    Specify this option if you want to use the projection operator file output
-    in the Elekta-Neuromag Signal processor (graph) software.
-
-**\---eventsout <*name*>**
-
-    List the digital trigger channel events to the specified file. By default,
-    only transitions from zero to a non-zero value are listed. If multiple
-    raw data files are specified, an equal number of ``--eventsout`` options
-    should be present. If the file name ends with .fif, the output will
-    be in fif format, otherwise a text event file will be output.
-
-**\---allevents**
-
-    List all transitions to file specified with the ``--eventsout`` option.
-
-**\---events <*name*>**
-
-    Specifies the name of a fif or text format event file (see :ref:`CACBCEGC`) to be associated with a raw data file to be
-    processed. If multiple raw data files are specified, the number
-    of ``--events`` options can be smaller or equal to the
-    number of raw data files. If it is equal, the event filenames will
-    be associated with the raw data files in the order given. If it
-    is smaller, the remaining raw data files for which an event file
-    is not specified will *not* have an event file associated
-    with them. The event file format is recognized from the file name:
-    if it ends with ``.fif`` , the file is assumed to be in
-    fif format, otherwise a text file is expected.
-
-**\---ave <*name*>**
-
-    Specifies the name of an off-line averaging description file. For details
-    of the format of this file, please consult :ref:`CACBBDGC`.
-    If multiple raw data files are specified, the number of ``--ave`` options
-    can be smaller or equal to the number of raw data files. If it is
-    equal, the averaging description file names will be associated with
-    the raw data files in the order given. If it is smaller, the last
-    description file will be used for the remaining raw data files.
-
-**\---saveavetag <*tag*>**
-
-    If this option is present and averaging is evoked with the ``--ave`` option,
-    the outfile and logfile options in the averaging description file
-    are ignored. Instead, trailing ``.fif`` or ``_raw.fif`` is
-    removed from the raw data file name and <*tag*> ``.fif`` or <*tag*> ``.log`` is appended
-    to create the output and log file names, respectively.
-
-**\---gave <*name*>**
-
-    If multiple raw data files are specified as input and averaging
-    is requested, the grand average over all data files will be saved
-    to <*name*> .
-
-**\---cov <*name*>**
-
-    Specify the name of a description file for covariance matrix estimation. For
-    details of the format of this file, please see :ref:`CACEBACG`.
-    If multiple raw data files are specified, the number of ``--cov`` options can
-    be smaller or equal to the number of raw data files. If it is equal, the
-    averaging description file names will be associated with the raw data
-    files in the order given. If it is smaller, the last description
-    file will be used for the remaining raw data files.
-
-**\---savecovtag <*tag*>**
-
-    If this option is present and covariance matrix estimation is evoked with
-    the ``--cov`` option, the outfile and logfile options in
-    the covariance estimation description file are ignored. Instead,
-    trailing ``.fif`` or ``_raw.fif`` is removed from
-    the raw data file name and <*tag*> .fif or <*tag*> .log
-    is appended to create the output and log file names, respectively.
-    For compatibility with other MNE software scripts, ``--savecovtag -cov`` is recommended.
-
-**\---savehere**
-
-    If the ``--saveavetag`` and ``--savecovtag`` options
-    are used to generate the file output file names, the resulting files
-    will go to the same directory as raw data by default. With this
-    option the output files will be generated in the current working
-    directory instead.
-
-**\---gcov <*name*>**
-
-    If multiple raw data files are specified as input and covariance matrix estimation
-    is requested, the grand average over all data files will be saved
-    to <*name*> . The details of
-    the covariance matrix estimation are given in :ref:`CACHAAEG`.
-
-**\---save <*name*>**
-
-    Save a filtered and optionally down-sampled version of the data
-    file to <*name*> . If multiple
-    raw data files are specified, an equal number of ``--save`` options
-    should be present. If <*filename*> ends
-    with ``.fif`` or ``_raw.fif`` , these endings are
-    deleted. After these modifications, ``_raw.fif`` is inserted
-    after the remaining part of the file name. If the file is split
-    into multiple parts (see ``--split`` option below), the
-    additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif``
-
-**\---split <*size/MB*>**
-
-    Specifies the maximum size of the raw data files saved with the ``--save`` option.
-    By default, the output is split into files which are just below
-    2 GB so that the fif file maximum size is not exceed.
-
-**\---anon**
-
-    Do not include any subject information in the output files created with
-    the ``--save`` option.
-
-**\---decim <*number*>**
-
-    The data are decimated by this factor before saving to the file
-    specified with the ``--save`` option. For decimation to
-    succeed, the data must be lowpass filtered to less than third of
-    the sampling frequency effective after decimation.
 
 The user interface
 ##################
@@ -515,7 +137,7 @@ deleted. After these modifications, ``_raw.fif`` is inserted
 after the remaining part of the file name. If the file is split
 into multiple parts, the additional parts will be called <*name*> ``-`` <*number*> ``_raw.fif`` .
 For downsampling and saving options in mne_process_raw ,
-see :ref:`CACFAAAJ`.
+see :ref:`mne_process_raw`.
 
 Change working directory
 ========================
@@ -593,7 +215,7 @@ Load derivations
 
 This menu choice allows loading of channel derivation data
 files created with the mne_make_derivations utility,
-see :ref:`CHDHJABJ`, or using the interactive derivations
+see :ref:`mne_make_derivations`, or using the interactive derivations
 editor in mne_browse_raw , see :ref:`CACJIEHI`, Most common use of derivations is to calculate
 differences between EEG channels, *i.e.*, bipolar
 EEG data. Since any number of channels can be included in a derivation
@@ -623,7 +245,7 @@ channels cannot be displayed in topographical data displays. Derived
 channels are not included in averages or noise covariance matrix
 estimation.
 
-.. note:: If the file ``$HOME/.mne/mne_browse_raw-deriv.fif`` exists and    contains derivation data, it is loaded automatically when mne_browse_raw starts    unless the ``--deriv`` option has been used to specify    a nonstandard derivation file, see :ref:`CACCHAGA`.
+.. note:: If the file ``$HOME/.mne/mne_browse_raw-deriv.fif`` exists and    contains derivation data, it is loaded automatically when mne_browse_raw starts    unless the ``--deriv`` option has been used to specify    a nonstandard derivation file, see :ref:`mne_browse_raw`.
 
 Save derivations
 ================
@@ -685,7 +307,7 @@ The items in the dialog have the following functions:
 
     The half-amplitude point of the highpass filter. The width of the transition
     from zero to one can be specified with the ``--highpassw`` command-line
-    option, see :ref:`CACHCFEG`. Lowest feasible highpass value
+    option, see :ref:`mne_browse_raw`. Lowest feasible highpass value
     is constrained by the length of the filter and sampling frequency.
     You will be informed when you press OK or Apply if
     the selected highpass could not be realized. The default value zero means
@@ -865,7 +487,7 @@ Brings up the interactive derivations editor. This editor
 can be used to add or modify derived channels, *i.e.*,
 linear combinations of signals actually recorded. Channel derivations
 can be also created and modified using the mne_make_derivations tool,
-see :ref:`CHDHJABJ`. The interactive editor contains two main
+see :ref:`mne_make_derivations`. The interactive editor contains two main
 areas:
 
 - Interactive tools for specifying a channel
@@ -891,7 +513,7 @@ associated selections interactively involves the following steps:
 
 - If desired, EEG channels can be relabeled
   with descriptive names using the mne_rename_channels utility,
-  see :ref:`CHDCFEAJ`. It is strongly recommended that you
+  see :ref:`mne_rename_channels`. It is strongly recommended that you
   keep a copy of the channel alias file used by mne_rename_channels .
   If necessary, you can then easily return to the original channel
   names by running mne_rename_channels again
@@ -1075,7 +697,7 @@ for the Neuromag Vectorview data because newer systems do not have
 spaces in the channel names like the original Vectorview systems
 did.
 
-.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see :ref:`CHDDGDJA`.
+.. note:: The mne_make_eeg_layout utility    can be employed to create a layout file matching the positioning    of EEG electrodes, see :ref:`mne_make_eeg_layout`.
 
 .. _CACDDIDH:
 
@@ -1295,7 +917,7 @@ is introduced. More information on the SSP method can be found in :ref:`CACCHABI
 
 .. note:: The new projection data created in mne_browse_raw is    not automatically copied to the data file. You need to create a    standalone projection file from File/Save projection... to    save the new projection data and load it manually after the data    file has been loaded if you want to include in any subsequent analysis.
 
-.. note:: The command-line options for mne_process_raw allow    calculation of the SSP operator from continuous data in the batch    mode, see :ref:`CACFAAAJ`.
+.. note:: The command-line options for mne_process_raw allow    calculation of the SSP operator from continuous data in the batch    mode, see :ref:`mne_process_raw`.
 
 .. _BABDJGGJ:
 
@@ -1504,7 +1126,8 @@ interesting time points in the data. When a raw data file is opened,
 a standard event file is consulted for the list of events. If this
 file is not present, the digital trigger channel, defined by the --digtrig option
 or the ``MNE_TRIGGER_CH_NAME`` environment variable is
-scanned for events. For more information, see :ref:`BABBGJEA` and :ref:`CACDCHAJ`.
+scanned for events. For more information, see the command-line references
+for :ref:`mne_browse_raw` and :ref:`mne_process_raw`.
 
 In addition to the events detected on the trigger channel,
 it is possible to associate user-defined events to the data, either
@@ -1784,7 +1407,7 @@ layouts reside in ``$MNE_ROOT/share/mne/mne_analyze/lout`` .
 In addition any layout files residing in ``$HOME/.mne/lout`` are listed.
 The format of the layout files is the same as for the Neuromag programs xplotter and xfit .
 A custom EEG layout can be easily created with the mne_make_eeg_layout utility,
-see :ref:`CHDDGDJA`.
+see :ref:`mne_make_eeg_layout`.
 
 Several actions can be performed with the mouse in the topographical data
 display:

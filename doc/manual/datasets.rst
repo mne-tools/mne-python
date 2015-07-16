@@ -221,7 +221,7 @@ commands:
 
 ``mne_make_eeg_layout --fif sample_audvis_raw.fif --lout $HOME/.mne/lout/sample-EEG.lout``
 
-Please refer to :ref:`CHDDGDJA` for more information
+Please refer to :ref:`mne_make_eeg_layout` for more information
 on mne_make_eeg_layout .
 
 .. note:: It is usually sufficient to create one EEG layout    for each electrode cap you are using in your experiment rather than    using a different layout file for each data file generated using    the same cap.
@@ -262,7 +262,7 @@ below:
   session by clicking on their channel names on the left. You can
   save the bad channel selection to the file from File/Apply bad channels . Bad channel marking can be removed
   by clicking on their channel names again and selecting File/Apply bad channels . Alternatively, you can use the utility mne_mark_bad_channels to
-  set a bad channel selection, see :ref:`CHDDHBEE`.
+  set a bad channel selection, see :ref:`mne_mark_bad_channels`.
 
 - Switch the projections back on and change filter to a 40-Hz
   lowpass.
@@ -340,35 +340,7 @@ with the command:
 
 ``mne_process_raw --raw sample_audvis_raw.fif `` ``--lowpass 40 --projoff `` ``--saveavetag -ave --ave audvis.ave``
 
-The functions of the options are:
-
-**\---raw**
-
-    Specifies the raw file.
-
-**\---lowpass**
-
-    Specifies the lowpass filter corner frequency.
-
-**\---projoff**
-
-    Do not apply signal-space projection and average electrode reference
-    to the data. Regardless, the projection information is included with
-    the data file so that it can be applied later. It is also possible
-    to specify the ``--projon`` option but then there is no
-    possibility to view the original data in subsequent phases of the
-    analysis.
-
-**\---saveavetag**
-
-    Specifies how the averages are named. With this option, the ``_raw.fif`` ending
-    is stripped of the original raw data file and the tag specified
-    with this option (``--ave`` ) is added. The average file
-    and the corresponding log file will have the extensions ``.fif`` and ``.log`` , respectively.
-
-**\---ave**
-
-    Specifies the averaging script.
+See :ref:`mne_process_raw` for command-line options.
 
 As a result of running the averaging script a file called ``sample_audvis-ave.fif`` is
 created. It contains averages to the left and right ear auditory

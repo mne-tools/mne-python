@@ -105,7 +105,7 @@ Appendices
    :maxdepth: 2
 
    manual/appendix/overview
-   manual/appendix/AppA
-   manual/appendix/AppB
-   manual/appendix/AppReleaseNotes
-   manual/appendix/AppEULA
+   manual/appendix/bem_model
+   manual/appendix/martinos
+   manual/appendix/c_release_notes
+   manual/appendix/c_EULA

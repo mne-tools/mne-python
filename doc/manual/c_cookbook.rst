@@ -53,7 +53,7 @@ Neuromag MRI directories can be used for storing the MEG/MRI coordinate
 transformations created with mne_analyze ,
 see :ref:`CACEHGCD`.  During the computation of the forward
 solution, mne_do_forwand_solution searches
-for the MEG/MRI coordinate in the Neuromag MRI directories, see :ref:`BABCHEJD`. The fif files created by mne_setup_mrit can
+for the MEG/MRI coordinate in the Neuromag MRI directories, see :ref:`BABCHEJD`. The fif files created by mne_setup_mri can
 be loaded into Matlab with the fiff_read_mri function,
 see :ref:`ch_matlab`.
 
@@ -104,7 +104,7 @@ This stage consists of the following:
 - Creating ascii versions of the source space file for viewing
   with MRIlab.
 
-All of the above is accomplished with the convenience script mne_setup_source_space . This
+All of the above is accomplished with the convenience script :ref:`mne_setup_source_space`. This
 script assumes that:
 
 - The anatomical MRI processing has been
@@ -112,71 +112,7 @@ script assumes that:
 
 - The environment variable SUBJECTS_DIR is set correctly.
 
-The script accepts the following options:
-
-**\---subject <*subject*>**
-
-    Defines the name of the subject. If the environment variable SUBJECT
-    is set correctly, this option is not required.
-
-**\---morph <*name*>**
-
-    Name of a subject in SUBJECTS_DIR. If this option is present, the source
-    space will be first constructed for the subject defined by the --subject
-    option or the SUBJECT environment variable and then morphed to this
-    subject. This option is useful if you want to create a source spaces
-    for several subjects and want to directly compare the data across
-    subjects at the source space vertices without any morphing procedure
-    afterwards. The drawback of this approach is that the spacing between
-    source locations in the "morph" subject is not going
-    to be as uniform as it would be without morphing.
-
-**\---spacing <*spacing/mm*>**
-
-    Specifies the grid spacing for the source space in mm. If not set,
-    a default spacing of 7 mm is used. Either the default or a 5-mm
-    spacing is recommended.
-
-**\---ico <*number*>**
-
-    Instead of using the traditional method for cortical surface decimation
-    it is possible to create the source space using the topology of
-    a recursively subdivided icosahedron (<*number*> > 0)
-    or an octahedron (<*number*> < 0).
-    This method uses the cortical surface inflated to a sphere as a
-    tool to find the appropriate vertices for the source space. The
-    benefit of the ``--ico`` option is that the source space
-    will have triangulation information for the decimated vertices included, which
-    future versions of MNE software may be able to utilize. The number
-    of triangles increases by a factor of four in each subdivision,
-    starting from 20 triangles in an icosahedron and 8 triangles in an
-    octahedron. Since the number of vertices on a closed surface is :math:`n_{vert} = (n_{tri} + 4)/2`,
-    the number of vertices in the *k* th subdivision of
-    an icosahedron and an octahedron are :math:`10 \cdot 4^k + 2` and :math:`4^{k + 1} + 2`, respectively.
-    The recommended values for <*number*> and
-    the corresponding number of source space locations are listed in :ref:`BABGCDHA`.
-
-**\---surface <*name*>**
-
-    Name of the surface under the surf directory to be used. Defaults
-    to 'white'. ``mne_setup_source_space`` looks
-    for files ``rh.`` <*name*> and ``lh.`` <*name*> under
-    the ``surf`` directory.
-
-**\---overwrite**
-
-    An existing source space file with the same name is overwritten only
-    if this option is specified.
-
-**\---cps**
-
-    Compute the cortical patch statistics. This is need if current-density estimates
-    are computed, see :ref:`CBBDBHDI`. If the patch information is
-    available in the source space file the surface normal is considered to
-    be the average normal calculated over the patch instead of the normal
-    at each source space location. The calculation of this information
-    takes a considerable amount of time because of the large number
-    of Dijkstra searches involved.
+See :ref:`mne_setup_source_space` for command-line options.
 
 .. _BABGCDHA:
 
@@ -333,98 +269,9 @@ script assumes that:
 
 - The environment variable SUBJECTS_DIR is set correctly.
 
-mne_setup_forward_model accepts
-the following options:
+See :ref:`mne_setup_forward_model` for command-line options.
 
-**\---subject <*subject*>**
-
-    Defines the name of the subject. This can be also accomplished
-    by setting the SUBJECT environment variable.
-
-**\---surf**
-
-    Use the FreeSurfer surface files instead of the default ASCII triangulation
-    files. Please consult :ref:`BABDBBFC` for the standard file
-    naming scheme.
-
-**\---noswap**
-
-    Traditionally, the vertices of the triangles in 'tri' files
-    have been ordered so that, seen from the outside of the triangulation,
-    the vertices are ordered in clockwise fashion. The fif files, however,
-    employ the more standard convention with the vertices ordered counterclockwise.
-    Therefore, mne_setup_forward_model by
-    default reverses the vertex ordering before writing the fif file.
-    If, for some reason, you have counterclockwise-ordered tri files
-    available this behavior can be turned off by defining ``--noswap`` .
-    When the fif file is created, the vertex ordering is checked and
-    the process is aborted if it is incorrect after taking into account
-    the state of the swapping. Should this happen, try to run mne_setup_forward_model again including
-    the ``--noswap`` flag. In particular, if you employ the seglab software
-    to create the triangulations (see :ref:`create_bem_model`), the ``--noswap`` flag
-    is required. This option is ignored if ``--surf`` is specified
-
-**\---ico <*number*>**
-
-    This option is relevant (and required) only with the ``--surf`` option and
-    if the surface files have been produced by the watershed algorithm.
-    The watershed triangulations are isomorphic with an icosahedron,
-    which has been recursively subdivided six times to yield 20480 triangles.
-    However, this number of triangles results in a long computation
-    time even in a workstation with generous amounts of memory. Therefore,
-    the triangulations have to be decimated. Specifying ``--ico 4`` yields 5120 triangles per surface while ``--ico 3`` results
-    in 1280 triangles. The recommended choice is ``--ico 4`` .
-
-**\---homog**
-
-    Use a single compartment model (brain only) instead a three layer one
-    (scalp, skull, and brain). Only the ``inner_skull.tri`` triangulation
-    is required. This model is usually sufficient for MEG but invalid
-    for EEG. If you are employing MEG data only, this option is recommended
-    because of faster computation times. If this flag is specified,
-    the options ``--brainc`` , ``--skullc`` , and ``--scalpc`` are irrelevant.
-
-**\---brainc <*conductivity/ S/m*>**
-
-    Defines the brain compartment conductivity. The default value is 0.3 S/m.
-
-**\---skullc <*conductivity/ S/m*>**
-
-    Defines the skull compartment conductivity. The default value is 0.006 S/m
-    corresponding to a conductivity ratio 1/50 between the brain and
-    skull compartments.
-
-**\---scalpc <*conductivity/ S/m*>**
-
-    Defines the brain compartment conductivity. The default value is 0.3 S/m.
-
-**\---innershift <*value/mm*>**
-
-    Shift the inner skull surface outwards along the vertex normal directions
-    by this amount.
-
-**\---outershift <*value/mm*>**
-
-    Shift the outer skull surface outwards along the vertex normal directions
-    by this amount.
-
-**\---scalpshift <*value/mm*>**
-
-    Shift the scalp surface outwards along the vertex normal directions by
-    this amount.
-
-**\---nosol**
-
-    Omit the BEM model geometry dependent data preparation step. This
-    can be done later by running mne_setup_forward_model without the ``--nosol`` option.
-
-**\---model <*name*>**
-
-    Name for the BEM model geometry file. The model will be created into
-    the directory bem as <*name*>- ``bem.fif`` .	If
-    this option is missing, standard model names will be used (see below).
-
-As a result of running the mne_setup_foward_model script, the
+As a result of running the :ref:`mne_setup_foward_model` script, the
 following files are created into the ``bem`` directory:
 
 - BEM model geometry specifications <*subject*>-<*ntri-scalp*>-<*ntri-outer_skull*>-<*ntri-inner_skull*>- ``bem.fif`` or <*subject*>-<*ntri-inner_skull*> ``-bem.fif`` containing
@@ -514,7 +361,7 @@ in the original raw files. Both problems can be corrected by saying:
 ``mne_fix_stim14`` <*raw file*>
 
 More information about mne_fix_stim14 is
-available in :ref:`CHDBFDIC`. It is recommended that this
+available in :ref:`mne_fix_stim14`. It is recommended that this
 fix is included as the first raw data processing step. Note, however,
 the mne_browse_raw and mne_process_raw always sets
 the calibration factor to one internally.
@@ -535,7 +382,7 @@ which need to be fixed before proceeding:
 - The magnetometer coil identifiers are not always correct.
 
 These potential problems can be fixed with the utilities mne_check_eeg_locations and mne_fix_mag_coil_types,
-see :ref:`CHDJGGGC` and :ref:`CHDGAAJC`.
+see :ref:`mne_check_eeg_locations` and :ref:`mne_fix_mag_coil_types`.
 
 .. _BABBHCFG:
 
@@ -545,7 +392,7 @@ Designating bad channels
 Sometimes some MEG or EEG channels are not functioning properly
 for various reasons. These channels should be excluded from the
 analysis by marking them bad using the mne_mark_bad_channels utility,
-see :ref:`CHDDHBEE`. Especially if a channel does not show
+see :ref:`mne_mark_bad_channels`. Especially if a channel does not show
 a signal at all (flat) it is most important to exclude it from the
 analysis, since its noise estimate will be unrealistically low and
 thus the current estimate calculations will give a strong weight
@@ -655,167 +502,9 @@ After the MRI-MEG/EEG alignment has been set, the forward
 solution, *i.e.*, the magnetic fields and electric
 potentials at the measurement sensors and electrodes due to dipole
 sources located on the cortex, can be calculated with help of the
-convenience script mne_do_forward_solution .
-This utility accepts the following options:
+convenience script mne_do_forward_solution. See :ref:`mne_do_forward_solution`
+for command-line options.
 
-**\---subject <*subject*>**
-
-    Defines the name of the subject. This can be also accomplished
-    by setting the SUBJECT environment variable.
-
-**\---src <*name*>**
-
-    Source space name to use. This option overrides the ``--spacing`` option. The
-    source space is searched first from the current working directory
-    and then from ``$SUBJECTS_DIR/`` <*subject*> /bem.
-    The source space file must be specified exactly, including the ``fif`` extension.
-
-**\---spacing <*spacing/mm*>  or ``ico-`` <*number  or ``oct-`` <*number*>**
-
-    This is an alternate way to specify the name of the source space
-    file. For example, if ``--spacing 6`` is given on the command
-    line, the source space files searched for are./<*subject*> -6-src.fif
-    and ``$SUBJECTS_DIR/$SUBJECT/`` bem/<*subject*> -6-src.fif.
-    The first file found is used. Spacing defaults to 7 mm.
-
-**\---bem <*name*>**
-
-    Specifies the BEM to be used. The name of the file can be any of <*name*> , <*name*> -bem.fif, <*name*> -bem-sol.fif.
-    The file is searched for from the current working directory and
-    from ``bem`` . If this option is omitted, the most recent
-    BEM file in the ``bem`` directory is used.
-
-**\---mri <*name*>**
-
-    The name of the MRI description file containing the MEG/MRI coordinate
-    transformation. This file was saved as part of the alignment procedure
-    outlined in :ref:`CHDBEHDC`. The file is searched for from
-    the current working directory and from ``mri/T1-neuromag/sets`` .
-    The search order for MEG/MRI coordinate transformations is discussed
-    below.
-
-**\---trans	 <*name*>**
-
-    The name of a text file containing the 4 x 4 matrix for the coordinate transformation
-    from head to mri coordinates, see below. If the option ``--trans`` is
-    present, the ``--mri`` option is not required. The search
-    order for MEG/MRI coordinate transformations is discussed below.
-
-**\---meas <*name*>**
-
-    This file is the measurement fif file or an off-line average file
-    produced thereof. It is recommended that the average file is employed for
-    evoked-response data and the original raw data file otherwise. This
-    file provides the MEG sensor locations and orientations as well as
-    EEG electrode locations as well as the coordinate transformation between
-    the MEG device coordinates and MEG head-based coordinates.
-
-**\---fwd <*name*>**
-
-    This file will contain the forward solution as well as the coordinate transformations,
-    sensor and electrode location information, and the source space
-    data. A name of the form <*name*> ``-fwd.fif`` is
-    recommended. If this option is omitted the forward solution file
-    name is automatically created from the measurement file name and
-    the source space name.
-
-**\---destdir <*directory*>**
-
-    Optionally specifies a directory where the forward solution will
-    be stored.
-
-**\---mindist <*dist/mm*>**
-
-    Omit source space points closer than this value to the inner skull surface.
-    Any source space points outside the inner skull surface are automatically
-    omitted. The use of this option ensures that numerical inaccuracies
-    for very superficial sources do not cause unexpected effects in
-    the final current estimates. Suitable value for this parameter is
-    of the order of the size of the triangles on the inner skull surface.
-    If you employ the seglab software
-    to create the triangulations, this value should be about equal to
-    the wish for the side length of the triangles.
-
-**\---megonly**
-
-    Omit EEG forward calculations.
-
-**\---eegonly**
-
-    Omit MEG forward calculations.
-
-**\---all**
-
-    Compute the forward solution for all vertices on the source space.
-
-**\---overwrite**
-
-    Overwrite the possibly existing forward model file.
-
-**\---help**
-
-    Show usage information for the script.
-
-The MEG/MRI transformation is determined by the following
-search sequence:
-
-- If the ``--mri`` option was
-  present, the file is looked for literally as specified, in the directory
-  of the measurement file specified with the ``--meas`` option,
-  and in the directory $SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets.
-  If the file is not found, the script exits with an error message.
-
-- If the ``--trans`` option was present, the file is
-  looked up literally as specified. If the file is not found, the
-  script exists with an error message.
-
-- If neither ``--mri`` nor ``--trans`` option
-  was not present, the following default search sequence is engaged:
-
-  - The ``.fif`` ending in the
-    measurement file name is replaced by ``-trans.fif`` . If
-    this file is present, it will be used.
-
-  - The newest file whose name ends with ``-trans.fif`` in
-    the directory of the measurement file is looked up. If such a file
-    is present, it will be used.
-
-  - The newest file whose name starts with ``COR-`` in
-    directory $SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets is looked
-    up. If such a file is present, it will be used.
-
-  - If all the above searches fail, the script exits with an error
-    message.
-
-This search sequence is designed to work well with the MEG/MRI
-transformation files output by mne_analyze ,
-see :ref:`CACEHGCD`. It is recommended that -trans.fif file
-saved with the Save default and Save... options in
-the mne_analyze alignment dialog
-are used because then the $SUBJECTS_DIR/$SUBJECT directory will
-be composed of files which are dependent on the subjects's
-anatomy only, not on the MEG/EEG data to be analyzed.
-
-.. note:: If the standard MRI description file and BEM    file selections are appropriate and the 7-mm source space grid spacing    is appropriate, only the ``--meas`` option is necessary.    If EEG data is not used ``--megonly`` option should be    included.
-
-.. note:: If it is conceivable that the current-density    transformation will be incorporated into the inverse operator, specify    a source space with patch information for the forward computation.    This is not mandatory but saves a lot of time when the inverse operator    is created, since the patch information does not need to be created    at that stage.
-
-.. note:: The MEG head to MRI transformation matrix specified    with the ``--trans`` option should be a text file containing    a 4-by-4 matrix:
-
-.. math::    T = \begin{bmatrix}
-		R_{11} & R_{12} & R_{13} & x_0 \\
-		R_{13} & R_{13} & R_{13} & y_0 \\
-		R_{13} & R_{13} & R_{13} & z_0 \\
-		0 & 0 & 0 & 1
-		\end{bmatrix}
-	     
-defined so that if the augmented location vectors in MRI
-head and MRI coordinate systems are denoted by :math:`r_{head}[x_{head}\ y_{head}\ z_{head}\ 1]` and :math:`r_{MRI}[x_{MRI}\ y_{MRI}\ z_{MRI}\ 1]`,
-respectively,
-
-.. math::    r_{MRI} = T r_{head}
-
-.. note:: It is not possible to calculate an EEG forward    solution with a single-layer BEM.
 
 .. _BABDEEEB:
 
@@ -871,142 +560,8 @@ script mne_do_inverse_operator . It
 invokes the program mne_inverse_operator with
 appropriate options, derived from the command line of mne_do_inverse_operator .
 
-mne_do_inverse_operator assumes
-the following options:
+See :ref:`mne_do_inverse_operator` for command-line options.
 
-**\---fwd <*name of the forward solution file*>**
-
-    This is the forward solution file produced in the computations step described
-    in :ref:`BABCHEJD`.
-
-**\---meg**
-
-    Employ MEG data in the inverse calculation. If neither ``--meg`` nor ``--eeg`` is
-    set only MEG channels are included.
-
-**\---eeg**
-
-    Employ EEG data in the inverse calculation. If neither ``--meg`` nor ``--eeg`` is
-    set only MEG channels are included.
-
-**\---fixed**
-
-    Use fixed source orientations normal to the cortical mantle. By default,
-    the source orientations are not constrained. If ``--fixed`` is specified,
-    the ``--loose`` flag is ignored.
-
-**\---loose <*amount*>**
-
-    Use a 'loose' orientation constraint. This means
-    that the source covariance matrix entries corresponding to the current
-    component normal to the cortex are set equal to one and the transverse
-    components are set to <*amount*> .
-    Recommended value of amount is 0.1...0.6.
-
-**\---depth**
-
-    Employ depth weighting with the standard settings. For details,
-    see :ref:`CBBDFJIE` and :ref:`CBBDDBGF`.
-
-**\---bad <*name*>**
-
-    Specifies a text file to designate bad channels, listed one channel name
-    (like MEG 1933) on each line of the file. Be sure to include both
-    noisy and flat (non-functioning) channels in the list. If bad channels
-    were designated using mne_mark_bad_channels in
-    the measurement file which was specified with the ``--meas`` option when
-    the forward solution was computed, the bad channel information will
-    be automatically included. Also, any bad channel information in
-    the noise-covariance matrix file will be included.
-
-**\---noisecov <*name*>**
-
-    Name of the noise-covariance matrix file computed with one of the methods
-    described in :ref:`BABDEEEB`. By default, the script looks
-    for a file whose name is derived from the forward solution file
-    by replacing its ending ``-`` <*anything*> ``-fwd.fif`` by ``-cov.fif`` .
-    If this file contains a projection operator, which will automatically
-    attached to the noise-covariance matrix by mne_browse_raw and mne_process_raw ,
-    no ``--proj`` option is necessary because mne_inverse_operator will
-    automatically include the projectors from the noise-covariance matrix
-    file. For backward compatibility, --senscov can be used as a synonym
-    for --noisecov.
-
-**\---noiserank <*value*>**
-
-    Specifies the rank of the noise covariance matrix explicitly rather than
-    trying to reduce it automatically. This option is sheldom needed,
-
-**\---megreg <*value*>**
-
-    Regularize the MEG part of the noise-covariance matrix by this amount.
-    Suitable values are in the range 0.05...0.2. For details, see :ref:`CBBHEGAB`.
-
-**\---eegreg <*value*>**
-
-    Like ``--megreg`` but applies to the EEG channels.
-
-**\---diagnoise**
-
-    Omit the off-diagonal terms of the noise covariance matrix. This option
-    is irrelevant to most users.
-
-**\---fmri <*name*>**
-
-    With help of this w file, an *a priori* weighting
-    can be applied to the source covariance matrix. The source of the weighting
-    is usually fMRI but may be also some other data, provided that the weighting can
-    be expressed as a scalar value on the cortical surface, stored in
-    a w file. It is recommended that this w file is appropriately smoothed (see :ref:`CHDEBAHH`)
-    in mne_analyze , tksurfer or
-    with mne_smooth_w to contain
-    nonzero values at all vertices of the triangular tessellation of
-    the cortical surface. The name of the file given is used as a stem of
-    the w files. The actual files should be called <*name*> ``-lh.pri`` and <*name*> ``-rh.pri`` for
-    the left and right hemisphere weight files, respectively. The application
-    of the weighting is discussed in :ref:`CBBDIJHI`.
-
-**\---fmrithresh <*value*>**
-
-    This option is mandatory and has an effect only if a weighting function
-    has been specified with the ``--fmri`` option. If the value
-    is in the *a priori* files falls below this value
-    at a particular source space point, the source covariance matrix
-    values are multiplied by the value specified with the ``--fmrioff`` option
-    (default 0.1). Otherwise it is left unchanged.
-
-**\---fmrioff <*value*>**
-
-    The value by which the source covariance elements are multiplied
-    if the *a priori* weight falls below the threshold
-    set with ``--fmrithresh`` , see above.
-
-**\---srccov <*name*>**
-
-    Use this diagonal source covariance matrix. By default the source covariance
-    matrix is a multiple of the identity matrix. This option is irrelevant
-    to most users.
-
-**\---proj <*name*>**
-
-    Include signal-space projection information from this file.
-
-**\---inv <*name*>**
-
-    Save the inverse operator decomposition here. By default, the script looks
-    for a file whose name is derived from the forward solution file by
-    replacing its ending ``-fwd.fif`` by <*options*> ``-inv.fif`` , where
-    <*options*> includes options ``--meg``, ``--eeg``, and ``--fixed`` with the double
-    dashes replaced by single ones.
-
-**\---destdir <*directory*>**
-
-    Optionally specifies a directory where the inverse operator will
-    be stored.
-
-.. note:: If bad channels are included in the calculation,    strange results may ensue. Therefore, it is recommended that the    data to be analyzed is carefully inspected with to assign the bad    channels correctly.
-
-.. note:: For convenience, the MNE software includes bad-channel    designation files which can be used to ignore all magnetometer or    all gradiometer channels in Vectorview measurements. These files are    called ``vv_grad_only.bad`` and ``vv_mag_only.bad`` , respectively.    Both files are located in ``$MNE_ROOT/share/mne/templates`` .
 
 Analyzing the data
 ##################
