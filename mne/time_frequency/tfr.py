@@ -1159,8 +1159,8 @@ def read_tfrs(fname, condition=None):
     return out
 
 
-def tfr_morlet(inst, freqs, n_cycles, picks=None, use_fft=False,
-               return_itc=True, decim=1, n_jobs=1):
+def tfr_morlet(inst, freqs, n_cycles, use_fft=False,
+               return_itc=True, decim=1, n_jobs=1, picks=None):
     """Compute Time-Frequency Representation (TFR) using Morlet wavelets
 
     Parameters
@@ -1171,9 +1171,6 @@ def tfr_morlet(inst, freqs, n_cycles, picks=None, use_fft=False,
         The frequencies in Hz.
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
-    picks : array-like of int | None
-        The indices of the channels to plot. If None all available
-        channels are displayed.
     use_fft : bool
         The fft based convolution or not.
     return_itc : bool
@@ -1183,6 +1180,9 @@ def tfr_morlet(inst, freqs, n_cycles, picks=None, use_fft=False,
         The decimation factor on the time axis. To reduce memory usage.
     n_jobs : int
         The number of jobs to run in parallel.
+    picks : array-like of int | None
+        The indices of the channels to plot. If None all available
+        channels are displayed.
 
     Returns
     -------
@@ -1294,8 +1294,9 @@ def _induced_power_mtm(data, sfreq, frequencies, time_bandwidth=4.0,
     return psd, itc
 
 
-def tfr_multitaper(inst, freqs, n_cycles, picks=None, time_bandwidth=4.0,
-                   use_fft=True, return_itc=True, decim=1, n_jobs=1):
+def tfr_multitaper(inst, freqs, n_cycles, time_bandwidth=4.0,
+                   use_fft=True, return_itc=True, decim=1, n_jobs=1,
+                   picks=None):
     """Compute Time-Frequency Representation (TFR) using DPSS wavelets
 
     Parameters
@@ -1307,9 +1308,6 @@ def tfr_multitaper(inst, freqs, n_cycles, picks=None, time_bandwidth=4.0,
     n_cycles : float | ndarray, shape (n_freqs,)
         The number of cycles globally or for each frequency.
         The time-window length is thus T = n_cycles / freq.
-    picks : array-like of int | None
-        The indices of the channels to plot. If None all available
-        channels are displayed.
     time_bandwidth : float, (optional)
         Time x (Full) Bandwidth product. Should be >= 2.0.
         Choose this along with n_cycles to get desired frequency resolution.
@@ -1330,6 +1328,9 @@ def tfr_multitaper(inst, freqs, n_cycles, picks=None, time_bandwidth=4.0,
         Defaults to 1.
     n_jobs : int
         The number of jobs to run in parallel. Defaults to 1.
+    picks : array-like of int | None
+        The indices of the channels to plot. If None all available
+        channels are displayed.
 
     Returns
     -------
