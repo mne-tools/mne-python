@@ -8,7 +8,7 @@ from scipy import linalg
 from distutils.version import LooseVersion
 
 from .mixin import TransformerMixin
-from mne import EvokedArray
+from .. import EvokedArray
 
 class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
@@ -333,7 +333,7 @@ class CSP(TransformerMixin):
         """
         
         if components is None:
-            components = range(self.n_components)
+            components = np.arange(self.n_components)
         
         # set sampling frequency to have 1 component per time point
         info['sfreq'] = 1
@@ -348,7 +348,7 @@ class CSP(TransformerMixin):
                                      time_format=name_format, size=size, 
                                      show_names=show_names, mask_params=mask_params, 
                                      mask=mask, outlines=outlines, contours=contours, 
-                                     image_interp=image_interp, show=False, 
+                                     image_interp=image_interp, show=show, 
                                      head_pos=head_pos)
         
 
