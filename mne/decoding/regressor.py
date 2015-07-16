@@ -5,17 +5,16 @@
 
 import numpy as np
 
-
-class LinearRegressor():
+class LinearRegressor(BaseEstimator):
     """
-    This object clones a Linear Model from sklearn
+    This object clones a Linear Model from scikit-learn
     and updates the attribute for each fit. The model coefficient
     can be interpreted using the attribute patterns [1].
 
     Parameters
     ----------
     reg : object | None
-        A linear regressor from sklearn with a fit method 
+        A linear regressor from scikit-learn with a fit method 
         that updates a coef_ attribute.
         If None the classifier will be a LinearRegressor
 
@@ -29,12 +28,14 @@ class LinearRegressor():
     References
     ----------
     """
-    def __init__(self, reg):
+    def __init__(self, reg=None):
         if reg is None:
             from sklearn.linear_model import LinearRegression
             reg = LinearRegression()
         
         self.reg = reg
+        self.patterns_ = None
+        self.filters_ = None
     
     def fit(self, X, y):
         """Estimate the coeffiscient of the linear regressor.
@@ -43,9 +44,9 @@ class LinearRegressor():
 
         Parameters
         ----------
-        X : array, shape=(n_epochs, n_features)
+        X : array, shape (n_epochs, n_features)
             The data to estimate the coeffiscient.
-        y : array, shape=(n_epochs, n_target)
+        y : array, shape (n_epochs, n_target)
             The target for each epoch.
 
         Returns
@@ -56,23 +57,13 @@ class LinearRegressor():
         References
         ----------
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
-        if not isinstance(y, np.ndarray):
-            raise ValueError("y should be of type ndarray (got %s)."
-                             % type(y))
-        # check for features dimension
-        X = np.atleast_2d(X)
-        if len(X.shape) != 2:
-            raise ValueError("X dimension should be 2 (n_epochs x n_features)"
-                             " instead of ", X.shape)
         # fit the regressor
         self.reg.fit(X, y)
+        assert hasattr(self.reg, 'coef_'), "Need a coef_ attribute "
+                                           "to compute the patterns"
         # computes the patterns
-        if hasattr(self.reg, 'coef_'):
-            self.patterns_ = np.dot(X.T, np.dot(X, self.reg.coef_.T))
-            self.filters_ = self.reg.coef_
+        self.patterns_ = np.dot(X.T, np.dot(X, self.reg.coef_.T))
+        self.filters_ = self.reg.coef_
         return self
     
     def transform(self, X, y=None):
@@ -80,60 +71,50 @@ class LinearRegressor():
 
         Parameters
         ----------
-        X : array, shape=(n_epochs, n_features)
+        X : array, shape (n_epochs, n_features)
             The data to transform.
-        y : array, shape=(n_epochs)
+        y : array, shape (n_epochs)
             The class for each epoch.
 
         Returns
         -------
-        y_pred : array, shape=(n_epochs)
+        y_pred : array, shape (n_epochs)
             Predicted target per epoch.
         
         """
-        return self.predict(X)
+        return self.reg.transform(X)
     
     def fit_transform(self, X, y):
         """fit the data and transform it using the linear regressor.
 
         Parameters
         ----------
-        X : array, shape=(n_epochs, n_features)
+        X : array, shape (n_epochs, n_features)
             The data to transform.
-        y : array, shape=(n_epochs)
+        y : array, shape (n_epochs)
             The class for each epoch.
 
         Returns
         -------
-        y_pred : array, shape=(n_epochs)
+        y_pred : array, shape (n_epochs)
             Predicted target per epoch.
         
         """
-        return self.fit(X, y).predict(X)
+        return self.fit(X, y).transform(X)
     
     def predict(self, X):
         """Predict target variable for each trial in X.
         
         Parameters
         ----------
-        X : array, shape=(n_epochs, n_features)
+        X : array, shape (n_epochs, n_features)
             The features for each epochs.
         
         Returns
         -------
-        y_pred : array, shape=(n_epochs, n_targets)
+        y_pred : array, shape (n_epochs, n_targets)
             Predicted target variables per epochs.
         """
-        if not isinstance(X, np.ndarray):
-            raise ValueError("X should be of type ndarray (got %s)."
-                             % type(X))
-        # check for features dimension
-        X = np.atleast_2d(X)
-        if len(X.shape) != 2:
-            raise ValueError("X dimension should be 2 (n_epochs x n_features)"
-                             " instead of ", X.shape)
-        
-        y_pred = self.clf.predict(X)
-        return y_pred
+        return self.clf.predict(X)
     
         
