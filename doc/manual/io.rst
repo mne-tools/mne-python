@@ -378,7 +378,7 @@ typically with index starting with zero to an index starting with one.
 
 To import continuous data, only the input .sqd or .con file is needed. For epochs,
 an Nx3 matrix containing the event number/corresponding trigger value in the
-third column is needed. 
+third column is needed.
 
 The following input files are optional:
 
@@ -473,20 +473,17 @@ The EDF+ files may contain an annotation channel which can
 be used to store trigger information. The Time-stamped Annotation
 Lists (TALs) on the annotation  data can be converted to a trigger
 channel (STI 014) using an annotation map file which associates
-an annotation label with a number on the trigger channel. The TALs
-can be listed with the ``--listtal`` option,
-see below.
+an annotation label with a number on the trigger channel.
 
 
 Biosemi data format (.bdf)
 ==========================
 
-The BDF format (http://www.biosemi.com/faq/file_format.htm
-) is a 24-bit variant of the EDF format used by the EEG systems manufactured
-by a company called BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
+The BDF format (http://www.biosemi.com/faq/file_format.htm) is a 24-bit variant
+of the EDF format used by the EEG systems manufactured by a company called
+BioSemi. It can also be read in using :func:`mne.io.read_raw_edf`.
 
-
-.. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format    these data will be changed to 4-byte integers in the conversion.    Since the maximum size of a fif file is 2 GBytes, the maximum size of    a BDF file to be converted is approximately 1.5 GBytes
+.. warning:: The data samples in a BDF file are represented in a 3-byte (24-bit) format. Since 3-byte raw data buffers are not presently supported in the fif format these data will be changed to 4-byte integers in the conversion.
 
 
 EGI simple binary (.egi)
