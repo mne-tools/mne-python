@@ -296,7 +296,7 @@ class _GeneralizationAcrossTime(object):
                 if epochs is not None:
                     y = epochs.events[:, 2]
                 else:
-                    raise RuntimeError('y is undefined because'
+                    raise RuntimeError('y is undefined because '
                                        'predict_mode="mean-prediction" and '
                                        'epochs are missing. You need to '
                                        'explicitly specify y.')
@@ -996,7 +996,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
         The categories used for scoring y_pred_.
     scorer_ : object
         scikit-learn Scorer instance.
-    scores_ : list of float, shape (n_times)
+    scores_ : list of float, shape (n_times,)
         The scores (mean accuracy of self.predict(X) wrt. y.).
 
     Notes
@@ -1117,7 +1117,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
 
         Returns
         -------
-        scores : list of float, shape (n_times)
+        scores : list of float, shape (n_times,)
             The scores estimated by ``scorer_`` at each time sample (e.g. mean
             accuracy of ``predict(X)``).
         """
@@ -1135,7 +1135,7 @@ class TimeDecoding(_GeneralizationAcrossTime):
     def plot(self, title=None, xmin=None, xmax=None, ymin=None, ymax=None,
              ax=None, show=True, color=None, xlabel=True, ylabel=True,
              legend=True, chance=True, label='Classif. score'):
-        """Plotting function of GeneralizationAcrossTime object
+        """Plotting function
 
         Predict each classifier. If multiple classifiers are passed, average
         prediction across all classifiers to result in a single prediction per
