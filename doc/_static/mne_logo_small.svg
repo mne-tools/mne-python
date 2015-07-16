@@ -140,7 +140,7 @@
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
      inkscape:zoom="1"
-     inkscape:cx="10.843136"
+     inkscape:cx="-240.65686"
      inkscape:cy="147.9971"
      inkscape:document-units="px"
      inkscape:current-layer="layer1"
@@ -173,7 +173,7 @@
      transform="translate(0,-1030.3622)">
     <text
        xml:space="preserve"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:12.79999924px;line-height:125%;font-family:'Open Sans';-inkscape-font-specification:'Open Sans';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:12.79999924px;line-height:125%;font-family:'Myriad Pro';-inkscape-font-specification:'Myriad Pro Semi-Bold';text-align:start;letter-spacing:0px;word-spacing:0px;writing-mode:lr-tb;text-anchor:start;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1;"
        x="1.182373"
        y="1049.2729"
        id="text4204"
@@ -182,7 +182,7 @@
          id="tspan4206"
          x="1.182373"
          y="1049.2729"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:condensed;font-size:22.5px;font-family:Roboto;-inkscape-font-specification:'Roboto Bold Condensed';fill:#ffffff;fill-opacity:1">MNE</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:600;font-stretch:normal;font-size:22.5px;font-family:'Myriad Pro';-inkscape-font-specification:'Myriad Pro Semi-Bold';fill:#ffffff;fill-opacity:1;">MNE</tspan></text>
     <rect
        style="opacity:0.5;fill:url(#linearGradient4219);fill-opacity:1;fill-rule:nonzero;stroke:#bee6d2;stroke-width:0;stroke-linecap:square;stroke-linejoin:miter;stroke-miterlimit:0;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        id="rect4211"
