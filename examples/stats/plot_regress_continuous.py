@@ -2,27 +2,22 @@
 =========================================
 Regression on continuous data (rER[P/F])
 =========================================
-
 This demonstrates how rERPs/regressing the continuous data is a
 generalisation of traditional averaging. If all preprocessing steps
 are the same and if no overlap between epochs exists and if all
 predictors are binary, regression is virtually identical to traditional
 averaging.
-
 If overlap exists and/or predictors are continuous, traditional averaging
 is inapplicable, but regression can be separate effects, including those of
 continuous predictors.
-
 References
 -------------
 See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
 waveforms: II. Non-linear effects, overlap correction, and practical
 considerations. Psychophysiology, 52(2), 169-189.
-
 Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
          Marijn van Vliet <w.m.vanvliet@gmail.com>
         Denis A. Engemann <denis.engemann@gmail.com>
-
 License: BSD (3-clause)
 """
 
@@ -30,7 +25,7 @@ import numpy as np
 
 import mne
 from mne.datasets import spm_face
-from mne.stats.regression import regress_continuous
+from mne.stats.regression import linear_regression_raw
 
 mne.set_log_level(False)
 
@@ -55,8 +50,8 @@ epochs = mne.Epochs(raw, events, event_id, tmin, tmax, reject=None,
                     baseline=None, preload=True, verbose=False)
 
 # rERF
-evoked_dict = regress_continuous(raw, events=events, event_id=event_id,
-                                 reject=False, tmin=tmin, tmax=tmax)
+evoked_dict = linear_regression_raw(raw, events=events, event_id=event_id,
+                                    reject=False, tmin=tmin, tmax=tmax)
 
 # plot both results
 cond = "faces"
