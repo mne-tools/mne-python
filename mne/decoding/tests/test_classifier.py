@@ -65,6 +65,7 @@ def test_linear_classifier():
     
     # test it goes through a scikit-learn pipeline
     clf = LinearClassifier()
+    sc = StandardScaler()
     test_pipe = Pipeline((('scaler', sc), ('clf', clf)))
     test_pipe.fit(X, labels)
     test_pipe.predict(X)

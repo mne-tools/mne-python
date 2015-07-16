@@ -30,21 +30,25 @@ class Scaler(TransformerMixin):
 
     Attributes
     ----------
-    `scale_` : dict
+    info : dict
+        The measurement info
+    ch_mean_ : dict
         The mean value for each channel type
-    `ch_std_` : array
+    std_ : array
         The standard deviation for each channel type
      """
     def __init__(self, info, with_mean=True, with_std=True):
         self.info = info
         self.with_mean = with_mean
         self.with_std = with_std
+        self.ch_mean_ = dict() # TODO rename attribute
+        self.std_ = dict() # TODO rename attribute
 
     def fit(self, epochs_data, y):
         """
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data to concatenate channels.
         y : array
             The label for each epoch.
@@ -70,14 +74,13 @@ class Scaler(TransformerMixin):
 
         self.picks_list_ = picks_list
 
-        self.ch_mean_, self.std_ = dict(), dict()
         for key, this_pick in picks_list.items():
             if self.with_mean:
                 ch_mean = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.ch_mean_[key] = ch_mean
+                self.ch_mean_[key] = ch_mean # TODO rename attribute
             if self.with_std:
                 ch_std = X[:, this_pick, :].mean(axis=1)[:, None, :]
-                self.std_[key] = ch_std
+                self.std_[key] = ch_std # TODO rename attribute
 
         return self
 
@@ -86,17 +89,16 @@ class Scaler(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : None
             Not used.
 
         Returns
         -------
-        X : array of shape (n_epochs, n_channels * n_times)
+        X : array of shape (n_epochs, n_channels, n_times)
             The data concatenated over channels.
         """
-
         if not isinstance(epochs_data, np.ndarray):
             raise ValueError("epochs_data should be of type ndarray (got %s)."
                              % type(epochs_data))
@@ -110,7 +112,36 @@ class Scaler(TransformerMixin):
                 X[:, this_pick, :] /= self.std_[key]
 
         return X
+    
+    def inverse_transform(self, epochs_data, y=None):
+        """ Inverse standardization of data across channels
 
+        Parameters
+        ----------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The data.
+        y : None
+            Not used.
+
+        Returns
+        -------
+        X : array of shape (n_epochs, n_channels, n_times)
+            The data concatenated over channels.
+        """
+        if not isinstance(epochs_data, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(epochs_data))
+
+        X = np.atleast_3d(epochs_data)
+
+        for key, this_pick in six.iteritems(self.picks_list_):
+            if self.with_mean:
+                X[:, this_pick, :] += self.ch_mean_[key]
+            if self.with_std:
+                X[:, this_pick, :] *= self.std_[key]
+
+        return X
+        
 
 class ConcatenateChannels(TransformerMixin):
     """Concatenates data from different channels into a single feature vector
@@ -119,16 +150,29 @@ class ConcatenateChannels(TransformerMixin):
     ----------
     info : dict
         The measurement info.
+    
+    Attributes
+    ----------
+    n_epochs : int
+        The number of epochs
+    n_channels : int
+        The number of channels
+    n_times : int
+        The number of time points
+    
     """
     def __init__(self, info=None):
         self.info = info
+        self.n_epochs = None
+        self.n_channels = None
+        self.n_times = None
 
     def fit(self, epochs_data, y):
         """Concatenate different channels into a single feature vector
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data to concatenate channels.
         y : array
             The label for each epoch.
@@ -150,14 +194,14 @@ class ConcatenateChannels(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : None
             Not used.
 
         Returns
         -------
-        X : array, shape (n_epochs, n_channels*n_times)
+        X : array, shape (n_epochs, n_channels * n_times)
             The data concatenated over channels
         """
         if not isinstance(epochs_data, np.ndarray):
@@ -168,8 +212,33 @@ class ConcatenateChannels(TransformerMixin):
 
         n_epochs, n_channels, n_times = epochs_data.shape
         X = epochs_data.reshape(n_epochs, n_channels * n_times)
-
+        # save attributes for inverse_transform
+        self.n_epochs = n_epochs
+        self.n_channels = n_channels
+        self.n_times = n_times
+        
         return X
+    
+    def inverse_transform(self, X, y=None):
+        """Reshape a feature vector into the original data shape 
+
+        Parameters
+        ----------
+        X : array, shape (n_epochs, n_channels * n_times)
+            The feature vector concatenated over channels
+        y : None
+            Not used.
+
+        Returns
+        -------
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
+            The original data
+        """
+        if not isinstance(X, np.ndarray):
+            raise ValueError("epochs_data should be of type ndarray (got %s)."
+                             % type(X))
+        
+        return X.reshape(self.n_epochs, self.n_channels, self.n_times)
 
 
 class PSDEstimator(TransformerMixin):
@@ -218,7 +287,7 @@ class PSDEstimator(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : array
             The label for each epoch
@@ -240,14 +309,14 @@ class PSDEstimator(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data
         y : None
             Not used.
 
         Returns
         -------
-        psd : array, shape=(n_signals, len(freqs)) or (len(freqs),)
+        psd : array, shape (n_signals, len(freqs)) or (len(freqs),)
             The computed PSD.
         """
 
@@ -346,7 +415,7 @@ class FilterEstimator(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : array
             The label for each epoch.
@@ -394,14 +463,14 @@ class FilterEstimator(TransformerMixin):
 
         Parameters
         ----------
-        epochs_data : array, shape=(n_epochs, n_channels, n_times)
+        epochs_data : array, shape (n_epochs, n_channels, n_times)
             The data.
         y : None
             Not used.
 
         Returns
         -------
-        X : array, shape=(n_epochs, n_channels, n_times)
+        X : array, shape (n_epochs, n_channels, n_times)
             The data after filtering
         """
         if not isinstance(epochs_data, np.ndarray):

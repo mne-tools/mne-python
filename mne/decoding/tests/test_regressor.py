@@ -71,6 +71,7 @@ def test_linear_regressor():
     
     # test it goes through a scikit-learn pipeline
     reg = LinearRegressor()
+    sc = StandardScaler()
     test_pipe = Pipeline((('scaler', sc), ('reg', reg)))
     test_pipe.fit(X, labels)
     test_pipe.predict(X)
