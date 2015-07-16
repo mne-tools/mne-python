@@ -11,6 +11,19 @@ Getting started
 
    auto_tutorials/plot_introduction.rst
 
+
+Working with MNE data structures
+--------------------------------
+.. toctree::
+   :maxdepth: 1
+
+   auto_tutorials/plot_creating_data_structures.rst
+   auto_tutorials/plot_info.rst
+   auto_tutorials/plot_raw_objects.rst
+   auto_tutorials/plot_epochs_objects.rst
+   auto_tutorials/plot_epochs_to_data_frame.rst
+
+
 Preprocessing
 -------------
 .. toctree::
