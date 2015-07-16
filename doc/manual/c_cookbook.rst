@@ -2,9 +2,9 @@
 
 .. _ch_cookbook:
 
-==================
-The MNE-C Cookbook
-==================
+============================================
+The MNE-C Cookbook (XXX merge with cookbook)
+============================================
 
 .. contents:: Contents
    :local:
@@ -77,7 +77,7 @@ will include the MRI pixel data as well. If available, the coordinate
 transformations to allow conversion between the MRI (surface RAS)
 coordinates and MNI and FreeSurfer Talairach coordinates are copied
 to the MRI description file. mne_setup_mri invokes mne_make_cor_set ,
-described in :ref:`BABBHHHE` to convert the data.
+described in :ref:`mne_make_cor_set` to convert the data.
 
 For example:
 
@@ -218,7 +218,7 @@ are:
 
 .. note:: The triangulation files can include name of the    subject as a prefix ``<*subject name*>-`` , *e.g.*, ``duck-inner_skull.surf`` .
 
-.. note:: The mne_convert_surface utility    described in :ref:`BEHDIAJG` can be used to convert text format    triangulation files into the FreeSurfer surface format.
+.. note:: The :ref:`mne_convert_surface` utility can be used to convert text format    triangulation files into the FreeSurfer surface format.
 
 .. note:: "Aliases" created with    the Mac OSX finder are not equivalent to symbolic links and do not    work as such for the UNIX shells and MNE programs.
 
@@ -271,7 +271,7 @@ script assumes that:
 
 See :ref:`mne_setup_forward_model` for command-line options.
 
-As a result of running the :ref:`mne_setup_foward_model` script, the
+As a result of running the :ref:`mne_setup_forward_model` script, the
 following files are created into the ``bem`` directory:
 
 - BEM model geometry specifications <*subject*>-<*ntri-scalp*>-<*ntri-outer_skull*>-<*ntri-inner_skull*>- ``bem.fif`` or <*subject*>-<*ntri-inner_skull*> ``-bem.fif`` containing
@@ -432,8 +432,8 @@ system is 600 Hz. Lower sampling frequencies are allowed but result
 in elevated noise level in the data. It is advisable to lowpass
 filter and downsample the large raw data files often emerging in
 cognitive and patient studies to speed up subsequent processing.
-This can be accomplished with the mne_process_raw and mne_browse_raw software
-modules. For details, see :ref:`CACFAAAJ` and :ref:`CACBDDIE`.
+This can be accomplished with the :ref:`mne_process_raw` and
+:ref:`mne_browse_raw` software modules.
 
 .. note:: It is recommended that the original raw file    is called <*name*>_raw.fif and    the downsampled version <*name*>_ds_raw.fif ,    respectively.
 

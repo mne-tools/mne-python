@@ -1,9 +1,9 @@
 
 .. _ch_browse:
 
-===================
-Processing raw data
-===================
+==================================
+Browsing raw data (mne_browse_raw)
+==================================
 
 .. contents:: Contents
    :local:
@@ -1242,9 +1242,8 @@ The directory in which the raw data file resides now contains
 an annotation file which will be automatically loaded each time
 the data file is opened. A text format event file suitable for this
 purpose can be created manually, extracted from an EDF+ file using
-the ``--tal`` option in mne_edf2fiff discussed
-in :ref:`BABHDBBD`, or produced by custom software used during
-data acquisition.
+the ``--tal`` option in :ref:`mne_edf2fiff`, or produced by custom
+software used during data acquisition.
 
 .. _BABCIGGH:
 
@@ -2047,7 +2046,8 @@ leak through because :math:`P_{\perp}b_n(t) \neq 0`. If the any
 of the brain signal vectors :math:`b_s(t)` is
 close to the noise subspace not only the noise but also the signal
 will be attenuated by the application of :math:`P_{\perp}` and,
-consequently, there might by little gain in signal-to-noise ratio. :ref:`CACFGIEC` demonstrates the effect of SSP on the Vectorview
+consequently, there might by little gain in signal-to-noise ratio.
+:ref:`CACFGIEC` demonstrates the effect of SSP on the Vectorview
 magnetometer data. After the elimination of a three-dimensional
 noise subspace, the absolute value of the noise is dampened approximately
 by a factor of 10 and the covariance matrix becomes diagonally dominant.
@@ -2058,29 +2058,6 @@ to the forward solution in the course of inverse computations. This
 is accomplished by mne_inverse_operator as
 described in :ref:`CBBDDBGF`. For more information on SSP,
 please consult the references listed in :ref:`CEGIEEBB`.
-
-.. _CACFGIEC:
-
-.. figure:: pics/proj-off-on.png
-    :alt: example of the effect of SSP
-
-    An example of the effect of SSP
-    
-    The covariance matrix :math:`C_n` of noise data on the 102 Vectorview magnetometers was computed (a) before and (b) after the application of SSP with three-dimensional noise subspace. The plotted quantity is :math:`\sqrt {|(C_n)_{jk}|}`. Note that the vertical scale in (b) is ten times smaller than in (a).
-
-.. _BABFFCHF:
-
-Estimation of the noise subspace
-================================
-
-As described above, application of SSP requires the estimation
-of the signal vectors :math:`b_1 \dotso b_m` constituting
-the noise subspace. The most common approach, also implemented in mne_browse_raw is
-to compute a covariance matrix of empty room data, compute its eigenvalue
-decomposition, and employ the eigenvectors corresponding to the
-highest eigenvalues as basis for the noise subspace. It is also
-customary to use a separate set of vectors for magnetometers and
-gradiometers in the Vectorview system.
 
 EEG average electrode reference
 ===============================

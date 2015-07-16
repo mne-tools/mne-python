@@ -1,9 +1,9 @@
 
 .. _ch_interactive_analysis:
 
-====================
-Interactive analysis
-====================
+==================================
+Interactive analysis (mne_analyze)
+==================================
 
 .. contents:: Contents
    :local:
@@ -14,7 +14,7 @@ Overview
 ########
 
 Interactive analysis of the MEG/EEG data and source estimates
-is facilitated by the mne_analyze tool.
+is facilitated by the :ref:`mne_analyze` tool.
 Its features include:
 
 - Viewing of evoked-response data or data
@@ -53,8 +53,6 @@ Its features include:
 
 - Viewing of continuous head-position data delivered by Elekta-Neuromag
   software.
-
-.. _CHDJECCG:
 
 See :ref:`mne_analyze` for command line options.
 
@@ -2622,7 +2620,7 @@ an Elekta-Neuromag MEG system.
 
     Snapshot of mne_analyze in the head position visualization mode.
 
-As described in :ref:`CHDJECCG`, the head position
+As described in :ref:`mne_analyze`, the head position
 visualization mode can be customized with the --dig, --hpi, --scalehead,
 and --rthelmet options. For this mode to be useful, the --dig and
 --hpi options are mandatory. If existing saved data are viewed,

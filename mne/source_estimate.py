@@ -1150,8 +1150,8 @@ class SourceEstimate(_BaseSourceEstimate):
               and flip is a sing-flip vector based on the vertex normals. This
               procedure assures that the phase does not randomly change by 180
               degrees from one stc to the next.
-
             - 'max': Max value within each label.
+
 
         Parameters
         ----------

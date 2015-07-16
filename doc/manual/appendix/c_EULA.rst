@@ -129,8 +129,8 @@ affiliated with such individual at the time of such download (the "Institution")
 - *General.* This Agreement constitutes
   the entire understanding between you and Licensor with respect to
   the subject matter hereof, and supercedes any prior or contemporaneous
-  oral or written agreements with respect thereto.  :ref:`CHDBAFGJ`,:ref:`ch_browse`,
-  :ref:`ch_mne`, :ref:`ch_morph`, :ref:`ch_convert`, and :ref:`ch_misc`
+  oral or written agreements with respect thereto.  :ref:`c_reference`,
+  :ref:`ch_browse`, :ref:`ch_mne`, :ref:`ch_morph`, and :ref:`ch_misc`
   shall survive any termination of this Agreement.  This
   Agreement may be modified or amended only in a writing signed by
   duly authorized representatives of both Parties hereto.  The invalidity

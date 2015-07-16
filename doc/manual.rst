@@ -81,13 +81,10 @@ C tools
 .. toctree::
    :maxdepth: 2
 
-   manual/c_cookbook
-   manual/c_io
-   manual/command_line_tools/overview
    manual/c_reference
    manual/gui/analyze
    manual/gui/browse
-   manual/c_utilities
+   manual/c_cookbook
 
 
 MATLAB tools

@@ -262,14 +262,13 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     ----------
     data : ndarray
         3D array where the first two dimensions are compliant
-        with a subjects X conditions scheme:
+        with a subjects X conditions scheme where the first
+        factor repeats slowest::
 
-        first factor repeats slowest:
-
-                    A1B1 A1B2 A2B1 B2B2
-        subject 1   1.34 2.53 0.97 1.74
-        subject ... .... .... .... ....
-        subject k   2.45 7.90 3.09 4.76
+                        A1B1 A1B2 A2B1 B2B2
+            subject 1   1.34 2.53 0.97 1.74
+            subject ... .... .... .... ....
+            subject k   2.45 7.90 3.09 4.76
 
         The last dimensions is thought to carry the observations
         for mass univariate analysis.
@@ -278,14 +277,15 @@ def f_mway_rm(data, factor_levels, effects='all', alpha=0.05,
     effects : str | list
         A string denoting the effect to be returned. The following
         mapping is currently supported (example with 2 factors):
-            'A': main effect of A
-            'B': main effect of B
-            'A:B': interaction effect
-            'A+B': both main effects
-            'A*B': all three effects
-            'all': all effects (equals 'A*B' in a 2 way design)
-        if list, effect names are used:
-            ['A', 'B', 'A:B']
+
+            * ``'A'``: main effect of A
+            * ``'B'``: main effect of B
+            * ``'A:B'``: interaction effect
+            * ``'A+B'``: both main effects
+            * ``'A*B'``: all three effects
+            * ``'all'``: all effects (equals 'A*B' in a 2 way design)
+
+        If list, effect names are used: ``['A', 'B', 'A:B']``.
     alpha : float
         The significance threshold.
     correction : bool
