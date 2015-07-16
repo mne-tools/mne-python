@@ -1005,8 +1005,9 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             The figure.
         """
         if not self._bad_dropped:
-            logger.error("Bad epochs have not yet been dropped.")
-            return
+            raise ValueError("You cannot use plot_drop_log since bad "
+                             "epochs have not yet been dropped. "
+                             "Use epochs.drop_bad_epochs().")
 
         from .viz import plot_drop_log
         return plot_drop_log(self.drop_log, threshold, n_max_plot, subject,
