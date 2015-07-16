@@ -174,7 +174,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
     # Get chpi freqs and reorder
     if chpi:
         hpi_freqs = np.array([x['custom_ref'][0]
-                            for x in raw.info['hpi_meas'][0]['hpi_coils']])
+                             for x in raw.info['hpi_meas'][0]['hpi_coils']])
         n_freqs = len(hpi_freqs)
         order = [x['number'] - 1 for x in raw.info['hpi_meas'][0]['hpi_coils']]
         assert np.array_equal(np.unique(order), np.arange(n_freqs))
@@ -182,7 +182,6 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         hpi_order = raw.info['hpi_results'][0]['order'] - 1
         assert np.array_equal(np.unique(hpi_order), np.arange(n_freqs))
         hpi_freqs = hpi_freqs[hpi_order]
-
 
     # Extract necessary info
     picks = pick_types(raw.info, meg=True, eeg=True)  # for simulation
@@ -218,10 +217,10 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
         r0 /= 1000.
 
         blink_rr = [d['r'] for d in raw.info['dig']
-                if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
+                    if d['ident'] == FIFF.FIFFV_POINT_NASION][0]
         blink_rr = blink_rr - r0
         blink_rr = (blink_rr / np.sqrt(np.sum(blink_rr * blink_rr)) *
-                0.98 * R)[np.newaxis, :]
+                    0.98 * R)[np.newaxis, :]
         blink_rr += r0
         blink_bem = make_sphere_model(
             r0, head_radius=R, relative_radii=(0.99, 1.), sigmas=(0.33, 0.33),
@@ -283,7 +282,7 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
     event_chs = pick_channels(raw.info['ch_names'], ['STI101'])
     if len(event_chs) == 0:
         # When functionality is complete, expand raw object with this channel
-        #raise RuntimeError('No `STI` channels found.')
+        # raise RuntimeError('No `STI` channels found.')
         event_ch = 0
     else:
         event_ch = pick_channels(raw.info['ch_names'], ['STI101'])[0]
@@ -329,15 +328,15 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
                 fwd, fwd_blink, fwd_ecg, fwd_chpi
             continue
 
-        n_time = offsets[fi] - offsets[fi-1]
+        n_time = offsets[fi] - offsets[fi - 1]
 
-        time_slice = slice(offsets[fi-1], offsets[fi])
+        time_slice = slice(offsets[fi - 1], offsets[fi])
         assert not used[time_slice].any()
         stc_idxs = stc_indices[time_slice]
-        event_idxs = np.where(stc_idxs == stc_event_idx)[0] + offsets[fi-1]
+        event_idxs = np.where(stc_idxs == stc_event_idx)[0] + offsets[fi - 1]
         used[time_slice] = True
         logger.info('  Simulating data for %0.3f-%0.3f sec with %s event%s'
-                    % (tuple(offsets[fi-1:fi+1] / raw.info['sfreq']) +
+                    % (tuple(offsets[fi - 1:fi + 1] / raw.info['sfreq']) +
                        (len(event_idxs), '' if len(event_idxs) == 1 else 's')))
 
         # Simulate brain data
@@ -366,7 +365,8 @@ def simulate_raw(raw, stc, trans, src, bem, cov='simple', pos=None, ecg=False,
             last_fwd_blink = fwd_blink
 
         if chpi:
-            this_t = np.arange(offsets[fi-1], offsets[fi]) / raw.info['sfreq']
+            this_t = (np.arange(offsets[fi - 1], offsets[fi]) /
+                      raw.info['sfreq'])
             sinusoids = np.zeros((n_freqs, n_time))
             for fi, freq in enumerate(hpi_freqs):
                 sinusoids[fi] = 2 * np.pi * freq * this_t
@@ -513,9 +513,9 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                               FIFF.FIFFV_MNE_FREE_ORI)
     if blink_rrs is not None:
         eegblink = _compute_forwards(blink_rrs, bem_blink, [eegels], [None],
-                                [None], ['eeg'], n_jobs, verbose=False)[0]
+                                     [None], ['eeg'], n_jobs, verbose=False)[0]
         eegblink = _to_forward_dict(eegblink, None, eegnames, coord_frame,
-                                FIFF.FIFFV_MNE_FREE_ORI)
+                                    FIFF.FIFFV_MNE_FREE_ORI)
 
     for ti, dev_head_t in enumerate(dev_head_ts):
         # Could be *slightly* more efficient not to do this N times,
@@ -568,7 +568,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                                          [compcoils], [meg_info], ['meg'],
                                          n_jobs, verbose=False)[0]
             megblink = _to_forward_dict(megblink, None, megnames, coord_frame,
-                                    FIFF.FIFFV_MNE_FREE_ORI)
+                                        FIFF.FIFFV_MNE_FREE_ORI)
             fwd_blink = _merge_meg_eeg_fwds(megblink, eegblink, verbose=False)
 
         if ecg_rrs is not None:
@@ -576,7 +576,7 @@ def _make_forward_solutions(info, mri, src, bem, mindist, dev_head_ts,
                                        [compcoils], [meg_info], ['meg'],
                                        n_jobs, verbose=False)[0]
             fwd_ecg = _to_forward_dict(megecg, None, megnames, coord_frame,
-                                    FIFF.FIFFV_MNE_FREE_ORI)
+                                       FIFF.FIFFV_MNE_FREE_ORI)
         if chpi_rrs is not None:
             fwd_chpi = _magnetic_dipole_field_vec(chpi_rrs, megcoils).T
 
@@ -611,4 +611,3 @@ def _interp(data_1, data_2, stc_data, interp):
         data_1 = np.dot(data_1, stc_data)
         data_2 = np.dot(data_2, stc_data)
         return data_1 * lin_interp_1 + data_2 * lin_interp_2
-

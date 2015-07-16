@@ -12,7 +12,6 @@ import warnings
 
 from mne.datasets import testing
 from mne import read_label, read_forward_solution
-from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
 from mne import read_cov
 from mne.io import Raw
@@ -23,6 +22,8 @@ warnings.simplefilter('always')
 data_path = testing.data_path(download=False)
 fwd_fname = op.join(data_path, 'MEG', 'sample',
                     'sample_audvis_trunc-meg-eeg-oct-6-fwd.fif')
+bem_fname = op.join(data_path, 'subjects', 'sample', 'bem',
+                    'sample-1280-1280-1280-bem-sol.fif')
 raw_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',
                     'data', 'test_raw.fif')
 cov_fname = op.join(op.dirname(__file__), '..', '..', 'io', 'tests',

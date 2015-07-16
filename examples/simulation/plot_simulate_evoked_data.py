@@ -52,10 +52,10 @@ labels = [read_label(data_path + '/MEG/sample/labels/%s.label' % ln)
 # Generate source time courses and the correspond evoked data
 snr = 6  # dB
 tmin = -0.1
-sfreq = 1000.  # Hz
+sfreq = raw.info['sfreq']  # Hz
 tstep = 1. / sfreq
 n_samples = 600
-times = np.linspace(tmin, tmin + n_samples * tstep, n_samples)
+times = np.arange(n_samples, dtype=np.float) * tstep + tmin
 
 # Generate times series for 2 dipoles
 stc = simulate_sparse_stc(fwd['src'], n_dipoles=2, times=times,
