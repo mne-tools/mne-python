@@ -456,6 +456,22 @@ class FilterEstimator(TransformerMixin):
 
 
 def compute_patterns(epochs, linear_model):
+    """Compute patterns 
+
+    Parameters
+    ----------
+    epochs_data : instance of Epoch
+        The data from which the patterns are computed
+    linear_model : an Estimator from scikit-learn
+        The linear model should have a coef_ attribute.
+        If not fit, the model is fit on the epochs before
+        computing the patterns.
+
+    Returns
+    -------
+    patterns : instance of Evoked
+        Patterns as an evoked array
+    """
     from sklearn.preprocessing import StandardScaler
     from mne import EvokedArray
     # concatenate channel x time data
