@@ -473,7 +473,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
     def _apply_epochs(self, epochs, include, exclude, event_id):
         """Aux method."""
         if not epochs.preload:
-            raise ValueError('Epochs must be preloaded to apply ICA')
+            raise ValueError('Epochs must be preloaded to apply Xdawn')
 
         picks = pick_types(epochs.info, meg=False, ref_meg=False,
                            include=self.ch_names,
@@ -484,8 +484,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
             raise RuntimeError('Epochs don\'t match fitted data: %i channels '
                                'fitted but %i channels supplied. \nPlease '
                                'provide Epochs compatible with '
-                               'ica.ch_names' % (len(self.ch_names),
-                                                 len(picks)))
+                               'xdawn.ch_names' % (len(self.ch_names),
+                                                   len(picks)))
 
         epochs_dict = {}
         data = np.hstack(epochs.get_data()[:, picks])
@@ -513,8 +513,8 @@ class Xdawn(TransformerMixin, ContainsMixin):
             raise RuntimeError('Evoked does not match fitted data: %i channels'
                                ' fitted but %i channels supplied. \nPlease '
                                'provide an Evoked object that\'s compatible '
-                               'with ica.ch_names' % (len(self.ch_names),
-                                                      len(picks)))
+                               'with xdawn.ch_names' % (len(self.ch_names),
+                                                        len(picks)))
 
         data = evoked.data[picks]
         evokeds = {}
