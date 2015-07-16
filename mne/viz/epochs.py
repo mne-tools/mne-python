@@ -1554,11 +1554,20 @@ def _plot_histogram(params):
     titles = _handle_default('titles')
     colors = _handle_default('color')
     for idx in range(len(types)):
-        plt.subplot(len(types), 1, idx + 1)
+        ax = plt.subplot(len(types), 1, idx + 1)
         plt.xlabel(units[types[idx]])
         plt.ylabel('count')
         color = colors[types[idx]]
-        plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color)
+        rej = None
+        if types[idx] in params['epochs'].reject.keys():
+            rej = params['epochs'].reject[types[idx]] * scalings[types[idx]]
+            rng = [0., rej * 1.1]
+        else:
+            rng = None
+        plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color,
+                 range=rng)
+        if rej is not None:
+            ax.plot((rej, rej), (0, ax.get_ylim()[1]))
         plt.title(titles[types[idx]])
     fig.suptitle('Peak-to-peak histogram', y=0.99)
     tight_layout(fig=fig)
