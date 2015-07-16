@@ -2152,6 +2152,7 @@ def read_epochs(fname, proj=True, add_eeg_ref=True, verbose=None):
             fnames.append(next_fname)
 
     epochs = _concatenate_epochs(epochs, read_file=True)
+    epochs._bad_dropped = True
     return epochs
 
 
