@@ -661,7 +661,8 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
         eog_ecg_data = np.concatenate(epochs.get_data()[:, extra_picks],
                                       axis=1)
         data = np.append(data, eog_ecg_data, axis=0)
-    scalings = {'misc': 5.0, 'eog': 150e-6, 'ecg': 5e-4}
+    scalings = _handle_default('scalings_plot_raw')
+    scalings['misc'] = 5.0
     info = create_info(ch_names=c_names, sfreq=epochs.info['sfreq'],
                        ch_types=ch_types)
     info['projs'] = list()
