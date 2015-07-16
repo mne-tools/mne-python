@@ -16,7 +16,6 @@ References
 import mne
 from mne import io
 from mne.preprocessing import (find_bad_channels, find_bad_epochs,
-                               find_bad_components,
                                find_bad_channels_in_epochs, ICA)
 from mne.datasets import sample
 
@@ -70,13 +69,7 @@ bad_epochs = find_bad_epochs(epochs)
 if len(bad_epochs) > 0:
     epochs.drop_epochs(bad_epochs)
 
-# Step 3: mark bad ICA components and remove them.
-picks = mne.pick_types(epochs.info, eeg=True, eog=False, exclude='bads')
-ica = ICA(n_components=0.99).fit(epochs, picks=picks)
-ica.exclude = find_bad_components(ica, epochs)
-ica.apply(epochs)
-
-# Step 4: mark bad channels for each epoch and interpolate them.
+# Step 3: mark bad channels for each epoch and interpolate them.
 bad_channels_per_epoch = find_bad_channels_in_epochs(epochs)
 for i, b in enumerate(bad_channels_per_epoch):
     if len(b) > 0:
