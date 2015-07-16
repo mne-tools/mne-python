@@ -94,6 +94,7 @@ def test_regularized_csp():
         sources = csp.transform(epochs_data)
         assert_true(sources.shape[1] == n_components)
 
+
 @requires_sklearn
 def test_plot_pattern():
     """Test plot for Common Spatial Patterns
@@ -101,11 +102,10 @@ def test_plot_pattern():
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
     picks = pick_types(raw.info, meg=True, stim=False, ecg=False,
-                       eog=False, exclude='bads') #eeg=True, 
+                       eog=False, exclude='bads')
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), preload=True)
     epochs_data = epochs.get_data()
-    n_channels = epochs_data.shape[1]
 
     n_components = 3
     csp = CSP(n_components=n_components, reg='lws')

@@ -10,6 +10,7 @@ from distutils.version import LooseVersion
 from .mixin import TransformerMixin
 from .. import EvokedArray
 
+
 class CSP(TransformerMixin):
     """M/EEG signal decomposition using the Common Spatial Patterns (CSP)
 
@@ -215,8 +216,7 @@ class CSP(TransformerMixin):
             X -= self.mean_
             X /= self.std_
         return X
-    
-    
+
     def plot_patterns(self, info, components=None, ch_type=None, layout=None,
                       vmin=None, vmax=None, cmap='RdBu_r', sensors=True,
                       colorbar=True, scale=None, scale_time=1e3, unit=None,
@@ -235,14 +235,14 @@ class CSP(TransformerMixin):
         components : float | array of floats | None.
            The CSP patterns to plot. If None, n_components will be shown.
         ch_type : 'mag' | 'grad' | 'planar1' | 'planar2' | 'eeg' | None
-            The channel type to plot. For 'grad', the gradiometers are collected in
-            pairs and the RMS for each pair is plotted.
+            The channel type to plot. For 'grad', the gradiometers are collected 
+            in pairs and the RMS for each pair is plotted.
             If None, then channels are chosen in the order given above.
         layout : None | Layout
             Layout instance specifying sensor positions (does not need to
-            be specified for Neuromag data). If possible, the correct layout file
-            is inferred from the data; if no appropriate layout file was found, the
-            layout is automatically generated from the sensor locations.
+            be specified for Neuromag data). If possible, the correct layout 
+            file is inferred from the data; if no appropriate layout file was 
+            found, the layout is automatically generated from the sensor locations.
         vmin : float | callable
             The value specfying the lower bound of the color range.
             If None, and vmax is None, -vmax is used. Else np.min(data).
@@ -256,9 +256,9 @@ class CSP(TransformerMixin):
             Colormap. For magnetometers and eeg defaults to 'RdBu_r', else
             'Reds'.
         sensors : bool | str
-            Add markers for sensor locations to the plot. Accepts matplotlib plot
-            format string (e.g., 'r+' for red plusses). If True, a circle will be
-            used (via .add_artist). Defaults to True.
+            Add markers for sensor locations to the plot. Accepts matplotlib 
+            plot format string (e.g., 'r+' for red plusses). If True, 
+            a circle will be used (via .add_artist). Defaults to True.
         colorbar : bool
             Plot a colorbar.
         scale : dict | float | None
@@ -278,17 +278,17 @@ class CSP(TransformerMixin):
         name_format : str
             String format for topomap values. Defaults to "CSP%01d"
         proj : bool | 'interactive'
-            If true SSP projections are applied before display. If 'interactive',
-            a check box for reversible selection of SSP projection vectors will
-            be show.
+            If true SSP projections are applied before display. 
+            If 'interactive', a check box for reversible selection 
+            of SSP projection vectors will be show.
         show : bool
             Show figure if True.
         show_names : bool | callable
             If True, show channel names on top of the map. If a callable is
-            passed, channel names will be formatted using the callable; e.g., to
-            delete the prefix 'MEG ' from all channel names, pass the function
-            lambda x: x.replace('MEG ', ''). If `mask` is not None, only
-            significant sensors will be shown.
+            passed, channel names will be formatted using the callable; e.g., 
+            to delete the prefix 'MEG ' from all channel names, pass the 
+            function lambda x: x.replace('MEG ', ''). If `mask` is not None, 
+            only significant sensors will be shown.
         title : str | None
             Title. If None (default), no title is displayed.
         mask : ndarray of bool, shape (n_channels, n_times) | None
@@ -306,17 +306,17 @@ class CSP(TransformerMixin):
             dict, each key refers to a tuple of x and y positions. The values in
             'mask_pos' will serve as image mask. If None, nothing will be drawn.
             Defaults to 'head'. If dict, the 'autoshrink' (bool) field will
-            trigger automated shrinking of the positions due to points outside the
-            outline. Moreover, a matplotlib patch object can be passed for
-            advanced masking options, either directly or as a function that returns
-            patches (required for multi-axis plots).
+            trigger automated shrinking of the positions due to points outside 
+            the outline. Moreover, a matplotlib patch object can be passed for
+            advanced masking options, either directly or as a function that 
+            returns patches (required for multi-axis plots).
         contours : int | False | None
             The number of contour lines to draw. If 0, no contours will be drawn.
         image_interp : str
             The image interpolation to be used. All matplotlib options are
             accepted.
         average : float | None
-            The time window around a given time to be used for averaging (seconds).
+            The time window around a given time to be used for averaging (seconds)
             For example, 0.01 would translate into window that starts 5 ms before
             and ends 5 ms after a given time point. Defaults to None, which means
             no averaging.
