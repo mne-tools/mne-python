@@ -97,12 +97,13 @@ ica.plot_overlay(eog_evoked, exclude=eog_inds)  # plot EOG cleaning
 ica.plot_overlay(raw)  # EOG artifacts remain
 
 ###############################################################################
+
 # To save an ICA solution you can say:
-# >>> ica.save('my_ica.fif')
-#
+# ica.save('my_ica.fif')
+
 # You can later load the solution by saying:
-# >>> from mne.preprocessing import read_ica
-# >>> read_ica('my_ica.fif')
-#
+# from mne.preprocessing import read_ica
+# read_ica('my_ica.fif')
+
 # Apply the solution to Raw, Epochs or Evoked like this:
-# >>> ica.apply(epochs, copy=False)
+# ica.apply(epochs, copy=False)
