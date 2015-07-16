@@ -1530,7 +1530,8 @@ def _settings_closed(events, params):
 def _plot_histogram(params):
     """Function for plotting histogram of peak-to-peak values."""
     import matplotlib.pyplot as plt
-    p2p = np.ptp(params['epochs'].get_data(), axis=2)
+    epochs = params['epochs']
+    p2p = np.ptp(epochs.get_data(), axis=2)
     types = list()
     data = list()
     if 'eeg' in params['types']:
@@ -1559,9 +1560,9 @@ def _plot_histogram(params):
         plt.ylabel('count')
         color = colors[types[idx]]
         rej = None
-        if types[idx] in params['epochs'].reject.keys():
-            rej = params['epochs'].reject[types[idx]] * scalings[types[idx]]
-            rng = [0., rej * 1.1]
+        if epochs.reject is not None and types[idx] in epochs.reject.keys():
+                rej = epochs.reject[types[idx]] * scalings[types[idx]]
+                rng = [0., rej * 1.1]
         else:
             rng = None
         plt.hist(data[idx] * scalings[types[idx]], bins=100, color=color,
