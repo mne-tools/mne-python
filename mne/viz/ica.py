@@ -670,7 +670,7 @@ def _plot_sources_epochs(ica, epochs, picks, exclude, start, stop, show,
     if title is None:
         title = 'ICA components'
     if picks is None:
-        picks = list(range(len(c_names)))
+        picks = list(range(ica.n_components_))
     if start is None:
         start = 0
     if stop is None:
