@@ -1424,6 +1424,8 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             also possible to pass a human-readable string, e.g., 100MB.
             Note: Due to FIFF file limitations, the maximum split size is 2GB.
 
+            .. versionadded:: 0.10.0
+
         Notes
         -----
         Bad epochs will be dropped before saving the epochs to disk.
