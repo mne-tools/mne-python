@@ -1,3 +1,5 @@
+.. _ch_raw:
+
 Reading raw data
 ################
 
