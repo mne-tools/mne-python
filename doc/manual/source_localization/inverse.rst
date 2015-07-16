@@ -286,7 +286,7 @@ Cortical patch statistics
 
 If the ``--cps`` option was used in source space
 creation (see :ref:`CIHCHDAE`) or if mne_add_patch_info described
-in :ref:`BEHCBCGG` was run manually the source space file
+in :ref:`mne_add_patch_info` was run manually the source space file
 will contain for each vertex of the cortical surface the information
 about the source space point closest to it as well as the distance
 from the vertex to this source space point. The vertices for which
@@ -465,163 +465,14 @@ Matlab toolbox, see :ref:`ch_matlab`.
 Computing inverse from raw and evoked data
 ##########################################
 
-The purpose of the utility mne_compute_raw_inverse is
+The purpose of the utility :ref:`mne_compute_raw_inverse` is
 to compute inverse solutions from either evoked-response or raw
 data at specified ROIs (labels) and to save the results in a fif
-file which can be viewed with mne_browse_raw ,
+file which can be viewed with :ref:`mne_browse_raw`,
 read to Matlab directly using the MNE Matlab Toolbox, see :ref:`ch_matlab`,
-or converted to Matlab format using either mne_convert_mne_data , mne_raw2mat ,
-or mne_epochs2mat , see :ref:`ch_convert`.
-
-.. _CHDEIHFA:
-
-Command-line options
-====================
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---in <*filename*>**
-
-    Specifies the input data file. This can be either an evoked data
-    file or a raw data file.
-
-**\---bmin <*time/ms*>**
-
-    Specifies the starting time of the baseline. In order to activate
-    baseline correction, both ``--bmin`` and ``--bmax`` options
-    must be present. This option applies to evoked data only.
-
-**\---bmax <*time/ms*>**
-
-    Specifies the finishing time of the baseline. This option applies
-    to evoked data only.
-
-**\---set <*number*>**
-
-    The data set (condition) number to load. This is the sequential
-    number of the condition. You can easily see the association by looking
-    at the condition list in mne_analyze when
-    you load the file.
-
-**\---inv <*name*>**
-
-    Load the inverse operator decomposition from here.
-
-**\---nave <*value*>**
-
-    Specifies the effective number of averaged epochs in the input data, :math:`L_{eff}`,
-    as discussed in :ref:`CBBDGIAE`. If the input data file is
-    one produced by mne_browse_raw or mne_process_raw ,
-    the number of averages is correct in the file. However, if subtractions
-    or some more complicated combinations of simple averages are produced,
-    e.g., by  using the xplotter software,
-    the number of averages should be manually adjusted along the guidelines
-    given in :ref:`CBBDGIAE`. This is accomplished either by
-    employing this flag or by adjusting the number of averages in the
-    data file with help of the utility mne_change_nave .
-
-**\---snr <*value*>**
-
-    An estimate for the amplitude SNR. The regularization parameter will
-    be set as :math:`\lambda^2 = 1/SNR^2`. The default value is
-    SNR = 1. Automatic selection of the regularization parameter is
-    currently not supported.
-
-**\---spm**
-
-    Calculate the dSPM instead of the expected current value.
-
-**\---picknormalcomp**
-
-    The components of the estimates corresponding to directions tangential
-    with the cortical mantle are zeroed out.
-
-**\---mricoord**
-
-    Provide source locations and orientations in the MRI coordinate frame
-    instead of the default head coordinate frame.
-
-**\---label <*name*>**
-
-    Specifies a label file to process. For each label file, the values
-    of the computed estimates stored in a fif file. For more details,
-    see :ref:`CBBHJDAI`. The label files are produced by tksurfer
-    or mne_analyze and specify regions
-    of interests (ROIs). A label file name should end with ``-lh.label`` for
-    left-hemisphere ROIs and with ``-rh.label`` for right-hemisphere
-    ones. The corresponding output files are tagged with ``-lh-`` <*data type*> ``.fif`` and ``-rh-`` <*data type*> ``.fif`` , respectively. <*data type*> equals ``'mne`` ' for expected
-    current data and ``'spm`` ' for dSPM data.
-    For raw data, ``_raw.fif`` is employed instead of ``.fif`` .
-    The output files are stored in the same directory as the label files.
-
-**\---labelselout**
-
-    Produces additional label files for each label processed, containing only
-    those vertices within the input label which correspond to available
-    source space vertices in the inverse operator. These files have the
-    same name as the original label except that ``-lh`` and ``-rh`` are replaced
-    by ``-sel-lh`` and ``-sel-rh`` , respectively.
-
-**\---align_z**
-
-    Instructs the program to try to align the waveform signs within
-    the label. For more information, see :ref:`CBBHJDAI`. This
-    flag will not have any effect if the inverse operator has been computed
-    with the strict orientation constraint active.
-
-**\---labeldir <*directory*>**
-
-    All previous ``--label`` options will be ignored when this
-    option is encountered. For each label in the directory, the output
-    file defined with the ``--out`` option will contain a summarizing
-    waveform which is the average of the waveforms in the vertices of
-    the label. The ``--labeldir`` option implies ``--align_z`` and ``--picknormalcomp`` options.
-
-**\---orignames**
-
-    This option is used with the ``--labeldir`` option, above.
-    With this option, the output file channel names will be the names
-    of the label files, truncated to 15 characters, instead of names
-    containing the vertex numbers.
-
-**\---out <*name*>**
-
-    Required with ``--labeldir`` . This is the output file for
-    the data.
-
-**\---extra <*name*>**
-
-    By default, the output includes the current estimate signals and
-    the digital trigger channel, see ``--digtrig`` option,
-    below. With the ``--extra`` option, a custom set of additional
-    channels can be included. The extra channel text file should contain
-    the names of these channels, one channel name on each line. With
-    this option present, the digital trigger channel is not included
-    unless specified in the extra channel file.
-
-**\---noextra**
-
-    No additional channels will be included with this option present.
-
-**\---digtrig <*name*>**
-
-    Name of the composite digital trigger channel. The default value
-    is 'STI 014'. Underscores in the channel name
-    will be replaced by spaces.
-
-**\---split <*size/MB*>**
-
-    Specifies the maximum size of the raw data files saved. By default, the
-    output is split into files which are just below 2 GB so that the
-    fif file maximum size is not exceed.
-
-.. note:: The digital trigger channel can also be set with    the MNE_TRIGGER_CH_NAME environment variable. Underscores in the variable    value will *not* be replaced with spaces by mne_compute_raw_inverse .    Using the ``--digtrig`` option supersedes the MNE_TRIGGER_CH_NAME    environment variable.
+or converted to Matlab format using either :ref:`mne_convert_mne_data`,
+:ref:`mne_raw2mat`, or :ref:`mne_epochs2mat`, see :ref:`ch_convert`. See
+:ref:`mne_compute_raw_inverse` for command-line options.
 
 .. _CBBHJDAI:
 
@@ -666,4 +517,4 @@ the sign of the estimates at this vertex are inverted. The inversion
 is reflected in the current direction vector listed in the channel
 information, see above.
 
-.. note:: The raw data files output by mne_compute_raw_inverse can be converted to mat files with mne_raw2mat, see :ref:`convert_to_matlab`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into mne_browse_raw, see :ref:`ch_browse`.
+.. note:: The raw data files output by :ref:`mne_compute_raw_inverse` can be converted to mat files with :ref:`mne_raw2mat`, see :ref:`convert_to_matlab`. Alternatively, the files can be read directly from Matlab using the routines in the MNE Matlab toolbox, see :ref:`ch_matlab`. The evoked data output can be easily read directly from Matlab using the fiff_load_evoked routine in the MNE Matlab toolbox. Both raw data and evoked output files can be loaded into :ref:`mne_browse_raw`, see :ref:`ch_browse`.

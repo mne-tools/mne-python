@@ -255,83 +255,10 @@ Creating a surface-based source space
 #####################################
 
 The fif format source space files containing the dipole locations
-and orientations are created with the utility mne_make_source_space .
-This utility is usually invoked by the convenience script mne_setup_source_space ,
+and orientations are created with the utility :ref:`mne_make_source_space`.
+This utility is usually invoked by the convenience script :ref:`mne_setup_source_space`,
 see :ref:`CIHCHDAE`.
 
-The command-line options are:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---subject <*name*>**
-
-    Name of the subject in SUBJECTS_DIR. In the absence of this option,
-    the SUBJECT environment variable will be consulted. If it is not
-    defined, mne_setup_source_space exits
-    with an error.
-
-**\---morph <*name*>**
-
-    Name of a subject in SUBJECTS_DIR. If this option is present, the source
-    space will be first constructed for the subject defined by the --subject
-    option or the SUBJECT environment variable and then morphed to this
-    subject. This option is useful if you want to create a source spaces
-    for several subjects and want to directly compare the data across
-    subjects at the source space vertices without any morphing procedure
-    afterwards. The drawback of this approach is that the spacing between
-    source locations in the "morph" subject is not going
-    to be as uniform as it would be without morphing.
-
-**\---surf <*name1*>: <*name2*>:...**
-
-    FreeSurfer surface file names specifying the source surfaces, separated
-    by colons.
-
-**\---spacing <*spacing/mm*>**
-
-    Specifies the approximate grid spacing of the source space in mm.
-
-**\---ico <*number*>**
-
-    Instead of using the traditional method for cortical surface decimation
-    it is possible to create the source space using the topology of
-    a recursively subdivided icosahedron ( <*number*> > 0)
-    or an octahedron ( <*number*>  < 0).
-    This method uses the cortical surface inflated to a sphere as a
-    tool to find the appropriate vertices for the source space. The
-    benefit of the ``--ico`` option is that the source space will have triangulation
-    information between the decimated vertices included, which some
-    future versions of MNE software may be able to utilize. The number
-    of triangles increases by a factor of four in each subdivision,
-    starting from 20 triangles in an icosahedron and 8 triangles in
-    an octahedron. Since the number of vertices on a closed surface
-    is :math:`n_{vert} = (n_{tri} + 4) / 2`, the number of vertices in
-    the *k* th subdivision of an icosahedron and an
-    octahedron are :math:`10 \cdot 4^k +2` and :math:`4_{k + 1} + 2`,
-    respectively. The recommended values for <*number*> and
-    the corresponding number of source space locations are listed in Table 3.1.
-
-**\---all**
-
-    Include all nodes to the output. The active dipole nodes are identified
-    in the fif file by a separate tag. If tri files were used as input
-    the output file will also contain information about the surface
-    triangulation. This option is always recommended to include complete
-    information.
-
-**\---src <*name*>**
-
-    Output file name. Use a name <*dir*>/<*name*>-src.fif
-
-.. note:: If both ``--ico`` and ``--spacing`` options    are present the later one on the command line takes precedence.
-
-.. note:: Due to the differences between the FreeSurfer    and MNE libraries, the number of source space points generated with    the ``--spacing`` option may be different between the current    version of MNE and versions 2.5 or earlier (using ``--spacing`` option    to mne_setup_source_space ) if    the FreeSurfer surfaces employ the (old) quadrangle format or if    there are topological defects on the surfaces. All new FreeSurfer    surfaces are specified as triangular tessellations and are e of    defects.
 
 .. _BJEFEHJI:
 
@@ -341,207 +268,27 @@ Creating a volumetric or discrete source space
 In addition to source spaces confined to a surface, the MNE
 software provides some support for three-dimensional source spaces
 bounded by a surface as well as source spaces comprised of discrete,
-arbitrarily located source points. The mne_volume_source_space utility
+arbitrarily located source points. The :ref:`mne_volume_source_space` utility
 assists in generating such source spaces.
 
-The command-line options are:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---surf <*name*>**
-
-    Specifies a FreeSurfer surface file containing the surface which
-    will be used as the boundary for the source space.
-
-**\---bem <*name*>**
-
-    Specifies a BEM file (ending in ``-bem.fif`` ). The inner
-    skull surface will be used as the boundary for the source space.
-
-**\---origin <*x/mm*> : <*y/mm*> : <*z/mm*>**
-
-    If neither of the two surface options described above is present,
-    the source space will be spherical with the origin at this location,
-    given in MRI (RAS) coordinates.
-
-**\---rad <*radius/mm*>**
-
-    Specifies the radius of a spherical source space. Default value
-    = 90 mm
-
-**\---grid <*spacing/mm*>**
-
-    Specifies the grid spacing in the source space.
-
-**\---mindist <*distance/mm*>**
-
-    Only points which are further than this distance from the bounding surface
-    are included. Default value = 5 mm.
-
-**\---exclude <*distance/mm*>**
-
-    Exclude points that are closer than this distance to the center
-    of mass of the bounding surface. By default, there will be no exclusion.
-
-**\---mri <*name*>**
-
-    Specifies a MRI volume (in mgz or mgh format).
-    If this argument is present the output source space file will contain
-    a (sparse) interpolation matrix which allows mne_volume_data2mri to
-    create an MRI overlay file, see :ref:`BEHDEJEC`.
-
-**\---pos <*name*>**
-
-    Specifies a name of a text file containing the source locations
-    and, optionally, orientations. Each line of the file should contain
-    3 or 6 values. If the number of values is 3, they indicate the source
-    location, in millimeters. The orientation of the sources will be
-    set to the z-direction. If the number of values is 6, the source
-    orientation will be parallel to the vector defined by the remaining
-    3 numbers on each line. With ``--pos`` , all of the options
-    defined above will be ignored. By default, the source position and
-    orientation data are assumed to be given in MRI coordinates.
-
-**\---head**
-
-    If this option is present, the source locations and orientations
-    in the file specified with the ``--pos`` option are assumed
-    to be given in the MEG head coordinates.
-
-**\---meters**
-
-    Indicates that the source locations in the file defined with the ``--pos`` option
-    are give in meters instead of millimeters.
-
-**\---src <*name*>**
-
-    Specifies the output file name. Use a name * <*dir*>/ <*name*>*-src.fif
-
-**\---all**
-
-    Include all vertices in the output file, not just those in use.
-    This option is implied when the ``--mri`` option is present.
-    Even with the ``--all`` option, only those vertices actually
-    selected will be marked to be "in use" in the
-    output source space file.
 
 .. _BEHCACCJ:
 
 Creating the BEM meshes
 #######################
 
-The mne_surf2bem utility
+The :ref:`mne_surf2bem` utility
 converts surface triangle meshes from ASCII and FreeSurfer binary
 file formats to the fif format. The resulting fiff file also contains
 conductivity information so that it can be employed in the BEM calculations.
+See command-line options in :ref:`mne_surf2bem`.
 
-.. note:: The utility mne_tri2fiff previously    used for this task has been replaced by mne_surf2bem .
+.. note:: The utility ``mne_tri2fiff`` previously used for this task has been replaced by :ref:`mne_surf2bem`.
 
-.. note:: The convenience script mne_setup_forward_model described in :ref:`CIHDBFEG` calls mne_surf2bem with    the appropriate options.
+.. note:: The convenience script :ref:`mne_setup_forward_model` described in :ref:`CIHDBFEG` calls :ref:`mne_surf2bem` with the appropriate options.
 
-.. note:: The vertices of all surfaces should be given    in the MRI coordinate system.
+.. note:: The vertices of all surfaces should be given in the MRI coordinate system.
 
-Command-line options
-====================
-
-This program has the following
-command-line options:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---surf <*name*>**
-
-    Specifies a FreeSurfer binary format surface file. Before specifying the
-    next surface (``--surf`` or ``--tri`` options)
-    details of the surface specification can be given with the options
-    listed in :ref:`BEHCDICC`.
-
-**\---tri <*name*>**
-
-    Specifies a text format surface file. Before specifying the next
-    surface (``--surf`` or ``--tri`` options) details
-    of the surface specification can be given with the options listed
-    in :ref:`BEHCDICC`. The format of these files is described
-    in :ref:`BEHDEFCD`.
-
-**\---check**
-
-    Check that the surfaces are complete and that they do not intersect. This
-    is a recommended option. For more information, see :ref:`BEHCBDDE`.
-
-**\---checkmore**
-
-    In addition to the checks implied by the ``--check`` option,
-    check skull and skull thicknesses. For more information, see :ref:`BEHCBDDE`.
-
-**\---fif <*name*>**
-
-    The output fif file containing the BEM. These files normally reside in
-    the bem subdirectory under the subject's mri data. A name
-    ending with ``-bem.fif`` is recommended.
-
-.. _BEHCDICC:
-
-Surface options
-===============
-
-These options can be specified after each ``--surf`` or ``--tri`` option
-to define details for the corresponding surface.
-
-**\---swap**
-
-    Swap the ordering or the triangle vertices. The standard convention in
-    the MNE software is to have the vertices ordered so that the vector
-    cross product of the vectors from vertex 1 to 2 and 1 to 3 gives the
-    direction of the outward surface normal. Text format triangle files
-    produced by the some software packages have an opposite order. For
-    these files, the ``--swap`` . option is required. This option does
-    not have any effect on the interpretation of the FreeSurfer surface
-    files specified with the ``--surf`` option.
-
-**\---sigma <*value*>**
-
-    The conductivity of the compartment inside this surface in S/m.
-
-**\---shift <*value/mm*>**
-
-    Shift the vertices of this surface by this amount, given in mm,
-    in the outward direction, *i.e.*, in the positive
-    vertex normal direction.
-
-**\---meters**
-
-    The vertex coordinates of this surface are given in meters instead
-    of millimeters. This option applies to text format files only. This
-    definition does not affect the units of the shift option.
-
-**\---id <*number*>**
-
-    Identification number to assign to this surface. (1 = inner skull, 3
-    = outer skull, 4 = scalp).
-
-**\---ico <*number*>**
-
-    Downsample the surface to the designated subdivision of an icosahedron.
-    This option is relevant (and required) only if the triangulation
-    is isomorphic with a recursively subdivided icosahedron. For example,
-    the surfaces produced by with mri_watershed are
-    isomorphic with the 5th subdivision of a an icosahedron thus containing 20480
-    triangles. However, this number of triangles is too large for present
-    computers. Therefore, the triangulations have to be decimated. Specifying ``--ico 4`` yields 5120 triangles per surface while ``--ico 3`` results
-    in 1280 triangles. The recommended choice is ``--ico 4`` .
 
 .. _BEHDEFCD:
 
@@ -626,40 +373,18 @@ topology checks are performed:
   may indicate that the vertex coordinates have been specified in
   meters instead of millimeters.
 
+
 .. _CHDJFHEB:
 
 Computing the BEM geometry data
 ###############################
 
-The utility mne_prepare_bem_model computes
+The utility :ref:`mne_prepare_bem_model` computes
 the geometry information for BEM. This utility is usually invoked
-by the convenience script mne_setup_forward_model ,
-see :ref:`CIHDBFEG`. The command-line options are:
+by the convenience script :ref:`mne_setup_forward_model`,
+see :ref:`CIHDBFEG`. The command-line options are listed under
+:ref:`mne_prepare_bem_model`.
 
-**\---bem <*name*>**
-
-    Specify the name of the file containing the triangulations of the BEM
-    surfaces and the conductivities of the compartments. The standard
-    ending for this file is ``-bem.fif`` and it is produced
-    either with the utility mne_surf2bem (:ref:`BEHCACCJ`) or the convenience script mne_setup_forward_model ,
-    see :ref:`CIHDBFEG`.
-
-**\---sol <*name*>**
-
-    Specify the name of the file containing the triangulation and conductivity
-    information together with the BEM geometry matrix computed by mne_prepare_bem_model .
-    The standard ending for this file is ``-bem-sol.fif`` .
-
-**\---method <*approximation method*>**
-
-    Select the BEM approach. If <*approximation method*> is ``constant`` ,
-    the BEM basis functions are constant functions on each triangle
-    and the collocation points are the midpoints of the triangles. With ``linear`` ,
-    the BEM basis functions are linear functions on each triangle and
-    the collocation points are the vertices of the triangulation. This
-    is the preferred method to use. The accuracy will be the same or
-    better than in the constant collocation approach with about half
-    the number of unknowns in the BEM equations.
 
 .. _BJEIAEIE:
 
@@ -1030,166 +755,14 @@ Computing the forward solution
 Purpose
 =======
 
-Instead of using the convenience script mne_do_forward_solution it
-is also possible to invoke the forward solution computation program mne_forward_solution directly.
+Instead of using the convenience script :ref:`mne_do_forward_solution` it
+is also possible to invoke the forward solution computation program :ref:`mne_forward_solution` directly.
 In this approach, the convenience of the automatic file naming conventions
-present in mne_do_forward_solution are
+present in :ref:`mne_do_forward_solution` are
 lost. However, there are some special-purpose options available
-in mne_forward_solution only.
-Please refer to :ref:`BABCHEJD` for information on mne_do_forward_solution.
-
-.. _BJEIGFAE:
-
-Command line options
-====================
-
-mne_forward_solution accepts
-the following command-line options:
-
-**\---src <*name*>**
-
-    Source space name to use. The name of the file must be specified exactly,
-    including the directory. Typically, the source space files reside
-    in $SUBJECTS_DIR/$SUBJECT/bem.
-
-**\---bem <*name*>**
-
-    Specifies the BEM to be used. These files end with bem.fif or bem-sol.fif and
-    reside in $SUBJECTS_DIR/$SUBJECT/bem. The former file contains only
-    the BEM surface information while the latter files contain the geometry
-    information precomputed with mne_prepare_bem_model ,
-    see :ref:`CHDJFHEB`. If precomputed geometry is not available,
-    the linear collocation solution will be computed by mne_forward_solution .
-
-**\---origin <*x/mm*> : <*x/mm*> : <*z/mm*>**
-
-    Indicates that the sphere model should be used in the forward calculations.
-    The origin is specified in MEG head coordinates unless the ``--mricoord`` option
-    is present. The MEG sphere model solution computed using the analytical
-    Sarvas formula. For EEG, an approximative solution described in
-
-**\---eegmodels <*name*>**
-
-    This option is significant only if the sphere model is used and
-    EEG channels are present. The specified file contains specifications
-    of the EEG sphere model layer structures as detailed in :ref:`CHDIAFIG`. If this option is absent the file ``$HOME/.mne/EEG_models`` will
-    be consulted if it exists.
-
-**\---eegmodel <*model name*>**
-
-    Specifies the name of the sphere model to be used for EEG. If this option
-    is missing, the model Default will
-    be employed, see :ref:`CHDIAFIG`.
-
-**\---eegrad <*radius/mm*>**
-
-    Specifies the radius of the outermost surface (scalp) of the EEG sphere
-    model, see :ref:`CHDIAFIG`. The default value is 90 mm.
-
-**\---eegscalp**
-
-    Scale the EEG electrode locations to the surface of the outermost sphere
-    when using the sphere model.
-
-**\---accurate**
-
-    Use accurate MEG sensor coil descriptions. This is the recommended
-    choice. More information
-
-**\---fixed**
-
-    Compute the solution for sources normal to the cortical mantle only. This
-    option should be used only for surface-based and discrete source
-    spaces.
-
-**\---all**
-
-    Compute the forward solution for all vertices on the source space.
-
-**\---label <*name*>**
-
-    Compute the solution only for points within the specified label. Multiple
-    labels can be present. The label files should end with ``-lh.label`` or ``-rh.label`` for
-    left and right hemisphere label files, respectively. If ``--all`` flag
-    is present, all surface points falling within the labels are included.
-    Otherwise, only decimated points with in the label are selected.
-
-**\---mindist <*dist/mm*>**
-
-    Omit source space points closer than this value to the inner skull surface.
-    Any source space points outside the inner skull surface are automatically
-    omitted. The use of this option ensures that numerical inaccuracies
-    for very superficial sources do not cause unexpected effects in
-    the final current estimates. Suitable value for this parameter is
-    of the order of the size of the triangles on the inner skull surface.
-    If you employ the seglab software to create the triangulations, this
-    value should be about equal to the wish for the side length of the
-    triangles.
-
-**\---mindistout <*name*>**
-
-    Specifies a file name to contain the coordinates of source space points
-    omitted due to the ``--mindist`` option.
-
-**\---mri <*name*>**
-
-    The name of the MRI description file containing the MEG/MRI coordinate
-    transformation. This file was saved as part of the alignment procedure
-    outlined in :ref:`CHDBEHDC`. These files typically reside in ``$SUBJECTS_DIR/$SUBJECT/mri/T1-neuromag/sets`` .
-
-**\---trans	 <*name*>**
-
-    The name of a text file containing the 4 x 4 matrix for the coordinate transformation
-    from head to mri coordinates. With ``--trans``, ``--mri`` option is not
-    required.
-
-**\---notrans**
-
-    The MEG/MRI coordinate transformation is taken as the identity transformation, *i.e.*,
-    the two coordinate systems are the same. This option is useful only
-    in special circumstances. If more than one of the ``--mri`` , ``--trans`` ,
-    and ``--notrans`` options are specified, the last one remains
-    in effect.
-
-**\---mricoord**
-
-    Do all computations in the MRI coordinate system. The forward solution
-    matrix is not affected by this option if the source orientations
-    are fixed to be normal to the cortical mantle. If all three source components
-    are included, the forward three source orientations parallel to
-    the coordinate axes is computed. If ``--mricoord`` is present, these
-    axes correspond to MRI coordinate system rather than the default
-    MEG head coordinate system. This option is useful only in special
-    circumstances.
-
-**\---meas <*name*>**
-
-    This file is the measurement fif file or an off-line average file
-    produced thereof. It is recommended that the average file is employed for
-    evoked-response data and the original raw data file otherwise. This
-    file provides the MEG sensor locations and orientations as well as
-    EEG electrode locations as well as the coordinate transformation between
-    the MEG device coordinates and MEG head-based coordinates.
-
-**\---fwd <*name*>**
-
-    This file will contain the forward solution as well as the coordinate transformations,
-    sensor and electrode location information, and the source space
-    data. A name of the form <*name*>-fwd.fif is
-    recommended.
-
-**\---meg**
-
-    Compute the MEG forward solution.
-
-**\---eeg**
-
-    Compute the EEG forward solution.
-
-**\---grad**
-
-    Include the derivatives of the fields with respect to the dipole
-    position coordinates to the output, see :ref:`BJEFEJJG`.
+in :ref:`mne_forward_solution` only.
+Please refer to :ref:`BABCHEJD` for information on :ref:`mne_do_forward_solution`.
+See :ref:`mne_forward_solution` for command-line options.
 
 Implementation of software gradient compensation
 ================================================
@@ -1310,33 +883,7 @@ Purpose
 
 One possibility to make a grand average over several runs
 of a experiment is to average the data across runs and average the
-forward solutions accordingly. For this purpose, mne_average_forward_solutions computes a
+forward solutions accordingly. For this purpose, :ref:`mne_average_forward_solutions` computes a
 weighted average of several forward solutions. The program averages both
 MEG and EEG forward solutions. Usually the EEG forward solution is
 identical across runs because the electrode locations do not change.
-
-Command line options
-====================
-
-mne_average_forward_solutions accepts
-the following command-line options:
-
-**\---version**
-
-    Show the program version and compilation date.
-
-**\---help**
-
-    List the command-line options.
-
-**\---fwd <*name*> :[ <*weight*> ]**
-
-    Specifies a forward solution to include. If no weight is specified,
-    1.0 is assumed. In the averaging process the weights are divided
-    by their sum. For example, if two forward solutions are averaged
-    and their specified weights are 2 and 3, the average is formed with
-    a weight of 2/5 for the first solution and 3/5 for the second one.
-
-**\---out <*name*>**
-
-    Specifies the output file which will contain the averaged forward solution.

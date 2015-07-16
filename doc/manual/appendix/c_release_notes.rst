@@ -269,7 +269,7 @@ mne_show_fiff
 
 Replacement for the Neuromag utility show_fiff .
 This utility conforms to the standard command-line option conventions
-in MNE software. For details, see :ref:`CHDHEDEF`.
+in MNE software. For details, see :ref:`mne_show_fiff`.
 
 mne_make_cor_set
 ----------------
@@ -595,7 +595,7 @@ The functionality is included in mne_process_raw .
 mne_rename_channels
 -------------------
 
-Added the ``--revert`` option, see :ref:`CHDCFEAJ`.
+Added the ``--revert`` option, see :ref:`mne_rename_channels`.
 
 mne_setup_forward_model
 -----------------------
@@ -607,7 +607,7 @@ mne_simu
 --------
 
 Added source waveform expressions and the ``--raw`` option,
-see :ref:`CHDECAFD`.
+see :ref:`mne_simu`.
 
 mne_transform_points
 --------------------
@@ -655,7 +655,7 @@ mne_anonymize
 -------------
 
 New utility to remove subject identifying information from
-measurement files, see :ref:`CHDIJHIC`.
+measurement files, see :ref:`mne_anonymize`.
 
 mne_opengl_test
 ---------------
@@ -772,14 +772,14 @@ Miscellaneous
   and bin/admin directories.
 
 - mne_anonymize now has the
-  ``--his`` option to remove the HIS ID of the subject, see :ref:`CHDIJHIC`.
+  ``--his`` option to remove the HIS ID of the subject, see :ref:`mne_anonymize`.
 
 - mne_check_surface now has
   the ``--bem`` and ``--id`` options to check surfaces from a BEM fif file.
   For details, try mne_check_surface --help.
 
 - mne_compute_raw_inverse now
-  has the ``--orignames`` option, see :ref:`CHDEIHFA`.
+  has the ``--orignames`` option, see :ref:`mne_compute_raw_inverse`.
 
 - Added ``--headcoord`` option to mne_convert_dig_data ,
   see :ref:BABCJEAD`.
@@ -794,10 +794,10 @@ Miscellaneous
   see :ref:`CHDCEAFC`.
 
 - Added the ``--blocks`` and ``--indent`` options to mne_show_fiff ,
-  see :ref:`CHDHEDEF`.
+  see :ref:`mne_show_fiff`.
 
-- Added the ``--proj`` option as well as map types 5 and 6 to mne_sensitivity_map ,
-  see :ref:`CHDDCBGI`.
+- Added the ``--proj`` option as well as map types 5 and 6 to mne_sensitivity_map,
+  see :ref:`mne_sensitivity_map`.
 
 - Fixed a bug in mne_inverse_operator which
   caused erroneous calculation of EEG-only source estimates if the
@@ -831,7 +831,7 @@ mne_add_patch_info
 ==================
 
 Added the capability to compute distances between source
-space vertices, see :ref:`BEHCBCGG`.
+space vertices, see :ref:`mne_add_patch_info`.
 
 Matlab toolbox
 ==============
@@ -841,7 +841,7 @@ Matlab toolbox
 
 - mne_read_source_spaces.m now reads the inter-vertex distance
   information now optionally produced by mne_add_patch_info ,
-  see :ref:`BEHCBCGG`.
+  see :ref:`mne_add_patch_info`.
 
 Miscellaneous
 =============
