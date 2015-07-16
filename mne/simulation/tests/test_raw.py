@@ -12,7 +12,6 @@ import warnings
 
 from mne.datasets import testing
 from mne import read_label, read_forward_solution, read_source_spaces
-from mne.time_frequency import morlet
 from mne.simulation import generate_sparse_stc, generate_evoked
 from mne import read_cov
 from mne.io import Raw
