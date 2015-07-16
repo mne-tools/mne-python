@@ -1,4 +1,4 @@
-"""Conversion tool from EDF+,BDF to FIF
+"""Conversion tool from EDF, EDF+, BDF to FIF
 
 """
 
@@ -26,7 +26,7 @@ from ...externals.six.moves import zip
 
 
 class RawEDF(_BaseRaw):
-    """Raw object from EDF+,BDF file
+    """Raw object from EDF, EDF+, BDF file
 
     Parameters
     ----------
