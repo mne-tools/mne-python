@@ -61,8 +61,7 @@ class LinearClassifier(BaseEstimator):
         # fit the classifier
         self.clf.fit(X, y)
         # computes the patterns
-        assert hasattr(self.clf, 'coef_'), "Need a coef_ attribute "
-                                           "to compute the patterns"
+        assert hasattr(self.clf, 'coef_'), "clf needs a coef_ attribute to compute the patterns"
         self.patterns_ = np.dot(X.T, np.dot(X, self.clf.coef_.T))
         self.filters_ = self.clf.coef_
         

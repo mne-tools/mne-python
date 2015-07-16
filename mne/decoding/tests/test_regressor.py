@@ -7,14 +7,14 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_true, assert_raises, assert_is_not_none
+from nose.tools import assert_raises, assert_is_not_none
 from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs, pick_types
-from mne.decoding import LinearClassifier
+from mne.decoding import LinearRegressor
 
-from sklearn.svm import LinearSVC
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import Ridge
+from sklearn.ensemble import RandomForestRegressor
 
 warnings.simplefilter('always')  # enable b/c these tests throw warnings
 
@@ -26,8 +26,9 @@ data_dir = op.join(op.dirname(__file__), '..', '..', 'io', 'tests', 'data')
 raw_fname = op.join(data_dir, 'test_raw.fif')
 event_name = op.join(data_dir, 'test-eve.fif')
 
-def test_linear_classifier():
-    """Test methods of LinearClassifier
+
+def test_linear_regressor():
+    """Test methods of LinearRegressor
     """
     raw = io.Raw(raw_fname, preload=False)
     events = read_events(event_name)
@@ -38,26 +39,30 @@ def test_linear_classifier():
     epochs = Epochs(raw, events, event_id, tmin, tmax, picks=picks,
                     baseline=(None, 0), decim=4, preload=True)
     
-    labels = epochs.events[:, -1]
+    # get labels and type it float for regression
+    labels = np.array(epochs.events[:, -1], dtype=np.float)
     epochs_data = epochs.get_data().reshape(len(labels), -1)
     
-    clf = LinearClassifier()
-    X = clf.fit_transform(epochs_data, labels)
+    reg = LinearRegressor()
+    # test fit
+    reg.fit(epochs_data, labels)
     
     # test patterns have been computed
-    assert_is_not_none(clf.patterns_)
+    assert_is_not_none(reg.patterns_)
     # test filters have been computed
-    assert_is_not_none(clf.filters_)
+    assert_is_not_none(reg.filters_)
+
+    # test predict
+    y = reg.predict(epochs_data)
     
     # test classifier without a coef_ attribute
-    clf = LinearClassifier(RandomForestClassifier())
-    assert_raises(AssertionError, clf.fit, epochs_data, labels)
+    reg = LinearRegressor(RandomForestRegressor())
+    assert_raises(AssertionError, reg.fit, epochs_data, labels)
     
     # test get_params
-    clf = LinearClassifier(LinearSVC(C = 10))
-    assert_equal(clf.get_params()['clf__C'], 10)
+    reg = LinearRegressor(Ridge(alpha = 10))
+    assert_equal(reg.get_params()['reg__alpha'], 10)
     
     # test set_params
-    clf.set_params(clf__C=100)
-    assert_equal(clf.get_params()['clf__C'], 100)
-
+    reg.set_params(reg__alpha=100)
+    assert_equal(reg.get_params()['reg__alpha'], 100)

@@ -4,6 +4,7 @@
 # License: BSD (3-clause)
 
 import numpy as np
+from .base import BaseEstimator
 
 class LinearRegressor(BaseEstimator):
     """
@@ -16,7 +17,7 @@ class LinearRegressor(BaseEstimator):
     reg : object | None
         A linear regressor from scikit-learn with a fit method 
         that updates a coef_ attribute.
-        If None the classifier will be a LinearRegressor
+        If None the regressor will be a LinearRegressor
 
     Attributes
     ----------
@@ -59,48 +60,11 @@ class LinearRegressor(BaseEstimator):
         """
         # fit the regressor
         self.reg.fit(X, y)
-        assert hasattr(self.reg, 'coef_'), "Need a coef_ attribute "
-                                           "to compute the patterns"
+        assert hasattr(self.reg, 'coef_'), "reg needs a coef_ attribute to compute the patterns"
         # computes the patterns
         self.patterns_ = np.dot(X.T, np.dot(X, self.reg.coef_.T))
         self.filters_ = self.reg.coef_
         return self
-    
-    def transform(self, X, y=None):
-        """Transform the data using the linear regressor.
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_features)
-            The data to transform.
-        y : array, shape (n_epochs)
-            The class for each epoch.
-
-        Returns
-        -------
-        y_pred : array, shape (n_epochs)
-            Predicted target per epoch.
-        
-        """
-        return self.reg.transform(X)
-    
-    def fit_transform(self, X, y):
-        """fit the data and transform it using the linear regressor.
-
-        Parameters
-        ----------
-        X : array, shape (n_epochs, n_features)
-            The data to transform.
-        y : array, shape (n_epochs)
-            The class for each epoch.
-
-        Returns
-        -------
-        y_pred : array, shape (n_epochs)
-            Predicted target per epoch.
-        
-        """
-        return self.fit(X, y).transform(X)
     
     def predict(self, X):
         """Predict target variable for each trial in X.
@@ -115,6 +79,6 @@ class LinearRegressor(BaseEstimator):
         y_pred : array, shape (n_epochs, n_targets)
             Predicted target variables per epochs.
         """
-        return self.clf.predict(X)
+        return self.reg.predict(X)
     
         
