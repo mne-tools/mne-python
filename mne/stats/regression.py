@@ -17,12 +17,14 @@ from ..evoked import Evoked, EvokedArray
 from ..utils import logger
 from ..io.pick import pick_types
 
+
 def get_fast_dot():
     try:
         from sklearn.utils.extmath import fast_dot
     except ImportError:
         fast_dot = np.dot
     return fast_dot
+
 
 def linear_regression(inst, design_matrix, names=None):
     """Fit Ordinary Least Squares regression (OLS)
@@ -247,7 +249,7 @@ def linear_regression_raw(raw, events, event_id=None,
         tmax = dict((cond, int((tmax.get(cond, 1.) * sfreq) + 1))
                     for cond in conds)
 
-    ### Construct predictor matrix ###
+    # Construct predictor matrix
     # We do this by creating one array per event type, shape lags * samples
     # (where lags depends on tmin/tmax and can be different for different
     # event types). Columns correspond to predictors, predictors correspond to
@@ -282,7 +284,7 @@ def linear_regression_raw(raw, events, event_id=None,
                         not the same length as ```events```""".format(cond)
                 raise ValueError(error)
             for tx, v in zip(events[:, 0], covariates[cond]):
-                samples[tx + int(tmin_ )] = np.float(v)
+                samples[tx + int(tmin_)] = np.float(v)
 
         cond_length[cond] = len(np.nonzero(samples))
 
