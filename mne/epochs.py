@@ -1430,6 +1430,10 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
             parameter is an integer, it specifies the size in Bytes. It is
             also possible to pass a human-readable string, e.g., 100MB.
             Note: Due to FIFF file limitations, the maximum split size is 2GB.
+
+        Notes
+        -----
+        Bad epochs will be dropped before saving the epochs to disk.
         """
         check_fname(fname, 'epochs', ('-epo.fif', '-epo.fif.gz'))
 
@@ -1442,8 +1446,6 @@ class _BaseEpochs(ProjMixin, ContainsMixin, PickDropChannelsMixin,
 
         if split_size > 2147483648:
             raise ValueError('split_size cannot be larger than 2GB')
-
-        # Create the file and save the essentials
 
         # to know the length accurately. The get_data() call would drop
         # bad epochs anyway
@@ -2310,6 +2312,7 @@ def _concatenate_epochs(epochs_list, read_file=False):
     events = [out.events]
     drop_log = cp.deepcopy(out.drop_log)
     event_id = cp.deepcopy(out.event_id)
+    selection = out.selection
     for ii, epochs in enumerate(epochs_list[1:]):
         _compare_epochs_infos(epochs.info, epochs_list[0].info, ii)
         if not np.array_equal(epochs.times, epochs_list[0].times):
@@ -2320,10 +2323,11 @@ def _concatenate_epochs(epochs_list, read_file=False):
 
         data.append(epochs.get_data())
         events.append(epochs.events)
+        selection = np.concatenate((selection, epochs.selection))
         drop_log.extend(epochs.drop_log)
         event_id.update(epochs.event_id)
     events = np.concatenate(events, axis=0)
-    # do this only if events are not monotonically increasing
+    # do not do this if epochs read from disk are being concatenated
     if read_file is False:
         events[:, 0] = np.arange(len(events))  # arbitrary after concat
 
@@ -2333,7 +2337,9 @@ def _concatenate_epochs(epochs_list, read_file=False):
                       proj=False, verbose=out.verbose, on_missing='ignore')
     # We previously only set the drop log here, but we also need to set the
     # selection, too
-    selection = np.where([len(d) == 0 for d in drop_log])[0]
+    if read_file is False:
+        selection = np.where([len(d) == 0 for d in drop_log])[0]
+
     assert len(selection) == len(out.drop_log)
     out.selection = selection
     out.drop_log = drop_log
