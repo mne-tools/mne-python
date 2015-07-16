@@ -147,8 +147,8 @@ def regress_continuous(raw, events, event_id=None,
     length), solving the linear system Y = bX and returning b as evoked-like
     time series split by condition.
 
-    See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP 
-    waveforms: II. Non-linear effects, overlap correction, and practical 
+    See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
+    waveforms: II. Non-linear effects, overlap correction, and practical
     considerations. Psychophysiology, 52(2), 169-189.
 
     Parameters
@@ -202,6 +202,8 @@ def regress_continuous(raw, events, event_id=None,
     """
     sfreq = raw.info["sfreq"]
     data, times = raw[:]
+    events = events.copy()
+    events[:, 0] -= raw.first_samp
     conds = list(event_id.keys())
     if covariates is not None:
         conds += list(covariates.keys())
@@ -209,18 +211,21 @@ def regress_continuous(raw, events, event_id=None,
     if isinstance(tmin, (float, int)):
         tmin = dict((cond, int(tmin * sfreq)) for cond in conds)
     else:
-        tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq)) for cond in conds)
+        tmin = dict((cond, int(tmin.get(cond, -.1) * sfreq))
+                    for cond in conds)
     if isinstance(tmax, (float, int)):
-        tmax = dict((cond, int(tmax * sfreq)+1) for cond in conds)
+        tmax = dict((cond, int(tmax * sfreq) + 1) for cond in conds)
     else:
-        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq)+1) for cond in conds)
+        tmax = dict((cond, int(tmax.get(cond, 1) * sfreq) + 1)
+                    for cond in conds)
 
     cond_length = dict()
     # construct predictor matrix
     # !!! this should probably be improved (including making it more robust to
     # high frequency data) by operating on sparse matrices. As-is, high
     # sampling rates plus long windows blow up the system due to the inversion
-    # of massive matrices
+    # of massive matrices.
+    # Furthermore, assigning to a preallocated array would be faster.
     pred_arrays = list()
     for cond in conds:
         tmin_, tmax_ = tmin[cond], tmax[cond]
@@ -232,7 +237,7 @@ def regress_continuous(raw, events, event_id=None,
             ids = ([event_id[cond]] if isinstance(event_id[cond], int)
                    else event_id[cond])
             samples[np.asarray([t for t, _, e in events
-                                if e in ids]) + tmin_] = 1
+                                if e in ids]) + tmin_] = 1  # np.in1d
         else:  # for predictors from covariates, e.g. continuous ones
             if len(covariates[cond]) != len(events):
                 error = """Condition {} from ```covariates``` is
@@ -269,7 +274,7 @@ def regress_continuous(raw, events, event_id=None,
         has_val[t0:t1] = False
 
     X = big_arr[:, has_val].T
-#    X = np.vstack((X, np.ones(X.shape[1]))).T
+#    X = np.vstack((X, np.ones(X.shape[1]))).T  # currently no intercept
 
     Y = data[:, has_val]
 
