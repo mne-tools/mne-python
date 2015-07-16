@@ -113,9 +113,9 @@ print('Number of channels reduced from', raw.info['nchan'], 'to',
       restricted.info['nchan'])
 
 ###############################################################################
-# ---------------------------
-# Concatenating `Raw` objects
-# ---------------------------
+# --------------------------------------------------
+# Concatenating :class:`Raw <mne.io.RawFIF>` objects
+# --------------------------------------------------
 #
 # :class:`Raw <mne.io.RawFIF>` objects can be concatenated in time by using the
 # :func:`append <mne.io.RawFIF.append>` function. For this to work, they must
