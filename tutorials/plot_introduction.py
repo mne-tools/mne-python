@@ -4,32 +4,40 @@
 Basic MEG and EEG data processing
 =================================
 
-MNE-Python reimplements most of MNE-C's (the original MNE command line utils) functionality and offers transparent scripting.
-On top of that it extends MNE-C's functionality considerably (customize events, compute
-contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses, etc.)
-It uses the same files as standard MNE unix commands:
+MNE-Python reimplements most of MNE-C's (the original MNE command line utils)
+functionality and offers transparent scripting.
+On top of that it extends MNE-C's functionality considerably (customize events,
+compute
+contrasts, group statistics, time-frequency analysis, EEG-sensor space analyses
+, etc.) It uses the same files as standard MNE unix commands:
 no need to convert your files to a new system or database.
 
 What you can do with MNE Python
 -------------------------------
 
-    - **Raw data visualization** to visualize recordings, can also use *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
+    - **Raw data visualization** to visualize recordings, can also use
+    *mne_browse_raw* for extended functionality (see :ref:`ch_browse`)
     - **Epoching**: Define epochs, baseline correction, handle conditions etc.
     - **Averaging** to get Evoked data
     - **Compute SSP pojectors** to remove ECG and EOG artifacts
     - **Compute ICA** to remove artifacts or select latent sources.
-    - **Forward modeling**: BEM computation and mesh creation (see :ref:`ch_forward`)
+    - **Forward modeling**: BEM computation and mesh creation
+    (see :ref:`ch_forward`)
     - **Linear inverse solvers** (dSPM, sLORETA, MNE, LCMV, DICS)
-    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map, Time-Frequency MxNE)
+    - **Sparse inverse solvers** (L1/L2 mixed norm MxNE, Gamma Map,
+    Time-Frequency MxNE)
     - **Connectivity estimation** in sensor and source space
     - **Visualization of sensor and source space data**
-    - **Time-frequency** analysis with Morlet wavelets (induced power, intertrial coherence, phase lock value) also in the source space
+    - **Time-frequency** analysis with Morlet wavelets (induced power,
+    intertrial coherence, phase lock value) also in the source space
     - **Spectrum estimation** using multi-taper method
     - **Mixed Source Models** combining cortical and subcortical structures
     - **Dipole Fitting**
     - **Decoding** multivariate pattern analyis of M/EEG topographies
-    - **Compute contrasts** between conditions, between sensors, across subjects etc.
-    - **Non-parametric statistics** in time, space and frequency (including cluster-level)
+    - **Compute contrasts** between conditions, between sensors, across
+    subjects etc.
+    - **Non-parametric statistics** in time, space and frequency
+    (including cluster-level)
     - **Scripting** (batch and parallel computing)
 
 What you're not supposed to do with MNE Python
@@ -38,7 +46,8 @@ What you're not supposed to do with MNE Python
     - **Boundary Element Modeling** use MNE and Freesurfer.
 
 
-.. note:: Package based on the FIF file format from Neuromag. It can read and convert CTF, BTI/4D, KIT and various EEG formats to FIF.
+.. note:: Package based on the FIF file format from Neuromag. It can read and
+          convert CTF, BTI/4D, KIT and various EEG formats to FIF.
 
 
 Installation of the required materials
@@ -46,9 +55,11 @@ Installation of the required materials
 
 See :ref:`getting_started` with Python.
 
-.. note:: The expected location for the MNE-sample data is my-path-to/mne-python/examples.
-    If you downloaded data and an example asks you whether to download it again, make sure
-    the data reside in the examples directory and you run the script from its current directory.
+.. note:: The expected location for the MNE-sample data is
+    my-path-to/mne-python/examples. If you downloaded data and an example asks
+    you whether to download it again, make sure
+    the data reside in the examples directory and you run the script from its
+    current directory.
 
     From IPython e.g. say::
 
@@ -62,7 +73,8 @@ From raw data to evoked data
 
 .. _ipython: http://ipython.scipy.org/
 
-Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best supported across systems::
+Now, launch `ipython`_ (Advanced Python shell) using the QT backend which best
+supported across systems::
 
   $ ipython --pylab -qt
 
@@ -106,7 +118,8 @@ raw_fname = data_path + '/MEG/sample/sample_audvis_filt-0-40_raw.fif'
 print(raw_fname)
 
 ##############################################################################
-# .. note:: The MNE sample dataset should be downloaded automatically but be patient (approx. 2GB)
+# .. note:: The MNE sample dataset should be downloaded automatically but be
+#           patient (approx. 2GB)
 #
 # Read data from file:
 
@@ -154,8 +167,9 @@ print(events[:5])
 mne.set_config('MNE_STIM_CHANNEL', 'STI101')
 
 ##############################################################################
-# Events are stored as 2D numpy array where the first column is the time instant
-# and the last one is the event number. It is therefore easy to manipulate.
+# Events are stored as 2D numpy array where the first column is the time
+# instant and the last one is the event number. It is therefore easy to
+# manipulate.
 #
 # Define epochs parameters:
 
@@ -173,7 +187,8 @@ raw.info['bads'] += ['MEG 2443', 'EEG 053']
 #
 # Pick the good channels, excluding raw.info['bads']:
 
-picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False, exclude='bads')
+picks = mne.pick_types(raw.info, meg=True, eeg=True, eog=True, stim=False,
+                       exclude='bads')
 
 ##############################################################################
 # Alternatively one can restrict to magnetometers or gradiometers with:
@@ -194,7 +209,8 @@ reject = dict(grad=4000e-13, mag=4e-12, eog=150e-6)
 ##############################################################################
 # Read epochs:
 
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks, baseline=baseline, preload=False, reject=reject)
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax, proj=True, picks=picks,
+                    baseline=baseline, preload=False, reject=reject)
 print(epochs)
 
 ##############################################################################
@@ -204,16 +220,18 @@ epochs_data = epochs['aud_l'].get_data()
 print(epochs_data.shape)
 
 ##############################################################################
-# epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time instants).
+# epochs_data is a 3D array of dimension (55 epochs, 365 channels, 106 time
+# instants).
 #
-# Scipy supports read and write of matlab files. You can save your single trials with:
+# Scipy supports read and write of matlab files. You can save your single
+# trials with:
 
 from scipy import io
 io.savemat('epochs_data.mat', dict(epochs_data=epochs_data), oned_as='row')
 
 ##############################################################################
-# or if you want to keep all the information about the data you can save your epochs
-# in a fif file:
+# or if you want to keep all the information about the data you can save your
+# epochs in a fif file:
 
 epochs.save('sample-epo.fif')
 
@@ -241,12 +259,14 @@ print(max_in_each_epoch[:4]) # doctest:+ELLIPSIS
 # It is also possible to read evoked data stored in a fif file:
 
 evoked_fname = data_path + '/MEG/sample/sample_audvis-ave.fif'
-evoked1 = mne.read_evokeds(evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True)
+evoked1 = mne.read_evokeds(
+    evoked_fname, condition='Left Auditory', baseline=(None, 0), proj=True)
 
 ##############################################################################
 # Or another one stored in the same file:
 
-evoked2 = mne.read_evokeds(evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True)
+evoked2 = mne.read_evokeds(
+    evoked_fname, condition='Right Auditory', baseline=(None, 0), proj=True)
 
 ##############################################################################
 # Compute a contrast:
@@ -329,7 +349,8 @@ stc.save('mne_dSPM_raw_inverse_Aud')
 #     - detect heart beat QRS component
 #     - detect eye blinks and EOG artifacts
 #     - compute SSP projections to remove ECG or EOG artifacts
-#     - compute Independent Component Analysis (ICA) to remove artifacts or select latent sources
+#     - compute Independent Component Analysis (ICA) to remove artifacts or
+#       select latent sources
 #     - estimate noise covariance matrix from Raw and Epochs
 #     - visualize cross-trial response dynamics using epochs images
 #     - compute forward solutions
@@ -338,7 +359,8 @@ stc.save('mne_dSPM_raw_inverse_Aud')
 #     - morph stc from one brain to another for group studies
 #     - compute mass univariate statistics base on custom contrasts
 #     - visualize source estimates
-#     - export raw, epochs, and evoked data to other python data analysis libraries e.g. pandas
+#     - export raw, epochs, and evoked data to other python data analysis
+#       libraries e.g. pandas
 #     - and many more things ...
 #
 # Want to know more ?
