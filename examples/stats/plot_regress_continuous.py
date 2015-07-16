@@ -63,5 +63,5 @@ evoked_dict[cond].plot()
 # check if results are virtually identical
 # (as they should be, in the case of no overlap)
 print("Are the two methods virtually identical? ",
-      np.allclose(epochs[cond].average().data*1e+15,
-                  evoked_dict[cond].data*1e+15))
+      np.allclose(epochs[cond].average().data * 1e+15,
+                  evoked_dict[cond].data * 1e+15))
