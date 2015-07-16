@@ -307,6 +307,7 @@ class Xdawn(TransformerMixin, ContainsMixin):
             An instance of Epoch on which Xdawn filters will be trained.
         y : None
             Compatibility with decoding.
+
         Returns
         -------
         self : Xdawn instance
@@ -428,6 +429,12 @@ class Xdawn(TransformerMixin, ContainsMixin):
         exclude : array_like of int.
             The indices refering to columns in the ummixing matrix. The
             components to be zeroed out.
+
+        Returns
+        -------
+        out : dict of instance
+            A dict of instance (from the same type as inst input) for each
+            event type in event_id.
         """
         if event_id is None:
             event_id = self.event_id
