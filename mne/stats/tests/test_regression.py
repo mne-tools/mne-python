@@ -7,14 +7,14 @@ import os.path as op
 import warnings
 
 import numpy as np
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_equal, assert_array_almost_equal
 
 from nose.tools import assert_raises, assert_true, assert_equal
 
 import mne
 from mne import read_source_estimate
 from mne.datasets import testing
-from mne.stats.regression import linear_regression, regress_continuous
+from mne.stats.regression import linear_regression, linear_regression_raw
 
 data_path = testing.data_path(download=False)
 stc_fname = op.join(data_path, 'MEG', 'sample',
@@ -70,7 +70,7 @@ def test_regression():
 def test_continuous_regression():
     tmin, tmax = -.1, .5
 
-    raw = Raw(raw_fname, preload=True)
+    raw = mne.io.Raw(raw_fname, preload=True)
     events = mne.read_events(event_fname)
     event_id = dict(audio_l=1, audio_r=2)
 
@@ -79,9 +79,10 @@ def test_continuous_regression():
     epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                         baseline=None, reject=None)
 
-    revokeds = regress_continuous(raw, events, event_id,
-                                  tmin=tmin, tmax=tmax, reject=False)
+    revokeds = linear_regression_raw(raw, events, event_id,
+                                     tmin=tmin, tmax=tmax,
+                                     reject=False)
 
     for cond in event_id.keys():
-        assert_array_almost_equal(revokeds[cond].data*1e+15,
-                                  epochs[cond].average().data*1e+15)
+        assert_array_almost_equal(revokeds[cond].data * 1e+15,
+                                  epochs[cond].average().data * 1e+15)
