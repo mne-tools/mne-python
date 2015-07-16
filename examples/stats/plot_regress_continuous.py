@@ -3,14 +3,14 @@
 Regression on continuous data (rER[P/F])
 =========================================
 
-This demonstrates how rERPs/regressing the continuous data is a 
-generalisation of traditional averaging. If all preprocessing steps 
-are the same and if no overlap between epochs exists and if all 
-predictors are binary, regression is virtually identical to traditional 
+This demonstrates how rERPs/regressing the continuous data is a
+generalisation of traditional averaging. If all preprocessing steps
+are the same and if no overlap between epochs exists and if all
+predictors are binary, regression is virtually identical to traditional
 averaging.
 
-If overlap exists and/or predictors are continuous, traditional averaging 
-is inapplicable, but regression can be separate effects, including those of 
+If overlap exists and/or predictors are continuous, traditional averaging
+is inapplicable, but regression can be separate effects, including those of
 continuous predictors.
 
 References
@@ -51,11 +51,11 @@ tmin, tmax = -.1, .5
 raw.pick_types(meg=True)
 
 # regular epoching
-epochs = mne.Epochs(raw, events, event_id, tmin, tmax, 
+epochs = mne.Epochs(raw, events, event_id, tmin, tmax,
                     baseline=(-.1, .2), preload=True, verbose=False)
 
 # rERF
-evoked_dict = regress_continuous(raw, events=events, event_id=event_id, 
+evoked_dict = regress_continuous(raw, events=events, event_id=event_id,
                                  reject=False, tmin=tmin, tmax=tmax)
 
 # plot both results
@@ -67,6 +67,6 @@ evoked_dict[cond].plot()
 
 # check if results are virtually identical
 # (as they should be, in the case of no overlap)
-print("Are the two methods virtually identical? ", 
-      np.allclose(epochs[cond].average().data*1e+15, 
+print("Are the two methods virtually identical? ",
+      np.allclose(epochs[cond].average().data*1e+15,
                   evoked_dict[cond].data*1e+15))
