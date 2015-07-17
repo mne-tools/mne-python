@@ -7,7 +7,7 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_raises, assert_is_not_none
+from nose.tools import assert_raises
 from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs, pick_types
@@ -50,9 +50,9 @@ def test_linear_regressor():
     reg.fit(epochs_data, labels)
     
     # test patterns have been computed
-    assert_is_not_none(reg.patterns_)
+    assert reg.patterns_ is not None
     # test filters have been computed
-    assert_is_not_none(reg.filters_)
+    assert reg.filters_ is not None
 
     # test predict
     y = reg.predict(epochs_data)

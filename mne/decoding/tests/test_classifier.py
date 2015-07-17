@@ -7,7 +7,7 @@ import warnings
 import os.path as op
 import numpy as np
 
-from nose.tools import assert_true, assert_raises, assert_is_not_none
+from nose.tools import assert_raises
 from numpy.testing import assert_equal
 
 from mne import io, read_events, Epochs, pick_types
@@ -47,9 +47,9 @@ def test_linear_classifier():
     clf.fit(epochs_data, labels)
     
     # test patterns have been computed
-    assert_is_not_none(clf.patterns_)
+    assert clf.patterns_ is not None
     # test filters have been computed
-    assert_is_not_none(clf.filters_)
+    assert clf.filters_ is not None
     
     # test classifier without a coef_ attribute
     clf = LinearClassifier(RandomForestClassifier())
