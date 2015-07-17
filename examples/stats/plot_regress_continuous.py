@@ -16,8 +16,6 @@ See Smith, N. J., & Kutas, M. (2015). Regression-based estimation of ERP
 waveforms: II. Non-linear effects, overlap correction, and practical
 considerations. Psychophysiology, 52(2), 169-189.
 Authors: Jona Sassenhagen <jona.sassenhagen@gmail.de>
-         Marijn van Vliet <w.m.vanvliet@gmail.com>
-        Denis A. Engemann <denis.engemann@gmail.com>
 License: BSD (3-clause)
 """
 
