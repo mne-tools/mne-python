@@ -339,7 +339,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
         assert simulated.data.shape[0] == len(picks)
         assert simulated.data.shape[1] == len(stc_idxs)
 
-        raw_data = np.zeros((len(info['ch_names']), len(times)))  # XXX
+        raw_data = np.zeros((len(info['ch_names']), len(times)))
         raw_data[picks, time_slice] = simulated.data
 
         # Add ECG, Blink, and CHPI traces
