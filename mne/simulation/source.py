@@ -150,6 +150,7 @@ def simulate_sparse_stc(src, n_dipoles, times, data_fun=np.sin,
         data[i_dip, :] = data_fun(np.linspace(-np.pi * rnd[i_dip],
                                               np.pi * rnd[i_dip],
                                               len(times)))  # XXX
+    data *= 1e-9  # XXX do it in a function like simulate_data
 
     if labels is None:
         n_dipoles_lh = n_dipoles // 2

@@ -32,7 +32,7 @@ from mne.simulation import simulate_noise_evoked
 
 
 @verbose
-def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
+def simulate_raw(info, stc, trans, src, bem, times, cov='simple',
                  blink=False, ecg=False, chpi=False, head_pos=None,
                  mindist=1.0, interp='linear', n_jobs=1, random_state=None,
                  verbose=None):
@@ -40,7 +40,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
 
     Parameters
     ----------
-    info_template : instance of mne.io.meas_info.Info | str
+    info : instance of mne.io.meas_info.Info | str
         If str, then it should be a filename to a Raw, Epochs, or Evoked
         file with measurement information. If dict, should be an info
         dict (such as one from Raw, Epochs, or Evoked).
@@ -107,7 +107,7 @@ def simulate_raw(info_template, stc, trans, src, bem, times, cov='simple',
     covariance, and the amplitudes of the SourceEstimate. Note that this
     will vary as a function of position.
     """
-    info = deepcopy(info_template)
+    info = deepcopy(info)
 
     # Check for common flag errors and try to override
     if not isinstance(stc, _BaseSourceEstimate):
