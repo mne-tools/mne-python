@@ -98,11 +98,11 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         if not op.exists('parameter_maps'):
             os.mkdir("parameter_maps")
         logger.info("--- Converting Flash 5")
-        cmd = ['mri_convert', '-flip_angle', (5 * math.pi / 180), '-tr 25',
+        cmd = ['mri_convert', '-flip_angle', str(5 * math.pi / 180), '-tr 25',
                flash05, 'mef05.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
         logger.info("--- Converting Flash 30")
-        cmd = ['mri_convert', '-flip_angle', (30 * math.pi / 180), '-tr 25',
+        cmd = ['mri_convert', '-flip_angle', str(30 * math.pi / 180), '-tr 25',
                flash30, 'mef30.mgz']
         run_subprocess(cmd, env=env, stdout=sys.stdout)
     #
@@ -113,7 +113,7 @@ def make_flash_bem(subject, subjects_dir, flash05, flash30, noconvert=False,
         for infile in files:
             outfile = infile.replace(".mgz", "u.mgz")
             cmd = ['grad_unwarp', '-i', infile, '-o', outfile, '-unwarp',
-                   unwarp]
+                   'true']
             run_subprocess(cmd, env=env, stdout=sys.stdout)
     # Step 2 : Create the parameter maps
     # (Clear everything if some of the data were reconverted)
