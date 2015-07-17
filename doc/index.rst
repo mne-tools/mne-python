@@ -89,6 +89,7 @@ under Award Number DE-FG02-99ER62764 to The MIND Institute.
    tutorials
    auto_examples/index
    manual
+   generated/commands
    faq.rst
    python_reference.rst
    advanced_setup.rst
