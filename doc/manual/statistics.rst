@@ -58,3 +58,30 @@ More flexible handling of the MCPP can be achieved by non-parametric statistics.
 
 Non-paramteric statistics
 -------------------------
+
+Permutation clustering
+^^^^^^^^^^^^^^^^^^^^^^
+
+As MEG and EEG data are subject to considerable spatiotemporal correlation
+the assumption of independence between observations is hard to justify.
+As a consequence the MCPP is overestimated when employing paramteric
+mass-univariate statistics. A flexble alternative is given by non-parametric
+permutation clustering statistics which implement a spatiotemporal priors
+and typically allow for clusterwise inference.
+These tests can be applied over a wide range of situations inclduing single subject and group analyses
+in time, space and frequency. The only requirement is that the scientific hypothesis can be mapped
+onto an exchangeability nullhypothesis in which two or more conditions can be compared and exchanged
+across permutations to generate an empirical distribution.
+
+The clustering permutation API in MNE-Python is grouped according to different contrasts of interest
+and clustering connectivity prior, i.e., assumptions about the grouping and neighborhood of the observations.
+
+- :func:`mne.stats.permutation_cluster_1samp_test` supports paired contrasts without spatial prior.
+
+- :func:`mne.stats.permutation_cluster_test` supports F-contrasts without spatial prior.
+
+- :func:`mne.stats.spatio_temporal_permutation_cluster_1samp_test` supports paired contrasts with spatial prior.
+
+- :func:`mne.stats.spatio_temporal_permutation_cluster_test` supports F-contrasts with spatial prior.
+
+Using the TFCE option observation- instead of cluster-wise hypothesis testing can be realized.
