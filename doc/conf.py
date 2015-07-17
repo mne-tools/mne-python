@@ -39,8 +39,10 @@ extensions = ['sphinx.ext.autodoc',
               'sphinx.ext.pngmath',
               'sphinx.ext.mathjax',
               'numpy_ext.numpydoc',
+            #   'sphinx.ext.intersphinx',
               # 'flow_diagram',
               'sphinxgallery.gen_gallery']
+
 autosummary_generate = True
 
 autodoc_default_flags = ['inherited-members']

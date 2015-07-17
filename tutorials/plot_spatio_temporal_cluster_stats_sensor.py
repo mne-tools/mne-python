@@ -80,9 +80,9 @@ plt.title('Between-sensor adjacency')
 # array at different times. This reduces the multiple comparison problem.
 # To compute the actual test-statistic, we first sum all F-values in all
 # clusters. We end up with one statistic for each cluster.
-# Then we genereate a distribution from the data by shuffling our conditions
+# Then we generate a distribution from the data by shuffling our conditions
 # between our samples and recomputing our clusters and the test statistics.
-# We test for the signficance of a given cluster by computing the probability
+# We test for the significance of a given cluster by computing the probability
 # of observing a cluster of that size. For more background read:
 # Maris/Oostenveld (2007), "Nonparametric statistical testing of EEG- and
 # MEG-data" Journal of Neuroscience Methods, Vol. 164, No. 1., pp. 177-190.
